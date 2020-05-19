@@ -15,7 +15,7 @@ import (
 const (
 	LocalChunkInfoKey = "local-chunk-info"
 	ChunkNameSpace    = "chunk"
-	AlphaValue        = 3
+	AlphaValue        = 1
 	Backup            = 20
 )
 
@@ -26,12 +26,6 @@ type LocalChunkInfo struct {
 
 // 保存chunk到本地p2pStore，同时更新本地chunk列表
 func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBodys) error {
-	//先检查数据是不是正在保存
-	if _, ok := p.saving.LoadOrStore(hex.EncodeToString(info.ChunkHash), nil); ok {
-		return nil
-	}
-	defer p.saving.Delete(hex.EncodeToString(info.ChunkHash))
-
 	err := p.addLocalChunkInfo(info)
 	if err != nil {
 		return err

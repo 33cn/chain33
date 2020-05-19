@@ -23,7 +23,6 @@ var log = log15.New("module", "protocol.p2pstore")
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
-	saving              sync.Map
 	notifying           sync.Map
 	healthyRoutingTable *kb.RoutingTable
 	localChunkInfo      map[string]LocalChunkInfo
@@ -62,22 +61,17 @@ func InitProtocol(env *protocol.P2PEnv) {
 }
 
 func (p *Protocol) HandleStreamFetchChunk(stream network.Stream) {
+	defer stream.Close()
 	var res types.P2PResponse
 	defer func() {
 		_, err := stream.Write(types.Encode(&res))
 		if err != nil {
 			log.Error("HandleStreamFetchChunk", "write stream error", err)
-			return
 		}
-		_ = stream.Close()
 	}()
 	var req types.P2PRequest
-	if err := protocol.ReadStream(&req, stream); err != nil {
+	if err := protocol.ReadStreamAndAuthenticate(&req, stream); err != nil {
 		log.Error("HandleStreamFetchChunk", "read stream error", err)
-		return
-	}
-	if !protocol.AuthenticateMessage(&req, stream) {
-		log.Error("HandleStreamFetchChunk authenticateMessage failed")
 		return
 	}
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
@@ -92,12 +86,14 @@ func (p *Protocol) HandleStreamFetchChunk(stream network.Stream) {
 	}
 
 	//本地没有数据
-	peers := p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup)
+	peers := p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
+	//如果本节点是最近的Alpha个节点之一，说明迭代到了全网最近的Alpha个节点，返回全网最近的Backup个节点
+	if len(peers) == AlphaValue && kb.Closer(p.Host.ID(), peers[AlphaValue-1], genChunkPath(param.ChunkHash)) {
+		peers = p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup)
+	}
+
 	var addrInfos []peer.AddrInfo
 	for _, pid := range peers {
-		if kb.Closer(p.Host.ID(), pid, genChunkPath(param.ChunkHash)) {
-			continue
-		}
 		addrInfos = append(addrInfos, p.Host.Peerstore().PeerInfo(pid))
 	}
 
@@ -118,10 +114,6 @@ func (p *Protocol) HandleStreamFetchChunk(stream network.Stream) {
 func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.Stream) {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	chunkHashHex := hex.EncodeToString(param.ChunkHash)
-	//该chunk正在保存
-	if _, ok := p.saving.Load(chunkHashHex); ok {
-		return
-	}
 	//已有其他节点通知该节点保存该chunk，正在网络中查找数据, 避免接收到多个节点的通知后重复查询数据
 	if _, ok := p.notifying.LoadOrStore(chunkHashHex, nil); ok {
 		return
@@ -199,17 +191,17 @@ func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 }
 
 //HandleEventNotifyStoreChunk handles notification of blockchain,
-// store chunk if this node is the nearest *BackUp* node in the local routing table.
+// store chunk if this node is the nearest *count* node in the local routing table.
 func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ChunkInfoMsg)
 	//如果本节点是本地路由表中距离该chunk最近的 *count* 个节点之一，则保存数据；否则不需要保存数据
-	count := Backup / 2
+	count := 1
 	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), count)
 	if len(peers) == count && kb.Closer(peers[count-1], p.Host.ID(), genChunkPath(req.ChunkHash)) {
 		return
 	}
-	err := p.storeChunk(req)
+	err := p.checkAndStoreChunk(req)
 	if err != nil {
 		log.Error("StoreChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return

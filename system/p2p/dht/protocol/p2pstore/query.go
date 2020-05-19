@@ -142,9 +142,9 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, e
 	//保存查询过的节点，防止重复查询
 	searchedPeers := make(map[peer.ID]struct{})
 	searchedPeers[p.Host.ID()] = struct{}{}
-	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup)
+	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
 	for len(peers) != 0 {
-		newPeers := make([]peer.ID, 0, Backup)
+		var newPeers []peer.ID
 		for _, pid := range peers {
 			searchedPeers[pid] = struct{}{}
 			bodys, nearerPeers, err := p.fetchChunkOrNearerPeers(ctx, req, pid)
@@ -155,13 +155,16 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, e
 			if bodys != nil {
 				return bodys, nil
 			}
-			for _, nearerPeer := range nearerPeers {
-				if _, ok := searchedPeers[nearerPeer]; !ok {
-					newPeers = append(newPeers, nearerPeer)
-				}
+			newPeers = append(newPeers, nearerPeers...)
+		}
+
+		peers = nil
+		for _, newPeer := range newPeers {
+			//已经查询过的节点就不再查询
+			if _, ok := searchedPeers[newPeer]; !ok {
+				peers = append(peers, newPeer)
 			}
 		}
-		peers = newPeers
 	}
 	return nil, types2.ErrNotFound
 }
@@ -232,40 +235,45 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 	return nil, nil, errors.New(res.Error)
 }
 
-func (p *Protocol) checkLastChunk(in *types.ChunkInfoMsg) {
+// 检查网络中是否能查到前一个chunk，最多往前查10个chunk，返回未保存的chunkInfo
+func (p *Protocol) checkHistoryChunk(in *types.ChunkInfoMsg) []*types.ChunkInfoMsg {
 	l := in.End - in.Start + 1
 	req := &types.ReqChunkRecords{
-		Start: in.Start/l - 1,
-		End:   in.End/l - 1,
+		Start: in.Start/l - 10,
+		End:   in.Start/l - 1,
+	}
+	if req.End < 0 {
+		return nil
 	}
 	if req.Start < 0 {
-		return
+		req.Start = 0
 	}
 	records, err := p.getChunkRecordFromBlockchain(req)
-	if err != nil || len(records.Infos) != 1 {
-		log.Error("checkLastChunk", "getChunkRecordFromBlockchain error", err, "start", req.Start, "end", req.End, "records", records)
-		return
+	if err != nil || records == nil {
+		log.Error("checkHistoryChunk", "getChunkRecordFromBlockchain error", err, "start", req.Start, "end", req.End, "records", records)
+		return nil
 	}
-	info := &types.ChunkInfoMsg{
-		ChunkHash: records.Infos[0].ChunkHash,
-		Start:     records.Infos[0].Start,
-		End:       records.Infos[0].End,
+
+	var res []*types.ChunkInfoMsg
+	for i := len(records.Infos) - 1; i >= 0; i-- {
+		info := &types.ChunkInfoMsg{
+			ChunkHash: records.Infos[i].ChunkHash,
+			Start:     records.Infos[i].Start,
+			End:       records.Infos[i].End,
+		}
+		bodys, err := p.getChunk(info)
+		if err == nil && bodys != nil && len(bodys.Items) == int(l) {
+			break
+		}
+		//网络中找不到上一个chunk,先把上一个chunk保存到本地p2pstore
+		log.Debug("checkHistoryChunk", "chunk num", info.Start, "chunk hash", hex.EncodeToString(info.ChunkHash))
+		res = append(res, info)
 	}
-	bodys, err := p.getChunk(info)
-	if err == nil && bodys != nil && len(bodys.Items) == int(l) {
-		return
-	}
-	//网络中找不到上一个chunk,先把上一个chunk保存到本地p2pstore
-	log.Debug("checkLastChunk", "chunk num", info.Start, "chunk hash", hex.EncodeToString(info.ChunkHash))
-	err = p.storeChunk(info)
-	if err != nil {
-		log.Error("checkLastChunk", "chunk hash", hex.EncodeToString(info.ChunkHash), "start", info.Start, "end", info.End, "error", err)
-	}
+	return res
 }
 
 func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
-	//先检查上个chunk是否可以在网络中查到
-	p.checkLastChunk(req)
+
 	//如果p2pStore已保存数据，只更新时间即可
 	if err := p.updateChunk(req); err == nil {
 		return nil
@@ -273,18 +281,28 @@ func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
 	//blockchain通知p2pStore保存数据，则blockchain应该有数据
 	bodys, err := p.getChunkFromBlockchain(req)
 	if err != nil {
-		log.Error("StoreChunk", "getChunkFromBlockchain error", err)
 		return err
 	}
 	err = p.addChunkBlock(req, bodys)
 	if err != nil {
-		log.Error("StoreChunk", "addChunkBlock error", err)
 		return err
 	}
 
 	//本地存储之后立即到其他节点做一次备份
 	p.notifyStoreChunk(req)
+
 	return nil
+}
+
+func (p *Protocol) checkAndStoreChunk(req *types.ChunkInfoMsg) error {
+	//先检查之前的chunk是否可以在网络中查到
+	infos := p.checkHistoryChunk(req)
+	for _, info := range infos {
+		if err := p.storeChunk(info); err != nil {
+			log.Error("checkAndStoreChunk", "store chunk error", err)
+		}
+	}
+	return p.storeChunk(req)
 }
 
 func (p *Protocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*types.BlockBodys, error) {
