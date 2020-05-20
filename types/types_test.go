@@ -623,3 +623,34 @@ func getRealBlockDetail() *BlockDetail {
 	}
 	return &block
 }
+
+func BenchmarkBytes2Str(b *testing.B) {
+	if testing.Short() {
+		b.Skip("skipping in short mode.")
+	}
+	buf := []byte{1, 2, 4, 8, 16, 32, 64, 128}
+	s := ""
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		//s = string(buf)
+		s = Bytes2Str(buf)
+	}
+	assert.Equal(b, string(buf), s)
+}
+
+func BenchmarkStr2Bytes(b *testing.B) {
+	if testing.Short() {
+		b.Skip("skipping in short mode.")
+	}
+	s := "BenchmarkStr2Bytes"
+	var buf []byte
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		//buf = []byte(s)
+		buf = Str2Bytes(s)
+	}
+	assert.Equal(b, []byte(s), buf)
+}

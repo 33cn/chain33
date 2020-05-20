@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -656,4 +657,16 @@ func cloneKVList(b []*KeyValue) []*KeyValue {
 		kv[i] = b[i].Clone()
 	}
 	return kv
+}
+
+// Bytes2Str 高效字节数组转字符串, 转换后避免继续修改原始byte数组
+func Bytes2Str(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+// Str2Bytes 高效字符串转字节数组, 转换后禁止修改byte数组
+func Str2Bytes(s string) []byte {
+	x := (*[2]uintptr)(unsafe.Pointer(&s))
+	h := [3]uintptr{x[0], x[1], x[1]}
+	return *(*[]byte)(unsafe.Pointer(&h))
 }
