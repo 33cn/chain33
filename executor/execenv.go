@@ -33,7 +33,12 @@ type executor struct {
 	gcli       types.Chain33Client
 	execapi    api.ExecutorAPI
 	receipts   []*types.ReceiptData
-	execCache  map[string]drivers.Driver
+	//执行器缓存
+	driverCache map[string]drivers.Driver
+	//记录当前交易的执行driver，避免多次load
+	currTxIdx  int
+	currDriver drivers.Driver
+	cfg        *types.Chain33Config
 }
 
 type executorCtx struct {
@@ -48,13 +53,15 @@ type executorCtx struct {
 
 func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
 	client := exec.client
+	types.AssertConfig(client)
+	cfg := client.GetConfig()
 	enableMVCC := exec.pluginEnable["mvcc"]
 	opt := &StateDBOption{EnableMVCC: enableMVCC, Height: ctx.height}
-	types.AssertConfig(client)
+
 	e := &executor{
 		stateDB:      NewStateDB(client, ctx.stateHash, localdb, opt),
 		localDB:      localdb,
-		coinsAccount: account.NewCoinsAccount(client.GetConfig()),
+		coinsAccount: account.NewCoinsAccount(cfg),
 		height:       ctx.height,
 		blocktime:    ctx.blocktime,
 		difficulty:   ctx.difficulty,
@@ -63,7 +70,10 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 		receipts:     receipts,
 		api:          exec.qclient,
 		gcli:         exec.grpccli,
-		execCache:    make(map[string]drivers.Driver),
+		driverCache:  make(map[string]drivers.Driver),
+		currTxIdx:    -1 << 7,
+		currDriver:   nil,
+		cfg:          cfg,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -136,13 +146,12 @@ func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
 }
 
 func (e *executor) checkTx(tx *types.Transaction, index int) error {
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(cfg, e.height, e.blocktime) {
+
+	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.cfg, e.height, e.blocktime) {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(e.api.GetConfig(), e.height, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee()); err != nil {
+	if err := tx.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee()); err != nil {
 		return err
 	}
 	//允许重写的情况
@@ -167,13 +176,12 @@ func (e *executor) setEnv(exec drivers.Driver) {
 }
 
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	if e.height > 0 && e.blocktime > 0 && txgroup.IsExpire(cfg, e.height, e.blocktime) {
+
+	if e.height > 0 && e.blocktime > 0 && txgroup.IsExpire(e.cfg, e.height, e.blocktime) {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(cfg, e.height, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee()); err != nil {
+	if err := txgroup.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee()); err != nil {
 		return err
 	}
 	return nil
@@ -192,20 +200,18 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//checkInExec
 	exec := e.loadDriver(tx, index)
 	//手续费检查
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	if !exec.IsFree() && cfg.GetMinTxFeeRate() > 0 {
+	if !exec.IsFree() && e.cfg.GetMinTxFeeRate() > 0 {
 		from := tx.From()
 		accFrom := e.coinsAccount.LoadAccount(from)
 
 		//余额少于手续费时直接返回错误
 		if accFrom.GetBalance() < tx.GetTxFee() {
-			elog.Error("execCheckTx", "ispara", cfg.IsPara(), "exec", string(tx.Execer), "Balance", accFrom.GetBalance(), "TxFee", tx.GetTxFee())
+			elog.Error("execCheckTx", "ispara", e.cfg.IsPara(), "exec", string(tx.Execer), "Balance", accFrom.GetBalance(), "TxFee", tx.GetTxFee())
 			return types.ErrNoBalance
 		}
 
-		if accFrom.GetBalance() < cfg.GInt("MinBalanceTransfer") {
-			elog.Error("execCheckTx", "ispara", cfg.IsPara(), "exec", string(tx.Execer), "nonce", tx.Nonce, "Balance", accFrom.GetBalance())
+		if accFrom.GetBalance() < e.cfg.GInt("MinBalanceTransfer") {
+			elog.Error("execCheckTx", "ispara", e.cfg.IsPara(), "exec", string(tx.Execer), "nonce", tx.Nonce, "Balance", accFrom.GetBalance())
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 
@@ -217,13 +223,10 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriver(tx, index)
 	//to 必须是一个地址
-	types.AssertConfig(e.api)
-	if err := drivers.CheckAddress(e.api.GetConfig(), tx.GetRealToAddr(), e.height); err != nil {
+	if err := drivers.CheckAddress(e.cfg, tx.GetRealToAddr(), e.height); err != nil {
 		return nil, err
 	}
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	if e.localDB != nil && cfg.IsFork(e.height, "ForkLocalDBAccess") {
+	if e.localDB != nil && e.cfg.IsFork(e.height, "ForkLocalDBAccess") {
 		e.localDB.(*LocalDB).DisableWrite()
 		if exec.ExecutorOrder() != drivers.ExecLocalSameTime {
 			e.localDB.(*LocalDB).DisableRead()
@@ -254,31 +257,41 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	if cfg.IsFork(e.height, "ForkCacheDriver") {
-		return e.loadDriverNoCache(tx, index)
-	}
-	return e.loadDriverWithCache(tx, index)
-}
 
-func (e *executor) loadDriverNoCache(tx *types.Transaction, index int) (c drivers.Driver) {
-	exec := drivers.LoadDriverAllow(e.api, tx, index, e.height)
-	e.setEnv(exec)
-	return exec
-}
-
-// cache exec name bug: 部分执行是否可以执行依赖于合约里的具体操作， 而不是只依赖执行器名字
-func (e *executor) loadDriverWithCache(tx *types.Transaction, index int) (c drivers.Driver) {
-	ename := string(tx.Execer)
-	exec, ok := e.execCache[ename]
-	if ok {
-		return exec
+	if e.currTxIdx == index {
+		return e.currDriver
 	}
-	exec = drivers.LoadDriverAllow(e.api, tx, index, e.height)
-	e.setEnv(exec)
-	e.execCache[ename] = exec
-	return exec
+	var err error
+	name := types.Bytes2Str(tx.Execer)
+	driver, ok := e.driverCache[name]
+
+	if !ok {
+		driver, err = drivers.LoadDriverWithClient(e.api, name, e.height)
+		if err == nil {
+			//添加进缓存
+			e.driverCache[name] = driver
+		}
+	}
+
+	// LoadDriver出错 或者 ForkCacheDriver之后执行器Allow方法未通过时，使用none合约
+	if err != nil || (e.cfg.IsFork(e.height, "ForkCacheDriver") && driver.Allow(tx, index) != nil) {
+		driver, ok = e.driverCache["none"]
+		if !ok {
+			driver, err = drivers.LoadDriverWithClient(e.api, "none", 0)
+			if err != nil {
+				panic(err)
+			}
+			e.driverCache["none"] = driver
+		}
+	} else {
+		driver.SetEnv(e.height, 0, 0)
+		driver.SetName(types.Bytes2Str(types.GetRealExecName(tx.Execer)))
+		driver.SetCurrentExecName(name)
+	}
+	e.setEnv(driver)
+	e.currTxIdx = index
+	e.currDriver = driver
+	return driver
 }
 
 func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Receipt, error) {
@@ -291,8 +304,6 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 	if err != nil {
 		return nil, err
 	}
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
 	//开启内存事务处理，假设系统只有一个thread 执行
 	//如果系统执行失败，回滚到这个状态
 	rollbackLog := copyReceipt(feelog)
@@ -308,7 +319,7 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 			return nil, err
 		}
 		//状态数据库回滚
-		if cfg.IsFork(e.height, "ForkExecRollback") {
+		if e.cfg.IsFork(e.height, "ForkExecRollback") {
 			e.rollback()
 		}
 		return receipts, nil
@@ -325,7 +336,7 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 				receipts[k] = &types.Receipt{Ty: types.ExecPack}
 			}
 			//撤销txs[0]的交易
-			if cfg.IsFork(e.height, "ForkResetTx0") {
+			if e.cfg.IsFork(e.height, "ForkResetTx0") {
 				receipts[0] = rollbackLog
 			}
 			//撤销所有的数据库更新
@@ -369,9 +380,7 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 	}
 	var err error
 	//公链不允许手续费为0
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	if !cfg.IsPara() && cfg.GetMinTxFeeRate() > 0 && !ex.IsFree() {
+	if !e.cfg.IsPara() && e.cfg.GetMinTxFeeRate() > 0 && !ex.IsFree() {
 		feelog, err = e.processFee(tx)
 		if err != nil {
 			return nil, err
@@ -428,9 +437,7 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 		feelog.Logs = append(feelog.Logs, receipt.Logs...)
 		feelog.Ty = receipt.Ty
 	}
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	if cfg.IsFork(e.height, "ForkStateDBSet") {
+	if e.cfg.IsFork(e.height, "ForkStateDBSet") {
 		for _, v := range feelog.KV {
 			if err := e.stateDB.Set(v.Key, v.Value); err != nil {
 				panic(err)
@@ -472,10 +479,7 @@ func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, i
 }
 
 func (e *executor) begin() {
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	matchfork := cfg.IsFork(e.height, "ForkExecRollback")
-	if matchfork {
+	if e.cfg.IsFork(e.height, "ForkExecRollback") {
 		if e.stateDB != nil {
 			e.stateDB.Begin()
 		}
@@ -486,10 +490,7 @@ func (e *executor) begin() {
 }
 
 func (e *executor) commit() error {
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	matchfork := cfg.IsFork(e.height, "ForkExecRollback")
-	if matchfork {
+	if e.cfg.IsFork(e.height, "ForkExecRollback") {
 		if e.stateDB != nil {
 			if err := e.stateDB.Commit(); err != nil {
 				return err
@@ -514,10 +515,7 @@ func (e *executor) startTx() {
 }
 
 func (e *executor) rollback() {
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
-	matchfork := cfg.IsFork(e.height, "ForkExecRollback")
-	if matchfork {
+	if e.cfg.IsFork(e.height, "ForkExecRollback") {
 		if e.stateDB != nil {
 			e.stateDB.Rollback()
 		}
@@ -544,9 +542,7 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	err := e.checkTx(tx, index)
 	if err != nil {
 		elog.Error("execTx.checkTx ", "txhash", common.ToHex(tx.Hash()), "err", err)
-		types.AssertConfig(e.api)
-		cfg := e.api.GetConfig()
-		if cfg.IsPara() {
+		if e.cfg.IsPara() {
 			panic(err)
 		}
 		return nil, err
@@ -596,10 +592,8 @@ func (e *executor) isExecLocalSameTime(tx *types.Transaction, index int) bool {
 }
 
 func (e *executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
-	types.AssertConfig(e.api)
-	cfg := e.api.GetConfig()
 	for i := 0; i < len(kvs); i++ {
-		err := isAllowLocalKey(cfg, execer, kvs[i].Key)
+		err := isAllowLocalKey(e.cfg, execer, kvs[i].Key)
 		if err != nil {
 			//测试的情况下，先panic，实际情况下会删除返回错误
 			panic(err)

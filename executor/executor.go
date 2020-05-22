@@ -321,9 +321,7 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 			continue
 		}
 		//所有tx.GroupCount > 0 的交易都是错误的交易
-		types.AssertConfig(exec.client)
-		cfg := exec.client.GetConfig()
-		if !cfg.IsFork(datas.Height, "ForkTxGroup") {
+		if !execute.cfg.IsFork(datas.Height, "ForkTxGroup") {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupNotSupport))
 			continue
 		}
