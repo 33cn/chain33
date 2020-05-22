@@ -1,8 +1,9 @@
 package peer
 
 import (
-	"github.com/33cn/chain33/system/p2p/dht/net"
 	"time"
+
+	"github.com/33cn/chain33/system/p2p/dht/net"
 
 	l "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/queue"
