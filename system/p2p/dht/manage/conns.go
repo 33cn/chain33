@@ -1,6 +1,7 @@
 package manage
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -101,32 +102,26 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 				}
 
 			}
-			log.Info(LatencyInfo)
+			log.Debug(LatencyInfo)
 			insize, outsize := s.BoundSize()
 			trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.pstore.Peers()), ",conn num:", insize+outsize, "inbound num", insize, "outbound num", outsize,
 				"dht size", s.discovery.RoutingTableSize())
 			trackerInfo += fmt.Sprintln("-------------------------------------")
-			log.Info(trackerInfo)
+			log.Debug(trackerInfo)
 
 		case <-time.After(time.Minute * 10):
 			//处理当前连接的节点问题
-
-			if s.OutboundSize() <= MaxOutBounds {
+			if s.OutboundSize() > MaxOutBounds || s.Size() > MaxBounds {
 				continue
 			}
-			nearestPeers := s.convertArrToMap(s.FetchNearestPeers())
-			//close from seed
-			for _, pid := range s.OutBounds() {
-				if _, ok := bootstraps[pid.Pretty()]; ok {
-					// 判断是否是最近nearest的30个节点
-					if _, ok := nearestPeers[pid.Pretty()]; !ok {
-						s.host.Network().ClosePeer(pid)
-						if s.OutboundSize() <= MinBounds {
-							break
-						}
-					}
+			//如果连接的节点数较少，尝试连接内置的和配置的种子节点
+			//无须担心重新连接的问题，底层会自己判断是否已经连接了此节点，如果已经连接了就会忽略
+			for _, seed := range net.ConvertPeers(seeds) {
+				s.host.Connect(context.Background(), *seed)
+			}
 
-				}
+			for _, node := range bootstraps {
+				s.host.Connect(context.Background(), *node)
 			}
 
 		case <-s.Done:
@@ -175,8 +170,8 @@ func (s *ConnManager) FetchConnPeers() []peer.ID {
 		if _, ok := peers[peer.Pretty()]; !ok {
 			peers[peer.Pretty()] = peer
 		}
-		if len(peers) >= MaxOutBounds {
-			break
+		if len(peers) >= MaxBounds {
+			return s.convertMapToArr(peers)
 		}
 	}
 
@@ -186,6 +181,7 @@ func (s *ConnManager) FetchConnPeers() []peer.ID {
 		if len(peers) >= MaxBounds {
 			break
 		}
+
 	}
 
 	return s.convertMapToArr(peers)

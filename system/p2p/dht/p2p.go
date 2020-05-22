@@ -34,7 +34,7 @@ import (
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
-var log = logger.New("module", "p2pnext")
+var log = logger.New("module", p2pty.DHTTypeName)
 
 func init() {
 	p2p.RegisterP2PCreate(p2pty.DHTTypeName, New)
@@ -51,14 +51,14 @@ type P2P struct {
 	client        queue.Client
 	addrbook      *AddrBook
 	taskGroup     *sync.WaitGroup
-
-	closed  int32
-	p2pCfg  *types.P2P
-	subCfg  *p2pty.P2PSubConfig
-	mgr     *p2p.Manager
-	subChan chan interface{}
-	ctx     context.Context
-	cancel  context.CancelFunc
+	pubsub        *net.PubSub
+	closed        int32
+	p2pCfg        *types.P2P
+	subCfg        *p2pty.P2PSubConfig
+	mgr           *p2p.Manager
+	subChan       chan interface{}
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
 // New new dht p2p network
@@ -101,10 +101,15 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
 	p2p.discovery = net.InitDhtDiscovery(p2p.ctx, p2p.host, p2p.addrbook.AddrsInfo(), p2p.chainCfg, p2p.subCfg)
 	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker, p2p.subCfg)
+
+	pubsub, err := net.NewPubSub(p2p.ctx, p2p.host)
+	if err != nil {
+		return nil
+	}
+
+	p2p.pubsub = pubsub
 	p2p.addrbook.StoreHostID(p2p.host.ID(), p2pCfg.DbPath)
-
 	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
-
 	return p2p
 }
 
@@ -113,19 +118,15 @@ func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker m
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
-	var maxconnect = 0
-	if cfg.MaxConnectNum <= 0 {
-		maxconnect = 100
-	}
 
 	var relayOpt = make([]circuit.RelayOpt, 3)
-	if cfg.Relay_Active {
+	if cfg.RelayActive {
 		relayOpt = append(relayOpt, circuit.OptActive)
 	}
-	if cfg.Relay_Hop {
+	if cfg.RelayHop {
 		relayOpt = append(relayOpt, circuit.OptHop)
 	}
-	if cfg.Relay_Discovery {
+	if cfg.RelayDiscovery {
 		relayOpt = append(relayOpt, circuit.OptDiscovery)
 	}
 
@@ -146,7 +147,10 @@ func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker m
 		options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
 	}
 
-	options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect*3/4, maxconnect, 0)))
+	if cfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
+		var maxconnect = int(cfg.MaxConnectNum)
+		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect*3/4, maxconnect, 0)))
+	}
 
 	host, err := libp2p.New(context.Background(), options...)
 	if err != nil {
@@ -182,10 +186,11 @@ func (p *P2P) StartP2P() {
 		QueueClient:     p.client,
 		Host:            p.host,
 		ConnManager:     p.connManag,
-		Discovery:       p.discovery,
 		PeerInfoManager: p.peerInfoManag,
 		P2PManager:      p.mgr,
 		SubConfig:       p.subCfg,
+		Discovery:       p.discovery,
+		Pubsub:          p.pubsub,
 		Ctx:             p.ctx,
 		Cancel:          p.cancel,
 	}

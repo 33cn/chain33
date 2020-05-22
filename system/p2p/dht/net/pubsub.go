@@ -42,6 +42,8 @@ type SubMsg struct {
 	From  string
 }
 
+type subCallBack func(msg *SubMsg)
+
 func NewPubSub(ctx context.Context, host host.Host) (*PubSub, error) {
 	p := &PubSub{
 		ps:     nil,
@@ -69,7 +71,7 @@ func (p *PubSub) HasTopic(topic string) bool {
 }
 
 //加入topic&subTopic
-func (p *PubSub) JoinTopicAndSubTopic(topic string, mchan chan interface{}, opts ...pubsub.TopicOpt) error {
+func (p *PubSub) JoinTopicAndSubTopic(topic string, callback subCallBack, opts ...pubsub.TopicOpt) error {
 	//先检查有没有订阅该topic
 	if p.HasTopic(topic) {
 		return nil
@@ -95,7 +97,7 @@ func (p *PubSub) JoinTopicAndSubTopic(topic string, mchan chan interface{}, opts
 		sub:      subscription,
 	}
 	p.topicMutex.Unlock()
-	go p.subTopic(ctx, subscription, mchan)
+	p.subTopic(ctx, subscription, callback)
 	return nil
 }
 
@@ -117,22 +119,24 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 	return nil
 }
 
-func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, msg chan interface{}) {
+func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, callback subCallBack) {
 
-	for {
-		topic := sub.Topic()
-		got, err := sub.Next(ctx)
-		if err != nil {
-			log.Error("SubMsg", "topic msg err", err, "topic", topic)
-			return
+	go func() {
+		for {
+			topic := sub.Topic()
+			got, err := sub.Next(ctx)
+			if err != nil {
+				log.Error("SubMsg", "topic msg err", err, "topic", topic)
+				return
+			}
+			log.Debug("SubMsg", "readData size", len(got.GetData()), "from", got.GetFrom().String(), "topic", topic)
+			var data SubMsg
+			data.Data = got.GetData()
+			data.Topic = topic
+			data.From = got.GetFrom().String()
+			callback(&data)
 		}
-		log.Info("SubMsg", "readData size", len(got.GetData()))
-		var data SubMsg
-		data.Data = got.GetData()
-		data.Topic = topic
-		data.From = got.GetFrom().String()
-		msg <- data
-	}
+	}()
 
 }
 
@@ -150,10 +154,8 @@ func (p *PubSub) RemoveTopic(topic string) {
 		if err != nil {
 			log.Error("RemoveTopic", "topic", err)
 		}
-
+		delete(p.topics, topic)
 	}
-
-	delete(p.topics, topic)
 
 }
 

@@ -288,25 +288,25 @@ func testRelay(t *testing.T) {
 
 	var subcfg p2pty.P2PSubConfig
 	subcfg.Port = 12345
-	subcfg.Relay_Discovery = true
-	subcfg.Relay_Active = false
-	subcfg.Relay_Hop = false
+	subcfg.RelayDiscovery = true
+	subcfg.RelayActive = false
+	subcfg.RelayHop = false
 	h1 := newHost(&subcfg, prvKey1, nil, nil)
 
 	//--------------------------------
 	var subcfg2 p2pty.P2PSubConfig
 	subcfg2.Port = 12346
-	subcfg2.Relay_Hop = true //接收中继客户端的请求，proxy 作为中继节点必须配置此选项
-	subcfg2.Relay_Discovery = false
-	subcfg2.Relay_Active = false
+	subcfg2.RelayHop = true //接收中继客户端的请求，proxy 作为中继节点必须配置此选项
+	subcfg2.RelayDiscovery = false
+	subcfg2.RelayActive = false
 	h2 := newHost(&subcfg2, prvKey2, nil, nil)
 
 	//----------------------------------
 	var subcfg3 p2pty.P2PSubConfig
 	subcfg3.Port = 12347
-	subcfg3.Relay_Active = false
-	subcfg3.Relay_Discovery = false
-	subcfg3.Relay_Hop = true
+	subcfg3.RelayActive = false
+	subcfg3.RelayDiscovery = false
+	subcfg3.RelayHop = true
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg3.Port))
 	if err != nil {
 		panic(err)
@@ -388,25 +388,25 @@ func testRelay_v2(t *testing.T) {
 	prvKey4, _, _ := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
 	var subcfg p2pty.P2PSubConfig
 	subcfg.Port = 12345
-	subcfg.Relay_Discovery = true
-	subcfg.Relay_Active = false
-	subcfg.Relay_Hop = false
+	subcfg.RelayDiscovery = true
+	subcfg.RelayActive = false
+	subcfg.RelayHop = false
 	h1 := newHost(&subcfg, prvKey1, nil, nil)
 
 	//--------------------------------
 	var subcfg2 p2pty.P2PSubConfig
 	subcfg2.Port = 12346
-	subcfg2.Relay_Hop = true //接收中继客户端的请求，proxy 作为中继节点必须配置此选项
-	subcfg2.Relay_Discovery = false
-	subcfg2.Relay_Active = false
+	subcfg2.RelayHop = true //接收中继客户端的请求，proxy 作为中继节点必须配置此选项
+	subcfg2.RelayDiscovery = false
+	subcfg2.RelayActive = false
 	h2 := newHost(&subcfg2, prvKey2, nil, nil)
 
 	//----------------------------------
 	var subcfg3 p2pty.P2PSubConfig
 	subcfg3.Port = 12347
-	subcfg3.Relay_Active = false
-	subcfg3.Relay_Discovery = false
-	subcfg3.Relay_Hop = true
+	subcfg3.RelayActive = false
+	subcfg3.RelayDiscovery = false
+	subcfg3.RelayHop = true
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg3.Port))
 	if err != nil {
 		panic(err)

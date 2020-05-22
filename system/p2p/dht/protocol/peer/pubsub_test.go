@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"github.com/33cn/chain33/system/p2p/dht/net"
 	"time"
 
 	l "github.com/33cn/chain33/common/log"
@@ -115,14 +116,20 @@ func testSubTopic(t *testing.T, protocol *peerPubSub) {
 		replyMsg, err := protocol.GetQueueClient().Wait(msg)
 		assert.Nil(t, err)
 
-		subReply, ok := replyMsg.GetData().(*types.SubTopicReply)
+		subReply, ok := replyMsg.GetData().(*types.Reply)
 		if ok {
-			t.Log("subReply status", subReply.GetStatus(), "msg", subReply.GetMsg())
-			continue
+			t.Log("subReply status", subReply.IsOk)
+			if subReply.IsOk {
+				var reply types.SubTopicReply
+				types.Decode(subReply.GetMsg(), &reply)
+				assert.NotNil(t, reply)
+				t.Log("reply", reply.GetMsg())
+			} else {
+				//订阅失败
+				t.Log("subfailed Reply ", string(subReply.GetMsg()))
+			}
+
 		}
-		//订阅失败
-		rpy := replyMsg.GetData().(*types.Reply)
-		t.Log("Reply,isok", rpy.IsOk, "msg", rpy.GetMsg())
 
 	}
 
@@ -167,7 +174,8 @@ func testFetchTopics(t *testing.T, protocol *peerPubSub) []string {
 
 func testSendTopicData(t *testing.T, protocol *peerPubSub) {
 	//发送收到的订阅消息,预期mempool,blockchain模块都会收到 hello,world 1
-	protocol.msgChan <- &types.TopicData{Topic: "bzTest", From: "123435555", Data: []byte("hello,world 1")}
+	//protocol.msgChan <- &types.TopicData{Topic: "bzTest", From: "123435555", Data: []byte("hello,world 1")}
+	protocol.subCallBack(&net.SubMsg{Data: []byte("hello,world 1"), From: "123435555", Topic: "bzTest"})
 
 }
 
@@ -180,8 +188,8 @@ func testRemoveModuleTopic(t *testing.T, protocol *peerPubSub, topic, module str
 	})
 	//预期只有mempool模块收到hello,world 2
 	testHandleRemoveTopicEvent(protocol, removetopic) //删除blockchain的订阅消息
-
-	protocol.msgChan <- &types.TopicData{Topic: "bzTest", From: "123435555", Data: []byte("hello,world 2")}
+	protocol.subCallBack(&net.SubMsg{Data: []byte("hello,world 2"), From: "123435555", Topic: "bzTest"})
+	//protocol.msgChan <- &types.TopicData{Topic: "bzTest", From: "123435555", Data: []byte("hello,world 2")}
 }
 
 func testBlockRecvSubData(t *testing.T, q queue.Queue) {
@@ -228,12 +236,13 @@ func TestPubSub(t *testing.T) {
 	testBlockRecvSubData(t, q)
 	testMempoolRecvSubData(t, q)
 	protocol := newTestPubProtocol(q)
+	//t.Log("pid", protocol.Host.ID().String())
 	testSubTopic(t, protocol) //订阅topic
 
 	topics := testFetchTopics(t, protocol) //获取topic list
 	assert.Equal(t, len(topics), 2)
 	testSendTopicData(t, protocol) //通过chan推送接收到的消息
-	time.Sleep(time.Second)
+	//time.Sleep(time.Second)
 
 	testPushMsg(t, protocol)                                   //发布消息
 	testRemoveModuleTopic(t, protocol, "bzTest", "blockchain") //删除某一个模块的topic
@@ -241,13 +250,13 @@ func TestPubSub(t *testing.T) {
 	assert.Equal(t, len(topics), 2)
 	//--------
 	testRemoveModuleTopic(t, protocol, "rtopic", "rpc") //删除某一个模块的topic
-	time.Sleep(time.Second)
+	//time.Sleep(time.Second)
 	topics = testFetchTopics(t, protocol)
-	t.Log("after Remove rtopic", topics)
+	//t.Log("after Remove rtopic", topics)
 	assert.Equal(t, 1, len(topics))
 	testRemoveModuleTopic(t, protocol, "bzTest", "mempool") //删除某一个模块的topic
 	topics = testFetchTopics(t, protocol)
-	t.Log("after Remove bzTest", topics)
+	//t.Log("after Remove bzTest", topics)
 	assert.Equal(t, 0, len(topics))
-	time.Sleep(time.Second)
+	//time.Sleep(time.Second)
 }

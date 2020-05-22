@@ -74,8 +74,14 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	pubsub, err := net.NewPubSub(ctx, env.Host)
+	if err != nil {
+		return nil
+	}
 	env.Ctx = ctx
 	env.Cancel = cancel
+
+	env.Pubsub = pubsub
 	env.Discovery = net.InitDhtDiscovery(env.Ctx, host, nil, cfg, subCfg)
 	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil, subCfg)
 

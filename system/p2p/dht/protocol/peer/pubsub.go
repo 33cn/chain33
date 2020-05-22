@@ -19,20 +19,12 @@ type peerPubSub struct {
 	mutex        sync.Mutex
 	pubsubOp     *net.PubSub
 	topicMoudle  sync.Map
-	msgChan      chan interface{}
 }
 
 func (p *peerPubSub) InitProtocol(env *prototypes.P2PEnv) {
 	p.P2PEnv = env
 	p.p2pCfg = env.SubConfig
-
-	pubsub, err := net.NewPubSub(p.GetP2PEnv().Ctx, p.Host)
-	if err != nil {
-		return
-	}
-
-	p.pubsubOp = pubsub
-	p.msgChan = make(chan interface{})
+	p.pubsubOp = env.Pubsub
 	//绑定订阅事件与相关处理函数
 	prototypes.RegisterEventHandler(types.EventSubTopic, p.handleSubTopic)
 	//获取订阅topic列表
@@ -41,7 +33,6 @@ func (p *peerPubSub) InitProtocol(env *prototypes.P2PEnv) {
 	prototypes.RegisterEventHandler(types.EventRemoveTopic, p.handleRemoveTopc)
 	//发布消息
 	prototypes.RegisterEventHandler(types.EventPubTopicMsg, p.handlePubMsg)
-	go p.ReceiveChanData()
 }
 
 //处理订阅topic的请求
@@ -54,7 +45,7 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 	moduleName := subtopic.GetModule()
 	//模块名，用来收到订阅的消息后转发给对应的模块名
 	if !p.pubsubOp.HasTopic(topic) {
-		err := p.pubsubOp.JoinTopicAndSubTopic(topic, p.msgChan) //订阅topic
+		err := p.pubsubOp.JoinTopicAndSubTopic(topic, p.subCallBack) //订阅topic
 		if err != nil {
 			log.Error("peerPubSub", "err", err)
 			msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
@@ -82,27 +73,15 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 }
 
 //处理收到的数据
-func (p *peerPubSub) ReceiveChanData() {
-	for {
-		v, ok := <-p.msgChan
-		if !ok {
-			log.Info("ReceiveChanData", "PubSubMsgChan", "closed")
-			return
-		}
-		msg, ok := v.(*net.SubMsg)
-		if !ok {
-			continue
-		}
-		moudles, ok := p.topicMoudle.Load(msg.Topic)
-		if !ok {
-			continue
-		}
-		for moudleName := range moudles.(map[string]bool) {
-			client := p.GetQueueClient()
-			newmsg := client.NewMessage(moudleName, types.EventReceiveSubData, &types.TopicData{Topic: msg.Topic, From: msg.From, Data: msg.Data}) //加入到输出通道)
-			client.Send(newmsg, false)
-		}
-
+func (p *peerPubSub) subCallBack(msg *net.SubMsg) {
+	moudles, ok := p.topicMoudle.Load(msg.Topic)
+	if !ok {
+		return
+	}
+	for moudleName := range moudles.(map[string]bool) {
+		client := p.GetQueueClient()
+		newmsg := client.NewMessage(moudleName, types.EventReceiveSubData, &types.TopicData{Topic: msg.Topic, From: msg.From, Data: msg.Data}) //加入到输出通道)
+		client.Send(newmsg, false)
 	}
 }
 
