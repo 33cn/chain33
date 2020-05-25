@@ -57,7 +57,7 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 	reply.Status = true
 	reply.Msg = fmt.Sprintf("subtopic %v success", topic)
 	msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, &types.Reply{IsOk: true, Msg: types.Encode(&reply)}))
-	//存储topic关联的moduleName
+	//
 	moudles, ok := p.topicMoudle.Load(topic)
 	if ok {
 		moudles.(map[string]bool)[moduleName] = true

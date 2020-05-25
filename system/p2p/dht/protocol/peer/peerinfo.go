@@ -195,6 +195,13 @@ func (p *peerInfoProtol) detectNodeAddr() {
 	if len(addrs) > 0 {
 		p.setExternalAddr(addrs[len(addrs)-1].String())
 	}
+	preExternalAddr := p.getExternalAddr()
+	if preExternalAddr == "127.0.0.1" {
+		if len(addrs) > 0 {
+			p.setExternalAddr(addrs[0].String())
+		}
+	}
+	preExternalAddr = p.getExternalAddr()
 
 	pid := p.GetHost().ID()
 	var rangeCount int
@@ -207,7 +214,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		//启动后间隔1分钟，刷新5次，以充分获得节点外网地址
 		if rangeCount < 5 {
 			rangeCount++
-			if rangeCount != 0 {
+			if rangeCount > 2 {
 				time.Sleep(time.Minute)
 			}
 
@@ -264,12 +271,18 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 		}
 		var maxCount int
+		var maxCountAddr string
 		for addr, count := range externalCheck {
 			if maxCount < count {
 				maxCount = count
-				p.setExternalAddr(addr)
+				maxCountAddr = addr
+
 			}
 
+		}
+
+		if maxCountAddr != preExternalAddr {
+			p.setExternalAddr(maxCountAddr)
 		}
 
 		// 统一关闭stream
