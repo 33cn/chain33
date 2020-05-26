@@ -148,7 +148,7 @@ func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport)
 func isConflict(curConsensus string, policy string) bool {
 	walletlog.Info("isConflict", "curConsensus", curConsensus, "policy", policy)
 
-	return curConsensus == "ticket" && policy == "pos33" || curConsensus == "pos33" && policy == "ticket"
+	return curConsensus != policy
 }
 
 // GetConfig 获取钱包配置
