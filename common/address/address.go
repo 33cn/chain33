@@ -18,10 +18,11 @@ import (
 
 var addrSeed = []byte("address seed bytes for public key")
 var addressCache *lru.Cache
-var pubkeyCache *lru.Cache
+var pubkey2AddrCache *lru.Cache
 var checkAddressCache *lru.Cache
 var multisignCache *lru.Cache
 var multiCheckAddressCache *lru.Cache
+var execPubKeyCache *lru.Cache
 
 // ErrCheckVersion :
 var ErrCheckVersion = errors.New("check version error")
@@ -47,7 +48,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	pubkeyCache, err = lru.New(10240)
+	pubkey2AddrCache, err = lru.New(10240)
 	if err != nil {
 		panic(err)
 	}
@@ -63,18 +64,10 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-//ExecPubKey 计算公钥
-func ExecPubKey(name string) []byte {
-	if len(name) > MaxExecNameLength {
-		panic("name too long")
+	execPubKeyCache, err = lru.New(10240)
+	if err != nil {
+		panic(err)
 	}
-	var bname [200]byte
-	buf := append(bname[:0], addrSeed...)
-	buf = append(buf, []byte(name)...)
-	hash := common.Sha2Sum(buf)
-	return hash[:]
 }
 
 //ExecAddress 计算量有点大，做一次cache
@@ -99,21 +92,25 @@ func MultiSignAddress(pubkey []byte) string {
 	return addrstr
 }
 
-//ExecPubkey 计算公钥
-func ExecPubkey(name string) []byte {
+//ExecPubKey 计算公钥
+func ExecPubKey(name string) []byte {
 	if len(name) > MaxExecNameLength {
 		panic("name too long")
+	}
+	if value, ok := execPubKeyCache.Get(name); ok {
+		return value.([]byte)
 	}
 	var bname [200]byte
 	buf := append(bname[:0], addrSeed...)
 	buf = append(buf, []byte(name)...)
 	hash := common.Sha2Sum(buf)
+	execPubKeyCache.Add(name, hash)
 	return hash[:]
 }
 
 //GetExecAddress 获取地址
 func GetExecAddress(name string) *Address {
-	hash := ExecPubkey(name)
+	hash := ExecPubKey(name)
 	addr := PubKeyToAddress(hash[:])
 	return addr
 }
@@ -125,11 +122,11 @@ func PubKeyToAddress(in []byte) *Address {
 
 //PubKeyToAddr 公钥转为地址
 func PubKeyToAddr(in []byte) string {
-	if value, ok := pubkeyCache.Get(string(in)); ok {
+	if value, ok := pubkey2AddrCache.Get(string(in)); ok {
 		return value.(string)
 	}
 	addr := HashToAddress(NormalVer, in).String()
-	pubkeyCache.Add(string(in), addr)
+	pubkey2AddrCache.Add(string(in), addr)
 	return addr
 }
 

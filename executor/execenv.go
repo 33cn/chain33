@@ -372,7 +372,7 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 	ex := e.loadDriver(tx, index)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
-	if bytes.Equal(address.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {
+	if bytes.Equal(address.ExecPubKey(execer), tx.GetSignature().GetPubkey()) {
 		err := ex.CheckTx(tx, index)
 		if err != nil {
 			return nil, err
