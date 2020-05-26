@@ -95,6 +95,14 @@ func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
 }
 
 func (d *downloadProtol) CheckTask(taskID string, pids []string, faildJobs map[string]interface{}) {
+
+	select {
+	case <-d.Ctx.Done():
+		log.Warn("CheckTask", "process", "done+++++++")
+		return
+	default:
+		break
+	}
 	v, ok := faildJobs[taskID]
 	if !ok {
 		return

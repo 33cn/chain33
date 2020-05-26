@@ -2,6 +2,7 @@ package peer
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
+	dnet "github.com/33cn/chain33/system/p2p/dht/net"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -58,8 +60,12 @@ func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 
 func (p *peerInfoProtol) fetchPeersInfo() {
 	for {
-		<-time.After(time.Second * 10)
-		p.getPeerInfo()
+		select {
+		case <-time.After(time.Second * 10):
+			p.getPeerInfo()
+		case <-p.Ctx.Done():
+			return
+		}
 
 	}
 }
@@ -123,6 +129,15 @@ func (p *peerInfoProtol) getPeerInfo() {
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var wg sync.WaitGroup
 	for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
+
+		select {
+		case <-p.Ctx.Done():
+			log.Warn("getPeerInfo", "process", "done+++++++")
+			return
+		default:
+			break
+		}
+
 		if remoteID.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
@@ -190,58 +205,49 @@ func (p *peerInfoProtol) getExternalAddr() string {
 }
 
 func (p *peerInfoProtol) detectNodeAddr() {
-	//通常libp2p监听的地址列表，第一个为127，第二个为外部，先进行外部地址预设置
+	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
 	if len(addrs) > 0 {
 		p.setExternalAddr(addrs[len(addrs)-1].String())
 	}
 	preExternalAddr := p.getExternalAddr()
-	if preExternalAddr == "127.0.0.1" {
-		if len(addrs) > 0 {
-			p.setExternalAddr(addrs[0].String())
-		}
+	netIp := net.ParseIP(preExternalAddr)
+	if isPublicIP(netIp) { //检测是PubIp不用继续通过其他节点获取
+		log.Info("detectNodeAddr", "testPubIp", preExternalAddr)
+		return
 	}
-	preExternalAddr = p.getExternalAddr()
 
-	pid := p.GetHost().ID()
+	log.Info("detectNodeAddr", "+++++++++++++++", preExternalAddr, "addrs", addrs)
+	localId := p.GetHost().ID()
 	var rangeCount int
-	var externalCheck = make(map[string]int)
 	for {
 		if len(p.GetConnsManager().FetchConnPeers()) == 0 {
 			time.Sleep(time.Second)
 			continue
 		}
-		//启动后间隔1分钟，刷新5次，以充分获得节点外网地址
-		if rangeCount < 5 {
-			rangeCount++
-			if rangeCount > 2 {
-				time.Sleep(time.Minute)
-			}
 
-		} else {
+		if isPublicIP(net.ParseIP(p.getExternalAddr())) {
 			break
 		}
 
+		//启动后间隔1分钟，以充分获得节点外网地址
+		rangeCount++
+		if rangeCount > 2 {
+			time.Sleep(time.Minute)
+		}
+
 		openedStreams := make([]core.Stream, 0)
-		for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
-			if remoteID.Pretty() == pid.Pretty() {
-				continue
-			}
-
-			if p.GetConnsManager().IsNeighbors(remoteID) {
-				continue
-			}
-
+		allnodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
+		for _, node := range dnet.ConvertPeers(allnodes) {
 			var version types.P2PVersion
 
-			pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
-
-			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
+			pubkey, _ := p.GetHost().Peerstore().PubKey(localId).Bytes()
+			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localId.Pretty(), pubkey, false),
 				Message: &version}
 
-			s, err := prototypes.NewStream(p.Host, remoteID, PeerVersionReq)
+			s, err := prototypes.NewStream(p.Host, node.ID, PeerVersionReq)
 			if err != nil {
-				log.Error("NewStream", "err", err, "remoteID", remoteID)
+				log.Error("NewStream", "err", err, "remoteID", node.ID)
 				continue
 			}
 			openedStreams = append(openedStreams, s)
@@ -259,30 +265,12 @@ func (p *peerInfoProtol) detectNodeAddr() {
 				log.Error("DetectNodeAddr", "ReadStream err", err)
 				continue
 			}
-			log.Debug("DetectAddr", "resp", resp)
-			if v, ok := externalCheck[resp.GetMessage().GetAddrRecv()]; ok {
-				v = v + 1
-				externalCheck[resp.GetMessage().GetAddrRecv()] = v
-			} else {
-				externalCheck[resp.GetMessage().GetAddrRecv()] = 1
+
+			addr := resp.GetMessage().GetAddrRecv()
+			p.setExternalAddr(addr)
+			if isPublicIP(net.ParseIP(p.getExternalAddr())) {
+				break
 			}
-
-			log.Debug("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
-
-		}
-		var maxCount int
-		var maxCountAddr string
-		for addr, count := range externalCheck {
-			if maxCount < count {
-				maxCount = count
-				maxCountAddr = addr
-
-			}
-
-		}
-
-		if maxCountAddr != preExternalAddr {
-			p.setExternalAddr(maxCountAddr)
 		}
 
 		// 统一关闭stream

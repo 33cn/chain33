@@ -66,6 +66,8 @@ func (p *PubSub) GetTopics() []string {
 }
 
 func (p *PubSub) HasTopic(topic string) bool {
+	p.topicMutex.Lock()
+	defer p.topicMutex.Unlock()
 	_, ok := p.topics[topic]
 	return ok
 }
@@ -120,16 +122,27 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 }
 
 func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, callback subCallBack) {
-
+	topic := sub.Topic()
 	go func() {
+		var suberrCount int
 		for {
-			topic := sub.Topic()
 			got, err := sub.Next(ctx)
 			if err != nil {
 				log.Error("SubMsg", "topic msg err", err, "topic", topic)
-				return
+				if err == ctx.Err() {
+					p.RemoveTopic(topic)
+					log.Error("SubMsg", "ctx.Err err", err, "topic", topic)
+					return
+				}
+				suberrCount++
+				if suberrCount > 64 {
+					//删除topic
+					p.RemoveTopic(topic)
+					return
+				}
+				continue
 			}
-			log.Debug("SubMsg", "readData size", len(got.GetData()), "from", got.GetFrom().String(), "topic", topic)
+			log.Debug("SubMsg", "readData size", len(got.GetData()), "from", got.GetFrom().String(), "recieveFrom", got.ReceivedFrom.Pretty(), "topic", topic)
 			var data SubMsg
 			data.Data = got.GetData()
 			data.Topic = topic
@@ -148,7 +161,7 @@ func (p *PubSub) RemoveTopic(topic string) {
 	info, ok := p.topics[topic]
 	if ok {
 		log.Info("RemoveTopic", topic)
-		info.cancel()
+		//info.cancel()
 		info.sub.Cancel()
 		err := info.pubtopic.Close()
 		if err != nil {

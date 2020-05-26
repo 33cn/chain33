@@ -18,10 +18,10 @@ import (
 
 	"context"
 	"fmt"
-
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	multiaddr "github.com/multiformats/go-multiaddr"
+	snet "net"
 
 	"github.com/33cn/chain33/queue"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
@@ -189,4 +189,9 @@ func Test_util(t *testing.T) {
 	assert.NotEmpty(t, proto.getExternalAddr())
 	proto.setExternalAddr("/ip4/192.168.1.1/13802")
 	assert.Equal(t, "192.168.1.1", proto.getExternalAddr())
+	assert.True(t, !isPublicIP(snet.ParseIP("127.0.0.1")))
+	ips, err := localIPv4s()
+	assert.Nil(t, err)
+	assert.True(t, !isPublicIP(snet.ParseIP(ips[0])))
+	assert.True(t, isPublicIP(snet.ParseIP("112.74.59.221")))
 }

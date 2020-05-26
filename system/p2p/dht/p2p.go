@@ -208,18 +208,24 @@ func (p *P2P) findLANPeers() {
 		return
 	}
 
-	for neighbors := range peerChan {
-		log.Info("^_^! Well,findLANPeers Let's Play ^_^!<<<<<<<<<<<<<<<<<<<<<<<<<<", "peerName", neighbors.ID)
-		//发现局域网内的邻居节点
-		err := p.host.Connect(context.Background(), neighbors)
-		if err != nil {
-			log.Error("findLANPeers", "err", err.Error())
-			continue
+	for {
+		select {
+		case neighbors := <-peerChan:
+			log.Info("^_^! Well,findLANPeers Let's Play ^_^!<<<<<<<<<<<<<<<<<<<<<<<<<<", "peerName", neighbors.ID)
+			//发现局域网内的邻居节点
+			err := p.host.Connect(context.Background(), neighbors)
+			if err != nil {
+				log.Error("findLANPeers", "err", err.Error())
+				continue
+			}
+			p.connManag.AddNeighbors(&neighbors)
+
+		case <-p.ctx.Done():
+			log.Warn("findLANPeers", "process", "doneeeeeeeeeeee")
+			return
 		}
-
-		p.connManag.AddNeighbors(&neighbors)
-
 	}
+
 }
 
 func (p *P2P) handleP2PEvent() {
