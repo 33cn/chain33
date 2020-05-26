@@ -282,7 +282,7 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 
 func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.TransactionDetail, error) {
 	//增加判断，上游接口可能返回空指针
-	if tx == nil {
+	if tx == nil || tx.GetTx() == nil {
 		//参数中hash和返回的detail一一对应，顺序一致
 		return nil, nil
 	}
