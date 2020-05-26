@@ -18,10 +18,11 @@ import (
 
 	"context"
 	"fmt"
+	snet "net"
+
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	multiaddr "github.com/multiformats/go-multiaddr"
-	snet "net"
 
 	"github.com/33cn/chain33/queue"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"

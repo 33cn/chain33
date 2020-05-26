@@ -1,9 +1,10 @@
 package peer
 
 import (
+	"net"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"net"
 )
 
 func (p *peerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
