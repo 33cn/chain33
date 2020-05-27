@@ -1207,7 +1207,7 @@ func convertBlockDetails(details []*types.BlockDetail, retDetails *rpctypes.Bloc
 	for _, item := range details {
 		var bdtl rpctypes.BlockDetail
 		var block rpctypes.Block
-		if item == nil {
+		if item == nil || item.GetBlock() == nil {
 			retDetails.Items = append(retDetails.Items, nil)
 			continue
 		}
