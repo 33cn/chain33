@@ -15,7 +15,7 @@ func (p *peerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 	netinfo.Externaladdr = p.getExternalAddr()
 	localips, err := localIPv4s()
 	if err == nil {
-		log.Info("netinfoHandleEvent", "localIpsssssssssssssssss", localips)
+		log.Debug("netinfoHandleEvent", "localIps", localips)
 		netinfo.Localaddr = localips[0]
 	} else {
 		netinfo.Localaddr = netinfo.Externaladdr

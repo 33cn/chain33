@@ -193,14 +193,8 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 		return
 	}
 
-	log.Info("setExternalAddr", "externalAddr", p.externalAddr, "beforSetAddrsssssssssssssss", p.Host.Addrs())
-	//addrs := p.Host.Peerstore().Addrs(p.Host.ID())
-	//addrs = append(addrs, peerinfo.Addrs...)
 	p.Host.Peerstore().AddAddrs(p.GetHost().ID(), peerinfo.Addrs, peerstore.PermanentAddrTTL)
-	go p.GetHost().Network().Listen(peerinfo.Addrs[0])
-	//p.GetHost().Peerstore().ClearAddrs(p.Host.ID())
-	//p.Host.Peerstore().AddAddrs(p.GetHost().ID(), peerinfo.Addrs, peerstore.PermanentAddrTTL)
-	log.Info("setExternalAddr", "afterSetAddrssssssssssssssss", p.Host.Addrs(), "peerstoreAddr", p.Host.Peerstore().Addrs(p.Host.ID()))
+	log.Debug("setExternalAddr", "afterSetAddrs", p.Host.Addrs(), "peerstoreAddr", p.Host.Peerstore().Addrs(p.Host.ID()))
 
 }
 

@@ -2,7 +2,6 @@ package peer
 
 import (
 	"fmt"
-	//"github.com/33cn/chain33/client"
 	"sync"
 
 	"github.com/33cn/chain33/queue"
