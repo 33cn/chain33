@@ -15,7 +15,7 @@ type peerPubSub struct {
 	*prototypes.BaseProtocol
 	p2pCfg       *p2pty.P2PSubConfig
 	externalAddr string
-	mutex        sync.Mutex
+	mutex        sync.RWMutex
 	pubsubOp     *net.PubSub
 	topicMoudle  sync.Map
 }
@@ -56,7 +56,10 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 	reply.Status = true
 	reply.Msg = fmt.Sprintf("subtopic %v success", topic)
 	msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, &types.Reply{IsOk: true, Msg: types.Encode(&reply)}))
-	//
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	moudles, ok := p.topicMoudle.Load(topic)
 	if ok {
 		moudles.(map[string]bool)[moduleName] = true
@@ -73,10 +76,14 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 
 //处理收到的数据
 func (p *peerPubSub) subCallBack(msg *net.SubMsg) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
 	moudles, ok := p.topicMoudle.Load(msg.Topic)
 	if !ok {
 		return
 	}
+
 	for moudleName := range moudles.(map[string]bool) {
 		client := p.GetQueueClient()
 		newmsg := client.NewMessage(moudleName, types.EventReceiveSubData, &types.TopicData{Topic: msg.Topic, From: msg.From, Data: msg.Data}) //加入到输出通道)
@@ -100,6 +107,9 @@ func (p *peerPubSub) handleGetTopics(msg *queue.Message) {
 
 //删除已经订阅的某一个topic
 func (p *peerPubSub) handleRemoveTopc(msg *queue.Message) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
 	v, ok := msg.GetData().(*types.RemoveTopic)
 	if !ok {
 

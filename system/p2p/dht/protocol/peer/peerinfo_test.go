@@ -77,6 +77,7 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 	ctx, cancel := context.WithCancel(context.Background())
 	pubsub, err := net.NewPubSub(ctx, env.Host)
 	if err != nil {
+		cancel()
 		return nil
 	}
 	env.Ctx = ctx
