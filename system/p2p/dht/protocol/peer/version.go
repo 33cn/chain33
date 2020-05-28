@@ -2,9 +2,10 @@ package peer
 
 import (
 	"fmt"
+	"time"
+
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	"time"
 
 	"math/rand"
 
