@@ -107,8 +107,8 @@ func (p *peerPubSub) handleGetTopics(msg *queue.Message) {
 
 //删除已经订阅的某一个topic
 func (p *peerPubSub) handleRemoveTopc(msg *queue.Message) {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	v, ok := msg.GetData().(*types.RemoveTopic)
 	if !ok {
@@ -148,7 +148,7 @@ func (p *peerPubSub) handlePubMsg(msg *queue.Message) {
 	var replyinfo string = "push success"
 	err := p.pubsubOp.Publish(v.GetTopic(), v.GetMsg())
 	if err != nil {
-		//publish msg success
+		//publish msg failed
 		isok = false
 		replyinfo = err.Error()
 	}
