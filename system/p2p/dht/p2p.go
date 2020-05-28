@@ -211,17 +211,18 @@ func (p *P2P) findLANPeers() {
 	for {
 		select {
 		case neighbors := <-peerChan:
-			log.Info("^_^! Well,findLANPeers Let's Play ^_^!<<<<<<<<<<<<<<<<<<<<<<<<<<", "peerName", neighbors.ID)
+			log.Info("^_^! Well,findLANPeers Let's Play ^_^!<<<<<<<<<<<<<<<<<<<", "peerName", neighbors.ID, "addrs:", neighbors.Addrs, "paddr", p.host.Peerstore().Addrs(neighbors.ID))
 			//发现局域网内的邻居节点
 			err := p.host.Connect(context.Background(), neighbors)
 			if err != nil {
 				log.Error("findLANPeers", "err", err.Error())
 				continue
 			}
+			log.Info("findLANPeers", "connect neighbors success", neighbors.ID.Pretty())
 			p.connManag.AddNeighbors(&neighbors)
 
 		case <-p.ctx.Done():
-			log.Warn("findLANPeers", "process", "doneeeeeeeeeeee")
+			log.Warn("findLANPeers", "process", "done")
 			return
 		}
 	}

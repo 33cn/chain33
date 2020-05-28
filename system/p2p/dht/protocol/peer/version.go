@@ -2,9 +2,9 @@ package peer
 
 import (
 	"fmt"
-	"time"
-
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	"github.com/libp2p/go-libp2p-core/peerstore"
+	"time"
 
 	"math/rand"
 
@@ -46,7 +46,8 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
 	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
 	remoteMAddr := s.Conn().RemoteMultiaddr()
-
+	//存储对方的外网地址道peerstore中
+	p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.AddressTTL)
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
 	if err != nil {
 		log.Error("onVersionReq", "err", err.Error())
