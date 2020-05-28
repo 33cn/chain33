@@ -17,23 +17,23 @@ const (
     waitNewBlock = 1000 * time.Millisecond
 )
 
-//pushNotify push Notify
-type pushNotify struct {
+//pushBlockNotify push Notify
+type pushBlockNotify struct {
 	cb  chan *types.BlockSeqCB
 	seq chan int64
 }
 
-//push seq data to out
+//push seqUpdateChan data to out
 type pushseq struct {
 	store        SequenceStore
-	cmds         map[string]pushNotify
+	cmds         map[string]pushBlockNotify
 	mu           sync.Mutex
 	client       *http.Client
 	pushseqStore *PushSeqStore1
 }
 
 func newpushseq(store SequenceStore, pushseqStore *PushSeqStore1) *pushseq {
-	cmds := make(map[string]pushNotify)
+	cmds := make(map[string]pushBlockNotify)
 	return &pushseq{store: store, cmds: cmds, client: &http.Client{}, pushseqStore: pushseqStore}
 }
 
@@ -73,7 +73,7 @@ func (p *pushseq) AddTask(cb *types.BlockSeqCB) {
 		}
 		return
 	}
-	p.cmds[cb.Name] = pushNotify{
+	p.cmds[cb.Name] = pushBlockNotify{
 		cb:  make(chan *types.BlockSeqCB, 10),
 		seq: make(chan int64, 10),
 	}
@@ -113,8 +113,8 @@ func (p *pushseq) trigeRun(run chan struct{}, sleep time.Duration) {
 	}()
 }
 
-func (p *pushseq) runTask(input pushNotify) {
-	go func(in pushNotify) {
+func (p *pushseq) runTask(input pushBlockNotify) {
+	go func(in pushBlockNotify) {
 		var lastseq int64 = -1
 		var maxseq int64 = -1
 		var cb *types.BlockSeqCB
@@ -146,7 +146,7 @@ func (p *pushseq) runTask(input pushNotify) {
 				}
 				data, updateSeq, err := p.getSeqs(cb, lastseq+1, seqCount, pushMaxSize)
 				if err != nil {
-					chainlog.Error("getDataBySeq", "err", err, "seq", lastseq+1, "maxSeq", seqCount, "cbName", cb.Name)
+					chainlog.Error("getDataBySeq", "err", err, "seqUpdateChan", lastseq+1, "maxSeq", seqCount, "cbName", cb.Name)
 					p.trigeRun(run, 1000*time.Millisecond)
 					continue
 				}
@@ -165,7 +165,7 @@ func (p *pushseq) runTask(input pushNotify) {
 	}(input)
 }
 
-//seq= data.Seqs[0].Num+int64(len(data.Seqs))-1
+//seqUpdateChan= data.Seqs[0].Num+int64(len(data.Seqs))-1
 func (p *pushseq) postData(cb *types.BlockSeqCB, postdata []byte, seq int64) (err error) {
 	//post data in body
 	var buf bytes.Buffer

@@ -208,11 +208,11 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyLastBlockSequence, &types.BlockDetails{}))
 			case types.EventGetBlockSequences:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyBlockSequences, &types.BlockSequences{}))
-			case types.EventAddBlockSeqCB:
-				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.ReplyAddSeqCallback{}))
-			case types.EventListBlockSeqCB:
-				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.BlockSeqCBs{}))
-			case types.EventGetSeqCBLastNum:
+			case types.EventSubscribePush:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplySubscribePush, &types.ReplySubscribePush{}))
+			case types.EventListPushes:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.PushSubscribes{}))
+			case types.EventGetPushLastNum:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventReplyQuery, &types.Int64{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)

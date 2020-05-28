@@ -109,7 +109,6 @@ func TestBlockChain(t *testing.T) {
 	testRemoveOrphanBlock(t, cfg, blockchain)
 
 	testLoadBlockBySequence(t, blockchain)
-	testAddBlockSeqCB(t, blockchain)
 	testProcDelParaChainBlockMsg(t, mock33, blockchain)
 
 	testProcAddParaChainBlockMsg(t, mock33, blockchain)
@@ -765,72 +764,6 @@ func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testProcBlockChainFork end --------------------")
 }
 
-func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
-	chainlog.Info("testAddBlockSeqCB begin ---------------------")
-
-	cb := &types.BlockSeqCB{
-		Name:   "test",
-		URL:    "http://192.168.1.107:15760",
-		Encode: "json",
-	}
-	blockchain.MaxSeqCB = 2
-	_, err := chain.ProcAddBlockSeqCB(cb)
-	require.NoError(t, err)
-
-	cbs, err := chain.ProcListBlockSeqCB()
-	require.NoError(t, err)
-	exist := false
-	for _, temcb := range cbs.Items {
-		if temcb.Name == cb.Name && !temcb.IsHeader {
-			exist = true
-		}
-	}
-	if !exist {
-		t.Error("testAddBlockSeqCB  listSeqCB fail", "subscribe", cb, "cbs", cbs)
-	}
-	num := chain.ProcGetSeqCBLastNum(cb.Name)
-	if num != -1 {
-		t.Error("testAddBlockSeqCB  getSeqCBLastNum", "num", num, "name", cb.Name)
-	}
-
-	cb1 := &types.BlockSeqCB{
-		Name:     "test-1",
-		URL:      "http://192.168.1.107:15760",
-		Encode:   "json",
-		IsHeader: true,
-	}
-	_, err = chain.ProcAddBlockSeqCB(cb1)
-	require.NoError(t, err)
-
-	cbs, err = chain.ProcListBlockSeqCB()
-	require.NoError(t, err)
-	exist = false
-	for _, temcb := range cbs.Items {
-		if temcb.Name == cb1.Name && temcb.IsHeader {
-			exist = true
-		}
-	}
-	if !exist {
-		t.Error("testAddBlockSeqCB  listSeqCB fail", "subscribe", cb1, "cbs", cbs)
-	}
-	num = chain.ProcGetSeqCBLastNum(cb1.Name)
-	if num != -1 {
-		t.Error("testAddBlockSeqCB  getSeqCBLastNum", "num", num, "name", cb1.Name)
-	}
-
-	cb2 := &types.BlockSeqCB{
-		Name:   "test1",
-		URL:    "http://192.168.1.107:15760",
-		Encode: "json",
-	}
-
-	_, err = chain.ProcAddBlockSeqCB(cb2)
-	if err != types.ErrTooManySeqCB {
-		t.Error("testAddBlockSeqCB", "subscribe", cb2, "err", err)
-	}
-
-	chainlog.Info("testAddBlockSeqCB end -------------------------")
-}
 func testIsRecordFaultErr(t *testing.T) {
 	chainlog.Info("testIsRecordFaultErr begin ---------------------")
 	isok := blockchain.IsRecordFaultErr(types.ErrFutureBlock)

@@ -886,39 +886,37 @@ func (q *QueueProtocol) QueryChain(param *types.ChainExecutor) (types.Message, e
 	return nil, err
 }
 
-// AddSeqCallBack Add Seq CallBack
-func (q *QueueProtocol) AddSeqCallBack(param *types.BlockSeqCB) (*types.ReplyAddSeqCallback, error) {
-	msg, err := q.send(blockchainKey, types.EventAddBlockSeqCB, param)
+// AddPushSubscribe Add Seq CallBack
+func (q *QueueProtocol) AddPushSubscribe(param *types.PushSubscribeReq) (*types.ReplySubscribePush, error) {
+	msg, err := q.send(blockchainKey, types.EventSubscribePush, param)
 	if err != nil {
-		log.Error("AddSeqCallBack", "Error", err.Error())
+		log.Error("AddPushSubscribe", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.ReplyAddSeqCallback); ok {
+	if reply, ok := msg.GetData().(*types.ReplySubscribePush); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
 }
 
-// ListSeqCallBack List Seq CallBacks
-func (q *QueueProtocol) ListSeqCallBack() (*types.BlockSeqCBs, error) {
-
-	msg, err := q.send(blockchainKey, types.EventListBlockSeqCB, &types.ReqNil{})
+// ListPushes List Seq CallBacks
+func (q *QueueProtocol) ListPushes() (*types.PushSubscribes, error) {
+	msg, err := q.send(blockchainKey, types.EventListPushes, &types.ReqNil{})
 	if err != nil {
-		log.Error("ListSeqCallBack", "Error", err.Error())
+		log.Error("ListPushes", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.BlockSeqCBs); ok {
+	if reply, ok := msg.GetData().(*types.PushSubscribes); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
 }
 
-// GetSeqCallBackLastNum Get Seq Call Back Last Num
-func (q *QueueProtocol) GetSeqCallBackLastNum(param *types.ReqString) (*types.Int64, error) {
-
-	msg, err := q.send(blockchainKey, types.EventGetSeqCBLastNum, param)
+// GetPushSeqLastNum Get Seq Call Back Last Num
+func (q *QueueProtocol) GetPushSeqLastNum(param *types.ReqString) (*types.Int64, error) {
+	msg, err := q.send(blockchainKey, types.EventGetPushLastNum, param)
 	if err != nil {
-		log.Error("ListSeqCallBack", "Error", err.Error())
+		log.Error("ListPushes", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Int64); ok {
@@ -1027,17 +1025,4 @@ func (q *QueueProtocol) GetConfig() *types.Chain33Config {
 		panic("Chain33Config is nil")
 	}
 	return cfg
-}
-
-// AddSeqCallBack Add Seq CallBack
-func (q *QueueProtocol) AddSubscribeTxReceipt(param *types.SubscribeTxReceipt) (*types.ReplySubTxReceipt, error) {
-	msg, err := q.send(blockchainKey, types.EventSubscribeTxReceipt, param)
-	if err != nil {
-		log.Error("AddSubscribeTxReceipt", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.ReplySubTxReceipt); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
 }

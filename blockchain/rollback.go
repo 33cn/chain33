@@ -116,9 +116,8 @@ func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64
 	chain.cache.delBlockFromCache(blockdetail.Block.Height)
 
 	//目前非平行链并开启isRecordBlockSequence功能
-	if chain.isRecordBlockSequence {
-		chain.pushseq.UpdateSeq(lastSequence)
-		chain.pushTxReceipt.UpdateSeq(lastSequence)
+	if chain.isRecordBlockSequence && chain.enablePushSubscribe {
+		chain.push.UpdateSeq(lastSequence)
 	}
 	return nil
 }

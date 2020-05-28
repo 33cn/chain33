@@ -197,4 +197,8 @@ var (
 	ErrFileExists        = errors.New("ErrFileExists")
 	ErrSubscriberExist   = errors.New("ErrSubscriberExist")
 	ErrTooManySubscriber = errors.New("ErrTooManySubscriber")
+	ErrPushNotSupport    = errors.New("ErrPushNotSupport")
+	ErrNotAllowModifyPush    = errors.New("ErrNotAllowModifyPush")
+	ErrTxReceiptReduced    = errors.New("ErrTxReceiptReduced")
+
 )

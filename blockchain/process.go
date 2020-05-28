@@ -383,9 +383,8 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		}
 	}
 	//目前非平行链并开启isRecordBlockSequence功能
-	if b.isRecordBlockSequence {
-		b.pushseq.UpdateSeq(lastSequence)
-		b.pushTxReceipt.UpdateSeq(lastSequence)
+	if b.isRecordBlockSequence && b.enablePushSubscribe {
+		b.push.UpdateSeq(lastSequence)
 		chainlog.Debug("isRecordBlockSequence", "lastSequence", lastSequence, "height", block.Height)
 	}
 	return blockdetail, nil
@@ -453,9 +452,8 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	chainlog.Debug("disconnectBlock success", "newtipnode.hash", common.ToHex(newtipnode.hash), "delblock.parent.hash", common.ToHex(blockdetail.Block.GetParentHash()))
 
 	//目前非平行链并开启isRecordBlockSequence功能
-	if b.isRecordBlockSequence {
-		b.pushseq.UpdateSeq(lastSequence)
-		b.pushTxReceipt.UpdateSeq(lastSequence)
+	if b.isRecordBlockSequence && b.enablePushSubscribe {
+		b.push.UpdateSeq(lastSequence)
 	}
 	return nil
 }

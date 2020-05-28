@@ -218,7 +218,7 @@ chain33_AddSeqCallBack() {
     if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
-        http_req '{"method":"Chain33.AddSeqCallBack","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} '(.result.isOK == true)' "$FUNCNAME"
+        http_req '{"method":"Chain33.AddPushSubscribe","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} '(.result.isOK == true)' "$FUNCNAME"
     fi
 }
 
@@ -226,12 +226,12 @@ chain33_ListSeqCallBack() {
     if [ "$IS_PARA" == true ]; then
         echo_rst "$FUNCNAME" 2
     else
-        http_req '{"method":"Chain33.ListSeqCallBack","params":[]}' ${MAIN_HTTP} ' (.result.items[0].name == "test")' "$FUNCNAME"
+        http_req '{"method":"Chain33.ListPushes","params":[]}' ${MAIN_HTTP} ' (.result.items[0].name == "test")' "$FUNCNAME"
     fi
 }
 
 chain33_GetSeqCallBackLastNum() {
-    http_req '{"method":"Chain33.GetSeqCallBackLastNum","params":[{"data":"test"}]}' ${MAIN_HTTP} '(.result.data == -1)' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetPushSeqLastNum","params":[{"data":"test"}]}' ${MAIN_HTTP} '(.result.data == -1)' "$FUNCNAME"
 }
 
 chain33_GetCoinSymbol() {
