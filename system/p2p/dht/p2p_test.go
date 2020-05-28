@@ -472,14 +472,14 @@ func testRelay_v2(t *testing.T) {
 	t.Log("my read again:", str)
 
 }
-func newTestRelay(t *testing.T, ctx context.Context, host host.Host, opts ...circuit.RelayOpt) *circuit.Relay {
+func newTestRelay(ctx context.Context, host host.Host, opts []circuit.RelayOpt, t *testing.T) *circuit.Relay {
 	r, err := circuit.NewRelay(ctx, host, swarmt.GenUpgrader(host.Network().(*swarm.Swarm)), opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return r
 }
-func getNetHosts(t *testing.T, ctx context.Context, n int) []host.Host {
+func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {
 	var out []host.Host
 
 	for i := 0; i < n; i++ {
@@ -502,11 +502,11 @@ func testRelay_v3(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	hosts := getNetHosts(t, ctx, 3)
+	hosts := getNetHosts(ctx, 3, t)
 
 	connect(t, hosts[0], hosts[1])
-	r1 := newTestRelay(t, ctx, hosts[0], circuit.OptDiscovery)
-	newTestRelay(t, ctx, hosts[1], circuit.OptHop)
+	r1 := newTestRelay(ctx, hosts[0], []circuit.RelayOpt{circuit.OptDiscovery}, t)
+	newTestRelay(ctx, hosts[1], []circuit.RelayOpt{circuit.OptHop}, t)
 
 	rinfo := hosts[1].Peerstore().PeerInfo(hosts[1].ID())
 	dinfo := hosts[2].Peerstore().PeerInfo(hosts[2].ID())

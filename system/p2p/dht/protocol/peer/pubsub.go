@@ -13,11 +13,10 @@ import (
 
 type peerPubSub struct {
 	*prototypes.BaseProtocol
-	p2pCfg       *p2pty.P2PSubConfig
-	externalAddr string
-	mutex        sync.RWMutex
-	pubsubOp     *net.PubSub
-	topicMoudle  sync.Map
+	p2pCfg      *p2pty.P2PSubConfig
+	mutex       sync.RWMutex
+	pubsubOp    *net.PubSub
+	topicMoudle sync.Map
 }
 
 func (p *peerPubSub) InitProtocol(env *prototypes.P2PEnv) {
@@ -144,8 +143,8 @@ func (p *peerPubSub) handlePubMsg(msg *queue.Message) {
 		msg.Reply(p.GetQueueClient().NewMessage("", types.EventPubTopicMsg, &types.Reply{IsOk: false, Msg: []byte("need *types.PublishTopicMsg")}))
 		return
 	}
-	var isok bool = true
-	var replyinfo string = "push success"
+	var isok = true
+	var replyinfo = "push success"
 	err := p.pubsubOp.Publish(v.GetTopic(), v.GetMsg())
 	if err != nil {
 		//publish msg failed

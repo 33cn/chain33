@@ -211,13 +211,13 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		p.setExternalAddr(addrs[len(addrs)-1].String())
 	}
 	preExternalAddr := p.getExternalAddr()
-	netIp := net.ParseIP(preExternalAddr)
-	if isPublicIP(netIp) { //检测是PubIp不用继续通过其他节点获取
+	netIP := net.ParseIP(preExternalAddr)
+	if isPublicIP(netIP) { //检测是PubIp不用继续通过其他节点获取
 		log.Debug("detectNodeAddr", "testPubIp", preExternalAddr)
 	}
 
 	log.Info("detectNodeAddr", "+++++++++++++++", preExternalAddr, "addrs", addrs)
-	localId := p.GetHost().ID()
+	localID := p.GetHost().ID()
 	var rangeCount int
 	for {
 		select {
@@ -239,8 +239,8 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			for _, node := range dnet.ConvertPeers(allnodes) {
 				var version types.P2PVersion
 
-				pubkey, _ := p.GetHost().Peerstore().PubKey(localId).Bytes()
-				req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localId.Pretty(), pubkey, false),
+				pubkey, _ := p.GetHost().Peerstore().PubKey(localID).Bytes()
+				req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
 					Message: &version}
 
 				s, err := prototypes.NewStream(p.Host, node.ID, PeerVersionReq)

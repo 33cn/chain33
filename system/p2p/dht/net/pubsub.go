@@ -2,7 +2,6 @@ package net
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	host "github.com/libp2p/go-libp2p-core/host"
@@ -23,12 +22,6 @@ type topicinfo struct {
 	topic    string
 }
 
-type subinfo struct {
-	sub    *pubsub.Subscription
-	ctx    context.Context
-	cancel context.CancelFunc
-	topic  string
-}
 type PubSub struct {
 	ps         *pubsub.PubSub
 	topics     TopicMap
@@ -47,7 +40,7 @@ type subCallBack func(msg *SubMsg)
 func NewPubSub(ctx context.Context, host host.Host) (*PubSub, error) {
 	p := &PubSub{
 		ps:     nil,
-		topics: make(TopicMap, 0),
+		topics: make(TopicMap),
 	}
 	//选择使用GossipSub
 	ps, err := pubsub.NewGossipSub(ctx, host)
@@ -110,7 +103,7 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 	t, ok := p.topics[topic]
 	if !ok {
 		log.Error("publish", "no this topic", topic)
-		return errors.New(fmt.Sprintf("no this topic:%v", topic))
+		return fmt.Errorf("no this topic:%v", topic)
 	}
 
 	err := t.pubtopic.Publish(t.ctx, msg)
@@ -124,23 +117,13 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, callback subCallBack) {
 	topic := sub.Topic()
 	go func() {
-		var suberrCount int
+
 		for {
 			got, err := sub.Next(ctx)
 			if err != nil {
 				log.Error("SubMsg", "topic msg err", err, "topic", topic)
-				if err == ctx.Err() {
-					p.RemoveTopic(topic)
-					log.Error("SubMsg", "ctx.Err err", err, "topic", topic)
-					return
-				}
-				suberrCount++
-				if suberrCount > 64 {
-					//删除topic
-					p.RemoveTopic(topic)
-					return
-				}
-				continue
+				p.RemoveTopic(topic)
+				return
 			}
 			log.Debug("SubMsg", "readData size", len(got.GetData()), "from", got.GetFrom().String(), "recieveFrom", got.ReceivedFrom.Pretty(), "topic", topic)
 			var data SubMsg
@@ -161,7 +144,7 @@ func (p *PubSub) RemoveTopic(topic string) {
 	info, ok := p.topics[topic]
 	if ok {
 		log.Info("RemoveTopic", topic)
-		//info.cancel()
+		info.cancel()
 		info.sub.Cancel()
 		err := info.pubtopic.Close()
 		if err != nil {

@@ -259,5 +259,5 @@ func TestPubSub(t *testing.T) {
 	topics = testFetchTopics(t, protocol)
 	//t.Log("after Remove bzTest", topics)
 	assert.Equal(t, 0, len(topics))
-	//time.Sleep(time.Second)
+	time.Sleep(time.Second)
 }
