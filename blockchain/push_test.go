@@ -253,9 +253,6 @@ func Test_PostBlock(t *testing.T) {
 	createBlocks(t, mock33, chain, 10)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotify := chain.push.tasks[keyStr]
-	pushNotify.seqUpdateChan <- 0
-	pushNotify.seqUpdateChan <- 1
-	pushNotify.seqUpdateChan <- 2
 	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
 	assert.Equal(t, pushNotify.status, running)
 	time.Sleep(1*time.Second)
@@ -373,52 +370,43 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 	defer mock33.Close()
 }
 
-//func Test_rmPushFailTask(t *testing.T) {
-//	chain, mock33 := createBlockChain(t)
-//
-//	chain.enablePushSubscribe = true
-//	chain.isRecordBlockSequence = true
-//	chain.push.postFailSleepSecond = int32(1)
-//	ps := &bcMocks.PostService{}
-//	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
-//	chain.push.postService = ps
-//
-//	createBlocks(t, mock33, chain, 10)
-//	var pushNames []string
-//	subCnt := 1
-//	for i := 0; i < subCnt; i ++ {
-//		subscribe := new(types.PushSubscribeReq)
-//		subscribe.Name = "push-test"
-//		subscribe.URL = "http://localhost"
-//		subscribe.Type = PushTxReceipt
-//		subscribe.Contract = make(map[string]bool)
-//		subscribe.Contract["coins"] = true
-//
-//		subscribe.Name = fmt.Sprintf("%d", i) + "-push-test-"
-//		err := chain.push.addSubscriber(subscribe)
-//		pushNames = append(pushNames, subscribe.Name)
-//		assert.Equal(t, err, nil)
-//	}
-//	assert.Equal(t, len(chain.push.tasks), subCnt)
-//	createBlocks(t, mock33, chain, 10)
-//	time.Sleep(1 * time.Second)
-//
-//	createBlocks(t, mock33, chain, 10)
-//	time.Sleep(1 * time.Second)
-//	chain.push.mu.Lock()
-//	if 0 != len(chain.push.tasks) {
-//		fmt.Print("--------------------------------")
-//		fmt.Print("--------------------------------")
-//		fmt.Print("--------------------------------")
-//		fmt.Print(chain.push.tasks)
-//		fmt.Print("--------------------------------")
-//		fmt.Print("--------------------------------")
-//		fmt.Print("--------------------------------")
-//	}
-//	assert.Equal(t,0, len(chain.push.tasks))
-//	chain.push.mu.Unlock()
-//	defer mock33.Close()
-//}
+func Test_rmPushFailTask(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+
+	chain.enablePushSubscribe = true
+	chain.isRecordBlockSequence = true
+	chain.push.postFailSleepSecond = int32(1)
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
+	chain.push.postService = ps
+
+	createBlocks(t, mock33, chain, 10)
+	var pushNames []string
+	subCnt := 10
+	for i := 0; i < subCnt; i ++ {
+		subscribe := new(types.PushSubscribeReq)
+		subscribe.Name = "push-test"
+		subscribe.URL = "http://localhost"
+		subscribe.Type = PushTxReceipt
+		subscribe.Contract = make(map[string]bool)
+		subscribe.Contract["coins"] = true
+
+		subscribe.Name = fmt.Sprintf("%d", i) + "-push-test-"
+		err := chain.push.addSubscriber(subscribe)
+		pushNames = append(pushNames, subscribe.Name)
+		assert.Equal(t, err, nil)
+	}
+	assert.Equal(t, len(chain.push.tasks), subCnt)
+	createBlocks(t, mock33, chain, 10)
+	time.Sleep(1 * time.Second)
+
+	createBlocks(t, mock33, chain, 10)
+	time.Sleep(1 * time.Second)
+	chain.push.mu.Lock()
+	assert.Equal(t,0, len(chain.push.tasks))
+	chain.push.mu.Unlock()
+	defer mock33.Close()
+}
 
 
 func NewChain33Mock(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
