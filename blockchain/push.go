@@ -307,9 +307,9 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 func (push *Push) hasSubscriberExist(subscribe *types.PushSubscribeReq) (bool, *types.PushSubscribeReq) {
 	value, err := push.store.GetKey(calcPushKey(subscribe.Name))
 	if err == nil {
-		var subscribeExist types.PushSubscribeReq
-		err = types.Decode(value, &subscribeExist)
-		return err == nil, &subscribeExist
+		var pushWithStatus types.PushWithStatus
+		err = types.Decode(value, &pushWithStatus)
+		return err == nil, pushWithStatus.Push
 	}
 	return false, nil
 }
