@@ -7,8 +7,9 @@ package client
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/common"
 	"time"
+
+	"github.com/33cn/chain33/common"
 
 	"github.com/33cn/chain33/common/log/log15"
 

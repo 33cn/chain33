@@ -169,12 +169,12 @@ func (chain *BlockChain) ProcListPush() (*types.PushSubscribes, error) {
 	}
 	var listSeqCBs types.PushSubscribes
 	for _, value := range values {
-		var onePush types.PushSubscribeReq
+		var onePush types.PushWithStatus
 		err := types.Decode(value, &onePush)
 		if err != nil {
 			return nil, err
 		}
-		listSeqCBs.Pushes = append(listSeqCBs.Pushes, &onePush)
+		listSeqCBs.Pushes = append(listSeqCBs.Pushes, onePush.Push)
 	}
 	return &listSeqCBs, nil
 }
@@ -422,8 +422,7 @@ func (push *Push) runTask(input *pushNotify) {
 			now := time.Now()
 			chainlog.Debug("another new block", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string(),
 				"last push sequence", lastProcessedseq, "lastest sequence", lastesBlockSeq,
-				"time second", now.Second(),
-				"time ms", time.Duration(now.Nanosecond()).Milliseconds())
+				"time second", now.Second())
 			//确定一次推送的数量，如果需要更新的数量少于门限值，则一次只推送一个区块的交易数据
 			seqCount := pushMaxSeq
 			if seqCount > int(lastesBlockSeq-lastProcessedseq) {
