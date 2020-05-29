@@ -19,8 +19,8 @@ const (
 	running                  = int32(2)
 	PushBlock                = int32(0)
 	PushTxReceipt            = int32(1)
-	waitNewBlock             = 5 * time.Second
-	pushMaxSeq               = 10
+	pushBlockMaxSeq          = 10
+	pushTxReceiptMaxSeq      = 100
 	pushMaxSize              = 1 * 1024 * 1024
 	maxPushSubscriber        = int(100)
 	subscribeStatusActive    = int32(1)
@@ -396,6 +396,11 @@ func (push *Push) runTask(input *pushNotify) {
 		atomic.StoreInt32(&in.status, running)
 		ticker := time.NewTicker(500 * time.Millisecond)
 
+		pushMaxSeq := pushBlockMaxSeq
+		if subscribe.Type == PushTxReceipt {
+			pushMaxSeq = pushTxReceiptMaxSeq
+		}
+
 		chainlog.Debug("start push with info", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string())
 		for {
 			select {
@@ -415,11 +420,17 @@ func (push *Push) runTask(input *pushNotify) {
 				if lastProcessedseq >= lastesBlockSeq {
 					continue
 				}
+				now := time.Now()
+				chainlog.Debug("another new block", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string(),
+					                "last push sequence", lastProcessedseq, "lastest sequence", lastesBlockSeq,
+					                "time second", now.Second(),
+					                "time ms", time.Duration(now.Nanosecond()).Milliseconds())
 				//确定一次推送的数量，如果需要更新的数量少于门限值，则一次只推送一个区块的交易数据
 				seqCount := pushMaxSeq
-				if lastProcessedseq+int64(seqCount) > lastesBlockSeq {
-					seqCount = 1
+				if seqCount > int(lastesBlockSeq - lastProcessedseq) {
+					seqCount = int(lastesBlockSeq - lastProcessedseq)
 				}
+				
 				data, updateSeq, err := push.getPushData(subscribe, lastProcessedseq+1, seqCount, pushMaxSize)
 				if err != nil {
 					chainlog.Error("getPushData", "err", err, "seqCurrent", lastProcessedseq+1, "maxSeq", seqCount,
