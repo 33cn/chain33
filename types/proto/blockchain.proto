@@ -336,16 +336,16 @@ message PushSubscribeReq {
     int64  lastSequence  = 5;
     int64  lastHeight    = 6;
     string lastBlockHash = 7;
-    //0:代表区块，1：代表交易回执
-    int32  type          = 8;
+    // 0:代表区块，1：代表交易回执
+    int32 type = 8;
     //允许订阅多个类型的交易回执
-    //repeated string contract = 9;
-    map <string, bool> contract = 9;
+    // repeated string contract = 9;
+    map<string, bool> contract = 9;
 }
 
 message PushWithStatus {
-    PushSubscribeReq push = 1;
-    int32 status          = 2;
+    PushSubscribeReq push   = 1;
+    int32            status = 2;
 }
 
 message PushSubscribes {
@@ -353,6 +353,6 @@ message PushSubscribes {
 }
 
 message ReplySubscribePush {
-    bool     isOk          = 1;
-    string   msg           = 2;
+    bool   isOk = 1;
+    string msg  = 2;
 }

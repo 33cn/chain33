@@ -3,6 +3,12 @@ package blockchain
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"os"
+	"sync/atomic"
+	"testing"
+	"time"
+
 	bcMocks "github.com/33cn/chain33/blockchain/mocks"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
@@ -23,34 +29,26 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"math/rand"
-	"os"
-	"sync"
-	"sync/atomic"
-	"testing"
-	"time"
 )
 
 var sendTxWait = time.Millisecond * 5
 
 type Chain33Mock struct {
-	random   *rand.Rand
-	q        queue.Queue
-	client   queue.Client
-	api      client.QueueProtocolAPI
-	chain    *BlockChain
-	mem      queue.Module
-	cs       queue.Module
-	exec     *executor.Executor
-	wallet   queue.Module
-	network  queue.Module
-	store    queue.Module
-	rpc      *rpc.RPC
-	cfg      *types.Config
-	sub      *types.ConfigSubModule
-	datadir  string
-	lastsend []byte
-	mu       sync.Mutex
+	random  *rand.Rand
+	q       queue.Queue
+	client  queue.Client
+	api     client.QueueProtocolAPI
+	chain   *BlockChain
+	mem     queue.Module
+	cs      queue.Module
+	exec    *executor.Executor
+	wallet  queue.Module
+	network queue.Module
+	store   queue.Module
+	rpc     *rpc.RPC
+	cfg     *types.Config
+	sub     *types.ConfigSubModule
+	datadir string
 }
 
 //GetAPI :
@@ -149,8 +147,7 @@ func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error
 }
 
 func setupBlockChain() *BlockChain {
-	var cfg *types.Chain33Config
-	cfg = types.NewChain33Config(types.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	blockChain := &BlockChain{}
@@ -248,14 +245,14 @@ func Test_PostBlock(t *testing.T) {
 	subscribe.Type = PushBlock
 
 	err := chain.push.addSubscriber(subscribe)
-	time.Sleep(2*time.Second)
+	time.Sleep(2 * time.Second)
 	assert.Equal(t, err, nil)
 	createBlocks(t, mock33, chain, 10)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotify := chain.push.tasks[keyStr]
 	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
 	assert.Equal(t, pushNotify.status, running)
-	time.Sleep(1*time.Second)
+	time.Sleep(1 * time.Second)
 	createBlocks(t, mock33, chain, 1)
 
 	assert.Greater(t, atomic.LoadInt32(&pushNotify.postFailSleepSecond), int32(0))
@@ -286,7 +283,7 @@ func Test_PostTxReceipt(t *testing.T) {
 	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
 
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
-	time.Sleep(2*time.Second)
+	time.Sleep(2 * time.Second)
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFailSleepSecond), int32(0))
 	defer mock33.Close()
 }
@@ -301,7 +298,7 @@ func Test_AddPush_reachMaxNum(t *testing.T) {
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
 
-	for i := 0; i < maxPushSubscriber; i ++ {
+	for i := 0; i < maxPushSubscriber; i++ {
 		subscribe := new(types.PushSubscribeReq)
 		subscribe.Name = "push-test"
 		subscribe.URL = "http://localhost"
@@ -335,7 +332,7 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 	chain.push.postService = ps
 
 	var pushNames []string
-	for i := 0; i < 10; i ++ {
+	for i := 0; i < 10; i++ {
 		subscribe := new(types.PushSubscribeReq)
 		subscribe.Name = "push-test"
 		subscribe.URL = "http://localhost"
@@ -383,7 +380,7 @@ func Test_rmPushFailTask(t *testing.T) {
 	createBlocks(t, mock33, chain, 10)
 	var pushNames []string
 	subCnt := 10
-	for i := 0; i < subCnt; i ++ {
+	for i := 0; i < subCnt; i++ {
 		subscribe := new(types.PushSubscribeReq)
 		subscribe.Name = "push-test"
 		subscribe.URL = "http://localhost"
@@ -403,15 +400,13 @@ func Test_rmPushFailTask(t *testing.T) {
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(1 * time.Second)
 	chain.push.mu.Lock()
-	assert.Equal(t,0, len(chain.push.tasks))
+	assert.Equal(t, 0, len(chain.push.tasks))
 	chain.push.mu.Unlock()
 	defer mock33.Close()
 }
 
-
 func NewChain33Mock(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	var cfg *types.Chain33Config
-	cfg = types.NewChain33Config(types.GetDefaultCfgstring())
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	return newWithConfigNoLock(cfg, mockapi)
 }
 
@@ -512,7 +507,6 @@ func createBlocks(t *testing.T, mock33 *Chain33Mock, blockchain *BlockChain, num
 	chainlog.Info("testProcAddBlockMsg end --------------------")
 }
 
-
 func createBlockChain(t *testing.T) (*BlockChain, *Chain33Mock) {
 	mock33 := NewChain33Mock("", nil)
 
@@ -579,8 +573,3 @@ func (m *mockP2P) Wait() {}
 //Close :
 func (m *mockP2P) Close() {
 }
-
-
-
-
-

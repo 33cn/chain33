@@ -25,7 +25,7 @@ var (
 	//cache 存贮的block个数
 	zeroHash             [32]byte
 	InitBlockNum         int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
-	chainlog                                  = log.New("module", "blockchain")
+	chainlog                   = log.New("module", "blockchain")
 	FutureBlockDelayTime int64 = 1
 )
 
@@ -36,8 +36,8 @@ type BlockChain struct {
 	client queue.Client
 	cache  *BlockCache
 	// 永久存储数据到db中
-	blockStore  *BlockStore
-	push        *Push
+	blockStore *BlockStore
+	push       *Push
 	//cache  缓存block方便快速查询
 	cfg          *types.BlockChain
 	syncTask     *Task

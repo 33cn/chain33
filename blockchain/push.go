@@ -3,15 +3,16 @@ package blockchain
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/33cn/chain33/common"
-	dbm "github.com/33cn/chain33/common/db"
-	"github.com/33cn/chain33/types"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/common"
+	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/types"
 )
 
 const (
@@ -273,7 +274,7 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		return push.check2ResumePush(subscribeInDB)
 	}
 
-	if len(push.tasks) >= int(maxPushSubscriber) {
+	if len(push.tasks) >= maxPushSubscriber {
 		chainlog.Error("addSubscriber too many push subscriber")
 		return types.ErrTooManySeqCB
 	}
@@ -352,8 +353,8 @@ func (push *Push) check2ResumePush(subscribe *types.PushSubscribeReq) error {
 	//有可能因为连续发送失败已经导致将其从推送任务中删除了
 	if nil == notify {
 		push.tasks[keyStr] = &pushNotify{
-			subscribe:     subscribe,
-			status:        notRunning,
+			subscribe: subscribe,
+			status:    notRunning,
 		}
 
 		push.runTask(push.tasks[keyStr])
@@ -376,8 +377,8 @@ func (push *Push) addTask(subscribe *types.PushSubscribeReq) {
 	defer push.mu.Unlock()
 	keyStr := string(calcPushKey(subscribe.Name))
 	push.tasks[keyStr] = &pushNotify{
-		subscribe:     subscribe,
-		status:        notRunning,
+		subscribe:           subscribe,
+		status:              notRunning,
 		postFailSleepSecond: 0,
 	}
 
@@ -387,7 +388,7 @@ func (push *Push) addTask(subscribe *types.PushSubscribeReq) {
 func (push *Push) runTask(input *pushNotify) {
 	go func(in *pushNotify) {
 		var lastesBlockSeq int64 = -1
-		var continueFailCount int32 = 0
+		var continueFailCount int32
 		var err error
 
 		subscribe := in.subscribe
@@ -402,74 +403,72 @@ func (push *Push) runTask(input *pushNotify) {
 		}
 
 		chainlog.Debug("start push with info", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string())
-		for {
-			select {
-			case <-ticker.C:
-				atomic.AddInt32(&input.postFailSleepSecond, -1)
-				if atomic.LoadInt32(&input.postFailSleepSecond) > 0 {
-					chainlog.Debug("wait another ticker for post fail", "postFailSleepSecond", input.postFailSleepSecond, "name", in.subscribe.Name)
-					continue
-				}
-				atomic.StoreInt32(&input.postFailSleepSecond, 0)
-				if lastesBlockSeq, err = push.sequenceStore.LoadBlockLastSequence(); err != nil {
-					chainlog.Error("LoadBlockLastSequence", "err", err)
-					return
-				}
-
-				//没有更新的区块，则不进行处理，同时等待一定的时间
-				if lastProcessedseq >= lastesBlockSeq {
-					continue
-				}
-				now := time.Now()
-				chainlog.Debug("another new block", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string(),
-					                "last push sequence", lastProcessedseq, "lastest sequence", lastesBlockSeq,
-					                "time second", now.Second(),
-					                "time ms", time.Duration(now.Nanosecond()).Milliseconds())
-				//确定一次推送的数量，如果需要更新的数量少于门限值，则一次只推送一个区块的交易数据
-				seqCount := pushMaxSeq
-				if seqCount > int(lastesBlockSeq - lastProcessedseq) {
-					seqCount = int(lastesBlockSeq - lastProcessedseq)
-				}
-				
-				data, updateSeq, err := push.getPushData(subscribe, lastProcessedseq+1, seqCount, pushMaxSize)
-				if err != nil {
-					chainlog.Error("getPushData", "err", err, "seqCurrent", lastProcessedseq+1, "maxSeq", seqCount,
-						"Name", subscribe.Name, "pushType:", PushType(subscribe.Type).string())
-					continue
-				}
-
-				if data != nil {
-					err = push.postService.PostData(subscribe, data, updateSeq)
-					if err != nil {
-						continueFailCount++
-						chainlog.Error("postdata failed", "err", err, "lastProcessedseq", lastProcessedseq,
-							"Name", subscribe.Name, "pushType:", PushType(subscribe.Type).string(), "continueFailCount", continueFailCount)
-						if continueFailCount >= 3 {
-							atomic.StoreInt32(&in.status, notRunning)
-							chainlog.Error("postdata failed exceed 3 times", "Name", subscribe.Name, "in.status", atomic.LoadInt32(&in.status))
-
-							pushWithStatus := &types.PushWithStatus{
-								Push:   subscribe,
-								Status: subscribeStatusNotActive,
-							}
-
-							key := calcPushKey(subscribe.Name)
-							push.mu.Lock()
-							delete(push.tasks, string(key))
-							push.mu.Unlock()
-							_ = push.store.SetSync(key, types.Encode(pushWithStatus))
-							return
-						}
-						//sleep 60s，每次1s，总计60次，在每次结束时，等待接收方重新进行请求推送
-						atomic.CompareAndSwapInt32(&input.postFailSleepSecond, input.postFailSleepSecond, push.postFailSleepSecond)
-						continue
-					}
-					_ = push.setLastPushSeq(subscribe.Name, updateSeq)
-				}
-				continueFailCount = 0
-				lastProcessedseq = updateSeq
+		for range ticker.C {
+			atomic.AddInt32(&input.postFailSleepSecond, -1)
+			if atomic.LoadInt32(&input.postFailSleepSecond) > 0 {
+				chainlog.Debug("wait another ticker for post fail", "postFailSleepSecond", input.postFailSleepSecond, "name", in.subscribe.Name)
+				continue
 			}
+			atomic.StoreInt32(&input.postFailSleepSecond, 0)
+			if lastesBlockSeq, err = push.sequenceStore.LoadBlockLastSequence(); err != nil {
+				chainlog.Error("LoadBlockLastSequence", "err", err)
+				return
+			}
+
+			//没有更新的区块，则不进行处理，同时等待一定的时间
+			if lastProcessedseq >= lastesBlockSeq {
+				continue
+			}
+			now := time.Now()
+			chainlog.Debug("another new block", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string(),
+				"last push sequence", lastProcessedseq, "lastest sequence", lastesBlockSeq,
+				"time second", now.Second(),
+				"time ms", time.Duration(now.Nanosecond()).Milliseconds())
+			//确定一次推送的数量，如果需要更新的数量少于门限值，则一次只推送一个区块的交易数据
+			seqCount := pushMaxSeq
+			if seqCount > int(lastesBlockSeq-lastProcessedseq) {
+				seqCount = int(lastesBlockSeq - lastProcessedseq)
+			}
+
+			data, updateSeq, err := push.getPushData(subscribe, lastProcessedseq+1, seqCount, pushMaxSize)
+			if err != nil {
+				chainlog.Error("getPushData", "err", err, "seqCurrent", lastProcessedseq+1, "maxSeq", seqCount,
+					"Name", subscribe.Name, "pushType:", PushType(subscribe.Type).string())
+				continue
+			}
+
+			if data != nil {
+				err = push.postService.PostData(subscribe, data, updateSeq)
+				if err != nil {
+					continueFailCount++
+					chainlog.Error("postdata failed", "err", err, "lastProcessedseq", lastProcessedseq,
+						"Name", subscribe.Name, "pushType:", PushType(subscribe.Type).string(), "continueFailCount", continueFailCount)
+					if continueFailCount >= 3 {
+						atomic.StoreInt32(&in.status, notRunning)
+						chainlog.Error("postdata failed exceed 3 times", "Name", subscribe.Name, "in.status", atomic.LoadInt32(&in.status))
+
+						pushWithStatus := &types.PushWithStatus{
+							Push:   subscribe,
+							Status: subscribeStatusNotActive,
+						}
+
+						key := calcPushKey(subscribe.Name)
+						push.mu.Lock()
+						delete(push.tasks, string(key))
+						push.mu.Unlock()
+						_ = push.store.SetSync(key, types.Encode(pushWithStatus))
+						return
+					}
+					//sleep 60s，每次1s，总计60次，在每次结束时，等待接收方重新进行请求推送
+					atomic.CompareAndSwapInt32(&input.postFailSleepSecond, input.postFailSleepSecond, push.postFailSleepSecond)
+					continue
+				}
+				_ = push.setLastPushSeq(subscribe.Name, updateSeq)
+			}
+			continueFailCount = 0
+			lastProcessedseq = updateSeq
 		}
+
 	}(input)
 }
 
