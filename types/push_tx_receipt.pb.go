@@ -5,8 +5,9 @@ package types
 
 import (
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
 	math "math"
+
+	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -23,7 +24,7 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 type TxReceipts4SubscribePerBlk struct {
 	Tx          []*Transaction `protobuf:"bytes,1,rep,name=tx,proto3" json:"tx,omitempty"`
 	ReceiptData []*ReceiptData `protobuf:"bytes,2,rep,name=receiptData,proto3" json:"receiptData,omitempty"`
-	//repeated KeyValue    KV          = 3;
+	// repeated KeyValue    KV          = 3;
 	Height               int64    `protobuf:"varint,4,opt,name=height,proto3" json:"height,omitempty"`
 	BlockHash            []byte   `protobuf:"bytes,5,opt,name=blockHash,proto3" json:"blockHash,omitempty"`
 	ParentHash           []byte   `protobuf:"bytes,6,opt,name=parentHash,proto3" json:"parentHash,omitempty"`

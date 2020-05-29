@@ -5,8 +5,9 @@ package types
 
 import (
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
 	math "math"
+
+	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -2349,10 +2350,10 @@ type PushSubscribeReq struct {
 	LastSequence  int64  `protobuf:"varint,5,opt,name=lastSequence,proto3" json:"lastSequence,omitempty"`
 	LastHeight    int64  `protobuf:"varint,6,opt,name=lastHeight,proto3" json:"lastHeight,omitempty"`
 	LastBlockHash string `protobuf:"bytes,7,opt,name=lastBlockHash,proto3" json:"lastBlockHash,omitempty"`
-	//0:代表区块，1：代表交易回执
+	// 0:代表区块，1：代表交易回执
 	Type int32 `protobuf:"varint,8,opt,name=type,proto3" json:"type,omitempty"`
 	//允许订阅多个类型的交易回执
-	//repeated string contract = 9;
+	// repeated string contract = 9;
 	Contract             map[string]bool `protobuf:"bytes,9,rep,name=contract,proto3" json:"contract,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
