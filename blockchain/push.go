@@ -19,8 +19,8 @@ const (
 	running                  = int32(2)
 	PushBlock                = int32(0)
 	PushTxReceipt            = int32(1)
-	waitNewBlock             = 5 * time.Second
-	pushMaxSeq               = 10
+	pushBlockMaxSeq          = 10
+	pushTxReceiptMaxSeq      = 100
 	pushMaxSize              = 1 * 1024 * 1024
 	maxPushSubscriber        = int(100)
 	subscribeStatusActive    = int32(1)
@@ -64,7 +64,6 @@ type PostService interface {
 //pushNotify push Notify
 type pushNotify struct {
 	subscribe           *types.PushSubscribeReq
-	seqUpdateChan       chan int64
 	status              int32
 	postFailSleepSecond int32
 }
@@ -354,7 +353,6 @@ func (push *Push) check2ResumePush(subscribe *types.PushSubscribeReq) error {
 	if nil == notify {
 		push.tasks[keyStr] = &pushNotify{
 			subscribe:     subscribe,
-			seqUpdateChan: make(chan int64, 10),
 			status:        notRunning,
 		}
 
@@ -372,19 +370,6 @@ func (push *Push) check2ResumePush(subscribe *types.PushSubscribeReq) error {
 	return nil
 }
 
-//只更新本cb的seq值，每次add一个新cb时如果刷新所有的cb，会耗时很长在初始化时
-func (push *Push) updateLastSeq(nameContract string) {
-	last, err := push.sequenceStore.LoadBlockLastSequence()
-	if err != nil {
-		chainlog.Error("LoadBlockLastSequence", "err", err)
-		return
-	}
-
-	notify := push.tasks[nameContract]
-	notify.seqUpdateChan <- last
-	chainlog.Debug("updateLastSeq", "last", last, "notify.seqUpdateChan", len(notify.seqUpdateChan))
-}
-
 // addTask 每个name 有一个task, 通知新增推送
 func (push *Push) addTask(subscribe *types.PushSubscribeReq) {
 	push.mu.Lock()
@@ -392,94 +377,64 @@ func (push *Push) addTask(subscribe *types.PushSubscribeReq) {
 	keyStr := string(calcPushKey(subscribe.Name))
 	push.tasks[keyStr] = &pushNotify{
 		subscribe:     subscribe,
-		seqUpdateChan: make(chan int64, 10),
 		status:        notRunning,
+		postFailSleepSecond: 0,
 	}
 
 	push.runTask(push.tasks[keyStr])
-	//更新最新的seq
-	push.updateLastSeq(keyStr)
-	chainlog.Debug("runTask to push tx receipt", "subscribe", subscribe)
-}
-
-// UpdateSeq sequence 更新通知
-func (push *Push) UpdateSeq(seq int64) {
-	push.mu.Lock()
-	defer push.mu.Unlock()
-	for _, notify := range push.tasks {
-		//再写入seq（一定不会block，因为加了lock，不存在两个同时写channel的情况）
-		if len(notify.seqUpdateChan) < 10 {
-			chainlog.Info("new block Update Seq notified", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan))
-			notify.seqUpdateChan <- seq
-		}
-		chainlog.Info("new block UpdateSeq", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan))
-	}
-}
-
-func (push *Push) trigeRun(run chan struct{}, sleep time.Duration, name string) {
-	chainlog.Info("trigeRun", name, "name", "sleep", sleep, "run len", len(run))
-	if sleep > 0 {
-		time.Sleep(sleep)
-	}
-	go func() {
-		select {
-		case run <- struct{}{}:
-		default:
-		}
-	}()
 }
 
 func (push *Push) runTask(input *pushNotify) {
 	go func(in *pushNotify) {
-		var lastProcessedseq int64 = -1
 		var lastesBlockSeq int64 = -1
-		var run = make(chan struct{}, 10)
 		var continueFailCount int32 = 0
+		var err error
 
-		atomic.CompareAndSwapInt32(&input.postFailSleepSecond, input.postFailSleepSecond, 0)
 		subscribe := in.subscribe
-		push.trigeRun(run, 0, in.subscribe.Name)
-		lastProcessedseq = push.getLastPushSeq(subscribe)
+		lastProcessedseq := push.getLastPushSeq(subscribe)
+
 		atomic.StoreInt32(&in.status, running)
-		chainlog.Debug("runTask to push tx receipt", "subscribe", subscribe, "in.seqUpdateChan", in.seqUpdateChan)
+		ticker := time.NewTicker(500 * time.Millisecond)
+
+		pushMaxSeq := pushBlockMaxSeq
+		if subscribe.Type == PushTxReceipt {
+			pushMaxSeq = pushTxReceiptMaxSeq
+		}
+
+		chainlog.Debug("start push with info", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string())
 		for {
 			select {
-			case lastesBlockSeq = <-in.seqUpdateChan:
-				chainlog.Debug("Get new block Seq", "name", in.subscribe.Name, "lastesBlockSeq", lastesBlockSeq, "len", len(in.seqUpdateChan), "in", in.seqUpdateChan)
-				cnt := len(in.seqUpdateChan)
-				for i := 0; i < cnt; i++ {
-					lastesBlockSeq = <-in.seqUpdateChan
-					chainlog.Debug("Get more new block Seq ", "name", in.subscribe.Name, "lastesBlockSeq", lastesBlockSeq, "len", len(in.seqUpdateChan), "in", in.seqUpdateChan)
-				}
-
-				chainlog.Debug("runTask to push tx receipt in seqUpdateChan", "name", in.subscribe.Name, "lastesBlockSeq", lastesBlockSeq, "len", len(in.seqUpdateChan), "in", in.seqUpdateChan)
-				push.trigeRun(run, 0, in.subscribe.Name)
-			case <-run:
+			case <-ticker.C:
 				atomic.AddInt32(&input.postFailSleepSecond, -1)
 				if atomic.LoadInt32(&input.postFailSleepSecond) > 0 {
-					//每次sleep 1s，重复被激活
-					push.trigeRun(run, 1000*time.Millisecond, in.subscribe.Name)
-					chainlog.Debug("Another 1 second sleep for post fail", "postFailSleepSecond", input.postFailSleepSecond, "name", in.subscribe.Name)
+					chainlog.Debug("wait another ticker for post fail", "postFailSleepSecond", input.postFailSleepSecond, "name", in.subscribe.Name)
 					continue
 				}
-				atomic.CompareAndSwapInt32(&input.postFailSleepSecond, input.postFailSleepSecond, 0)
-				
+				atomic.StoreInt32(&input.postFailSleepSecond, 0)
+				if lastesBlockSeq, err = push.sequenceStore.LoadBlockLastSequence(); err != nil {
+					chainlog.Error("LoadBlockLastSequence", "err", err)
+					return
+				}
+
 				//没有更新的区块，则不进行处理，同时等待一定的时间
 				if lastProcessedseq >= lastesBlockSeq {
-					chainlog.Debug("lastProcessedseq >= lastesBlockSeq", "lastProcessedseq", lastProcessedseq, "lastesBlockSeq", lastesBlockSeq)
-					push.trigeRun(run, waitNewBlock, in.subscribe.Name)
 					continue
 				}
+				now := time.Now()
+				chainlog.Debug("another new block", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string(),
+					                "last push sequence", lastProcessedseq, "lastest sequence", lastesBlockSeq,
+					                "time second", now.Second(),
+					                "time ms", time.Duration(now.Nanosecond()).Milliseconds())
 				//确定一次推送的数量，如果需要更新的数量少于门限值，则一次只推送一个区块的交易数据
 				seqCount := pushMaxSeq
-				if lastProcessedseq+int64(seqCount) > lastesBlockSeq {
-					seqCount = 1
+				if seqCount > int(lastesBlockSeq - lastProcessedseq) {
+					seqCount = int(lastesBlockSeq - lastProcessedseq)
 				}
+				
 				data, updateSeq, err := push.getPushData(subscribe, lastProcessedseq+1, seqCount, pushMaxSize)
 				if err != nil {
 					chainlog.Error("getPushData", "err", err, "seqCurrent", lastProcessedseq+1, "maxSeq", seqCount,
 						"Name", subscribe.Name, "pushType:", PushType(subscribe.Type).string())
-					push.trigeRun(run, 1000*time.Millisecond, in.subscribe.Name)
 					continue
 				}
 
@@ -506,16 +461,13 @@ func (push *Push) runTask(input *pushNotify) {
 							return
 						}
 						//sleep 60s，每次1s，总计60次，在每次结束时，等待接收方重新进行请求推送
-						push.trigeRun(run, 1000*time.Millisecond, in.subscribe.Name)
 						atomic.CompareAndSwapInt32(&input.postFailSleepSecond, input.postFailSleepSecond, push.postFailSleepSecond)
 						continue
 					}
 					_ = push.setLastPushSeq(subscribe.Name, updateSeq)
 				}
 				continueFailCount = 0
-				//update seqid
 				lastProcessedseq = updateSeq
-				//push.trigeRun(run, 0)
 			}
 		}
 	}(input)
