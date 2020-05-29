@@ -848,7 +848,10 @@ func testWallet(t *testing.T, wallet *Wallet) {
 	wallet.IsClose()
 	wallet.AddWaitGroup(1)
 	wallet.WaitGroupDone()
-	wallet.RegisterMineStatusReporter(nil)
+	report := &WalletReport{}
+	err = wallet.RegisterMineStatusReporter(report)
+	assert.NoError(t, err)
+
 }
 
 func testSendTx(t *testing.T, wallet *Wallet) {
@@ -1109,4 +1112,19 @@ func testProcImportPrivkeysFile2(t *testing.T, wallet *Wallet) {
 	os.Remove(fileName)
 	println("testProcImportPrivkeysFile end")
 	println("--------------------------")
+}
+
+type WalletReport struct {
+}
+
+func (report WalletReport) IsAutoMining() bool {
+	return true
+
+}
+func (report WalletReport) IsTicketLocked() bool {
+	return true
+
+}
+func (report WalletReport) PolicyName() string {
+	return "ticket"
 }
