@@ -24,8 +24,8 @@ import (
 
 //var
 var (
-	blockLastHeight           = []byte("blockLastHeight")
-	bodyPrefix                = []byte("Body:")
+	blockLastHeight       = []byte("blockLastHeight")
+	bodyPrefix            = []byte("Body:")
 	LastSequence          = []byte("LastSequence")
 	headerPrefix          = []byte("Header:")
 	heightToHeaderPrefix  = []byte("HH:")
