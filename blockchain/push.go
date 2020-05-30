@@ -26,7 +26,7 @@ const (
 	maxPushSubscriber        = int(100)
 	subscribeStatusActive    = int32(1)
 	subscribeStatusNotActive = int32(2)
-	postFailSleepSecond      = int32(60)
+	postFail2Sleep           = int32(120)
 )
 
 // CommonStore 通用的store 接口
@@ -64,19 +64,20 @@ type PostService interface {
 //TODO：后续需要考虑将区块推送和交易执行回执推送进行重构，提高并行推送效率
 //pushNotify push Notify
 type pushNotify struct {
-	subscribe           *types.PushSubscribeReq
-	status              int32
-	postFailSleepSecond int32
+	subscribe      *types.PushSubscribeReq
+	status         int32
+	postFail2Sleep int32
 }
 
 type Push struct {
-	store               CommonStore
-	sequenceStore       SequenceStore
-	tasks               map[string]*pushNotify
-	mu                  sync.Mutex
-	postService         PostService
-	cfg                 *types.Chain33Config
-	postFailSleepSecond int32
+	store          CommonStore
+	sequenceStore  SequenceStore
+	tasks          map[string]*pushNotify
+	mu             sync.Mutex
+	postService    PostService
+	cfg            *types.Chain33Config
+	postFail2Sleep int32
+	postwg         *sync.WaitGroup
 }
 
 type PushClient struct {
@@ -212,11 +213,12 @@ func newpush(commonStore CommonStore, seqStore SequenceStore, cfg *types.Chain33
 		}},
 	}
 	service := &Push{store: commonStore,
-		sequenceStore:       seqStore,
-		tasks:               tasks,
-		postService:         pushClient,
-		cfg:                 cfg,
-		postFailSleepSecond: postFailSleepSecond,
+		sequenceStore:  seqStore,
+		tasks:          tasks,
+		postService:    pushClient,
+		cfg:            cfg,
+		postFail2Sleep: postFail2Sleep,
+		postwg:         &sync.WaitGroup{},
 	}
 	service.init()
 
@@ -249,6 +251,14 @@ func (push *Push) init() {
 	for _, subscribe := range subscribes {
 		push.addTask(subscribe)
 	}
+}
+
+func (push *Push) Close() {
+	cnt := len(push.tasks)
+	for i := 0; i < cnt; i++ {
+		push.postwg.Done()
+	}
+	push.postwg.Wait()
 }
 
 func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
@@ -356,16 +366,17 @@ func (push *Push) check2ResumePush(subscribe *types.PushSubscribeReq) error {
 			subscribe: subscribe,
 			status:    notRunning,
 		}
-
 		push.runTask(push.tasks[keyStr])
+		storeLog.Info("check2ResumePush new pushNotify created")
 		return nil
 	}
 
 	if running == atomic.LoadInt32(&notify.status) {
-		storeLog.Info("Is already in state:running", "postFailSleepSecond", atomic.LoadInt32(&notify.postFailSleepSecond))
-		atomic.CompareAndSwapInt32(&notify.postFailSleepSecond, notify.postFailSleepSecond, 0)
+		storeLog.Info("Is already in state:running", "postFail2Sleep", atomic.LoadInt32(&notify.postFail2Sleep))
+		atomic.StoreInt32(&notify.postFail2Sleep, 0)
 		return nil
 	}
+	storeLog.Info("check2ResumePush to resume a push", "name", subscribe.Name)
 
 	push.runTask(push.tasks[keyStr])
 	return nil
@@ -377,9 +388,9 @@ func (push *Push) addTask(subscribe *types.PushSubscribeReq) {
 	defer push.mu.Unlock()
 	keyStr := string(calcPushKey(subscribe.Name))
 	push.tasks[keyStr] = &pushNotify{
-		subscribe:           subscribe,
-		status:              notRunning,
-		postFailSleepSecond: 0,
+		subscribe:      subscribe,
+		status:         notRunning,
+		postFail2Sleep: 0,
 	}
 
 	push.runTask(push.tasks[keyStr])
@@ -404,12 +415,13 @@ func (push *Push) runTask(input *pushNotify) {
 
 		chainlog.Debug("start push with info", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string())
 		for range ticker.C {
-			atomic.AddInt32(&input.postFailSleepSecond, -1)
-			if atomic.LoadInt32(&input.postFailSleepSecond) > 0 {
-				chainlog.Debug("wait another ticker for post fail", "postFailSleepSecond", input.postFailSleepSecond, "name", in.subscribe.Name)
-				continue
+			if atomic.LoadInt32(&input.postFail2Sleep) > 0 {
+				if postFail2SleepNew := atomic.AddInt32(&input.postFail2Sleep, -1); postFail2SleepNew > 0 {
+					chainlog.Debug("wait another ticker for post fail", "postFail2Sleep", postFail2SleepNew, "name", in.subscribe.Name)
+					continue
+				}
 			}
-			atomic.StoreInt32(&input.postFailSleepSecond, 0)
+			atomic.StoreInt32(&input.postFail2Sleep, 0)
 			if lastesBlockSeq, err = push.sequenceStore.LoadBlockLastSequence(); err != nil {
 				chainlog.Error("LoadBlockLastSequence", "err", err)
 				return
@@ -456,10 +468,11 @@ func (push *Push) runTask(input *pushNotify) {
 						delete(push.tasks, string(key))
 						push.mu.Unlock()
 						_ = push.store.SetSync(key, types.Encode(pushWithStatus))
+						push.postwg.Done()
 						return
 					}
 					//sleep 60s，每次1s，总计60次，在每次结束时，等待接收方重新进行请求推送
-					atomic.CompareAndSwapInt32(&input.postFailSleepSecond, input.postFailSleepSecond, push.postFailSleepSecond)
+					atomic.StoreInt32(&input.postFail2Sleep, push.postFail2Sleep)
 					continue
 				}
 				_ = push.setLastPushSeq(subscribe.Name, updateSeq)
@@ -469,6 +482,7 @@ func (push *Push) runTask(input *pushNotify) {
 		}
 
 	}(input)
+	push.postwg.Add(1)
 }
 
 func (push *Push) getPushData(subscribe *types.PushSubscribeReq, startSeq int64, seqCount, maxSize int) ([]byte, int64, error) {

@@ -221,6 +221,11 @@ func (chain *BlockChain) Close() {
 	chainlog.Info("blockchain wait for reducewg quit")
 	chain.reducewg.Wait()
 
+	if chain.push != nil {
+		chainlog.Info("blockchain wait for push quit")
+		chain.push.Close()
+	}
+
 	//关闭数据库
 	chain.blockStore.db.Close()
 	chainlog.Info("blockchain module closed")

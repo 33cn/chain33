@@ -206,6 +206,24 @@ func Test_addSubscriber_InvalidURL(t *testing.T) {
 	assert.Equal(t, err, types.ErrInvalidParam)
 }
 
+func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
+	chain := setupBlockChain()
+	chain.enablePushSubscribe = true
+	chain.isRecordBlockSequence = true
+	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test"
+	subscribe.URL = "http://localhost"
+	subscribe.LastSequence = 1
+	err := chain.push.addSubscriber(subscribe)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
+	subscribe.LastSequence = 0
+	subscribe.LastHeight = 1
+	err = chain.push.addSubscriber(subscribe)
+	assert.Equal(t, err, types.ErrInvalidParam)
+}
+
 func Test_addSubscriber_Success(t *testing.T) {
 	chain := setupBlockChain()
 	chain.enablePushSubscribe = true
@@ -229,9 +247,57 @@ func Test_addSubscriber_Success(t *testing.T) {
 	err = types.Decode(subInfo, &originSubInfo)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, originSubInfo.Push.URL, subscribe.URL)
+
+	pushes, _ := chain.ProcListPush()
+	assert.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
+
+	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	recoverpushes, _ := chain.ProcListPush()
+	assert.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
 }
 
-func Test_PostBlock(t *testing.T) {
+func Test_addSubscriber_WithSeqHashHeight(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
+	chain.enablePushSubscribe = true
+	chain.isRecordBlockSequence = true
+
+	blockSeq, err := chain.blockStore.GetBlockSequence(5)
+	assert.Equal(t, err, nil)
+	header, err := chain.blockStore.GetBlockHeaderByHash(blockSeq.Hash)
+	assert.Equal(t, err, nil)
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test"
+	subscribe.URL = "http://localhost"
+	subscribe.LastSequence = 5
+	subscribe.LastHeight = header.Height
+	subscribe.LastBlockHash = common.ToHex(blockSeq.Hash)
+	key := calcPushKey(subscribe.Name)
+	_, err = chain.push.store.GetKey(key)
+	assert.NotEqual(t, err, nil)
+
+	err = chain.push.addSubscriber(subscribe)
+	assert.Equal(t, err, nil)
+	subInfo, err := chain.push.store.GetKey(key)
+	assert.Equal(t, err, nil)
+	assert.NotEqual(t, subInfo, nil)
+
+	var originSubInfo types.PushWithStatus
+	err = types.Decode(subInfo, &originSubInfo)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, originSubInfo.Push.URL, subscribe.URL)
+
+	pushes, _ := chain.ProcListPush()
+	assert.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
+
+	//重新创建push，能够从数据库中恢复原先注册成功的push
+	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	recoverpushes, _ := chain.ProcListPush()
+	assert.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
+}
+
+func Test_PostBlockFail(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	chain.enablePushSubscribe = true
 	chain.isRecordBlockSequence = true
@@ -255,7 +321,108 @@ func Test_PostBlock(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	createBlocks(t, mock33, chain, 1)
 
-	assert.Greater(t, atomic.LoadInt32(&pushNotify.postFailSleepSecond), int32(0))
+	assert.Greater(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
+	time.Sleep(1 * time.Second)
+
+	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	assert.Equal(t, lastSeq, int64(-1))
+
+	mock33.Close()
+}
+
+func Test_PostDataFail(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	chain.enablePushSubscribe = true
+	chain.isRecordBlockSequence = true
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushBlock
+
+	err := chain.push.addSubscriber(subscribe)
+	time.Sleep(2 * time.Second)
+	assert.Equal(t, err, nil)
+	createBlocks(t, mock33, chain, 10)
+	keyStr := string(calcPushKey(subscribe.Name))
+	pushNotify := chain.push.tasks[keyStr]
+	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	assert.Equal(t, pushNotify.status, running)
+
+	err = chain.push.postService.PostData(subscribe, []byte("1"), 1)
+	assert.NotEqual(t, nil, err)
+
+	mock33.Close()
+}
+
+func Test_PostBlockSuccess(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	chain.enablePushSubscribe = true
+	chain.isRecordBlockSequence = true
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushBlock
+
+	err := chain.push.addSubscriber(subscribe)
+	time.Sleep(2 * time.Second)
+	assert.Equal(t, err, nil)
+	createBlocks(t, mock33, chain, 10)
+	keyStr := string(calcPushKey(subscribe.Name))
+	pushNotify := chain.push.tasks[keyStr]
+	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	assert.Equal(t, pushNotify.status, running)
+	time.Sleep(1 * time.Second)
+	//注册相同的push，不会有什么问题
+	err = chain.push.addSubscriber(subscribe)
+	assert.Equal(t, err, nil)
+
+	createBlocks(t, mock33, chain, 1)
+
+	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
+	time.Sleep(1 * time.Second)
+
+	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	assert.Greater(t, lastSeq, int64(21))
+
+	mock33.Close()
+}
+
+func Test_PostBlockHeaderSuccess(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	chain.enablePushSubscribe = true
+	chain.isRecordBlockSequence = true
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test"
+	subscribe.URL = "http://localhost"
+	subscribe.IsHeader = true
+	subscribe.Type = PushBlock
+
+	err := chain.push.addSubscriber(subscribe)
+	time.Sleep(2 * time.Second)
+	assert.Equal(t, err, nil)
+	createBlocks(t, mock33, chain, 10)
+	keyStr := string(calcPushKey(subscribe.Name))
+	pushNotify := chain.push.tasks[keyStr]
+	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	assert.Equal(t, pushNotify.status, running)
+
+	createBlocks(t, mock33, chain, 1)
+
+	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
+	time.Sleep(1 * time.Second)
+
+	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	assert.Greater(t, lastSeq, int64(21))
+
 	mock33.Close()
 }
 
@@ -284,7 +451,7 @@ func Test_PostTxReceipt(t *testing.T) {
 
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFailSleepSecond), int32(0))
+	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 	defer mock33.Close()
 }
 
@@ -372,7 +539,7 @@ func Test_rmPushFailTask(t *testing.T) {
 
 	chain.enablePushSubscribe = true
 	chain.isRecordBlockSequence = true
-	chain.push.postFailSleepSecond = int32(1)
+	chain.push.postFail2Sleep = int32(1)
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
 	chain.push.postService = ps
@@ -405,6 +572,114 @@ func Test_rmPushFailTask(t *testing.T) {
 	defer mock33.Close()
 }
 
+func Test_ReactivePush(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	chain.enablePushSubscribe = true
+	chain.isRecordBlockSequence = true
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushBlock
+
+	err := chain.push.addSubscriber(subscribe)
+	time.Sleep(2 * time.Second)
+	assert.Equal(t, err, nil)
+	createBlocks(t, mock33, chain, 10)
+	keyStr := string(calcPushKey(subscribe.Name))
+	pushNotify := chain.push.tasks[keyStr]
+	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	assert.Equal(t, pushNotify.status, running)
+	time.Sleep(1 * time.Second)
+
+	createBlocks(t, mock33, chain, 1)
+
+	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
+	time.Sleep(1 * time.Second)
+
+	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	assert.Greater(t, lastSeq, int64(21))
+
+	mockpsFail := &bcMocks.PostService{}
+	mockpsFail.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
+	chain.push.postService = mockpsFail
+	chain.push.postFail2Sleep = int32(1)
+	createBlocks(t, mock33, chain, 10)
+	time.Sleep(3 * time.Second)
+	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), notRunning)
+	lastSeq = chain.ProcGetLastPushSeq(subscribe.Name)
+	//
+	//重新激活
+	chain.push.postService = ps
+	err = chain.push.addSubscriber(subscribe)
+	assert.Equal(t, err, nil)
+	time.Sleep(1 * time.Second)
+	pushNotify = chain.push.tasks[keyStr]
+	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
+	lastSeqAfter := chain.ProcGetLastPushSeq(subscribe.Name)
+	assert.Greater(t, lastSeqAfter, lastSeq)
+
+	mock33.Close()
+}
+
+//2个用户，一个多次失败时候chain33的push服务重启，失败的注册不再进行推送
+func Test_RecoverPush(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	chain.enablePushSubscribe = true
+	chain.isRecordBlockSequence = true
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushBlock
+
+	err := chain.push.addSubscriber(subscribe)
+	time.Sleep(2 * time.Second)
+	assert.Equal(t, err, nil)
+	createBlocks(t, mock33, chain, 10)
+	keyStr := string(calcPushKey(subscribe.Name))
+	pushNotifyInfo := chain.push.tasks[keyStr]
+	assert.Equal(t, pushNotifyInfo.subscribe.Name, subscribe.Name)
+	assert.Equal(t, pushNotifyInfo.status, running)
+	time.Sleep(1 * time.Second)
+
+	createBlocks(t, mock33, chain, 1)
+
+	assert.Equal(t, atomic.LoadInt32(&pushNotifyInfo.postFail2Sleep), int32(0))
+	time.Sleep(1 * time.Second)
+
+	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	assert.Greater(t, lastSeq, int64(21))
+
+	mockpsFail := &bcMocks.PostService{}
+	mockpsFail.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
+	chain.push.postService = mockpsFail
+	chain.push.postFail2Sleep = int32(1)
+	createBlocks(t, mock33, chain, 10)
+	time.Sleep(3 * time.Second)
+	assert.Equal(t, atomic.LoadInt32(&pushNotifyInfo.status), notRunning)
+	lastSeq = chain.ProcGetLastPushSeq(subscribe.Name)
+
+	//chain33的push服务重启后，不会将其添加到task中，推送成功的序列号不成功
+	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.push.postService = ps
+	createBlocks(t, mock33, chain, 10)
+	time.Sleep(1 * time.Second)
+	lastSeqAfterCurr := chain.ProcGetLastPushSeq(subscribe.Name)
+	assert.Equal(t, lastSeqAfterCurr, lastSeq)
+	var nilInfo *pushNotify
+	assert.Equal(t, chain.push.tasks[string(calcPushKey(subscribe.Name))], nilInfo)
+
+	mock33.Close()
+}
+
+//init work
 func NewChain33Mock(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	return newWithConfigNoLock(cfg, mockapi)

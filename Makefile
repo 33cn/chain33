@@ -106,6 +106,7 @@ ineffassign:
 	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign  -n ./...
 
 test: ## Run unittests
+	@go clean -testcache
 	@go test -race `go list ./... | grep -v "mocks"`
 
 testq: ## Run unittests
