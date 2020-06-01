@@ -359,12 +359,16 @@ func testProcGetHeadersMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("TestProcGetHeadersMsg end --------------------")
 }
 
+//新增区块时代码中是先更新UpdateHeight2，然后再更新UpdateLastBlock2
+// 可能存在调用GetBlockHeight时已经更新，但UpdateLastBlock2还没有来得及更新最新区块
+// GetBlockHeight()获取的最新高度 >= ProcGetLastHeaderMsg()获取的区块高度
 func testProcGetLastHeaderMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("TestProcGetLastHeaderMsg begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	blockheader, err := blockchain.ProcGetLastHeaderMsg()
 	if err == nil && blockheader != nil {
-		if curheight != blockheader.Height {
+		if curheight < blockheader.Height {
+			chainlog.Info("TestProcGetLastHeaderMsg", "curheight", curheight, "blockheader.Height", blockheader.Height)
 			t.Error("testProcGetLastHeaderMsg Last Header  check error")
 		}
 	}
