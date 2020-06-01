@@ -2,6 +2,7 @@ package peer
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
+	dnet "github.com/33cn/chain33/system/p2p/dht/net"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -182,56 +184,44 @@ func (p *peerInfoProtol) getExternalAddr() string {
 }
 
 func (p *peerInfoProtol) detectNodeAddr() {
-	//通常libp2p监听的地址列表，第一个为127，第二个为外部，先进行外部地址预设置
+	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
 	if len(addrs) > 0 {
 		p.setExternalAddr(addrs[len(addrs)-1].String())
 	}
-	var innerNodes = make(map[string]interface{})
-	allConfNodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
-	for _, node := range allConfNodes {
-		nodeSplit := strings.Split(node, "/")
-		innerNodes[nodeSplit[len(nodeSplit)-1]] = node
+	preExternalAddr := p.getExternalAddr()
+	netIp := net.ParseIP(preExternalAddr)
+	if isPublicIP(netIp) { //检测是PubIp不用继续通过其他节点获取
+		log.Info("detectNodeAddr", "testPubIp", preExternalAddr)
 	}
-	pid := p.GetHost().ID()
+
+	log.Info("detectNodeAddr", "+++++++++++++++", preExternalAddr, "addrs", addrs)
+	localId := p.GetHost().ID()
 	var rangeCount int
 	for {
 		if len(p.GetConnsManager().FetchConnPeers()) == 0 {
 			time.Sleep(time.Second)
 			continue
 		}
-		//启动后间隔1分钟，刷新5次，以充分获得节点外网地址
-		if rangeCount < 5 {
-			rangeCount++
-			if rangeCount != 0 {
-				time.Sleep(time.Minute)
-			}
 
-		} else {
-			break
+		//启动后间隔1分钟，以充分获得节点外网地址
+		rangeCount++
+		if rangeCount > 2 {
+			time.Sleep(time.Minute)
 		}
-		//}
 
 		openedStreams := make([]core.Stream, 0)
-		for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
-			if remoteID.Pretty() == pid.Pretty() {
-				continue
-			}
-
-			if p.GetConnsManager().IsNeighbors(remoteID) {
-				continue
-			}
-
+		allnodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
+		for _, node := range dnet.ConvertPeers(allnodes) {
 			var version types.P2PVersion
 
-			pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
-
-			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false),
+			pubkey, _ := p.GetHost().Peerstore().PubKey(localId).Bytes()
+			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localId.Pretty(), pubkey, false),
 				Message: &version}
 
-			s, err := prototypes.NewStream(p.Host, remoteID, PeerVersionReq)
+			s, err := prototypes.NewStream(p.Host, node.ID, PeerVersionReq)
 			if err != nil {
-				log.Error("NewStream", "err", err, "remoteID", remoteID)
+				log.Error("NewStream", "err", err, "remoteID", node.ID)
 				continue
 			}
 			openedStreams = append(openedStreams, s)
@@ -249,21 +239,20 @@ func (p *peerInfoProtol) detectNodeAddr() {
 				log.Error("DetectNodeAddr", "ReadStream err", err)
 				continue
 			}
-			log.Debug("DetectAddr", "resp", resp)
 
-			p.setExternalAddr(resp.GetMessage().GetAddrRecv())
-			log.Debug("DetectNodeAddr", "externalAddr", resp.GetMessage().GetAddrRecv())
-			//要判断是否是自身局域网的其他节点
-			if _, ok := innerNodes[remoteID.Pretty()]; !ok {
-				continue
+			addr := resp.GetMessage().GetAddrRecv()
+			p.setExternalAddr(addr)
+			if isPublicIP(net.ParseIP(p.getExternalAddr())) {
+				break
 			}
-
-			break
-
 		}
 		// 统一关闭stream
 		for _, stream := range openedStreams {
 			prototypes.CloseStream(stream)
+		}
+
+		if isPublicIP(net.ParseIP(p.getExternalAddr())) {
+			break
 		}
 	}
 
