@@ -403,8 +403,7 @@ func Test_PostBlockHeaderSuccess(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.IsHeader = true
-	subscribe.Type = PushBlock
+	subscribe.Type = PushBlockHeader
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
@@ -572,6 +571,7 @@ func Test_rmPushFailTask(t *testing.T) {
 	defer mock33.Close()
 }
 
+//推送失败之后能够重新激活并成功推送
 func Test_ReactivePush(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	chain.enablePushSubscribe = true
@@ -608,10 +608,10 @@ func Test_ReactivePush(t *testing.T) {
 	chain.push.postService = mockpsFail
 	chain.push.postFail2Sleep = int32(1)
 	createBlocks(t, mock33, chain, 10)
-	time.Sleep(3 * time.Second)
+	time.Sleep(4 * time.Second)
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), notRunning)
 	lastSeq = chain.ProcGetLastPushSeq(subscribe.Name)
-	//
+
 	//重新激活
 	chain.push.postService = ps
 	err = chain.push.addSubscriber(subscribe)
@@ -625,7 +625,7 @@ func Test_ReactivePush(t *testing.T) {
 	mock33.Close()
 }
 
-//2个用户，一个多次失败时候chain33的push服务重启，失败的注册不再进行推送
+//
 func Test_RecoverPush(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	chain.enablePushSubscribe = true

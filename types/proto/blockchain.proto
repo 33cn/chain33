@@ -332,15 +332,13 @@ message PushSubscribeReq {
     string name          = 1;
     string URL           = 2;
     string encode        = 3;
-    bool   isHeader      = 4;
-    int64  lastSequence  = 5;
-    int64  lastHeight    = 6;
-    string lastBlockHash = 7;
-    // 0:代表区块，1：代表交易回执
-    int32 type = 8;
+    int64  lastSequence  = 4;
+    int64  lastHeight    = 5;
+    string lastBlockHash = 6;
+    // 0:代表区块；1:代表区块头信息；2：代表交易回执
+    int32  type          = 7;
     //允许订阅多个类型的交易回执
-    // repeated string contract = 9;
-    map<string, bool> contract = 9;
+    map<string, bool> contract = 8;
 }
 
 message PushWithStatus {

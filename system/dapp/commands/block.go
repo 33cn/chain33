@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -350,15 +351,19 @@ func addPushSubscribe(cmd *cobra.Command, args []string) {
 			return
 		}
 	}
+	pushType := blockchain.PushBlock
+	if isHeader {
+		pushType = blockchain.PushBlockHeader
+	}
 
 	params := types.PushSubscribeReq{
 		Name:          name,
 		URL:           url,
 		Encode:        encode,
-		IsHeader:      isHeader,
 		LastSequence:  lastSeq,
 		LastHeight:    lastHeight,
 		LastBlockHash: lastBlockHash,
+		Type:          pushType,
 	}
 
 	var res types.ReplySubscribePush

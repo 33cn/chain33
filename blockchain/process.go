@@ -281,6 +281,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 
 	var err error
+	var lastSequence int64
 
 	block := blockdetail.Block
 	prevStateHash := b.bestChain.Tip().statehash
@@ -321,7 +322,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 
 	//保存block信息到db中
-	_, err = b.blockStore.SaveBlock(newbatch, blockdetail, node.sequence)
+	lastSequence, err = b.blockStore.SaveBlock(newbatch, blockdetail, node.sequence)
 	if err != nil {
 		chainlog.Error("connectBlock SaveBlock:", "height", block.Height, "err", err)
 		return nil, err
@@ -381,11 +382,17 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 			b.SendBlockBroadcast(blockdetail)
 		}
 	}
+	//目前非平行链并开启isRecordBlockSequence功能和enablePushSubscribe
+	if b.isRecordBlockSequence && b.enablePushSubscribe {
+		b.push.UpdateSeq(lastSequence)
+		chainlog.Debug("isRecordBlockSequence", "lastSequence", lastSequence, "height", block.Height)
+	}
 	return blockdetail, nil
 }
 
 //从主链中删除blocks
 func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDetail, sequence int64) error {
+	var lastSequence int64
 	// 只能从 best chain tip节点开始删除
 	if !bytes.Equal(node.hash, b.bestChain.Tip().hash) {
 		chainlog.Error("disconnectBlock:", "height", blockdetail.Block.Height, "node.hash", common.ToHex(node.hash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
@@ -403,7 +410,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	}
 
 	//从db中删除block相关的信息
-	_, err = b.blockStore.DelBlock(newbatch, blockdetail, sequence)
+	lastSequence, err = b.blockStore.DelBlock(newbatch, blockdetail, sequence)
 	if err != nil {
 		chainlog.Error("disconnectBlock DelBlock:", "height", blockdetail.Block.Height, "err", err)
 		return err
@@ -443,6 +450,12 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 
 	chainlog.Debug("disconnectBlock success", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
 	chainlog.Debug("disconnectBlock success", "newtipnode.hash", common.ToHex(newtipnode.hash), "delblock.parent.hash", common.ToHex(blockdetail.Block.GetParentHash()))
+
+	//目前非平行链并开启isRecordBlockSequence功能和enablePushSubscribe
+	if b.isRecordBlockSequence && b.enablePushSubscribe {
+		b.push.UpdateSeq(lastSequence)
+		chainlog.Debug("isRecordBlockSequence", "lastSequence", lastSequence, "height", blockdetail.Block.Height)
+	}
 
 	return nil
 }

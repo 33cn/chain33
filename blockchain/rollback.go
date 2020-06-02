@@ -82,6 +82,8 @@ func (chain *BlockChain) Rollback() {
 
 // 删除blocks
 func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64) error {
+	var lastSequence int64
+
 	//批量删除block的信息从磁盘中
 	newbatch := chain.blockStore.NewBatch(true)
 
@@ -93,7 +95,7 @@ func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64
 	}
 
 	//从db中删除block相关的信息
-	_, err = chain.blockStore.DelBlock(newbatch, blockdetail, sequence)
+	lastSequence, err = chain.blockStore.DelBlock(newbatch, blockdetail, sequence)
 	if err != nil {
 		chainlog.Error("disBlock DelBlock:", "height", blockdetail.Block.Height, "err", err)
 		return err
@@ -112,6 +114,13 @@ func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64
 
 	//删除缓存中的block信息
 	chain.cache.delBlockFromCache(blockdetail.Block.Height)
+
+	//目前非平行链并开启isRecordBlockSequence功能和enablePushSubscribe
+	if chain.isRecordBlockSequence && chain.enablePushSubscribe {
+		chain.push.UpdateSeq(lastSequence)
+		chainlog.Debug("isRecordBlockSequence", "lastSequence", lastSequence, "height", blockdetail.Block.Height)
+	}
+
 	return nil
 }
 
