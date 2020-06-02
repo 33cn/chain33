@@ -158,7 +158,7 @@ type BlockChain struct {
 	OnChainTimeout int64 `protobuf:"varint,17,opt,name=onChainTimeout" json:"onChainTimeout,omitempty"`
 	// 使能精简localdb
 	EnableReduceLocaldb bool `protobuf:"varint,18,opt,name=enableReduceLocaldb" json:"enableReduceLocaldb,omitempty"`
-	// 使能精简localdb
+	// 使能注册推送区块、区块头或交易回执
 	EnablePushSubscribe bool `protobuf:"varint,19,opt,name=EnablePushSubscribe" json:"EnablePushSubscribe,omitempty"`
 }
 
