@@ -336,7 +336,7 @@ message PushSubscribeReq {
     int64  lastHeight    = 5;
     string lastBlockHash = 6;
     // 0:代表区块；1:代表区块头信息；2：代表交易回执
-    int32  type          = 7;
+    int32 type = 7;
     //允许订阅多个类型的交易回执
     map<string, bool> contract = 8;
 }
