@@ -53,6 +53,8 @@ enableTxQuickIndex=false
 enableReExecLocal=false
 # 使能精简localdb
 enableReduceLocaldb=true
+# 使能推送注册，默认不开启
+enablePushSubscribe=false
 
 [p2p]
 # p2p类型

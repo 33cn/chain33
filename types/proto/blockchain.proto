@@ -47,20 +47,6 @@ message Blocks {
     repeated Block items = 1;
 }
 
-message BlockSeqCB {
-    string name          = 1;
-    string URL           = 2;
-    string encode        = 3;
-    bool   isHeader      = 4;
-    int64  lastSequence  = 5;
-    int64  lastHeight    = 6;
-    string lastBlockHash = 7;
-}
-
-message BlockSeqCBs {
-    repeated BlockSeqCB items = 1;
-}
-
 message BlockSeq {
     int64         num    = 1;
     BlockSequence seq    = 2;
@@ -205,21 +191,6 @@ message BlockSequences {
     repeated BlockSequence items = 1;
 }
 
-// AddSeqCallback 推荐的sequence 信息
-message Sequence {
-    bytes Hash     = 1;
-    int64 Type     = 2;
-    int64 sequence = 3;
-    int64 height   = 4;
-}
-
-// Reply AddSeqCallback
-message ReplyAddSeqCallback {
-    bool     isOk          = 1;
-    bytes    msg           = 2;
-    repeated Sequence seqs = 3;
-}
-
 //平行链区块详细信息
 // 	 blockdetail : 区块详细信息
 //	 sequence :区块序列号
@@ -355,4 +326,31 @@ message ReqParaTxByHeight {
 message CmpBlock {
     Block block   = 1;
     bytes cmpHash = 2;
+}
+
+message PushSubscribeReq {
+    string name          = 1;
+    string URL           = 2;
+    string encode        = 3;
+    int64  lastSequence  = 4;
+    int64  lastHeight    = 5;
+    string lastBlockHash = 6;
+    // 0:代表区块；1:代表区块头信息；2：代表交易回执
+    int32 type = 7;
+    //允许订阅多个类型的交易回执
+    map<string, bool> contract = 8;
+}
+
+message PushWithStatus {
+    PushSubscribeReq push   = 1;
+    int32            status = 2;
+}
+
+message PushSubscribes {
+    repeated PushSubscribeReq pushes = 1;
+}
+
+message ReplySubscribePush {
+    bool   isOk = 1;
+    string msg  = 2;
 }
