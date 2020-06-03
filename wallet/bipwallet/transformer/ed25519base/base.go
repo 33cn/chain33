@@ -24,7 +24,7 @@ func (t baseTransformer) PrivKeyToPub(priv []byte) ([]byte, error) {
 	//取私钥的后32字节即为公钥
 	pk := sk.PublicKey()
 
-	var raw []byte = make([]byte, 33)
+	var raw = make([]byte, 33)
 	raw[0] = 0x03
 	copy(raw[1:], pk[:])
 	return raw, nil
@@ -87,7 +87,7 @@ func MnemonicToSecretkey(mnemonic string, index uint64) (secretKey, publicKey st
 
 	sk, pk := crypto.GenerateKeyPairDeterministic(crypto.HashAll(seed, index))
 	secretKey = fmt.Sprintf("%x", sk)
-	var raw []byte = make([]byte, 33)
+	var raw = make([]byte, 33)
 	raw[0] = 0x03
 	copy(raw[1:], pk[:])
 	publicKey = fmt.Sprintf("%x", raw)
