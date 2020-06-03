@@ -66,7 +66,7 @@ func (w *HDWallet) NewKeyPair(index uint32) (priv, pub []byte, err error) {
 func seedToSecretkey(seed []byte, index uint32) (secretKey, publicKey []byte, err error) {
 
 	sk, pk := crypto.GenerateKeyPairDeterministic(crypto.HashAll(seed, index))
-	var raw []byte = make([]byte, 33)
+	var raw = make([]byte, 33)
 	raw[0] = 0x03
 	copy(raw[1:], pk[:])
 
