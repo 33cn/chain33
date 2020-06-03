@@ -3,6 +3,7 @@ package ed25519base
 import (
 	"crypto/sha256"
 	"fmt"
+
 	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 	"github.com/NebulousLabs/Sia/crypto"
 	"github.com/mr-tron/base58/base58"
