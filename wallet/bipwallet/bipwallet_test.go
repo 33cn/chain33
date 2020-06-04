@@ -2,9 +2,10 @@ package bipwallet
 
 import (
 	"encoding/hex"
+	"testing"
+
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 var (
