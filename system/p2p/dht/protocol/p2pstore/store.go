@@ -47,11 +47,19 @@ func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
 	return types2.ErrNotFound
 }
 
+func (p *Protocol) deleteChunkBlock(hash []byte) error {
+	err := p.deleteLocalChunkInfo(hash)
+	if err != nil {
+		return err
+	}
+	return p.DB.Delete(genChunkKey(hash))
+}
+
 // 获取本地chunk数据
 //	本地不存在，返回not found
 //  本地存在：
 //		数据未过期：返回数据
-//		数据已过期：返回数据并从数据库中删除，同时返回数据已过期的error
+//		数据已过期：返回数据,然后从数据库删除该数据
 func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
 
 	info, ok := p.getChunkInfoByHash(hash)
@@ -73,19 +81,9 @@ func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
 		if err != nil {
 			log.Error("getChunkBlock", "deleteChunkBlock error", err, "hash", hex.EncodeToString(hash))
 		}
-		err = types2.ErrExpired
 	}
 
-	return &bodys, err
-
-}
-
-func (p *Protocol) deleteChunkBlock(hash []byte) error {
-	err := p.deleteLocalChunkInfo(hash)
-	if err != nil {
-		return err
-	}
-	return p.DB.Delete(genChunkKey(hash))
+	return &bodys, nil
 }
 
 // 保存一个本地chunk hash列表，用于遍历本地数据
