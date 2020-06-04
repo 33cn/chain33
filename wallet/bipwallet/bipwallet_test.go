@@ -20,6 +20,7 @@ func TestYccEd25519PrivPub(t *testing.T) {
 	assert.Nil(t, err)
 	priv, pub, err := wallet.NewKeyPair(0)
 	assert.Nil(t, err)
+	assert.Equal(t, len(priv), 64)
 	assert.Equal(t, hex.EncodeToString(pub), ed25519Pub)
 
 	//test address
