@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/33cn/chain33/common/ed25519"
+	"github.com/33cn/chain33/system/crypto/ed25519/ed25519"
 )
 
 //Driver 驱动
@@ -82,7 +82,6 @@ func (privKey PrivKeyEd25519) Equals(other crypto.PrivKey) bool {
 		return bytes.Equal(privKey[:], otherEd[:])
 	}
 	return false
-
 }
 
 //PubKeyEd25519 PubKey
@@ -122,7 +121,6 @@ func (pubKey PubKeyEd25519) Equals(other crypto.PubKey) bool {
 		return bytes.Equal(pubKey[:], otherEd[:])
 	}
 	return false
-
 }
 
 //SignatureEd25519 Signature

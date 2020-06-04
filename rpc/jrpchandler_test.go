@@ -1545,8 +1545,8 @@ func TestChain33_AddSeqCallBack(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	api.On("AddSeqCallBack", mock.Anything).Return(&types.ReplyAddSeqCallback{}, nil)
-	err := client.AddSeqCallBack(nil, &testResult)
+	api.On("AddPushSubscribe", mock.Anything).Return(&types.ReplySubscribePush{}, nil)
+	err := client.AddPushSubscribe(nil, &testResult)
 	assert.NoError(t, err)
 }
 
@@ -1556,8 +1556,8 @@ func TestChain33_ListSeqCallBack(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	api.On("ListSeqCallBack", mock.Anything).Return(&types.BlockSeqCBs{}, nil)
-	err := client.ListSeqCallBack(nil, &testResult)
+	api.On("ListPushes", mock.Anything).Return(&types.PushSubscribes{}, nil)
+	err := client.ListPushes(nil, &testResult)
 	assert.NoError(t, err)
 }
 
@@ -1567,8 +1567,8 @@ func TestChain33_GetSeqCallBackLastNum(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	client := newTestChain33(api)
 	var testResult interface{}
-	api.On("GetSeqCallBackLastNum", mock.Anything).Return(&types.Int64{}, nil)
-	err := client.GetSeqCallBackLastNum(nil, &testResult)
+	api.On("GetPushSeqLastNum", mock.Anything).Return(&types.Int64{}, nil)
+	err := client.GetPushSeqLastNum(nil, &testResult)
 	assert.NoError(t, err)
 }
 

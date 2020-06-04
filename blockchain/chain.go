@@ -23,7 +23,6 @@ import (
 //var
 var (
 	//cache 存贮的block个数
-	MaxSeqCB             int64 = 20
 	zeroHash             [32]byte
 	InitBlockNum         int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
 	chainlog                   = log.New("module", "blockchain")
@@ -37,9 +36,8 @@ type BlockChain struct {
 	client queue.Client
 	cache  *BlockCache
 	// 永久存储数据到db中
-	blockStore  *BlockStore
-	pushseq     *pushseq
-	pushservice *PushService1
+	blockStore *BlockStore
+	push       *Push
 	//cache  缓存block方便快速查询
 	cfg          *types.BlockChain
 	syncTask     *Task
@@ -98,6 +96,7 @@ type BlockChain struct {
 	isFastDownloadSync bool //当本节点落后很多时，可以先下载区块到db，启动单独的goroutine去执行block
 
 	isRecordBlockSequence bool //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
+	enablePushSubscribe   bool //是否允许推送订阅
 	isParaChain           bool //是否是平行链。平行链需要记录Sequence信息
 	isStrongConsistency   bool
 	//lock
@@ -186,6 +185,7 @@ func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	chain.blockSynInterVal = time.Duration(chain.TimeoutSeconds)
 	chain.isStrongConsistency = mcfg.IsStrongConsistency
 	chain.isRecordBlockSequence = mcfg.IsRecordBlockSequence
+	chain.enablePushSubscribe = mcfg.EnablePushSubscribe
 	chain.isParaChain = mcfg.IsParaChain
 	cfg.S("quickIndex", mcfg.EnableTxQuickIndex)
 	cfg.S("reduceLocaldb", mcfg.EnableReduceLocaldb)
@@ -221,6 +221,11 @@ func (chain *BlockChain) Close() {
 	chainlog.Info("blockchain wait for reducewg quit")
 	chain.reducewg.Wait()
 
+	if chain.push != nil {
+		chainlog.Info("blockchain wait for push quit")
+		chain.push.Close()
+	}
+
 	//关闭数据库
 	chain.blockStore.db.Close()
 	chainlog.Info("blockchain module closed")
@@ -236,16 +241,17 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
+	if chain.enablePushSubscribe && chain.isRecordBlockSequence {
+		chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+		chainlog.Info("chain push is setup")
+	}
 
-	chain.pushservice = newPushService(chain.blockStore, chain.blockStore)
-	chain.pushseq = newpushseq(chain.blockStore, chain.pushservice.pushStore)
 	//startTime
 	chain.startTime = types.Now()
 
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
 	chain.recvwg.Add(1)
 	//初始化blockchian模块
-	chain.pushseq.init()
 	chain.InitBlockChain()
 	go chain.ProcRecvMsg()
 }
