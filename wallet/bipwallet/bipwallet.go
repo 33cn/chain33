@@ -8,14 +8,14 @@ package bipwallet
 import (
 	"errors"
 
-	"github.com/NebulousLabs/Sia/crypto"
-
+	"github.com/33cn/chain33/common/crypto"
+	_ "github.com/33cn/chain33/system/crypto/ed25519"
 	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
 	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 	bip44 "github.com/33cn/chain33/wallet/bipwallet/go-bip44"
 	"github.com/33cn/chain33/wallet/bipwallet/transformer"
 	_ "github.com/33cn/chain33/wallet/bipwallet/transformer/btcbase" //register btcbase package
-	_ "github.com/33cn/chain33/wallet/bipwallet/transformer/ed25519base"
+	//"github.com/NebulousLabs/Sia/crypto"
 )
 
 // https://github.com/satoshilabs/slips/blob/master/slip-0044.md
@@ -29,6 +29,10 @@ const (
 	TypeZcash              uint32 = 0x80000085
 	TypeBty                uint32 = 0x80003333
 	TypeYcc                uint32 = 0x80003334
+)
+const (
+	Secp256K1Ty uint32 = 1
+	Ed25519Ty   uint32 = 2
 )
 
 // CoinName 币种名称
@@ -47,31 +51,49 @@ type HDWallet struct {
 	CoinType  uint32
 	RootSeed  []byte
 	MasterKey *bip32.Key
+	KeyType   uint32
 }
 
 // NewKeyPair 通过索引生成新的秘钥对
 func (w *HDWallet) NewKeyPair(index uint32) (priv, pub []byte, err error) {
-	if w.CoinType != TypeYcc { //bip44 标准 32字节私钥
-		key, err := bip44.NewKeyFromMasterKey(w.MasterKey, w.CoinType, bip32.FirstHardenedChild, 0, index)
-		if err != nil {
-			return nil, nil, err
-		}
+	//bip44 标准 32字节私钥
+	key, err := bip44.NewKeyFromMasterKey(w.MasterKey, w.CoinType, bip32.FirstHardenedChild, 0, index)
+	if err != nil {
+		return nil, nil, err
+	}
+	switch w.KeyType {
+	case Secp256K1Ty:
 		return key.Key, key.PublicKey().Key, err
+	case Ed25519Ty:
+		return w.newKeyPairEd25519(key.Key, index)
+	default:
+		return nil, nil, errors.New(" no support privkey type")
+
 	}
 
-	//非bip44标准创建公私钥对,64字节私钥
-	return seedToSecretkey(w.RootSeed, index)
 }
 
-//通过助记词形式的seed生成私钥和公钥,一个seed根据不同的index可以生成许多组密钥
-func seedToSecretkey(seed []byte, index uint32) (secretKey, publicKey []byte, err error) {
+func (w *HDWallet) newKeyPairEd25519(secp256k1key []byte, index uint32) (priv, pub []byte, err error) {
 
-	sk, pk := crypto.GenerateKeyPairDeterministic(crypto.HashAll(seed, index))
-	var raw = make([]byte, 33)
-	raw[0] = 0x03
-	copy(raw[1:], pk[:])
+	//非bip44标准创建公私钥对,64字节私钥
 
-	return sk[:], raw, nil
+	edcrypto, err := crypto.New("ed25519")
+	if err != nil {
+		return nil, nil, err
+	}
+	edkey, err := edcrypto.PrivKeyFromBytes(secp256k1key[:])
+	if err != nil {
+		return nil, nil, err
+	}
+	priv = edkey.Bytes()
+	pub = make([]byte, 33)
+	if len(edkey.PubKey().Bytes()) != 33 {
+		pub[0] = 0x03
+		copy(pub[1:], edkey.PubKey().Bytes()[:])
+	}
+
+	return
+
 }
 
 // NewAddress 新建地址
@@ -122,12 +144,12 @@ func PubToAddress(coinType uint32, pub []byte) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		pub, err := trans.PubKeyToAddress(pub)
+		addr, err := trans.PubKeyToAddress(pub)
 		if err != nil {
 			return "", err
 		}
 
-		return pub, nil
+		return addr, nil
 
 	}
 	return "", errors.New("cointype no support to create address")
@@ -148,23 +170,24 @@ func NewMnemonicString(lang, bitsize int) (string, error) {
 }
 
 // NewWalletFromMnemonic 通过助记词生成钱包对象
-func NewWalletFromMnemonic(coinType uint32, mnemonic string) (wallet *HDWallet, err error) {
+func NewWalletFromMnemonic(coinType, keyType uint32, mnemonic string) (wallet *HDWallet, err error) {
 	seed, err := bip39.NewSeedWithErrorChecking(mnemonic, "")
 	if err != nil {
 		return nil, err
 	}
 
-	return NewWalletFromSeed(coinType, seed)
+	return NewWalletFromSeed(coinType, keyType, seed)
 }
 
 // NewWalletFromSeed 通过种子生成钱包对象
-func NewWalletFromSeed(coinType uint32, seed []byte) (wallet *HDWallet, err error) {
+func NewWalletFromSeed(coinType, keyType uint32, seed []byte) (wallet *HDWallet, err error) {
 	masterKey, err := bip32.NewMasterKey(seed)
 	if err != nil {
 		return nil, err
 	}
 	return &HDWallet{
 		CoinType:  coinType,
+		KeyType:   keyType,
 		RootSeed:  seed,
 		MasterKey: masterKey}, nil
 }

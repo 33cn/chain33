@@ -9,7 +9,8 @@ package btcbase
 import (
 	"crypto/sha256"
 	"fmt"
-
+	"github.com/33cn/chain33/common/crypto"
+	_ "github.com/33cn/chain33/system/crypto/ed25519"
 	secp256k1 "github.com/haltingstate/secp256k1-go"
 	"github.com/mr-tron/base58/base58"
 	"golang.org/x/crypto/ripemd160"
@@ -36,11 +37,28 @@ func (t btcBaseTransformer) ByteToBase58(bin []byte) (str string) {
 
 // PrivKeyToPub 32字节私钥生成压缩格式公钥
 func (t btcBaseTransformer) PrivKeyToPub(priv []byte) (pub []byte, err error) {
-	if len(priv) != 32 {
+	if len(priv) != 32 && len(priv) != 64 {
 		return nil, fmt.Errorf("invalid priv key byte")
 	}
+	if len(priv) == 64 {
+		edcrypto, err := crypto.New("ed25519")
+		if err != nil {
+			return nil, err
+		}
+		edkey, err := edcrypto.PrivKeyFromBytes(priv[:])
+		if err != nil {
+			return nil, err
+		}
+
+		pub = make([]byte, 33)
+		if len(edkey.PubKey().Bytes()) != 33 {
+			pub[0] = 0x03
+			copy(pub[1:], edkey.PubKey().Bytes()[:])
+		}
+		return pub, nil
+	}
+
 	pub = secp256k1.PubkeyFromSeckey(priv)
-	// uncompressPub := secp256k1.UncompressPubkey(pub)
 	return
 }
 
