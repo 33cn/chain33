@@ -11,10 +11,15 @@ import (
 )
 
 func (p *Protocol) startUpdateHealthyRoutingTable() {
-	tmp := p.RoutingTable.RoutingTable().PeerRemoved
+	rm := p.RoutingTable.RoutingTable().PeerRemoved
 	p.RoutingTable.RoutingTable().PeerRemoved = func(id peer.ID) {
-		tmp(id)
+		rm(id)
 		p.healthyRoutingTable.Remove(id)
+	}
+	add := p.RoutingTable.RoutingTable().PeerAdded
+	p.RoutingTable.RoutingTable().PeerAdded = func(id peer.ID) {
+		add(id)
+		_ = p.checkPeerHealth(id)
 	}
 	time.Sleep(time.Second * 1)
 	p.updateHealthyRoutingTable()

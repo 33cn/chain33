@@ -23,8 +23,12 @@ var log = log15.New("module", "protocol.p2pstore")
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
-	notifying           sync.Map
+	notifying sync.Map
+
+	//普通路由表的一个子表，仅包含接近同步完成的节点
 	healthyRoutingTable *kb.RoutingTable
+
+	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
 	localChunkInfoMutex sync.RWMutex
 }
@@ -64,10 +68,13 @@ func (p *Protocol) HandleStreamFetchChunk(stream network.Stream) {
 	defer stream.Close()
 	var res types.P2PResponse
 	defer func() {
+		t := time.Now()
 		_, err := stream.Write(types.Encode(&res))
 		if err != nil {
 			log.Error("HandleStreamFetchChunk", "write stream error", err)
 		}
+		cost := time.Since(t)
+		log.Info("HandleStreamFetchChunk", "time cost", cost)
 	}()
 	var req types.P2PRequest
 	if err := protocol.ReadStreamAndAuthenticate(&req, stream); err != nil {
@@ -130,12 +137,11 @@ func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.
 	//blockchain模块可能有数据，blockchain模块保存了最新的10000+2*chunk_len个区块
 	//如果请求的区块高度在 [lastHeight-10000-2*chunk_len, lastHeight] 之间，则到blockchain模块去请求区块，否则到网络中请求
 	lastHeader, _ := p.getLastHeaderFromBlockChain()
-	chunkLen := param.End - param.Start
+	chunkLen := param.End - param.Start + 1
 	if lastHeader != nil && param.Start >= lastHeader.Height-10000-2*chunkLen && param.End < lastHeader.Height {
 		bodys, err = p.getChunkFromBlockchain(param)
 		if err != nil {
 			log.Error("onStoreChunk", "getChunkFromBlockchain error", err)
-			return
 		}
 	} else {
 		//对端节点通知本节点保存数据，则对端节点应该有数据
@@ -145,7 +151,6 @@ func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.
 			bodys, err = p.mustFetchChunk(param)
 			if err != nil {
 				log.Error("onStoreChunk", "get bodys from remote peer error", err)
-				return
 			}
 		}
 	}

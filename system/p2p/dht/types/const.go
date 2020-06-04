@@ -22,7 +22,6 @@ var (
 	ErrLength             = errors.New("length not equal")
 	ErrInvalidMessageType = errors.New("invalid message type")
 	ErrNotFound           = errors.New("not found")
-	ErrExpired            = errors.New("data expired")
 	ErrInvalidParam       = errors.New("invalid parameter")
 	ErrWrongSignature     = errors.New("wrong signature")
 	ErrUnknown            = errors.New("unknown error")
