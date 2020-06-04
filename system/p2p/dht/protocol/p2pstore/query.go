@@ -139,6 +139,8 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, e
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
+	var retryCount int
+Retry:
 	//保存查询过的节点，防止重复查询
 	searchedPeers := make(map[peer.ID]struct{})
 	searchedPeers[p.Host.ID()] = struct{}{}
@@ -166,11 +168,16 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, e
 			}
 		}
 	}
+	retryCount++
+	if retryCount < 3 { //找不到数据重试3次，防止因为网络问题导致数据找不到
+		log.Error("mustFetchChunk", "retry count", retryCount)
+		goto Retry
+	}
 	return nil, types2.ErrNotFound
 }
 
 func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
-	childCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	childCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()
 	stream, err := p.Host.NewStream(childCtx, pid, protocol.FetchChunk)
 	if err != nil {
@@ -195,7 +202,8 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 	//	return nil, nil, err
 	//}
 	var result []byte
-	buf := make([]byte, 1024)
+	buf := make([]byte, 1024*1024)
+	t := time.Now()
 	for {
 		n, err := stream.Read(buf)
 		result = append(result, buf[:n]...)
@@ -206,6 +214,7 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 			return nil, nil, err
 		}
 	}
+	log.Info("fetchChunkOrNearerPeers", "time cost", time.Since(t))
 	err = types.Decode(result, &res)
 	if err != nil {
 		return nil, nil, err
@@ -237,10 +246,10 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 
 // 检查网络中是否能查到前一个chunk，最多往前查10个chunk，返回未保存的chunkInfo
 func (p *Protocol) checkHistoryChunk(in *types.ChunkInfoMsg) []*types.ChunkInfoMsg {
-	l := in.End - in.Start + 1
+	chunkLen := in.End - in.Start + 1
 	req := &types.ReqChunkRecords{
-		Start: in.Start/l - 10,
-		End:   in.Start/l - 1,
+		Start: in.Start/chunkLen - 10,
+		End:   in.Start/chunkLen - 1,
 	}
 	if req.End < 0 {
 		return nil
@@ -262,7 +271,7 @@ func (p *Protocol) checkHistoryChunk(in *types.ChunkInfoMsg) []*types.ChunkInfoM
 			End:       records.Infos[i].End,
 		}
 		bodys, err := p.getChunk(info)
-		if err == nil && bodys != nil && len(bodys.Items) == int(l) {
+		if err == nil && bodys != nil && len(bodys.Items) == int(chunkLen) {
 			break
 		}
 		//网络中找不到上一个chunk,先把上一个chunk保存到本地p2pstore
