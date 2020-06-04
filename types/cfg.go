@@ -105,6 +105,8 @@ type Wallet struct {
 	DbCache int32 `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
 	// 钱包发送交易签名方式
 	SignType string `protobuf:"bytes,5,opt,name=signType" json:"signType,omitempty"`
+	// 钱包生成账户时需要指定币种类型
+	CoinType string `protobuf:"bytes,6,opt,name=coinType" json:"coinType,omitempty"`
 }
 
 // Store 配置
