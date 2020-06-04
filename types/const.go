@@ -73,10 +73,12 @@ const (
 //ty = 1+offset(1<<8) ->auth_ecdsa
 //ty = 2+offset(1<<8) -> auth_sm2
 const (
-	Invalid   = 0
-	SECP256K1 = 1
-	ED25519   = 2
-	SM2       = 3
+	Invalid     = 0
+	SECP256K1   = 1
+	ED25519     = 2
+	SM2         = 3
+	CoinTypeBty = "bty"
+	CoinTypeYcc = "ycc"
 )
 
 //log type
