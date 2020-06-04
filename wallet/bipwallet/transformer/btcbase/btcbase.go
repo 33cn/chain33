@@ -9,6 +9,7 @@ package btcbase
 import (
 	"crypto/sha256"
 	"fmt"
+
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/ed25519"
 	_ "github.com/33cn/chain33/system/crypto/sm2"
