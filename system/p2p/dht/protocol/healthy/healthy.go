@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/rand"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -46,9 +47,7 @@ func (p *Protocol) updateFallBehind() {
 		return
 	}
 
-	p.fallBehindMutex.Lock()
-	defer p.fallBehindMutex.Unlock()
-	p.fallBehind = maxHeight - header.Height
+	atomic.StoreInt64(&p.fallBehind, maxHeight-header.Height)
 }
 
 func (p *Protocol) getLastHeaderFromPeer(pid peer.ID) (*types.Header, error) {

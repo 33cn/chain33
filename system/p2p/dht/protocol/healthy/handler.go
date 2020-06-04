@@ -1,7 +1,7 @@
 package healthy
 
 import (
-	"sync"
+	"sync/atomic"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -19,8 +19,7 @@ var log = log15.New("module", "protocol.healthy")
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
-	fallBehind      int64 //落后多少高度，同步完成时该值应该为0
-	fallBehindMutex sync.RWMutex
+	fallBehind int64 //落后多少高度，同步完成时该值应该为0
 }
 
 func init() {
@@ -79,21 +78,17 @@ func (p *Protocol) HandleStreamIsSync(_ *types.P2PRequest, res *types.P2PRespons
 			IsOk: isSync,
 		},
 	}
-	p.fallBehindMutex.Lock()
-	defer p.fallBehindMutex.Unlock()
-	p.fallBehind = maxHeight - header.Height
 
+	atomic.StoreInt64(&p.fallBehind, maxHeight-header.Height)
 	return nil
 }
 
 // HandleStreamIsHealthy 非实时查询，定期更新
 func (p *Protocol) HandleStreamIsHealthy(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	maxFallBehind := req.Request.(*types.P2PRequest_HealthyHeight).HealthyHeight
-	p.fallBehindMutex.RLock()
-	defer p.fallBehindMutex.RUnlock()
 
 	var isHealthy bool
-	if p.fallBehind <= maxFallBehind {
+	if atomic.LoadInt64(&p.fallBehind) <= maxFallBehind {
 		isHealthy = true
 	}
 	res.Response = &types.P2PResponse_Reply{
@@ -101,6 +96,7 @@ func (p *Protocol) HandleStreamIsHealthy(req *types.P2PRequest, res *types.P2PRe
 			IsOk: isHealthy,
 		},
 	}
+	log.Info("HandleStreamIsHealthy", "isHealthy", isHealthy)
 	return nil
 }
 
