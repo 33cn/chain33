@@ -2,15 +2,13 @@ package peer
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
-
-	"math/rand"
-
 	"github.com/33cn/chain33/types"
-
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 )
 
 // MainNet Channel = 0x0000
@@ -46,7 +44,7 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
 	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
 	remoteMAddr := s.Conn().RemoteMultiaddr()
-
+	p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.PermanentAddrTTL)
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
 	if err != nil {
 		log.Error("onVersionReq", "err", err.Error())
