@@ -8,6 +8,7 @@ package dht
 import (
 	"context"
 	"fmt"
+	net2 "net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -99,11 +100,16 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 }
 
 func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maxconnect int) core.Host {
-	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
-	if err != nil {
-		return nil
+	var ms []multiaddr.Multiaddr
+	for _, ip := range localAddrs() {
+		m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, port))
+		if err != nil {
+			panic(err)
+		}
+		log.Info("NewMulti", "addr", m.String())
+		ms = append(ms, m)
 	}
-	log.Info("NewMulti", "addr", m.String())
+
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
@@ -111,7 +117,7 @@ func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Report
 		maxconnect = 100
 	}
 	host, err := libp2p.New(context.Background(),
-		libp2p.ListenAddrs(m),
+		libp2p.ListenAddrs(ms...),
 		libp2p.Identity(priv),
 		libp2p.BandwidthReporter(bandwidthTracker),
 		libp2p.NATPortMap(),
@@ -178,6 +184,8 @@ func (p *P2P) StartP2P() {
 	go p.findLANPeers()
 
 	protocol.InitAllProtocol(env2)
+	time.Sleep(time.Second)
+	log.Info("p2p", "all protocols", p.host.Mux().Protocols())
 }
 
 //查询本局域网内是否有节点
@@ -216,7 +224,7 @@ func (p *P2P) handleP2PEvent() {
 		p.taskGroup.Add(1)
 		go func(qmsg *queue.Message) {
 			defer p.taskGroup.Done()
-			log.Debug("handleP2PEvent", "recv msg ty", qmsg.Ty)
+			//log.Debug("handleP2PEvent", "recv msg ty", qmsg.Ty)
 			protocol.HandleEvent(qmsg)
 
 		}(msg)
@@ -251,4 +259,22 @@ func (p *P2P) waitTaskDone() {
 	case <-time.After(time.Second * 20):
 		log.Error("waitTaskDone", "err", "20s timeout")
 	}
+}
+
+func localAddrs() []string {
+
+	addrs, err := net2.InterfaceAddrs()
+	if err != nil {
+		panic(err)
+	}
+
+	var ips []string
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net2.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				ips = append(ips, ipnet.IP.String())
+			}
+		}
+	}
+	return ips
 }
