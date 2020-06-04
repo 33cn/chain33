@@ -79,16 +79,16 @@ func genaddrlist(seed string) (map[string]bool, error) {
 	var wallet *bipwallet.HDWallet
 	var err error
 	if *oldseed {
-		wallet, err = bipwallet.NewWalletFromSeed(bipwallet.TypeBty, []byte(seed))
+		wallet, err = bipwallet.NewWalletFromSeed(bipwallet.TypeBty, uint32(types.SECP256K1), []byte(seed))
 		if err != nil {
 			log.Println("GetPrivkeyBySeed NewWalletFromSeed", "err", err)
 			return nil, types.ErrNewWalletFromSeed
 		}
 	} else {
-		wallet, err = bipwallet.NewWalletFromMnemonic(bipwallet.TypeBty, seed)
+		wallet, err = bipwallet.NewWalletFromMnemonic(bipwallet.TypeBty, uint32(types.SECP256K1), seed)
 		if err != nil {
 			//log.Println("GetPrivkeyBySeed NewWalletFromMnemonic", "err", err)
-			wallet, err = bipwallet.NewWalletFromSeed(bipwallet.TypeBty, []byte(seed))
+			wallet, err = bipwallet.NewWalletFromSeed(bipwallet.TypeBty, uint32(types.SECP256K1), []byte(seed))
 			if err != nil {
 				log.Println("GetPrivkeyBySeed NewWalletFromSeed", "err", err)
 				return nil, types.ErrNewWalletFromSeed
