@@ -7,9 +7,9 @@ package bipwallet
 
 import (
 	"errors"
-
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/ed25519"
+	"github.com/33cn/chain33/types"
 	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
 	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 	bip44 "github.com/33cn/chain33/wallet/bipwallet/go-bip44"
@@ -29,10 +29,6 @@ const (
 	TypeZcash              uint32 = 0x80000085
 	TypeBty                uint32 = 0x80003333
 	TypeYcc                uint32 = 0x80003334
-)
-const (
-	Secp256K1Ty uint32 = 1
-	Ed25519Ty   uint32 = 2
 )
 
 // CoinName 币种名称
@@ -62,38 +58,26 @@ func (w *HDWallet) NewKeyPair(index uint32) (priv, pub []byte, err error) {
 		return nil, nil, err
 	}
 	switch w.KeyType {
-	case Secp256K1Ty:
+	case types.SECP256K1:
 		return key.Key, key.PublicKey().Key, err
-	case Ed25519Ty:
-		return w.newKeyPairEd25519(key.Key, index)
 	default:
-		return nil, nil, errors.New(" no support privkey type")
+		edcrypto, err := crypto.New(crypto.GetName(int(w.KeyType)))
+		if err != nil {
+			return nil, nil, err
+		}
+		edkey, err := edcrypto.PrivKeyFromBytes(key.Key[:])
+		if err != nil {
+			return nil, nil, err
+		}
+		priv = edkey.Bytes()
+		pub = make([]byte, 33)
+		if len(edkey.PubKey().Bytes()) != 33 {
+			pub[0] = 0x03
+			copy(pub[1:], edkey.PubKey().Bytes()[:])
+		}
 
 	}
-
-}
-
-func (w *HDWallet) newKeyPairEd25519(secp256k1key []byte, index uint32) (priv, pub []byte, err error) {
-
-	//非bip44标准创建公私钥对,64字节私钥
-
-	edcrypto, err := crypto.New("ed25519")
-	if err != nil {
-		return nil, nil, err
-	}
-	edkey, err := edcrypto.PrivKeyFromBytes(secp256k1key[:])
-	if err != nil {
-		return nil, nil, err
-	}
-	priv = edkey.Bytes()
-	pub = make([]byte, 33)
-	if len(edkey.PubKey().Bytes()) != 33 {
-		pub[0] = 0x03
-		copy(pub[1:], edkey.PubKey().Bytes()[:])
-	}
-
 	return
-
 }
 
 // NewAddress 新建地址
@@ -120,13 +104,13 @@ func (w *HDWallet) NewAddress(index uint32) (string, error) {
 }
 
 // PrivkeyToPub 私钥转换成公钥
-func PrivkeyToPub(coinType uint32, priv []byte) ([]byte, error) {
+func PrivkeyToPub(coinType, keyTy uint32, priv []byte) ([]byte, error) {
 	if cointype, ok := CoinName[coinType]; ok {
 		trans, err := transformer.New(cointype)
 		if err != nil {
 			return nil, err
 		}
-		pub, err := trans.PrivKeyToPub(priv)
+		pub, err := trans.PrivKeyToPub(keyTy, priv)
 		if err != nil {
 			return nil, err
 		}
