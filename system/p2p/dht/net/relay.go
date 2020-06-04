@@ -16,11 +16,25 @@ import (
 
 type Relay struct {
 	advertise *discovery.RoutingDiscovery
+	crelay    *circuit.Relay
 }
 
-func NewRelayDiscovery(adv *discovery.RoutingDiscovery) *Relay {
+func newRelay(ctx context.Context, host host.Host, opts ...circuit.RelayOpt) (*circuit.Relay, error) {
+	r, err := circuit.NewRelay(ctx, host, swarmt.GenUpgrader(host.Network().(*swarm.Swarm)), opts...)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func NewRelayDiscovery(host host.Host, adv *discovery.RoutingDiscovery, opts ...circuit.RelayOpt) *Relay {
 	r := new(Relay)
 	r.advertise = adv
+	var err error
+	r.crelay, err = newRelay(context.Background(), host, opts...)
+	if err != nil {
+		return nil
+	}
 	return r
 }
 
@@ -37,27 +51,22 @@ func (r *Relay) FindOpPeers() ([]peer.AddrInfo, error) {
 }
 
 //DialDestPeer 通过hop中继节点连接dst节点
-func (r *Relay) DialDestPeer(host host.Host, hop, dst peer.AddrInfo) error {
-	rhost, err := circuit.NewRelay(context.Background(), host, swarmt.GenUpgrader(host.Network().(*swarm.Swarm)), circuit.OptDiscovery)
-	if err != nil {
-		return err
-	}
+func (r *Relay) DialDestPeer(host host.Host, hop, dst peer.AddrInfo) (*circuit.Conn, error) {
+
 	rctx, rcancel := context.WithTimeout(context.Background(), time.Second)
 	defer rcancel()
-	_, err = rhost.DialPeer(rctx, hop, dst)
-	return err
+
+	conn, err := r.crelay.DialPeer(rctx, hop, dst)
+	return conn, err
 
 }
 
 // CheckHOp 检查请求的节点是否支持relay中继
 func (r *Relay) CheckHOp(host host.Host, isop peer.ID) (bool, error) {
-	rhost, err := circuit.NewRelay(context.Background(), host, swarmt.GenUpgrader(host.Network().(*swarm.Swarm)), circuit.OptDiscovery)
-	if err != nil {
-		return false, err
-	}
+
 	rctx, rcancel := context.WithTimeout(context.Background(), time.Second)
 	defer rcancel()
-	canhop, err := rhost.CanHop(rctx, isop)
+	canhop, err := r.crelay.CanHop(rctx, isop)
 	if err != nil {
 		return false, err
 	}
