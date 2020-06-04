@@ -27,7 +27,7 @@ func (d Driver) GenKey() (crypto.PrivKey, error) {
 
 //PrivKeyFromBytes 字节转为私钥
 func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
-	if len(b) != 64 {
+	if len(b) != 64 && len(b) != 32 {
 		return nil, errors.New("invalid priv key byte")
 	}
 	privKeyBytes := new([64]byte)
