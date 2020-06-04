@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/33cn/chain33/queue"
 )
@@ -28,8 +27,7 @@ func InitAllProtocol(env *P2PEnv) {
 type EventHandler func(*queue.Message)
 
 var (
-	eventHandlerMap   = make(map[int64]EventHandler)
-	eventHandlerMutex sync.RWMutex
+	eventHandlerMap = make(map[int64]EventHandler)
 )
 
 // RegisterEventHandler registers a handler with an event ID.
@@ -37,8 +35,6 @@ func RegisterEventHandler(eventID int64, handler EventHandler) {
 	if handler == nil {
 		panic(fmt.Sprintf("addEventHandler, handler is nil, id=%d", eventID))
 	}
-	eventHandlerMutex.Lock()
-	defer eventHandlerMutex.Unlock()
 	if _, dup := eventHandlerMap[eventID]; dup {
 		panic(fmt.Sprintf("addEventHandler, duplicate handler, id=%d", eventID))
 	}
@@ -47,7 +43,5 @@ func RegisterEventHandler(eventID int64, handler EventHandler) {
 
 // GetEventHandler gets event handler by event ID.
 func GetEventHandler(eventID int64) EventHandler {
-	eventHandlerMutex.RLock()
-	defer eventHandlerMutex.RUnlock()
 	return eventHandlerMap[eventID]
 }
