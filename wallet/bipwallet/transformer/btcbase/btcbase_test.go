@@ -7,6 +7,7 @@ package btcbase
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/33cn/chain33/types"
 	"testing"
 
 	"github.com/33cn/chain33/wallet/bipwallet/transformer"
@@ -79,7 +80,7 @@ func testPrivToPub(t *testing.T, name string) {
 	if err != nil {
 		t.Errorf("new %s transformer error: %s", name, err)
 	}
-	pubByte, err := coinTrans.PrivKeyToPub(testPrivByte[name])
+	pubByte, err := coinTrans.PrivKeyToPub(types.SECP256K1, testPrivByte[name])
 	if err != nil {
 		t.Errorf("%s PrivKeyToPub error: %s", name, err)
 	}
