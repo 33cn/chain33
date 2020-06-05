@@ -7,6 +7,7 @@ package bipwallet
 
 import (
 	"errors"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/ed25519"
