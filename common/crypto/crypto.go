@@ -6,9 +6,13 @@
 package crypto
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 )
+
+//ErrNotSupportAggr 不支持聚合签名
+var ErrNotSupportAggr = errors.New("AggregateCrypto not support")
 
 //PrivKey 私钥
 type PrivKey interface {
@@ -40,6 +44,22 @@ type Crypto interface {
 	SignatureFromBytes([]byte) (Signature, error)
 	PrivKeyFromBytes([]byte) (PrivKey, error)
 	PubKeyFromBytes([]byte) (PubKey, error)
+}
+
+//AggregateCrypto 聚合签名
+type AggregateCrypto interface {
+	Aggregate(sigs []Signature) (Signature, error)
+	AggregatePublic(pubs []PubKey) (PubKey, error)
+	VerifyAggregatedOne(pubs []PubKey, m []byte, sig Signature) error
+	VerifyAggregatedN(pubs []PubKey, ms [][]byte, sig Signature) error
+}
+
+//ToAggregate 判断签名是否可以支持聚合签名，并且返回聚合签名的接口
+func ToAggregate(c Crypto) (AggregateCrypto, error) {
+	if aggr, ok := c.(AggregateCrypto); ok {
+		return aggr, nil
+	}
+	return nil, ErrNotSupportAggr
 }
 
 var (
