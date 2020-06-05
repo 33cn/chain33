@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getNetHosts(t *testing.T, ctx context.Context, n int) []host.Host {
+func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {
 	var out []host.Host
 
 	for i := 0; i < n; i++ {
@@ -41,7 +41,7 @@ func TestRelay(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	hosts := getNetHosts(t, ctx, 3)
+	hosts := getNetHosts(ctx, 3, t)
 
 	connect(t, hosts[0], hosts[1])
 	connect(t, hosts[1], hosts[2])

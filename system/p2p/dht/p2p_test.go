@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"bufio"
 	"context"
 
 	"os"
@@ -10,28 +9,19 @@ import (
 
 	"crypto/rand"
 	"fmt"
-	"testing"
-	"time"
-
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet"
-	bhost "github.com/libp2p/go-libp2p-blankhost"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	core "github.com/libp2p/go-libp2p-core"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	peerstore "github.com/libp2p/go-libp2p-peerstore"
-	swarm "github.com/libp2p/go-libp2p-swarm"
 	"github.com/multiformats/go-multiaddr"
+	"testing"
 
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -268,256 +258,6 @@ func testStreamEOFReSet(t *testing.T) {
 
 }
 
-func testRelay(t *testing.T) {
-	r := rand.Reader
-	prvKey1, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-	r = rand.Reader
-	prvKey2, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-
-	r = rand.Reader
-	prvKey3, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-
-	var subcfg p2pty.P2PSubConfig
-	subcfg.Port = 12345
-	subcfg.RelayDiscovery = true
-	subcfg.RelayActive = false
-	subcfg.RelayHop = false
-	h1 := newHost(&subcfg, prvKey1, nil, nil)
-
-	//--------------------------------
-	var subcfg2 p2pty.P2PSubConfig
-	subcfg2.Port = 12346
-	subcfg2.RelayHop = true //接收中继客户端的请求，proxy 作为中继节点必须配置此选项
-	subcfg2.RelayDiscovery = false
-	subcfg2.RelayActive = false
-	h2 := newHost(&subcfg2, prvKey2, nil, nil)
-
-	//----------------------------------
-	var subcfg3 p2pty.P2PSubConfig
-	subcfg3.Port = 12347
-	subcfg3.RelayActive = false
-	subcfg3.RelayDiscovery = false
-	subcfg3.RelayHop = true
-	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg3.Port))
-	if err != nil {
-		panic(err)
-	}
-	h3 := newHost(&subcfg3, prvKey3, nil, maddr)
-
-	//-------------------------------
-	h2info := peer.AddrInfo{
-		ID:    h2.ID(),
-		Addrs: h2.Addrs(),
-	}
-	t.Log("h1 addrs", h1.Addrs())
-	t.Log("h2 addrs", h2.Addrs())
-	t.Log("h3 addrs", h3.Addrs())
-	// Connect both h1 and h3 to h2, but not to each other
-	if err := h1.Connect(context.Background(), h2info); err != nil {
-		panic(err)
-	}
-	if err := h3.Connect(context.Background(), h2info); err != nil {
-		panic(err)
-	}
-
-	// Now, to test things, let's set up a protocol handler on h3
-	h3.SetStreamHandler("/relays", func(s network.Stream) {
-		//fmt.Println("Meow! It worked!")
-		t.Log("SteamHandler,ReadIn")
-		s.Write([]byte("Meow! It worked!\n"))
-
-	})
-	//基于预期，h1一定不会连上h3
-	_, err = h1.NewStream(context.Background(), h3.ID(), "/relays")
-	assert.NotNil(t, err)
-
-	t.Log("Okay, no connection from h1 to h3: ", err, "h3 id", h3.ID())
-
-	// Creates a relay address
-	relayaddr, err := multiaddr.NewMultiaddr("/p2p-circuit/ipfs/" + h3.ID().Pretty())
-	assert.Nil(t, err)
-	t.Log("h3 relayaddr", relayaddr.String())
-	h1.Network().(*swarm.Swarm).Backoff().Clear(h3.ID())
-	h3relayInfo := peer.AddrInfo{
-		ID:    h3.ID(),
-		Addrs: []multiaddr.Multiaddr{relayaddr},
-	}
-	//h1.Network().ClosePeer(h2.ID())
-	err = h1.Connect(context.Background(), h3relayInfo)
-	assert.Nil(t, err)
-	// Woohoo! we're connected!
-	s, err := h1.NewStream(context.Background(), h3.ID(), "/relays")
-	if err != nil {
-		t.Log("h1.Newstream h3", err)
-	}
-	assert.Nil(t, err)
-
-	buf := bufio.NewReader(s)
-	str, err := buf.ReadString('\n')
-	assert.Nil(t, err)
-	t.Log("my read:", str)
-
-}
-
-func testRelay_v2(t *testing.T) {
-	r := rand.Reader
-	prvKey1, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-	r = rand.Reader
-	prvKey2, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-
-	r = rand.Reader
-	prvKey3, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-	prvKey4, _, _ := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	var subcfg p2pty.P2PSubConfig
-	subcfg.Port = 12345
-	subcfg.RelayDiscovery = true
-	subcfg.RelayActive = false
-	subcfg.RelayHop = false
-	h1 := newHost(&subcfg, prvKey1, nil, nil)
-
-	//--------------------------------
-	var subcfg2 p2pty.P2PSubConfig
-	subcfg2.Port = 12346
-	subcfg2.RelayHop = true //接收中继客户端的请求，proxy 作为中继节点必须配置此选项
-	subcfg2.RelayDiscovery = false
-	subcfg2.RelayActive = false
-	h2 := newHost(&subcfg2, prvKey2, nil, nil)
-
-	//----------------------------------
-	var subcfg3 p2pty.P2PSubConfig
-	subcfg3.Port = 12347
-	subcfg3.RelayActive = false
-	subcfg3.RelayDiscovery = false
-	subcfg3.RelayHop = true
-	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg3.Port))
-	if err != nil {
-		panic(err)
-	}
-	h3 := newHost(&subcfg3, prvKey3, nil, maddr)
-	// Now, to test things, let's set up a protocol handler on h3
-	h3.SetStreamHandler("/relays", func(s network.Stream) {
-		//fmt.Println("Meow! It worked!")
-		t.Log("SteamHandler,ReadIn")
-		s.Write([]byte("Meow! It worked!\n"))
-		s.Close()
-	})
-	//-------------------------------
-	//----------------------------------
-	var subcfg4 p2pty.P2PSubConfig
-	subcfg4.Port = 12349
-
-	h4 := newHost(&subcfg4, prvKey4, nil, nil)
-
-	h4.SetStreamHandler("/relays", func(s network.Stream) {
-		//fmt.Println("Meow! It worked!")
-		t.Log("h4 handler,ReadIn")
-		s.Write([]byte("h4 It worked!\n"))
-		s.Close()
-	})
-	//-------------------------------
-	var maddrs []multiaddr.Multiaddr
-	for _, addr := range h2.Addrs() {
-		astr := addr.String()
-		relayAddr := fmt.Sprintf("%s/p2p/%s/p2p-circuit/p2p/%s", astr, h2.ID(), h3.ID())
-		t.Log("relayAddr", relayAddr)
-		maddr, _ := multiaddr.NewMultiaddr(relayAddr)
-		maddrs = append(maddrs, maddr)
-	}
-
-	h2info := peer.AddrInfo{
-		ID:    h2.ID(),
-		Addrs: h2.Addrs(),
-	}
-
-	t.Log("h1 addrs", h1.Addrs())
-	t.Log("h2 id", h2.ID(), "h2 addrs", h2.Addrs())
-	t.Log("h3 id", h3.ID(), "h3 addrs", h3.Addrs())
-	t.Log("h4 id", h4.ID(), "h4 addrs", h4.Addrs())
-	// Connect both h1 and h3 to h2, but not to each other
-
-	if err := h3.Connect(context.Background(), h2info); err != nil {
-		panic(err)
-	}
-
-	h1.Peerstore().AddAddrs(h3.ID(), maddrs, peerstore.TempAddrTTL)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	s, err := h1.NewStream(ctx, h3.ID(), "/relays")
-	if err != nil {
-		t.Log("h1.Newstream h3", err)
-		return
-	}
-
-	buf := bufio.NewReader(s)
-	str, err := buf.ReadString('\n')
-	assert.Nil(t, err)
-	t.Log("my read again:", str)
-
-}
-func newTestRelay(ctx context.Context, host host.Host, opts []circuit.RelayOpt, t *testing.T) *circuit.Relay {
-	r, err := circuit.NewRelay(ctx, host, swarmt.GenUpgrader(host.Network().(*swarm.Swarm)), opts...)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return r
-}
-func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {
-	var out []host.Host
-
-	for i := 0; i < n; i++ {
-		netw := swarmt.GenSwarm(t, ctx)
-		h := bhost.NewBlankHost(netw)
-		out = append(out, h)
-	}
-
-	return out
-}
-func connect(t *testing.T, a, b host.Host) {
-	pinfo := a.Peerstore().PeerInfo(a.ID())
-	err := b.Connect(context.Background(), pinfo)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func testRelay_v3(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	hosts := getNetHosts(ctx, 3, t)
-
-	connect(t, hosts[0], hosts[1])
-	r1 := newTestRelay(ctx, hosts[0], []circuit.RelayOpt{circuit.OptDiscovery}, t)
-	newTestRelay(ctx, hosts[1], []circuit.RelayOpt{circuit.OptHop}, t)
-
-	rinfo := hosts[1].Peerstore().PeerInfo(hosts[1].ID())
-	dinfo := hosts[2].Peerstore().PeerInfo(hosts[2].ID())
-
-	rctx, rcancel := context.WithTimeout(ctx, time.Second)
-	defer rcancel()
-	_, err := r1.DialPeer(rctx, rinfo, dinfo)
-	assert.NotNil(t, err)
-
-}
-
 func Test_p2p(t *testing.T) {
 
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
@@ -534,7 +274,4 @@ func Test_p2p(t *testing.T) {
 	testP2PEvent(t, q.Client())
 	testP2PClose(t, p2p)
 	testStreamEOFReSet(t)
-	testRelay(t)
-	testRelay_v2(t)
-	testRelay_v3(t)
 }
