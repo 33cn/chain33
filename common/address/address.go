@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"unsafe"
 
 	"github.com/33cn/chain33/common"
 	"github.com/decred/base58"
@@ -83,12 +84,13 @@ func ExecAddress(name string) string {
 
 //MultiSignAddress create a multi sign address
 func MultiSignAddress(pubkey []byte) string {
-	if value, ok := multisignCache.Get(string(pubkey)); ok {
+	skey := *(*string)(unsafe.Pointer(&pubkey))
+	if value, ok := multisignCache.Get(skey); ok {
 		return value.(string)
 	}
 	addr := HashToAddress(MultiSignVer, pubkey)
 	addrstr := addr.String()
-	multisignCache.Add(string(pubkey), addrstr)
+	multisignCache.Add(skey, addrstr)
 	return addrstr
 }
 
@@ -122,11 +124,12 @@ func PubKeyToAddress(in []byte) *Address {
 
 //PubKeyToAddr 公钥转为地址
 func PubKeyToAddr(in []byte) string {
-	if value, ok := pubkey2AddrCache.Get(string(in)); ok {
+	instr := *(*string)(unsafe.Pointer(&in))
+	if value, ok := pubkey2AddrCache.Get(instr); ok {
 		return value.(string)
 	}
 	addr := HashToAddress(NormalVer, in).String()
-	pubkey2AddrCache.Add(string(in), addr)
+	pubkey2AddrCache.Add(instr, addr)
 	return addr
 }
 
