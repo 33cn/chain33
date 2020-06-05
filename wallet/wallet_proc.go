@@ -952,7 +952,8 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	types.AssertConfig(wallet.client)
 	cfg := wallet.client.GetConfig()
 	txlen := len(block.Block.GetTxs())
-	newbatch := wallet.walletStore.NewBatch(true)
+	newbatch := wallet.walletStore.GetBlockBatch(true)
+	defer wallet.walletStore.FreeBlockBatch()
 	for index := 0; index < txlen; index++ {
 		tx := block.Block.Txs[index]
 		execer := string(cfg.GetParaExec(tx.Execer))
@@ -1076,7 +1077,8 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 	types.AssertConfig(wallet.client)
 	cfg := wallet.client.GetConfig()
 	txlen := len(block.Block.GetTxs())
-	newbatch := wallet.walletStore.NewBatch(true)
+	newbatch := wallet.walletStore.GetBlockBatch(true)
+	defer wallet.walletStore.FreeBlockBatch()
 	for index := txlen - 1; index >= 0; index-- {
 		blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
 		heightstr := fmt.Sprintf("%018d", blockheight)
