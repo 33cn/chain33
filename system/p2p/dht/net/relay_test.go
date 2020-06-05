@@ -3,6 +3,10 @@ package net
 import (
 	"bytes"
 	"context"
+	"io"
+	"net"
+	"testing"
+
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	bhost "github.com/libp2p/go-libp2p-blankhost"
@@ -11,9 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"net"
-	"testing"
 )
 
 func getNetHosts(t *testing.T, ctx context.Context, n int) []host.Host {
