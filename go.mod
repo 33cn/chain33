@@ -24,9 +24,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.3
-	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.7.9
-	github.com/jackpal/go-nat-pmp v1.0.1
 	github.com/libp2p/go-libp2p v0.4.0
 	github.com/libp2p/go-libp2p-connmgr v0.2.0
 	github.com/libp2p/go-libp2p-core v0.2.5
@@ -44,8 +42,8 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/tjfoc/gmsm v0.0.0-20171124023159-98aa888b79d8
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
+	github.com/tjfoc/gmsm v1.3.1
+	golang.org/x/crypto v0.0.0-20191219195013-becbf705a915
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
 	google.golang.org/genproto v0.0.0-20200310143817-43be25429f5a // indirect
