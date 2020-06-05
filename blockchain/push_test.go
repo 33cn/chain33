@@ -330,6 +330,24 @@ func Test_PostBlockFail(t *testing.T) {
 	mock33.Close()
 }
 
+func Test_GetLastPushSeqFail(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	chain.isRecordBlockSequence = false
+	_, err := chain.ProcGetLastPushSeq("test")
+	assert.Equal(t, types.ErrRecordBlockSequence, err)
+
+	chain.isRecordBlockSequence = true
+	chain.enablePushSubscribe = false
+	_, err = chain.ProcGetLastPushSeq("test")
+	assert.Equal(t, types.ErrPushNotSupport, err)
+	chain.enablePushSubscribe = true
+
+	_, err = chain.ProcGetLastPushSeq("test")
+	assert.Equal(t, types.ErrPushNotSubscribed, err)
+
+	mock33.Close()
+}
+
 func Test_PostDataFail(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	chain.enablePushSubscribe = true
