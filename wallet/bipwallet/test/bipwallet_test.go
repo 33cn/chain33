@@ -7,8 +7,9 @@ package test
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/33cn/chain33/types"
 	"testing"
+
+	"github.com/33cn/chain33/types"
 
 	"github.com/33cn/chain33/wallet/bipwallet"
 )
