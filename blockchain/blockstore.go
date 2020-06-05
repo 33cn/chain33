@@ -135,6 +135,7 @@ type BlockStore struct {
 	lastheaderlock sync.Mutex
 	saveSequence   bool
 	isParaChain    bool
+	batch          dbm.Batch
 }
 
 //NewBlockStore new
@@ -182,6 +183,8 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 			}
 		}
 	}
+	blockStore.batch = db.NewBatch(true)
+
 	return blockStore
 }
 
@@ -815,8 +818,9 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	}
 	height := blockdetail.Block.GetHeight()
 	hash := blockdetail.Block.Hash(bs.client.GetConfig())
-	storeBatch := bs.NewBatch(sync)
-
+	storeBatch := bs.batch
+	storeBatch.Reset()
+	storeBatch.UpdateWriteSync(sync)
 	//Save block header和body使用table形式存储
 	err := bs.saveBlockForTable(storeBatch, blockdetail, false, true)
 	if err != nil {

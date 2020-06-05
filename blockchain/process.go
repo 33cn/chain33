@@ -310,26 +310,31 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		b.index.UpdateNode(prevhash, node)
 	}
 
-	beg := types.Now()
 	// 写入磁盘 批量将block信息写入磁盘
-	newbatch := b.blockStore.NewBatch(sync)
-
+	newbatch := b.blockStore.batch
+	newbatch.Reset()
+	newbatch.UpdateWriteSync(sync)
 	//保存tx信息到db中
+	beg := types.Now()
 	err = b.blockStore.AddTxs(newbatch, blockdetail)
 	if err != nil {
 		chainlog.Error("connectBlock indexTxs:", "height", block.Height, "err", err)
 		return nil, err
 	}
-
+	txCost := types.Since(beg)
+	beg = types.Now()
 	//保存block信息到db中
 	lastSequence, err = b.blockStore.SaveBlock(newbatch, blockdetail, node.sequence)
 	if err != nil {
 		chainlog.Error("connectBlock SaveBlock:", "height", block.Height, "err", err)
 		return nil, err
 	}
+	saveBlkCost := types.Since(beg)
 	//cache new add block
+	beg = types.Now()
 	b.cache.cacheBlock(blockdetail)
 
+	cacheCost := types.Since(beg)
 	//保存block的总难度到db中
 	difficulty := difficulty.CalcWork(block.Difficulty)
 	var blocktd *big.Int
@@ -349,12 +354,15 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		chainlog.Error("connectBlock SaveTdByBlockHash:", "height", block.Height, "err", err)
 		return nil, err
 	}
+	beg = types.Now()
 	err = newbatch.Write()
 	if err != nil {
 		chainlog.Error("connectBlock newbatch.Write", "err", err)
 		panic(err)
 	}
-	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", types.Since(beg), "hash", common.ToHex(blockdetail.Block.Hash(cfg)))
+	writeCost := types.Since(beg)
+	chainlog.Debug("connectBlock cost", "execLocal", txCost, "saveBlk", saveBlkCost, "cacheBlk", cacheCost, "write", writeCost)
+	chainlog.Debug("connectBlock info", "height", block.Height, "batchsync", sync, "hash", common.ToHex(blockdetail.Block.Hash(cfg)))
 
 	// 更新最新的高度和header
 	b.blockStore.UpdateHeight2(blockdetail.GetBlock().GetHeight())
