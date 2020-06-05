@@ -108,6 +108,16 @@ func CreateNoneTx(cfg *types.Chain33Config, priv crypto.PrivKey) *types.Transact
 	return CreateTxWithExecer(cfg, priv, "none")
 }
 
+func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) *types.Transaction {
+
+	tx := CreateNoneTx(cfg, nil)
+	tx.Expire = currHeight + 30 + types.TxHeightFlag
+	if priv != nil {
+		tx.Sign(types.SECP256K1, priv)
+	}
+	return tx
+}
+
 // CreateTxWithExecer ： Create Tx With Execer
 func CreateTxWithExecer(cfg *types.Chain33Config, priv crypto.PrivKey, execer string) *types.Transaction {
 	if execer == "coins" {
