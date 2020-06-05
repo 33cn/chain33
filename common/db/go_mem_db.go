@@ -176,3 +176,6 @@ func (b *memBatch) Reset() {
 	b.size = 0
 	b.len = 0
 }
+
+func (b *memBatch) UpdateWriteSync(sync bool) {
+}
