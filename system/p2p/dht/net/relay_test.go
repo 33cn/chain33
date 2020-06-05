@@ -108,7 +108,7 @@ func TestRelay(t *testing.T) {
 	}
 
 	testCheckOp(t, netRely, hosts)
-	testFindOpPeers(t, ctx, netRely, hosts)
+	testFindOpPeers(ctx, netRely, hosts, t)
 
 }
 
@@ -126,7 +126,7 @@ func testCheckOp(t *testing.T, netRely *Relay, hosts []host.Host) {
 	assert.Equal(t, false, ok)
 }
 
-func testFindOpPeers(t *testing.T, ctx context.Context, netRely *Relay, hosts []host.Host) {
+func testFindOpPeers(ctx context.Context, netRely *Relay, hosts []host.Host, t *testing.T) {
 	peers, err := netRely.FindOpPeers()
 	if err != nil {
 		t.Fatal(err)
