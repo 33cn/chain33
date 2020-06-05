@@ -54,6 +54,7 @@ chunkblockNum=1000
 enableFetchP2pstore=false
 # 使能假设已删除已归档数据后,获取数据情况
 enableIfDelLocalChunk=false
+enablePushSubscribe=false
 
 [p2p]
 enable=false

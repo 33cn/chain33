@@ -95,6 +95,10 @@ function base_init() {
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' ${testtoml}
 
+    #使能注册推送
+    sed -i $sedfix 's/^enablePushSubscribe=.*/enablePushSubscribe=true/g' ${testtoml}
+    sed -i $sedfix 's/^enableReduceLocaldb=.*/enableReduceLocaldb=false/g' ${testtoml}
+
     cp ${testtoml} ${testtomlsolo}
     #consens
     consens_init "solo"

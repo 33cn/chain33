@@ -319,8 +319,10 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 func (wallet *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{Data: addr}
+	//ticket和pos33执行器有对应的miner
+	consensus := wallet.client.GetConfig().GetModuleConfig().Consensus.Name
 	req := types.ChainExecutor{
-		Driver:   "ticket",
+		Driver:   consensus,
 		FuncName: "MinerSourceList",
 		Param:    types.Encode(reqaddr),
 	}

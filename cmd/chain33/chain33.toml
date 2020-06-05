@@ -62,6 +62,8 @@ enableFetchP2pstore=false
 # 使能假设已删除已归档数据后,获取数据情况
 enableIfDelLocalChunk=false
 
+# 使能推送注册，默认不开启
+enablePushSubscribe=false
 
 [p2p]
 # p2p类型
@@ -85,9 +87,9 @@ seeds=[""]
 
 [rpc]
 # jrpc绑定地址
-jrpcBindAddr="localhost:8803"
+jrpcBindAddr="localhost:8801"
 # grpc绑定地址
-grpcBindAddr="localhost:8804"
+grpcBindAddr="localhost:8802"
 # 白名单列表，允许访问的IP地址，默认是“*”，允许所有IP访问
 whitelist=["127.0.0.1"]
 # jrpc方法请求白名单，默认是“*”，允许访问所有RPC方法

@@ -27,7 +27,7 @@ func (chain *BlockChain) GetBlockByHashes(hashes [][]byte) (respblocks *types.Bl
 			}
 			blocks.Items = append(blocks.Items, block)
 		} else {
-			blocks.Items = append(blocks.Items, nil)
+			blocks.Items = append(blocks.Items, new(types.BlockDetail))
 		}
 	}
 	return &blocks, nil
