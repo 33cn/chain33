@@ -184,21 +184,28 @@ func (chain *BlockChain) ProcListPush() (*types.PushSubscribes, error) {
 }
 
 // GetLastPushSeq Seq的合法值从0开始的，所以没有获取到或者获取失败都应该返回-1
-func (chain *BlockChain) ProcGetLastPushSeq(name string) int64 {
+func (chain *BlockChain) ProcGetLastPushSeq(name string) (int64, error) {
+	if !chain.isRecordBlockSequence {
+		return -1, types.ErrRecordBlockSequence
+	}
+	if !chain.enablePushSubscribe {
+		return -1, types.ErrPushNotSupport
+	}
+
 	lastSeqbytes, err := chain.push.store.GetKey(calcLastPushSeqNumKey(name))
 	if lastSeqbytes == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("getSeqCBLastNum", "error", err)
 		}
-		return -1
+		return -1, types.ErrPushNotSubscribed
 	}
 	n, err := decodeHeight(lastSeqbytes)
 	if err != nil {
-		return -1
+		return -1, err
 	}
 	storeLog.Error("getSeqCBLastNum", "name", name, "num", n)
 
-	return n
+	return n, nil
 }
 
 func newpush(commonStore CommonStore, seqStore SequenceStore, cfg *types.Chain33Config) *Push {

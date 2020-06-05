@@ -324,8 +324,26 @@ func Test_PostBlockFail(t *testing.T) {
 	assert.Greater(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
-	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
 	assert.Equal(t, lastSeq, int64(-1))
+
+	mock33.Close()
+}
+
+func Test_GetLastPushSeqFail(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	chain.isRecordBlockSequence = false
+	_, err := chain.ProcGetLastPushSeq("test")
+	assert.Equal(t, types.ErrRecordBlockSequence, err)
+
+	chain.isRecordBlockSequence = true
+	chain.enablePushSubscribe = false
+	_, err = chain.ProcGetLastPushSeq("test")
+	assert.Equal(t, types.ErrPushNotSupport, err)
+	chain.enablePushSubscribe = true
+
+	_, err = chain.ProcGetLastPushSeq("test")
+	assert.Equal(t, types.ErrPushNotSubscribed, err)
 
 	mock33.Close()
 }
@@ -386,7 +404,7 @@ func Test_PostBlockSuccess(t *testing.T) {
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
-	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
 	assert.Greater(t, lastSeq, int64(21))
 
 	mock33.Close()
@@ -419,7 +437,7 @@ func Test_PostBlockHeaderSuccess(t *testing.T) {
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
-	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
 	assert.Greater(t, lastSeq, int64(21))
 
 	mock33.Close()
@@ -600,7 +618,7 @@ func Test_ReactivePush(t *testing.T) {
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
-	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
 	assert.Greater(t, lastSeq, int64(21))
 
 	mockpsFail := &bcMocks.PostService{}
@@ -610,7 +628,7 @@ func Test_ReactivePush(t *testing.T) {
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(4 * time.Second)
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), notRunning)
-	lastSeq = chain.ProcGetLastPushSeq(subscribe.Name)
+	lastSeq, _ = chain.ProcGetLastPushSeq(subscribe.Name)
 
 	//重新激活
 	chain.push.postService = ps
@@ -619,7 +637,7 @@ func Test_ReactivePush(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	pushNotify = chain.push.tasks[keyStr]
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
-	lastSeqAfter := chain.ProcGetLastPushSeq(subscribe.Name)
+	lastSeqAfter, _ := chain.ProcGetLastPushSeq(subscribe.Name)
 	assert.Greater(t, lastSeqAfter, lastSeq)
 
 	mock33.Close()
@@ -654,7 +672,7 @@ func Test_RecoverPush(t *testing.T) {
 	assert.Equal(t, atomic.LoadInt32(&pushNotifyInfo.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
-	lastSeq := chain.ProcGetLastPushSeq(subscribe.Name)
+	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
 	assert.Greater(t, lastSeq, int64(21))
 
 	mockpsFail := &bcMocks.PostService{}
@@ -664,14 +682,14 @@ func Test_RecoverPush(t *testing.T) {
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(3 * time.Second)
 	assert.Equal(t, atomic.LoadInt32(&pushNotifyInfo.status), notRunning)
-	lastSeq = chain.ProcGetLastPushSeq(subscribe.Name)
+	lastSeq, _ = chain.ProcGetLastPushSeq(subscribe.Name)
 
 	//chain33的push服务重启后，不会将其添加到task中，推送成功的序列号不成功
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	chain.push.postService = ps
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(1 * time.Second)
-	lastSeqAfterCurr := chain.ProcGetLastPushSeq(subscribe.Name)
+	lastSeqAfterCurr, _ := chain.ProcGetLastPushSeq(subscribe.Name)
 	assert.Equal(t, lastSeqAfterCurr, lastSeq)
 	var nilInfo *pushNotify
 	assert.Equal(t, chain.push.tasks[string(calcPushKey(subscribe.Name))], nilInfo)

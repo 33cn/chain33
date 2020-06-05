@@ -215,23 +215,15 @@ chain33_GetExecBalance() {
 }
 
 chain33_AddPushSubscribe() {
-    if [ "$IS_PARA" == true ]; then
-        echo_rst "$FUNCNAME" 2
-    else
-        http_req '{"method":"Chain33.AddPushSubscribe","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} '(.result.isOk == true)' "$FUNCNAME"
-    fi
+    http_req '{"method":"Chain33.AddPushSubscribe","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} '(.result.isOk == true)' "$FUNCNAME"
 }
 
 chain33_ListPushes() {
-    if [ "$IS_PARA" == true ]; then
-        echo_rst "$FUNCNAME" 2
-    else
-        http_req '{"method":"Chain33.ListPushes","params":[]}' ${MAIN_HTTP} ' (.result.pushes[0].name == "test")' "$FUNCNAME"
-    fi
+    http_req '{"method":"Chain33.ListPushes","params":[]}' ${MAIN_HTTP} ' (.result.pushes[0].name == "test")' "$FUNCNAME"
 }
 
 chain33_GetPushSeqLastNum() {
-    http_req '{"method":"Chain33.GetPushSeqLastNum","params":[{"data":"test"}]}' ${MAIN_HTTP} '(.result.data == -1)' "$FUNCNAME"
+    http_req '{"method":"Chain33.GetPushSeqLastNum","params":[{"data":"test-another"}]}' ${MAIN_HTTP} '(.result.data == -1)' "$FUNCNAME"
 }
 
 chain33_GetCoinSymbol() {

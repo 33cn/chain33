@@ -917,7 +917,7 @@ func (q *QueueProtocol) ListPushes() (*types.PushSubscribes, error) {
 func (q *QueueProtocol) GetPushSeqLastNum(param *types.ReqString) (*types.Int64, error) {
 	msg, err := q.send(blockchainKey, types.EventGetPushLastNum, param)
 	if err != nil {
-		log.Error("ListPushes", "Error", err.Error())
+		log.Error("GetPushSeqLastNum", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Int64); ok {
