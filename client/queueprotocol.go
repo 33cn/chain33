@@ -68,7 +68,13 @@ func (q *QueueProtocol) send(topic string, ty int64, data interface{}) (*queue.M
 	if err != nil {
 		return &queue.Message{}, err
 	}
-	return client.WaitTimeout(msg, q.option.WaitTimeout)
+	reply, err := client.WaitTimeout(msg, q.option.WaitTimeout)
+	if err != nil {
+		return nil, err
+	}
+	//NOTE：内部错误情况较多，只对正确流程msg回收
+	client.FreeMessage(msg)
+	return reply, nil
 }
 
 func (q *QueueProtocol) notify(topic string, ty int64, data interface{}) (*queue.Message, error) {
@@ -126,6 +132,7 @@ func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	} else {
 		err = types.ErrTypeAsset
 	}
+	q.client.FreeMessage(msg)
 	return reply, err
 }
 

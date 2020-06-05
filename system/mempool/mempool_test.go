@@ -6,9 +6,10 @@ package mempool
 
 import (
 	"errors"
-	"github.com/33cn/chain33/util"
 	"math/rand"
 	"testing"
+
+	"github.com/33cn/chain33/util"
 
 	"github.com/golang/protobuf/proto"
 

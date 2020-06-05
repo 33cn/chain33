@@ -4,10 +4,11 @@ import (
 	"errors"
 	"time"
 
+	"github.com/33cn/chain33/util"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 )
 
 // CheckExpireValid 检查交易过期有效性，过期返回false，未过期返回true
@@ -36,11 +37,13 @@ func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptC
 		mlog.Error("execs closed", "err", err.Error())
 		return nil, err
 	}
-	msg, err = mem.client.Wait(msg)
+	reply, err := mem.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReceiptCheckTxList), nil
+	txList := reply.GetData().(*types.ReceiptCheckTxList)
+	mem.client.FreeMessage(msg, reply)
+	return txList, nil
 }
 
 func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {

@@ -39,6 +39,7 @@ type Client interface {
 	Close()
 	CloseQueue() (*types.Reply, error)
 	NewMessage(topic string, ty int64, data interface{}) (msg *Message)
+	FreeMessage(msg ...*Message) //回收msg， 需要注意回收时上下文不再引用
 	GetConfig() *types.Chain33Config
 }
 
@@ -97,7 +98,7 @@ func (client *client) SendTimeout(msg *Message, waitReply bool, timeout time.Dur
 		return ErrIsQueueClosed
 	}
 	if !waitReply {
-		msg.chReply = nil
+		//msg.chReply = nil
 		return client.q.sendLowTimeout(msg, timeout)
 	}
 	return client.q.send(msg, timeout)
@@ -110,7 +111,23 @@ func (client *client) SendTimeout(msg *Message, waitReply bool, timeout time.Dur
 // NewMessage 新建消息 topic模块名称 ty消息类型 data 数据
 func (client *client) NewMessage(topic string, ty int64, data interface{}) (msg *Message) {
 	id := atomic.AddInt64(&gid, 1)
-	return NewMessage(id, topic, ty, data)
+	msg = client.q.msgPool.Get().(*Message)
+	msg.ID = id
+	msg.Ty = ty
+	msg.Data = data
+	msg.Topic = topic
+	return
+}
+
+// FreeMessage 回收msg 到内存池
+func (client *client) FreeMessage(msgs ...*Message) {
+	for _, msg := range msgs {
+		if msg == nil || msg.chReply == nil {
+			continue
+		}
+		msg.Data = nil
+		client.q.msgPool.Put(msg)
+	}
 }
 
 func (client *client) Reply(msg *Message) {
