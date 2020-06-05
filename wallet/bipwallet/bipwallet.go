@@ -7,7 +7,7 @@ package bipwallet
 
 import (
 	"errors"
-
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/ed25519"
 	"github.com/33cn/chain33/types"
@@ -70,12 +70,9 @@ func (w *HDWallet) NewKeyPair(index uint32) (priv, pub []byte, err error) {
 		if err != nil {
 			return nil, nil, err
 		}
+
 		priv = edkey.Bytes()
-		pub = make([]byte, 33)
-		if len(edkey.PubKey().Bytes()) != 33 {
-			pub[0] = 0x03
-			copy(pub[1:], edkey.PubKey().Bytes()[:])
-		}
+		pub = edkey.PubKey().Bytes()
 
 	}
 	return
@@ -123,21 +120,8 @@ func PrivkeyToPub(coinType, keyTy uint32, priv []byte) ([]byte, error) {
 }
 
 // PubToAddress 将公钥转换成地址
-func PubToAddress(coinType uint32, pub []byte) (string, error) {
-	if cointype, ok := CoinName[coinType]; ok {
-		trans, err := transformer.New(cointype)
-		if err != nil {
-			return "", err
-		}
-		addr, err := trans.PubKeyToAddress(pub)
-		if err != nil {
-			return "", err
-		}
-
-		return addr, nil
-
-	}
-	return "", errors.New("cointype no support to create address")
+func PubToAddress(pub []byte) (string, error) {
+	return address.PubKeyToAddr(pub), nil
 }
 
 //NewMnemonicString 创建助记词 lang=0 英文助记词，lang=1 中文助记词bitsize=[128,256]并且bitsize%32=0
