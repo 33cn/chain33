@@ -2,9 +2,10 @@ package net
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_mdns(t *testing.T) {
