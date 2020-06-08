@@ -28,6 +28,7 @@ func Test_initInnerPeers(t *testing.T) {
 	subcfg := &p2pty.P2PSubConfig{}
 	subcfg.BootStraps = []string{h1str, h2str, h3str, h4str, "/ip4/127.0.0.1/tcp/39876/p2p/" + hosts[6].ID().Pretty()}
 	subcfg.Seeds = []string{h0str, "/ip4/127.0.0.1/tcp/19876/p2p/" + hosts[7].ID().Pretty()}
-	initInnerPeers(hosts[5], []peer.AddrInfo{h0}, subcfg)
+
+	initInnerPeers(hosts[5], []peer.AddrInfo{h0, peer.AddrInfo{ID: hosts[7].ID()}}, subcfg)
 
 }

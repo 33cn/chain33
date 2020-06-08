@@ -15,6 +15,10 @@ github.com/NebulousLabs/fastrand v0.0.0-20180208210444-3cf7173006a0 h1:g/ETZwHx5
 github.com/NebulousLabs/fastrand v0.0.0-20180208210444-3cf7173006a0/go.mod h1:Bdzq+51GR4/0DIhaICZEOm+OHvXGwwB2trKZ8B4Y6eQ=
 github.com/NebulousLabs/merkletree v0.0.0-20181025040823-2a1d1d1dc33c h1:PylSN1KOCPRtX4FM3rqEYIk4tWUOLkB6xGvK/RqHdP4=
 github.com/NebulousLabs/merkletree v0.0.0-20181025040823-2a1d1d1dc33c/go.mod h1:Cn056wBLKay+uIS9LJn7ymwhgC5mqbOtG6iOhEvyy4M=
+github.com/NebulousLabs/ratelimit v0.0.0-20181203155148-fd440c22f27d h1:bHagpVgtsTNsDL6sz2xl2A6V3xdGP5iAJDcXUaDDxDE=
+github.com/NebulousLabs/ratelimit v0.0.0-20181203155148-fd440c22f27d/go.mod h1:TzBW3xvdQYWZ170scsOlKebG3L4JnsqQvoFR7VzjYu8=
+github.com/NebulousLabs/writeaheadlog v0.0.0-20181203153719-20a05df18c23 h1:fcfVwEXRyPCw9us2l3zGtVcBosxOJhfoz2j+dMQlCcw=
+github.com/NebulousLabs/writeaheadlog v0.0.0-20181203153719-20a05df18c23/go.mod h1:2gzKt1SWfRIjgNcrQRWmQoF6Rwejj2plsnr2ptYUfiI=
 github.com/XiaoMi/pegasus-go-client v0.0.0-20181029071519-9400942c5d1c h1:3fAhdHMhoSG57DjJ/dqLFfgD+FoooPbQH6szINbrr3k=
 github.com/XiaoMi/pegasus-go-client v0.0.0-20181029071519-9400942c5d1c/go.mod h1:KcL6D/4RZ8RAYzQ5gKI0odcdWUmCVlbQTOlWrhP71CY=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=

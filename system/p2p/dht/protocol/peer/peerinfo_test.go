@@ -196,4 +196,8 @@ func Test_util(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, !isPublicIP(snet.ParseIP(ips[0])))
 	assert.True(t, isPublicIP(snet.ParseIP("112.74.59.221")))
+	assert.False(t, isPublicIP(snet.ParseIP("10.74.59.221")))
+	assert.False(t, isPublicIP(snet.ParseIP("172.16.59.221")))
+	assert.False(t, isPublicIP(snet.ParseIP("192.168.59.221")))
+
 }

@@ -97,6 +97,11 @@ func testSubTopic(t *testing.T, protocol *peerPubSub) {
 	}))
 
 	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventSubTopic, &types.SubTopic{
+		Module: "blockchain",
+		Topic:  "bzTest",
+	}))
+
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventSubTopic, &types.SubTopic{
 		Module: "mempool",
 		Topic:  "bzTest",
 	}))
@@ -152,6 +157,9 @@ func testPushMsg(t *testing.T, protocol *peerPubSub) {
 	rpy = resp.GetData().(*types.Reply)
 	t.Log("bzTest2 isok", rpy.IsOk, "msg", string(rpy.GetMsg()))
 	assert.False(t, rpy.IsOk)
+	errPubTopicMsg := protocol.QueueClient.NewMessage("p2p", types.EventPubTopicMsg, &types.FetchTopicList{})
+	testHandlerPubMsg(protocol, errPubTopicMsg)
+
 }
 
 //测试获取topiclist
@@ -168,6 +176,9 @@ func testFetchTopics(t *testing.T, protocol *peerPubSub) []string {
 	assert.Nil(t, err)
 
 	t.Log("topiclist", topiclist.GetTopics())
+
+	errFetchTopicMsg := protocol.QueueClient.NewMessage("p2p", types.EventFetchTopics, &types.PublishTopicMsg{})
+	testHandleGetTopicsEvent(protocol, errFetchTopicMsg)
 	return topiclist.GetTopics()
 }
 
@@ -191,6 +202,14 @@ func testRemoveModuleTopic(t *testing.T, protocol *peerPubSub, topic, module str
 	testHandleRemoveTopicEvent(protocol, removetopic) //删除blockchain的订阅消息
 	protocol.subCallBack(&net.SubMsg{Data: []byte("hello,world 2"), From: "123435555", Topic: "bzTest"})
 	//protocol.msgChan <- &types.TopicData{Topic: "bzTest", From: "123435555", Data: []byte("hello,world 2")}
+
+	errRemovetopic := protocol.QueueClient.NewMessage("p2p", types.EventRemoveTopic, &types.FetchTopicList{})
+	testHandleRemoveTopicEvent(protocol, errRemovetopic) //删除blockchain的订阅消息
+
+	errRemovetopic = protocol.QueueClient.NewMessage("p2p", types.EventRemoveTopic, &types.RemoveTopic{Topic: "haha",
+		Module: module})
+	testHandleRemoveTopicEvent(protocol, errRemovetopic) //删除blockchain的订阅消息
+
 }
 
 func testBlockRecvSubData(t *testing.T, q queue.Queue) {
@@ -259,5 +278,6 @@ func TestPubSub(t *testing.T) {
 	topics = testFetchTopics(t, protocol)
 	//t.Log("after Remove bzTest", topics)
 	assert.Equal(t, 0, len(topics))
+
 	time.Sleep(time.Second)
 }

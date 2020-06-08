@@ -25,6 +25,9 @@ func Test_pubsub(t *testing.T) {
 	assert.Nil(t, err)
 	err = psub.Publish("bztest", []byte("hello,world"))
 	assert.Nil(t, err)
+
+	err = psub.Publish("bztest2", []byte("hello,world"))
+	assert.NotNil(t, err)
 	topics := psub.GetTopics()
 	assert.Equal(t, 1, len(topics))
 	assert.Equal(t, "bztest", topics[0])
@@ -32,6 +35,8 @@ func Test_pubsub(t *testing.T) {
 	peers := psub.FetchTopicPeers("mytest")
 	t.Log(peers)
 	assert.Equal(t, 0, len(peers))
+	peers = psub.FetchTopicPeers("bztest")
+	t.Log(peers)
 
 	psub.RemoveTopic("bztest")
 	time.Sleep(time.Second * 2)

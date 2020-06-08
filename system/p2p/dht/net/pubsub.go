@@ -67,10 +67,7 @@ func (p *PubSub) HasTopic(topic string) bool {
 
 //加入topic&subTopic
 func (p *PubSub) JoinTopicAndSubTopic(topic string, callback subCallBack, opts ...pubsub.TopicOpt) error {
-	//先检查有没有订阅该topic
-	if p.HasTopic(topic) {
-		return nil
-	}
+
 	Topic, err := p.ps.Join(topic, opts...)
 	if err != nil {
 		return err
@@ -163,11 +160,6 @@ func (p *PubSub) FetchTopicPeers(topic string) []peer.ID {
 		return topicobj.pubtopic.ListPeers()
 	}
 	return nil
-}
-
-func (p *PubSub) FetchTopics() []string {
-	return p.ps.GetTopics()
-
 }
 
 func (p *PubSub) TopicNum() int {
