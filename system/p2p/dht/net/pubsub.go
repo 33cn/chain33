@@ -143,7 +143,7 @@ func (p *PubSub) RemoveTopic(topic string) {
 
 	info, ok := p.topics[topic]
 	if ok {
-		log.Info("RemoveTopic", topic)
+		log.Info("RemoveTopic", topic, "")
 		info.cancel()
 		info.sub.Cancel()
 		err := info.pubtopic.Close()
