@@ -9,6 +9,8 @@ import (
 
 	"crypto/rand"
 	"fmt"
+	"testing"
+
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
@@ -20,7 +22,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
