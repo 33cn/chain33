@@ -52,7 +52,7 @@ func TestBipwallet(t *testing.T) {
 	}
 
 	fmt.Println("address:", address)
-	address, err = bipwallet.PubToAddress(bipwallet.TypeEther, pub)
+	address, err = bipwallet.PubToAddress(pub)
 	if err != nil {
 		fmt.Println("err:", err.Error())
 		return
