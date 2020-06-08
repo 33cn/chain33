@@ -8,20 +8,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/network"
-
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
-
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
@@ -346,9 +345,9 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	}
 	//注册p2p通信协议，用于处理节点之间请求
 	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
-	p.Host.SetStreamHandler(protocol.FetchChunk, p.HandleStreamFetchChunk)
-	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithSignCheck(p.HandleStreamGetHeader))
-	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithSignCheck(p.HandleStreamGetChunkRecord))
+	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk))
+	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.HandleStreamGetHeader))
+	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.HandleStreamGetChunkRecord))
 	p.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 	go p.startUpdateHealthyRoutingTable()
 	client1.Sub("p2p")

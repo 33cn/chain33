@@ -50,10 +50,10 @@ func InitProtocol(env *protocol.P2PEnv) {
 	}
 
 	//注册p2p通信协议，用于处理节点之间请求
-	p.Host.SetStreamHandler(protocol.FetchChunk, p.HandleStreamFetchChunk) //数据较大，采用特殊写入方式
+	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk)) //数据较大，采用特殊写入方式
 	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
-	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithSignCheck(p.HandleStreamGetHeader))
-	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithSignCheck(p.HandleStreamGetChunkRecord))
+	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.HandleStreamGetHeader))
+	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.HandleStreamGetChunkRecord))
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
 	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, protocol.EventHandlerWithRecover(p.HandleEventNotifyStoreChunk))
 	protocol.RegisterEventHandler(types.EventGetChunkBlock, protocol.EventHandlerWithRecover(p.HandleEventGetChunkBlock))
@@ -64,8 +64,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.startUpdateHealthyRoutingTable()
 }
 
-func (p *Protocol) HandleStreamFetchChunk(stream network.Stream) {
-	defer stream.Close()
+func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.Stream) {
 	var res types.P2PResponse
 	defer func() {
 		t := time.Now()
@@ -76,11 +75,7 @@ func (p *Protocol) HandleStreamFetchChunk(stream network.Stream) {
 		cost := time.Since(t)
 		log.Info("HandleStreamFetchChunk", "time cost", cost)
 	}()
-	var req types.P2PRequest
-	if err := protocol.ReadStreamAndAuthenticate(&req, stream); err != nil {
-		log.Error("HandleStreamFetchChunk", "read stream error", err)
-		return
-	}
+
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	//优先检查本地是否存在
 	bodys, _ := p.getChunkBlock(param.ChunkHash)

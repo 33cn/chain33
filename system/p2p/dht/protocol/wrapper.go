@@ -168,7 +168,7 @@ func HandlerWithRead(f func(request *types.P2PRequest, stream network.Stream)) n
 	readFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
-			log.Error("HandlerWithSignCheck", "read stream error", err)
+			log.Error("HandlerWithAuthAndSign", "read stream error", err)
 			return
 		}
 		f(&req, stream)
@@ -181,7 +181,7 @@ func HandlerWithAuth(f func(request *types.P2PRequest, stream network.Stream)) n
 	readFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
-			log.Error("HandlerWithSignCheck", "read stream error", err)
+			log.Error("HandlerWithAuthAndSign", "read stream error", err)
 			return
 		}
 		if !AuthenticateMessage(&req, stream) {
@@ -212,19 +212,19 @@ func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse
 			Id:        rand.Int63(),
 		}
 		if err := WriteStream(&res, stream); err != nil {
-			log.Error("HandlerWithSignCheck", "write stream error", err)
+			log.Error("HandlerWithAuthAndSign", "write stream error", err)
 			return
 		}
 	}
 	return HandlerWithClose(rwFunc)
 }
 
-// HandlerWithSignCheck wraps HandlerWithRW with signing and authenticating.
-func HandlerWithSignCheck(f func(request *types.P2PRequest, response *types.P2PResponse, stream network.Stream) error) network.StreamHandler {
+// HandlerWithAuthAndSign wraps HandlerWithRW with signing and authenticating.
+func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2PResponse, stream network.Stream) error) network.StreamHandler {
 	rwFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
-			log.Error("HandlerWithSignCheck", "read stream error", err)
+			log.Error("HandlerWithAuthAndSign", "read stream error", err)
 			return
 		}
 		if !AuthenticateMessage(&req, stream) {
@@ -243,12 +243,12 @@ func HandlerWithSignCheck(f func(request *types.P2PRequest, response *types.P2PR
 		}
 		sign, err := signProtoMessage(&res, stream)
 		if err != nil {
-			log.Error("HandlerWithSignCheck", "signProtoMessage error", err)
+			log.Error("HandlerWithAuthAndSign", "signProtoMessage error", err)
 			return
 		}
 		res.Headers.Sign = sign
 		if err := WriteStream(&res, stream); err != nil {
-			log.Error("HandlerWithSignCheck", "write stream error", err)
+			log.Error("HandlerWithAuthAndSign", "write stream error", err)
 			return
 		}
 	}

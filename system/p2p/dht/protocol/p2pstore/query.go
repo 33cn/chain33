@@ -155,6 +155,7 @@ Retry:
 				continue
 			}
 			if bodys != nil {
+				log.Info("mustFetchChunk found", "pid", pid, "maddrs", p.Host.Peerstore().Addrs(pid))
 				return bodys, nil
 			}
 			newPeers = append(newPeers, nearerPeers...)
@@ -172,6 +173,10 @@ Retry:
 	if retryCount < 3 { //找不到数据重试3次，防止因为网络问题导致数据找不到
 		log.Error("mustFetchChunk", "retry count", retryCount)
 		goto Retry
+	}
+	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
+	for pid := range searchedPeers {
+		log.Info("mustFetchChunk debug", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid))
 	}
 	return nil, types2.ErrNotFound
 }
