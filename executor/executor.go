@@ -39,12 +39,13 @@ func DisableLog() {
 
 // Executor executor struct
 type Executor struct {
-	disableLocal bool
-	client       queue.Client
-	qclient      client.QueueProtocolAPI
-	grpccli      types.Chain33Client
-	pluginEnable map[string]bool
-	alias        map[string]string
+	disableLocal   bool
+	client         queue.Client
+	qclient        client.QueueProtocolAPI
+	grpccli        types.Chain33Client
+	pluginEnable   map[string]bool
+	alias          map[string]string
+	noneDriverPool *sync.Pool
 }
 
 func execInit(cfg *typ.Chain33Config) {
@@ -67,7 +68,15 @@ func New(cfg *typ.Chain33Config) *Executor {
 	exec.pluginEnable["addrindex"] = !mcfg.DisableAddrIndex
 	exec.pluginEnable["txindex"] = true
 	exec.pluginEnable["fee"] = true
-
+	exec.noneDriverPool = &sync.Pool{
+		New: func() interface{} {
+			none, err := drivers.LoadDriver("none", 0)
+			if err != nil {
+				panic("load none driver err")
+			}
+			return none
+		},
+	}
 	exec.alias = make(map[string]string)
 	for _, v := range mcfg.Alias {
 		data := strings.Split(v, ":")
@@ -183,7 +192,7 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("query panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
@@ -230,7 +239,7 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("check panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
@@ -246,8 +255,11 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 		parentHash: datas.ParentHash,
 	}
 	var localdb dbm.KVDB
+
+	//频繁单笔交易检测对应localdb内部的memdb内存分配开销较大暂
+	//原则上交易检测也不应该依赖于localdb，暂时分配一个更轻量的localdb
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		localdb = NewLocalDB4CheckTx(exec.client)
 		defer localdb.(*LocalDB).Close()
 	}
 	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
@@ -274,7 +286,7 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("exec tx list panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
@@ -356,7 +368,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("add blk panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
@@ -432,7 +444,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("del blk panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}

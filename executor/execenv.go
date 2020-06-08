@@ -39,6 +39,7 @@ type executor struct {
 	currTxIdx  int
 	currDriver drivers.Driver
 	cfg        *types.Chain33Config
+	exec       *Executor
 }
 
 type executorCtx struct {
@@ -74,6 +75,7 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 		currTxIdx:    -1 << 7,
 		currDriver:   nil,
 		cfg:          cfg,
+		exec:         exec,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -164,11 +166,13 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 }
 
 func (e *executor) setEnv(exec drivers.Driver) {
+	exec.SetAPI(e.api)
+	//执行器共用一个coins account对象
+	exec.SetCoinsAccount(e.coinsAccount)
 	exec.SetStateDB(e.stateDB)
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetBlockInfo(e.ctx.parentHash, e.ctx.mainHash, e.ctx.mainHeight)
-	exec.SetAPI(e.api)
 	exec.SetExecutorAPI(e.api, e.gcli)
 	e.execapi = exec.GetExecutorAPI()
 	exec.SetTxs(e.txs)
@@ -197,8 +201,15 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	if err := address.CheckAddress(tx.To); err != nil {
 		return err
 	}
-	//checkInExec
-	exec := e.loadDriver(tx, index)
+	var exec drivers.Driver
+
+	//暂时只对none driver做了缓存处理 TODO: 增加其他执行器pool缓存
+	if types.Bytes2Str(tx.Execer) == "none" {
+		exec = e.getNoneDriver()
+		defer e.freeNoneDriver(exec)
+	} else {
+		exec = e.loadDriver(tx, index)
+	}
 	//手续费检查
 	if !exec.IsFree() && e.cfg.GetMinTxFeeRate() > 0 {
 		from := tx.From()
@@ -254,6 +265,16 @@ func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index 
 func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	exec := e.loadDriver(tx, index)
 	return exec.ExecDelLocal(tx, r, index)
+}
+
+func (e *executor) getNoneDriver() drivers.Driver {
+	none := e.exec.noneDriverPool.Get().(drivers.Driver)
+	e.setEnv(none)
+	return none
+}
+
+func (e *executor) freeNoneDriver(none drivers.Driver) {
+	e.exec.noneDriverPool.Put(none)
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {

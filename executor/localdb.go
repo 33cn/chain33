@@ -43,6 +43,24 @@ func NewLocalDB(cli queue.Client) db.KVDB {
 	}
 }
 
+// NewLocalDB4CheckTx 创建一个用于单笔交易检查的localDB
+func NewLocalDB4CheckTx(cli queue.Client) db.KVDB {
+	api, err := client.New(cli, nil)
+	if err != nil {
+		panic(err)
+	}
+	txid, err := api.LocalNew4CheckTx()
+	if err != nil {
+		panic(err)
+	}
+	return &LocalDB{
+		cache:  make(map[string][]byte),
+		txid:   txid,
+		client: cli,
+		api:    api,
+	}
+}
+
 //DisableRead 禁止读取LocalDB数据库
 func (l *LocalDB) DisableRead() {
 	l.disableread = true
@@ -171,15 +189,15 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 		panic(err) //no happen for ever
 	}
 	if nil == resp.Values {
-		l.cache[string(key)] = nil
+		l.cache[skey] = nil
 		return nil, types.ErrNotFound
 	}
 	value := resp.Values[0]
 	if value == nil {
-		l.cache[string(key)] = nil
+		l.cache[skey] = nil
 		return nil, types.ErrNotFound
 	}
-	l.cache[string(key)] = value
+	l.cache[skey] = value
 	return value, nil
 }
 
