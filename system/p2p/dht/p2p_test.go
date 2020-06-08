@@ -2,6 +2,7 @@ package dht
 
 import (
 	"context"
+	"encoding/hex"
 
 	"os"
 
@@ -259,6 +260,14 @@ func testStreamEOFReSet(t *testing.T) {
 
 }
 
+func Test_pubkey(t *testing.T) {
+	priv, pub, err := GenPrivPubkey()
+	assert.Nil(t, err)
+	assert.NotNil(t, priv, pub)
+	pubstr, err := GenPubkey(hex.EncodeToString(priv))
+	assert.Nil(t, err)
+	assert.Equal(t, pubstr, hex.EncodeToString(pub))
+}
 func Test_p2p(t *testing.T) {
 
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
