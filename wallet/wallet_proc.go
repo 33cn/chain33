@@ -294,7 +294,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 			seedlog.Error("ProcCreateNewAccount PrivkeyToPub", "err", err)
 			return nil, types.ErrPrivkeyToPub
 		}
-		addr, err = bipwallet.PubToAddress(cointype, pub)
+		addr, err = bipwallet.PubToAddress(pub)
 		if err != nil {
 			seedlog.Error("ProcCreateNewAccount PubToAddress", "err", err)
 			return nil, types.ErrPrivkeyToPub
@@ -440,7 +440,7 @@ func (wallet *Wallet) procImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 		return nil, types.ErrPrivkeyToPub
 	}
 
-	addr, err := bipwallet.PubToAddress(cointype, pub)
+	addr, err := bipwallet.PubToAddress(pub)
 	if err != nil {
 		seedlog.Error("ProcImportPrivKey PrivkeyToPub", "err", err)
 		return nil, types.ErrPrivkeyToPub
@@ -1405,7 +1405,7 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 
 	HexPubkey = hex.EncodeToString(pub)
 
-	addr, err = bipwallet.PubToAddress(cointype, pub)
+	addr, err = bipwallet.PubToAddress(pub)
 	if err != nil {
 		seedlog.Error("createNewAccountByIndex PubToAddress", "err", err)
 		return "", types.ErrPrivkeyToPub

@@ -911,7 +911,7 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 	pub, err := bipwallet.PrivkeyToPub(wallet.CoinType, uint32(wallet.SignType), privkeybyte)
 	require.NoError(t, err)
 
-	addr, err := bipwallet.PubToAddress(wallet.CoinType, pub)
+	addr, err := bipwallet.PubToAddress(pub)
 	require.NoError(t, err)
 	if addr != "" {
 		//测试ProcGetAccountList函数
@@ -939,7 +939,7 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 	require.NoError(t, err)
 	pub2, err := bipwallet.PrivkeyToPub(wallet.CoinType, uint32(wallet.SignType), privkeybyte)
 	require.NoError(t, err)
-	addr2, err := bipwallet.PubToAddress(wallet.CoinType, pub2)
+	addr2, err := bipwallet.PubToAddress(pub2)
 	require.NoError(t, err)
 	if addr != addr2 {
 		t.Error("TestProcCreateNewAccount", "addr", addr, "addr2", addr2)
@@ -956,7 +956,7 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 	if pubtmp != pubstr {
 		t.Error("TestProcCreateNewAccount", "pubtmp", pubtmp, "pubstr", pubstr)
 	}
-	addr3, err := bipwallet.PubToAddress(wallet.CoinType, pub3)
+	addr3, err := bipwallet.PubToAddress(pub3)
 	require.NoError(t, err)
 	if addr3 != addrstr {
 		t.Error("TestProcCreateNewAccount", "addr3", addr3, "addrstr", addrstr)
