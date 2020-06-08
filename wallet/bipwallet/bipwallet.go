@@ -10,7 +10,6 @@ import (
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-	_ "github.com/33cn/chain33/system/crypto/ed25519"
 	"github.com/33cn/chain33/types"
 	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
 	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
