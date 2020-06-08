@@ -30,6 +30,14 @@ func NewLocalDB(maindb DB) KVDB {
 	}
 }
 
+// NewLocalDB4CheckTx new local db for exec check tx
+func NewLocalDB4CheckTx(maindb DB) KVDB {
+	//交易的检查原则上不应该依赖于localdb，目前有些合约仍然会用到， 暂时移除了memdb缓存对象
+	return &LocalDB{
+		maindb: maindb,
+	}
+}
+
 // Get get value from local db
 func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	l.mu.RLock()
@@ -48,16 +56,20 @@ func (l *LocalDB) get(key []byte) ([]byte, error) {
 			return value, nil
 		}
 	}
-	if value, err := l.cache.Get(key); err == nil {
-		return value, nil
+	if l.cache != nil {
+		if value, err := l.cache.Get(key); err == nil {
+			return value, nil
+		}
 	}
 	value, err := l.maindb.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	err = l.cache.Set(key, value)
-	if err != nil {
-		panic(err)
+	if l.cache != nil {
+		err = l.cache.Set(key, value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return value, nil
 }
@@ -71,7 +83,7 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 			l.txcache = newMemDB()
 		}
 		setdb2(l.txcache, key, value)
-	} else {
+	} else if l.cache != nil {
 		setdb2(l.cache, key, value)
 	}
 	return nil

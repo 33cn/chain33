@@ -859,6 +859,29 @@ func (_m *QueueProtocolAPI) LocalNew(param *types.ReqNil) (*types.Int64, error) 
 	return r0, r1
 }
 
+// LocalNew4CheckTx provides a mock function with given fields:
+func (_m *QueueProtocolAPI) LocalNew4CheckTx() (*types.Int64, error) {
+	ret := _m.Called()
+
+	var r0 *types.Int64
+	if rf, ok := ret.Get(0).(func() *types.Int64); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Int64)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // LocalRollback provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) LocalRollback(param *types.Int64) error {
 	ret := _m.Called(param)

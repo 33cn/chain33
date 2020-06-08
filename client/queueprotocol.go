@@ -501,6 +501,19 @@ func (q *QueueProtocol) LocalNew(param *types.ReqNil) (*types.Int64, error) {
 	return nil, types.ErrTypeAsset
 }
 
+//LocalNew new a localdb object
+func (q *QueueProtocol) LocalNew4CheckTx() (*types.Int64, error) {
+	msg, err := q.send(blockchainKey, types.EventLocalNew4CheckTx, nil)
+	if err != nil {
+		log.Error("LocalNew4CheckTx", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int64); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 //LocalBegin begin a transaction
 func (q *QueueProtocol) LocalBegin(param *types.Int64) error {
 	_, err := q.send(blockchainKey, types.EventLocalBegin, param)

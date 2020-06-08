@@ -71,4 +71,15 @@ func TestLocalDB(t *testing.T) {
 	assert.Equal(t, data[0], []byte("value3"))
 	assert.Equal(t, data[1], []byte("value2"))
 	assert.Equal(t, data[2], []byte("value1"))
+
+	db = NewLocalDB4CheckTx(db1)
+	v1, err = db.Get([]byte("key1"))
+	assert.Nil(t, err)
+	assert.Equal(t, v1, []byte("value1"))
+	data, err = db.List([]byte("key"), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(data))
+	assert.Equal(t, data[0], []byte("valued1"))
+	assert.Equal(t, data[1], []byte("value1"))
+
 }

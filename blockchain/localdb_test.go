@@ -127,6 +127,10 @@ func TestLocalDBCommit(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, id.Data > 0)
 
+	id2, err := api.LocalNew4CheckTx()
+	assert.Nil(t, err)
+	assert.True(t, id2.Data > 0)
+
 	err = api.LocalBegin(id)
 	assert.Nil(t, err)
 

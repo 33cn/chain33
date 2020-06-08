@@ -25,6 +25,8 @@ func (chain *BlockChain) procLocalDB(msgtype int64, msg *queue.Message, reqnum c
 		go chain.processMsg(msg, reqnum, chain.localPrefixCount)
 	case types.EventLocalNew:
 		go chain.processMsg(msg, reqnum, chain.localNew)
+	case types.EventLocalNew4CheckTx:
+		go chain.processMsg(msg, reqnum, chain.localNew4CheckTx)
 	case types.EventLocalClose:
 		go chain.processMsg(msg, reqnum, chain.localClose)
 	default:
@@ -84,6 +86,13 @@ func (chain *BlockChain) localNew(msg *queue.Message) {
 	tx := db.NewLocalDB(chain.blockStore.db)
 	id := common.StorePointer(tx)
 	msg.Reply(chain.client.NewMessage("", types.EventLocalNew, &types.Int64{Data: id}))
+}
+
+//创建 localdb transaction for exec check tx
+func (chain *BlockChain) localNew4CheckTx(msg *queue.Message) {
+	tx := db.NewLocalDB4CheckTx(chain.blockStore.db)
+	id := common.StorePointer(tx)
+	msg.Reply(chain.client.NewMessage("", types.EventLocalNew4CheckTx, &types.Int64{Data: id}))
 }
 
 //关闭 localdb transaction

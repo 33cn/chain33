@@ -136,6 +136,8 @@ func (m *mockBlockChain) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventLocalNew:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventLocalNew, &types.Int64{Data: 9999}))
+			case types.EventLocalNew4CheckTx:
+				msg.Reply(client.NewMessage(blockchainKey, types.EventLocalNew, &types.Int64{Data: 10000}))
 			case types.EventLocalClose:
 				msg.Reply(client.NewMessage(blockchainKey, types.EventLocalClose, nil))
 			case types.EventLocalBegin:

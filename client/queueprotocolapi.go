@@ -47,6 +47,8 @@ type QueueProtocolAPI interface {
 	LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error)
 	// types.EventLocalNew
 	LocalNew(param *types.ReqNil) (*types.Int64, error)
+	// types.EventLocalNew4CheckTx
+	LocalNew4CheckTx() (*types.Int64, error)
 	// types.EventLocalClose
 	LocalClose(param *types.Int64) error
 	// types.EventLocalBeign

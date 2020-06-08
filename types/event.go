@@ -132,6 +132,7 @@ const (
 
 	EventReExecBlock  = 142
 	EventTxListByHash = 143
+	EventLocalNew4CheckTx      = 144
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
