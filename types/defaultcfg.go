@@ -44,7 +44,7 @@ batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
 enableTxQuickIndex=true
-enablePushSubscribe=false
+enablePushSubscribe=true
 
 [p2p]
 enable=false
