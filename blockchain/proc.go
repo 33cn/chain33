@@ -127,7 +127,7 @@ func (chain *BlockChain) listPush(msg *queue.Message) {
 func (chain *BlockChain) getPushLastNum(msg *queue.Message) {
 	data := (msg.Data).(*types.ReqString)
 
-	num := chain.ProcGetLastPushSeq(data.Data)
+	num, _ := chain.ProcGetLastPushSeq(data.Data)
 	lastNum := &types.Int64{Data: num}
 	msg.Reply(chain.client.NewMessage("rpc", types.EventGetPushLastNum, lastNum))
 }
