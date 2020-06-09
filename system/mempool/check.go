@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/33cn/chain33/common"
+
 	"github.com/33cn/chain33/util"
 
 	"github.com/33cn/chain33/common/address"
@@ -169,31 +171,33 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 		return msg
 	}
 
-	//exec模块检查交易
-	txlist := &types.ExecTxList{}
-	txlist.Txs = append(txlist.Txs, tx.Tx())
-	txlist.BlockTime = lastheader.BlockTime
-	txlist.Height = lastheader.Height
-	txlist.StateHash = lastheader.StateHash
-	// 增加这个属性，在执行器中会使用到
-	txlist.Difficulty = uint64(lastheader.Difficulty)
-	txlist.IsMempool = true
+	//exec模块检查效率影响系统性能， 支持关闭
+	if !mem.cfg.DisableExecCheck {
+		txlist := &types.ExecTxList{}
+		txlist.Txs = append(txlist.Txs, tx.Tx())
+		txlist.BlockTime = lastheader.BlockTime
+		txlist.Height = lastheader.Height
+		txlist.StateHash = lastheader.StateHash
+		// 增加这个属性，在执行器中会使用到
+		txlist.Difficulty = uint64(lastheader.Difficulty)
+		txlist.IsMempool = true
 
-	result, err := mem.checkTxListRemote(txlist)
-	if err != nil {
-		msg.Data = err
-		return msg
-	}
-	errstr := result.Errs[0]
-	if errstr == "" {
-		err1 := mem.PushTx(txlist.Txs[0])
-		if err1 != nil {
-			mlog.Error("wrong tx", "err", err1)
-			msg.Data = err1
+		result, err := mem.checkTxListRemote(txlist)
+
+		if err == nil && result.Errs[0] != "" {
+			err = errors.New(result.Errs[0])
 		}
-		return msg
+		if err != nil {
+			mlog.Error("checkTxRemote", "txHash", common.ToHex(tx.Tx().Hash()), "checkTxListRemoteErr", err)
+			msg.Data = err
+			return msg
+		}
 	}
-	mlog.Error("wrong tx", "err", errstr)
-	msg.Data = errors.New(errstr)
+
+	err = mem.PushTx(tx.Tx())
+	if err != nil {
+		mlog.Error("checkTxRemote", "push err", err)
+		msg.Data = err
+	}
 	return msg
 }
