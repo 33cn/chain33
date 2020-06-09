@@ -517,7 +517,7 @@ func (db *PegasusBatch) Reset() {
 	db.size = 0
 }
 
-func (mBatch *PegasusBatch) UpdateWriteSync(sync bool) {
+func (db *PegasusBatch) UpdateWriteSync(sync bool) {
 }
 
 func getHashKey(key []byte) []byte {

@@ -125,7 +125,7 @@ func BenchmarkNewStream(b *testing.B) {
 	proto := &testProtocol{}
 	proto.P2PEnv = &P2PEnv{Host: h1}
 	b.ResetTimer()
-	b.RunParallel(func (pb *testing.PB){
+	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			NewStream(h1, h2.ID(), msgID)
 		}
