@@ -214,24 +214,16 @@ chain33_GetExecBalance() {
     http_req "$req" ${MAIN_HTTP} "(.error|not)" "$FUNCNAME"
 }
 
-chain33_AddSeqCallBack() {
-    if [ "$IS_PARA" == true ]; then
-        echo_rst "$FUNCNAME" 2
-    else
-        http_req '{"method":"Chain33.AddSeqCallBack","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} '(.result.isOK == true)' "$FUNCNAME"
-    fi
+chain33_AddPushSubscribe() {
+    http_req '{"method":"Chain33.AddPushSubscribe","params":[{"name":"test","url":"http://test","encode":"json"}]}' ${MAIN_HTTP} '(.result.isOk == true)' "$FUNCNAME"
 }
 
-chain33_ListSeqCallBack() {
-    if [ "$IS_PARA" == true ]; then
-        echo_rst "$FUNCNAME" 2
-    else
-        http_req '{"method":"Chain33.ListSeqCallBack","params":[]}' ${MAIN_HTTP} ' (.result.items[0].name == "test")' "$FUNCNAME"
-    fi
+chain33_ListPushes() {
+    http_req '{"method":"Chain33.ListPushes","params":[]}' ${MAIN_HTTP} ' (.result.pushes[0].name == "test")' "$FUNCNAME"
 }
 
-chain33_GetSeqCallBackLastNum() {
-    http_req '{"method":"Chain33.GetSeqCallBackLastNum","params":[{"data":"test"}]}' ${MAIN_HTTP} '(.result.data == -1)' "$FUNCNAME"
+chain33_GetPushSeqLastNum() {
+    http_req '{"method":"Chain33.GetPushSeqLastNum","params":[{"data":"test-another"}]}' ${MAIN_HTTP} '(.result.data == -1)' "$FUNCNAME"
 }
 
 chain33_GetCoinSymbol() {
@@ -495,9 +487,9 @@ run_testcases() {
     chain33_GetBlockByHashes
     chain33_ConvertExectoAddr
     chain33_GetExecBalance
-    chain33_AddSeqCallBack
-    chain33_ListSeqCallBack
-    chain33_GetSeqCallBackLastNum
+    chain33_AddPushSubscribe
+    chain33_ListPushes
+    chain33_GetPushSeqLastNum
     chain33_GetCoinSymbol
 
     chain33_GetHexTxByHash

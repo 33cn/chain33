@@ -34,8 +34,8 @@ var (
 	heightToHashKeyPrefix = []byte("Height:")
 	seqToHashKey          = []byte("Seq:")
 	HashToSeqPrefix       = []byte("HashToSeq:")
-	seqCBPrefix           = []byte("SCB:")
-	seqCBLastNumPrefix    = []byte("SCBL:")
+	pushPrefix            = []byte("push2subscribe:")
+	lastSeqNumPrefix      = []byte("lastSeqNumPrefix:")
 	paraSeqToHashKey      = []byte("ParaSeq:")
 	HashToParaSeqPrefix   = []byte("HashToParaSeq:")
 	LastParaSequence      = []byte("LastParaSequence")
@@ -49,7 +49,7 @@ func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
 		blockLastHeight, bodyPrefix, LastSequence, headerPrefix, heightToHeaderPrefix,
 		hashPrefix, tdPrefix, heightToHashKeyPrefix, seqToHashKey, HashToSeqPrefix,
-		seqCBPrefix, seqCBLastNumPrefix, tempBlockKey, lastTempBlockKey, LastParaSequence,
+		pushPrefix, lastSeqNumPrefix, tempBlockKey, lastTempBlockKey, LastParaSequence,
 		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix, chainReceiptPrefix,
 	}
 }
@@ -59,14 +59,12 @@ func calcHashToBlockBodyKey(hash []byte) []byte {
 	return append(bodyPrefix, hash...)
 }
 
-//并发访问的可能性(每次开辟新内存)
-func calcSeqCBKey(name []byte) []byte {
-	return append(append([]byte{}, seqCBPrefix...), name...)
+func calcPushKey(name string) []byte {
+	return []byte(string(pushPrefix) + name)
 }
 
-//并发访问的可能性(每次开辟新内存)
-func calcSeqCBLastNumKey(name []byte) []byte {
-	return append(append([]byte{}, seqCBLastNumPrefix...), name...)
+func calcLastPushSeqNumKey(name string) []byte {
+	return []byte(string(lastSeqNumPrefix) + name)
 }
 
 //存储block hash对应的header信息

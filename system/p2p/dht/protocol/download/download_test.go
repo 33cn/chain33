@@ -39,7 +39,6 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
 	subCfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], subCfg)
-	subCfg.MinLtBlockTxNum = 1
 	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
 	if err != nil {
 		return nil
@@ -71,8 +70,8 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		SubConfig:       subCfg,
 	}
 
-	env.Discovery = net.InitDhtDiscovery(host, nil, subCfg, true)
-	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil)
+	env.Discovery = net.InitDhtDiscovery(host, nil, cfg, subCfg)
+	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil, subCfg)
 	return env
 }
 
@@ -165,7 +164,7 @@ func Test_util(t *testing.T) {
 
 	protocol.processReq("uid122222", p2pgetblocks)
 
-	resp, _ := protocol.SendToBlockChain(types.EventGetBlocks, blockReq)
+	resp, _ := protocol.QueryBlockChain(types.EventGetBlocks, blockReq)
 	assert.NotNil(t, resp)
 }
 

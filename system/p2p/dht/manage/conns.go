@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
+
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	core "github.com/libp2p/go-libp2p-core"
@@ -20,9 +22,9 @@ var (
 )
 
 const (
-	MinBounds    = 25 //最少连接节点数，包含连接被连接
-	MaxBounds    = 75 //最大连接数包含连接被连接
-	MaxOutBounds = 25 //对外连接的最大节点数量
+	MinBounds    = 15 //最少连接节点数，包含连接被连接
+	MaxBounds    = 50 //最大连接数包含连接被连接
+	MaxOutBounds = 30 //对外连接的最大节点数量
 )
 
 type ConnManager struct {
@@ -31,15 +33,17 @@ type ConnManager struct {
 	pstore           peerstore.Peerstore
 	bandwidthTracker *metrics.BandwidthCounter
 	discovery        *net.Discovery
+	cfg              *p2pty.P2PSubConfig
 	Done             chan struct{}
 }
 
-func NewConnManager(host core.Host, discovery *net.Discovery, tracker *metrics.BandwidthCounter) *ConnManager {
+func NewConnManager(host core.Host, discovery *net.Discovery, tracker *metrics.BandwidthCounter, cfg *p2pty.P2PSubConfig) *ConnManager {
 	connM := &ConnManager{}
 	connM.pstore = host.Peerstore()
 	connM.host = host
 	connM.discovery = discovery
 	connM.bandwidthTracker = tracker
+	connM.cfg = cfg
 	connM.Done = make(chan struct{}, 1)
 	return connM
 
@@ -71,7 +75,7 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 }
 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
-
+	bootstraps := net.ConvertPeers(s.cfg.BootStraps)
 	for {
 		select {
 		case <-time.After(time.Minute):
@@ -80,7 +84,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
 			var trackerInfo = fmt.Sprintln("------------BandTracker--------------")
 			for _, pid := range peers {
-				//统计每个节点的时延,统计最多50个
+				//统计每个节点的时延,统计最多MaxBounds个
 				tduration := s.pstore.LatencyEWMA(pid)
 				if tduration == 0 {
 					continue
@@ -99,7 +103,8 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			}
 			log.Info(LatencyInfo)
 			insize, outsize := s.BoundSize()
-			trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.pstore.Peers()), ",conn num:", insize+outsize, "inbound num", insize, "outbound num", outsize)
+			trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.pstore.Peers()), ",conn num:", insize+outsize, "inbound num", insize, "outbound num", outsize,
+				"dht size", s.discovery.RoutingTableSize())
 			trackerInfo += fmt.Sprintln("-------------------------------------")
 			log.Info(trackerInfo)
 
@@ -112,8 +117,8 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			nearestPeers := s.convertArrToMap(s.FetchNearestPeers())
 			//close from seed
 			for _, pid := range s.OutBounds() {
-				if _, ok := net.DefaultBootstrapPeers[pid.Pretty()]; ok {
-					// 判断是否是最近nearest的50个节点
+				if _, ok := bootstraps[pid.Pretty()]; ok {
+					// 判断是否是最近nearest的30个节点
 					if _, ok := nearestPeers[pid.Pretty()]; !ok {
 						s.host.Network().ClosePeer(pid)
 						if s.OutboundSize() <= MinBounds {
@@ -168,6 +173,9 @@ func (s *ConnManager) FetchConnPeers() []peer.ID {
 		//peers=append(peers,conn.RemotePeer())
 		peers[conn.RemotePeer().Pretty()] = conn.RemotePeer()
 		log.Debug("FetchConnPeers", "ssssstream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().Pretty())
+		if len(peers) >= MaxBounds {
+			break
+		}
 	}
 
 	if len(peers) < MinBounds {

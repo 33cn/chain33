@@ -16,18 +16,16 @@ import (
 func Test_sendBlock(t *testing.T) {
 
 	proto := newTestProtocol()
-	proto.SubConfig.MinLtBlockTxNum = 1
 	_, ok := proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPid, testAddr)
 	assert.True(t, ok)
 	_, ok = proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPid, testAddr)
 	assert.False(t, ok)
+	proto.p2pCfg.MinLtBlockSize = 0
 	data, ok := proto.handleSend(&types.P2PBlock{Block: testBlock}, "newpid", testAddr)
 	ltBlock := data.Value.(*types.BroadCastData_LtBlock).LtBlock
 	assert.True(t, ok)
 	assert.True(t, ltBlock.MinerTx == minerTx)
 	assert.Equal(t, 3, len(ltBlock.STxHashes))
-	blockHash := hex.EncodeToString(testBlock.Hash(proto.ChainCfg))
-	assert.True(t, proto.totalBlockCache.Contains(blockHash))
 }
 
 func Test_recvBlock(t *testing.T) {
@@ -60,23 +58,44 @@ func Test_recvBlock(t *testing.T) {
 	assert.Equal(t, blockHash, hex.EncodeToString(blc.Block.Hash(proto.ChainCfg)))
 }
 
-func testHandleMempool(q queue.Queue, txList *[]*types.Transaction) {
+func startHandleMempool(q queue.Queue, txList *[]*types.Transaction) chan struct{} {
 	client := q.Client()
 	client.Sub("mempool")
+	done := make(chan struct{})
+	go func() {
+		close(done)
+		for msg := range client.Recv() {
+			msg.Reply(client.NewMessage("p2p", types.EventTxListByHash, &types.ReplyTxList{Txs: *txList}))
+		}
+	}()
+	return done
+}
 
-	for msg := range client.Recv() {
-		msg.Reply(client.NewMessage("p2p", types.EventTxListByHash, &types.ReplyTxList{Txs: *txList}))
-	}
+func handleTestMsgReply(cli queue.Client, ty int64, reply interface{}, once bool) chan struct{} {
+	done := make(chan struct{})
+	go func() {
+		close(done)
+		for msg := range cli.Recv() {
+			if msg.Ty == ty {
+				msg.Reply(cli.NewMessage("p2p", ty, reply))
+				if once {
+					return
+				}
+			}
+		}
+	}()
+	return done
 }
 
 func Test_recvLtBlock(t *testing.T) {
 
 	q := queue.New("test")
 	proto := newTestProtocolWithQueue(q)
+	proto.p2pCfg.MinLtBlockSize = 0
 	defer q.Close()
-	proto.p2pCfg.MinLtBlockTxNum = 1
 	memTxList := []*types.Transaction{tx, tx1, tx2}
-	go testHandleMempool(q, &memTxList)
+	done := startHandleMempool(q, &memTxList)
+	<-done
 	block := &types.Block{TxHash: []byte("test"), Txs: txList, Height: 10}
 	sendData, _ := proto.handleSend(&types.P2PBlock{Block: block}, "temppid", "tempaddr")
 

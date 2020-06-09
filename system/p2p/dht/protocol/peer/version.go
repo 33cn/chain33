@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"errors"
+	"fmt"
 	"time"
 
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
@@ -13,28 +13,7 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 )
 
-//p2p版本区间 10020, 11000
-
-//历史版本
-const (
-	//p2p广播交易哈希而非完整区块数据
-	lightBroadCastVersion = 10030
-)
-
-// VERSION number
-const VERSION = lightBroadCastVersion
-
 // MainNet Channel = 0x0000
-
-const (
-	versionMask = 0xFFFF
-)
-
-func decodeChannelVersion(channelVersion int32) (channel int32, version int32) {
-	channel = channelVersion >> 16
-	version = channelVersion & versionMask
-	return
-}
 
 func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr string) (*types.MessageP2PVersionResp, error) {
 	if p.getExternalAddr() == "" {
@@ -42,11 +21,12 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 		log.Debug("OnVersionReq", "externalAddr", p.getExternalAddr())
 	}
 
-	channel, _ := decodeChannelVersion(req.GetMessage().GetVersion())
-	if channel < p.p2pCfg.Channel {
+	channel := req.GetMessage().GetVersion()
+	if channel != p.p2pCfg.Channel {
 		//TODO 协议不匹配
-		log.Error("OnVersionReq", "channel err", channel)
-		return nil, errors.New("channel err")
+		log.Error("OnVersionReq", "channel err", channel, "cfg channel", p.p2pCfg.Channel)
+		return nil, fmt.Errorf("channel err,cfg channel:%d", p.p2pCfg.Channel)
+
 	}
 
 	pid := p.GetHost().ID()
@@ -65,8 +45,6 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
 	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
-
-	defer s.Close()
 	remoteMAddr := s.Conn().RemoteMultiaddr()
 
 	senddata, err := p.processVerReq(req, remoteMAddr.String())

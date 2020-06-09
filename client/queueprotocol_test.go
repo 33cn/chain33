@@ -7,6 +7,7 @@ package client_test
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/version"
@@ -39,8 +40,8 @@ func TestMain(m *testing.M) {
 
 func TestQueueProtocolAPI(t *testing.T) {
 	var option client.QueueProtocolOption
-	option.SendTimeout = 100
-	option.WaitTimeout = 200
+	option.SendTimeout = time.Millisecond
+	option.WaitTimeout = 2 * time.Millisecond
 
 	_, err := client.New(nil, nil)
 	if err == nil {
@@ -207,19 +208,19 @@ func testGetBlockSequences(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testAddSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {
-	res, err := api.AddSeqCallBack(&types.BlockSeqCB{})
+	res, err := api.AddPushSubscribe(&types.PushSubscribeReq{})
 	assert.Nil(t, err)
-	assert.Equal(t, &types.ReplyAddSeqCallback{}, res)
+	assert.Equal(t, &types.ReplySubscribePush{}, res)
 }
 
 func testListSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {
-	res, err := api.ListSeqCallBack()
+	res, err := api.ListPushes()
 	assert.Nil(t, err)
-	assert.Equal(t, &types.BlockSeqCBs{}, res)
+	assert.Equal(t, &types.PushSubscribes{}, res)
 }
 
 func testGetSeqCallBackLastNum(t *testing.T, api client.QueueProtocolAPI) {
-	res, err := api.GetSeqCallBackLastNum(&types.ReqString{})
+	res, err := api.GetPushSeqLastNum(&types.ReqString{})
 	assert.Nil(t, err)
 	assert.Equal(t, &types.Int64{}, res)
 }

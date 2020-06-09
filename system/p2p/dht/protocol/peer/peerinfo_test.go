@@ -42,7 +42,6 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
 	subCfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], subCfg)
-	subCfg.MinLtBlockTxNum = 1
 	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
 	if err != nil {
 		return nil
@@ -73,8 +72,8 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
 	}
-	env.Discovery = net.InitDhtDiscovery(host, nil, subCfg, true)
-	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil)
+	env.Discovery = net.InitDhtDiscovery(host, nil, cfg, subCfg)
+	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil, subCfg)
 
 	return env
 }
@@ -170,12 +169,11 @@ func Test_util(t *testing.T) {
 	assert.NotNil(t, peerinfo)
 	//----验证versionReq
 	p2pVerReq := &types.MessageP2PVersionReq{MessageData: proto.NewMessageCommon("uid122222", "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg", []byte("322222222222222"), false),
-		Message: &types.P2PVersion{Version: 255, AddrRecv: "/ip4/127.0.0.1/13802", AddrFrom: "/ip4/192.168.0.1/13802"}}
+		Message: &types.P2PVersion{Version: 0, AddrRecv: "/ip4/127.0.0.1/13802", AddrFrom: "/ip4/192.168.0.1/13802"}}
 	resp, _ := proto.processVerReq(p2pVerReq, "/ip4/192.168.0.1/13802")
 	assert.NotNil(t, resp)
 
 	//-----------------
-	decodeChannelVersion(255)
 	proto.getPeerInfo()
 	proto.setExternalAddr("192.168.1.1")
 	assert.NotEmpty(t, proto.getExternalAddr())

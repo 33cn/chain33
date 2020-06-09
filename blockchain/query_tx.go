@@ -68,14 +68,14 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	var txDetails types.TransactionDetails
 	for _, txhash := range hashs {
 		txresult, err := chain.GetTxResultFromDb(txhash)
+		var txDetail types.TransactionDetail
 		if err == nil && txresult != nil {
-			var txDetail types.TransactionDetail
 			setTxDetailFromTxResult(&txDetail, txresult)
 
 			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		} else {
-			txDetails.Txs = append(txDetails.Txs, nil)
+			txDetails.Txs = append(txDetails.Txs, &txDetail) //
 			chainlog.Debug("ProcGetTransactionByHashes hash no exit", "txhash", common.ToHex(txhash))
 		}
 	}
