@@ -14,8 +14,8 @@ var (
 	ed25519Addr   = "1Ptp353sEjjFa37UToFkeFRXSkNTXnxNM3"
 	secp256k1Pub  = "03b2cb62dd207277abcda55523c467edba786db21106446e040fe2d3515053c8e5"
 	secp256k1Addr = "17L828pQH9QGaZe1SfoRXqVau8BcyGJVgP"
-	sm2Pub        = "04c4b4e32badcd3cb67bd43cf7d597e993ba2e4b5d121afbf22b4c5f7f064dea97135436cbdab12cbad573112d0ded227dbddb840c5b9b379ac4d91c102987bedf"
-	sm2Addr       = "1M2b4aL5ZHNpfUBcacQvHd8AFrNbQsewci"
+	sm2Pub        = "01c4b4e32badcd3cb67bd43cf7d597e993ba2e4b5d121afbf22b4c5f7f064dea97"
+	sm2Addr       = "1QEqU8FdqtEGX96tBocaDmicMwEgBu88fH"
 )
 
 func TestEd25519PrivPub(t *testing.T) {
