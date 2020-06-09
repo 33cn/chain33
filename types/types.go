@@ -611,6 +611,41 @@ func (b *BlockBody) Clone() *BlockBody {
 	}
 }
 
+func (b *BlockBody) Copy(txs []*Transaction) *BlockBody {
+	if b == nil {
+		return nil
+	}
+	copyTxs(b.Txs, txs)
+	return &BlockBody{
+		Txs:        txs,
+		Receipts:   cloneReceipts(b.Receipts),
+		MainHash:   b.MainHash,
+		MainHeight: b.MainHeight,
+		Hash:       b.Hash,
+		Height:     b.Height,
+	}
+}
+
+func copyTx(tx, copytx *Transaction) {
+
+	copytx.Execer = tx.Execer
+	copytx.Payload = tx.Payload
+	copytx.Fee = tx.Fee
+	copytx.Expire = tx.Expire
+	copytx.Nonce = tx.Nonce
+	copytx.To = tx.To
+	copytx.GroupCount = tx.GroupCount
+	copytx.Header = tx.Header
+	copytx.Next = tx.Next
+	copytx.Signature = tx.Signature.Clone()
+}
+
+func copyTxs(src, dst []*Transaction) {
+	for idx, tx := range src {
+		copyTx(tx, dst[idx])
+	}
+}
+
 //cloneReceipts 浅拷贝交易回报
 func cloneReceipts(b []*ReceiptData) []*ReceiptData {
 	if b == nil {

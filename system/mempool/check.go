@@ -89,6 +89,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 	}
 	header := mem.GetHeader()
 	txmsg := msg.GetData().(*types.Transaction)
+	txmsg.ResetCacheHash()
 	//普通的交易
 	tx := types.NewTransactionCache(txmsg)
 	types.AssertConfig(mem.client)

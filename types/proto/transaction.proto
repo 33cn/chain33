@@ -98,6 +98,8 @@ message Transaction {
     int32  groupCount = 8;
     bytes  header     = 9;
     bytes  next       = 10;
+    bytes hashCache = 11;
+    bytes fullHashCache = 12;
 }
 
 message Transactions {
