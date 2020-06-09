@@ -138,7 +138,7 @@ func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 	} else {
 		return
 	}
-
+	protocol.QueueClient.FreeMessage(msg)
 	protocol.broadcast(sendData)
 }
 
