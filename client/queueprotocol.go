@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/33cn/chain33/common"
-
 	"github.com/33cn/chain33/common/log/log15"
 
 	"github.com/33cn/chain33/common/version"
@@ -126,7 +124,6 @@ func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	if ok {
 		if reply.GetIsOk() {
 			reply.Msg = param.Hash()
-			log.Info("SendTx", "hash", common.ToHex(param.Hash()))
 		} else {
 			msg := string(reply.Msg)
 			err = fmt.Errorf(msg)
