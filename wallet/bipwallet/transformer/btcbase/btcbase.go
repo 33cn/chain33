@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"github.com/33cn/chain33/common/crypto"
-	_ "github.com/33cn/chain33/system/crypto/sm2"
 	"github.com/33cn/chain33/types"
 	secp256k1 "github.com/haltingstate/secp256k1-go"
 	"github.com/mr-tron/base58/base58"
