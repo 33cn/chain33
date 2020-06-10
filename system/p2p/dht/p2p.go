@@ -233,7 +233,7 @@ func (p *P2P) handleP2PEvent() {
 }
 
 func (p *P2P) CloseP2P() {
-	log.Info("p2p closed")
+	log.Info("p2p closing")
 	p.mgr.PubSub.Unsub(p.subChan)
 	atomic.StoreInt32(&p.closed, 1)
 	p.waitTaskDone()
@@ -241,6 +241,7 @@ func (p *P2P) CloseP2P() {
 	p.peerInfoManag.Close()
 	p.host.Close()
 	prototypes.ClearEventHandler()
+	log.Info("p2p closed")
 }
 
 func (p *P2P) isClose() bool {

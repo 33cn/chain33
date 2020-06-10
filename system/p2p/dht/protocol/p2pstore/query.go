@@ -145,13 +145,20 @@ Retry:
 	searchedPeers := make(map[peer.ID]struct{})
 	searchedPeers[p.Host.ID()] = struct{}{}
 	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
+	if len(peers) == 0 {
+		log.Error("mustFetchChunk", "error", "no healthy peers")
+		return nil, types2.ErrUnknown
+	}
+	log.Info("into mustFetchChunk", "healthy peers len", p.healthyRoutingTable.Size())
 	for len(peers) != 0 {
 		var newPeers []peer.ID
 		for _, pid := range peers {
 			searchedPeers[pid] = struct{}{}
+			start := time.Now()
 			bodys, nearerPeers, err := p.fetchChunkOrNearerPeers(ctx, req, pid)
+			log.Info("mustFetchChunk", "fetchChunkOrNearerPeers cost", time.Since(start))
 			if err != nil {
-				log.Error("mustFetchChunk", "fetchChunkOrNearerPeers error", err, "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash))
+				log.Error("mustFetchChunk", "fetchChunkOrNearerPeers error", err, "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "maddrs", p.Host.Peerstore().Addrs(pid))
 				continue
 			}
 			if bodys != nil {
@@ -170,8 +177,9 @@ Retry:
 		}
 	}
 	retryCount++
-	if retryCount < 3 { //找不到数据重试3次，防止因为网络问题导致数据找不到
+	if retryCount < 5 { //找不到数据重试5次，防止因为网络问题导致数据找不到
 		log.Error("mustFetchChunk", "retry count", retryCount)
+		time.Sleep(30 * time.Second)
 		goto Retry
 	}
 	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
@@ -186,7 +194,7 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 	defer cancel()
 	stream, err := p.Host.NewStream(childCtx, pid, protocol.FetchChunk)
 	if err != nil {
-		log.Error("getBlocksFromRemote", "error", err)
+		log.Error("fetchChunkOrNearerPeers", "error", err)
 		return nil, nil, err
 	}
 	defer protocol.CloseStream(stream)
@@ -219,15 +227,15 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 			return nil, nil, err
 		}
 	}
-	log.Info("fetchChunkOrNearerPeers", "time cost", time.Since(t))
+	log.Info("fetchChunkOrNearerPeers", "read data time cost", time.Since(t))
 	err = types.Decode(result, &res)
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Info("fetchChunkFromPeer", "remote", pid.Pretty(), "chunk hash", hex.EncodeToString(params.ChunkHash))
 
 	switch v := res.Response.(type) {
 	case *types.P2PResponse_BlockBodys:
+		log.Info("fetchChunkFromPeer", "remote", pid.Pretty(), "chunk hash", hex.EncodeToString(params.ChunkHash))
 		return v.BlockBodys, nil, nil
 	case *types.P2PResponse_AddrInfo:
 		var addrInfos []peer.AddrInfo
@@ -238,9 +246,7 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 		var peerList []peer.ID
 		//如果对端节点返回了addrInfo，把节点信息加入到PeerStore，并返回节点id
 		for _, addrInfo := range addrInfos {
-			if len(p.Host.Peerstore().Addrs(addrInfo.ID)) == 0 {
-				p.Host.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, time.Hour)
-			}
+			p.Host.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, time.Hour)
 			peerList = append(peerList, addrInfo.ID)
 		}
 		return nil, peerList, nil

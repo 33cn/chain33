@@ -15,7 +15,7 @@ import (
 const (
 	LocalChunkInfoKey = "local-chunk-info"
 	ChunkNameSpace    = "chunk"
-	AlphaValue        = 1
+	AlphaValue        = 3
 	Backup            = 20
 )
 

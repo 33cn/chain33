@@ -1,7 +1,6 @@
 package p2pstore
 
 import (
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"sync"
@@ -113,7 +112,7 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.
 	1）若已保存则只更新时间即可
 	2）若未保存则从网络中请求chunk数据
 */
-func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.Stream) {
+func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, _ network.Stream) {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	chunkHashHex := hex.EncodeToString(param.ChunkHash)
 	//已有其他节点通知该节点保存该chunk，正在网络中查找数据, 避免接收到多个节点的通知后重复查询数据
@@ -137,21 +136,16 @@ func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.
 		bodys, err = p.getChunkFromBlockchain(param)
 		if err != nil {
 			log.Error("onStoreChunk", "getChunkFromBlockchain error", err)
+			return
 		}
 	} else {
-		//对端节点通知本节点保存数据，则对端节点应该有数据
-		bodys, _, err = p.fetchChunkOrNearerPeers(context.Background(), param, stream.Conn().RemotePeer())
-		if err != nil || bodys == nil {
-			//对端节点没有数据，则从网络中搜索数据
-			bodys, err = p.mustFetchChunk(param)
-			if err != nil {
-				log.Error("onStoreChunk", "get bodys from remote peer error", err)
-			}
+		//从网络中搜索数据
+		bodys, err = p.mustFetchChunk(param)
+		if err != nil {
+			log.Error("onStoreChunk", "get bodys from remote peer error", err)
+			return
 		}
-	}
-	if bodys == nil {
-		log.Error("onStoreChunk", "fetch body error", "body is nil")
-		return
+
 	}
 
 	err = p.addChunkBlock(param, bodys)
