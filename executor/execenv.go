@@ -72,6 +72,7 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 		api:          exec.qclient,
 		gcli:         exec.grpccli,
 		driverCache:  make(map[string]drivers.Driver),
+		// 初始化无效值，此处不能使用-1，checkTx时，传入的index=-1
 		currTxIdx:    -1 << 7,
 		currDriver:   nil,
 		cfg:          cfg,
