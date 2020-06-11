@@ -659,12 +659,16 @@ func cloneKVList(b []*KeyValue) []*KeyValue {
 	return kv
 }
 
-// Bytes2Str 高效字节数组转字符串, 转换后避免继续修改原始byte数组
+// Bytes2Str 高效字节数组转字符串
+// 相比普通直接转化，性能提升35倍，提升程度和转换的byte长度线性相关，且不存在内存开销
+// 需要注意b的修改会导致最终string的变更，比较适合临时变量转换，不适合
 func Bytes2Str(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-// Str2Bytes 高效字符串转字节数组, 转换后禁止修改byte数组
+// Str2Bytes 高效字符串转字节数组
+// 相比普通直接转化，性能提升13倍， 提升程度和转换的byte长度线性相关，且不存在内存开销
+// 需要注意不能修改转换后的byte数组，本质上是修改了底层string，将会panic
 func Str2Bytes(s string) []byte {
 	x := (*[2]uintptr)(unsafe.Pointer(&s))
 	h := [3]uintptr{x[0], x[1], x[1]}
