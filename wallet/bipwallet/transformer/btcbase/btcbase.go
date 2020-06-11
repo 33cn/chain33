@@ -11,8 +11,6 @@ import (
 	"fmt"
 
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/33cn/chain33/types"
-	secp256k1 "github.com/haltingstate/secp256k1-go"
 	"github.com/mr-tron/base58/base58"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -41,23 +39,17 @@ func (t btcBaseTransformer) PrivKeyToPub(keyTy uint32, priv []byte) (pub []byte,
 	if len(priv) != 32 && len(priv) != 64 {
 		return nil, fmt.Errorf("invalid priv key byte")
 	}
-	switch keyTy {
-	case types.SECP256K1:
-		pub = secp256k1.PubkeyFromSeckey(priv)
-		return
+	//pub = secp256k1.PubkeyFromSeckey(priv)
 
-	default:
-		edcrypto, err := crypto.New(crypto.GetName(int(keyTy)))
-		if err != nil {
-			return nil, err
-		}
-		edkey, err := edcrypto.PrivKeyFromBytes(priv[:])
-		if err != nil {
-			return nil, err
-		}
-		return edkey.PubKey().Bytes(), nil
-
+	edcrypto, err := crypto.New(crypto.GetName(int(keyTy)))
+	if err != nil {
+		return nil, err
 	}
+	edkey, err := edcrypto.PrivKeyFromBytes(priv[:])
+	if err != nil {
+		return nil, err
+	}
+	return edkey.PubKey().Bytes(), nil
 
 }
 

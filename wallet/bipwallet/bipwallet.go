@@ -58,23 +58,22 @@ func (w *HDWallet) NewKeyPair(index uint32) (priv, pub []byte, err error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	switch w.KeyType {
-	case types.SECP256K1:
+	if w.KeyType == types.SECP256K1 {
 		return key.Key, key.PublicKey().Key, err
-	default:
-		edcrypto, err := crypto.New(crypto.GetName(int(w.KeyType)))
-		if err != nil {
-			return nil, nil, err
-		}
-		edkey, err := edcrypto.PrivKeyFromBytes(key.Key[:])
-		if err != nil {
-			return nil, nil, err
-		}
-
-		priv = edkey.Bytes()
-		pub = edkey.PubKey().Bytes()
-
 	}
+
+	edcrypto, err := crypto.New(crypto.GetName(int(w.KeyType)))
+	if err != nil {
+		return nil, nil, err
+	}
+	edkey, err := edcrypto.PrivKeyFromBytes(key.Key[:])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	priv = edkey.Bytes()
+	pub = edkey.PubKey().Bytes()
+
 	return
 }
 
