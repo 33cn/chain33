@@ -6,11 +6,11 @@ import (
 
 // LocalDB local db for store key value in local
 type LocalDB struct {
-	txcache DB
-	cache   DB
-	maindb  DB
-	intx    bool
-	mu      sync.RWMutex
+	txcache  DB
+	cache    DB
+	maindb   DB
+	intx     bool
+	mu       sync.RWMutex
 	readOnly bool
 }
 
@@ -27,7 +27,7 @@ func NewLocalDB(maindb DB, readOnly bool) KVDB {
 	if readOnly {
 		//只读模式不需要memdb，比如交易检查，可以使用该localdb，减少memdb内存开销
 		return &LocalDB{
-			maindb: maindb,
+			maindb:   maindb,
 			readOnly: true,
 		}
 	}

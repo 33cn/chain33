@@ -130,8 +130,8 @@ const (
 	EventGetProperFee   = 140
 	EventReplyProperFee = 141
 
-	EventReExecBlock      = 142
-	EventTxListByHash     = 143
+	EventReExecBlock  = 142
+	EventTxListByHash = 143
 	//exec
 	EventBlockChainQuery = 212
 	EventConsensusQuery  = 213
