@@ -90,7 +90,7 @@ func MultiSignAddress(pubkey []byte) string {
 	}
 	addr := HashToAddress(MultiSignVer, pubkey)
 	addrstr := addr.String()
-	multisignCache.Add(skey, addrstr)
+	multisignCache.Add(string(pubkey), addrstr)
 	return addrstr
 }
 
@@ -129,7 +129,7 @@ func PubKeyToAddr(in []byte) string {
 		return value.(string)
 	}
 	addr := HashToAddress(NormalVer, in).String()
-	pubkey2AddrCache.Add(instr, addr)
+	pubkey2AddrCache.Add(string(in), addr)
 	return addr
 }
 
