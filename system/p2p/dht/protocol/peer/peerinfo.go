@@ -236,7 +236,17 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			}
 
 			allnodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
-			for _, node := range dnet.ConvertPeers(allnodes) {
+			nodes := dnet.ConvertPeers(allnodes)
+			for _, connPeer := range p.GetConnsManager().FetchConnPeers() {
+				pid, err := peer.IDFromString(connPeer.Pretty())
+				if err != nil {
+					continue
+				}
+				peerinfo := p.GetHost().Peerstore().PeerInfo(pid)
+				nodes[pid.String()] = &peerinfo
+
+			}
+			for _, node := range nodes {
 				var version types.P2PVersion
 
 				pubkey, _ := p.GetHost().Peerstore().PubKey(localID).Bytes()
@@ -248,19 +258,21 @@ func (p *peerInfoProtol) detectNodeAddr() {
 					log.Error("NewStream", "err", err, "remoteID", node.ID)
 					continue
 				}
-				//openedStreams = append(openedStreams, s)
+
 				version.Version = p.p2pCfg.Channel
 				version.AddrFrom = s.Conn().LocalMultiaddr().String()
 				version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 				err = prototypes.WriteStream(req, s)
 				if err != nil {
 					log.Error("DetectNodeAddr", "WriteStream err", err)
+					prototypes.CloseStream(s)
 					continue
 				}
 				var resp types.MessageP2PVersionResp
 				err = prototypes.ReadStream(&resp, s)
 				if err != nil {
 					log.Error("DetectNodeAddr", "ReadStream err", err)
+					prototypes.CloseStream(s)
 					continue
 				}
 				prototypes.CloseStream(s)
@@ -271,7 +283,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 				spliteAddr := strings.Split(addr, "/")[2]
 				if isPublicIP(net.ParseIP(spliteAddr)) {
 					p.setExternalAddr(addr)
-					break
+
 				}
 			}
 		}
