@@ -10,27 +10,26 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
-
-	"github.com/33cn/chain33/p2p"
-
 	"time"
 
 	"github.com/33cn/chain33/client"
 	logger "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/manage"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	"github.com/33cn/chain33/system/p2p/dht/store"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	libp2p "github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
-
+	ds "github.com/ipfs/go-datastore"
+	"github.com/libp2p/go-libp2p"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
+	core "github.com/libp2p/go-libp2p-core"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
-	multiaddr "github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multiaddr"
 )
 
 var log = logger.New("module", "p2pnext")
@@ -56,6 +55,9 @@ type P2P struct {
 	subCfg  *p2pty.P2PSubConfig
 	mgr     *p2p.Manager
 	subChan chan interface{}
+
+	db  ds.Datastore
+	env *protocol.P2PEnv
 }
 
 // New new dht p2p network
@@ -85,6 +87,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		addrbook:      addrbook,
 		mgr:           mgr,
 		taskGroup:     &sync.WaitGroup{},
+		db:            store.NewDataStore(mcfg),
 	}
 	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
 	p2p.discovery = net.InitDhtDiscovery(p2p.host, p2p.addrbook.AddrsInfo(), p2p.chainCfg, p2p.subCfg)
@@ -127,8 +130,8 @@ func (p *P2P) managePeers() {
 	go p.connManag.MonitorAllPeers(p.subCfg.Seeds, p.host)
 
 	for {
-		peerlist := p.discovery.RoutingTale()
-		log.Debug("managePeers", "RoutingTale show peerlist>>>>>>>>>", peerlist,
+		peerlist := p.discovery.ListPeers()
+		log.Debug("managePeers", "RoutingTable show peerlist>>>>>>>>>", peerlist,
 			"table size", p.discovery.RoutingTableSize())
 		if p.isClose() {
 			log.Info("managePeers", "p2p", "closed")
@@ -157,10 +160,24 @@ func (p *P2P) StartP2P() {
 		SubConfig:       p.subCfg,
 	}
 	protocol.Init(env)
+
+	//debug new
+	env2 := &protocol.P2PEnv{
+		ChainCfg:     p.chainCfg,
+		QueueClient:  p.client,
+		Host:         p.host,
+		P2PManager:   p.mgr,
+		SubConfig:    p.subCfg,
+		DB:           p.db,
+		RoutingTable: p.discovery,
+	}
+	p.env = env2
+
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()
 
+	protocol.InitAllProtocol(env2)
 }
 
 //查询本局域网内是否有节点

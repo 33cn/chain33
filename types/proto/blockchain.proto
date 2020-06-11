@@ -328,6 +328,43 @@ message CmpBlock {
     bytes cmpHash = 2;
 }
 
+// BlockBodys
+message BlockBodys {
+    repeated BlockBody items = 1;
+}
+
+// ChunkRecords
+message ChunkRecords {
+    repeated ChunkInfo infos = 1;
+}
+
+// ChunkInfoMsg 用于消息传递
+message ChunkInfoMsg {
+    bytes chunkHash = 1;
+    int64 start     = 2;
+    int64 end       = 3;
+}
+
+// ChunkInfo用于记录chunk的信息
+message ChunkInfo {
+    int64 chunkNum  = 1;
+    bytes chunkHash = 2;
+    int64 start     = 3;
+    int64 end       = 4;
+}
+
+//获取ChunkRecord信息
+// 	 start : 获取Chunk的开始高度
+//	 end :获取Chunk的结束高度
+// 	 Isdetail : 是否需要获取所有Chunk Record 信息，false时候获取到chunkNum--->chunkhash的KV对，true获取全部
+// 	 pid : peer列表
+message ReqChunkRecords {
+    int64    start      = 1;
+    int64    end        = 2;
+    bool     isDetail   = 3;
+    repeated string pid = 4;
+}
+
 message PushSubscribeReq {
     string name          = 1;
     string URL           = 2;

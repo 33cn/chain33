@@ -156,8 +156,22 @@ const (
 	//通过区块高度列表+title获取平行链交易
 	EventGetParaTxByTitleAndHeight = 310
 	//比较当前区块和新广播的区块最优区块
-	EventCmpBestBlock       = 311
-	EventReplySubscribePush = 312
+	EventCmpBestBlock = 311
+	// 通知其它节点进行数据归档存储
+	EventNotifyStoreChunk = 312
+	// 获取chunkBlock数据
+	EventGetChunkBlock = 313
+
+	// 添加addChunkBlock
+	EventAddChunkBlock = 314
+	// 获取chunkBody数据
+	EventGetChunkBlockBody = 315
+	// 获取ChunkRecord
+	EventGetChunkRecord = 316
+	// 添加ChunkRecord
+	EventAddChunkRecord = 317
+
+	EventReplySubscribePush = 318
 )
 
 var eventName = map[int]string{

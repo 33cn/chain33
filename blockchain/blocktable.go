@@ -121,6 +121,23 @@ func getBodyByIndex(db dbm.DB, indexName string, prefix []byte, primaryKey []byt
 	return body, nil
 }
 
+//delBlockBodyTable 删除block Body
+func delBlockBodyTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyValue, error) {
+	kvdb := dbm.NewKVDB(db)
+	table := NewBodyTable(kvdb)
+
+	err := table.Del(calcHeightHashKey(height, hash))
+	if err != nil {
+		return nil, err
+	}
+
+	kvs, err := table.Save()
+	if err != nil {
+		return nil, err
+	}
+	return kvs, nil
+}
+
 /*
 table  header
 data:  block header
