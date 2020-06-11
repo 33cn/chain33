@@ -15,6 +15,7 @@ import (
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 
 	"github.com/33cn/chain33/common/log/log15"
+	coredis "github.com/libp2p/go-libp2p-core/discovery"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
@@ -31,42 +32,54 @@ type Discovery struct {
 	kademliaDHT      *dht.IpfsDHT
 	routingDiscovery *discovery.RoutingDiscovery
 	mdnsService      *mdns
+	ctx              context.Context
 }
 
-func InitDhtDiscovery(host host.Host, peersInfo []peer.AddrInfo, chainCfg *types.Chain33Config, subCfg *p2pty.P2PSubConfig) *Discovery {
+func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.AddrInfo, chainCfg *types.Chain33Config, subCfg *p2pty.P2PSubConfig) *Discovery {
 
 	// Make the DHT,不同的ID进入不同的网络。
 	//如果不修改DHTProto 则有可能会连入IPFS网络，dhtproto=/ipfs/kad/1.0.0
 	d := new(Discovery)
 	opt := opts.Protocols(protocol.ID(fmt.Sprintf(DhtProtoID, chainCfg.GetTitle(), subCfg.Channel)))
-	kademliaDHT, _ := dht.New(context.Background(), host, opt)
-	d.kademliaDHT = kademliaDHT
-
-	//连接内置种子，以及addrbook存储的节点
-	initInnerPeers(host, peersInfo, subCfg, chainCfg.IsTestNet())
-	// Bootstrap the DHT. In the default configuration, this spawns a Background
-	// thread that will refresh the peer table every five minutes.
-	if err := d.kademliaDHT.Bootstrap(context.Background()); err != nil {
-		panic(err)
-	}
-
-	return d
-}
-
-func (d *Discovery) FindPeers(RendezvousString string) (<-chan peer.AddrInfo, error) {
-	d.routingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
-	discovery.Advertise(context.Background(), d.routingDiscovery, RendezvousString)
-	peerChan, err := d.routingDiscovery.FindPeers(context.Background(), RendezvousString)
+	kademliaDHT, err := dht.New(ctx, host, opt)
 	if err != nil {
 		panic(err)
 	}
+	d.kademliaDHT = kademliaDHT
+	d.ctx = ctx
+	//连接内置种子，以及addrbook存储的节点
+	initInnerPeers(host, peersInfo, subCfg)
+	// Bootstrap the DHT. In the default configuration, this spawns a Background
+	// thread that will refresh the peer table every five minutes.
+	if err = d.kademliaDHT.Bootstrap(ctx); err != nil {
+		panic(err)
+	}
+	d.routingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
+	return d
+}
 
-	return peerChan, nil
+func (d *Discovery) FindPeers(RendezvousString string, gossip bool) ([]peer.AddrInfo, error) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if gossip {
+		discovery.Advertise(ctx, d.routingDiscovery, RendezvousString)
+	}
+
+	addrinfos, err := discovery.FindPeers(ctx, d.routingDiscovery, RendezvousString, coredis.Limit(100))
+	//peerChan, err := d.routingDiscovery.FindPeers(context.Background(), RendezvousString)
+	if err != nil {
+		//panic(err)
+		log.Error("FindPeers", "err", err.Error())
+		return nil, err
+	}
+
+	return addrinfos, nil
 }
 
 //查找局域网内的其他节点
 func (d *Discovery) FindLANPeers(host host.Host, serviceTag string) (<-chan peer.AddrInfo, error) {
-	mdns, err := initMDNS(context.Background(), host, serviceTag)
+	mdns, err := initMDNS(d.ctx, host, serviceTag)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +99,6 @@ func (d *Discovery) ListPeers() []peer.ID {
 		return nil
 	}
 	return d.kademliaDHT.RoutingTable().ListPeers()
-
 }
 
 //routingTable size

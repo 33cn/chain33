@@ -166,7 +166,12 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 				mutex.Lock()
 				defer mutex.Unlock()
 
-				log.Error("syncDownloadBlock", "err", err.Error())
+				if err == d.Ctx.Err() {
+					log.Error("syncDownloadBlock", "err", err.Error())
+					return
+				}
+
+				log.Error("syncDownloadBlock", "downloadBlock err", err.Error())
 				v, ok := reDownload[taskID]
 				if ok {
 					faildJob := v.(map[int64]bool)
@@ -196,9 +201,18 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 }
 
 func (d *downloadProtol) downloadBlock(blockheight int64, tasks Tasks) error {
+
 	var retryCount uint
 	tasks.Sort() //对任务节点时延进行排序，优先选择时延低的节点进行下载
 ReDownload:
+	select {
+	case <-d.Ctx.Done():
+		log.Warn("downloadBlock", "process", "done")
+		return d.Ctx.Err()
+	default:
+		break
+	}
+
 	if tasks.Size() == 0 {
 		return errors.New("no peer for download")
 	}
@@ -251,4 +265,5 @@ ReDownload:
 	d.releaseJob(task)
 
 	return nil
+
 }

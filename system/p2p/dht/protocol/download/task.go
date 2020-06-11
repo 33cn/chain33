@@ -95,6 +95,14 @@ func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
 }
 
 func (d *downloadProtol) CheckTask(taskID string, pids []string, faildJobs map[string]interface{}) {
+
+	select {
+	case <-d.Ctx.Done():
+		log.Warn("CheckTask", "process", "done+++++++")
+		return
+	default:
+		break
+	}
 	v, ok := faildJobs[taskID]
 	if !ok {
 		return
@@ -126,7 +134,7 @@ func (d *downloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
 				continue
 			}
 		} else {
-			log.Error("CheckAvailbJob", "PeerInfoManager No ths Peer info...", task.Pid.Pretty())
+			//log.Error("CheckAvailbJob", "PeerInfoManager No ths Peer info...", task.Pid.Pretty())
 			continue
 		}
 		task.mtx.Lock()

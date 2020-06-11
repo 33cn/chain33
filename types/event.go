@@ -173,6 +173,13 @@ const (
 	EventAddChunkRecord = 317
 
 	EventReplySubscribePush = 318
+
+	//p2p 其他接收事件
+	EventSubTopic       = 350
+	EventPubTopicMsg    = 351
+	EventFetchTopics    = 352
+	EventRemoveTopic    = 353
+	EventReceiveSubData = 355
 )
 
 var eventName = map[int]string{

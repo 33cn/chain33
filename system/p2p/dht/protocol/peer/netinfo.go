@@ -2,7 +2,6 @@ package peer
 
 import (
 	"net"
-	"strings"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -12,9 +11,16 @@ func (p *peerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 	log.Debug("peerInfoProtol", "net info", msg)
 	insize, outsize := p.ConnManager.BoundSize()
 	var netinfo types.NodeNetInfo
-	//外网地址只有一个，显示太多，意义不大
+
 	netinfo.Externaladdr = p.getExternalAddr()
-	netinfo.Localaddr = strings.Split(p.GetHost().Addrs()[0].String(), "/")[2]
+	localips, err := localIPv4s()
+	if err == nil {
+		log.Debug("netinfoHandleEvent", "localIps", localips)
+		netinfo.Localaddr = localips[0]
+	} else {
+		netinfo.Localaddr = netinfo.Externaladdr
+	}
+
 	netinfo.Outbounds = int32(outsize)
 	netinfo.Inbounds = int32(insize)
 	netinfo.Service = false
@@ -47,4 +53,21 @@ func isPublicIP(IP net.IP) bool {
 		}
 	}
 	return false
+}
+
+// LocalIPs return all non-loopback IPv4 addresses
+func localIPv4s() ([]string, error) {
+	var ips []string
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ips, err
+	}
+
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+			ips = append(ips, ipnet.IP.String())
+		}
+	}
+
+	return ips, nil
 }

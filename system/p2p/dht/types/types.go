@@ -16,6 +16,7 @@ type P2PSubConfig struct {
 	// 最大传播ttl, ttl达到该值将停止继续向外发送
 	MaxTTL int32 `protobuf:"varint,4,opt,name=maxTTL" json:"maxTTL,omitempty"`
 	// p2p网络频道,用于区分主网/测试网/其他网络
+
 	Channel int32 `protobuf:"varint,5,opt,name=channel" json:"channel,omitempty"`
 	//区块轻广播的最低区块大小,单位KB, 大于该值时区块内交易采用短哈希广播
 	MinLtBlockSize int32 `protobuf:"varint,6,opt,name=minLtBlockSize" json:"minLtBlockSize,omitempty"`
@@ -28,4 +29,22 @@ type P2PSubConfig struct {
 	DHTDataDriver    string `protobuf:"bytes,10,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
 	DHTDataPath      string `protobuf:"bytes,11,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
 	DHTDataCache     int32  `protobuf:"varint,12,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
+	//中继传输主动建立连接，中继服务端可以选配
+	/*
+
+		    a config RelayDiscovery
+		    b config RelayHop,RelayActive
+		    c config nothing
+			a->b a connect b
+			a.DialPeer(b,c) will success
+			if b just config RelayHop,a->b a connect b
+			a.DialPeer(b,c) will failed
+		    if  b just config RelayHop,a->b,b->c
+			a.DialPeer(b,c) will success
+	*/
+	RelayActive bool `protobuf:"varint,10,opt,name=relay_Active" json:"relayActive,omitempty"`
+	//接受其他节点发过来的中继请求，中继服务端必须配置
+	RelayHop bool `protobuf:"varint,11,opt,name=relay_Hop" json:"relayHop,omitempty"`
+	//发现新的中继节点，中继客户端端必须配置
+	RelayDiscovery bool `protobuf:"varint,12,opt,name=relayDiscovery" json:"relay_Discovery,omitempty"`
 }

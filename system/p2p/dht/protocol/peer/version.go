@@ -44,6 +44,7 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
 	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
 	remoteMAddr := s.Conn().RemoteMultiaddr()
+	//存储对方的外网地址道peerstore中
 	p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.PermanentAddrTTL)
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
 	if err != nil {

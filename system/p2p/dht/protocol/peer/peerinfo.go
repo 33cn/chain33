@@ -18,13 +18,14 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/multiformats/go-multiaddr"
+	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 const (
 	protoTypeID    = "PeerProtocolType"
 	PeerInfoReq    = "/chain33/peerinfoReq/1.0.0"
 	PeerVersionReq = "/chain33/peerVersion/1.0.0"
+	pubsubTypeID   = "PubSubProtoType"
 )
 
 var log = log15.New("module", "p2p.peer")
@@ -33,6 +34,7 @@ func init() {
 	prototypes.RegisterProtocol(protoTypeID, &peerInfoProtol{})
 	prototypes.RegisterStreamHandler(protoTypeID, PeerInfoReq, &peerInfoHandler{})
 	prototypes.RegisterStreamHandler(protoTypeID, PeerVersionReq, &peerInfoHandler{})
+	prototypes.RegisterProtocol(pubsubTypeID, &peerPubSub{})
 
 }
 
@@ -49,6 +51,7 @@ func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	p.p2pCfg = env.SubConfig
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
+
 	go p.detectNodeAddr()
 	go p.fetchPeersInfo()
 
@@ -56,8 +59,12 @@ func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 
 func (p *peerInfoProtol) fetchPeersInfo() {
 	for {
-		<-time.After(time.Second * 10)
-		p.getPeerInfo()
+		select {
+		case <-time.After(time.Second * 10):
+			p.getPeerInfo()
+		case <-p.Ctx.Done():
+			return
+		}
 
 	}
 }
@@ -121,6 +128,15 @@ func (p *peerInfoProtol) getPeerInfo() {
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
 	var wg sync.WaitGroup
 	for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
+
+		select {
+		case <-p.Ctx.Done():
+			log.Warn("getPeerInfo", "process", "done+++++++")
+			return
+		default:
+			break
+		}
+
 		if remoteID.Pretty() == p.GetHost().ID().Pretty() {
 			continue
 		}
@@ -160,7 +176,11 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 	if len(strings.Split(addr, "/")) < 2 {
 		return
 	}
-	p.externalAddr = strings.Split(addr, "/")[2]
+	spliteAddr := strings.Split(addr, "/")[2]
+	if spliteAddr == p.externalAddr {
+		return
+	}
+	p.externalAddr = spliteAddr
 	//增加外网地址
 	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d/p2p/%v", p.externalAddr, p.p2pCfg.Port, p.GetHost().ID().String())
 	newmAddr, err := multiaddr.NewMultiaddr(selfExternalAddr)
@@ -172,9 +192,8 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 		return
 	}
 
-	addrs := p.Host.Peerstore().Addrs(p.Host.ID())
-	addrs = append(addrs, peerinfo.Addrs...)
-	p.Host.Peerstore().SetAddrs(p.GetHost().ID(), addrs, peerstore.PermanentAddrTTL)
+	p.Host.Peerstore().AddAddrs(p.GetHost().ID(), peerinfo.Addrs, peerstore.PermanentAddrTTL)
+	log.Debug("setExternalAddr", "afterSetAddrs", p.Host.Addrs(), "peerstoreAddr", p.Host.Peerstore().Addrs(p.Host.ID()))
 }
 
 func (p *peerInfoProtol) getExternalAddr() string {
@@ -190,69 +209,69 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		p.setExternalAddr(addrs[len(addrs)-1].String())
 	}
 	preExternalAddr := p.getExternalAddr()
-	netIp := net.ParseIP(preExternalAddr)
-	if isPublicIP(netIp) { //检测是PubIp不用继续通过其他节点获取
-		log.Info("detectNodeAddr", "testPubIp", preExternalAddr)
+	netIP := net.ParseIP(preExternalAddr)
+	if isPublicIP(netIP) { //检测是PubIp不用继续通过其他节点获取
+		log.Debug("detectNodeAddr", "testPubIp", preExternalAddr)
 	}
 
 	log.Info("detectNodeAddr", "+++++++++++++++", preExternalAddr, "addrs", addrs)
-	localId := p.GetHost().ID()
+	localID := p.GetHost().ID()
 	var rangeCount int
 	for {
-		if len(p.GetConnsManager().FetchConnPeers()) == 0 {
-			time.Sleep(time.Second)
-			continue
-		}
-
-		//启动后间隔1分钟，以充分获得节点外网地址
-		rangeCount++
-		if rangeCount > 2 {
-			time.Sleep(time.Minute)
-		}
-
-		openedStreams := make([]core.Stream, 0)
-		allnodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
-		for _, node := range dnet.ConvertPeers(allnodes) {
-			var version types.P2PVersion
-
-			pubkey, _ := p.GetHost().Peerstore().PubKey(localId).Bytes()
-			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localId.Pretty(), pubkey, false),
-				Message: &version}
-
-			s, err := prototypes.NewStream(p.Host, node.ID, PeerVersionReq)
-			if err != nil {
-				log.Error("NewStream", "err", err, "remoteID", node.ID)
-				continue
-			}
-			openedStreams = append(openedStreams, s)
-			version.Version = p.p2pCfg.Channel
-			version.AddrFrom = s.Conn().LocalMultiaddr().String()
-			version.AddrRecv = s.Conn().RemoteMultiaddr().String()
-			err = prototypes.WriteStream(req, s)
-			if err != nil {
-				log.Error("DetectNodeAddr", "WriteStream err", err)
-				continue
-			}
-			var resp types.MessageP2PVersionResp
-			err = prototypes.ReadStream(&resp, s)
-			if err != nil {
-				log.Error("DetectNodeAddr", "ReadStream err", err)
+		select {
+		case <-p.Ctx.Done():
+			return
+		default:
+			if len(p.GetConnsManager().FetchConnPeers()) == 0 {
+				time.Sleep(time.Second)
 				continue
 			}
 
-			addr := resp.GetMessage().GetAddrRecv()
-			p.setExternalAddr(addr)
-			if isPublicIP(net.ParseIP(p.getExternalAddr())) {
-				break
+			//启动后间隔1分钟，以充分获得节点外网地址
+			rangeCount++
+			if rangeCount > 2 {
+				time.Sleep(time.Minute)
 			}
-		}
-		// 统一关闭stream
-		for _, stream := range openedStreams {
-			prototypes.CloseStream(stream)
-		}
 
-		if isPublicIP(net.ParseIP(p.getExternalAddr())) {
-			break
+			allnodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
+			for _, node := range dnet.ConvertPeers(allnodes) {
+				var version types.P2PVersion
+
+				pubkey, _ := p.GetHost().Peerstore().PubKey(localID).Bytes()
+				req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
+					Message: &version}
+
+				s, err := prototypes.NewStream(p.Host, node.ID, PeerVersionReq)
+				if err != nil {
+					log.Error("NewStream", "err", err, "remoteID", node.ID)
+					continue
+				}
+				//openedStreams = append(openedStreams, s)
+				version.Version = p.p2pCfg.Channel
+				version.AddrFrom = s.Conn().LocalMultiaddr().String()
+				version.AddrRecv = s.Conn().RemoteMultiaddr().String()
+				err = prototypes.WriteStream(req, s)
+				if err != nil {
+					log.Error("DetectNodeAddr", "WriteStream err", err)
+					continue
+				}
+				var resp types.MessageP2PVersionResp
+				err = prototypes.ReadStream(&resp, s)
+				if err != nil {
+					log.Error("DetectNodeAddr", "ReadStream err", err)
+					continue
+				}
+				prototypes.CloseStream(s)
+				addr := resp.GetMessage().GetAddrRecv()
+				if len(strings.Split(addr, "/")) < 2 {
+					continue
+				}
+				spliteAddr := strings.Split(addr, "/")[2]
+				if isPublicIP(net.ParseIP(spliteAddr)) {
+					p.setExternalAddr(addr)
+					break
+				}
+			}
 		}
 	}
 

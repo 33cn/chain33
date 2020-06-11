@@ -62,7 +62,7 @@ func Test_recvLtTx(t *testing.T) {
 	tx := &types.P2PTx{Tx: tx}
 	sendData, _ := proto.handleSend(tx, testPid, testAddr)
 	err := proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, errSendStream, err)
+	assert.Nil(t, err)
 
 	proto.txFilter.Add(hex.EncodeToString(tx.Tx.Hash()), true)
 	err = proto.handleReceive(sendData, testPid, testAddr)
