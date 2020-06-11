@@ -78,7 +78,7 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 
 func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
 	for _, prettyID := range param.Pid {
-		pid, err := peer.IDB58Decode(prettyID)
+		pid, err := peer.Decode(prettyID)
 		if err != nil {
 			log.Error("getChunkRecords", "decode pid error", err)
 		}
@@ -190,6 +190,7 @@ Retry:
 }
 
 func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
+	log.Info("into fetchChunkOrNearerPeers", "pid", pid)
 	childCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()
 	stream, err := p.Host.NewStream(childCtx, pid, protocol.FetchChunk)
@@ -197,6 +198,7 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 		log.Error("fetchChunkOrNearerPeers", "error", err)
 		return nil, nil, err
 	}
+	_ = stream.SetDeadline(time.Now().Add(time.Minute * 30))
 	defer protocol.CloseStream(stream)
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ChunkInfoMsg{
@@ -209,11 +211,6 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 		return nil, nil, err
 	}
 	var res types.P2PResponse
-	//err = protocol.ReadStreamAndAuthenticate(&res, stream)
-	//if err != nil {
-	//	log.Error("fetchChunkFromPeer", "read response error", err, "chunk hash", hex.EncodeToString(params.ChunkHash))
-	//	return nil, nil, err
-	//}
 	var result []byte
 	buf := make([]byte, 1024*1024)
 	t := time.Now()
