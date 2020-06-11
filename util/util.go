@@ -108,13 +108,26 @@ func CreateNoneTx(cfg *types.Chain33Config, priv crypto.PrivKey) *types.Transact
 	return CreateTxWithExecer(cfg, priv, "none")
 }
 
-func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) *types.Transaction {
-
-	tx := CreateNoneTx(cfg, nil)
-	tx.Expire = currHeight + 30 + types.TxHeightFlag
+func updateExpireWithTxHeight(tx *types.Transaction, priv crypto.PrivKey, currHeight int64) {
+	tx.Expire = currHeight + types.LowAllowPackHeight + types.TxHeightFlag
 	if priv != nil {
 		tx.Sign(types.SECP256K1, priv)
 	}
+}
+
+// CreateCoinsTxWithTxHeight 使用txHeight作为交易过期
+func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, currHeight int64) *types.Transaction {
+
+	tx := CreateCoinsTx(cfg, nil, to, amount)
+	updateExpireWithTxHeight(tx, priv, currHeight)
+	return tx
+}
+
+// // CreateNoneTxWithTxHeight 使用txHeight作为交易过期
+func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) *types.Transaction {
+
+	tx := CreateNoneTx(cfg, nil)
+	updateExpireWithTxHeight(tx, priv, currHeight)
 	return tx
 }
 
