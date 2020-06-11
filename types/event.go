@@ -75,7 +75,7 @@ const (
 	EventCheckTx                 = 81
 	EventReceiptCheckTx          = 82
 	EventReplyQuery              = 84
-	EventAddBlockSeqCB           = 85
+	EventSubscribePush           = 85
 	EventFetchBlockHeaders       = 86
 	EventAddBlockHeaders         = 87
 	EventReplyWalletStatus       = 89
@@ -116,8 +116,8 @@ const (
 	EventLocalPrefixCount        = 128
 	EventStoreList               = 130
 	EventStoreListReply          = 131
-	EventListBlockSeqCB          = 132
-	EventGetSeqCBLastNum         = 133
+	EventListPushes              = 132
+	EventGetPushLastNum          = 133
 	EventGetBlockBySeq           = 134
 
 	EventLocalBegin    = 135
@@ -170,6 +170,8 @@ const (
 	EventGetChunkRecord = 316
 	// 添加ChunkRecord
 	EventAddChunkRecord = 317
+
+	EventReplySubscribePush = 318
 )
 
 var eventName = map[int]string{
@@ -240,6 +242,7 @@ var eventName = map[int]string{
 	81:  "EventCheckTx",
 	82:  "EventReceiptCheckTx",
 	84:  "EventReplyQuery",
+	85:  "EventSubscribePush",
 	86:  "EventFetchBlockHeaders",
 	87:  "EventAddBlockHeaders",
 	89:  "EventReplyWalletStatus",
@@ -281,6 +284,8 @@ var eventName = map[int]string{
 	//todo: 这个可能后面会删除
 	EventStoreList:      "EventStoreList",
 	EventStoreListReply: "EventStoreListReply",
+	EventListPushes:     "EventListPushes",
+	EventGetPushLastNum: "EventGetPushLastNum",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 	EventConsensusQuery:  "EventConsensusQuery",
@@ -310,4 +315,5 @@ var eventName = map[int]string{
 	EventGetParaTxByTitleAndHeight:  "EventGetParaTxByTitleAndHeight",
 	EventCmpBestBlock:               "EventCmpBestBlock",
 	EventUpgrade:                    "EventUpgrade",
+	EventReplySubscribePush:         "EventReplySubscribePush",
 }

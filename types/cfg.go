@@ -166,6 +166,8 @@ type BlockChain struct {
 	EnableFetchP2pstore bool `protobuf:"varint,21,opt,name=enableFetchP2pstore" json:"enableFetchP2pstore,omitempty"`
 	// 使能假设已删除已归档数据后,获取数据情况
 	EnableIfDelLocalChunk bool `protobuf:"varint,22,opt,name=enableIfDelLocalChunk" json:"enableIfDelLocalChunk,omitempty"`
+	// 使能注册推送区块、区块头或交易回执
+	EnablePushSubscribe bool `protobuf:"varint,19,opt,name=EnablePushSubscribe" json:"EnablePushSubscribe,omitempty"`
 }
 
 // P2P 配置

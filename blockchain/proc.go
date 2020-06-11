@@ -55,6 +55,9 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getAddrOverview)
 		case types.EventGetBlockHash: //GetBlockHash
 			go chain.processMsg(msg, reqnum, chain.getBlockHash)
+			//订阅指定类型的交易回执
+		case types.EventSubscribePush:
+			go chain.processMsg(msg, reqnum, chain.subscribePush)
 		case types.EventAddBlockHeaders:
 			go chain.processMsg(msg, reqnum, chain.addBlockHeaders)
 		case types.EventGetLastBlock:
@@ -77,12 +80,10 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.addParaChainBlockDetail)
 		case types.EventGetSeqByHash:
 			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
-		case types.EventAddBlockSeqCB:
-			go chain.processMsg(msg, reqnum, chain.addBlockSeqCB)
-		case types.EventListBlockSeqCB:
-			go chain.processMsg(msg, reqnum, chain.listBlockSeqCB)
-		case types.EventGetSeqCBLastNum:
-			go chain.processMsg(msg, reqnum, chain.getSeqCBLastNum)
+		case types.EventListPushes:
+			go chain.processMsg(msg, reqnum, chain.listPush)
+		case types.EventGetPushLastNum:
+			go chain.processMsg(msg, reqnum, chain.getPushLastNum)
 		case types.EventGetLastBlockMainSequence:
 			go chain.processMsg(msg, reqnum, chain.GetLastBlockMainSequence)
 		case types.EventGetMainSeqByHash:
@@ -125,38 +126,21 @@ func (chain *BlockChain) unknowMsg(msg *queue.Message) {
 	chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msg.Ty)
 }
 
-func (chain *BlockChain) addBlockSeqCB(msg *queue.Message) {
-	reply := &types.ReplyAddSeqCallback{
-		IsOk: true,
-	}
-	cb := (msg.Data).(*types.BlockSeqCB)
-	sequences, err := chain.ProcAddBlockSeqCB(cb)
+func (chain *BlockChain) listPush(msg *queue.Message) {
+	cbs, err := chain.ProcListPush()
 	if err != nil {
-		reply.IsOk = false
-		reply.Msg = []byte(err.Error())
-		reply.Seqs = sequences
-		msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
+		chainlog.Error("listPush", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventListPushes, err))
 		return
 	}
-
-	msg.Reply(chain.client.NewMessage("rpc", types.EventAddBlockSeqCB, reply))
+	msg.Reply(chain.client.NewMessage("rpc", types.EventListPushes, cbs))
 }
-
-func (chain *BlockChain) listBlockSeqCB(msg *queue.Message) {
-	cbs, err := chain.ProcListBlockSeqCB()
-	if err != nil {
-		chainlog.Error("listBlockSeqCB", "err", err.Error())
-		msg.Reply(chain.client.NewMessage("rpc", types.EventListBlockSeqCB, err))
-		return
-	}
-	msg.Reply(chain.client.NewMessage("rpc", types.EventListBlockSeqCB, cbs))
-}
-func (chain *BlockChain) getSeqCBLastNum(msg *queue.Message) {
+func (chain *BlockChain) getPushLastNum(msg *queue.Message) {
 	data := (msg.Data).(*types.ReqString)
 
-	num := chain.ProcGetSeqCBLastNum(data.Data)
+	num, _ := chain.ProcGetLastPushSeq(data.Data)
 	lastNum := &types.Int64{Data: num}
-	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqCBLastNum, lastNum))
+	msg.Reply(chain.client.NewMessage("rpc", types.EventGetPushLastNum, lastNum))
 }
 
 func (chain *BlockChain) queryTx(msg *queue.Message) {
@@ -459,7 +443,7 @@ func (chain *BlockChain) getBlockBySeq(msg *queue.Message) {
 	req := &types.ReqBlocks{Start: seq.Data, End: seq.Data, IsDetail: false, Pid: []string{}}
 	sequences, err := chain.GetBlockSequences(req)
 	if err != nil {
-		chainlog.Error("getBlockBySeq", "seq err", err.Error())
+		chainlog.Error("getBlockBySeq", "seqUpdateChan err", err.Error())
 		msg.Reply(chain.client.NewMessage("rpc", types.EventGetBlockBySeq, err))
 		return
 	}
@@ -730,4 +714,21 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 	}
 	chainlog.Debug("addChunkBlock", "start", blocks.Items[0].Height, "end", blocks.Items[len(blocks.Items)-1].Height)
 	msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
+}
+
+func (chain *BlockChain) subscribePush(msg *queue.Message) {
+	reply := &types.ReplySubscribePush{
+		IsOk: true,
+		Msg:  "Succeed",
+	}
+	subReq := (msg.Data).(*types.PushSubscribeReq)
+	err := chain.procSubscribePush(subReq)
+	if err != nil {
+		reply.IsOk = false
+		reply.Msg = err.Error()
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplySubscribePush, reply))
+		return
+	}
+
+	msg.Reply(chain.client.NewMessage("rpc", types.EventReplySubscribePush, reply))
 }

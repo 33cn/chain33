@@ -18,7 +18,7 @@ import (
 	"crypto/subtle"
 	"io"
 
-	"github.com/33cn/chain33/common/ed25519/edwards25519"
+	"github.com/33cn/chain33/system/crypto/ed25519/ed25519/edwards25519"
 )
 
 //const

@@ -146,9 +146,9 @@ func TestGetParaTxByTitle(t *testing.T) {
 	req.IsSeq = false
 	testgetParaTxByTitle(t, blockchain, &req, 0)
 
-	//通过height获取para交易
+	//通过height获取para交易,End大于当前最新高度报错
 	req.IsSeq = false
-	req.End = curheight + 1
+	req.End = curheight + 10
 	testgetParaTxByTitle(t, blockchain, &req, 1)
 
 	curheight = blockchain.GetBlockHeight()

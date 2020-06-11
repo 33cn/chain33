@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+// import "common.proto";
+import "transaction.proto";
+
+package types;
+option go_package = "github.com/33cn/chain33/types";
+
+message TxReceipts4SubscribePerBlk {
+    repeated Transaction tx          = 1;
+    repeated ReceiptData receiptData = 2;
+    // repeated KeyValue    KV          = 3;
+    int64 height       = 4;
+    bytes blockHash    = 5;
+    bytes parentHash   = 6;
+    bytes previousHash = 7;
+    int32 addDelType   = 8;
+    int64 seqNum       = 9;
+}
+
+message TxReceipts4Subscribe {
+    repeated TxReceipts4SubscribePerBlk txReceipts = 1;
+}
