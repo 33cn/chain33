@@ -11,6 +11,7 @@ type LocalDB struct {
 	maindb  DB
 	intx    bool
 	mu      sync.RWMutex
+	readOnly bool
 }
 
 func newMemDB() DB {
@@ -22,19 +23,18 @@ func newMemDB() DB {
 }
 
 // NewLocalDB new local db
-func NewLocalDB(maindb DB) KVDB {
+func NewLocalDB(maindb DB, readOnly bool) KVDB {
+	if readOnly {
+		//只读模式不需要memdb，比如交易检查，可以使用该localdb，减少memdb内存开销
+		return &LocalDB{
+			maindb: maindb,
+			readOnly: true,
+		}
+	}
 	return &LocalDB{
 		cache:   newMemDB(),
 		txcache: newMemDB(),
 		maindb:  maindb,
-	}
-}
-
-// NewLocalDB4CheckTx new local db for exec check tx
-func NewLocalDB4CheckTx(maindb DB) KVDB {
-	//交易的检查原则上不应该依赖于localdb，目前有些合约仍然会用到， 暂时移除了memdb缓存对象
-	return &LocalDB{
-		maindb: maindb,
 	}
 }
 
@@ -78,6 +78,9 @@ func (l *LocalDB) get(key []byte) ([]byte, error) {
 func (l *LocalDB) Set(key []byte, value []byte) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.readOnly {
+		panic("set local db in read only mode")
+	}
 	if l.intx {
 		if l.txcache == nil {
 			l.txcache = newMemDB()

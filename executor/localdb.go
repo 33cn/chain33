@@ -26,30 +26,12 @@ type LocalDB struct {
 }
 
 //NewLocalDB 创建一个新的LocalDB
-func NewLocalDB(cli queue.Client) db.KVDB {
+func NewLocalDB(cli queue.Client, readOnly bool) db.KVDB {
 	api, err := client.New(cli, nil)
 	if err != nil {
 		panic(err)
 	}
-	txid, err := api.LocalNew(nil)
-	if err != nil {
-		panic(err)
-	}
-	return &LocalDB{
-		cache:  make(map[string][]byte),
-		txid:   txid,
-		client: cli,
-		api:    api,
-	}
-}
-
-// NewLocalDB4CheckTx 创建一个用于单笔交易检查的localDB
-func NewLocalDB4CheckTx(cli queue.Client) db.KVDB {
-	api, err := client.New(cli, nil)
-	if err != nil {
-		panic(err)
-	}
-	txid, err := api.LocalNew4CheckTx()
+	txid, err := api.LocalNew(readOnly)
 	if err != nil {
 		panic(err)
 	}

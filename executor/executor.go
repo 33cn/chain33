@@ -169,7 +169,7 @@ func (exec *Executor) upgradePlugin(plugin string) (*types.LocalDBSet, error) {
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		localdb = NewLocalDB(exec.client, false)
 		defer localdb.(*LocalDB).Close()
 		driver.SetLocalDB(localdb)
 	}
@@ -213,7 +213,8 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		//query 只需要读取localdb
+		localdb = NewLocalDB(exec.client, true)
 		defer localdb.(*LocalDB).Close()
 		driver.SetLocalDB(localdb)
 	}
@@ -256,10 +257,9 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 	}
 	var localdb dbm.KVDB
 
-	//频繁单笔交易检测对应localdb内部的memdb内存分配开销较大暂
-	//原则上交易检测也不应该依赖于localdb，暂时分配一个更轻量的localdb
 	if !exec.disableLocal {
-		localdb = NewLocalDB4CheckTx(exec.client)
+		//交易检查只需要读取localdb，只读模式
+		localdb = NewLocalDB(exec.client, true)
 		defer localdb.(*LocalDB).Close()
 	}
 	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
@@ -303,7 +303,7 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		localdb = NewLocalDB(exec.client, false)
 		defer localdb.(*LocalDB).Close()
 	}
 	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
@@ -386,7 +386,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		localdb = NewLocalDB(exec.client, false)
 		defer localdb.(*LocalDB).Close()
 	}
 	execute := newExecutor(ctx, exec, localdb, b.Txs, datas.Receipts)
@@ -462,7 +462,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		localdb = NewLocalDB(exec.client, false)
 		defer localdb.(*LocalDB).Close()
 	}
 	execute := newExecutor(ctx, exec, localdb, b.Txs, nil)

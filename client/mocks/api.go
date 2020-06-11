@@ -836,13 +836,13 @@ func (_m *QueueProtocolAPI) LocalList(param *types.LocalDBList) (*types.LocalRep
 	return r0, r1
 }
 
-// LocalNew provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) LocalNew(param *types.ReqNil) (*types.Int64, error) {
-	ret := _m.Called(param)
+// LocalNew provides a mock function with given fields: readOnly
+func (_m *QueueProtocolAPI) LocalNew(readOnly bool) (*types.Int64, error) {
+	ret := _m.Called(readOnly)
 
 	var r0 *types.Int64
-	if rf, ok := ret.Get(0).(func(*types.ReqNil) *types.Int64); ok {
-		r0 = rf(param)
+	if rf, ok := ret.Get(0).(func(bool) *types.Int64); ok {
+		r0 = rf(readOnly)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Int64)
@@ -850,31 +850,8 @@ func (_m *QueueProtocolAPI) LocalNew(param *types.ReqNil) (*types.Int64, error) 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqNil) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// LocalNew4CheckTx provides a mock function with given fields:
-func (_m *QueueProtocolAPI) LocalNew4CheckTx() (*types.Int64, error) {
-	ret := _m.Called()
-
-	var r0 *types.Int64
-	if rf, ok := ret.Get(0).(func() *types.Int64); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Int64)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(bool) error); ok {
+		r1 = rf(readOnly)
 	} else {
 		r1 = ret.Error(1)
 	}

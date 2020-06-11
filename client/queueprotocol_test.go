@@ -354,12 +354,9 @@ func testLocalList(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testLocalTransaction(t *testing.T, api client.QueueProtocolAPI) {
-	txid, err := api.LocalNew(nil)
+	txid, err := api.LocalNew(false)
 	assert.Nil(t, err)
 	assert.Equal(t, txid.Data, int64(9999))
-	id2, err := api.LocalNew4CheckTx()
-	assert.Nil(t, err)
-	assert.Equal(t, id2.Data, int64(10000))
 	err = api.LocalBegin(txid)
 	assert.Nil(t, err)
 	err = api.LocalCommit(nil)

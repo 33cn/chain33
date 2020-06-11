@@ -10,7 +10,7 @@ import (
 //localdb 不会往 maindb 写数据，他都是临时的数据，在内存中临时计算的一个数据库
 func TestLocalDB(t *testing.T) {
 	db1 := newGoMemDB(t)
-	db := NewLocalDB(db1)
+	db := NewLocalDB(db1, false)
 
 	db1.Set([]byte("key1"), []byte("value1"))
 	v1, err := db.Get([]byte("key1"))
@@ -71,15 +71,4 @@ func TestLocalDB(t *testing.T) {
 	assert.Equal(t, data[0], []byte("value3"))
 	assert.Equal(t, data[1], []byte("value2"))
 	assert.Equal(t, data[2], []byte("value1"))
-
-	db = NewLocalDB4CheckTx(db1)
-	v1, err = db.Get([]byte("key1"))
-	assert.Nil(t, err)
-	assert.Equal(t, v1, []byte("value1"))
-	data, err = db.List([]byte("key"), nil, 0, 0)
-	assert.Nil(t, err)
-	assert.Equal(t, 2, len(data))
-	assert.Equal(t, data[0], []byte("valued1"))
-	assert.Equal(t, data[1], []byte("value1"))
-
 }

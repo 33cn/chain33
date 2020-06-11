@@ -489,23 +489,10 @@ func (q *QueueProtocol) LocalSet(param *types.LocalDBSet) error {
 }
 
 //LocalNew new a localdb object
-func (q *QueueProtocol) LocalNew(param *types.ReqNil) (*types.Int64, error) {
-	msg, err := q.send(blockchainKey, types.EventLocalNew, nil)
+func (q *QueueProtocol) LocalNew(readOnly bool) (*types.Int64, error) {
+	msg, err := q.send(blockchainKey, types.EventLocalNew, readOnly)
 	if err != nil {
 		log.Error("LocalNew", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Int64); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-//LocalNew new a localdb object
-func (q *QueueProtocol) LocalNew4CheckTx() (*types.Int64, error) {
-	msg, err := q.send(blockchainKey, types.EventLocalNew4CheckTx, nil)
-	if err != nil {
-		log.Error("LocalNew4CheckTx", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Int64); ok {
