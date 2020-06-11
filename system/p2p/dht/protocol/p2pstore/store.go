@@ -117,8 +117,9 @@ func (p *Protocol) initLocalChunkInfoMap() {
 		panic(err)
 	}
 	for k, v := range p.localChunkInfo {
-		v.Time = time.Now()
-		p.localChunkInfo[k] = v
+		info := v
+		info.Time = time.Now()
+		p.localChunkInfo[k] = info
 	}
 }
 

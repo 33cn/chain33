@@ -30,6 +30,8 @@ type Protocol struct {
 	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
 	localChunkInfoMutex sync.RWMutex
+
+	retryInterval time.Duration
 }
 
 func init() {
@@ -40,13 +42,12 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
 		P2PEnv:              env,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
+		retryInterval:       30 * time.Second,
+	}
+	if env.ChainCfg.IsTestNet() {
+		p.retryInterval = 0
 	}
 	p.initLocalChunkInfoMap()
-
-	for k, v := range p.localChunkInfo {
-		v.Time = time.Now()
-		p.localChunkInfo[k] = v
-	}
 
 	//注册p2p通信协议，用于处理节点之间请求
 	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk)) //数据较大，采用特殊写入方式
