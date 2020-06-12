@@ -509,7 +509,7 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 	assert.Equal(t, err, types.ErrNotAllowModifyPush)
 
 	//push 能够正常从数据库恢复
-	chain.push = nil
+	chain.push.Close()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	assert.Equal(t, 10, len(chain.push.tasks))
 	for _, name := range pushNames {
