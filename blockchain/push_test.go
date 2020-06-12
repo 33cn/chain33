@@ -191,6 +191,17 @@ func Test_addSubscriber_InvalidURL(t *testing.T) {
 	assert.Equal(t, err, types.ErrInvalidParam)
 }
 
+func Test_addSubscriber_InvalidType(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
+	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test"
+	subscribe.Type = int32(3)
+	err := chain.push.addSubscriber(subscribe)
+	assert.Equal(t, err, types.ErrInvalidParam)
+}
+
 func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	defer mock33.Close()
