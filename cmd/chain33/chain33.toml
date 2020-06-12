@@ -75,6 +75,9 @@ waitPid=false
 
 [p2p.sub.dht]
 seeds=[""]
+port=13803
+findLANPeers=true
+
 
 [rpc]
 # jrpc绑定地址

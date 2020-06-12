@@ -43,5 +43,7 @@ type P2PSubConfig struct {
 	//接受其他节点发过来的中继请求，中继服务端必须配置
 	RelayHop bool `protobuf:"varint,11,opt,name=relay_Hop" json:"relayHop,omitempty"`
 	//发现新的中继节点，中继客户端端必须配置
-	RelayDiscovery bool `protobuf:"varint,12,opt,name=relayDiscovery" json:"relay_Discovery,omitempty"`
+	RelayDiscovery bool `protobuf:"varint,12,opt,name=relayDiscovery" json:"relayDiscovery,omitempty"`
+
+	FindLANPeers bool `protobuf:"varint,13,opt,name=findLANPeers" json:"findLANPeers,omitempty"`
 }
