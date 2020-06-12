@@ -674,3 +674,12 @@ func Str2Bytes(s string) []byte {
 	h := [3]uintptr{x[0], x[1], x[1]}
 	return *(*[]byte)(unsafe.Pointer(&h))
 }
+
+//Hash  计算hash
+func (hashes *ReplyHashes) Hash() []byte {
+	data, err := proto.Marshal(hashes)
+	if err != nil {
+		panic(err)
+	}
+	return common.Sha256(data)
+}

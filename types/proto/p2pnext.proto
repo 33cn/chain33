@@ -1,6 +1,8 @@
 syntax = "proto3";
 
 import "p2p.proto";
+import "blockchain.proto";
+import "common.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
@@ -211,4 +213,66 @@ message MessagePeersReply {
 message MessageBroadCast {
     MessageComm   common  = 1;
     BroadCastData message = 2;
+}
+
+/**
+* p2p 分布式存储
+*/
+
+message P2PStoreRequest {
+    string protocolID = 1;
+    oneof  data {
+        ReqChunkRecords reqChunkRecords = 2;
+        ChunkInfoMsg    chunkInfoMsg    = 3;
+        ReqBlocks       reqBlocks       = 4;
+    }
+}
+
+message P2PStoreResponse {
+    string errorInfo = 1;
+    oneof  result {
+        BlockBodys   blockBodys   = 2;
+        Headers      headers      = 3;
+        ChunkRecords chunkRecords = 4;
+        bytes        addrInfo     = 5;
+    }
+}
+
+message P2PStoreData {
+    int64 time = 1;
+    oneof data {
+        BlockBodys blockBodys = 2;
+    }
+}
+
+message P2PMessageHeaders {
+    // shared between all requests
+    string version   = 1; // client version
+    int64  timestamp = 2; // unix time
+    int64  id        = 3; // allows requesters to use request data when processing a response
+    bytes  sign      = 5; // signature of message data + method specific data by message authoring node.
+}
+
+message P2PRequest {
+    P2PMessageHeaders headers = 1;
+    oneof             request {
+        ReqChunkRecords reqChunkRecords = 2;
+        ChunkInfoMsg    chunkInfoMsg    = 3;
+        ReqBlocks       reqBlocks       = 4;
+        //新的协议可以继续添加request类型
+    }
+}
+
+message P2PResponse {
+    P2PMessageHeaders headers = 1;
+    string            error   = 2;
+    oneof             response {
+        BlockBodys   blockBodys   = 3;
+        Headers      blockHeaders = 4;
+        ChunkRecords chunkRecords = 5;
+        bytes        addrInfo     = 6;
+        //新的协议可以继续添加response类型
+        Reply  reply      = 7;
+        Header lastHeader = 8;
+    }
 }

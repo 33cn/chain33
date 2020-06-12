@@ -30,7 +30,7 @@ const DhtProtoID = "/ipfs/kad/%s/1.0.0/%d"
 type Discovery struct {
 	kademliaDHT      *dht.IpfsDHT
 	routingDiscovery *discovery.RoutingDiscovery
-	mndsService      *mdns
+	mdnsService      *mdns
 }
 
 func InitDhtDiscovery(host host.Host, peersInfo []peer.AddrInfo, chainCfg *types.Chain33Config, subCfg *p2pty.P2PSubConfig) *Discovery {
@@ -70,18 +70,18 @@ func (d *Discovery) FindLANPeers(host host.Host, serviceTag string) (<-chan peer
 	if err != nil {
 		return nil, err
 	}
-	d.mndsService = mdns
-	return d.mndsService.PeerChan(), nil
+	d.mdnsService = mdns
+	return d.mdnsService.PeerChan(), nil
 }
 
 func (d *Discovery) CloseFindLANPeers() {
-	if d.mndsService != nil {
-		d.mndsService.Service.UnregisterNotifee(d.mndsService.notifee)
+	if d.mdnsService != nil {
+		d.mdnsService.Service.UnregisterNotifee(d.mdnsService.notifee)
 	}
 }
 
 //routingTable 路由表的节点信息
-func (d *Discovery) RoutingTale() []peer.ID {
+func (d *Discovery) ListPeers() []peer.ID {
 	if d.kademliaDHT == nil {
 		return nil
 	}
@@ -146,7 +146,7 @@ func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo
 
 }
 
-func (d *Discovery) UPdate(pid peer.ID) error {
+func (d *Discovery) Update(pid peer.ID) error {
 	_, err := d.kademliaDHT.RoutingTable().Update(pid)
 	return err
 }
@@ -165,4 +165,8 @@ func (d *Discovery) Remove(pid peer.ID) {
 	}
 	d.kademliaDHT.RoutingTable().Remove(pid)
 
+}
+
+func (d *Discovery) RoutingTable() *kbt.RoutingTable {
+	return d.kademliaDHT.RoutingTable()
 }
