@@ -172,6 +172,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 		return nil, err
 	}
 	dupTxList, err := client.Wait(hashList)
+
 	if err != nil {
 		return nil, err
 	}
@@ -188,6 +189,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 		}
 		transactions = append(transactions, tx)
 	}
+	client.FreeMessage(hashList, dupTxList)
 	return transactions, nil
 }
 

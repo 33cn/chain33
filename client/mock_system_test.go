@@ -100,6 +100,9 @@ func (mock *mockClient) NewMessage(topic string, ty int64, data interface{}) *qu
 	return mock.c.NewMessage(topic, ty, data)
 }
 
+func (mock *mockClient) FreeMessage(msg ...*queue.Message) {
+}
+
 func (mock *mockClient) GetConfig() *types.Chain33Config {
 	return mock.c.GetConfig()
 }

@@ -252,6 +252,9 @@ func (t *testClient) NewMessage(topic string, ty int64, data interface{}) *queue
 	return queue.NewMessage(id, topic, ty, data)
 }
 
+func (t *testClient) FreeMessage(...*queue.Message) {
+}
+
 func (t *testClient) Wait(in *queue.Message) (*queue.Message, error) {
 	switch in.Ty {
 	case types.EventTxHashList:

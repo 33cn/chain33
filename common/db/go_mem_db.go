@@ -172,7 +172,11 @@ func (b *memBatch) ValueLen() int {
 }
 
 func (b *memBatch) Reset() {
-	b.db.db.Reset()
+	//重置batch自己的buf，不能调用db reset，将直接清空db历史数据
+	b.writes = b.writes[:0]
 	b.size = 0
 	b.len = 0
+}
+
+func (b *memBatch) UpdateWriteSync(sync bool) {
 }

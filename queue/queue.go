@@ -73,6 +73,7 @@ type queue struct {
 	isClose   int32
 	name      string
 	cfg       *types.Chain33Config
+	msgPool   *sync.Pool
 }
 
 // New new queue struct
@@ -83,6 +84,13 @@ func New(name string) Queue {
 		done:      make(chan struct{}, 1),
 		interrupt: make(chan struct{}, 1),
 		callback:  make(chan *Message, 1024),
+	}
+	q.msgPool = &sync.Pool{
+		New: func() interface{} {
+			return &Message{
+				chReply: make(chan *Message, 1),
+			}
+		},
 	}
 	go func() {
 		for {
@@ -335,9 +343,6 @@ func (msg *Message) Reply(replyMsg *Message) {
 		return
 	}
 	msg.chReply <- replyMsg
-	if msg.Topic != "store" {
-		qlog.Debug("reply msg ok", "msg", msg)
-	}
 }
 
 // String print the message information

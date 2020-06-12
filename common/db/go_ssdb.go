@@ -501,3 +501,6 @@ func (db *ssDBBatch) Reset() {
 	db.batchdel = make(map[string]bool)
 	db.size = 0
 }
+
+func (db *ssDBBatch) UpdateWriteSync(sync bool) {
+}

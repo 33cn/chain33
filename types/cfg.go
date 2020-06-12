@@ -73,6 +73,8 @@ type Mempool struct {
 	MaxTxFeeRate int64 `protobuf:"varint,9,opt,name=maxTxFeeRate" json:"maxTxFeeRate,omitempty"`
 	// 单笔最大交易费, 默认1e9
 	MaxTxFee int64 `protobuf:"varint,10,opt,name=maxTxFee" json:"maxTxFee,omitempty"`
+	// 目前execCheck效率较低，支持关闭交易execCheck，提升性能
+	DisableExecCheck bool `protobuf:"varint,11,opt,name=disableExecCheck" json:"disableExecCheck,omitempty"`
 }
 
 // Consensus 配置

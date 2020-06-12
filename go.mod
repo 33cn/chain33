@@ -14,8 +14,7 @@ require (
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/coreos/bbolt v1.3.0 // indirect
-	github.com/dchest/blake256 v1.0.0 // indirect
-	github.com/decred/base58 v1.0.0
+	github.com/decred/base58 v1.0.2
 	github.com/dgraph-io/badger v1.6.0-rc1
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
 	github.com/fortytw2/leaktest v1.3.0 // indirect

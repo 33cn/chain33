@@ -12,7 +12,7 @@ func (mem *Mempool) reply() {
 		if m.Err() != nil {
 			m.Reply(mem.client.NewMessage("rpc", types.EventReply,
 				&types.Reply{IsOk: false, Msg: []byte(m.Err().Error())}))
-		} else {
+		} else { //TODO, rpc和p2p交易发送需要区分， rpc需要消息答复，p2p不需要
 			mem.sendTxToP2P(m.GetData().(types.TxGroup).Tx())
 			m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: nil}))
 		}
@@ -58,7 +58,9 @@ func (mem *Mempool) eventProcess() {
 	go mem.reply()
 
 	for msg := range mem.client.Recv() {
-		mlog.Debug("mempool recv", "msgid", msg.ID, "msg", types.GetEventName(int(msg.Ty)))
+		//NOTE: 由于部分msg做了内存回收处理，业务逻辑处理后不能对msg进行引用访问， 相关数据提前保存
+		msgName := types.GetEventName(int(msg.Ty))
+		mlog.Debug("mempool recv", "msgid", msg.ID, "msg", msgName)
 		beg := types.Now()
 		switch msg.Ty {
 		case types.EventTx:
@@ -95,7 +97,7 @@ func (mem *Mempool) eventProcess() {
 			mem.eventTxListByHash(msg)
 		default:
 		}
-		mlog.Debug("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+		mlog.Debug("mempool", "cost", types.Since(beg), "msg", msgName)
 	}
 }
 

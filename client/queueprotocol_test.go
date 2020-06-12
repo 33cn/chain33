@@ -354,7 +354,7 @@ func testLocalList(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testLocalTransaction(t *testing.T, api client.QueueProtocolAPI) {
-	txid, err := api.LocalNew(nil)
+	txid, err := api.LocalNew(false)
 	assert.Nil(t, err)
 	assert.Equal(t, txid.Data, int64(9999))
 	err = api.LocalBegin(txid)
