@@ -25,7 +25,16 @@ func TestNewMnemonicString(t *testing.T) {
 	mne, err = NewMnemonicString(0, 128)
 	assert.Nil(t, err)
 	t.Log(mne)
+
+	_, err = NewMnemonicString(0, 129)
+	assert.NotNil(t, err)
 }
+
+func TestNewWalletFromMnemonic(t *testing.T) {
+	_, err := NewWalletFromMnemonic(TypeYcc, types.ED25519, mnem+"test")
+	assert.NotNil(t, err)
+}
+
 func TestEd25519PrivPub(t *testing.T) {
 	wallet, err := NewWalletFromMnemonic(TypeYcc, types.ED25519, mnem)
 	assert.Nil(t, err)
@@ -44,6 +53,9 @@ func TestEd25519PrivPub(t *testing.T) {
 	tpub, err := PrivkeyToPub(TypeYcc, types.ED25519, priv)
 	assert.Nil(t, err)
 	assert.Equal(t, tpub, pub)
+	_, err = PrivkeyToPub(TypeYcc+1, types.ED25519, priv)
+	assert.NotNil(t, err)
+
 }
 
 func TestSecp256k1PrivPub(t *testing.T) {
