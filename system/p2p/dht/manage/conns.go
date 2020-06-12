@@ -169,26 +169,23 @@ func (s *ConnManager) Size() int {
 //FetchConnPeers 获取连接的Peer's ID 这个连接包含被连接的peer以及主动连接的peer.
 func (s *ConnManager) FetchConnPeers() []peer.ID {
 	var peers = make(map[string]peer.ID)
-	for _, conn := range s.host.Network().Conns() {
-		//peers=append(peers,conn.RemotePeer())
-		peers[conn.RemotePeer().Pretty()] = conn.RemotePeer()
-		log.Debug("FetchConnPeers", "ssssstream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().Pretty())
-		if len(peers) >= MaxBounds {
+
+	nearpeers := s.FetchNearestPeers()
+	for _, peer := range nearpeers {
+		if _, ok := peers[peer.Pretty()]; !ok {
+			peers[peer.Pretty()] = peer
+		}
+		if len(peers) >= MaxOutBounds {
 			break
 		}
 	}
 
-	if len(peers) < MinBounds {
-		nearpeers := s.FetchNearestPeers()
-		for _, peer := range nearpeers {
-			if _, ok := peers[peer.Pretty()]; !ok {
-				peers[peer.Pretty()] = peer
-			}
-			if len(peers) >= MaxOutBounds {
-				break
-			}
+	for _, conn := range s.host.Network().Conns() {
+		peers[conn.RemotePeer().Pretty()] = conn.RemotePeer()
+		//log.Debug("FetchConnPeers", "stream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().Pretty())
+		if len(peers) >= MaxBounds {
+			break
 		}
-
 	}
 
 	return s.convertMapToArr(peers)

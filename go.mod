@@ -27,11 +27,13 @@ require (
 	github.com/influxdata/influxdb v1.7.9
 	github.com/ipfs/go-datastore v0.1.0
 	github.com/libp2p/go-libp2p v0.4.0
+	github.com/libp2p/go-libp2p-circuit v0.1.3
 	github.com/libp2p/go-libp2p-connmgr v0.2.0
 	github.com/libp2p/go-libp2p-core v0.2.5
 	github.com/libp2p/go-libp2p-discovery v0.1.0
 	github.com/libp2p/go-libp2p-kad-dht v0.2.1
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
+	github.com/libp2p/go-libp2p-swarm v0.2.2
 
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mr-tron/base58 v1.1.3
@@ -53,5 +55,6 @@ require (
 	gopkg.in/go-playground/webhooks.v5 v5.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
+	gopkg.in/yaml.v2 v2.2.4 // indirect
 
 )

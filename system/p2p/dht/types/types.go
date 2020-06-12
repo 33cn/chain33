@@ -24,8 +24,16 @@ type P2PSubConfig struct {
 	//引导节点配置
 	BootStraps []string `protobuf:"bytes,8,rep,name=bootStraps" json:"bootStraps,omitempty"`
 	//轻广播本地区块缓存大小, 单位M
-	LtBlockCacheSize int32  `protobuf:"varint,9,opt,name=ltBlockCacheSize" json:"ltBlockCacheSize,omitempty"`
-	DHTDataDriver    string `protobuf:"bytes,10,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
-	DHTDataPath      string `protobuf:"bytes,11,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
-	DHTDataCache     int32  `protobuf:"varint,12,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
+	LtBlockCacheSize int32 `protobuf:"varint,9,opt,name=ltBlockCacheSize" json:"ltBlockCacheSize,omitempty"`
+	//区块轻广播的最低打包交易数, 大于该值时区块内交易采用短哈希广播
+	MinLtBlockTxNum int32 `protobuf:"varint,12,opt,name=minLtBlockTxNum" json:"minLtBlockTxNum,omitempty"`
+	//指定p2p类型, 支持gossip, dht
+	MaxConnnectNum  int32 `protobuf:"varint,13,opt,name=maxConnnectNum" json:"maxConnnectNum,omitempty"`
+	Relay_Active    bool  `protobuf:"varint,15,opt,name=relay_Active" json:"relay_Active,omitempty"`
+	Relay_Hop       bool  `protobuf:"varint,16,opt,name=relay_Hop" json:"relay_Hop,omitempty"`
+	Relay_Discovery bool  `protobuf:"varint,17,opt,name=relay_Discovery" json:"relay_Discovery,omitempty"`
+
+	DHTDataDriver string `protobuf:"bytes,10,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
+	DHTDataPath   string `protobuf:"bytes,11,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
+	DHTDataCache  int32  `protobuf:"varint,12,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
 }
