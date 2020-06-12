@@ -213,7 +213,9 @@ func (p *P2P) StartP2P() {
 
 	go p.managePeers()
 	go p.handleP2PEvent()
-	go p.findLANPeers()
+	if p.chainCfg.IsTestNet() {
+		go p.findLANPeers()
+	}
 
 	protocol.InitAllProtocol(env2)
 	time.Sleep(time.Second)
