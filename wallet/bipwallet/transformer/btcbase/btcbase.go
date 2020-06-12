@@ -9,6 +9,7 @@ package btcbase
 import (
 	"crypto/sha256"
 	"fmt"
+	"github.com/33cn/chain33/common/address"
 
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/mr-tron/base58/base58"
@@ -75,8 +76,8 @@ func checksum(input []byte) (cksum [4]byte) {
 //（压缩和非压缩形式的公钥生成的地址是不同的，但都是合法的）
 func (t btcBaseTransformer) PubKeyToAddress(pub []byte) (addr string, err error) {
 	if len(pub) != 33 && len(pub) != 65 { //压缩格式 与 非压缩格式
-		return "", fmt.Errorf("invalid public key byte")
-
+		//return "", fmt.Errorf("invalid public key byte:%v", len(pub))
+		return address.PubKeyToAddr(pub), nil
 	}
 
 	sha256h := sha256.New()

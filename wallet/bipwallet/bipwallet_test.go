@@ -18,6 +18,14 @@ var (
 	sm2Addr       = "1QEqU8FdqtEGX96tBocaDmicMwEgBu88fH"
 )
 
+func TestNewMnemonicString(t *testing.T) {
+	mne, err := NewMnemonicString(1, 128)
+	assert.Nil(t, err)
+	t.Log(mne)
+	mne, err = NewMnemonicString(0, 128)
+	assert.Nil(t, err)
+	t.Log(mne)
+}
 func TestEd25519PrivPub(t *testing.T) {
 	wallet, err := NewWalletFromMnemonic(TypeYcc, types.ED25519, mnem)
 	assert.Nil(t, err)
@@ -30,6 +38,9 @@ func TestEd25519PrivPub(t *testing.T) {
 	addr, err := PubToAddress(pub)
 	assert.Nil(t, err)
 	assert.Equal(t, addr, ed25519Addr)
+	naddr, err := wallet.NewAddress(0)
+	assert.Nil(t, err)
+	assert.Equal(t, addr, naddr)
 	tpub, err := PrivkeyToPub(TypeYcc, types.ED25519, priv)
 	assert.Nil(t, err)
 	assert.Equal(t, tpub, pub)
@@ -47,6 +58,10 @@ func TestSecp256k1PrivPub(t *testing.T) {
 	addr, err := PubToAddress(pub)
 	assert.Nil(t, err)
 	assert.Equal(t, addr, secp256k1Addr)
+	naddr, err := wallet.NewAddress(0)
+	assert.Nil(t, err)
+	assert.Equal(t, addr, naddr)
+
 	tpub, err := PrivkeyToPub(TypeYcc, types.SECP256K1, priv)
 	assert.Nil(t, err)
 	assert.Equal(t, tpub, pub)
@@ -64,6 +79,10 @@ func TestSm2PrivPub(t *testing.T) {
 	addr, err := PubToAddress(pub)
 	assert.Nil(t, err)
 	assert.Equal(t, sm2Addr, addr)
+	naddr, err := wallet.NewAddress(0)
+	assert.Nil(t, err)
+	assert.Equal(t, addr, naddr)
+
 	tpub, err := PrivkeyToPub(TypeYcc, types.SM2, priv)
 	assert.Nil(t, err)
 	assert.Equal(t, tpub, pub)
