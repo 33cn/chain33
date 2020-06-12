@@ -1007,10 +1007,6 @@ func TestInitSeedLibrary(t *testing.T) {
 	_, err = GetPrivkeyBySeed(wallet.walletStore.GetDB(), replySeed.Seed, 10000, 50, wallet.CoinType)
 	assert.Equal(t, err, types.ErrNotSupport)
 
-	//ycc cointype
-	cointype := wallet.CoinType("ycc")
-	assert.Equal(t, cointype, bipwallet.TypeYcc)
-
 	acc, err := wallet.GetBalance("1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6", "token")
 	require.NoError(t, err)
 	assert.Equal(t, acc.Addr, "1JzFKyrvSP5xWUkCMapUvrKDChgPDX1EN6")
