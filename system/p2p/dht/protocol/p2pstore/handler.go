@@ -20,8 +20,10 @@ import (
 var log = log15.New("module", "protocol.p2pstore")
 
 type Protocol struct {
-	*protocol.P2PEnv //协议共享接口变量
+	//协议共享接口变量
+	*protocol.P2PEnv
 
+	//已经收到保存通知，但尚未完成存储的hash，避免收到重复的hash后的重复操作
 	notifying sync.Map
 
 	//普通路由表的一个子表，仅包含接近同步完成的节点

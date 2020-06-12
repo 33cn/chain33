@@ -30,5 +30,5 @@ var (
 	//RefreshInterval      = time.Hour * 1
 	ExpiredTime          = time.Minute * 30
 	RefreshInterval      = time.Minute * 10
-	CheckHealthyInterval = time.Minute * 10
+	CheckHealthyInterval = time.Minute * 5
 )

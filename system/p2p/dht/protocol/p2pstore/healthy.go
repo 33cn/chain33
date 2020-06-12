@@ -21,8 +21,12 @@ func (p *Protocol) startUpdateHealthyRoutingTable() {
 		add(id)
 		_ = p.checkPeerHealth(id)
 	}
-	time.Sleep(time.Second * 1)
-	p.updateHealthyRoutingTable()
+
+	for i := 0; i < 3; i++ { //completely update healthy routing table at the start
+		time.Sleep(time.Second * 1)
+		p.updateHealthyRoutingTable()
+	}
+
 	for range time.Tick(types2.CheckHealthyInterval) {
 		p.updateHealthyRoutingTable()
 	}
