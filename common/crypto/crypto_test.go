@@ -5,6 +5,7 @@
 package crypto_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -222,4 +223,33 @@ func (d democrypto) VerifyAggregatedOne(pubs []crypto.PubKey, m []byte, sig cryp
 }
 func (d democrypto) VerifyAggregatedN(pubs []crypto.PubKey, ms [][]byte, sig crypto.Signature) error {
 	return nil
+}
+
+type democryptoCGO struct {
+	democrypto
+}
+
+func (d democryptoCGO) GenKey() (crypto.PrivKey, error) {
+	return nil, errors.New("testCGO")
+}
+
+func TestRegister(t *testing.T) {
+	c, err := crypto.New("secp256k1")
+	if err != nil {
+		panic(err)
+	}
+	p, err := c.GenKey()
+	assert.Nil(t, err)
+	assert.NotNil(t, p)
+	crypto.Register("secp256k1", democryptoCGO{}, true)
+	crypto.RegisterType("secp256k1", 1)
+	assert.Panics(t, func() { crypto.RegisterType("secp256k1_cgo", 1) })
+	assert.Panics(t, func() { crypto.RegisterType("secp256k1", 2) })
+	c, err = crypto.New("secp256k1")
+	if err != nil {
+		panic(err)
+	}
+	p, err = c.GenKey()
+	assert.Nil(t, p)
+	assert.Equal(t, errors.New("testCGO"), err)
 }
