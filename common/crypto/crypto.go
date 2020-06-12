@@ -121,10 +121,11 @@ func New(name string) (c Crypto, err error) {
 
 	//优先使用性能更好的cgo版本
 	c, ok := driversCGO[name]
-	//不存在cgo, 加载普通版本
-	if !ok {
-		c, ok = drivers[name]
+	if ok {
+		return c, nil
 	}
+	//不存在cgo, 加载普通版本
+	c, ok = drivers[name]
 	if !ok {
 		err = fmt.Errorf("unknown driver %q", name)
 	}
