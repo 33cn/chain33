@@ -44,6 +44,8 @@ batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
 enableTxQuickIndex=true
+txHeight=true
+
 # 使能精简localdb
 enableReduceLocaldb=false
 # 关闭分片存储,默认false为开启分片存储;平行链不需要分片需要修改此默认参数为true
@@ -54,7 +56,8 @@ chunkblockNum=1000
 enableFetchP2pstore=false
 # 使能假设已删除已归档数据后,获取数据情况
 enableIfDelLocalChunk=false
-enablePushSubscribe=false
+
+enablePushSubscribe=true
 
 [p2p]
 enable=false

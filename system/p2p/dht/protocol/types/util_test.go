@@ -109,7 +109,7 @@ func TestStream(t *testing.T) {
 	CloseStream(stream)
 }
 
-// BenchmarkNewStream-8   	   20000	     68432 ns/op
+// BenchmarkNewStream-8       50000             33760 ns/op
 func BenchmarkNewStream(b *testing.B) {
 
 	h1, h2 := newHostPair(13804, 13805)
@@ -124,7 +124,10 @@ func BenchmarkNewStream(b *testing.B) {
 	assert.Nil(b, err)
 	proto := &testProtocol{}
 	proto.P2PEnv = &P2PEnv{Host: h1}
-	for i := 0; i < b.N; i++ {
-		NewStream(h1, h2.ID(), msgID)
-	}
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			NewStream(h1, h2.ID(), msgID)
+		}
+	})
 }

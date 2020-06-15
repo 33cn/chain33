@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/init"
 	"github.com/stretchr/testify/assert"
@@ -109,6 +111,11 @@ func BenchmarkExecAddress(b *testing.B) {
 }
 
 func TestExecPubKey(t *testing.T) {
-	pubkey := ExecPubKey("test")
-	assert.True(t, len(pubkey) == 32)
+	execPubKeyCache, _ = lru.New(10)
+	pub := ExecPubKey("test")
+	ExecPubKey("test2")
+	cachePub := ExecPubKey("test")
+	assert.True(t, len(pub) == 32)
+	assert.Equal(t, 2, execPubKeyCache.Len())
+	assert.Equal(t, pub, cachePub)
 }

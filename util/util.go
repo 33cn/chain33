@@ -108,6 +108,29 @@ func CreateNoneTx(cfg *types.Chain33Config, priv crypto.PrivKey) *types.Transact
 	return CreateTxWithExecer(cfg, priv, "none")
 }
 
+func updateExpireWithTxHeight(tx *types.Transaction, priv crypto.PrivKey, currHeight int64) {
+	tx.Expire = currHeight + types.LowAllowPackHeight + types.TxHeightFlag
+	if priv != nil {
+		tx.Sign(types.SECP256K1, priv)
+	}
+}
+
+// CreateCoinsTxWithTxHeight 使用txHeight作为交易过期
+func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, currHeight int64) *types.Transaction {
+
+	tx := CreateCoinsTx(cfg, nil, to, amount)
+	updateExpireWithTxHeight(tx, priv, currHeight)
+	return tx
+}
+
+// // CreateNoneTxWithTxHeight 使用txHeight作为交易过期
+func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) *types.Transaction {
+
+	tx := CreateNoneTx(cfg, nil)
+	updateExpireWithTxHeight(tx, priv, currHeight)
+	return tx
+}
+
 // CreateTxWithExecer ： Create Tx With Execer
 func CreateTxWithExecer(cfg *types.Chain33Config, priv crypto.PrivKey, execer string) *types.Transaction {
 	if execer == "coins" {
@@ -258,100 +281,111 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
+	config := client.GetConfig()
+	dupErrChan := make(chan error, 1)
+	cacheTxs := types.TxsToCache(block.Txs)
 	beg := types.Now()
-	if errReturn && block.Height > 0 && !block.CheckSign(client.GetConfig()) {
+	//check sign routine
+	if errReturn && block.Height > 0 && !block.CheckSign(config) {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
 	}
-	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
-	cacheTxs := types.TxsToCache(block.Txs)
-	oldtxscount := len(cacheTxs)
-	var err error
-	cacheTxs, err = CheckTxDup(client, cacheTxs, block.Height)
-	if err != nil {
-		return nil, nil, err
-	}
-	ulog.Debug("PreExecBlock", "CheckTxDup", types.Since(beg))
+	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "CheckSign", types.Since(beg))
+
+	//check dup routine
+	go func() {
+		beg := types.Now()
+		defer func() {
+			ulog.Debug("PreExecBlock", "height", block.GetHeight(), "CheckTxDup", types.Since(beg))
+		}()
+		//check tx Duplicate
+		var err error
+		cacheTxs, err = CheckTxDup(client, cacheTxs, block.Height)
+		if err != nil {
+			dupErrChan <- err
+			return
+		}
+		ulog.Debug("PreExecBlock", "prevtx", len(block.Txs), "newtx", len(cacheTxs))
+		if len(block.Txs) != len(cacheTxs) && errReturn {
+			dupErrChan <- types.ErrTxDup
+			return
+		}
+		dupErrChan <- nil
+	}()
+
+	// exec tx routine
 	beg = types.Now()
-	newtxscount := len(cacheTxs)
-	if oldtxscount != newtxscount && errReturn {
-		return nil, nil, types.ErrTxDup
-	}
-	ulog.Debug("PreExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
-	block.Txs = types.CacheToTxs(cacheTxs)
-	//println("1")
+	//对区块的正确性保持乐观，在检测结束前先执行，达到并行执行目的
 	receipts, err := ExecTx(client, prevStateRoot, block)
+	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "ExecTx", types.Since(beg))
+	beg = types.Now()
+
+	//检查交易查重结果
+	if dupErr := <-dupErrChan; dupErr != nil {
+		ulog.Error("PreExecBlock", "height", block.GetHeight(), "CheckDupErr", dupErr)
+		return nil, nil, dupErr
+	}
+	//有重复交易， 需要重新赋值交易内容并执行
+	if len(block.Txs) != len(cacheTxs) {
+		block.Txs = types.CacheToTxs(cacheTxs)
+		receipts, err = ExecTx(client, prevStateRoot, block)
+	}
+	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "WaitDupCheck", types.Since(beg))
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Debug("PreExecBlock", "ExecTx", types.Since(beg))
+
 	beg = types.Now()
 	var kvset []*types.KeyValue
-	var deltxlist = make(map[int]bool)
 	var rdata []*types.ReceiptData //save to db receipt log
-	for i := 0; i < len(receipts.Receipts); i++ {
-		receipt := receipts.Receipts[i]
+	//删除无效的交易
+	var deltxs []*types.Transaction
+	index := 0
+	for i, receipt := range receipts.Receipts {
 		if receipt.Ty == types.ExecErr {
-			ulog.Error("exec tx err", "err", receipt, "txhash", common.ToHex(block.Txs[i].Hash()))
+			errTx := block.Txs[i]
+			ulog.Error("exec tx err", "err", receipt, "txhash", common.ToHex(errTx.Hash()))
 			if errReturn { //认为这个是一个错误的区块
 				return nil, nil, types.ErrBlockExec
 			}
-			deltxlist[i] = true
+			deltxs = append(deltxs, errTx)
 			continue
 		}
+		block.Txs[index] = block.Txs[i]
+		cacheTxs[index] = cacheTxs[i]
+		index++
 		rdata = append(rdata, &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs})
 		kvset = append(kvset, receipt.KV...)
 	}
-	kvset = DelDupKey(kvset)
-	//删除无效的交易
-	var deltx []*types.Transaction
-	if len(deltxlist) > 0 {
-		index := 0
-		for i := 0; i < len(block.Txs); i++ {
-			if deltxlist[i] {
-				deltx = append(deltx, block.Txs[i])
-				continue
-			}
-			block.Txs[index] = block.Txs[i]
-			cacheTxs[index] = cacheTxs[i]
-			index++
-		}
-		block.Txs = block.Txs[0:index]
-		cacheTxs = cacheTxs[0:index]
-	}
-	//交易有执行不成功的，报错(TxHash一定不同)
-	if len(deltx) > 0 && errReturn {
-		return nil, nil, types.ErrCheckTxHash
-	}
-	//检查block的txhash值
-	var calcHash []byte
-	cfg := client.GetConfig()
-	height := block.Height
+	block.Txs = block.Txs[:index]
+	cacheTxs = cacheTxs[:index]
 
+	//检查block的txhash值
+	var txHash []byte
+	height := block.Height
 	//此时需要区分主链和平行链
-	if cfg.IsPara() {
+	if config.IsPara() {
 		height = block.MainHeight
 	}
-	if !cfg.IsFork(height, "ForkRootHash") {
-		calcHash = merkle.CalcMerkleRootCache(cacheTxs)
+	if !config.IsFork(height, "ForkRootHash") {
+		txHash = merkle.CalcMerkleRootCache(cacheTxs)
 	} else {
-		temtxs := types.TransactionSort(block.Txs)
-		calcHash = merkle.CalcMerkleRoot(cfg, height, temtxs)
+		txHash = merkle.CalcMerkleRoot(config, height, types.TransactionSort(block.Txs))
 	}
-	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
+	if errReturn && !bytes.Equal(txHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}
+	block.TxHash = txHash
 	ulog.Debug("PreExecBlock", "CalcMerkleRootCache", types.Since(beg))
 	beg = types.Now()
-	block.TxHash = calcHash
-	var detail types.BlockDetail
-	calcHash, err = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync, false)
+	kvset = DelDupKey(kvset)
+	stateHash, err := ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync, false)
 	if err != nil {
 		return nil, nil, err
 	}
 	//println("2")
-	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
-		err = ExecKVSetRollback(client, calcHash)
+	if errReturn && !bytes.Equal(block.StateHash, stateHash) {
+		err = ExecKVSetRollback(client, stateHash)
 		if err != nil {
 			ulog.Error("PreExecBlock-->ExecKVSetRollback", "err", err)
 		}
@@ -362,13 +396,14 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 		}
 		return nil, nil, types.ErrCheckStateHash
 	}
-	block.StateHash = calcHash
+	block.StateHash = stateHash
+	var detail types.BlockDetail
 	detail.Block = block
 	detail.Receipts = rdata
 	if detail.Block.Height > 0 && checkblock {
 		err := CheckBlock(client, &detail)
 		if err != nil {
-			ulog.Debug("CheckBlock-->", "err", err)
+			ulog.Error("PreExecBlock", "height", block.GetHeight(), "checkBlockErr", err)
 			return nil, nil, err
 		}
 	}
@@ -376,7 +411,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 
 	detail.KV = kvset
 	detail.PrevStatusHash = prevStateRoot
-	return &detail, deltx, nil
+	return &detail, deltxs, nil
 }
 
 // ExecBlockUpgrade : just exec block

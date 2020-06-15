@@ -154,7 +154,7 @@ func testCreateTxCoins(t *testing.T, cfg *types.Chain33Config, jsonClient *jsonc
 }
 
 func TestGrpc_Call(t *testing.T) {
-	rpcCfg = new(types.RPC)
+	rpcCfg := new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}

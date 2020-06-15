@@ -8,24 +8,15 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-
-	"github.com/33cn/chain33/wallet/bipwallet"
-	//	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
-
-	//	"math/big"
 	"strings"
 
-	log "github.com/33cn/chain33/common/log/log15"
-	sccrypto "github.com/NebulousLabs/Sia/crypto"
-	"github.com/NebulousLabs/Sia/modules"
-
-	//	"github.com/piotrnar/gocoin/lib/btc"
-	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/crypto"
 	dbm "github.com/33cn/chain33/common/db"
+	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/wallet/bipwallet"
 )
 
 var (
@@ -77,9 +68,9 @@ func InitSeedLibrary() {
 }
 
 // VerifySeed 校验输入的seed字符串数是否合法，通过助记词能否生成钱包来判断合法性
-func VerifySeed(seed string) (bool, error) {
+func VerifySeed(seed string, signType int, coinType uint32) (bool, error) {
 
-	_, err := bipwallet.NewWalletFromMnemonic(bipwallet.TypeBty, seed)
+	_, err := bipwallet.NewWalletFromMnemonic(coinType, uint32(signType), seed)
 	if err != nil {
 		seedlog.Error("VerifySeed NewWalletFromMnemonic", "err", err)
 		return false, err
@@ -124,12 +115,12 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 }
 
 //GetPrivkeyBySeed 通过seed生成子私钥十六进制字符串
-func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32, signType int) (string, error) {
+func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32, SignType int, coinType uint32) (string, error) {
 	var backupindex uint32
 	var Hexsubprivkey string
 	var err error
 	var index uint32
-
+	signType := uint32(SignType)
 	//通过主私钥随机生成child私钥十六进制字符串
 	if specificIndex == 0 {
 		backuppubkeyindex, err := db.Get([]byte(BACKUPKEYINDEX))
@@ -144,57 +135,40 @@ func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32, signType int
 	} else {
 		index = specificIndex
 	}
-	if signType != 1 && signType != 2 {
+	cryptoName := crypto.GetName(SignType)
+	if cryptoName == "unknown" {
 		return "", types.ErrNotSupport
 	}
-	//secp256k1
-	if signType == 1 {
 
-		wallet, err := bipwallet.NewWalletFromMnemonic(bipwallet.TypeBty, seed)
+	wallet, err := bipwallet.NewWalletFromMnemonic(coinType, signType, seed)
+	if err != nil {
+		seedlog.Error("GetPrivkeyBySeed NewWalletFromMnemonic", "err", err)
+		wallet, err = bipwallet.NewWalletFromSeed(coinType, signType, []byte(seed))
 		if err != nil {
-			seedlog.Error("GetPrivkeyBySeed NewWalletFromMnemonic", "err", err)
-			wallet, err = bipwallet.NewWalletFromSeed(bipwallet.TypeBty, []byte(seed))
-			if err != nil {
-				seedlog.Error("GetPrivkeyBySeed NewWalletFromSeed", "err", err)
-				return "", types.ErrNewWalletFromSeed
-			}
+			seedlog.Error("GetPrivkeyBySeed NewWalletFromSeed", "err", err)
+			return "", types.ErrNewWalletFromSeed
 		}
-
-		//通过索引生成Key pair
-		priv, pub, err := wallet.NewKeyPair(index)
-		if err != nil {
-			seedlog.Error("GetPrivkeyBySeed NewKeyPair", "err", err)
-			return "", types.ErrNewKeyPair
-		}
-
-		Hexsubprivkey = hex.EncodeToString(priv)
-
-		public, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, priv)
-		if err != nil {
-			seedlog.Error("GetPrivkeyBySeed PrivkeyToPub", "err", err)
-			return "", types.ErrPrivkeyToPub
-		}
-		if !bytes.Equal(pub, public) {
-			seedlog.Error("GetPrivkeyBySeed NewKeyPair pub  != PrivkeyToPub", "err", err)
-			return "", types.ErrSubPubKeyVerifyFail
-		}
-
-	} else if signType == 2 { //ed25519
-
-		//通过助记词形式的seed生成私钥和公钥,一个seed根据不同的index可以生成许多组密钥
-		//字符串形式的助记词(英语单词)通过计算一次hash转成字节形式的seed
-
-		var Seed modules.Seed
-		hash := common.Sha256([]byte(seed))
-
-		copy(Seed[:], hash)
-		sk, _ := sccrypto.GenerateKeyPairDeterministic(sccrypto.HashAll(Seed, index))
-		secretKey := fmt.Sprintf("%x", sk)
-		//publicKey := fmt.Sprintf("%x", pk)
-		//seedlog.Error("GetPrivkeyBySeed", "index", index, "secretKey", secretKey, "publicKey", publicKey)
-
-		Hexsubprivkey = secretKey
 	}
+
+	//通过索引生成Key pair
+	priv, pub, err := wallet.NewKeyPair(index)
+	if err != nil {
+		seedlog.Error("GetPrivkeyBySeed NewKeyPair", "err", err)
+		return "", types.ErrNewKeyPair
+	}
+
+	Hexsubprivkey = hex.EncodeToString(priv)
+
+	public, err := bipwallet.PrivkeyToPub(coinType, signType, priv)
+	if err != nil {
+		seedlog.Error("GetPrivkeyBySeed PrivkeyToPub", "err", err)
+		return "", types.ErrPrivkeyToPub
+	}
+	if !bytes.Equal(pub, public) {
+		seedlog.Error("GetPrivkeyBySeed NewKeyPair pub  != PrivkeyToPub", "err", err)
+		return "", types.ErrSubPubKeyVerifyFail
+	}
+
 	// back up index in db
 	if specificIndex == 0 {
 		var pubkeyindex []byte
@@ -264,4 +238,12 @@ func AesgcmDecrypter(password []byte, seed []byte) ([]byte, error) {
 	}
 	//seedlog.Info("AesgcmDecrypter", "password", string(password), "seed", seed, "decryptered", string(decryptered))
 	return decryptered, nil
+}
+
+//CoinType 通过coinname获取对应的cointype值
+func CoinType(name string) uint32 {
+	if name == types.CoinTypeYcc {
+		return bipwallet.TypeYcc
+	}
+	return bipwallet.TypeBty
 }

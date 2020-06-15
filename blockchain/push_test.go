@@ -13,7 +13,6 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/consensus"
 	"github.com/33cn/chain33/executor"
 	"github.com/33cn/chain33/mempool"
@@ -146,36 +145,24 @@ func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error
 	}
 }
 
-func setupBlockChain() *BlockChain {
-	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	q := queue.New("channel")
-	q.SetConfig(cfg)
-	blockChain := &BlockChain{}
-	goMemDB, _ := db.NewGoMemDB("", "", 0)
-	blockChain.client = q.Client()
-	blockChain.blockStore = NewBlockStore(blockChain, goMemDB, q.Client())
-	return blockChain
-}
-
 func Test_procSubscribePush_pushSupport(t *testing.T) {
-	chain := setupBlockChain()
+	chain, mock33 := createBlockChainWithFalgSet(t, false, false)
+	defer mock33.Close()
 	subscribe := new(types.PushSubscribeReq)
 	err := chain.procSubscribePush(subscribe)
-	assert.Equal(t, err, types.ErrPushNotSupport)
+	assert.Equal(t, types.ErrPushNotSupport, err)
 }
 
 func Test_procSubscribePush_nilParacheck(t *testing.T) {
-	chain := setupBlockChain()
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
+	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	err := chain.procSubscribePush(nil)
 	assert.Equal(t, err, types.ErrInvalidParam)
 }
 
 func Test_addSubscriber_Paracheck(t *testing.T) {
-	chain := setupBlockChain()
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
+	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.LastSequence = 1
@@ -184,9 +171,8 @@ func Test_addSubscriber_Paracheck(t *testing.T) {
 }
 
 func Test_addSubscriber_conflictPara(t *testing.T) {
-	chain := setupBlockChain()
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
+	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.LastSequence = 1
@@ -195,9 +181,8 @@ func Test_addSubscriber_conflictPara(t *testing.T) {
 }
 
 func Test_addSubscriber_InvalidURL(t *testing.T) {
-	chain := setupBlockChain()
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
+	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
@@ -207,9 +192,8 @@ func Test_addSubscriber_InvalidURL(t *testing.T) {
 }
 
 func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
-	chain := setupBlockChain()
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
+	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
@@ -225,9 +209,8 @@ func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
 }
 
 func Test_addSubscriber_Success(t *testing.T) {
-	chain := setupBlockChain()
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
+	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
@@ -259,8 +242,6 @@ func Test_addSubscriber_Success(t *testing.T) {
 func Test_addSubscriber_WithSeqHashHeight(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	defer mock33.Close()
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 
 	blockSeq, err := chain.blockStore.GetBlockSequence(5)
 	assert.Equal(t, err, nil)
@@ -299,8 +280,6 @@ func Test_addSubscriber_WithSeqHashHeight(t *testing.T) {
 
 func Test_PostBlockFail(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
 	chain.push.postService = ps
@@ -330,28 +309,29 @@ func Test_PostBlockFail(t *testing.T) {
 	mock33.Close()
 }
 
-func Test_GetLastPushSeqFail(t *testing.T) {
-	chain, mock33 := createBlockChain(t)
-	chain.isRecordBlockSequence = false
+func Test_GetLastPushSeqFailDue2RecordBlockSequence(t *testing.T) {
+	chain, mock33 := createBlockChainWithFalgSet(t, false, false)
 	_, err := chain.ProcGetLastPushSeq("test")
 	assert.Equal(t, types.ErrRecordBlockSequence, err)
+	mock33.Close()
+}
 
-	chain.isRecordBlockSequence = true
-	chain.enablePushSubscribe = false
-	_, err = chain.ProcGetLastPushSeq("test")
+func Test_GetLastPushSeqFailDue2enablePushSubscribe(t *testing.T) {
+	chain, mock33 := createBlockChainWithFalgSet(t, true, false)
+	_, err := chain.ProcGetLastPushSeq("test")
 	assert.Equal(t, types.ErrPushNotSupport, err)
-	chain.enablePushSubscribe = true
+	mock33.Close()
+}
 
-	_, err = chain.ProcGetLastPushSeq("test")
+func Test_GetLastPushSeqFailDue2NotSubscribed(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	_, err := chain.ProcGetLastPushSeq("test")
 	assert.Equal(t, types.ErrPushNotSubscribed, err)
-
 	mock33.Close()
 }
 
 func Test_PostDataFail(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
@@ -375,8 +355,6 @@ func Test_PostDataFail(t *testing.T) {
 
 func Test_PostBlockSuccess(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -412,8 +390,6 @@ func Test_PostBlockSuccess(t *testing.T) {
 
 func Test_PostBlockHeaderSuccess(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -446,9 +422,6 @@ func Test_PostBlockHeaderSuccess(t *testing.T) {
 func Test_PostTxReceipt(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
-
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -474,9 +447,6 @@ func Test_PostTxReceipt(t *testing.T) {
 
 func Test_AddPush_reachMaxNum(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -507,9 +477,6 @@ func Test_AddPush_reachMaxNum(t *testing.T) {
 
 func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -553,9 +520,6 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 
 func Test_rmPushFailTask(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 	chain.push.postFail2Sleep = int32(1)
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
@@ -592,8 +556,6 @@ func Test_rmPushFailTask(t *testing.T) {
 //推送失败之后能够重新激活并成功推送
 func Test_ReactivePush(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -646,8 +608,6 @@ func Test_ReactivePush(t *testing.T) {
 //
 func Test_RecoverPush(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-	chain.enablePushSubscribe = true
-	chain.isRecordBlockSequence = true
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -703,6 +663,13 @@ func NewChain33Mock(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Moc
 	return newWithConfigNoLock(cfg, mockapi)
 }
 
+func NewChain33MockWithFlag(cfgpath string, mockapi client.QueueProtocolAPI, isRecordBlockSequence, enablePushSubscribe bool) *Chain33Mock {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	cfg.GetModuleConfig().BlockChain.IsRecordBlockSequence = isRecordBlockSequence
+	cfg.GetModuleConfig().BlockChain.EnablePushSubscribe = enablePushSubscribe
+	return newWithConfigNoLock(cfg, mockapi)
+}
+
 func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	mfg := cfg.GetModuleConfig()
 	sub := cfg.GetSubConfig()
@@ -719,7 +686,6 @@ func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolA
 	mock.store = store.New(cfg)
 	mock.store.SetQueueClient(q.Client())
 
-	cfg.GetModuleConfig().BlockChain.EnablePushSubscribe = true
 	mock.chain = New(cfg)
 	mock.chain.SetQueueClient(q.Client())
 
@@ -802,6 +768,16 @@ func createBlocks(t *testing.T, mock33 *Chain33Mock, blockchain *BlockChain, num
 
 func createBlockChain(t *testing.T) (*BlockChain, *Chain33Mock) {
 	mock33 := NewChain33Mock("", nil)
+
+	//cfg := mock33.GetClient().GetConfig()
+	blockchain := mock33.GetBlockChain()
+	//等待共识模块增长10个区块
+	createBlocks(t, mock33, blockchain, 10)
+	return blockchain, mock33
+}
+
+func createBlockChainWithFalgSet(t *testing.T, isRecordBlockSequence, enablePushSubscribe bool) (*BlockChain, *Chain33Mock) {
+	mock33 := NewChain33MockWithFlag("", nil, isRecordBlockSequence, enablePushSubscribe)
 
 	//cfg := mock33.GetClient().GetConfig()
 	blockchain := mock33.GetBlockChain()

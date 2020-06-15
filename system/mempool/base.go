@@ -131,7 +131,7 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
 	mem.cache.Walk(int(count), func(tx *Item) bool {
-		if dupMap != nil {
+		if len(dupMap) > 0 {
 			if _, ok := dupMap[string(tx.Value.Hash())]; ok {
 				return true
 			}

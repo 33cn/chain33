@@ -94,10 +94,12 @@ message Transaction {
     //随机ID，可以防止payload 相同的时候，交易重复
     int64 nonce = 6;
     //对方地址，如果没有对方地址，可以为空
-    string to         = 7;
-    int32  groupCount = 8;
-    bytes  header     = 9;
-    bytes  next       = 10;
+    string to            = 7;
+    int32  groupCount    = 8;
+    bytes  header        = 9;
+    bytes  next          = 10;
+    bytes  hashCache     = 11;
+    bytes  fullHashCache = 12;
 }
 
 message Transactions {

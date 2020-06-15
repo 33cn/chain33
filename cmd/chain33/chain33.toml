@@ -53,6 +53,7 @@ enableTxQuickIndex=false
 enableReExecLocal=false
 # 使能精简localdb
 enableReduceLocaldb=true
+
 # 关闭分片存储,默认false为开启分片存储;平行链不需要分片需要修改此默认参数为true
 disableShard=false
 # 分片存储中每个大块包含的区块数
@@ -257,6 +258,8 @@ dbPath="wallet"
 dbCache=16
 # 钱包发送交易签名方式
 signType="secp256k1"
+# 钱包生成账户币种类型
+coinType="bty"
 
 [wallet.sub.ticket]
 # 是否关闭ticket自动挖矿，默认false

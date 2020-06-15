@@ -391,13 +391,15 @@ type funcProcess func(msg *queue.Message)
 
 func (chain *BlockChain) processMsg(msg *queue.Message, reqnum chan struct{}, cb funcProcess) {
 	beg := types.Now()
+	//NOTE: 由于部分msg做了内存回收处理，业务逻辑处理后不能对msg进行引用访问， 相关数据提前保存
+	ty := msg.Ty
 	defer func() {
 		<-reqnum
 		atomic.AddInt32(&chain.runcount, -1)
-		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(ty)))
 		if r := recover(); r != nil {
-			chainlog.Error("panic error", "err", r)
-			msg.Reply(chain.client.NewMessage("", msg.Ty, fmt.Errorf("%s:%v", types.ErrExecPanic.Error(), r)))
+			chainlog.Error("blockchain panic error", "err", r)
+			msg.Reply(chain.client.NewMessage("", ty, fmt.Errorf("%s:%v", types.ErrExecPanic.Error(), r)))
 			return
 		}
 	}()
