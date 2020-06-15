@@ -54,7 +54,8 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
-	c := e.loadDriver(&types.Transaction{Execer: execdriver}, index)
+	//loadDriver，对当前交易的driver做了缓存，并基于index进行判断，这里实际上构造了新的交易，不能再传入相同的index
+	c := e.loadDriver(&types.Transaction{Execer: execdriver}, -1)
 	//交给 -> friend 来判定
 	return c.IsFriend(execdriver, key, tx)
 }
