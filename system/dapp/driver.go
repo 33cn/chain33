@@ -37,6 +37,7 @@ const (
 // Driver defines some interface
 type Driver interface {
 	SetStateDB(dbm.KV)
+	SetCoinsAccount(*account.DB)
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
 	//当前交易执行器名称
@@ -471,6 +472,10 @@ func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 // CheckSignatureData check signature data
 func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 	return true
+}
+
+func (d *DriverBase) SetCoinsAccount(acc *account.DB) {
+	d.coinsaccount = acc
 }
 
 // GetCoinsAccount get coins account

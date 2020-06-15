@@ -44,6 +44,7 @@ batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
 enableTxQuickIndex=true
+txHeight=true
 # 使能精简localdb
 enableReduceLocaldb=false
 # 关闭分片存储,默认false为开启分片存储;平行链不需要分片需要修改此默认参数为true

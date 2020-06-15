@@ -34,6 +34,7 @@ type subConfig struct {
 	Genesis          string `json:"genesis"`
 	GenesisBlockTime int64  `json:"genesisBlockTime"`
 	WaitTxMs         int64  `json:"waitTxMs"`
+	BenchMode        bool   `json:"benchMode"`
 }
 
 //New new
@@ -108,19 +109,16 @@ func (client *Client) CreateBlock() {
 			time.Sleep(client.sleepTime)
 		}
 		lastBlock := client.GetCurrentBlock()
-		txs := client.RequestTx(int(cfg.GetP(lastBlock.Height+1).MaxTxNumber), nil)
-		if len(txs) == 0 {
+		maxTxNum := int(cfg.GetP(lastBlock.Height + 1).MaxTxNumber)
+		txs := client.RequestTx(maxTxNum, nil)
+		// 为方便测试，设定基准测试模式，每个块交易数保持恒定，为配置的最大交易数
+		if len(txs) == 0 || (client.subcfg.BenchMode && len(txs) < maxTxNum) {
+			log.Debug("======SoloWaitMoreTxs======", "currTxNum", len(txs))
 			issleep = true
 			continue
 		}
 		issleep = false
-		//check dup
-		txs = client.CheckTxDup(txs)
-		//没有交易时不出块
-		if len(txs) == 0 {
-			issleep = true
-			continue
-		}
+
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash(cfg)
 		newblock.Height = lastBlock.Height + 1

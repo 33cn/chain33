@@ -277,6 +277,11 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		return types.ErrInvalidParam
 	}
 
+	if subscribe.Type != PushBlock && subscribe.Type != PushBlockHeader && subscribe.Type != PushTxReceipt {
+		chainlog.Error("addSubscriber input type is error", "type", subscribe.Type)
+		return types.ErrInvalidParam
+	}
+
 	//如果需要配置起始的块的信息，则为了保持一致性，三项缺一不可
 	if subscribe.LastBlockHash != "" || subscribe.LastSequence != 0 || subscribe.LastHeight != 0 {
 		if subscribe.LastBlockHash == "" || subscribe.LastSequence == 0 || subscribe.LastHeight == 0 {

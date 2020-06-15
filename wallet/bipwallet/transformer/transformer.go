@@ -12,7 +12,7 @@ import (
 
 // Transformer 过私钥生成所选币种的公钥和地址
 type Transformer interface {
-	PrivKeyToPub(priv []byte) (pub []byte, err error)
+	PrivKeyToPub(keyTy uint32, priv []byte) (pub []byte, err error)
 	PubKeyToAddress(pub []byte) (add string, err error)
 }
 

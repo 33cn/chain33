@@ -27,14 +27,14 @@ func TestLocalDBRollback(t *testing.T) {
 	assert.Equal(t, err, types.ErrNotSetInTransaction)
 
 	//set in transaction
-	id, err := api.LocalNew(nil)
+	id, err := api.LocalNew(false)
 	assert.Nil(t, err)
 	assert.True(t, id.Data > 0)
 
 	err = api.LocalClose(id)
 	assert.Nil(t, err)
 
-	id, err = api.LocalNew(nil)
+	id, err = api.LocalNew(false)
 	assert.Nil(t, err)
 	assert.True(t, id.Data > 0)
 
@@ -123,7 +123,7 @@ func TestLocalDBCommit(t *testing.T) {
 	assert.Equal(t, err, types.ErrNotSetInTransaction)
 
 	//set in transaction
-	id, err := api.LocalNew(nil)
+	id, err := api.LocalNew(false)
 	assert.Nil(t, err)
 	assert.True(t, id.Data > 0)
 

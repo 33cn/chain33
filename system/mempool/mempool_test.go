@@ -9,6 +9,8 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/33cn/chain33/util"
+
 	"github.com/golang/protobuf/proto"
 
 	"github.com/33cn/chain33/blockchain"
@@ -1237,5 +1239,29 @@ func TestEventTxListByHash(t *testing.T) {
 		if hashes[i] != string(tx.Hash()) {
 			t.Error("TestEventTxListByHash:shash mismatch")
 		}
+	}
+}
+
+//BenchmarkGetTxList-8   	    1000	   1631315 ns/op
+func BenchmarkGetTxList(b *testing.B) {
+
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	txNum := 10000
+	subConfig := SubConfig{int64(txNum), mem.cfg.MinTxFeeRate}
+	mem.SetQueueCache(NewSimpleQueue(subConfig))
+	mem.cache.AccountTxIndex.maxperaccount = txNum
+	mem.cache.SHashTxCache.max = txNum
+	cfg := q.GetConfig()
+	for i := 0; i < txNum; i++ {
+		tx := util.CreateCoinsTx(cfg, privKey, toAddr, int64(i+1))
+		err := mem.PushTx(tx)
+		assert.Nil(b, err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		mem.getTxList(&types.TxHashList{Hashes: nil, Count: int64(txNum)})
 	}
 }

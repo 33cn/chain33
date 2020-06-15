@@ -4,10 +4,13 @@ import (
 	"errors"
 	"time"
 
+	"github.com/33cn/chain33/common"
+
+	"github.com/33cn/chain33/util"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"github.com/33cn/chain33/util"
 )
 
 // CheckExpireValid 检查交易过期有效性，过期返回false，未过期返回true
@@ -36,11 +39,13 @@ func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptC
 		mlog.Error("execs closed", "err", err.Error())
 		return nil, err
 	}
-	msg, err = mem.client.Wait(msg)
+	reply, err := mem.client.Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	return msg.GetData().(*types.ReceiptCheckTxList), nil
+	txList := reply.GetData().(*types.ReceiptCheckTxList)
+	mem.client.FreeMessage(msg, reply)
+	return txList, nil
 }
 
 func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
@@ -86,6 +91,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 	}
 	header := mem.GetHeader()
 	txmsg := msg.GetData().(*types.Transaction)
+	txmsg.ResetCacheHash()
 	//普通的交易
 	tx := types.NewTransactionCache(txmsg)
 	types.AssertConfig(mem.client)
@@ -165,31 +171,33 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 		return msg
 	}
 
-	//exec模块检查交易
-	txlist := &types.ExecTxList{}
-	txlist.Txs = append(txlist.Txs, tx.Tx())
-	txlist.BlockTime = lastheader.BlockTime
-	txlist.Height = lastheader.Height
-	txlist.StateHash = lastheader.StateHash
-	// 增加这个属性，在执行器中会使用到
-	txlist.Difficulty = uint64(lastheader.Difficulty)
-	txlist.IsMempool = true
+	//exec模块检查效率影响系统性能， 支持关闭
+	if !mem.cfg.DisableExecCheck {
+		txlist := &types.ExecTxList{}
+		txlist.Txs = append(txlist.Txs, tx.Tx())
+		txlist.BlockTime = lastheader.BlockTime
+		txlist.Height = lastheader.Height
+		txlist.StateHash = lastheader.StateHash
+		// 增加这个属性，在执行器中会使用到
+		txlist.Difficulty = uint64(lastheader.Difficulty)
+		txlist.IsMempool = true
 
-	result, err := mem.checkTxListRemote(txlist)
-	if err != nil {
-		msg.Data = err
-		return msg
-	}
-	errstr := result.Errs[0]
-	if errstr == "" {
-		err1 := mem.PushTx(txlist.Txs[0])
-		if err1 != nil {
-			mlog.Error("wrong tx", "err", err1)
-			msg.Data = err1
+		result, err := mem.checkTxListRemote(txlist)
+
+		if err == nil && result.Errs[0] != "" {
+			err = errors.New(result.Errs[0])
 		}
-		return msg
+		if err != nil {
+			mlog.Error("checkTxRemote", "txHash", common.ToHex(tx.Tx().Hash()), "checkTxListRemoteErr", err)
+			msg.Data = err
+			return msg
+		}
 	}
-	mlog.Error("wrong tx", "err", errstr)
-	msg.Data = errors.New(errstr)
+
+	err = mem.PushTx(tx.Tx())
+	if err != nil {
+		mlog.Error("checkTxRemote", "push err", err)
+		msg.Data = err
+	}
 	return msg
 }

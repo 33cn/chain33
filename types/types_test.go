@@ -623,3 +623,50 @@ func getRealBlockDetail() *BlockDetail {
 	}
 	return &block
 }
+
+//go test -run=none -bench=2Str -benchmem
+func BenchmarkBytes2Str(b *testing.B) {
+	if testing.Short() {
+		b.Skip("skipping in short mode.")
+	}
+	buf := []byte{1, 2, 4, 8, 16, 32, 64, 128}
+	s := ""
+	b.ResetTimer()
+
+	b.Run("DirectBytes2Str", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			s = string(buf)
+		}
+	})
+
+	b.Run("UnsafeBytes2Str", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			s = Bytes2Str(buf)
+		}
+	})
+
+	assert.Equal(b, string(buf), s)
+}
+
+func BenchmarkStr2Bytes(b *testing.B) {
+	if testing.Short() {
+		b.Skip("skipping in short mode.")
+	}
+	s := "BenchmarkStr2Bytes"
+	var buf []byte
+
+	b.ResetTimer()
+
+	b.Run("DirectStr2Byte", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			buf = []byte(s)
+		}
+	})
+
+	b.Run("UnsafeStr2Byte", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			buf = Str2Bytes(s)
+		}
+	})
+	assert.Equal(b, []byte(s), buf)
+}
