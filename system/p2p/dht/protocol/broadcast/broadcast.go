@@ -137,7 +137,8 @@ func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 	} else {
 		return
 	}
-	protocol.QueueClient.FreeMessage(msg)
+	//目前p2p可能存在多个插件并存，dht和gossip，消息回收容易混乱，需要进一步梳理 TODO：p2p模块热点区域消息回收
+	//protocol.QueueClient.FreeMessage(msg)
 	protocol.broadcast(sendData)
 }
 
