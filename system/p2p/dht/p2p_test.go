@@ -277,10 +277,11 @@ func Test_p2p(t *testing.T) {
 	processMsg(q)
 	p2p := NewP2p(cfg)
 	defer func(path string) {
-		t.Log("remove path", path)
+
 		if err := os.RemoveAll(path); err != nil {
 			log.Error("removeTestDatadir", "err", err)
 		}
+		t.Log("removed path", path)
 	}(datadir)
 	testP2PEvent(t, q.Client())
 	testP2PClose(t, p2p)
