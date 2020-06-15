@@ -311,8 +311,11 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 		driver.SetCurrentExecName(name)
 	}
 	e.setEnv(driver)
-	e.currTxIdx = index
-	e.currDriver = driver
+	//无效index，可能是临时的load driver
+	if index >= 0 {
+		e.currTxIdx = index
+		e.currDriver = driver
+	}
 	return driver
 }
 
