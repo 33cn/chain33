@@ -279,7 +279,7 @@ func Test_p2p(t *testing.T) {
 	defer func(path string) {
 
 		if err := os.RemoveAll(path); err != nil {
-			log.Error("removeTestDatadir", "err", err)
+			log.Error("removeTestDatadir", "err", err.Error())
 		}
 		t.Log("removed path", path)
 	}(datadir)
