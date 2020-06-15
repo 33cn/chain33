@@ -657,3 +657,12 @@ func cloneKVList(b []*KeyValue) []*KeyValue {
 	}
 	return kv
 }
+
+//Hash  计算hash
+func (hashes *ReplyHashes) Hash() []byte {
+	data, err := proto.Marshal(hashes)
+	if err != nil {
+		panic(err)
+	}
+	return common.Sha256(data)
+}

@@ -104,7 +104,18 @@ func (chain *BlockChain) ProcRecvMsg() {
 			//通过区块高度列表+title获取平行链交易
 		case types.EventGetParaTxByTitleAndHeight:
 			go chain.processMsg(msg, reqnum, chain.getParaTxByTitleAndHeight)
-
+			// 获取chunk record
+		case types.EventGetChunkRecord:
+			go chain.processMsg(msg, reqnum, chain.getChunkRecord)
+			// 获取chunk record
+		case types.EventAddChunkRecord:
+			go chain.processMsg(msg, reqnum, chain.addChunkRecord)
+			// 从localdb中获取Chunk BlockBody
+		case types.EventGetChunkBlockBody:
+			go chain.processMsg(msg, reqnum, chain.getChunkBlockBody)
+			// 用于chunk同步区块
+		case types.EventAddChunkBlock:
+			go chain.processMsg(msg, reqnum, chain.addChunkBlock)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -160,7 +171,7 @@ func (chain *BlockChain) addBlock(msg *queue.Message) {
 	reply.IsOk = true
 	blockpid := msg.Data.(*types.BlockPid)
 	//chainlog.Error("addBlock", "height", blockpid.Block.Height, "pid", blockpid.Pid)
-	if chain.GetDownloadSyncStatus() {
+	if chain.GetDownloadSyncStatus() == fastDownLoadMode {
 		err := chain.WriteBlockToDbTemp(blockpid.Block, true)
 		if err != nil {
 			chainlog.Error("WriteBlockToDbTemp", "height", blockpid.Block.Height, "err", err.Error())
@@ -628,6 +639,81 @@ func (chain *BlockChain) getParaTxByTitleAndHeight(msg *queue.Message) {
 		return
 	}
 	msg.Reply(chain.client.NewMessage("", types.EventReplyParaTxByTitle, reply))
+}
+
+// getChunkRecord // 获取当前chunk record
+func (chain *BlockChain) getChunkRecord(msg *queue.Message) {
+	req := (msg.Data).(*types.ReqChunkRecords)
+	reply, err := chain.GetChunkRecord(req)
+	if err != nil {
+		chainlog.Error("getChunkRecord", "req", req, "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+		return
+	}
+	chainlog.Debug("getChunkRecord", "start", req.Start, "end", req.End)
+	msg.Reply(chain.client.NewMessage("", types.EventGetChunkRecord, reply))
+}
+
+// addChunkRecord // 添加chunk record
+func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
+	req := (msg.Data).(*types.ChunkRecords)
+	chain.AddChunkRecord(req)
+	for _, info := range req.Infos {
+		chain.chunkRecordTask.Done(info.ChunkNum)
+		chainlog.Debug("addChunkRecord", "chunkNum", info.ChunkNum, "chunkHash", common.ToHex(info.ChunkHash))
+	}
+	msg.Reply(chain.client.NewMessage("", types.EventAddChunkRecord, &types.Reply{IsOk: true}))
+}
+
+// getChunkBlockBody // 获取chunk BlockBody
+func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
+	req := (msg.Data).(*types.ChunkInfoMsg)
+	reply, err := chain.GetChunkBlockBody(req)
+	if err != nil {
+		chainlog.Error("getChunkBlockBody", "start", req.Start, "end", req.End, "chunkHash", common.ToHex(req.ChunkHash), "err", err.Error())
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+		return
+	}
+	chainlog.Debug("getChunkBlockBody", "start", req.Start, "end", req.End, "chunkHash", common.ToHex(req.ChunkHash))
+	msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, reply))
+}
+
+// addChunkBlock // 添加chunk Block
+func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
+	reply := &types.Reply{}
+	reply.IsOk = true
+	blocks := (msg.Data).(*types.Blocks)
+	if blocks == nil || len(blocks.Items) == 0 {
+		str := "blocks is nil"
+		chainlog.Error("addChunkBlock", "err", str)
+		reply.IsOk = false
+		reply.Msg = []byte(str)
+		msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
+		return
+	}
+
+	if chain.GetDownloadSyncStatus() == chunkDownLoadMode {
+		for _, blk := range blocks.Items {
+			chain.WriteBlockToDbTemp(blk, true)
+			//downLoadTask 运行时设置对应的blockdone
+			if chain.downLoadTask.InProgress() {
+				chain.downLoadTask.Done(blk.Height)
+			}
+		}
+	} else {
+		for _, blk := range blocks.Items {
+			_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blk}, "-self") //这里认为非自己节点
+			if err != nil {
+				chainlog.Error("addChunkBlock ProcAddBlockMsg", "height", blk.Height, "err", err.Error())
+				reply.IsOk = false
+				reply.Msg = []byte(err.Error())
+				msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
+				return
+			}
+		}
+	}
+	chainlog.Debug("addChunkBlock", "start", blocks.Items[0].Height, "end", blocks.Items[len(blocks.Items)-1].Height)
+	msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
 }
 
 func (chain *BlockChain) subscribePush(msg *queue.Message) {

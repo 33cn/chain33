@@ -22,16 +22,21 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	"github.com/33cn/chain33/system/p2p/dht/store"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+
 	libp2p "github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 
 	circuit "github.com/libp2p/go-libp2p-circuit"
+
+	ds "github.com/ipfs/go-datastore"
+
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
-	multiaddr "github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multiaddr"
 )
 
 var log = logger.New("module", p2pty.DHTTypeName)
@@ -59,6 +64,8 @@ type P2P struct {
 	subChan       chan interface{}
 	ctx           context.Context
 	cancel        context.CancelFunc
+	db            ds.Datastore
+	env           *protocol.P2PEnv
 }
 
 // New new dht p2p network
@@ -95,6 +102,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		addrbook:      addrbook,
 		mgr:           mgr,
 		taskGroup:     &sync.WaitGroup{},
+		db:            store.NewDataStore(mcfg),
 	}
 	p2p.ctx, p2p.cancel = context.WithCancel(context.Background())
 
@@ -195,14 +203,29 @@ func (p *P2P) StartP2P() {
 		Cancel:          p.cancel,
 	}
 	protocol.Init(env)
+
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()
+
+	//debug new
+	env2 := &protocol.P2PEnv{
+		ChainCfg:     p.chainCfg,
+		QueueClient:  p.client,
+		Host:         p.host,
+		P2PManager:   p.mgr,
+		SubConfig:    p.subCfg,
+		DB:           p.db,
+		RoutingTable: p.discovery,
+	}
+	p.env = env2
+
+	protocol.InitAllProtocol(env2)
 }
 
 //查询本局域网内是否有节点
 func (p *P2P) findLANPeers() {
-	if !p.subCfg.FindLANPeers {
+	if p.subCfg.NofindLANPeers {
 		return
 	}
 	peerChan, err := p.discovery.FindLANPeers(p.host, fmt.Sprintf("/%s-mdns/%d", p.chainCfg.GetTitle(), p.subCfg.Channel))

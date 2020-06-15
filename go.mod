@@ -27,6 +27,7 @@ require (
 
 	github.com/huin/goupnp v1.0.0
 	github.com/influxdata/influxdb v1.7.9
+	github.com/ipfs/go-datastore v0.1.0
 	github.com/libp2p/go-libp2p v0.4.0
 	github.com/libp2p/go-libp2p-blankhost v0.1.4
 	github.com/libp2p/go-libp2p-circuit v0.1.3

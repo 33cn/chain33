@@ -39,9 +39,10 @@ type BlockChain struct {
 	blockStore *BlockStore
 	push       *Push
 	//cache  缓存block方便快速查询
-	cfg          *types.BlockChain
-	syncTask     *Task
-	downLoadTask *Task
+	cfg             *types.BlockChain
+	syncTask        *Task
+	downLoadTask    *Task
+	chunkRecordTask *Task
 
 	query *Query
 
@@ -92,23 +93,23 @@ type BlockChain struct {
 	futureBlocks *lru.Cache // future blocks are broadcast later processing
 
 	//downLoad block info
-	downLoadInfo       *DownLoadInfo
-	isFastDownloadSync bool //当本节点落后很多时，可以先下载区块到db，启动单独的goroutine去执行block
+	downLoadInfo *DownLoadInfo
+	downloadMode int //当本节点落后很多时，可以先下载区块到db，启动单独的goroutine去执行block
 
 	isRecordBlockSequence bool //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
 	enablePushSubscribe   bool //是否允许推送订阅
 	isParaChain           bool //是否是平行链。平行链需要记录Sequence信息
 	isStrongConsistency   bool
 	//lock
-	synBlocklock        sync.Mutex
-	peerMaxBlklock      sync.Mutex
-	castlock            sync.Mutex
-	ntpClockSynclock    sync.Mutex
-	faultpeerlock       sync.Mutex
-	bestpeerlock        sync.Mutex
-	downLoadlock        sync.Mutex
-	fastDownLoadSynLock sync.Mutex
-	isNtpClockSync      bool //ntp时间是否同步
+	synBlocklock     sync.Mutex
+	peerMaxBlklock   sync.Mutex
+	castlock         sync.Mutex
+	ntpClockSynclock sync.Mutex
+	faultpeerlock    sync.Mutex
+	bestpeerlock     sync.Mutex
+	downLoadlock     sync.Mutex
+	downLoadModeLock sync.Mutex
+	isNtpClockSync   bool //ntp时间是否同步
 
 	//cfg
 	MaxFetchBlockNum int64 //一次最多申请获取block个数
@@ -119,6 +120,10 @@ type BlockChain struct {
 
 	blockOnChain   *BlockOnChain
 	onChainTimeout int64
+
+	//记录当前已经连续的最高高度
+	maxSerialChunkNum int64
+	maxSeriallock     sync.Mutex
 }
 
 //New new
@@ -132,19 +137,24 @@ func New(cfg *types.Chain33Config) *BlockChain {
 	if mcfg.DefCacheSize > 0 {
 		defCacheSize = mcfg.DefCacheSize
 	}
+	if atomic.LoadInt64(&mcfg.ChunkblockNum) == 0 {
+		atomic.StoreInt64(&mcfg.ChunkblockNum, 1)
+	}
 	blockchain := &BlockChain{
 		cache:              NewBlockCache(cfg, defCacheSize),
 		DefCacheSize:       defCacheSize,
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
+		maxSerialChunkNum:  -1,
 		peerList:           nil,
 		cfg:                mcfg,
 		recvwg:             &sync.WaitGroup{},
 		tickerwg:           &sync.WaitGroup{},
 		reducewg:           &sync.WaitGroup{},
 
-		syncTask:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
-		downLoadTask: newTask(300 * time.Second),
+		syncTask:        newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
+		downLoadTask:    newTask(300 * time.Second),
+		chunkRecordTask: newTask(120 * time.Second),
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
@@ -161,7 +171,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		isNtpClockSync:      true,
 		MaxFetchBlockNum:    128 * 6, //一次最多申请获取block个数
 		TimeoutSeconds:      2,
-		isFastDownloadSync:  true,
+		downloadMode:        fastDownLoadMode,
 		blockOnChain:        &BlockOnChain{},
 		onChainTimeout:      0,
 	}
@@ -248,6 +258,8 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 
 	//startTime
 	chain.startTime = types.Now()
+	// 获取当前最大chunk连续高度
+	chain.maxSerialChunkNum = chain.blockStore.GetMaxSerialChunkNum()
 
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
 	chain.recvwg.Add(1)
@@ -307,6 +319,12 @@ func (chain *BlockChain) InitBlockChain() {
 		// 定时处理futureblock
 		go chain.UpdateRoutine()
 	}
+
+	if !chain.cfg.DisableShard {
+		chain.tickerwg.Add(1)
+		go chain.ChunkProcessRoutine()
+	}
+
 	//初始化默认DownLoadInfo
 	chain.DefaultDownLoadInfo()
 }

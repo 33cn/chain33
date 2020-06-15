@@ -159,6 +159,21 @@ const (
 
 	EventCmpBestBlock       = 311
 	EventReplySubscribePush = 312
+
+	// 通知其它节点进行数据归档存储
+	EventNotifyStoreChunk = 313
+	// 获取chunkBlock数据
+	EventGetChunkBlock = 314
+
+	// 添加addChunkBlock
+	EventAddChunkBlock = 315
+	// 获取chunkBody数据
+	EventGetChunkBlockBody = 316
+	// 获取ChunkRecord
+	EventGetChunkRecord = 317
+	// 添加ChunkRecord
+	EventAddChunkRecord = 318
+
 	//p2p 其他接收事件
 	EventSubTopic       = 350
 	EventPubTopicMsg    = 351

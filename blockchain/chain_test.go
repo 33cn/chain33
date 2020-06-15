@@ -129,6 +129,93 @@ func TestBlockChain(t *testing.T) {
 	testProcMainSeqMsg(t, blockchain)
 	testAddOrphanBlock(t, blockchain)
 	testCheckBestChainProc(t, cfg, blockchain)
+
+	// chunk
+	testGetChunkRecordMsg(t, mock33, blockchain)
+	testAddChunkRecordMsg(t, mock33, blockchain)
+	testGetChunkBlockBodyMsg(t, mock33, blockchain)
+	testAddChunkBlockMsg(t, mock33, blockchain)
+}
+
+func testGetChunkRecordMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testGetChunkRecordMsg begin --------------------")
+
+	records := &types.ReqChunkRecords{
+		Start:    1,
+		End:      1,
+		IsDetail: false,
+	}
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventGetChunkRecord, records)
+	mock33.GetClient().Send(msgGen, true)
+	_, err := mock33.GetClient().Wait(msgGen)
+	assert.NoError(t, err)
+	chainlog.Info("testGetChunkRecordMsg end --------------------")
+}
+
+func testAddChunkRecordMsg(t *testing.T, mock33 *testnode.Chain33Mock, chain *blockchain.BlockChain) {
+	chainlog.Info("testAddChunkRecordMsg begin --------------------")
+
+	records := &types.ChunkRecords{
+		Infos: []*types.ChunkInfo{{ChunkNum: 1, ChunkHash: []byte("11111111111")}},
+	}
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventAddChunkRecord, records)
+	mock33.GetClient().Send(msgGen, true)
+	resp, _ := mock33.GetClient().Wait(msgGen)
+	assert.Equal(t, resp.GetData().(*types.Reply).IsOk, true)
+	chainlog.Info("testAddChunkRecordMsg end --------------------")
+}
+
+func testGetChunkBlockBodyMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testGetChunkBlockBodyMsg begin --------------------")
+
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight - 1)
+	require.NoError(t, err)
+
+	end := block.Block.Height
+	start := block.Block.Height - 2
+	if start < 0 {
+		start = 0
+	}
+
+	blocks := &types.ChunkInfoMsg{
+		ChunkHash: []byte{},
+		Start:     start,
+		End:       end,
+	}
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventGetChunkBlockBody, blocks)
+	mock33.GetClient().Send(msgGen, true)
+	resp, _ := mock33.GetClient().Wait(msgGen)
+	if resp.GetData() != nil {
+		bds := resp.Data.(*types.BlockBodys)
+		assert.Equal(t, len(bds.Items), int(end-start+1))
+	}
+	chainlog.Info("testGetChunkBlockBodyMsg end --------------------")
+}
+
+func testAddChunkBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
+	chainlog.Info("testAddChunkBlockMsg begin --------------------")
+
+	curheight := blockchain.GetBlockHeight()
+	block1, err := blockchain.GetBlock(curheight - 1)
+	require.NoError(t, err)
+	block2, err := blockchain.GetBlock(curheight - 2)
+	require.NoError(t, err)
+
+	blocks := &types.Blocks{
+		Items: []*types.Block{block1.Block, block2.Block},
+	}
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventAddChunkBlock, blocks)
+	mock33.GetClient().Send(msgGen, true)
+	resp, _ := mock33.GetClient().Wait(msgGen)
+	if resp.GetData().(*types.Reply).IsOk {
+		t.Error("testAddChunkBlockMsg  only in parachain ")
+	}
+	chainlog.Info("testAddChunkBlockMsg end --------------------")
 }
 
 func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
@@ -764,7 +851,7 @@ func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Info("testProcBlockChainFork begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
-	blockchain.ProcDownLoadBlocks(curheight-1, curheight+256, []string{"self"})
+	blockchain.ProcDownLoadBlocks(curheight-1, curheight+256, false, []string{"self"})
 	chainlog.Info("testProcBlockChainFork end --------------------")
 }
 
