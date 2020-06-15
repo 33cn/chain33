@@ -29,7 +29,8 @@ jobs:
           make checkgofmt && make fmt_go
           make linter
 
-  - name: unit-test
+  unit-test:
+    name: unit-test
     runs-on: ubuntu-latest
     steps:
       - name: Set up Golang
@@ -44,7 +45,8 @@ jobs:
       - name: unit-test
         run: make test
 
-  - name: coverage
+  coverage:
+    name: coverage
     runs-on: ubuntu-latest
     steps:
       - name: Set up Golang
@@ -62,7 +64,8 @@ jobs:
         if: success()
         run: bash <(curl -s https://codecov.io/bash)
 
-  - name: deploy
+  deploy:
+    name: deploy
     runs-on: ubuntu-latest
     steps:
       - name: Set up Golang
