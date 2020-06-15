@@ -163,7 +163,9 @@ func Test_procSubscribePush_nilParacheck(t *testing.T) {
 func Test_addSubscriber_Paracheck(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	defer mock33.Close()
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.LastSequence = 1
 	err := chain.procSubscribePush(subscribe)
@@ -173,7 +175,9 @@ func Test_addSubscriber_Paracheck(t *testing.T) {
 func Test_addSubscriber_conflictPara(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	defer mock33.Close()
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.LastSequence = 1
 	err := chain.procSubscribePush(subscribe)
@@ -183,7 +187,9 @@ func Test_addSubscriber_conflictPara(t *testing.T) {
 func Test_addSubscriber_InvalidURL(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	defer mock33.Close()
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = ""
@@ -194,7 +200,9 @@ func Test_addSubscriber_InvalidURL(t *testing.T) {
 func Test_addSubscriber_InvalidType(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	defer mock33.Close()
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.Type = int32(3)
@@ -205,7 +213,9 @@ func Test_addSubscriber_InvalidType(t *testing.T) {
 func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	defer mock33.Close()
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
@@ -222,7 +232,9 @@ func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
 func Test_addSubscriber_Success(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	defer mock33.Close()
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
@@ -245,7 +257,9 @@ func Test_addSubscriber_Success(t *testing.T) {
 	pushes, _ := chain.ProcListPush()
 	assert.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
 
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	recoverpushes, _ := chain.ProcListPush()
 	assert.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
 }
@@ -284,7 +298,9 @@ func Test_addSubscriber_WithSeqHashHeight(t *testing.T) {
 	assert.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
 
 	//重新创建push，能够从数据库中恢复原先注册成功的push
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	recoverpushes, _ := chain.ProcListPush()
 	assert.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
 }
@@ -521,7 +537,9 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 
 	//push 能够正常从数据库恢复
 	chain.push = nil
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	assert.Equal(t, 10, len(chain.push.tasks))
 	for _, name := range pushNames {
 		assert.NotEqual(t, chain.push.tasks[string(calcPushKey(name))], nil)
@@ -656,7 +674,9 @@ func Test_RecoverPush(t *testing.T) {
 	lastSeq, _ = chain.ProcGetLastPushSeq(subscribe.Name)
 
 	//chain33的push服务重启后，不会将其添加到task中，推送成功的序列号不成功
+	chain.pushRWLock.Lock()
 	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chain.pushRWLock.Unlock()
 	chain.push.postService = ps
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(1 * time.Second)
