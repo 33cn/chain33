@@ -256,13 +256,11 @@ func TestPubSub(t *testing.T) {
 	testBlockRecvSubData(t, q)
 	testMempoolRecvSubData(t, q)
 	protocol := newTestPubProtocol(q)
-	//t.Log("pid", protocol.Host.ID().String())
 	testSubTopic(t, protocol) //订阅topic
 
 	topics := testFetchTopics(t, protocol) //获取topic list
 	assert.Equal(t, len(topics), 2)
 	testSendTopicData(t, protocol) //通过chan推送接收到的消息
-	//time.Sleep(time.Second)
 
 	testPushMsg(t, protocol)                                   //发布消息
 	testRemoveModuleTopic(t, protocol, "bzTest", "blockchain") //删除某一个模块的topic
@@ -270,7 +268,6 @@ func TestPubSub(t *testing.T) {
 	assert.Equal(t, len(topics), 2)
 	//--------
 	testRemoveModuleTopic(t, protocol, "rtopic", "rpc") //删除某一个模块的topic
-	//time.Sleep(time.Second)
 	topics = testFetchTopics(t, protocol)
 	//t.Log("after Remove rtopic", topics)
 	assert.Equal(t, 1, len(topics))
