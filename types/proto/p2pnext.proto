@@ -339,4 +339,3 @@ message P2PResponse {
         Header lastHeader = 8;
     }
 }
-
