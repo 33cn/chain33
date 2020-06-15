@@ -4,16 +4,9 @@ go 1.13
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/NebulousLabs/Sia v1.3.7
-	github.com/NebulousLabs/entropy-mnemonics v0.0.0-20170316012907-7b01a644a636 // indirect
-	github.com/NebulousLabs/errors v0.0.0-20171229012116-7ead97ef90b8 // indirect
-	github.com/NebulousLabs/fastrand v0.0.0-20180208210444-3cf7173006a0 // indirect
-	github.com/NebulousLabs/merkletree v0.0.0-20181025040823-2a1d1d1dc33c // indirect
 	github.com/XiaoMi/pegasus-go-client v0.0.0-20181029071519-9400942c5d1c
 	github.com/apache/thrift v0.0.0-20171203172758-327ebb6c2b6d // indirect
-	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta
-	github.com/coreos/bbolt v1.3.0 // indirect
 	github.com/decred/base58 v1.0.2
 	github.com/dgraph-io/badger v1.6.0-rc1
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
@@ -21,7 +14,6 @@ require (
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.3.4
 	github.com/google/uuid v1.1.1
-	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/influxdata/influxdb v1.7.9
 	github.com/ipfs/go-datastore v0.1.0
@@ -35,7 +27,6 @@ require (
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
 	github.com/libp2p/go-libp2p-pubsub v0.2.6
 	github.com/libp2p/go-libp2p-swarm v0.2.2
-
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mr-tron/base58 v1.1.3
 	github.com/multiformats/go-multiaddr v0.2.0

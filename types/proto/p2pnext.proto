@@ -216,6 +216,7 @@ message MessageBroadCast {
 }
 
 /**
+<<<<<<< HEAD
 * p2p 分布式存储
 */
 

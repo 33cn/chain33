@@ -156,23 +156,20 @@ const (
 	//通过区块高度列表+title获取平行链交易
 	EventGetParaTxByTitleAndHeight = 310
 	//比较当前区块和新广播的区块最优区块
-	EventCmpBestBlock = 311
+	EventCmpBestBlock       = 311
+	EventReplySubscribePush = 312
 
 	// 通知其它节点进行数据归档存储
-	EventNotifyStoreChunk = 312
+	EventNotifyStoreChunk = 313
 	// 获取chunkBlock数据
-	EventGetChunkBlock = 313
+	EventGetChunkBlock = 314
 
 	// 添加addChunkBlock
-	EventAddChunkBlock = 314
+	EventAddChunkBlock = 315
 	// 获取chunkBody数据
-	EventGetChunkBlockBody = 315
+	EventGetChunkBlockBody = 316
 	// 获取ChunkRecord
-	EventGetChunkRecord = 316
-	// 添加ChunkRecord
-	EventAddChunkRecord = 317
-
-	EventReplySubscribePush = 318
+	EventGetChunkRecord = 317
 
 	//p2p 其他接收事件
 	EventSubTopic       = 350
@@ -324,4 +321,16 @@ var eventName = map[int]string{
 	EventCmpBestBlock:               "EventCmpBestBlock",
 	EventUpgrade:                    "EventUpgrade",
 	EventReplySubscribePush:         "EventReplySubscribePush",
+
+	//p2p store
+	EventNotifyStoreChunk: "EventNotifyStoreChunk",
+	// 获取chunkBlock数据
+	EventGetChunkBlock: "EventGetChunkBlock",
+
+	// 添加addChunkBlock
+	EventAddChunkBlock: "EventAddChunkBlock",
+	// 获取chunkBody数据
+	EventGetChunkBlockBody: "EventGetChunkBlockBody",
+	// 获取ChunkRecord
+	EventGetChunkRecord: "EventGetChunkRecord",
 }

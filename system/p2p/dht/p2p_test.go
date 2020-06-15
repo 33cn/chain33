@@ -277,11 +277,14 @@ func Test_p2p(t *testing.T) {
 	processMsg(q)
 	p2p := NewP2p(cfg)
 	defer func(path string) {
+
 		if err := os.RemoveAll(path); err != nil {
-			log.Error("removeTestDatadir", "err", err)
+			log.Error("removeTestDatadir", "err", err.Error())
 		}
+		t.Log("removed path", path)
 	}(datadir)
 	testP2PEvent(t, q.Client())
 	testP2PClose(t, p2p)
 	testStreamEOFReSet(t)
+
 }
