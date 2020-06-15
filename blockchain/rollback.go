@@ -117,9 +117,7 @@ func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64
 
 	//目前非平行链并开启isRecordBlockSequence功能和enablePushSubscribe
 	if chain.isRecordBlockSequence && chain.enablePushSubscribe {
-		chain.pushRWLock.RLock()
 		chain.push.UpdateSeq(lastSequence)
-		chain.pushRWLock.RUnlock()
 		chainlog.Debug("isRecordBlockSequence", "lastSequence", lastSequence, "height", blockdetail.Block.Height)
 	}
 

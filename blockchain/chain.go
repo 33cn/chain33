@@ -110,7 +110,6 @@ type BlockChain struct {
 	downLoadlock     sync.Mutex
 	downLoadModeLock sync.Mutex
 	isNtpClockSync   bool //ntp时间是否同步
-	pushRWLock       sync.RWMutex
 
 	//cfg
 	MaxFetchBlockNum int64 //一次最多申请获取block个数
@@ -232,12 +231,10 @@ func (chain *BlockChain) Close() {
 	chainlog.Info("blockchain wait for reducewg quit")
 	chain.reducewg.Wait()
 
-	chain.pushRWLock.RLock()
 	if chain.push != nil {
 		chainlog.Info("blockchain wait for push quit")
 		chain.push.Close()
 	}
-	chain.pushRWLock.RUnlock()
 
 	//关闭数据库
 	chain.blockStore.db.Close()
@@ -255,9 +252,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
 	if chain.enablePushSubscribe && chain.isRecordBlockSequence {
-		chain.pushRWLock.Lock()
 		chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
-		chain.pushRWLock.Unlock()
 		chainlog.Info("chain push is setup")
 	}
 

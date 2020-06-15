@@ -155,8 +155,6 @@ func (chain *BlockChain) procSubscribePush(subscribe *types.PushSubscribeReq) er
 		chainlog.Error("Tx receipts are reduced on this node")
 		return types.ErrTxReceiptReduced
 	}
-	chain.pushRWLock.RLock()
-	defer chain.pushRWLock.RUnlock()
 	return chain.push.addSubscriber(subscribe)
 }
 
@@ -169,9 +167,7 @@ func (chain *BlockChain) ProcListPush() (*types.PushSubscribes, error) {
 		return nil, types.ErrPushNotSupport
 	}
 
-	chain.pushRWLock.RLock()
 	values, err := chain.push.store.List(pushPrefix)
-	chain.pushRWLock.RUnlock()
 	if err != nil {
 		return nil, err
 	}
@@ -196,9 +192,7 @@ func (chain *BlockChain) ProcGetLastPushSeq(name string) (int64, error) {
 		return -1, types.ErrPushNotSupport
 	}
 
-	chain.pushRWLock.RLock()
 	lastSeqbytes, err := chain.push.store.GetKey(calcLastPushSeqNumKey(name))
-	chain.pushRWLock.RUnlock()
 	if lastSeqbytes == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("getSeqCBLastNum", "error", err)
