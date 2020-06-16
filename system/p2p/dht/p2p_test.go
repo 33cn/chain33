@@ -268,6 +268,44 @@ func Test_pubkey(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, pubstr, hex.EncodeToString(pub))
 }
+
+func Test_host(t *testing.T) {
+	mcfg := &p2pty.P2PSubConfig{}
+	_, err := GenPubkey("123456")
+	assert.NotNil(t, err)
+	priv, pub, err := GenPrivPubkey()
+	assert.Nil(t, err)
+	t.Log("priv size", len(priv))
+	cpriv, err := crypto.UnmarshalPrivateKey(priv)
+	assert.Nil(t, err)
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
+	if err != nil {
+		return
+	}
+	mcfg.RelayActive = true
+	mcfg.RelayDiscovery = true
+	mcfg.RelayHop = true
+	mcfg.MaxConnectNum = 10000
+	host := newHost(mcfg, cpriv, nil, maddr)
+	hpub := host.Peerstore().PubKey(host.ID())
+	hpb, err := hpub.Bytes()
+	assert.Nil(t, err)
+	assert.Equal(t, hpb, pub)
+}
+
+func testAddrbook(t *testing.T, cfg *types.P2P) {
+	cfg.DbPath = cfg.DbPath + "test/"
+	addrbook := NewAddrBook(cfg)
+	priv, pub := addrbook.GetPrivPubKey()
+	assert.NotNil(t, priv)
+	assert.NotNil(t, pub)
+	var paddrinfos []peer.AddrInfo
+	paddrinfos = append(paddrinfos, peer.AddrInfo{})
+	addrbook.SaveAddr(paddrinfos)
+	addrbook.setKey(priv, pub)
+	assert.True(t, addrbook.loadDb())
+
+}
 func Test_p2p(t *testing.T) {
 
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
@@ -275,7 +313,7 @@ func Test_p2p(t *testing.T) {
 	datadir := util.ResetDatadir(cfg.GetModuleConfig(), "$TEMP/")
 	q.SetConfig(cfg)
 	processMsg(q)
-	p2p := NewP2p(cfg)
+
 	defer func(path string) {
 
 		if err := os.RemoveAll(path); err != nil {
@@ -283,6 +321,14 @@ func Test_p2p(t *testing.T) {
 		}
 		t.Log("removed path", path)
 	}(datadir)
+
+	var tcfg types.P2P
+	tcfg.Driver = "leveldb"
+	tcfg.DbCache = 4
+	tcfg.DbPath = datadir
+	testAddrbook(t, &tcfg)
+
+	p2p := NewP2p(cfg)
 	testP2PEvent(t, q.Client())
 	testP2PClose(t, p2p)
 	testStreamEOFReSet(t)

@@ -6,6 +6,7 @@ package peer
 
 import (
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/p2p"
 
@@ -157,6 +158,9 @@ func testNetInfoHandleEvent(protocol *peerInfoProtol, msg *queue.Message) {
 func TestPeerInfoEvent(t *testing.T) {
 	q := queue.New("test")
 	protocol := newTestProtocol(q)
+	defer protocol.Cancel()
+	assert.Equal(t, false, protocol.checkDone())
+	time.Sleep(time.Second * 11)
 	testMempoolReq(q)
 	testBlockReq(q)
 	msgs := make([]*queue.Message, 0)
@@ -164,11 +168,19 @@ func TestPeerInfoEvent(t *testing.T) {
 	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventGetNetInfo, nil))
 	testHandleEvent(protocol, msgs[0])
 	testNetInfoHandleEvent(protocol, msgs[1])
+	var req types.MessageP2PVersionReq
+	req.Message = &types.P2PVersion{Version: 123}
+	_, err := protocol.processVerReq(&req, "192.168.1.1")
+	assert.NotNil(t, err)
+	req.Message = &types.P2PVersion{Version: 0}
+	_, err = protocol.processVerReq(&req, "192.168.1.1")
+	assert.Nil(t, err)
 }
 
 func Test_util(t *testing.T) {
 	q := queue.New("test")
 	proto := newTestProtocol(q)
+	defer proto.Cancel()
 	handler := &peerInfoHandler{}
 	handler.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	handler.SetProtocol(proto)
