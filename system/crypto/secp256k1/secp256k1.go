@@ -190,6 +190,6 @@ const (
 )
 
 func init() {
-	crypto.Register(Name, &Driver{})
+	crypto.Register(Name, &Driver{}, false)
 	crypto.RegisterType(Name, ID)
 }

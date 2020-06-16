@@ -187,7 +187,7 @@ func TestSimpleMVCCLocalDB(t *testing.T) {
 	//use localdb
 	db3, dir := newGoLevelDB(t)
 	defer os.RemoveAll(dir) // clean up
-	kvdb := NewLocalDB(db3)
+	kvdb := NewLocalDB(db3, false)
 	m := NewSimpleMVCC(kvdb)
 
 	kvlist, err := m.AddMVCC(KeyValueList([2]string{"mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp", "1"}, [2]string{"mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTq", "2"}), hashN(0), nil, 0)

@@ -8,7 +8,6 @@ package dht
 import (
 	"context"
 	"fmt"
-	net2 "net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -300,22 +299,4 @@ func (p *P2P) waitTaskDone() {
 	case <-time.After(time.Second * 20):
 		log.Error("waitTaskDone", "err", "20s timeout")
 	}
-}
-
-func localAddrs() []string {
-
-	addrs, err := net2.InterfaceAddrs()
-	if err != nil {
-		panic(err)
-	}
-
-	var ips []string
-	for _, addr := range addrs {
-		if ipnet, ok := addr.(*net2.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				ips = append(ips, ipnet.IP.String())
-			}
-		}
-	}
-	return ips
 }

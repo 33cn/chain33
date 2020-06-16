@@ -68,6 +68,7 @@ type PostService interface {
 type pushNotify struct {
 	subscribe      *types.PushSubscribeReq
 	seqUpdateChan  chan int64
+	closechan      chan struct{}
 	status         int32
 	postFail2Sleep int32
 }
@@ -154,7 +155,6 @@ func (chain *BlockChain) procSubscribePush(subscribe *types.PushSubscribeReq) er
 		chainlog.Error("Tx receipts are reduced on this node")
 		return types.ErrTxReceiptReduced
 	}
-
 	return chain.push.addSubscriber(subscribe)
 }
 
@@ -264,9 +264,8 @@ func (push *Push) init() {
 }
 
 func (push *Push) Close() {
-	cnt := len(push.tasks)
-	for i := 0; i < cnt; i++ {
-		push.postwg.Done()
+	for _, task := range push.tasks {
+		close(task.closechan)
 	}
 	push.postwg.Wait()
 }
@@ -274,6 +273,11 @@ func (push *Push) Close() {
 func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 	if subscribe == nil {
 		chainlog.Error("addSubscriber input para is null")
+		return types.ErrInvalidParam
+	}
+
+	if subscribe.Type != PushBlock && subscribe.Type != PushBlockHeader && subscribe.Type != PushTxReceipt {
+		chainlog.Error("addSubscriber input type is error", "type", subscribe.Type)
 		return types.ErrInvalidParam
 	}
 
@@ -375,6 +379,7 @@ func (push *Push) check2ResumePush(subscribe *types.PushSubscribeReq) error {
 		push.tasks[keyStr] = &pushNotify{
 			subscribe:     subscribe,
 			seqUpdateChan: make(chan int64, chanBufCap),
+			closechan:     make(chan struct{}),
 			status:        notRunning,
 		}
 		push.runTask(push.tasks[keyStr])
@@ -414,6 +419,7 @@ func (push *Push) addTask(subscribe *types.PushSubscribeReq) {
 	push.tasks[keyStr] = &pushNotify{
 		subscribe:      subscribe,
 		seqUpdateChan:  make(chan int64, chanBufCap),
+		closechan:      make(chan struct{}),
 		status:         notRunning,
 		postFail2Sleep: 0,
 	}
@@ -531,6 +537,10 @@ func (push *Push) runTask(input *pushNotify) {
 				}
 				continueFailCount = 0
 				lastProcessedseq = updateSeq
+			case <-in.closechan:
+				push.postwg.Done()
+				chainlog.Info("getPushData", "push task closed for subscribe", subscribe.Name)
+				return
 			}
 		}
 

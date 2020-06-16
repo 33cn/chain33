@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/db"
@@ -31,12 +32,14 @@ type AddrInfo struct {
 
 // NewStore 新建存储对象
 func NewStore(db db.DB) *Store {
-	return &Store{db: db}
+	return &Store{db: db, blkBatch: db.NewBatch(true)}
 }
 
 // Store 钱包通用数据库存储类，实现对钱包账户数据库操作的基本实现
 type Store struct {
-	db db.DB
+	db        db.DB
+	blkBatch  db.Batch
+	batchLock sync.Mutex
 }
 
 // Close 关闭数据库
@@ -52,6 +55,18 @@ func (store *Store) GetDB() db.DB {
 // NewBatch 新建批处理操作对象接口
 func (store *Store) NewBatch(sync bool) db.Batch {
 	return store.db.NewBatch(sync)
+}
+
+// GetBlockBatch 新建批处理操作对象接口
+func (store *Store) GetBlockBatch(sync bool) db.Batch {
+	store.batchLock.Lock()
+	store.blkBatch.Reset()
+	store.blkBatch.UpdateWriteSync(sync)
+	return store.blkBatch
+}
+
+func (store *Store) FreeBlockBatch() {
+	store.batchLock.Unlock()
 }
 
 // Get 取值

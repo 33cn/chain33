@@ -47,6 +47,7 @@ type WalletOperate interface {
 	GetAPI() client.QueueProtocolAPI
 	GetDBStore() db.DB
 	GetSignType() int
+	GetCoinType() uint32
 	GetPassword() string
 	GetBlockHeight() int64
 	GetRandom() *rand.Rand

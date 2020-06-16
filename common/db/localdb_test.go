@@ -10,7 +10,7 @@ import (
 //localdb 不会往 maindb 写数据，他都是临时的数据，在内存中临时计算的一个数据库
 func TestLocalDB(t *testing.T) {
 	db1 := newGoMemDB(t)
-	db := NewLocalDB(db1)
+	db := NewLocalDB(db1, false)
 
 	db1.Set([]byte("key1"), []byte("value1"))
 	v1, err := db.Get([]byte("key1"))

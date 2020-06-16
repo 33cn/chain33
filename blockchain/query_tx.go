@@ -193,6 +193,8 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresult *types.TxResult) {
 	TransactionDetail.Receipt = txresult.Receiptdate
 	TransactionDetail.Tx = txresult.GetTx()
+	//缓存哈希置空
+	TransactionDetail.Tx.UnsetCacheHash()
 	TransactionDetail.Height = txresult.GetHeight()
 	TransactionDetail.Index = int64(txresult.GetIndex())
 	TransactionDetail.Blocktime = txresult.GetBlocktime()

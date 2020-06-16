@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/33cn/chain33/types"
+
 	"github.com/33cn/chain33/wallet/bipwallet"
 )
 
@@ -31,7 +33,7 @@ func TestBipwallet(t *testing.T) {
 	}
 	fmt.Println("助记词:", mnem)
 	//选择币种，填入种子创建wallet对象
-	wallet, err := bipwallet.NewWalletFromMnemonic(bipwallet.TypeEther,
+	wallet, err := bipwallet.NewWalletFromMnemonic(bipwallet.TypeEther, types.SECP256K1,
 		"wish address cram damp very indicate regret sound figure scheme review scout")
 	if err != nil {
 		fmt.Println("err:", err.Error())
@@ -50,7 +52,7 @@ func TestBipwallet(t *testing.T) {
 	}
 
 	fmt.Println("address:", address)
-	address, err = bipwallet.PubToAddress(bipwallet.TypeEther, pub)
+	address, err = bipwallet.PubToAddress(pub)
 	if err != nil {
 		fmt.Println("err:", err.Error())
 		return
@@ -58,7 +60,7 @@ func TestBipwallet(t *testing.T) {
 
 	fmt.Println("PubToAddress:", address)
 
-	pub, err = bipwallet.PrivkeyToPub(bipwallet.TypeEther, priv)
+	pub, err = bipwallet.PrivkeyToPub(bipwallet.TypeEther, types.SECP256K1, priv)
 	if err != nil {
 		fmt.Println("err:", err.Error())
 		return

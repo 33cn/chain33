@@ -557,6 +557,10 @@ func (mBatch *goLevelDBBatch) Reset() {
 	mBatch.size = 0
 }
 
+func (mBatch *goLevelDBBatch) UpdateWriteSync(sync bool) {
+	mBatch.wop.Sync = sync
+}
+
 type goLevelDBTx struct {
 	tx *leveldb.Transaction
 }
