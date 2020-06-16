@@ -177,7 +177,7 @@ Retry:
 		}
 	}
 	retryCount++
-	if retryCount < 5 { //找不到数据重试5次，防止因为网络问题导致数据找不到
+	if !p.ChainCfg.IsTestNet() && retryCount < 5 { //找不到数据重试5次，防止因为网络问题导致数据找不到
 		log.Error("mustFetchChunk", "retry count", retryCount)
 		time.Sleep(30 * time.Second)
 		goto Retry

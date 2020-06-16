@@ -25,7 +25,7 @@ type LocalChunkInfo struct {
 }
 
 // 保存chunk到本地p2pStore，同时更新本地chunk列表
-func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBodys) error {
+func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys types.Message) error {
 	err := p.addLocalChunkInfo(info)
 	if err != nil {
 		return err

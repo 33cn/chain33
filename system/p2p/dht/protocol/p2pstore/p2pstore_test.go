@@ -331,6 +331,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		t.Fatal(err)
 	}
 	env2 := protocol.P2PEnv{
+		ChainCfg:    cfg,
 		QueueClient: client2,
 		Host:        host2,
 		RoutingTable: net.InitDhtDiscovery(context.Background(), host2, nil, cfg, &types2.P2PSubConfig{

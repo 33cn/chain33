@@ -16,13 +16,11 @@ func (p *Protocol) startUpdateHealthyRoutingTable() {
 		rm(id)
 		p.healthyRoutingTable.Remove(id)
 	}
-	add := p.RoutingTable.RoutingTable().PeerAdded
-	p.RoutingTable.RoutingTable().PeerAdded = func(id peer.ID) {
-		add(id)
-		_ = p.checkPeerHealth(id)
+
+	for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
+		time.Sleep(time.Second * 1)
+		p.updateHealthyRoutingTable()
 	}
-	time.Sleep(time.Second * 1)
-	p.updateHealthyRoutingTable()
 	for range time.Tick(types2.CheckHealthyInterval) {
 		p.updateHealthyRoutingTable()
 	}

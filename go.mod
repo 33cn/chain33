@@ -4,24 +4,17 @@ go 1.13
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/NebulousLabs/Sia v1.3.7
-	github.com/NebulousLabs/entropy-mnemonics v0.0.0-20170316012907-7b01a644a636 // indirect
-	github.com/NebulousLabs/errors v0.0.0-20171229012116-7ead97ef90b8 // indirect
-	github.com/NebulousLabs/fastrand v0.0.0-20180208210444-3cf7173006a0 // indirect
-	github.com/NebulousLabs/merkletree v0.0.0-20181025040823-2a1d1d1dc33c // indirect
 	github.com/XiaoMi/pegasus-go-client v0.0.0-20181029071519-9400942c5d1c
 	github.com/apache/thrift v0.0.0-20171203172758-327ebb6c2b6d // indirect
-	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta
-	github.com/coreos/bbolt v1.3.0 // indirect
 	github.com/decred/base58 v1.0.2
 	github.com/dgraph-io/badger v1.6.0-rc1
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.3.4
+	github.com/golangci/golangci-lint v1.18.0 // indirect
 	github.com/google/uuid v1.1.1
-	github.com/haltingstate/secp256k1-go v0.0.0-20151224084235-572209b26df6
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/influxdata/influxdb v1.7.9
 	github.com/ipfs/go-datastore v0.1.0
@@ -47,14 +40,18 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tjfoc/gmsm v1.3.1
-	golang.org/x/crypto v0.0.0-20191219195013-becbf705a915
+	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
+	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
+	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
+	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
+	golang.org/x/tools v0.0.0-20200615222825-6aa8f57aacd9 // indirect
 	google.golang.org/genproto v0.0.0-20200310143817-43be25429f5a // indirect
 	google.golang.org/grpc v1.28.0
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/go-playground/webhooks.v5 v5.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
+	mvdan.cc/sh v2.6.4+incompatible // indirect
 
 )
