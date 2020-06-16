@@ -233,6 +233,7 @@ func (p *P2P) CloseP2P() {
 	p.peerInfoManag.Close()
 	p.host.Close()
 	prototypes.ClearEventHandler()
+	protocol.ClearEventHandler()
 }
 
 func (p *P2P) isClose() bool {

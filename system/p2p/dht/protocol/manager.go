@@ -40,7 +40,7 @@ func RegisterEventHandler(eventID int64, handler EventHandler) {
 	eventHandlerMutex.Lock()
 	defer eventHandlerMutex.Unlock()
 	if _, dup := eventHandlerMap[eventID]; dup {
-		panic(fmt.Sprintf("addEventHandler, duplicate handler, id=%d", eventID))
+		panic(fmt.Sprintf("addEventHandler, duplicate handler, id=%d, len=%d", eventID, len(eventHandlerMap)))
 	}
 	eventHandlerMap[eventID] = handler
 }
@@ -50,4 +50,11 @@ func GetEventHandler(eventID int64) EventHandler {
 	eventHandlerMutex.RLock()
 	defer eventHandlerMutex.RUnlock()
 	return eventHandlerMap[eventID]
+}
+
+// ClearEventHandler clear event handler map, plugin存在多个p2p实例测试，会导致重复注册，需要清除
+func ClearEventHandler() {
+	for k, _ := range eventHandlerMap {
+		delete(eventHandlerMap, k)
+	}
 }
