@@ -6,12 +6,14 @@ package headers
 
 import (
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/p2p"
 
 	"context"
 	"crypto/rand"
 	"fmt"
+	mrand "math/rand"
 
 	libp2p "github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -37,7 +39,9 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
 	subCfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], subCfg)
-	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
+	mrand.Seed(time.Now().UnixNano())
+	rport := mrand.Int31n(54321)
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", rport))
 	if err != nil {
 		return nil
 	}
