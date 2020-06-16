@@ -54,7 +54,7 @@ func GetEventHandler(eventID int64) EventHandler {
 
 // ClearEventHandler clear event handler map, plugin存在多个p2p实例测试，会导致重复注册，需要清除
 func ClearEventHandler() {
-	for k, _ := range eventHandlerMap {
+	for k := range eventHandlerMap {
 		delete(eventHandlerMap, k)
 	}
 }
