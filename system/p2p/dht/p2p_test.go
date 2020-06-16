@@ -292,7 +292,7 @@ func Test_host(t *testing.T) {
 }
 
 func testAddrbook(t *testing.T, cfg *types.P2P) {
-
+	cfg.DbPath = cfg.DbPath + "test/"
 	addrbook := NewAddrBook(cfg)
 	priv, pub := addrbook.GetPrivPubKey()
 	assert.NotNil(t, priv)
@@ -300,6 +300,7 @@ func testAddrbook(t *testing.T, cfg *types.P2P) {
 	var paddrinfos []peer.AddrInfo
 	paddrinfos = append(paddrinfos, peer.AddrInfo{})
 	addrbook.SaveAddr(paddrinfos)
+
 }
 func Test_p2p(t *testing.T) {
 
@@ -308,7 +309,7 @@ func Test_p2p(t *testing.T) {
 	datadir := util.ResetDatadir(cfg.GetModuleConfig(), "$TEMP/")
 	q.SetConfig(cfg)
 	processMsg(q)
-	p2p := NewP2p(cfg)
+
 	defer func(path string) {
 
 		if err := os.RemoveAll(path); err != nil {
@@ -317,13 +318,15 @@ func Test_p2p(t *testing.T) {
 		t.Log("removed path", path)
 	}(datadir)
 
-	testP2PEvent(t, q.Client())
-	testP2PClose(t, p2p)
-	testStreamEOFReSet(t)
 	var tcfg types.P2P
 	tcfg.Driver = "leveldb"
 	tcfg.DbCache = 4
 	tcfg.DbPath = datadir
 	testAddrbook(t, &tcfg)
+
+	p2p := NewP2p(cfg)
+	testP2PEvent(t, q.Client())
+	testP2PClose(t, p2p)
+	testStreamEOFReSet(t)
 
 }
