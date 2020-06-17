@@ -13,17 +13,17 @@ import (
 func TestGetMostCommit(t *testing.T) {
 	commits := [][]byte{[]byte("aa"), []byte("bb"), []byte("aa"), []byte("aa")}
 
-	most, key := getMostCommit(commits)
+	most, key := GetMostCommit(commits)
 
 	assert.Equal(t, 3, most)
 	assert.Equal(t, "aa", key)
 }
 
 func TestIsCommitDone(t *testing.T) {
-	done := isCommitDone(4, 2)
+	done := IsCommitDone(4, 2)
 	assert.Equal(t, false, done)
 
-	done = isCommitDone(4, 3)
+	done = IsCommitDone(4, 3)
 	assert.Equal(t, true, done)
 
 }
