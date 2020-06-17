@@ -294,6 +294,7 @@ func Test_host(t *testing.T) {
 	hpb, err := hpub.Bytes()
 	assert.Nil(t, err)
 	assert.Equal(t, hpb, pub)
+	host.Close()
 }
 
 func testAddrbook(t *testing.T, cfg *types.P2P) {
