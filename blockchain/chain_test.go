@@ -325,7 +325,7 @@ func checkDupTxHeight(cacheTxsTxHeigt []*types.Transaction, blockchain *blockcha
 	i := blockchain.GetBlockHeight()
 	for j, tx := range cacheTxsTxHeigt {
 		txhash := tx.Hash()
-		chainlog.Info("checkDupTxHeight", "height", i, "count", j, "txhash", txhash)
+		chainlog.Info("checkDupTxHeight", "height", i, "count", j, "txhash", common.ToHex(txhash))
 		txhashlist.Hashes = append(txhashlist.Hashes, txhash[:])
 		txhashlist.Expire = append(txhashlist.Expire, tx.Expire)
 	}
