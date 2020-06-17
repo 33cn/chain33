@@ -549,7 +549,9 @@ func Test_rmPushFailTask(t *testing.T) {
 		pushNames = append(pushNames, subscribe.Name)
 		assert.Equal(t, err, nil)
 	}
+	chain.push.mu.Lock()
 	assert.Equal(t, len(chain.push.tasks), subCnt)
+	chain.push.mu.Unlock()
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(1 * time.Second)
 
@@ -605,7 +607,9 @@ func Test_ReactivePush(t *testing.T) {
 	err = chain.push.addSubscriber(subscribe)
 	assert.Equal(t, err, nil)
 	time.Sleep(1 * time.Second)
+	chain.push.mu.Lock()
 	pushNotify = chain.push.tasks[keyStr]
+	chain.push.mu.Unlock()
 	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
 	lastSeqAfter, _ := chain.ProcGetLastPushSeq(subscribe.Name)
 	assert.Greater(t, lastSeqAfter, lastSeq)

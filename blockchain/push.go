@@ -264,9 +264,11 @@ func (push *Push) init() {
 }
 
 func (push *Push) Close() {
+	push.mu.Lock()
 	for _, task := range push.tasks {
 		close(task.closechan)
 	}
+	push.mu.Unlock()
 	push.postwg.Wait()
 }
 
@@ -298,10 +300,13 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		return push.check2ResumePush(subscribeInDB)
 	}
 
+	push.mu.Lock()
 	if len(push.tasks) >= maxPushSubscriber {
 		chainlog.Error("addSubscriber too many push subscriber")
+		push.mu.Unlock()
 		return types.ErrTooManySeqCB
 	}
+	push.mu.Unlock()
 
 	//处理需要从指定高度开始推送的订阅请求
 	if subscribe.LastSequence > 0 {
