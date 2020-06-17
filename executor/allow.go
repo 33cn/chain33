@@ -54,6 +54,8 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
+	//此处loadDriver比较特殊，传入了空交易和当前交易的index
+	//主要为了内部driver.Allow可能会基于index进行逻辑判断，如挖矿交易限定只能是区块的第一笔交易
 	c := e.loadDriver(&types.Transaction{Execer: execdriver}, index)
 	//交给 -> friend 来判定
 	return c.IsFriend(execdriver, key, tx)
