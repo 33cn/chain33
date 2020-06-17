@@ -278,7 +278,7 @@ func Test_host(t *testing.T) {
 	t.Log("priv size", len(priv))
 	cpriv, err := crypto.UnmarshalPrivateKey(priv)
 	assert.Nil(t, err)
-	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 26666))
 	if err != nil {
 		return
 	}
