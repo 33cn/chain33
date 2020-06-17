@@ -84,7 +84,11 @@ func parsePubKey(pubKeyStr []byte, curve elliptic.Curve) (key *sm2.PublicKey, er
 }
 
 //SerializePublicKey 公钥序列化
-func SerializePublicKey(p *sm2.PublicKey) []byte {
+func SerializePublicKey(p *sm2.PublicKey, isCompress bool) []byte {
+	if isCompress {
+		return sm2.Compress(p)
+	}
+
 	b := make([]byte, 0, SM2PublicKeyLength)
 	b = append(b, pubkeyUncompressed)
 	b = paddedAppend(32, b, p.X.Bytes())
