@@ -5,7 +5,7 @@
 package util
 
 //获取commits中最多的一个，数量和string
-func getMostCommit(commits [][]byte) (int, string) {
+func GetMostCommit(commits [][]byte) (int, string) {
 	stats := make(map[string]int)
 	n := len(commits)
 	for i := 0; i < n; i++ {
@@ -27,6 +27,6 @@ func getMostCommit(commits [][]byte) (int, string) {
 }
 
 //判断是否most 超过total*2/3
-func isCommitDone(total, most int) bool {
+func IsCommitDone(total, most int) bool {
 	return 3*most > 2*total
 }
