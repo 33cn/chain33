@@ -286,9 +286,7 @@ func (p *P2P) CloseP2P() {
 	p.host.Close()
 	p.waitTaskDone()
 	prototypes.ClearEventHandler()
-	protocol.ClearEventHandler()
 	log.Info("p2p closed")
-
 }
 
 func (p *P2P) isClose() bool {

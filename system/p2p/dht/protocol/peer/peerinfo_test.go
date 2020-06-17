@@ -160,6 +160,7 @@ func TestPeerInfoEvent(t *testing.T) {
 	protocol := newTestProtocol(q)
 	defer protocol.Cancel()
 	assert.Equal(t, false, protocol.checkDone())
+
 	time.Sleep(time.Second * 11)
 	testMempoolReq(q)
 	testBlockReq(q)

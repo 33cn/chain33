@@ -271,14 +271,17 @@ func Test_pubkey(t *testing.T) {
 
 func Test_host(t *testing.T) {
 	mcfg := &p2pty.P2PSubConfig{}
+
 	_, err := GenPubkey("123456")
 	assert.NotNil(t, err)
+
 	priv, pub, err := GenPrivPubkey()
 	assert.Nil(t, err)
 	t.Log("priv size", len(priv))
 	cpriv, err := crypto.UnmarshalPrivateKey(priv)
 	assert.Nil(t, err)
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 26666))
+
 	if err != nil {
 		return
 	}
