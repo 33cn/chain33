@@ -239,8 +239,13 @@ func Test_addSubscriber_Success(t *testing.T) {
 	pushes, _ := chain.ProcListPush()
 	assert.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
 
-	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
-	recoverpushes, _ := chain.ProcListPush()
+	//重新创建push，能够从数据库中恢复原先注册成功的push
+	chainAnother := &BlockChain{
+		isRecordBlockSequence: true,
+		enablePushSubscribe:   true,
+	}
+	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	recoverpushes, _ := chainAnother.ProcListPush()
 	assert.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
 }
 
@@ -276,11 +281,6 @@ func Test_addSubscriber_WithSeqHashHeight(t *testing.T) {
 
 	pushes, _ := chain.ProcListPush()
 	assert.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
-
-	//重新创建push，能够从数据库中恢复原先注册成功的push
-	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
-	recoverpushes, _ := chain.ProcListPush()
-	assert.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
 }
 
 func Test_PostBlockFail(t *testing.T) {
@@ -514,10 +514,14 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 	assert.Equal(t, err, types.ErrNotAllowModifyPush)
 
 	//push 能够正常从数据库恢复
-	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
-	assert.Equal(t, 10, len(chain.push.tasks))
+	chainAnother := &BlockChain{
+		isRecordBlockSequence: true,
+		enablePushSubscribe:   true,
+	}
+	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	assert.Equal(t, 10, len(chainAnother.push.tasks))
 	for _, name := range pushNames {
-		assert.NotEqual(t, chain.push.tasks[string(calcPushKey(name))], nil)
+		assert.NotEqual(t, chainAnother.push.tasks[string(calcPushKey(name))], nil)
 	}
 	defer mock33.Close()
 }
@@ -648,15 +652,14 @@ func Test_RecoverPush(t *testing.T) {
 	assert.Equal(t, atomic.LoadInt32(&pushNotifyInfo.status), notRunning)
 	lastSeq, _ = chain.ProcGetLastPushSeq(subscribe.Name)
 
-	//chain33的push服务重启后，不会将其添加到task中，推送成功的序列号不成功
-	chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
-	chain.push.postService = ps
-	createBlocks(t, mock33, chain, 10)
-	time.Sleep(1 * time.Second)
-	lastSeqAfterCurr, _ := chain.ProcGetLastPushSeq(subscribe.Name)
-	assert.Equal(t, lastSeqAfterCurr, lastSeq)
+	//chain33的push服务重启后，不会将其添加到task中，
+	chainAnother := &BlockChain{
+		isRecordBlockSequence: true,
+		enablePushSubscribe:   true,
+	}
+	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	var nilInfo *pushNotify
-	assert.Equal(t, chain.push.tasks[string(calcPushKey(subscribe.Name))], nilInfo)
+	assert.Equal(t, chainAnother.push.tasks[string(calcPushKey(subscribe.Name))], nilInfo)
 
 	mock33.Close()
 }
