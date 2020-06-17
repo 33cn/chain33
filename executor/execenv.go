@@ -33,10 +33,11 @@ type executor struct {
 	gcli       types.Chain33Client
 	execapi    api.ExecutorAPI
 	receipts   []*types.ReceiptData
-	//执行器缓存
+	//单个区块执行期间执行器缓存
 	driverCache map[string]drivers.Driver
-	//记录当前交易的执行driver，避免多次load
+	//在单笔交易执行期间，将当前交易的执行driver缓存，避免多次load
 	currTxIdx  int
+	currExecTx *types.Transaction
 	currDriver drivers.Driver
 	cfg        *types.Chain33Config
 	exec       *Executor
@@ -72,11 +73,9 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 		api:          exec.qclient,
 		gcli:         exec.grpccli,
 		driverCache:  make(map[string]drivers.Driver),
-		// 初始化无效值，此处不能使用-1，checkTx时，传入的index=-1
-		currTxIdx:  -1 << 7,
-		currDriver: nil,
-		cfg:        cfg,
-		exec:       exec,
+		currTxIdx:    -1,
+		cfg:          cfg,
+		exec:         exec,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -278,9 +277,13 @@ func (e *executor) freeNoneDriver(none drivers.Driver) {
 	e.exec.noneDriverPool.Put(none)
 }
 
+// loadDriver 加载执行器
+// 对单笔交易执行期间的执行器做了缓存，避免多次加载
+// 只有参数的tx，index，和记录的当前交易，当前索引，均相等时，才返回缓存的当前交易执行器
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
 
-	if e.currTxIdx == index {
+	// 交易和index都相等时，返回已缓存的当前交易执行器
+	if e.currExecTx == tx && e.currTxIdx == index {
 		return e.currDriver
 	}
 	var err error
@@ -311,8 +314,13 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 		driver.SetCurrentExecName(name)
 	}
 	e.setEnv(driver)
-	e.currTxIdx = index
-	e.currDriver = driver
+
+	//均不相等时，表明当前交易已更新，需要同步更新缓存，并记录当前交易及其index
+	if e.currExecTx != tx && e.currTxIdx != index {
+		e.currExecTx = tx
+		e.currTxIdx = index
+		e.currDriver = driver
+	}
 	return driver
 }
 
