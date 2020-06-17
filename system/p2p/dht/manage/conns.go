@@ -1,6 +1,7 @@
 package manage
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	//multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 var (
@@ -101,32 +101,31 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 				}
 
 			}
-			log.Info(LatencyInfo)
+			log.Debug(LatencyInfo)
 			insize, outsize := s.BoundSize()
 			trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.pstore.Peers()), ",conn num:", insize+outsize, "inbound num", insize, "outbound num", outsize,
 				"dht size", s.discovery.RoutingTableSize())
 			trackerInfo += fmt.Sprintln("-------------------------------------")
-			log.Info(trackerInfo)
+			log.Debug(trackerInfo)
+
+			//debug
+			for _, pid := range s.discovery.ListPeers() {
+				log.Info("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
+			}
 
 		case <-time.After(time.Minute * 10):
 			//处理当前连接的节点问题
-
-			if s.OutboundSize() <= MaxOutBounds {
+			if s.OutboundSize() > MaxOutBounds || s.Size() > MaxBounds {
 				continue
 			}
-			nearestPeers := s.convertArrToMap(s.FetchNearestPeers())
-			//close from seed
-			for _, pid := range s.OutBounds() {
-				if _, ok := bootstraps[pid.Pretty()]; ok {
-					// 判断是否是最近nearest的30个节点
-					if _, ok := nearestPeers[pid.Pretty()]; !ok {
-						s.host.Network().ClosePeer(pid)
-						if s.OutboundSize() <= MinBounds {
-							break
-						}
-					}
+			//如果连接的节点数较少，尝试连接内置的和配置的种子节点
+			//无须担心重新连接的问题，底层会自己判断是否已经连接了此节点，如果已经连接了就会忽略
+			for _, seed := range net.ConvertPeers(seeds) {
+				s.host.Connect(context.Background(), *seed)
+			}
 
-				}
+			for _, node := range bootstraps {
+				s.host.Connect(context.Background(), *node)
 			}
 
 		case <-s.Done:
@@ -169,24 +168,22 @@ func (s *ConnManager) Size() int {
 //FetchConnPeers 获取连接的Peer's ID 这个连接包含被连接的peer以及主动连接的peer.
 func (s *ConnManager) FetchConnPeers() []peer.ID {
 	var peers = make(map[string]peer.ID)
-	for _, conn := range s.host.Network().Conns() {
-		//peers=append(peers,conn.RemotePeer())
-		peers[conn.RemotePeer().Pretty()] = conn.RemotePeer()
-		log.Debug("FetchConnPeers", "ssssstream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().Pretty())
+
+	nearpeers := s.FetchNearestPeers()
+	for _, peer := range nearpeers {
+		if _, ok := peers[peer.Pretty()]; !ok {
+			peers[peer.Pretty()] = peer
+		}
 		if len(peers) >= MaxBounds {
-			break
+			return s.convertMapToArr(peers)
 		}
 	}
 
-	if len(peers) < MinBounds {
-		nearpeers := s.FetchNearestPeers()
-		for _, peer := range nearpeers {
-			if _, ok := peers[peer.Pretty()]; !ok {
-				peers[peer.Pretty()] = peer
-			}
-			if len(peers) >= MaxOutBounds {
-				break
-			}
+	for _, conn := range s.host.Network().Conns() {
+		peers[conn.RemotePeer().Pretty()] = conn.RemotePeer()
+		//log.Debug("FetchConnPeers", "stream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().Pretty())
+		if len(peers) >= MaxBounds {
+			break
 		}
 
 	}

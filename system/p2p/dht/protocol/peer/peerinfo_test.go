@@ -18,6 +18,7 @@ import (
 
 	"context"
 	"fmt"
+	snet "net"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/system/p2p/dht/net"
@@ -72,7 +73,18 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
 	}
-	env.Discovery = net.InitDhtDiscovery(host, nil, cfg, subCfg)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	pubsub, err := net.NewPubSub(ctx, env.Host)
+	if err != nil {
+		cancel()
+		return nil
+	}
+	env.Ctx = ctx
+	env.Cancel = cancel
+
+	env.Pubsub = pubsub
+	env.Discovery = net.InitDhtDiscovery(env.Ctx, host, nil, cfg, subCfg)
 	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil, subCfg)
 
 	return env
@@ -179,4 +191,13 @@ func Test_util(t *testing.T) {
 	assert.NotEmpty(t, proto.getExternalAddr())
 	proto.setExternalAddr("/ip4/192.168.1.1/13802")
 	assert.Equal(t, "192.168.1.1", proto.getExternalAddr())
+	assert.True(t, !isPublicIP(snet.ParseIP("127.0.0.1")))
+	ips, err := localIPv4s()
+	assert.Nil(t, err)
+	assert.True(t, !isPublicIP(snet.ParseIP(ips[0])))
+	assert.True(t, isPublicIP(snet.ParseIP("112.74.59.221")))
+	assert.False(t, isPublicIP(snet.ParseIP("10.74.59.221")))
+	assert.False(t, isPublicIP(snet.ParseIP("172.16.59.221")))
+	assert.False(t, isPublicIP(snet.ParseIP("192.168.59.221")))
+
 }

@@ -11,7 +11,7 @@ import (
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
-func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig, isTestNet bool) {
+func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig) {
 
 	for _, peer := range ConvertPeers(cfg.BootStraps) {
 		host.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
@@ -23,6 +23,9 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 	}
 
 	for _, seed := range ConvertPeers(cfg.Seeds) {
+		if seed.ID == host.ID() {
+			continue
+		}
 		host.Peerstore().AddAddrs(seed.ID, seed.Addrs, peerstore.PermanentAddrTTL)
 		err := host.Connect(context.Background(), *seed)
 		if err != nil {

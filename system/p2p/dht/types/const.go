@@ -22,14 +22,13 @@ var (
 	ErrLength             = errors.New("length not equal")
 	ErrInvalidMessageType = errors.New("invalid message type")
 	ErrNotFound           = errors.New("not found")
-	ErrExpired            = errors.New("data expired")
 	ErrInvalidParam       = errors.New("invalid parameter")
-	ErrEmptyRoutingTable  = errors.New("empty routing table")
 	ErrWrongSignature     = errors.New("wrong signature")
+	ErrUnknown            = errors.New("unknown error")
 
-	//ExpiredTime     = time.Hour * 24
-	//RefreshInterval = time.Hour * 4
-	ExpiredTime          = time.Minute * 5
-	RefreshInterval      = time.Minute * 1
-	CheckHealthyInterval = time.Minute * 1
+	//ExpiredTime          = time.Hour * 4
+	//RefreshInterval      = time.Hour * 1
+	ExpiredTime          = time.Minute * 30
+	RefreshInterval      = time.Minute * 10
+	CheckHealthyInterval = time.Minute * 10
 )

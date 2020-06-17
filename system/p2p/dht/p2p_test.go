@@ -2,25 +2,28 @@ package dht
 
 import (
 	"context"
+	"encoding/hex"
+
 	"os"
-	"testing"
 
 	"github.com/33cn/chain33/util"
 
-	p2p2 "github.com/33cn/chain33/p2p"
-	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
-
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
-
 	"crypto/rand"
+	"fmt"
+	"testing"
 
 	l "github.com/33cn/chain33/common/log"
+	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet"
 	core "github.com/libp2p/go-libp2p-core"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/multiformats/go-multiaddr"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -170,9 +173,32 @@ func testStreamEOFReSet(t *testing.T) {
 	}
 
 	msgID := "/streamTest"
-	h1 := newHost(12345, prvKey1, nil, 0)
-	h2 := newHost(12346, prvKey2, nil, 0)
-	h3 := newHost(12347, prvKey3, nil, 0)
+
+	var subcfg p2pty.P2PSubConfig
+	subcfg.Port = 12345
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg.Port))
+	if err != nil {
+		panic(err)
+	}
+	h1 := newHost(&subcfg, prvKey1, nil, maddr)
+	//-------------------------
+	var subcfg2 p2pty.P2PSubConfig
+	subcfg2.Port = 12346
+	maddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg2.Port))
+	if err != nil {
+		panic(err)
+	}
+	h2 := newHost(&subcfg2, prvKey2, nil, maddr)
+
+	//-------------------------------------
+	var subcfg3 p2pty.P2PSubConfig
+	subcfg3.Port = 12347
+
+	maddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg3.Port))
+	if err != nil {
+		panic(err)
+	}
+	h3 := newHost(&subcfg3, prvKey3, nil, maddr)
 	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("Meow! It worked!")
 		var buf []byte
@@ -234,6 +260,14 @@ func testStreamEOFReSet(t *testing.T) {
 
 }
 
+func Test_pubkey(t *testing.T) {
+	priv, pub, err := GenPrivPubkey()
+	assert.Nil(t, err)
+	assert.NotNil(t, priv, pub)
+	pubstr, err := GenPubkey(hex.EncodeToString(priv))
+	assert.Nil(t, err)
+	assert.Equal(t, pubstr, hex.EncodeToString(pub))
+}
 func Test_p2p(t *testing.T) {
 
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
