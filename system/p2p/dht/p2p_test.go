@@ -269,7 +269,7 @@ func Test_pubkey(t *testing.T) {
 	assert.Equal(t, pubstr, hex.EncodeToString(pub))
 }
 
-func Test_host(t *testing.T) {
+func testHost(t *testing.T) {
 	mcfg := &p2pty.P2PSubConfig{}
 
 	_, err := GenPubkey("123456")
@@ -336,5 +336,6 @@ func Test_p2p(t *testing.T) {
 	testP2PEvent(t, q.Client())
 	testP2PClose(t, p2p)
 	testStreamEOFReSet(t)
+	testHost(t)
 
 }
