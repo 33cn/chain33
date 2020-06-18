@@ -285,6 +285,7 @@ func (p *P2P) CloseP2P() {
 	p.peerInfoManag.Close()
 	p.host.Close()
 	p.waitTaskDone()
+	protocol.ClearEventHandler()
 	prototypes.ClearEventHandler()
 	log.Info("p2p closed")
 }
