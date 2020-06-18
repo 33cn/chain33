@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	core "github.com/libp2p/go-libp2p-core"
+
 	"github.com/33cn/chain33/client"
 	logger "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2p"
@@ -24,10 +26,9 @@ import (
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	ds "github.com/ipfs/go-datastore"
-	libp2p "github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
-	core "github.com/libp2p/go-libp2p-core"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/multiformats/go-multiaddr"
@@ -198,6 +199,10 @@ func (p *P2P) StartP2P() {
 	}
 	protocol.Init(env)
 
+	go p.managePeers()
+	go p.handleP2PEvent()
+	go p.findLANPeers()
+
 	//debug new
 	env2 := &protocol.P2PEnv{
 		ChainCfg:     p.chainCfg,
@@ -209,18 +214,14 @@ func (p *P2P) StartP2P() {
 		RoutingTable: p.discovery,
 	}
 	p.env = env2
-
-	go p.managePeers()
-	go p.handleP2PEvent()
-	go p.findLANPeers()
-
 	protocol.InitAllProtocol(env2)
-	time.Sleep(time.Second)
-	log.Info("p2p", "all protocols", p.host.Mux().Protocols())
 }
 
 //查询本局域网内是否有节点
 func (p *P2P) findLANPeers() {
+	if p.subCfg.NofindLANPeers {
+		return
+	}
 	peerChan, err := p.discovery.FindLANPeers(p.host, fmt.Sprintf("/%s-mdns/%d", p.chainCfg.GetTitle(), p.subCfg.Channel))
 	if err != nil {
 		log.Error("findLANPeers", "err", err.Error())
