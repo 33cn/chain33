@@ -96,7 +96,7 @@ func (p *peerInfoProtol) setAddrToPeerStore(pid core.PeerID, remoteAddr, addrFro
 
 	defer func() { //防止出错，数组索引越界
 		if r := recover(); r != nil {
-			log.Error("onVersionReq", "recoverErr", r)
+			log.Error("setAddrToPeerStore", "recoverErr", r)
 		}
 	}()
 

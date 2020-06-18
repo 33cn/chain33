@@ -297,7 +297,6 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			spliteAddr := strings.Split(addr, "/")[2]
 			if isPublicIP(net.ParseIP(spliteAddr)) {
 				p.setExternalAddr(addr)
-
 			}
 		}
 
