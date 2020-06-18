@@ -2,15 +2,18 @@ package peer
 
 import (
 	"fmt"
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
-	"github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/multiformats/go-multiaddr"
 	"strings"
 	"time"
 
-	"github.com/33cn/chain33/types"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	"github.com/libp2p/go-libp2p-core/peerstore"
+
+	"github.com/multiformats/go-multiaddr"
+
 	"math/rand"
 	"net"
+
+	"github.com/33cn/chain33/types"
 
 	core "github.com/libp2p/go-libp2p-core"
 )
