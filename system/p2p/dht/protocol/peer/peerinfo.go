@@ -189,7 +189,7 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 	}
 	p.externalAddr = spliteAddr
 	//增加外网地址
-	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d/p2p/%v", p.externalAddr, p.p2pCfg.Port, p.GetHost().ID().String())
+	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d/p2p/%v", p.externalAddr, p.SubConfig.Port, p.GetHost().ID().String())
 	newmAddr, err := multiaddr.NewMultiaddr(selfExternalAddr)
 	if err != nil {
 		return
