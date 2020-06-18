@@ -581,7 +581,7 @@ func (push *Push) getTxReceipts(subscribe *types.PushSubscribeReq, startSeq int6
 	totalSize := 0
 	actualIterCount := 0
 	for i := startSeq; i < startSeq+int64(seqCount); i++ {
-		chainlog.Debug("getTxReceipts", "startSeq:", i)
+		chainlog.Info("getTxReceipts", "startSeq:", i)
 		seqdata, err := push.sequenceStore.GetBlockSequence(i)
 		if err != nil {
 			return nil, -1, err
@@ -592,7 +592,7 @@ func (push *Push) getTxReceipts(subscribe *types.PushSubscribeReq, startSeq int6
 		}
 
 		txReceiptsPerBlk := &types.TxReceipts4SubscribePerBlk{}
-		chainlog.Debug("getTxReceipts", "height:", detail.Block.Height, "tx numbers:", len(detail.Block.Txs), "Receipts numbers:", len(detail.Receipts))
+		chainlog.Info("getTxReceipts", "height:", detail.Block.Height, "tx numbers:", len(detail.Block.Txs), "Receipts numbers:", len(detail.Receipts))
 		for txIndex, tx := range detail.Block.Txs {
 			if subscribe.Contract[string(tx.Execer)] {
 				chainlog.Info("getTxReceipts", "txIndex:", txIndex)
@@ -625,7 +625,7 @@ func (push *Push) getTxReceipts(subscribe *types.PushSubscribeReq, startSeq int6
 	if len(txReceipts.TxReceipts) == 0 {
 		return nil, updateSeq, nil
 	}
-	chainlog.Debug("getTxReceipts", "updateSeq", updateSeq, "actualIterCount", actualIterCount)
+	chainlog.Info("getTxReceipts", "updateSeq", updateSeq, "actualIterCount", actualIterCount)
 
 	var postdata []byte
 	var err error
