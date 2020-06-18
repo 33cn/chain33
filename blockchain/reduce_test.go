@@ -46,9 +46,9 @@ func TestInitReduceLocaldb(t *testing.T) {
 					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 				})
 			// CompactRange执行将会阻塞仅仅做一次压缩
-			chainlog.Info("reduceLocaldb start compact db")
+			chainlog.Debug("reduceLocaldb start compact db")
 			blockStore.db.CompactRange(nil, nil)
-			chainlog.Info("reduceLocaldb end compact db")
+			chainlog.Debug("reduceLocaldb end compact db")
 		}
 		blockStore.saveReduceLocaldbFlag()
 	}
@@ -108,9 +108,9 @@ func TestInitReduceLocaldb1(t *testing.T) {
 					batch.Set(types.ReduceLocaldbHeight, types.Encode(&types.Int64{Data: height}))
 				})
 			// CompactRange执行将会阻塞仅仅做一次压缩
-			chainlog.Info("reduceLocaldb start compact db")
+			chainlog.Debug("reduceLocaldb start compact db")
 			blockStore.db.CompactRange(nil, nil)
-			chainlog.Info("reduceLocaldb end compact db")
+			chainlog.Debug("reduceLocaldb end compact db")
 		}
 		blockStore.saveReduceLocaldbFlag()
 	}
