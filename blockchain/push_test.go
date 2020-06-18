@@ -752,7 +752,7 @@ func addTx(cfg *types.Chain33Config, priv crypto.PrivKey, api client.QueueProtoc
 }
 
 func createBlocks(t *testing.T, mock33 *Chain33Mock, blockchain *BlockChain, number int64) {
-	chainlog.Debug("testProcAddBlockMsg begin --------------------")
+	chainlog.Info("testProcAddBlockMsg begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + number
@@ -766,7 +766,7 @@ func createBlocks(t *testing.T, mock33 *Chain33Mock, blockchain *BlockChain, num
 		_, _, err = addTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI())
 		require.NoError(t, err)
 		curheight = blockchain.GetBlockHeight()
-		chainlog.Debug("testProcAddBlockMsg ", "curheight", curheight)
+		chainlog.Info("testProcAddBlockMsg ", "curheight", curheight)
 		_, err = blockchain.GetBlock(curheight)
 		require.NoError(t, err)
 		if curheight >= addblockheight {
@@ -774,7 +774,7 @@ func createBlocks(t *testing.T, mock33 *Chain33Mock, blockchain *BlockChain, num
 		}
 		time.Sleep(sendTxWait)
 	}
-	chainlog.Debug("testProcAddBlockMsg end --------------------")
+	chainlog.Info("testProcAddBlockMsg end --------------------")
 }
 
 func createBlockChain(t *testing.T) (*BlockChain, *Chain33Mock) {
