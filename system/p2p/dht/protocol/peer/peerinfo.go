@@ -279,7 +279,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 			version.Version = p.p2pCfg.Channel
 			//real localport
-			version.AddrFrom = fmt.Sprintf("/ip4/%v/tcp/%v", p.getExternalAddr(), p.p2pCfg.Port)
+			version.AddrFrom = fmt.Sprintf("/ip4/%v/tcp/%v", p.getExternalAddr(), p.SubConfig.Port)
 			version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 			err = prototypes.WriteStream(req, s)
 			if err != nil {
