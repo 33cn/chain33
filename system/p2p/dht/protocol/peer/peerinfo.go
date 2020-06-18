@@ -168,11 +168,16 @@ func (p *peerInfoProtol) getPeerInfo() {
 }
 
 func (p *peerInfoProtol) setExternalAddr(addr string) {
+
+	defer func() { //防止出错，数组索引越界
+		if r := recover(); r != nil {
+			log.Error("setExternalAddr", "recoverErr", r)
+		}
+	}()
+
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	if len(strings.Split(addr, "/")) < 2 {
-		return
-	}
+
 	spliteAddr := strings.Split(addr, "/")[2]
 	if spliteAddr == p.externalAddr {
 		return
