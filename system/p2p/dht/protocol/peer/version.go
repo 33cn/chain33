@@ -4,7 +4,7 @@ import (
 	"fmt"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	multiaddr "github.com/multiformats/go-multiaddr"
+	"github.com/multiformats/go-multiaddr"
 	"strings"
 	"time"
 
@@ -45,7 +45,8 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 	return resp, nil
 }
 
-func (p *peerInfoProtol) checkRemotePeerExternalAddr(addrFrom string, remoteMAddr multiaddr.Multiaddr) multiaddr.Multiaddr {
+//true means: RemotoAddr, false means:LAN addr
+func (p *peerInfoProtol) checkRemotePeerExternalAddr(rmoteMAddr string) bool {
 
 	//存储对方的外网地址道peerstore中
 	//check remoteMaddr isPubAddr 示例： /ip4/192.168.0.1/tcp/13802
@@ -55,21 +56,19 @@ func (p *peerInfoProtol) checkRemotePeerExternalAddr(addrFrom string, remoteMAdd
 		}
 	}()
 
-	if !isPublicIP(net.ParseIP(strings.Split(remoteMAddr.String(), "/")[2])) {
-		fromMaddr, err := multiaddr.NewMultiaddr(addrFrom)
-		if err != nil {
-			return remoteMAddr
-		}
-		remoteMAddr = fromMaddr
-	}
-
-	return remoteMAddr
+	return isPublicIP(net.ParseIP(strings.Split(rmoteMAddr, "/")[2]))
 
 }
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
 	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
 	remoteMAddr := s.Conn().RemoteMultiaddr()
-	remoteMAddr = p.checkRemotePeerExternalAddr(req.GetMessage().GetAddrFrom(), remoteMAddr)
+	if !p.checkRemotePeerExternalAddr(remoteMAddr.String()) {
+		var err error
+		remoteMAddr, err = multiaddr.NewMultiaddr(req.GetMessage().GetAddrFrom())
+		if err != nil {
+			return
+		}
+	}
 
 	p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.AddressTTL)
 	senddata, err := p.processVerReq(req, remoteMAddr.String())

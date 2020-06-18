@@ -213,13 +213,11 @@ func Test_util(t *testing.T) {
 	assert.False(t, isPublicIP(snet.ParseIP("172.16.59.221")))
 	assert.False(t, isPublicIP(snet.ParseIP("192.168.59.221")))
 	//增加测试用例
-	testRemoteMaddr, err := multiaddr.NewMultiaddr("/ip4/122.224.166.26/tcp/13802")
+	_, err = multiaddr.NewMultiaddr("/ip4/122.224.166.26/tcp/13802")
 	assert.Nil(t, err)
-	remoteMaddr := proto.checkRemotePeerExternalAddr("/ip4/192.168.1.1/tcp/13802", testRemoteMaddr)
-	assert.Equal(t, remoteMaddr.String(), testRemoteMaddr.String())
+	ok = proto.checkRemotePeerExternalAddr("/ip4/192.168.1.1/tcp/13802")
+	assert.False(t, ok)
 
-	testRemoteMaddr, err = multiaddr.NewMultiaddr("/ip4/192.168.1.1/tcp/13802")
-	assert.Nil(t, err)
-	remoteMaddr = proto.checkRemotePeerExternalAddr("/ip4/122.224.166.26/tcp/13802", testRemoteMaddr)
-	assert.NotEqual(t, remoteMaddr.String(), testRemoteMaddr.String())
+	ok = proto.checkRemotePeerExternalAddr("/ip4/122.224.166.26/tcp/13802")
+	assert.True(t, ok)
 }
