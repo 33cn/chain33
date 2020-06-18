@@ -216,6 +216,7 @@ func (p *peerInfoProtol) checkDone() bool {
 }
 
 func (p *peerInfoProtol) detectNodeAddr() {
+
 	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
 	if len(addrs) > 0 {
@@ -273,6 +274,11 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 			version.Version = p.p2pCfg.Channel
 			version.AddrFrom = s.Conn().LocalMultiaddr().String()
+			if isPublicIP(net.ParseIP(p.getExternalAddr())) {
+				//用自己的外网地址提换
+				version.AddrFrom = fmt.Sprintf("/ip4/%v/tcp/%v", p.getExternalAddr(), p.p2pCfg.Port)
+			}
+
 			version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 			err = prototypes.WriteStream(req, s)
 			if err != nil {

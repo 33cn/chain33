@@ -73,6 +73,7 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 		}
 	}
 
+	log.Debug("onVersionReq", "remoteMAddr", remoteMAddr.String())
 	p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.AddressTTL)
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
 	if err != nil {
