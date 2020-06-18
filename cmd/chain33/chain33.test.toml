@@ -57,7 +57,7 @@ dbCache=4
 grpcLogFile="grpc33.log"
 
 [p2p.sub.dht]
-
+port=13803
 
 [rpc]
 jrpcBindAddr="localhost:8801"

@@ -60,7 +60,7 @@ func TestEvent(t *testing.T) {
 
 	events := []int64{types.EventTxBroadcast, types.EventBlockBroadcast,
 		types.EventFetchBlocks, types.EventGetMempool, types.EventFetchBlockHeaders,
-		types.EventPeerInfo, types.EventGetNetInfo}
+		types.EventPeerInfo, types.EventGetNetInfo, types.EventPubTopicMsg, types.EventFetchTopics, types.EventRemoveTopic, types.EventSubTopic}
 
 	for _, ty := range events {
 

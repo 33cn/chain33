@@ -44,7 +44,7 @@ func Test_recvQueryData(t *testing.T) {
 	assert.Equal(t, errRecvMempool, err)
 	memTxs = []*types.Transaction{tx}
 	err = proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, errSendStream, err)
+	assert.Nil(t, err)
 
 	blockHash := hex.EncodeToString(testBlock.Hash(proto.ChainCfg))
 	blockChainCli := q.Client()
@@ -67,10 +67,10 @@ func Test_recvQueryData(t *testing.T) {
 	assert.Equal(t, errRecvBlockChain, err)
 	<-handleTestMsgReply(blockChainCli, types.EventGetBlockByHashes, &types.BlockDetails{Items: []*types.BlockDetail{{Block: testBlock}}}, false)
 	err = proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, errSendStream, err)
+	assert.Nil(t, err)
 	req.TxIndices = nil
 	err = proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, errSendStream, err)
+	assert.Nil(t, err)
 }
 
 func Test_recvQueryReply(t *testing.T) {
@@ -96,7 +96,7 @@ func Test_recvQueryReply(t *testing.T) {
 	reply.Txs = []*types.Transaction{tx}
 	reply.TxIndices = []int32{2}
 	err = proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, errSendStream, err)
+	assert.Nil(t, err)
 
 	//block组装失败,不再请求
 	proto.ltBlockCache.Add(blockHash, block, 1)
@@ -115,7 +115,7 @@ func Test_recvQueryReply(t *testing.T) {
 	assert.Equal(t, types.EventBroadcastAddBlock, int(msg.Ty))
 	blc, ok := msg.Data.(*types.BlockPid)
 	assert.True(t, ok)
-	assert.Equal(t, testPid, blc.Pid)
+	assert.Equal(t, testPid.Pretty(), blc.Pid)
 	assert.Equal(t, block.Hash(proto.ChainCfg), blc.Block.Hash(proto.ChainCfg))
 
 }

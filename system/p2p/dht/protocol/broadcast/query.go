@@ -8,9 +8,9 @@ import (
 	"encoding/hex"
 
 	"github.com/33cn/chain33/common"
-
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func (protocol *broadCastProtocol) sendQueryData(query *types.P2PQueryData, p2pData *types.BroadCastData, peerAddr string) bool {
@@ -25,13 +25,13 @@ func (protocol *broadCastProtocol) sendQueryReply(rep *types.P2PBlockTxReply, p2
 	return true
 }
 
-func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid, peerAddr string) error {
+func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid peer.ID, peerAddr string) error {
 
 	var reply interface{}
 	if txReq := query.GetTxReq(); txReq != nil {
 
 		txHash := hex.EncodeToString(txReq.TxHash)
-		log.Debug("recvQueryTx", "txHash", txHash, "pid", pid)
+		log.Debug("recvQueryTx", "txHash", txHash, "pid", pid.Pretty())
 		//向mempool请求交易
 		resp, err := protocol.QueryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
 		if err != nil {
@@ -89,9 +89,9 @@ func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid,
 	return nil
 }
 
-func (protocol *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr string) (err error) {
+func (protocol *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid peer.ID, peerAddr string) (err error) {
 
-	log.Debug("recvQueryReply", "hash", rep.BlockHash, "queryTxsCount", len(rep.GetTxIndices()), "pid", pid)
+	log.Debug("recvQueryReply", "hash", rep.BlockHash, "queryTxsCount", len(rep.GetTxIndices()), "pid", pid.Pretty())
 	val, exist := protocol.ltBlockCache.Remove(rep.BlockHash)
 	block, _ := val.(*types.Block)
 	//not exist in cache or nil block

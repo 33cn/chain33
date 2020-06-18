@@ -7,6 +7,8 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -54,7 +56,7 @@ func Test_recvBlock(t *testing.T) {
 	assert.Equal(t, types.EventBroadcastAddBlock, int(msg.Ty))
 	blc, ok := msg.Data.(*types.BlockPid)
 	assert.True(t, ok)
-	assert.Equal(t, testPid, blc.Pid)
+	assert.Equal(t, testPid.Pretty(), blc.Pid)
 	assert.Equal(t, blockHash, hex.EncodeToString(blc.Block.Hash(proto.ChainCfg)))
 }
 
@@ -97,17 +99,18 @@ func Test_recvLtBlock(t *testing.T) {
 	done := startHandleMempool(q, &memTxList)
 	<-done
 	block := &types.Block{TxHash: []byte("test"), Txs: txList, Height: 10}
-	sendData, _ := proto.handleSend(&types.P2PBlock{Block: block}, "temppid", "tempaddr")
+	temppid, _ := peer.Decode("16Uiu2HAkudcLD1rRPmLL6PYqT3frNFUhTt764yWx1pfrVW8eWUeY")
+	sendData, _ := proto.handleSend(&types.P2PBlock{Block: block}, temppid, "tempaddr")
 
 	// block tx hash校验不过
 	err := proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, errSendStream, err)
+	assert.Nil(t, err)
 	blockHash := hex.EncodeToString(block.Hash(proto.ChainCfg))
 	assert.True(t, proto.blockSendFilter.Contains(blockHash))
 	//缺失超过1/3的交易数量
 	memTxList = []*types.Transaction{tx, nil, nil}
 	err = proto.handleReceive(sendData, testPid, testAddr)
-	assert.Equal(t, errSendStream, err)
+	assert.Nil(t, err)
 	//交易组正确流程测试
 	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, proto.ChainCfg.GetMinTxFeeRate())
 	gtx := txGroup.Tx()
@@ -122,6 +125,6 @@ func Test_recvLtBlock(t *testing.T) {
 	assert.Equal(t, types.EventBroadcastAddBlock, int(msg.Ty))
 	blc, ok := msg.Data.(*types.BlockPid)
 	assert.True(t, ok)
-	assert.Equal(t, testPid, blc.Pid)
+	assert.Equal(t, testPid.Pretty(), blc.Pid)
 	assert.Equal(t, block.Hash(proto.ChainCfg), blc.Block.Hash(proto.ChainCfg))
 }
