@@ -45,21 +45,18 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 }
 
 //true means: RemotoAddr, false means:LAN addr
-func (p *peerInfoProtol) checkRemotePeerExternalAddr(rmoteMAddr string) bool {
+func (p *peerInfoProtol) checkRemotePeerExternalAddr(remoteMAddr string) bool {
 
 	//存储对方的外网地址道peerstore中
 	//check remoteMaddr isPubAddr 示例： /ip4/192.168.0.1/tcp/13802
-	defer func() { //防止出错，数组索引越界
-		if r := recover(); r != nil {
-			log.Error("checkRemotePeerExternalAddr", "recoverErr", r)
-		}
-	}()
+	if len(strings.Split(remoteMAddr, "/")) < 5 {
+		return false
+	}
 
-	return isPublicIP(net.ParseIP(strings.Split(rmoteMAddr, "/")[2]))
+	return isPublicIP(net.ParseIP(strings.Split(remoteMAddr, "/")[2]))
 
 }
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
-	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
 	remoteMAddr := s.Conn().RemoteMultiaddr()
 	if !p.checkRemotePeerExternalAddr(remoteMAddr.String()) {
 		var err error
@@ -68,7 +65,6 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 			return
 		}
 	}
-
 	p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.AddressTTL)
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
 	if err != nil {

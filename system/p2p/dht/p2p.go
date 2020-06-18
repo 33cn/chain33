@@ -219,7 +219,7 @@ func (p *P2P) StartP2P() {
 
 //查询本局域网内是否有节点
 func (p *P2P) findLANPeers() {
-	if p.subCfg.NofindLANPeers {
+	if p.subCfg.DisableFindLANPeers {
 		return
 	}
 	peerChan, err := p.discovery.FindLANPeers(p.host, fmt.Sprintf("/%s-mdns/%d", p.chainCfg.GetTitle(), p.subCfg.Channel))

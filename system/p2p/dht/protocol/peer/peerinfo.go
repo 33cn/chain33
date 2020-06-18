@@ -10,7 +10,6 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
-	dnet "github.com/33cn/chain33/system/p2p/dht/net"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -183,17 +182,13 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 	}
 	p.externalAddr = spliteAddr
 	//增加外网地址
-	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d/p2p/%v", p.externalAddr, p.p2pCfg.Port, p.GetHost().ID().String())
+	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d", p.externalAddr, p.p2pCfg.Port)
 	newmAddr, err := multiaddr.NewMultiaddr(selfExternalAddr)
 	if err != nil {
 		return
 	}
-	peerinfo, err := peer.AddrInfoFromP2pAddr(newmAddr)
-	if err != nil {
-		return
-	}
 
-	p.Host.Peerstore().AddAddrs(p.GetHost().ID(), peerinfo.Addrs, peerstore.PermanentAddrTTL)
+	p.Host.Peerstore().AddAddr(p.GetHost().ID(), newmAddr, peerstore.AddressTTL)
 	log.Debug("setExternalAddr", "afterSetAddrs", p.Host.Addrs(), "peerstoreAddr", p.Host.Peerstore().Addrs(p.Host.ID()))
 }
 
@@ -245,32 +240,24 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			time.Sleep(time.Minute)
 		}
 
-		allnodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
-		nodes := dnet.ConvertPeers(allnodes)
-		for _, connPeer := range p.GetConnsManager().FetchConnPeers() {
-			pid, err := peer.IDFromString(connPeer.Pretty())
-			if err != nil {
-				continue
-			}
-			peerinfo := p.GetHost().Peerstore().PeerInfo(pid)
-			nodes[pid.String()] = &peerinfo
-
-		}
-		for _, node := range nodes {
+		for _, pid := range p.GetConnsManager().FetchConnPeers() {
 			var version types.P2PVersion
 
 			pubkey, _ := p.GetHost().Peerstore().PubKey(localID).Bytes()
 			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
 				Message: &version}
 
-			s, err := prototypes.NewStream(p.Host, node.ID, PeerVersionReq)
+			s, err := prototypes.NewStream(p.Host, pid, PeerVersionReq)
 			if err != nil {
-				log.Error("NewStream", "err", err, "remoteID", node.ID)
+				log.Error("NewStream", "err", err, "remoteID", pid)
 				continue
 			}
 
 			version.Version = p.p2pCfg.Channel
-			version.AddrFrom = s.Conn().LocalMultiaddr().String()
+			p.mutex.Lock()
+			selfPublicIP := p.externalAddr
+			p.mutex.Unlock()
+			version.AddrFrom = fmt.Sprintf("/ip4/%v/tcp/%d", selfPublicIP, p.p2pCfg.Port)
 			version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 			err = prototypes.WriteStream(req, s)
 			if err != nil {
