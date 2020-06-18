@@ -20,7 +20,7 @@ const (
 
 	//sync protocols
 	IsSync        = "/chain33/is-sync/" + types2.Version
-	IsHealthy     = "/chain33/is-healthy" + types2.Version
+	IsHealthy     = "/chain33/is-healthy/" + types2.Version
 	GetLastHeader = "/chain33/last-header/" + types2.Version
 )
 

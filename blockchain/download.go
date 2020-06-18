@@ -120,6 +120,11 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 	waitCount.Count = 0
 	cfg := chain.client.GetConfig()
 	for {
+		select {
+		case <-chain.quit:
+			return
+		default:
+		}
 		curheight := chain.GetBlockHeight()
 		peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 

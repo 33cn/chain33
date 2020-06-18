@@ -90,9 +90,9 @@ port=13803
 
 [rpc]
 # jrpc绑定地址
-jrpcBindAddr="localhost:8803"
+jrpcBindAddr="localhost:8801"
 # grpc绑定地址
-grpcBindAddr="localhost:8804"
+grpcBindAddr="localhost:8802"
 # 白名单列表，允许访问的IP地址，默认是“*”，允许所有IP访问
 whitelist=["127.0.0.1"]
 # jrpc方法请求白名单，默认是“*”，允许访问所有RPC方法

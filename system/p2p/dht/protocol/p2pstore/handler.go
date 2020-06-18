@@ -1,7 +1,6 @@
 package p2pstore
 
 import (
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"sync"
@@ -23,9 +22,16 @@ var log = log15.New("module", "protocol.p2pstore")
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
-	saving              sync.Map
-	notifying           sync.Map
+	notifying sync.Map
+
+	//普通路由表的一个子表，仅包含接近同步完成的节点
 	healthyRoutingTable *kb.RoutingTable
+
+	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
+	localChunkInfo      map[string]LocalChunkInfo
+	localChunkInfoMutex sync.RWMutex
+
+	retryInterval time.Duration
 }
 
 func init() {
@@ -36,13 +42,18 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
 		P2PEnv:              env,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
+		retryInterval:       30 * time.Second,
 	}
+	if env.ChainCfg.IsTestNet() {
+		p.retryInterval = 0
+	}
+	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
-	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithSignCheck(p.HandleStreamFetchChunk))
+	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk)) //数据较大，采用特殊写入方式
 	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
-	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithSignCheck(p.HandleStreamGetHeader))
-	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithSignCheck(p.HandleStreamGetChunkRecord))
+	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.HandleStreamGetHeader))
+	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.HandleStreamGetChunkRecord))
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
 	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, protocol.EventHandlerWithRecover(p.HandleEventNotifyStoreChunk))
 	protocol.RegisterEventHandler(types.EventGetChunkBlock, protocol.EventHandlerWithRecover(p.HandleEventGetChunkBlock))
@@ -53,7 +64,18 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.startUpdateHealthyRoutingTable()
 }
 
-func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PResponse) error {
+func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.Stream) {
+	var res types.P2PResponse
+	defer func() {
+		t := time.Now()
+		_, err := stream.Write(types.Encode(&res))
+		if err != nil {
+			log.Error("HandleStreamFetchChunk", "write stream error", err)
+		}
+		cost := time.Since(t)
+		log.Info("HandleStreamFetchChunk", "time cost", cost)
+	}()
+
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	//优先检查本地是否存在
 	bodys, _ := p.getChunkBlock(param.ChunkHash)
@@ -62,25 +84,27 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PR
 		start, end := param.Start%l, param.End%l+1
 		bodys.Items = bodys.Items[start:end]
 		res.Response = &types.P2PResponse_BlockBodys{BlockBodys: bodys}
-		return nil
+		return
 	}
 
 	//本地没有数据
-	peers := p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup)
+	peers := p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
+	//如果本节点是最近的Alpha个节点之一，说明迭代到了全网最近的Alpha个节点，返回全网最近的Backup个节点
+	if len(peers) == AlphaValue && kb.Closer(p.Host.ID(), peers[AlphaValue-1], genChunkPath(param.ChunkHash)) {
+		peers = p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup)
+	}
+
 	var addrInfos []peer.AddrInfo
 	for _, pid := range peers {
-		if kb.Closer(p.Host.ID(), pid, genChunkPath(param.ChunkHash)) {
-			continue
-		}
 		addrInfos = append(addrInfos, p.Host.Peerstore().PeerInfo(pid))
 	}
 
 	addrInfosData, err := json.Marshal(addrInfos)
 	if err != nil {
-		return err
+		log.Error("HandleStreamFetchChunk", "marshal error", err)
+		return
 	}
 	res.Response = &types.P2PResponse_AddrInfo{AddrInfo: addrInfosData}
-	return nil
 }
 
 // 对端节点通知本节点保存数据
@@ -89,13 +113,9 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, res *types.P2PR
 	1）若已保存则只更新时间即可
 	2）若未保存则从网络中请求chunk数据
 */
-func (p *Protocol) HandleStreamStoreChunk(stream network.Stream, req *types.P2PRequest) {
+func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, _ network.Stream) {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	chunkHashHex := hex.EncodeToString(param.ChunkHash)
-	//该chunk正在保存
-	if _, ok := p.saving.Load(chunkHashHex); ok {
-		return
-	}
 	//已有其他节点通知该节点保存该chunk，正在网络中查找数据, 避免接收到多个节点的通知后重复查询数据
 	if _, ok := p.notifying.LoadOrStore(chunkHashHex, nil); ok {
 		return
@@ -107,15 +127,26 @@ func (p *Protocol) HandleStreamStoreChunk(stream network.Stream, req *types.P2PR
 		return
 	}
 
-	//对端节点通知本节点保存数据，则对端节点应该有数据
-	bodys, _, err := p.fetchChunkOrNearerPeers(context.Background(), param, stream.Conn().RemotePeer())
-	if err != nil || bodys == nil {
-		//对端节点没有数据，则从网络中搜索数据
+	var bodys *types.BlockBodys
+	var err error
+	//blockchain模块可能有数据，blockchain模块保存了最新的10000+2*chunk_len个区块
+	//如果请求的区块高度在 [lastHeight-10000-2*chunk_len, lastHeight] 之间，则到blockchain模块去请求区块，否则到网络中请求
+	lastHeader, _ := p.getLastHeaderFromBlockChain()
+	chunkLen := param.End - param.Start + 1
+	if lastHeader != nil && param.Start >= lastHeader.Height-10000-2*chunkLen && param.End < lastHeader.Height {
+		bodys, err = p.getChunkFromBlockchain(param)
+		if err != nil {
+			log.Error("onStoreChunk", "getChunkFromBlockchain error", err)
+			return
+		}
+	} else {
+		//从网络中搜索数据
 		bodys, err = p.mustFetchChunk(param)
 		if err != nil {
 			log.Error("onStoreChunk", "get bodys from remote peer error", err)
 			return
 		}
+
 	}
 
 	err = p.addChunkBlock(param, bodys)
@@ -125,7 +156,7 @@ func (p *Protocol) HandleStreamStoreChunk(stream network.Stream, req *types.P2PR
 	}
 }
 
-func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse) error {
+func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	param := req.Request.(*types.P2PRequest_ReqBlocks)
 	msg := p.QueueClient.NewMessage("blockchain", types.EventGetHeaders, param.ReqBlocks)
 	err := p.QueueClient.Send(msg, true)
@@ -144,7 +175,7 @@ func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PRe
 	return types.ErrNotFound
 }
 
-func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse) error {
+func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	param := req.Request.(*types.P2PRequest_ReqChunkRecords).ReqChunkRecords
 	records, err := p.getChunkRecordFromBlockchain(param)
 	if err != nil {
@@ -155,17 +186,17 @@ func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 }
 
 //HandleEventNotifyStoreChunk handles notification of blockchain,
-// store chunk if this node is the nearest *BackUp* node in the local routing table.
+// store chunk if this node is the nearest *count* node in the local routing table.
 func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ChunkInfoMsg)
 	//如果本节点是本地路由表中距离该chunk最近的 *count* 个节点之一，则保存数据；否则不需要保存数据
-	count := Backup
+	count := 1
 	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), count)
 	if len(peers) == count && kb.Closer(peers[count-1], p.Host.ID(), genChunkPath(req.ChunkHash)) {
 		return
 	}
-	err := p.storeChunk(req)
+	err := p.checkAndStoreChunk(req)
 	if err != nil {
 		log.Error("StoreChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return
