@@ -102,9 +102,9 @@ func (p *peerInfoProtol) setAddrToPeerStore(pid core.PeerID, remoteAddr, addrFro
 
 	//改造RemoteAddr的端口，使之为对方绑定的端口
 	realPort := strings.Split(addrFrom, "/")[4]
-	realExternalIp := strings.Split(remoteAddr, "/")[2]
+	realExternalIP := strings.Split(remoteAddr, "/")[2]
 	var err error
-	remoteMAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%v", realExternalIp, realPort))
+	remoteMAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%v", realExternalIP, realPort))
 	if err != nil {
 		return
 	}

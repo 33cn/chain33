@@ -224,5 +224,9 @@ func Test_util(t *testing.T) {
 	assert.True(t, ok)
 	pid, err := peer.Decode("16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
 	assert.Nil(t, err)
+	assert.Equal(t, pid.String(), "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
+
 	proto.setAddrToPeerStore(pid, "/ip4/122.224.166.26/tcp/13802", "/ip4/192.168.1.1/tcp/12345")
+	pid, err = peer.IDFromString("16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
+	assert.NotNil(t, err)
 }

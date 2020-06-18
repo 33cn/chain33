@@ -256,10 +256,11 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		allnodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
 		nodes := dnet.ConvertPeers(allnodes)
 		for _, connPeer := range p.GetConnsManager().FetchConnPeers() {
-			pid, err := peer.IDFromString(connPeer.Pretty())
+			pid, err := peer.Decode(connPeer.Pretty())
 			if err != nil {
 				continue
 			}
+
 			peerinfo := p.GetHost().Peerstore().PeerInfo(pid)
 			nodes[pid.String()] = &peerinfo
 
