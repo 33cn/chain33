@@ -63,6 +63,12 @@ func (p *peerInfoProtol) checkRemotePeerExternalAddr(rmoteMAddr string) bool {
 
 }
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
+	defer func() { //防止出错，数组索引越界
+		if r := recover(); r != nil {
+			log.Error("onVersionReq", "recoverErr", r)
+		}
+	}()
+
 	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
 	remoteMAddr := s.Conn().RemoteMultiaddr()
 	if !p.checkRemotePeerExternalAddr(remoteMAddr.String()) {
@@ -71,6 +77,14 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 		if err != nil {
 			return
 		}
+	}
+	//改造RemoteAddr的端口，使之为对方绑定的端口
+	realPort := strings.Split(req.Message.GetAddrFrom(), "/")[4]
+	realExternalIp := strings.Split(remoteMAddr.String(), "/")[2]
+	var err error
+	remoteMAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%v", realExternalIp, realPort))
+	if err != nil {
+		return
 	}
 
 	log.Debug("onVersionReq", "remoteMAddr", remoteMAddr.String())
