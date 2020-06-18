@@ -177,8 +177,13 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-
-	spliteAddr := strings.Split(addr, "/")[2]
+	var spliteAddr string
+	splites := strings.Split(addr, "/")
+	if len(splites) == 1 {
+		spliteAddr = splites[0]
+	} else {
+		spliteAddr = splites[2]
+	}
 	if spliteAddr == p.externalAddr {
 		return
 	}

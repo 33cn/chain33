@@ -63,11 +63,6 @@ func (p *peerInfoProtol) checkRemotePeerExternalAddr(rmoteMAddr string) bool {
 
 }
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
-	defer func() { //防止出错，数组索引越界
-		if r := recover(); r != nil {
-			log.Error("onVersionReq", "recoverErr", r)
-		}
-	}()
 
 	log.Debug("onVersionReq", "peerproto", s.Protocol(), "req", req)
 	remoteMAddr := s.Conn().RemoteMultiaddr()
@@ -78,17 +73,10 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 			return
 		}
 	}
-	//改造RemoteAddr的端口，使之为对方绑定的端口
-	realPort := strings.Split(req.Message.GetAddrFrom(), "/")[4]
-	realExternalIp := strings.Split(remoteMAddr.String(), "/")[2]
-	var err error
-	remoteMAddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%v", realExternalIp, realPort))
-	if err != nil {
-		return
-	}
 
 	log.Debug("onVersionReq", "remoteMAddr", remoteMAddr.String())
-	p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.AddressTTL)
+	p.setAddrToPeerStore(s.Conn().RemotePeer(), remoteMAddr.String(), req.GetMessage().GetAddrFrom())
+
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
 	if err != nil {
 		log.Error("onVersionReq", "err", err.Error())
@@ -102,4 +90,24 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 
 	log.Debug("OnVersionReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String())
 
+}
+
+func (p *peerInfoProtol) setAddrToPeerStore(pid core.PeerID, remoteAddr, addrFrom string) {
+
+	defer func() { //防止出错，数组索引越界
+		if r := recover(); r != nil {
+			log.Error("onVersionReq", "recoverErr", r)
+		}
+	}()
+
+	//改造RemoteAddr的端口，使之为对方绑定的端口
+	realPort := strings.Split(addrFrom, "/")[4]
+	realExternalIp := strings.Split(remoteAddr, "/")[2]
+	var err error
+	remoteMAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%v", realExternalIp, realPort))
+	if err != nil {
+		return
+	}
+
+	p.Host.Peerstore().AddAddr(pid, remoteMAddr, peerstore.AddressTTL)
 }
