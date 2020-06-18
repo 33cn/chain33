@@ -5,9 +5,10 @@
 package peer
 
 import (
-	"github.com/libp2p/go-libp2p-core/peer"
 	"testing"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/33cn/chain33/p2p"
 
@@ -223,5 +224,9 @@ func Test_util(t *testing.T) {
 	assert.True(t, ok)
 	pid, err := peer.Decode("16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
 	assert.Nil(t, err)
+	assert.Equal(t, pid.String(), "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
+
 	proto.setAddrToPeerStore(pid, "/ip4/122.224.166.26/tcp/13802", "/ip4/192.168.1.1/tcp/12345")
+	pid, err = peer.IDFromString("16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
+	assert.NotNil(t, err)
 }
