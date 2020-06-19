@@ -175,13 +175,19 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-
-	spliteAddr := strings.Split(addr, "/")[2]
+	var spliteAddr string
+	splites := strings.Split(addr, "/")
+	if len(splites) == 1 {
+		spliteAddr = splites[0]
+	} else {
+		spliteAddr = splites[2]
+	}
 	if spliteAddr == p.externalAddr {
 		return
 	}
 	p.externalAddr = spliteAddr
 	//增加外网地址
+
 	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d", p.externalAddr, p.p2pCfg.Port)
 	newmAddr, err := multiaddr.NewMultiaddr(selfExternalAddr)
 	if err != nil {
@@ -209,6 +215,7 @@ func (p *peerInfoProtol) checkDone() bool {
 }
 
 func (p *peerInfoProtol) detectNodeAddr() {
+
 	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
 	if len(addrs) > 0 {
@@ -241,6 +248,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		}
 
 		for _, pid := range p.GetConnsManager().FetchConnPeers() {
+
 			var version types.P2PVersion
 
 			pubkey, _ := p.GetHost().Peerstore().PubKey(localID).Bytes()
@@ -254,10 +262,9 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			}
 
 			version.Version = p.p2pCfg.Channel
-			p.mutex.Lock()
-			selfPublicIP := p.externalAddr
-			p.mutex.Unlock()
-			version.AddrFrom = fmt.Sprintf("/ip4/%v/tcp/%d", selfPublicIP, p.p2pCfg.Port)
+
+			//real localport
+			version.AddrFrom = fmt.Sprintf("/ip4/%v/tcp/%d", p.getExternalAddr(), p.p2pCfg.Port)
 			version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 			err = prototypes.WriteStream(req, s)
 			if err != nil {
@@ -274,13 +281,12 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			}
 			prototypes.CloseStream(s)
 			addr := resp.GetMessage().GetAddrRecv()
-			if len(strings.Split(addr, "/")) < 2 {
+			if len(strings.Split(addr, "/")) < 3 {
 				continue
 			}
 			spliteAddr := strings.Split(addr, "/")[2]
 			if isPublicIP(net.ParseIP(spliteAddr)) {
 				p.setExternalAddr(addr)
-
 			}
 		}
 	}

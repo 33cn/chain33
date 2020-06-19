@@ -32,7 +32,7 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
-
+	rand.Seed(time.Now().Unix())
 	var version types.P2PVersion
 	version.AddrFrom = p.getExternalAddr()
 	version.AddrRecv = muaddr
@@ -57,6 +57,7 @@ func (p *peerInfoProtol) checkRemotePeerExternalAddr(remoteMAddr string) bool {
 
 }
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
+
 	remoteMAddr := s.Conn().RemoteMultiaddr()
 	if !p.checkRemotePeerExternalAddr(remoteMAddr.String()) {
 		var err error
@@ -64,8 +65,13 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 		if err != nil {
 			return
 		}
+		p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.AddressTTL)
+	} else {
+		//replace real port
+		log.Debug("onVersionReq", "remoteMAddr", remoteMAddr.String(), "addrFrom", req.GetMessage().AddrFrom)
+		p.setAddrToPeerStore(s.Conn().RemotePeer(), remoteMAddr.String(), req.GetMessage().GetAddrFrom())
 	}
-	p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.AddressTTL)
+
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
 	if err != nil {
 		log.Error("onVersionReq", "err", err.Error())
@@ -79,4 +85,24 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 
 	log.Debug("OnVersionReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String())
 
+}
+
+func (p *peerInfoProtol) setAddrToPeerStore(pid core.PeerID, remoteAddr, addrFrom string) {
+
+	defer func() { //防止出错，数组索引越界
+		if r := recover(); r != nil {
+			log.Error("setAddrToPeerStore", "recoverErr", r)
+		}
+	}()
+
+	//改造RemoteAddr的端口，使之为对方绑定的端口
+	realPort := strings.Split(addrFrom, "/")[4]
+	realExternalIP := strings.Split(remoteAddr, "/")[2]
+	var err error
+	remoteMAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%v/tcp/%v", realExternalIP, realPort))
+	if err != nil {
+		return
+	}
+
+	p.Host.Peerstore().AddAddr(pid, remoteMAddr, peerstore.AddressTTL)
 }
