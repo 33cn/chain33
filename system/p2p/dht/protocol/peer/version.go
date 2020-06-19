@@ -32,7 +32,7 @@ func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr s
 
 	pid := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
-
+	rand.Seed(time.Now().Unix())
 	var version types.P2PVersion
 	version.AddrFrom = p.getExternalAddr()
 	version.AddrRecv = muaddr
@@ -65,10 +65,12 @@ func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.St
 		if err != nil {
 			return
 		}
+		p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.AddressTTL)
+	} else {
+		//replace real port
+		log.Debug("onVersionReq", "remoteMAddr", remoteMAddr.String(), "addrFrom", req.GetMessage().AddrFrom)
+		p.setAddrToPeerStore(s.Conn().RemotePeer(), remoteMAddr.String(), req.GetMessage().GetAddrFrom())
 	}
-
-	log.Debug("onVersionReq", "remoteMAddr", remoteMAddr.String(), "addrFrom", req.GetMessage().AddrFrom)
-	p.setAddrToPeerStore(s.Conn().RemotePeer(), remoteMAddr.String(), req.GetMessage().GetAddrFrom())
 
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
 	if err != nil {
