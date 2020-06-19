@@ -246,7 +246,7 @@ func (chain *BlockChain) getLastHeader(msg *queue.Message) {
 func (chain *BlockChain) addBlockDetail(msg *queue.Message) {
 	blockDetail := msg.Data.(*types.BlockDetail)
 	Height := blockDetail.Block.Height
-	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "parent", common.ToHex(blockDetail.Block.ParentHash))
+	chainlog.Debug("EventAddBlockDetail", "height", blockDetail.Block.Height, "parent", common.ToHex(blockDetail.Block.ParentHash))
 	blockDetail, err := chain.ProcAddBlockMsg(true, blockDetail, "self")
 	if err != nil {
 		chainlog.Error("addBlockDetail", "err", err.Error())

@@ -108,6 +108,11 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			trackerInfo += fmt.Sprintln("-------------------------------------")
 			log.Debug(trackerInfo)
 
+			//debug
+			for _, pid := range s.discovery.ListPeers() {
+				log.Info("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
+			}
+
 		case <-time.After(time.Minute * 10):
 			//处理当前连接的节点问题
 			if s.OutboundSize() > MaxOutBounds || s.Size() > MaxBounds {

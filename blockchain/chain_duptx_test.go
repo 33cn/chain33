@@ -24,7 +24,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 	}()
 	cfg := mock33.GetClient().GetConfig()
 	cfg.S("TxHeight", true)
-	chainlog.Info("TestCheckDupTxHashList01 begin --------------------")
+	chainlog.Debug("TestCheckDupTxHashList01 begin --------------------")
 
 	blockchain := mock33.GetBlockChain()
 	curheight := blockchain.GetBlockHeight()
@@ -35,7 +35,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		require.NoError(t, err)
 		txs = append(txs, txlist...)
 		curheight := blockchain.GetBlockHeight()
-		chainlog.Info("testCheckDupTxHashList01", "curheight", curheight, "addblockheight", addblockheight)
+		chainlog.Debug("testCheckDupTxHashList01", "curheight", curheight, "addblockheight", addblockheight)
 		_, err = blockchain.GetBlock(curheight)
 		require.NoError(t, err)
 		if curheight >= addblockheight {
@@ -59,7 +59,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
 	assert.Nil(t, err)
 	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-	chainlog.Info("TestCheckDupTxHashList01 end --------------------")
+	chainlog.Debug("TestCheckDupTxHashList01 end --------------------")
 }
 
 //构造10个区块，10笔交易带TxHeight，缓存size128
@@ -70,7 +70,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	}()
 	cfg := mock33.GetClient().GetConfig()
 	cfg.S("TxHeight", true)
-	chainlog.Info("TestCheckDupTxHashList02 begin --------------------")
+	chainlog.Debug("TestCheckDupTxHashList02 begin --------------------")
 	blockchain := mock33.GetBlockChain()
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 10
@@ -80,7 +80,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 		txs = append(txs, txlist...)
 		require.NoError(t, err)
 		curheight := blockchain.GetBlockHeight()
-		chainlog.Info("testCheckDupTxHashList02", "curheight", curheight, "addblockheight", addblockheight)
+		chainlog.Debug("testCheckDupTxHashList02", "curheight", curheight, "addblockheight", addblockheight)
 		_, err = blockchain.GetBlock(curheight)
 		require.NoError(t, err)
 		if curheight >= addblockheight {
@@ -106,7 +106,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(duptxhashlist.Hashes), 0)
 
-	chainlog.Info("TestCheckDupTxHashList02 end --------------------")
+	chainlog.Debug("TestCheckDupTxHashList02 end --------------------")
 }
 
 //构造130个区块，130笔交易不带TxHeight，缓存满
@@ -117,7 +117,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 	}()
 	cfg := mock33.GetClient().GetConfig()
 	cfg.S("TxHeight", true)
-	chainlog.Info("TestCheckDupTxHashList03 begin --------------------")
+	chainlog.Debug("TestCheckDupTxHashList03 begin --------------------")
 	blockchain := mock33.GetBlockChain()
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 130
@@ -127,7 +127,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 		txs = append(txs, txlist...)
 		require.NoError(t, err)
 		curheight := blockchain.GetBlockHeight()
-		chainlog.Info("testCheckDupTxHashList03", "curheight", curheight, "addblockheight", addblockheight)
+		chainlog.Debug("testCheckDupTxHashList03", "curheight", curheight, "addblockheight", addblockheight)
 		_, err = blockchain.GetBlock(curheight)
 		require.NoError(t, err)
 		if curheight >= addblockheight {
@@ -151,7 +151,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
 	assert.Nil(t, err)
 	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-	chainlog.Info("TestCheckDupTxHashList03 end --------------------")
+	chainlog.Debug("TestCheckDupTxHashList03 end --------------------")
 }
 
 //构造130个区块，130笔交易带TxHeight，缓存满
@@ -162,7 +162,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	}()
 	cfg := mock33.GetClient().GetConfig()
 	cfg.S("TxHeight", true)
-	chainlog.Info("TestCheckDupTxHashList04 begin --------------------")
+	chainlog.Debug("TestCheckDupTxHashList04 begin --------------------")
 	blockchain := mock33.GetBlockChain()
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 130
@@ -173,7 +173,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 		txs = append(txs, txlist...)
 		require.NoError(t, err)
 		curheightForExpire = blockchain.GetBlockHeight()
-		chainlog.Info("testCheckDupTxHashList04", "curheight", curheightForExpire, "addblockheight", addblockheight)
+		chainlog.Debug("testCheckDupTxHashList04", "curheight", curheightForExpire, "addblockheight", addblockheight)
 		_, err = blockchain.GetBlock(curheightForExpire)
 		require.NoError(t, err)
 		if curheightForExpire >= addblockheight {
@@ -198,7 +198,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, len(duptxhashlist.Hashes), 0)
 
-	chainlog.Info("TestCheckDupTxHashList04 end --------------------")
+	chainlog.Debug("TestCheckDupTxHashList04 end --------------------")
 }
 
 //异常：构造10个区块，10笔交易带TxHeight，TxHeight不满足条件 size128
@@ -209,7 +209,7 @@ func TestCheckDupTxHashList05(t *testing.T) {
 	}()
 	cfg := mock33.GetClient().GetConfig()
 	cfg.S("TxHeight", true)
-	chainlog.Info("TestCheckDupTxHashList05 begin --------------------")
+	chainlog.Debug("TestCheckDupTxHashList05 begin --------------------")
 	TxHeightOffset = 60
 	//发送带TxHeight交易且TxHeight不满足条件
 	for i := 1; i < 10; i++ {
@@ -217,5 +217,5 @@ func TestCheckDupTxHashList05(t *testing.T) {
 		require.EqualError(t, err, "ErrTxExpire")
 		time.Sleep(sendTxWait)
 	}
-	chainlog.Info("TestCheckDupTxHashList05 end --------------------")
+	chainlog.Debug("TestCheckDupTxHashList05 end --------------------")
 }

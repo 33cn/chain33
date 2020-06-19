@@ -98,7 +98,7 @@ func testCryptoUncompress(t *testing.T, name string) {
 
 	pubkey := sm2.Decompress(pub.Bytes())
 
-	pubbytes := SerializePublicKey(pubkey)
+	pubbytes := SerializePublicKey(pubkey, true)
 	pub2, err := c.PubKeyFromBytes(pubbytes)
 	assert.Nil(t, err)
 

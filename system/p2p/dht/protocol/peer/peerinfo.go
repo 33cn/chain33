@@ -8,17 +8,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peerstore"
-
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
-	dnet "github.com/33cn/chain33/system/p2p/dht/net"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	uuid "github.com/google/uuid"
+	"github.com/google/uuid"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
@@ -189,19 +187,15 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 	}
 	p.externalAddr = spliteAddr
 	//增加外网地址
-	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d/p2p/%v", p.externalAddr, p.SubConfig.Port, p.GetHost().ID().String())
+
+	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d", p.externalAddr, p.p2pCfg.Port)
 	newmAddr, err := multiaddr.NewMultiaddr(selfExternalAddr)
 	if err != nil {
 		return
 	}
-	peerinfo, err := peer.AddrInfoFromP2pAddr(newmAddr)
-	if err != nil {
-		return
-	}
 
-	p.Host.Peerstore().AddAddrs(p.GetHost().ID(), peerinfo.Addrs, peerstore.PermanentAddrTTL)
+	p.Host.Peerstore().AddAddr(p.GetHost().ID(), newmAddr, peerstore.AddressTTL)
 	log.Debug("setExternalAddr", "afterSetAddrs", p.Host.Addrs(), "peerstoreAddr", p.Host.Peerstore().Addrs(p.Host.ID()))
-
 }
 
 func (p *peerInfoProtol) getExternalAddr() string {
@@ -253,28 +247,24 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			time.Sleep(time.Minute)
 		}
 
-		allnodes := append(p.p2pCfg.BootStraps, p.p2pCfg.Seeds...)
-		nodes := dnet.ConvertPeers(allnodes)
-		for _, connPeer := range p.GetConnsManager().FetchConnPeers() {
-			peerinfo := p.GetHost().Peerstore().PeerInfo(connPeer)
-			nodes[connPeer.String()] = &peerinfo
-		}
-		for _, node := range nodes {
+		for _, pid := range p.GetConnsManager().FetchConnPeers() {
+
 			var version types.P2PVersion
 
 			pubkey, _ := p.GetHost().Peerstore().PubKey(localID).Bytes()
 			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
 				Message: &version}
 
-			s, err := prototypes.NewStream(p.Host, node.ID, PeerVersionReq)
+			s, err := prototypes.NewStream(p.Host, pid, PeerVersionReq)
 			if err != nil {
-				log.Error("NewStream", "err", err, "remoteID", node.ID)
+				log.Error("NewStream", "err", err, "remoteID", pid)
 				continue
 			}
 
 			version.Version = p.p2pCfg.Channel
+
 			//real localport
-			version.AddrFrom = fmt.Sprintf("/ip4/%v/tcp/%v", p.getExternalAddr(), p.SubConfig.Port)
+			version.AddrFrom = fmt.Sprintf("/ip4/%v/tcp/%d", p.getExternalAddr(), p.p2pCfg.Port)
 			version.AddrRecv = s.Conn().RemoteMultiaddr().String()
 			err = prototypes.WriteStream(req, s)
 			if err != nil {
@@ -291,7 +281,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			}
 			prototypes.CloseStream(s)
 			addr := resp.GetMessage().GetAddrRecv()
-			if len(strings.Split(addr, "/")) < 2 {
+			if len(strings.Split(addr, "/")) < 3 {
 				continue
 			}
 			spliteAddr := strings.Split(addr, "/")[2]
@@ -299,7 +289,6 @@ func (p *peerInfoProtol) detectNodeAddr() {
 				p.setExternalAddr(addr)
 			}
 		}
-
 	}
 
 }

@@ -23,6 +23,9 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 	}
 
 	for _, seed := range ConvertPeers(cfg.Seeds) {
+		if seed.ID == host.ID() {
+			continue
+		}
 		host.Peerstore().AddAddrs(seed.ID, seed.Addrs, peerstore.PermanentAddrTTL)
 		err := host.Connect(context.Background(), *seed)
 		if err != nil {

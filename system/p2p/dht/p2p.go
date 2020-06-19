@@ -8,15 +8,15 @@ package dht
 import (
 	"context"
 	"fmt"
-
-	"github.com/33cn/chain33/p2p"
-
 	"sync"
 	"sync/atomic"
 	"time"
 
+	core "github.com/libp2p/go-libp2p-core"
+
 	"github.com/33cn/chain33/client"
 	logger "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/manage"
 	"github.com/33cn/chain33/system/p2p/dht/net"
@@ -25,14 +25,9 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/store"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-
-	libp2p "github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
-
-	circuit "github.com/libp2p/go-libp2p-circuit"
-
 	ds "github.com/ipfs/go-datastore"
-
+	"github.com/libp2p/go-libp2p"
+	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
@@ -56,16 +51,18 @@ type P2P struct {
 	client        queue.Client
 	addrbook      *AddrBook
 	taskGroup     *sync.WaitGroup
-	pubsub        *net.PubSub
-	closed        int32
-	p2pCfg        *types.P2P
-	subCfg        *p2pty.P2PSubConfig
-	mgr           *p2p.Manager
-	subChan       chan interface{}
-	ctx           context.Context
-	cancel        context.CancelFunc
-	db            ds.Datastore
-	env           *protocol.P2PEnv
+
+	pubsub  *net.PubSub
+	closed  int32
+	p2pCfg  *types.P2P
+	subCfg  *p2pty.P2PSubConfig
+	mgr     *p2p.Manager
+	subChan chan interface{}
+	ctx     context.Context
+	cancel  context.CancelFunc
+
+	db  ds.Datastore
+	env *protocol.P2PEnv
 }
 
 // New new dht p2p network
@@ -122,7 +119,6 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 }
 
 func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) core.Host {
-
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
@@ -172,7 +168,6 @@ func (p *P2P) managePeers() {
 	go p.connManag.MonitorAllPeers(p.subCfg.Seeds, p.host)
 
 	for {
-
 		log.Debug("managePeers", "table size", p.discovery.RoutingTableSize())
 		if p.isClose() {
 			log.Info("managePeers", "p2p", "closed")
@@ -219,13 +214,12 @@ func (p *P2P) StartP2P() {
 		RoutingTable: p.discovery,
 	}
 	p.env = env2
-
 	protocol.InitAllProtocol(env2)
 }
 
 //查询本局域网内是否有节点
 func (p *P2P) findLANPeers() {
-	if p.subCfg.NofindLANPeers {
+	if p.subCfg.DisableFindLANPeers {
 		return
 	}
 	peerChan, err := p.discovery.FindLANPeers(p.host, fmt.Sprintf("/%s-mdns/%d", p.chainCfg.GetTitle(), p.subCfg.Channel))
@@ -269,7 +263,7 @@ func (p *P2P) handleP2PEvent() {
 		p.taskGroup.Add(1)
 		go func(qmsg *queue.Message) {
 			defer p.taskGroup.Done()
-			log.Debug("handleP2PEvent", "recv msg ty", qmsg.Ty)
+			//log.Debug("handleP2PEvent", "recv msg ty", qmsg.Ty)
 			protocol.HandleEvent(qmsg)
 
 		}(msg)
@@ -278,6 +272,7 @@ func (p *P2P) handleP2PEvent() {
 }
 
 func (p *P2P) CloseP2P() {
+	log.Info("p2p closing")
 	p.mgr.PubSub.Unsub(p.subChan)
 	atomic.StoreInt32(&p.closed, 1)
 	p.cancel()

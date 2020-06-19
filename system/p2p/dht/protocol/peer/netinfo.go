@@ -28,7 +28,6 @@ func (p *peerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 		netinfo.Service = true
 	}
 	msg.Reply(p.GetQueueClient().NewMessage("rpc", types.EventReplyNetInfo, &netinfo))
-
 }
 
 /*
