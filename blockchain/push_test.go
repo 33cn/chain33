@@ -557,9 +557,33 @@ func Test_rmPushFailTask(t *testing.T) {
 
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(1 * time.Second)
+	closeChan := make(chan struct{})
+
+	go func() {
+		sleepCnt := 30
+		for {
+			chain.push.mu.Lock()
+			if 0 == len(chain.push.tasks) {
+				chain.push.mu.Unlock()
+				close(closeChan)
+				return
+			}
+			chain.push.mu.Unlock()
+			sleepCnt--
+			if sleepCnt <= 0 {
+				close(closeChan)
+				return
+			}
+			time.Sleep(time.Second)
+		}
+	}()
+
+	<-closeChan
+	fmt.Println("stoping Test_rmPushFailTask")
 	chain.push.mu.Lock()
 	assert.Equal(t, 0, len(chain.push.tasks))
 	chain.push.mu.Unlock()
+
 	defer mock33.Close()
 }
 
