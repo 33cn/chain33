@@ -9,9 +9,10 @@ import (
 
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pid, peerAddr string) (doSend bool) {
+func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pid peer.ID, peerAddr string) (doSend bool) {
 	byteHash := block.Block.Hash(protocol.GetChainCfg())
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送
@@ -41,7 +42,7 @@ func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *typ
 	return true
 }
 
-func (protocol *broadCastProtocol) recvBlock(block *types.P2PBlock, pid, peerAddr string) error {
+func (protocol *broadCastProtocol) recvBlock(block *types.P2PBlock, pid peer.ID, peerAddr string) error {
 
 	if block.GetBlock() == nil {
 		return types.ErrInvalidParam
@@ -62,7 +63,7 @@ func (protocol *broadCastProtocol) recvBlock(block *types.P2PBlock, pid, peerAdd
 	return nil
 }
 
-func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr string) error {
+func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid peer.ID, peerAddr string) error {
 
 	blockHash := hex.EncodeToString(ltBlock.Header.Hash)
 	//将节点id添加到发送过滤, 避免冗余发送

@@ -271,7 +271,6 @@ func getTxFullHashProofs(Txs []*types.Transaction, index int32) [][]byte {
 	}
 
 	proofs := merkle.GetMerkleBranch(leaves, uint32(index))
-	chainlog.Debug("getTxProofs", "index", index, "proofs", proofs)
 
 	return proofs
 }

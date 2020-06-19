@@ -8,18 +8,19 @@ import (
 	"testing"
 	"time"
 
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
-
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/network"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,12 +51,6 @@ func TestInit(t *testing.T) {
 	})
 	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
 
-	// 通知host1保存数据
-	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test0"),
-		Start:     0,
-		End:       999,
-	})
 	// 通知host2保存数据
 	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
@@ -63,10 +58,7 @@ func TestInit(t *testing.T) {
 		End:       999,
 	})
 	time.Sleep(time.Second / 2)
-	err = p2.republish()
-	if err != nil {
-		t.Fatal(err)
-	}
+	p2.republish()
 	//数据保存之后应该可以查到数据了
 
 	//向host1请求BlockBody
@@ -140,12 +132,6 @@ func TestInit(t *testing.T) {
 	//保存4000~4999的block,会检查0~3999的blockchunk是否能查到
 	// 通知host1保存数据
 	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test4"),
-		Start:     4000,
-		End:       4999,
-	})
-	// 通知host2保存数据
-	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test4"),
 		Start:     4000,
 		End:       4999,
@@ -265,6 +251,8 @@ func initMockBlockchain(q queue.Queue) <-chan *queue.Message {
 	go func() {
 		for msg := range client.Recv() {
 			switch msg.Ty {
+			case types.EventGetLastHeader:
+				msg.Reply(queue.NewMessage(0, "", 0, &types.Header{Height: 14000}))
 			case types.EventGetChunkBlockBody:
 				req := msg.Data.(*types.ChunkInfoMsg)
 				bodys := &types.BlockBodys{Items: make([]*types.BlockBody, 0, req.End-req.Start+1)}
@@ -325,9 +313,10 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	}
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	env1 := protocol.P2PEnv{
+		ChainCfg:     cfg,
 		QueueClient:  client1,
 		Host:         host1,
-		RoutingTable: net.InitDhtDiscovery(host1, nil, cfg, &types2.P2PSubConfig{Channel: 888}),
+		RoutingTable: net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888}),
 		DB:           newTestDB(),
 	}
 	InitProtocol(&env1)
@@ -342,9 +331,10 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		t.Fatal(err)
 	}
 	env2 := protocol.P2PEnv{
+		ChainCfg:    cfg,
 		QueueClient: client2,
 		Host:        host2,
-		RoutingTable: net.InitDhtDiscovery(host2, nil, cfg, &types2.P2PSubConfig{
+		RoutingTable: net.InitDhtDiscovery(context.Background(), host2, nil, cfg, &types2.P2PSubConfig{
 			Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty())},
 			Channel: 888,
 		}),
@@ -353,12 +343,13 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	p := &Protocol{
 		P2PEnv:              &env2,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env2.Host.ID()), time.Minute, env2.Host.Peerstore()),
+		localChunkInfo:      make(map[string]LocalChunkInfo),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
 	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
-	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithSignCheck(p.HandleStreamFetchChunk))
-	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithSignCheck(p.HandleStreamGetHeader))
-	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithSignCheck(p.HandleStreamGetChunkRecord))
+	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk))
+	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.HandleStreamGetHeader))
+	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.HandleStreamGetChunkRecord))
 	p.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 	go p.startUpdateHealthyRoutingTable()
 	client1.Sub("p2p")
@@ -386,7 +377,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	return p
 }
 
-func handleStreamIsHealthy(req *types.P2PRequest, res *types.P2PResponse) error {
+func handleStreamIsHealthy(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	res.Response = &types.P2PResponse_Reply{
 		Reply: &types.Reply{
 			IsOk: true,

@@ -6,6 +6,7 @@ package peer
 
 import (
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/p2p"
 
@@ -18,6 +19,7 @@ import (
 
 	"context"
 	"fmt"
+	snet "net"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/system/p2p/dht/net"
@@ -72,7 +74,18 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
 	}
-	env.Discovery = net.InitDhtDiscovery(host, nil, cfg, subCfg)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	pubsub, err := net.NewPubSub(ctx, env.Host)
+	if err != nil {
+		cancel()
+		return nil
+	}
+	env.Ctx = ctx
+	env.Cancel = cancel
+
+	env.Pubsub = pubsub
+	env.Discovery = net.InitDhtDiscovery(env.Ctx, host, nil, cfg, subCfg)
 	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil, subCfg)
 
 	return env
@@ -145,6 +158,10 @@ func testNetInfoHandleEvent(protocol *peerInfoProtol, msg *queue.Message) {
 func TestPeerInfoEvent(t *testing.T) {
 	q := queue.New("test")
 	protocol := newTestProtocol(q)
+	defer protocol.Cancel()
+	assert.Equal(t, false, protocol.checkDone())
+
+	time.Sleep(time.Second * 11)
 	testMempoolReq(q)
 	testBlockReq(q)
 	msgs := make([]*queue.Message, 0)
@@ -152,11 +169,19 @@ func TestPeerInfoEvent(t *testing.T) {
 	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventGetNetInfo, nil))
 	testHandleEvent(protocol, msgs[0])
 	testNetInfoHandleEvent(protocol, msgs[1])
+	var req types.MessageP2PVersionReq
+	req.Message = &types.P2PVersion{Version: 123}
+	_, err := protocol.processVerReq(&req, "192.168.1.1")
+	assert.NotNil(t, err)
+	req.Message = &types.P2PVersion{Version: 0}
+	_, err = protocol.processVerReq(&req, "192.168.1.1")
+	assert.Nil(t, err)
 }
 
 func Test_util(t *testing.T) {
 	q := queue.New("test")
 	proto := newTestProtocol(q)
+	defer proto.Cancel()
 	handler := &peerInfoHandler{}
 	handler.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	handler.SetProtocol(proto)
@@ -169,14 +194,30 @@ func Test_util(t *testing.T) {
 	assert.NotNil(t, peerinfo)
 	//----验证versionReq
 	p2pVerReq := &types.MessageP2PVersionReq{MessageData: proto.NewMessageCommon("uid122222", "16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg", []byte("322222222222222"), false),
-		Message: &types.P2PVersion{Version: 0, AddrRecv: "/ip4/127.0.0.1/13802", AddrFrom: "/ip4/192.168.0.1/13802"}}
-	resp, _ := proto.processVerReq(p2pVerReq, "/ip4/192.168.0.1/13802")
+		Message: &types.P2PVersion{Version: 0, AddrRecv: "/ip4/127.0.0.1/tcp/13802", AddrFrom: "/ip4/192.168.0.1/tcp/13802"}}
+	resp, _ := proto.processVerReq(p2pVerReq, "/ip4/192.168.0.1/tcp/13802")
 	assert.NotNil(t, resp)
 
 	//-----------------
 	proto.getPeerInfo()
 	proto.setExternalAddr("192.168.1.1")
 	assert.NotEmpty(t, proto.getExternalAddr())
-	proto.setExternalAddr("/ip4/192.168.1.1/13802")
+	proto.setExternalAddr("/ip4/192.168.1.1/tcp/13802")
 	assert.Equal(t, "192.168.1.1", proto.getExternalAddr())
+	assert.True(t, !isPublicIP(snet.ParseIP("127.0.0.1")))
+	ips, err := localIPv4s()
+	assert.Nil(t, err)
+	assert.True(t, !isPublicIP(snet.ParseIP(ips[0])))
+	assert.True(t, isPublicIP(snet.ParseIP("112.74.59.221")))
+	assert.False(t, isPublicIP(snet.ParseIP("10.74.59.221")))
+	assert.False(t, isPublicIP(snet.ParseIP("172.16.59.221")))
+	assert.False(t, isPublicIP(snet.ParseIP("192.168.59.221")))
+	//增加测试用例
+	_, err = multiaddr.NewMultiaddr("/ip4/122.224.166.26/tcp/13802")
+	assert.Nil(t, err)
+	ok = proto.checkRemotePeerExternalAddr("/ip4/192.168.1.1/tcp/13802")
+	assert.False(t, ok)
+
+	ok = proto.checkRemotePeerExternalAddr("/ip4/122.224.166.26/tcp/13802")
+	assert.True(t, ok)
 }
