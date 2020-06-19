@@ -11,13 +11,16 @@ import (
 )
 
 func (p *Protocol) startUpdateHealthyRoutingTable() {
-	tmp := p.RoutingTable.RoutingTable().PeerRemoved
+	rm := p.RoutingTable.RoutingTable().PeerRemoved
 	p.RoutingTable.RoutingTable().PeerRemoved = func(id peer.ID) {
-		tmp(id)
+		rm(id)
 		p.healthyRoutingTable.Remove(id)
 	}
-	time.Sleep(time.Second * 1)
-	p.updateHealthyRoutingTable()
+
+	for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
+		time.Sleep(time.Second * 1)
+		p.updateHealthyRoutingTable()
+	}
 	for range time.Tick(types2.CheckHealthyInterval) {
 		p.updateHealthyRoutingTable()
 	}
@@ -38,7 +41,12 @@ func (p *Protocol) checkPeerHealth(id peer.ID) error {
 	if err != nil {
 		return err
 	}
-	err = protocol2.WriteStream(&types.P2PRequest{}, stream)
+	defer protocol2.CloseStream(stream)
+	err = protocol2.WriteStream(&types.P2PRequest{
+		Request: &types.P2PRequest_HealthyHeight{
+			HealthyHeight: 50,
+		},
+	}, stream)
 	if err != nil {
 		return err
 	}

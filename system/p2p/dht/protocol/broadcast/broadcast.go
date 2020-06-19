@@ -92,12 +92,12 @@ type broadCastHandler struct {
 func (handler *broadCastHandler) Handle(stream core.Stream) {
 
 	protocol := handler.GetProtocol().(*broadCastProtocol)
-	pid := stream.Conn().RemotePeer().Pretty()
+	pid := stream.Conn().RemotePeer()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
 	var data types.MessageBroadCast
 	err := prototypes.ReadStream(&data, stream)
 	if err != nil {
-		log.Error("Handle", "pid", pid, "addr", peerAddr, "err", err)
+		log.Error("Handle", "pid", pid.Pretty(), "addr", peerAddr, "err", err)
 		return
 	}
 
@@ -149,7 +149,7 @@ func (protocol *broadCastProtocol) broadcast(data interface{}) {
 	openedStreams := make([]core.Stream, 0)
 	for _, pid := range pds {
 
-		stream, err := protocol.sendPeer(pid.Pretty(), data, true)
+		stream, err := protocol.sendPeer(pid, data, true)
 		if err != nil {
 			log.Error("broadcast", "send peer err", err)
 		}
@@ -165,31 +165,27 @@ func (protocol *broadCastProtocol) broadcast(data interface{}) {
 }
 
 // 发送广播数据到节点, 支持延迟关闭内部stream，主要考虑多个节点并行发送情况，不需要等待关闭
-func (protocol *broadCastProtocol) sendPeer(pid string, data interface{}, delayStreamClose bool) (core.Stream, error) {
+func (protocol *broadCastProtocol) sendPeer(pid peer.ID, data interface{}, delayStreamClose bool) (core.Stream, error) {
 
 	//这里传peeraddr用pid替代不会影响，内部只做log记录， 暂时不更改代码
 	//TODO：增加peer addr获取渠道
-	sendData, doSend := protocol.handleSend(data, pid, pid)
+	sendData, doSend := protocol.handleSend(data, pid, pid.Pretty())
 	if !doSend {
 		return nil, nil
 	}
 	//包装一层MessageBroadCast
 	broadData := &types.MessageBroadCast{
 		Message: sendData}
-	rawID, err := peer.IDB58Decode(pid)
+
+	stream, err := prototypes.NewStream(protocol.Host, pid, ID)
 	if err != nil {
-		log.Error("sendPeer", "id", pid, "decodePeerIDErr", err)
-		return nil, err
-	}
-	stream, err := prototypes.NewStream(protocol.Host, rawID, ID)
-	if err != nil {
-		log.Error("sendPeer", "id", pid, "NewStreamErr", err)
+		log.Error("sendPeer", "id", pid.Pretty(), "NewStreamErr", err)
 		return nil, err
 	}
 
 	err = prototypes.WriteStream(broadData, stream)
 	if err != nil {
-		log.Error("sendPeer", "pid", pid, "WriteStream err", err)
+		log.Error("sendPeer", "pid", pid.Pretty(), "WriteStream err", err)
 	}
 	if !delayStreamClose {
 		prototypes.CloseStream(stream)
@@ -199,7 +195,7 @@ func (protocol *broadCastProtocol) sendPeer(pid string, data interface{}, delayS
 }
 
 // handleSend 对数据进行处理，包装成BroadCast结构
-func (protocol *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
+func (protocol *broadCastProtocol) handleSend(rawData interface{}, pid peer.ID, peerAddr string) (sendData *types.BroadCastData, doSend bool) {
 	//出错处理
 	defer func() {
 		if r := recover(); r != nil {
@@ -225,7 +221,7 @@ func (protocol *broadCastProtocol) handleSend(rawData interface{}, pid, peerAddr
 	return
 }
 
-func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid string, peerAddr string) (err error) {
+func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid peer.ID, peerAddr string) (err error) {
 
 	//接收网络数据不可靠
 	defer func() {
@@ -252,8 +248,8 @@ func (protocol *broadCastProtocol) handleReceive(data *types.BroadCastData, pid 
 	return
 }
 
-func (protocol *broadCastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {
-	return protocol.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
+func (protocol *broadCastProtocol) postBlockChain(blockHash string, pid peer.ID, block *types.Block) error {
+	return protocol.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid.Pretty(), Block: block}, types.EventBroadcastAddBlock)
 }
 
 func (protocol *broadCastProtocol) postMempool(txHash string, tx *types.Transaction) error {
@@ -266,7 +262,7 @@ type sendFilterInfo struct {
 }
 
 //检测是否冗余发送, 或者添加到发送过滤(内部存在直接修改读写保护的数据, 对filter lru的读写需要外层锁保护)
-func addIgnoreSendPeerAtomic(filter *utils.Filterdata, key, pid string) (exist bool) {
+func addIgnoreSendPeerAtomic(filter *utils.Filterdata, key string, pid peer.ID) (exist bool) {
 
 	filter.GetAtomicLock()
 	defer filter.ReleaseAtomicLock()
@@ -278,7 +274,7 @@ func addIgnoreSendPeerAtomic(filter *utils.Filterdata, key, pid string) (exist b
 		data, _ := filter.Get(key)
 		info = data.(*sendFilterInfo)
 	}
-	_, exist = info.ignoreSendPeers[pid]
-	info.ignoreSendPeers[pid] = true
+	_, exist = info.ignoreSendPeers[pid.Pretty()]
+	info.ignoreSendPeers[pid.Pretty()] = true
 	return exist
 }

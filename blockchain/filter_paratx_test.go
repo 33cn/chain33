@@ -104,7 +104,7 @@ func TestGetParaTxByTitle(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	blockchain := mock33.GetBlockChain()
-	chainlog.Info("TestGetParaTxByTitle begin --------------------")
+	chainlog.Debug("TestGetParaTxByTitle begin --------------------")
 
 	//构造十个区块
 	curheight := blockchain.GetBlockHeight()
@@ -182,7 +182,7 @@ func TestGetParaTxByTitle(t *testing.T) {
 		assert.Nil(t, paratx.Proofs)
 		assert.Equal(t, uint32(0), paratx.Index)
 	}
-	chainlog.Info("TestGetParaTxByTitle end --------------------")
+	chainlog.Debug("TestGetParaTxByTitle end --------------------")
 }
 func testgetParaTxByTitle(t *testing.T, blockchain *blockchain.BlockChain, req *types.ReqParaTxByTitle, flag int) {
 	count := req.End - req.Start + 1
@@ -200,12 +200,12 @@ func testgetParaTxByTitle(t *testing.T, blockchain *blockchain.BlockChain, req *
 	for i, txDetail := range ParaTxDetails.Items {
 		if txDetail != nil {
 			assert.Equal(t, txDetail.Header.Height, req.Start+int64(i))
-			//chainlog.Info("testgetParaTxByTitle:", "Height", txDetail.Header.Height)
+			//chainlog.Debug("testgetParaTxByTitle:", "Height", txDetail.Header.Height)
 			for _, tx := range txDetail.TxDetails {
 				if tx != nil {
 					execer := string(tx.Tx.Execer)
 					if !strings.HasPrefix(execer, "user.p.hyb.") && tx.Tx.GetGroupCount() != 0 {
-						//chainlog.Info("testgetParaTxByTitle:maintxingroup", "tx", tx)
+						//chainlog.Debug("testgetParaTxByTitle:maintxingroup", "tx", tx)
 						assert.Equal(t, tx.Receipt.Ty, int32(types.ExecOk))
 					} else {
 						assert.Equal(t, tx.Receipt.Ty, int32(types.ExecPack))
@@ -259,7 +259,7 @@ func TestMultiLayerMerkleTree(t *testing.T) {
 	defer mock33.Close()
 	cfg := mock33.GetClient().GetConfig()
 	blockchain := mock33.GetBlockChain()
-	chainlog.Info("TestMultiLayerMerkleTree begin --------------------")
+	chainlog.Debug("TestMultiLayerMerkleTree begin --------------------")
 
 	//构造十个区块
 	curheight := blockchain.GetBlockHeight()
@@ -303,7 +303,7 @@ func TestMultiLayerMerkleTree(t *testing.T) {
 	for height = 0; height <= curheight; height++ {
 		testParaTxByHeight(cfg, t, blockchain, height)
 	}
-	chainlog.Info("TestMultiLayerMerkleTree end --------------------")
+	chainlog.Debug("TestMultiLayerMerkleTree end --------------------")
 }
 
 //获取当前高度上的所有平行链title

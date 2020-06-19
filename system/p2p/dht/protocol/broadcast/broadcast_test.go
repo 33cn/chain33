@@ -8,14 +8,14 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/33cn/chain33/p2p"
-
 	"github.com/33cn/chain33/client"
 	commlog "github.com/33cn/chain33/common/log"
+	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,8 +36,8 @@ var (
 		Height: 10,
 		Txs:    txList,
 	}
-	testAddr = "testPeerAddr"
-	testPid  = "testPeerID"
+	testAddr   = "testPeerAddr"
+	testPid, _ = peer.Decode("16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U")
 )
 
 func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
