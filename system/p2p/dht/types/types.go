@@ -50,4 +50,8 @@ type P2PSubConfig struct {
 	DHTDataDriver string `protobuf:"bytes,14,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
 	DHTDataPath   string `protobuf:"bytes,15,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
 	DHTDataCache  int32  `protobuf:"varint,16,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
+
+	//是否开启全节点模式
+	IsFullNode bool     `protobuf:"varint,17,opt,name=isFullNode" json:"isFullNode,omitempty"`
+	FullNodes  []string `protobuf:"bytes,2,rep,name=fullNodes" json:"fullNodes,omitempty"`
 }

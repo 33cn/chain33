@@ -21,11 +21,8 @@ func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, error) 
 	}
 
 	//优先获取本地p2pStore数据
-	bodys, _ := p.getChunkBlock(req.ChunkHash)
+	bodys, _ := p.getChunkBlock(req)
 	if bodys != nil {
-		l := int64(len(bodys.Items))
-		start, end := req.Start%l, req.End%l+1
-		bodys.Items = bodys.Items[start:end]
 		return bodys, nil
 	}
 
@@ -177,21 +174,34 @@ Retry:
 		}
 	}
 	retryCount++
-	if !p.ChainCfg.IsTestNet() && retryCount < 5 { //找不到数据重试5次，防止因为网络问题导致数据找不到
+	//找不到数据重试5次，防止因为网络问题导致数据找不到
+	//测试网和全节点不重试
+	if !p.ChainCfg.IsTestNet() && !p.SubConfig.IsFullNode && retryCount < 5 {
 		log.Error("mustFetchChunk", "retry count", retryCount)
-		time.Sleep(30 * time.Second)
+		time.Sleep(p.retryInterval)
 		goto Retry
 	}
 	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
 	for pid := range searchedPeers {
 		log.Info("mustFetchChunk debug", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid))
 	}
+	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
+	if p.SubConfig.IsFullNode {
+		for _, pid := range p.fullNodes {
+			bodys, _, _ := p.fetchChunkOrNearerPeers(ctx, req, pid)
+			if bodys == nil {
+				log.Error("fetchChunkOrNearerPeers from full node", "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
+				continue
+			}
+			return bodys, nil
+		}
+	}
 	return nil, types2.ErrNotFound
 }
 
 func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
 	log.Info("into fetchChunkOrNearerPeers", "pid", pid)
-	childCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
+	childCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	stream, err := p.Host.NewStream(childCtx, pid, protocol.FetchChunk)
 	if err != nil {
@@ -304,22 +314,24 @@ func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
 	if err != nil {
 		return err
 	}
-
-	//本地存储之后立即到其他节点做一次备份
-	p.notifyStoreChunk(req)
-
 	return nil
 }
 
 func (p *Protocol) checkAndStoreChunk(req *types.ChunkInfoMsg) error {
 	//先检查之前的chunk是否可以在网络中查到
 	infos := p.checkHistoryChunk(req)
+	infos = append(infos, req)
+	var err error
 	for _, info := range infos {
-		if err := p.storeChunk(info); err != nil {
-			log.Error("checkAndStoreChunk", "store chunk error", err)
+		if err = p.storeChunk(info); err != nil {
+			log.Error("checkAndStoreChunk", "store chunk error", err, "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
+			continue
 		}
+		//本地存储之后立即到其他节点做一次备份
+		p.notifyStoreChunk(req)
 	}
-	return p.storeChunk(req)
+
+	return err
 }
 
 func (p *Protocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*types.BlockBodys, error) {

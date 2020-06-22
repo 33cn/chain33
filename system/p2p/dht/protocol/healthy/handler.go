@@ -35,8 +35,12 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(p.HandleStreamIsHealthy))
 	p.Host.SetStreamHandler(protocol.GetLastHeader, protocol.HandlerWithRW(p.HandleStreamLastHeader))
 
-	//保存一个全局变量备查，避免频繁到网络中请求
-	go p.startUpdateFallBehind()
+	//保存一个全局变量备查，避免频繁到网络中请求。
+	//全节点不参与分布式存储，因此不需要更新
+	if !p.SubConfig.IsFullNode {
+		go p.startUpdateFallBehind()
+	}
+
 }
 
 // HandleStreamIsSync 实时查询是否已同步完成

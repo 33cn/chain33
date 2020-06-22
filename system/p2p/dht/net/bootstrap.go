@@ -45,6 +45,7 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 		}
 	}
 }
+
 func ConvertPeers(peers []string) map[string]*peer.AddrInfo {
 	pinfos := make(map[string]*peer.AddrInfo, len(peers))
 	for _, addr := range peers {

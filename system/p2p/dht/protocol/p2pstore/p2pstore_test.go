@@ -296,10 +296,13 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		t.Fatal(err)
 	}
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
+	mcfg := &types2.P2PSubConfig{}
+	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
 	env1 := protocol.P2PEnv{
 		ChainCfg:     cfg,
 		QueueClient:  client1,
 		Host:         host1,
+		SubConfig:    mcfg,
 		RoutingTable: net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888}),
 		DB:           newTestDB(),
 	}
@@ -318,6 +321,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		ChainCfg:    cfg,
 		QueueClient: client2,
 		Host:        host2,
+		SubConfig:   mcfg,
 		RoutingTable: net.InitDhtDiscovery(context.Background(), host2, nil, cfg, &types2.P2PSubConfig{
 			Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty())},
 			Channel: 888,

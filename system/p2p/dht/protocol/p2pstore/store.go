@@ -60,14 +60,13 @@ func (p *Protocol) deleteChunkBlock(hash []byte) error {
 //  本地存在：
 //		数据未过期：返回数据
 //		数据已过期：返回数据,然后从数据库删除该数据
-func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
+func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
 
-	info, ok := p.getChunkInfoByHash(hash)
-	if !ok {
+	if _, ok := p.getChunkInfoByHash(req.ChunkHash); !ok {
 		return nil, types2.ErrNotFound
 	}
 
-	b, err := p.DB.Get(genChunkKey(hash))
+	b, err := p.DB.Get(genChunkKey(req.ChunkHash))
 	if err != nil {
 		return nil, err
 	}
@@ -76,12 +75,9 @@ func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
 	if err != nil {
 		return nil, err
 	}
-	if time.Since(info.Time) > types2.ExpiredTime {
-		err = p.deleteChunkBlock(hash)
-		if err != nil {
-			log.Error("getChunkBlock", "deleteChunkBlock error", err, "hash", hex.EncodeToString(hash))
-		}
-	}
+	l := int64(len(bodys.Items))
+	start, end := req.Start%l, req.End%l+1
+	bodys.Items = bodys.Items[start:end]
 
 	return &bodys, nil
 }

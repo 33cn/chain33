@@ -13,8 +13,10 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kb "github.com/libp2p/go-libp2p-kbucket"
+	"github.com/multiformats/go-multiaddr"
 )
 
 var log = log15.New("module", "protocol.p2pstore")
@@ -32,6 +34,9 @@ type Protocol struct {
 	localChunkInfoMutex sync.RWMutex
 
 	retryInterval time.Duration
+
+	//full nodes
+	fullNodes []peer.ID
 }
 
 func init() {
@@ -43,9 +48,6 @@ func InitProtocol(env *protocol.P2PEnv) {
 		P2PEnv:              env,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 		retryInterval:       30 * time.Second,
-	}
-	if env.ChainCfg.IsTestNet() {
-		p.retryInterval = 0
 	}
 	p.initLocalChunkInfoMap()
 
@@ -60,8 +62,33 @@ func InitProtocol(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventGetChunkBlockBody, protocol.EventHandlerWithRecover(p.HandleEventGetChunkBlockBody))
 	protocol.RegisterEventHandler(types.EventGetChunkRecord, protocol.EventHandlerWithRecover(p.HandleEventGetChunkRecord))
 
-	go p.startRepublish()
+	//全节点的p2pstore保存所有chunk, 不进行republish操作
+	if !p.SubConfig.IsFullNode {
+		err := p.initFullNodes()
+		if err != nil {
+			panic(err)
+		}
+		go p.startRepublish()
+	}
 	go p.startUpdateHealthyRoutingTable()
+}
+
+func (p *Protocol) initFullNodes() error {
+	for _, node := range p.SubConfig.FullNodes {
+		// Turn the destination into a multiaddr.
+		maddr, err := multiaddr.NewMultiaddr(node)
+		if err != nil {
+			return err
+		}
+		// Extract the peer ID from the multiaddr.
+		info, err := peer.AddrInfoFromP2pAddr(maddr)
+		if err != nil {
+			return err
+		}
+		p.Host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+		p.fullNodes = append(p.fullNodes, info.ID)
+	}
+	return nil
 }
 
 func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.Stream) {
@@ -77,12 +104,28 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.
 	}()
 
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
+
+	// 全节点模式，只有网络中出现数据丢失时才提供数据
+	if p.SubConfig.IsFullNode {
+		_, err := p.mustFetchChunk(param)
+		if err == nil {
+			//网络中可以查到数据，不应该到全节点来要数据
+			res.Error = "some shard peers have this chunk"
+			return
+		}
+		bodys, err := p.getChunkBlock(param)
+		if err != nil {
+			res.Error = err.Error()
+			return
+		}
+		res.Response = &types.P2PResponse_BlockBodys{BlockBodys: bodys}
+		return
+	}
+
+	//分片节点模式
 	//优先检查本地是否存在
-	bodys, _ := p.getChunkBlock(param.ChunkHash)
+	bodys, _ := p.getChunkBlock(param)
 	if bodys != nil {
-		l := int64(len(bodys.Items))
-		start, end := param.Start%l, param.End%l+1
-		bodys.Items = bodys.Items[start:end]
 		res.Response = &types.P2PResponse_BlockBodys{BlockBodys: bodys}
 		return
 	}
@@ -189,6 +232,12 @@ func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 // store chunk if this node is the nearest *count* node in the local routing table.
 func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
+	if p.SubConfig.IsFullNode {
+		//全节点保存所有chunk, blockchain模块通知保存chunk时直接保存到本地，不进行其他检查操作
+		_ = p.storeChunk(req)
+		return
+	}
+
 	//如果本节点是本地路由表中距离该chunk最近的 *count* 个节点之一，则保存数据；否则不需要保存数据
 	count := 1
 	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), count)
