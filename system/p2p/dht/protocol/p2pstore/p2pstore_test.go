@@ -98,7 +98,6 @@ func TestInit(t *testing.T) {
 		End:       499,
 	})
 	msg = <-msgCh
-	msg.Reply(nil)
 	assert.Equal(t, 500, len(msg.Data.(*types.Blocks).Items))
 
 	//向host2请求Block
@@ -108,7 +107,6 @@ func TestInit(t *testing.T) {
 		End:       666,
 	})
 	msg = <-msgCh
-	msg.Reply(nil)
 	assert.Equal(t, 556, len(msg.Data.(*types.Blocks).Items))
 
 	//向host1请求Records
@@ -117,7 +115,6 @@ func TestInit(t *testing.T) {
 		End:   100,
 	})
 	msg = <-msgCh
-	msg.Reply(nil)
 	assert.Equal(t, 100, len(msg.Data.(*types.ChunkRecords).Infos))
 
 	//向host2请求Records
@@ -126,7 +123,6 @@ func TestInit(t *testing.T) {
 		End:   60,
 	})
 	msg = <-msgCh
-	msg.Reply(nil)
 	assert.Equal(t, 11, len(msg.Data.(*types.ChunkRecords).Infos))
 
 	//保存4000~4999的block,会检查0~3999的blockchunk是否能查到
@@ -194,11 +190,7 @@ func TestInit(t *testing.T) {
 
 func testStoreChunk(t *testing.T, client queue.Client, topic string, req *types.ChunkInfoMsg) *queue.Message {
 	msg := client.NewMessage(topic, types.EventNotifyStoreChunk, req)
-	err := client.Send(msg, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	msg, err = client.Wait(msg)
+	err := client.Send(msg, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,11 +212,7 @@ func testGetBody(t *testing.T, client queue.Client, topic string, req *types.Chu
 
 func testGetBlock(t *testing.T, client queue.Client, topic string, req *types.ChunkInfoMsg) *queue.Message {
 	msg := client.NewMessage(topic, types.EventGetChunkBlock, req)
-	err := client.Send(msg, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	msg, err = client.Wait(msg)
+	err := client.Send(msg, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,11 +221,7 @@ func testGetBlock(t *testing.T, client queue.Client, topic string, req *types.Ch
 
 func testGetRecord(t *testing.T, client queue.Client, topic string, req *types.ReqChunkRecords) *queue.Message {
 	msg := client.NewMessage(topic, types.EventGetChunkRecord, req)
-	err := client.Send(msg, true)
-	if err != nil {
-		t.Fatal(err)
-	}
-	msg, err = client.Wait(msg)
+	err := client.Send(msg, false)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -208,8 +208,8 @@ func TestNotifyStoreChunkToP2P(t *testing.T) {
 	}
 	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data: data})
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
-	client.On("Wait", mock.Anything).Return(rspMsg, nil)
+	//rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
+	//client.On("Wait", mock.Anything).Return(rspMsg, nil)
 	chain.notifyStoreChunkToP2P(data)
 }
 

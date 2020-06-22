@@ -188,7 +188,6 @@ func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 //HandleEventNotifyStoreChunk handles notification of blockchain,
 // store chunk if this node is the nearest *count* node in the local routing table.
 func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
-	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ChunkInfoMsg)
 	//如果本节点是本地路由表中距离该chunk最近的 *count* 个节点之一，则保存数据；否则不需要保存数据
 	count := 1
@@ -205,7 +204,6 @@ func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 }
 
 func (p *Protocol) HandleEventGetChunkBlock(m *queue.Message) {
-	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ChunkInfoMsg)
 	bodys, err := p.getChunk(req)
 	if err != nil {
@@ -238,12 +236,10 @@ func (p *Protocol) HandleEventGetChunkBlock(m *queue.Message) {
 		blockList = append(blockList, block)
 	}
 	msg := p.QueueClient.NewMessage("blockchain", types.EventAddChunkBlock, &types.Blocks{Items: blockList})
-	err = p.QueueClient.Send(msg, true)
+	err = p.QueueClient.Send(msg, false)
 	if err != nil {
 		log.Error("EventGetChunkBlock", "reply message error", err)
 	}
-	//等待回复
-	_, _ = p.QueueClient.Wait(msg)
 }
 
 func (p *Protocol) HandleEventGetChunkBlockBody(m *queue.Message) {
@@ -258,7 +254,6 @@ func (p *Protocol) HandleEventGetChunkBlockBody(m *queue.Message) {
 }
 
 func (p *Protocol) HandleEventGetChunkRecord(m *queue.Message) {
-	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ReqChunkRecords)
 	records := p.getChunkRecords(req)
 	if records == nil {
@@ -266,10 +261,8 @@ func (p *Protocol) HandleEventGetChunkRecord(m *queue.Message) {
 		return
 	}
 	msg := p.QueueClient.NewMessage("blockchain", types.EventAddChunkRecord, records)
-	err := p.QueueClient.Send(msg, true)
+	err := p.QueueClient.Send(msg, false)
 	if err != nil {
 		log.Error("EventGetChunkBlockBody", "reply message error", err)
 	}
-	//等待回复
-	_, _ = p.QueueClient.Wait(msg)
 }

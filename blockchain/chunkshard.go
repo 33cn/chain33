@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -25,7 +26,7 @@ const (
 	// 每次检测最大生成chunk数
 	OnceMaxChunkNum int32 = 10
 	// 删除小于当前chunk为DelRollbackChunkNum
-	DelRollbackChunkNum int32 = 2
+	DelRollbackChunkNum int32 = 10
 	// 每次请求最大MaxReqChunkRecord个chunk的record
 	MaxReqChunkRecord int32 = 1000
 )
@@ -55,28 +56,27 @@ func (chain *BlockChain) ChunkProcessRoutine() {
 func (chain *BlockChain) CheckGenChunkNum() {
 	curMaxSerialChunkNum := chain.getMaxSerialChunkNum()
 	height := chain.GetBlockHeight()
-	saftyChunkNum, _, _ := chain.CaclSafetyChunkInfo(height)
-	if curMaxSerialChunkNum >= saftyChunkNum ||
-		saftyChunkNum < 0 {
+	safetyChunkNum, _, _ := chain.CaclSafetyChunkInfo(height)
+	if curMaxSerialChunkNum >= safetyChunkNum ||
+		safetyChunkNum < 0 {
 		return
 	}
 	for i := int32(0); i < OnceMaxChunkNum; i++ {
 		num := chain.getMaxSerialChunkNum() + 1
-		if num <= saftyChunkNum {
-			_, err := chain.blockStore.GetKey(calcChunkNumToHash(num))
-			if err == nil {
-				// 如果存在说明已经进行过归档，则更新连续号
-				chain.updateMaxSerialChunkNum(num)
-			} else {
-				chunk := &types.ChunkInfo{
-					ChunkNum: num,
-					Start:    num * chain.cfg.ChunkblockNum,
-					End:      (num+1)*chain.cfg.ChunkblockNum - 1,
-				}
-				chain.ChunkShardHandle(chunk, true)
-			}
-		} else {
+		if num > safetyChunkNum {
 			break
+		}
+		_, err := chain.blockStore.GetKey(calcChunkNumToHash(num))
+		if err == nil {
+			// 如果存在说明已经进行过归档，则更新连续号
+			_ = chain.updateMaxSerialChunkNum(num)
+		} else {
+			chunk := &types.ChunkInfo{
+				ChunkNum: num,
+				Start:    num * chain.cfg.ChunkblockNum,
+				End:      (num+1)*chain.cfg.ChunkblockNum - 1,
+			}
+			chain.ChunkShardHandle(chunk, true)
 		}
 	}
 }
@@ -205,11 +205,10 @@ func (chain *BlockChain) IsNeedChunk(height int64) (isNeed bool, chunk *types.Ch
 // ShardChunkHandle
 func (chain *BlockChain) ChunkShardHandle(chunk *types.ChunkInfo, isNotifyChunk bool) {
 	// 1、计算当前chunk信息；
-	// 2、通知p2p,如果是挖矿节点则通知，否则则不通知；
-	// 3、生成归档记录；
-	// 4、生成辅助删除信息；
-	// 5、保存归档记录信息；
-	// 6、更新chunk最大连续序列号
+	// 2、生成归档记录；
+	// 3、生成辅助删除信息；
+	// 4、保存归档记录信息；
+	// 5、更新chunk最大连续序列号
 	start := chunk.Start
 	end := chunk.End
 	chunkHash, bodys, err := chain.genChunkBlocks(start, end)
@@ -241,10 +240,7 @@ func (chain *BlockChain) genDeleteChunkSign(chunkNum int64) *types.KeyValue {
 }
 
 func (chain *BlockChain) getMaxSerialChunkNum() int64 {
-	chain.maxSeriallock.Lock()
-	defer chain.maxSeriallock.Unlock()
-	serial := chain.maxSerialChunkNum
-	return serial
+	return atomic.LoadInt64(&chain.maxSerialChunkNum)
 }
 
 func (chain *BlockChain) updateMaxSerialChunkNum(chunkNum int64) error {
@@ -256,12 +252,10 @@ func (chain *BlockChain) updateMaxSerialChunkNum(chunkNum int64) error {
 }
 
 func (chain *BlockChain) setMaxSerialChunkNum(chunkNum int64) error {
-	chain.maxSeriallock.Lock()
-	defer chain.maxSeriallock.Unlock()
-	if chain.maxSerialChunkNum+1 != chunkNum {
+	if chain.getMaxSerialChunkNum()+1 != chunkNum {
 		return ErrNoChunkNumSerial
 	}
-	chain.maxSerialChunkNum = chunkNum
+	atomic.StoreInt64(&chain.maxSerialChunkNum, chunkNum)
 	return nil
 }
 
@@ -281,15 +275,10 @@ func (chain *BlockChain) notifyStoreChunkToP2P(data *types.ChunkInfo) {
 		data.Start, "block end height", data.End, "chunk hash", common.ToHex(data.ChunkHash))
 
 	msg := chain.client.NewMessage("p2p", types.EventNotifyStoreChunk, req)
-	err := chain.client.Send(msg, true)
+	err := chain.client.Send(msg, false)
 	if err != nil {
 		chainlog.Error("notifyStoreChunkToP2P", "chunknum", data.ChunkNum, "block start height",
 			data.Start, "block end height", data.End, "chunk hash", common.ToHex(data.ChunkHash), "err", err)
-	}
-	_, err = chain.client.Wait(msg)
-	if err != nil {
-		chainlog.Error("notifyStoreChunkToP2P", "client.Wait err:", err)
-		return
 	}
 }
 
@@ -385,7 +374,7 @@ func (chain *BlockChain) CaclChunkInfo(height int64) (chunkNum, start, end int64
 
 func caclChunkInfo(cfg *types.BlockChain, height int64) (chunkNum, start, end int64) {
 	if cfg.ChunkblockNum == 0 {
-		panic("toml chunkblockNum can be zero or have't cfg")
+		panic("ChunkBlockNum can not be zero")
 	}
 	chunkNum = height / cfg.ChunkblockNum
 	start = chunkNum * cfg.ChunkblockNum

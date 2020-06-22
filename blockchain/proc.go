@@ -664,7 +664,6 @@ func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
 		chain.chunkRecordTask.Done(info.ChunkNum)
 		chainlog.Debug("addChunkRecord", "chunkNum", info.ChunkNum, "chunkHash", common.ToHex(info.ChunkHash))
 	}
-	msg.Reply(chain.client.NewMessage("", types.EventAddChunkRecord, &types.Reply{IsOk: true}))
 }
 
 // getChunkBlockBody // 获取chunk BlockBody
@@ -682,15 +681,10 @@ func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
 
 // addChunkBlock // 添加chunk Block
 func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
-	reply := &types.Reply{}
-	reply.IsOk = true
 	blocks := (msg.Data).(*types.Blocks)
 	if blocks == nil || len(blocks.Items) == 0 {
 		str := "blocks is nil"
 		chainlog.Error("addChunkBlock", "err", str)
-		reply.IsOk = false
-		reply.Msg = []byte(str)
-		msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
 		return
 	}
 
@@ -707,15 +701,11 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 			_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blk}, "-self") //这里认为非自己节点
 			if err != nil {
 				chainlog.Error("addChunkBlock ProcAddBlockMsg", "height", blk.Height, "err", err.Error())
-				reply.IsOk = false
-				reply.Msg = []byte(err.Error())
-				msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
 				return
 			}
 		}
 	}
 	chainlog.Debug("addChunkBlock", "start", blocks.Items[0].Height, "end", blocks.Items[len(blocks.Items)-1].Height)
-	msg.Reply(chain.client.NewMessage("", types.EventAddChunkBlock, reply))
 }
 
 func (chain *BlockChain) subscribePush(msg *queue.Message) {

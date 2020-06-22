@@ -123,7 +123,6 @@ type BlockChain struct {
 
 	//记录当前已经连续的最高高度
 	maxSerialChunkNum int64
-	maxSeriallock     sync.Mutex
 }
 
 //New new
