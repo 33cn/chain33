@@ -30,12 +30,16 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.
 
 	// 全节点模式，只有网络中出现数据丢失时才提供数据
 	if p.SubConfig.IsFullNode {
+		//只检查chunk是否存在，因此为减少网络带宽消耗，只请求一个区块即可
+		oldEnd := param.End
+		param.End = param.Start
 		_, err := p.mustFetchChunk(param)
 		if err == nil {
 			//网络中可以查到数据，不应该到全节点来要数据
 			res.Error = "some shard peers have this chunk"
 			return
 		}
+		param.End = oldEnd
 		bodys, err := p.getChunkBlock(param)
 		if err != nil {
 			res.Error = err.Error()

@@ -192,6 +192,8 @@ Retry:
 				log.Error("fetchChunkOrNearerPeers from full node", "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
 				continue
 			}
+			//拿到区块之后及时更新到其他节点备查
+			go p.notifyStoreChunk(req)
 			return bodys, nil
 		}
 	}
@@ -282,17 +284,19 @@ func (p *Protocol) checkHistoryChunk(in *types.ChunkInfoMsg) []*types.ChunkInfoM
 
 	var res []*types.ChunkInfoMsg
 	for i := len(records.Infos) - 1; i >= 0; i-- {
+		//只检查chunk是否存在，因此为减少网络带宽消耗，只请求一个区块即可
 		info := &types.ChunkInfoMsg{
 			ChunkHash: records.Infos[i].ChunkHash,
 			Start:     records.Infos[i].Start,
-			End:       records.Infos[i].End,
+			End:       records.Infos[i].Start,
 		}
 		bodys, err := p.getChunk(info)
-		if err == nil && bodys != nil && len(bodys.Items) == int(chunkLen) {
+		if err == nil && bodys != nil {
 			break
 		}
 		//网络中找不到上一个chunk,先把上一个chunk保存到本地p2pstore
 		log.Debug("checkHistoryChunk", "chunk num", info.Start, "chunk hash", hex.EncodeToString(info.ChunkHash))
+		info.End = records.Infos[i].End
 		res = append(res, info)
 	}
 	return res
