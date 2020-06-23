@@ -243,7 +243,9 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 		//启动后间隔1分钟，以充分获得节点外网地址
 		rangeCount++
-		if rangeCount > 2 {
+		if rangeCount > 5 {
+			time.Sleep(time.Minute * 10)
+		} else if rangeCount > 2 {
 			time.Sleep(time.Minute)
 		}
 

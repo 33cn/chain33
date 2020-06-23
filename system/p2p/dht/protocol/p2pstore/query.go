@@ -31,7 +31,7 @@ func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, error) 
 }
 
 func (p *Protocol) getHeaders(param *types.ReqBlocks) *types.Headers {
-	for _, pid := range p.healthyRoutingTable.ListPeers() {
+	for _, pid := range p.P2PEnv.RoutingTable.RoutingTable().ListPeers() {
 		headers, err := p.getHeadersFromPeer(param, pid)
 		if err != nil {
 			log.Error("getHeaders", "peer", pid, "error", err)
@@ -87,7 +87,7 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 		return records
 	}
 
-	for _, pid := range p.healthyRoutingTable.ListPeers() {
+	for _, pid := range p.P2PEnv.RoutingTable.RoutingTable().ListPeers() {
 		records, err := p.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
 			log.Error("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
@@ -144,7 +144,6 @@ Retry:
 	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
 	if len(peers) == 0 {
 		log.Error("mustFetchChunk", "error", "no healthy peers")
-		return nil, types2.ErrUnknown
 	}
 	log.Info("into mustFetchChunk", "healthy peers len", p.healthyRoutingTable.Size())
 	for len(peers) != 0 {
@@ -234,7 +233,7 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 			return nil, nil, err
 		}
 	}
-	log.Info("fetchChunkOrNearerPeers", "read data time cost", time.Since(t))
+	log.Info("fetchChunkOrNearerPeers", "read data time cost", time.Since(t), "size", len(result))
 	err = types.Decode(result, &res)
 	if err != nil {
 		return nil, nil, err
