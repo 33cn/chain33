@@ -427,8 +427,12 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	p2.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p2.HandleStreamGetHeader))
 	p2.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p2.HandleStreamGetChunkRecord))
 	p2.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
-	go p2.startUpdateHealthyRoutingTable()
-
+	go func() {
+		for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
+			p2.updateHealthyRoutingTable()
+			time.Sleep(time.Second * 1)
+		}
+	}()
 	client1.Sub("p2p")
 	client2.Sub("p2p2")
 	go func() {
@@ -521,7 +525,12 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	p3.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p3.HandleStreamGetHeader))
 	p3.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.HandleStreamGetChunkRecord))
 	p3.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy2))
-	go p3.startUpdateHealthyRoutingTable()
+	go func() {
+		for i := 0; i < 3; i++ {
+			p3.updateHealthyRoutingTable()
+			time.Sleep(time.Second * 1)
+		}
+	}()
 
 	client1.Sub("p2p")
 	client3.Sub("p2p3")

@@ -5,26 +5,9 @@ import (
 	"time"
 
 	protocol2 "github.com/33cn/chain33/system/p2p/dht/protocol"
-	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
-
-func (p *Protocol) startUpdateHealthyRoutingTable() {
-	rm := p.RoutingTable.RoutingTable().PeerRemoved
-	p.RoutingTable.RoutingTable().PeerRemoved = func(id peer.ID) {
-		rm(id)
-		p.healthyRoutingTable.Remove(id)
-	}
-
-	for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
-		time.Sleep(time.Second * 1)
-		p.updateHealthyRoutingTable()
-	}
-	for range time.Tick(types2.CheckHealthyInterval) {
-		p.updateHealthyRoutingTable()
-	}
-}
 
 func (p *Protocol) updateHealthyRoutingTable() {
 	for _, pid := range p.RoutingTable.RoutingTable().ListPeers() {

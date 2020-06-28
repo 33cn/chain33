@@ -47,6 +47,12 @@ func InitProtocol(env *protocol.P2PEnv) {
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 		retryInterval:       30 * time.Second,
 	}
+	//routing table更新时同时更新healthy routing table
+	rm := p.RoutingTable.RoutingTable().PeerRemoved
+	p.RoutingTable.RoutingTable().PeerRemoved = func(id peer.ID) {
+		rm(id)
+		p.healthyRoutingTable.Remove(id)
+	}
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
@@ -61,28 +67,32 @@ func InitProtocol(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventGetChunkRecord, protocol.EventHandlerWithRecover(p.HandleEventGetChunkRecord))
 
 	//全节点的p2pstore保存所有chunk, 不进行republish操作
-	if !p.SubConfig.IsFullNode {
-		err := p.initFullNodes()
-		if err != nil {
-			panic(err)
+	err := p.initFullNodes()
+	if err != nil {
+		panic(err)
+	}
+	go func() {
+		for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
+			p.updateHealthyRoutingTable()
+			time.Sleep(time.Second * 1)
 		}
-		go func() {
-			for range time.Tick(types2.RefreshInterval) {
-				p.republish()
-			}
-		}()
-	} else {
-		go func() {
-			for range time.Tick(time.Minute) {
+		ticker1 := time.Tick(time.Minute)
+		ticker2 := time.Tick(types2.RefreshInterval)
+		ticker3 := time.Tick(types2.CheckHealthyInterval)
+		for {
+			select {
+			case <-ticker1:
 				p.updateChunkWhiteList()
 				p.localChunkInfoMutex.Lock()
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
 				p.localChunkInfoMutex.Unlock()
+			case <-ticker2:
+				p.republish()
+			case <-ticker3:
+				p.updateHealthyRoutingTable()
 			}
-
-		}()
-	}
-	go p.startUpdateHealthyRoutingTable()
+		}
+	}()
 }
 
 func (p *Protocol) updateChunkWhiteList() {
@@ -96,6 +106,10 @@ func (p *Protocol) updateChunkWhiteList() {
 }
 
 func (p *Protocol) initFullNodes() error {
+	if p.SubConfig.IsFullNode {
+		return nil
+	}
+
 	for _, node := range p.SubConfig.FullNodes {
 		// Turn the destination into a multiaddr.
 		maddr, err := multiaddr.NewMultiaddr(node)

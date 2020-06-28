@@ -11,6 +11,9 @@ import (
 )
 
 func (p *Protocol) republish() {
+	if p.SubConfig.IsFullNode {
+		return
+	}
 	m := make(map[string]LocalChunkInfo)
 	p.localChunkInfoMutex.RLock()
 	for k, v := range p.localChunkInfo {
