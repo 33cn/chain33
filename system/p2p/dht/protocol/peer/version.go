@@ -17,10 +17,8 @@ import (
 // MainNet Channel = 0x0000
 
 func (p *peerInfoProtol) processVerReq(req *types.MessageP2PVersionReq, muaddr string) (*types.MessageP2PVersionResp, error) {
-	if p.getExternalAddr() == "" {
-		p.setExternalAddr(req.GetMessage().GetAddrRecv())
-		log.Debug("OnVersionReq", "externalAddr", p.getExternalAddr())
-	}
+
+	p.setExternalAddr(req.GetMessage().GetAddrRecv())
 
 	channel := req.GetMessage().GetVersion()
 	if channel != p.p2pCfg.Channel {
@@ -58,19 +56,11 @@ func (p *peerInfoProtol) checkRemotePeerExternalAddr(remoteMAddr string) bool {
 }
 func (p *peerInfoProtol) onVersionReq(req *types.MessageP2PVersionReq, s core.Stream) {
 
-	remoteMAddr := s.Conn().RemoteMultiaddr()
-	if !p.checkRemotePeerExternalAddr(remoteMAddr.String()) {
-		var err error
-		remoteMAddr, err = multiaddr.NewMultiaddr(req.GetMessage().GetAddrFrom())
-		if err != nil {
-			return
-		}
-		p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.AddressTTL)
-	} else {
-		//replace real port
-		log.Debug("onVersionReq", "remoteMAddr", remoteMAddr.String(), "addrFrom", req.GetMessage().AddrFrom)
-		p.setAddrToPeerStore(s.Conn().RemotePeer(), remoteMAddr.String(), req.GetMessage().GetAddrFrom())
+	remoteMAddr, err := multiaddr.NewMultiaddr(req.GetMessage().GetAddrFrom())
+	if err != nil {
+		return
 	}
+	p.Host.Peerstore().AddAddr(s.Conn().RemotePeer(), remoteMAddr, peerstore.TempAddrTTL*2)
 
 	senddata, err := p.processVerReq(req, remoteMAddr.String())
 	if err != nil {
