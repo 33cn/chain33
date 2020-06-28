@@ -10,12 +10,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (p *Protocol) startRepublish() {
-	for range time.Tick(types2.RefreshInterval) {
-		p.republish()
-	}
-}
-
 func (p *Protocol) republish() {
 	m := make(map[string]LocalChunkInfo)
 	p.localChunkInfoMutex.RLock()

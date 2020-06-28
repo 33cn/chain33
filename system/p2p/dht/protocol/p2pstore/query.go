@@ -181,19 +181,15 @@ Retry:
 		goto Retry
 	}
 	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
-	for pid := range searchedPeers {
-		log.Info("mustFetchChunk debug", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid))
-	}
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
-	if p.SubConfig.IsFullNode {
+	if !p.SubConfig.IsFullNode {
 		for _, pid := range p.fullNodes {
-			bodys, _, _ := p.fetchChunkOrNearerPeers(ctx, req, pid)
+			bodys, _, err := p.fetchChunkOrNearerPeers(ctx, req, pid)
 			if bodys == nil {
-				log.Error("fetchChunkOrNearerPeers from full node", "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
+				log.Error("fetchChunkOrNearerPeers from full node failed", "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", err)
 				continue
 			}
-			//拿到区块之后及时更新到其他节点备查
-			go p.notifyStoreChunk(req)
+			log.Info("fetchChunkOrNearerPeers from full node succeed", "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
 			return bodys, nil
 		}
 	}

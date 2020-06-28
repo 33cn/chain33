@@ -25,6 +25,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestUpdateChunkWhiteList(t *testing.T) {
+	p := &Protocol{}
+	p.chunkWhiteList.Store("test1", time.Now())
+	p.chunkWhiteList.Store("test2", time.Now().Add(-time.Minute*10))
+	p.updateChunkWhiteList()
+	_, ok := p.chunkWhiteList.Load("test1")
+	assert.True(t, ok)
+	_, ok = p.chunkWhiteList.Load("test2")
+	assert.False(t, ok)
+}
+
 //HOST1 ID: Qma91H212PWtAFcioW7h9eKiosJtwHsb9x3RmjqRWTwciZ
 //HOST2 ID: QmbazrBU4HthhnQWcUTiJLnj5ihbFHXsAkGAG6QfmrqJDs
 func TestInit(t *testing.T) {
@@ -511,7 +522,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	p3.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.HandleStreamGetChunkRecord))
 	p3.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy2))
 	go p3.startUpdateHealthyRoutingTable()
-	go p3.debugLocalChunk()
 
 	client1.Sub("p2p")
 	client3.Sub("p2p3")

@@ -7,6 +7,7 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
+	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -20,7 +21,8 @@ var log = log15.New("module", "protocol.p2pstore")
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
-	notifying sync.Map
+	notifying      sync.Map
+	chunkWhiteList sync.Map
 
 	//普通路由表的一个子表，仅包含接近同步完成的节点
 	healthyRoutingTable *kb.RoutingTable
@@ -64,24 +66,35 @@ func InitProtocol(env *protocol.P2PEnv) {
 		if err != nil {
 			panic(err)
 		}
-		go p.startRepublish()
+		go func() {
+			for range time.Tick(types2.RefreshInterval) {
+				p.republish()
+			}
+		}()
 	} else {
-		go p.debugLocalChunk()
+		go func() {
+			for range time.Tick(time.Minute) {
+				p.updateChunkWhiteList()
+				p.localChunkInfoMutex.Lock()
+				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
+				p.localChunkInfoMutex.Unlock()
+			}
+
+		}()
 	}
 	go p.startUpdateHealthyRoutingTable()
 }
 
-func (p *Protocol) debugLocalChunk() {
-	for {
-		time.Sleep(time.Minute)
-		p.localChunkInfoMutex.Lock()
-		for k, v := range p.localChunkInfo {
-			log.Info("debugLocalChunk", "chunkhash", k, "start", v.Start)
+func (p *Protocol) updateChunkWhiteList() {
+	p.chunkWhiteList.Range(func(k, v interface{}) bool {
+		t := v.(time.Time)
+		if time.Since(t) > time.Minute*10 {
+			p.chunkWhiteList.Delete(k)
 		}
-		log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
-		p.localChunkInfoMutex.Unlock()
-	}
+		return true
+	})
 }
+
 func (p *Protocol) initFullNodes() error {
 	for _, node := range p.SubConfig.FullNodes {
 		// Turn the destination into a multiaddr.
