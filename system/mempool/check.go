@@ -91,7 +91,6 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 	}
 	header := mem.GetHeader()
 	txmsg := msg.GetData().(*types.Transaction)
-	txmsg.ResetCacheHash()
 	//普通的交易
 	tx := types.NewTransactionCache(txmsg)
 	types.AssertConfig(mem.client)
@@ -107,6 +106,8 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 			return msg
 		}
 	}
+	//放在交易费检查后面进行 哈希缓存设置，避免哈希缓存改变原始交易size
+	txmsg.ResetCacheHash()
 	//检查txgroup 中的每个交易
 	txs, err := tx.GetTxGroup()
 	if err != nil {
