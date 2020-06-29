@@ -264,6 +264,7 @@ func (r *RPC) Listen() (port1 int, port2 int) {
 	for i := 0; i < 10; i++ {
 		port1, err = r.gapi.Listen()
 		if err != nil {
+			log.Error("Grpc Listen", "err", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -272,11 +273,13 @@ func (r *RPC) Listen() (port1 int, port2 int) {
 	for i := 0; i < 10; i++ {
 		port2, err = r.japi.Listen()
 		if err != nil {
+			log.Error("Jrpc Listen", "err", err)
 			time.Sleep(time.Second)
 			continue
 		}
 		break
 	}
+	log.Info("rpc Listen ports", "grpc", port1, "jrpc", port2)
 	//sleep for a while
 	time.Sleep(time.Millisecond)
 	return port1, port2
