@@ -107,7 +107,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 		}
 	}
 	//放在交易费检查后面进行 哈希缓存设置，避免哈希缓存改变原始交易size
-	txmsg.ResetCacheHash()
+	txmsg.ReCalcCacheHash()
 	//检查txgroup 中的每个交易
 	txs, err := tx.GetTxGroup()
 	if err != nil {

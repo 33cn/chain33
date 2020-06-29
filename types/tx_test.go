@@ -507,14 +507,14 @@ func TestCacheHash(t *testing.T) {
 	hash := tx.Hash()
 	fullHash := tx.FullHash()
 
-	tx.ResetCacheHash()
+	tx.ReCalcCacheHash()
 	assert.Equal(t, hash, tx.HashCache)
 	assert.Equal(t, fullHash, tx.FullHashCache)
 	tx.Nonce++
 	tx.UnsetCacheHash()
 	hashNew := tx.Hash()
 	fullHashNew := tx.FullHash()
-	tx.ResetCacheHash()
+	tx.ReCalcCacheHash()
 	assert.NotEqual(t, hash, tx.HashCache)
 	assert.NotEqual(t, fullHash, tx.FullHashCache)
 	assert.Equal(t, hashNew, tx.HashCache)
