@@ -831,8 +831,8 @@ func (tx *Transaction) UnsetCacheHash() {
 	tx.FullHashCache = nil
 }
 
-// ResetCacheHash 重新计算 hash缓存， 通常交易首次进入系统时调用
-func (tx *Transaction) ResetCacheHash() {
+// ReCalcCacheHash 重新计算 hash缓存， 通常交易首次进入系统时调用
+func (tx *Transaction) ReCalcCacheHash() {
 	tx.UnsetCacheHash()
 	tx.HashCache = tx.Hash()
 	tx.FullHashCache = tx.FullHash()

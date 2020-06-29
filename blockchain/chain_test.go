@@ -1358,7 +1358,7 @@ func TestEnableCmpBestBlock(t *testing.T) {
 	temblock := types.Clone(block.Block)
 	newblock := temblock.(*types.Block)
 	newblock.GetTxs()[0].Nonce = newblock.GetTxs()[0].Nonce + 1
-	newblock.GetTxs()[0].ResetCacheHash()
+	newblock.GetTxs()[0].ReCalcCacheHash()
 	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.GetHeight(), newblock.GetTxs())
 	blockDetail := types.BlockDetail{Block: newblock}
 	_, err = blockchain.ProcAddBlockMsg(true, &blockDetail, "peer")
@@ -1433,7 +1433,7 @@ func TestDisableCmpBestBlock(t *testing.T) {
 	temblock := types.Clone(block.Block)
 	newblock := temblock.(*types.Block)
 	newblock.GetTxs()[0].Nonce = newblock.GetTxs()[0].Nonce + 1
-	newblock.GetTxs()[0].ResetCacheHash()
+	newblock.GetTxs()[0].ReCalcCacheHash()
 	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.GetHeight(), newblock.GetTxs())
 	blockDetail := types.BlockDetail{Block: newblock}
 	_, err = blockchain.ProcAddBlockMsg(true, &blockDetail, "peer")
