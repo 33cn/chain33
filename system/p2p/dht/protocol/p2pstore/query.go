@@ -78,6 +78,7 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 		pid, err := peer.Decode(prettyID)
 		if err != nil {
 			log.Error("getChunkRecords", "decode pid error", err)
+			continue
 		}
 		records, err := p.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
