@@ -323,7 +323,8 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 		driver = e.loadNoneDriver()
 		//fork之前，cache中存放的是经过allow判定后，实际用于执行的执行器，比如主链执行平行链交易的执行器对应的是none对象
 		//fork之后，cache中存放的是和Execer名称对应的driver对象
-		//历史遗留问题 这个fork在当时是不需要增加的，fork之前的问题在于cache缓存错乱，不应该缓存实际用于执行的，即缓存包含了allow的逻辑，导致错乱
+		//历史遗留问题 fork之前的问题在于cache缓存错乱，不应该缓存实际用于执行的，即缓存包含了allow的逻辑，导致错乱
+		//增加fork是由于已经存在由于cache问题导致的错误交易
 		//正确逻辑是，cache中的执行器对象和名称是一一对应的，保证了driver对象复用，但同时不同交易的allow需要重新判定
 		if !isFork {
 			e.driverCache[name] = driver
