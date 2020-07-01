@@ -52,6 +52,31 @@ func TestCreateGroupTx(t *testing.T) {
 	t.Log(grouptx)
 }
 
+/*
+type=string  length   data
+  +--------+--------+~~+--------+
+  |xxxxxxxx|xxxxxxxx|  |xxxxxxxx|
+  +--------+--------+~~+--------+
+  在bytes hash 的情况下，应该是一个字节类型，一个是一个字节的长度
+*/
+func TestGetRealFee(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	tx := &Transaction{
+		Payload: []byte(strings.Repeat("a", 633)),
+	}
+	tx, err := FormatTx(cfg, "user.p.none", tx)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, tx.Size(), 699)
+	fee1, err := tx.GetRealFee(cfg.GetMinTxFeeRate())
+	assert.Equal(t, err, nil)
+	assert.Equal(t, fee1, cfg.GetMinTxFeeRate())
+	tx.ReCalcCacheHash()
+	assert.Equal(t, tx.Size()-699, 68)
+	fee2, err := tx.GetRealFee(cfg.GetMinTxFeeRate())
+	assert.Equal(t, err, nil)
+	assert.Equal(t, fee2, cfg.GetMinTxFeeRate())
+}
+
 func TestCreateParaGroupTx(t *testing.T) {
 	str := GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
