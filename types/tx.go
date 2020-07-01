@@ -548,8 +548,8 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	if tx.Signature == nil {
 		txSize += 300
 	}
-	// hash cache 不作为fee大小计算
-	txSize -= len(tx.HashCache) + len(tx.FullHashCache)
+	// hash cache 不作为fee大小计算, byte数组经过proto编码会有2个字节的标志长度
+	txSize -= len(tx.HashCache) + len(tx.FullHashCache) + 4
 	if txSize > int(MaxTxSize) {
 		return 0, ErrTxMsgSizeTooBig
 	}
