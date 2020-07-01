@@ -277,6 +277,20 @@ func (e *executor) freeNoneDriver(none drivers.Driver) {
 	e.exec.noneDriverPool.Put(none)
 }
 
+// 加载none执行器
+func (e *executor) loadNoneDriver() drivers.Driver {
+	none, ok := e.driverCache["none"]
+	var err error
+	if !ok {
+		none, err = drivers.LoadDriverWithClient(e.api, "none", 0)
+		if err != nil {
+			panic(err)
+		}
+		e.driverCache["none"] = none
+	}
+	return none
+}
+
 // loadDriver 加载执行器
 // 对单笔交易执行期间的执行器做了缓存，避免多次加载
 // 只有参数的tx，index，和记录的当前交易，当前索引，均相等时，才返回缓存的当前交易执行器
@@ -289,24 +303,30 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 	var err error
 	name := types.Bytes2Str(tx.Execer)
 	driver, ok := e.driverCache[name]
+	isFork := e.cfg.IsFork(e.height, "ForkCacheDriver")
 
+	//fork之前，多笔相同执行器的交易只有第一笔会进行Allow判定，后续的交易直接从执行器缓存中获取执行器
+	//fork之后，所有的交易均需要单独执行Allow判定
 	if !ok {
 		driver, err = drivers.LoadDriverWithClient(e.api, name, e.height)
-		if err == nil {
-			//添加进缓存
-			e.driverCache[name] = driver
+		if err != nil {
+			driver = e.loadNoneDriver()
 		}
+		e.driverCache[name] = driver
+		err = driver.Allow(tx, index)
+	} else if isFork {
+		err = driver.Allow(tx, index)
 	}
 
-	// LoadDriver出错 或者 ForkCacheDriver之后执行器Allow方法未通过时，使用none合约
-	if err != nil || (e.cfg.IsFork(e.height, "ForkCacheDriver") && driver.Allow(tx, index) != nil) {
-		driver, ok = e.driverCache["none"]
-		if !ok {
-			driver, err = drivers.LoadDriverWithClient(e.api, "none", 0)
-			if err != nil {
-				panic(err)
-			}
-			e.driverCache["none"] = driver
+	// allow不通过时，统一加载none执行器
+	if err != nil {
+		driver = e.loadNoneDriver()
+		//fork之前，cache中存放的是经过allow判定后，实际用于执行的执行器，比如主链执行平行链交易的执行器对应的是none对象
+		//fork之后，cache中存放的是和Execer名称对应的driver对象
+		//历史遗留问题 这个fork在当时是不需要增加的，fork之前的问题在于cache缓存错乱，不应该缓存实际用于执行的，即缓存包含了allow的逻辑，导致错乱
+		//正确逻辑是，cache中的执行器对象和名称是一一对应的，保证了driver对象复用，但同时不同交易的allow需要重新判定
+		if !isFork {
+			e.driverCache[name] = driver
 		}
 	} else {
 		driver.SetEnv(e.height, 0, 0)
