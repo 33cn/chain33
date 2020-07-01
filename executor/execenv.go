@@ -305,16 +305,17 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 	driver, ok := e.driverCache[name]
 	isFork := e.cfg.IsFork(e.height, "ForkCacheDriver")
 
-	//fork之前，多笔相同执行器的交易只有第一笔会进行Allow判定，后续的交易直接从执行器缓存中获取执行器
-	//fork之后，所有的交易均需要单独执行Allow判定
 	if !ok {
 		driver, err = drivers.LoadDriverWithClient(e.api, name, e.height)
 		if err != nil {
 			driver = e.loadNoneDriver()
 		}
 		e.driverCache[name] = driver
-		err = driver.Allow(tx, index)
-	} else if isFork {
+	}
+
+	//fork之前，多笔相同执行器的交易只有第一笔会进行Allow判定，从缓存中获取的执行器不需要进行allow判定
+	//fork之后，所有的交易均需要单独执行Allow判定
+	if !ok || isFork {
 		err = driver.Allow(tx, index)
 	}
 
