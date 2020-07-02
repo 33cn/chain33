@@ -504,15 +504,15 @@ func (tx *Transaction) Check(cfg *Chain33Config, height, minfee, maxFee int64) e
 }
 
 func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) error {
-	txSize := Size(tx)
-	if txSize > int(MaxTxSize) {
-		return ErrTxMsgSizeTooBig
-	}
 	if minfee == 0 {
 		return nil
 	}
+	// 获取当前交易最小交易费
+	realFee, err := tx.GetRealFee(minfee)
+	if err != nil {
+		return err
+	}
 	// 检查交易费是否小于最低值
-	realFee := int64(txSize/1000+1) * minfee
 	if tx.Fee < realFee {
 		return ErrTxFeeTooLow
 	}
@@ -548,6 +548,8 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	if tx.Signature == nil {
 		txSize += 300
 	}
+	// hash cache 不作为fee大小计算, byte数组经过proto编码会有2个字节的标志长度
+	txSize -= len(tx.HashCache) + len(tx.FullHashCache) + 4
 	if txSize > int(MaxTxSize) {
 		return 0, ErrTxMsgSizeTooBig
 	}
