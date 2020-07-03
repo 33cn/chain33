@@ -214,6 +214,6 @@ message MessageBroadCast {
 }
 
 message FraudPeer {
-    int32 level = 1;
-    string pid = 2;
+    int32  level = 1;
+    string pid   = 2;
 }
