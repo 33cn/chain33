@@ -288,6 +288,10 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	errReturn := (node.pid != "self")
 	blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync)
 	if err != nil {
+		//TODO 添加更多欺诈节点判定条件
+		if node.pid != "self" && err == types.ErrSign {
+			_ = b.client.Send(b.client.NewMessage("p2p", types.EventAddP2PBlacklist, &types.FraudPeer{Level: 1, Pid: node.pid}), false)
+		}
 		//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
 		if IsRecordFaultErr(err) {
 			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)

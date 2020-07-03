@@ -8,8 +8,14 @@ package dht
 import (
 	"context"
 	"fmt"
+	net2 "net"
+	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/libp2p/go-libp2p-core/peer"
+
+	filter "github.com/libp2p/go-maddr-filter"
 
 	"github.com/33cn/chain33/p2p"
 
@@ -34,6 +40,8 @@ import (
 )
 
 var log = logger.New("module", "p2pnext")
+
+var blacklist = filter.NewFilters()
 
 func init() {
 	p2p.RegisterP2PCreate(p2pty.DHTTypeName, New)
@@ -107,12 +115,13 @@ func newHost(port int32, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Report
 	if maxconnect <= 0 {
 		maxconnect = 100
 	}
+
 	host, err := libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m),
 		libp2p.Identity(priv),
 		libp2p.BandwidthReporter(bandwidthTracker),
 		libp2p.NATPortMap(),
-
+		libp2p.Filters(blacklist),
 		//connmgr 默认连接100个，最少3/4*maxconnect个
 		libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect*3/4, maxconnect, 0)),
 	)
@@ -200,6 +209,49 @@ func (p *P2P) handleP2PEvent() {
 		go func(qmsg *queue.Message) {
 			defer p.taskGroup.Done()
 			log.Debug("handleP2PEvent", "recv msg ty", qmsg.Ty)
+			if qmsg.Ty == types.EventAddP2PBlacklist {
+				msg, ok := qmsg.Data.(*types.FraudPeer)
+				if !ok || len(msg.Pid) < 2 || msg.Pid[:2] != "16" {
+					log.Error("handleP2PEvent", "error", "wrong pid type")
+					return
+				}
+				pid, err := peer.IDB58Decode(msg.Pid)
+				if err != nil {
+					log.Error("handleP2PEvent", "decode error", err)
+					return
+				}
+				var ipnets []*net2.IPNet
+				for _, ma := range p.host.Peerstore().Addrs(pid) {
+					addr := ma.String()
+					if len(strings.Split(addr, "/")) < 5 {
+						continue
+					}
+					ip := strings.Split(addr, "/")[2]
+					ip += "/32"
+					_, ipnet, err := net2.ParseCIDR(ip)
+					if err != nil {
+						log.Error("handleP2PEvent", "ParseCIDR error", err)
+						return
+					}
+					ipnets = append(ipnets, ipnet)
+					blacklist.AddFilter(*ipnet, filter.ActionDeny)
+
+				}
+				//add filter之后同时强行切断当前连接
+				_ = p.host.Network().ClosePeer(pid)
+				//删除所有地址信息
+				p.host.Peerstore().ClearAddrs(pid)
+				time.AfterFunc(time.Hour*4, func() {
+					//循环remove，直到remove所有ip
+					for _, ipnet := range ipnets {
+						//循环remove，直到remove该ip所有action
+						for blacklist.RemoveLiteral(*ipnet) {
+						}
+					}
+				})
+				return
+			}
+
 			protocol.HandleEvent(qmsg)
 
 		}(msg)

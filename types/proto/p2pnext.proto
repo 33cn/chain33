@@ -212,3 +212,8 @@ message MessageBroadCast {
     MessageComm   common  = 1;
     BroadCastData message = 2;
 }
+
+message FraudPeer {
+    int32 level = 1;
+    string pid = 2;
+}
