@@ -33,6 +33,7 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.1.0
 	github.com/libp2p/go-libp2p-kad-dht v0.2.1
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
+	github.com/libp2p/go-maddr-filter v0.0.5
 
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mr-tron/base58 v1.1.3

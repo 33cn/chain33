@@ -24,6 +24,8 @@ func (mgr *Manager) handleSysEvent() {
 	for msg := range mgr.Client.Recv() {
 
 		switch msg.Ty {
+		case types.EventAddP2PBlacklist:
+			mgr.pub2All(msg)
 
 		case types.EventTxBroadcast, types.EventBlockBroadcast: //广播
 			mgr.pub2All(msg)
