@@ -53,7 +53,9 @@ func InitProtocol(env *protocol.P2PEnv) {
 		rm(id)
 		p.healthyRoutingTable.Remove(id)
 	}
-	p.initLocalChunkInfoMap()
+	if err := p.initLocalChunkInfoMap(); err != nil {
+		panic(err)
+	}
 
 	//注册p2p通信协议，用于处理节点之间请求
 	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk)) //数据较大，采用特殊写入方式
@@ -67,8 +69,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventGetChunkRecord, protocol.EventHandlerWithRecover(p.HandleEventGetChunkRecord))
 
 	//全节点的p2pstore保存所有chunk, 不进行republish操作
-	err := p.initFullNodes()
-	if err != nil {
+	if err := p.initFullNodes(); err != nil {
 		panic(err)
 	}
 	go func() {
