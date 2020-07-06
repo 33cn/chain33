@@ -46,12 +46,10 @@ func InitProtocol(env *protocol.P2PEnv) {
 // HandleStreamIsSync 实时查询是否已同步完成
 func (p *Protocol) HandleStreamIsSync(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	peers := p.Host.Network().Peers()
-	if len(peers) > MaxQuery {
-		shuffle(peers)
-		peers = peers[:MaxQuery]
-	}
+	shuffle(peers)
 
 	maxHeight := int64(-1)
+	var count int
 	for _, pid := range peers {
 		header, err := p.getLastHeaderFromPeer(pid)
 		if err != nil {
@@ -60,6 +58,11 @@ func (p *Protocol) HandleStreamIsSync(_ *types.P2PRequest, res *types.P2PRespons
 		}
 		if header.Height > maxHeight {
 			maxHeight = header.Height
+		}
+		//最多访问50个节点，不包含请求失败的
+		count++
+		if count > MaxQuery {
+			break
 		}
 	}
 

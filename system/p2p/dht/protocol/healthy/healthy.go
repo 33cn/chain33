@@ -21,12 +21,10 @@ func (p *Protocol) startUpdateFallBehind() {
 
 func (p *Protocol) updateFallBehind() {
 	peers := p.Host.Network().Peers()
-	if len(peers) > MaxQuery {
-		shuffle(peers)
-		peers = peers[:MaxQuery]
-	}
+	shuffle(peers)
 
 	maxHeight := int64(-1)
+	var count int
 	for _, pid := range peers {
 		header, err := p.getLastHeaderFromPeer(pid)
 		if err != nil {
@@ -35,6 +33,11 @@ func (p *Protocol) updateFallBehind() {
 		}
 		if header.Height > maxHeight {
 			maxHeight = header.Height
+		}
+		//最多访问50个节点，不包含请求失败的
+		count++
+		if count > MaxQuery {
+			break
 		}
 	}
 
@@ -48,6 +51,7 @@ func (p *Protocol) updateFallBehind() {
 	}
 
 	atomic.StoreInt64(&p.fallBehind, maxHeight-header.Height)
+	log.Info("updateFallBehind", "fall behind", maxHeight-header.Height)
 }
 
 func (p *Protocol) getLastHeaderFromPeer(pid peer.ID) (*types.Header, error) {
