@@ -16,7 +16,7 @@ const (
 	LocalChunkInfoKey = "local-chunk-info"
 	ChunkNameSpace    = "chunk"
 	AlphaValue        = 3
-	Backup            = 20
+	Backup            = 5
 )
 
 type LocalChunkInfo struct {
@@ -101,23 +101,23 @@ func (p *Protocol) deleteLocalChunkInfo(hash []byte) error {
 	return p.saveLocalChunkInfoMap(p.localChunkInfo)
 }
 
-func (p *Protocol) initLocalChunkInfoMap() error {
+func (p *Protocol) initLocalChunkInfoMap() {
 	p.localChunkInfo = make(map[string]LocalChunkInfo)
 	value, err := p.DB.Get(datastore.NewKey(LocalChunkInfoKey))
 	if err != nil {
-		return err
+		log.Error("initLocalChunkInfoMap", "error", err)
+		return
 	}
 
 	err = json.Unmarshal(value, &p.localChunkInfo)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	for k, v := range p.localChunkInfo {
 		info := v
 		info.Time = time.Now()
 		p.localChunkInfo[k] = info
 	}
-	return nil
 }
 
 func (p *Protocol) saveLocalChunkInfoMap(m map[string]LocalChunkInfo) error {

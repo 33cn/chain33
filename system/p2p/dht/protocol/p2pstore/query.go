@@ -15,7 +15,7 @@ import (
 )
 
 //getChunk gets chunk data from p2pStore or other peers.
-func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
+func (p *Protocol) getChunk(req *types.ChunkInfoMsg, queryRemote bool) (*types.BlockBodys, error) {
 	if req == nil {
 		return nil, types2.ErrInvalidParam
 	}
@@ -24,6 +24,10 @@ func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, error) 
 	bodys, _ := p.getChunkBlock(req)
 	if bodys != nil {
 		return bodys, nil
+	}
+
+	if !queryRemote {
+		return nil, types2.ErrNotFound
 	}
 
 	//本地数据不存在或已过期，则向临近节点查询
@@ -261,7 +265,7 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 }
 
 // 检查网络中是否能查到前一个chunk，最多往前查10个chunk，返回未保存的chunkInfo
-func (p *Protocol) checkHistoryChunk(in *types.ChunkInfoMsg) []*types.ChunkInfoMsg {
+func (p *Protocol) checkHistoryChunk(in *types.ChunkInfoMsg, queryRemote bool) []*types.ChunkInfoMsg {
 	chunkLen := in.End - in.Start + 1
 	req := &types.ReqChunkRecords{
 		Start: in.Start/chunkLen - 10,
@@ -287,7 +291,7 @@ func (p *Protocol) checkHistoryChunk(in *types.ChunkInfoMsg) []*types.ChunkInfoM
 			Start:     records.Infos[i].Start,
 			End:       records.Infos[i].Start,
 		}
-		bodys, err := p.getChunk(info)
+		bodys, err := p.getChunk(info, queryRemote)
 		if err == nil && bodys != nil {
 			break
 		}
@@ -310,16 +314,12 @@ func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
 	if err != nil {
 		return err
 	}
-	err = p.addChunkBlock(req, bodys)
-	if err != nil {
-		return err
-	}
-	return nil
+	return p.addChunkBlock(req, bodys)
 }
 
-func (p *Protocol) checkAndStoreChunk(req *types.ChunkInfoMsg) error {
+func (p *Protocol) checkAndStoreChunk(req *types.ChunkInfoMsg, queryRemote bool) error {
 	//先检查之前的chunk是否可以在网络中查到
-	infos := p.checkHistoryChunk(req)
+	infos := p.checkHistoryChunk(req, queryRemote)
 	infos = append(infos, req)
 	var err error
 	for _, info := range infos {
@@ -328,7 +328,9 @@ func (p *Protocol) checkAndStoreChunk(req *types.ChunkInfoMsg) error {
 			continue
 		}
 		//本地存储之后立即到其他节点做一次备份
-		p.notifyStoreChunk(req)
+		if queryRemote {
+			p.notifyStoreChunk(req)
+		}
 	}
 
 	return err

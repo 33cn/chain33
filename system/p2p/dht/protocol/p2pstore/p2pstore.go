@@ -53,9 +53,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 		rm(id)
 		p.healthyRoutingTable.Remove(id)
 	}
-	if err := p.initLocalChunkInfoMap(); err != nil {
-		panic(err)
-	}
+	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
 	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk)) //数据较大，采用特殊写入方式

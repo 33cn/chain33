@@ -188,8 +188,10 @@ func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
 	if p.SubConfig.IsFullNode {
-		//全节点保存所有chunk, blockchain模块通知保存chunk时直接保存到本地，不进行其他检查操作
-		_ = p.storeChunk(req)
+		//全节点保存所有chunk, blockchain模块通知保存chunk时直接保存到本地，检查本地保存的chunk是否连续
+		if err := p.checkAndStoreChunk(req, false); err != nil {
+			log.Error("HandleEventNotifyStoreChunk", "checkAndStoreChunk error", err)
+		}
 		return
 	}
 
@@ -199,7 +201,7 @@ func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	if len(peers) == count && kb.Closer(peers[count-1], p.Host.ID(), genChunkPath(req.ChunkHash)) {
 		return
 	}
-	err := p.checkAndStoreChunk(req)
+	err := p.checkAndStoreChunk(req, true)
 	if err != nil {
 		log.Error("StoreChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return
@@ -209,7 +211,7 @@ func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 
 func (p *Protocol) HandleEventGetChunkBlock(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
-	bodys, err := p.getChunk(req)
+	bodys, err := p.getChunk(req, true)
 	if err != nil {
 		log.Error("GetChunkBlock", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return
@@ -248,7 +250,7 @@ func (p *Protocol) HandleEventGetChunkBlock(m *queue.Message) {
 
 func (p *Protocol) HandleEventGetChunkBlockBody(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
-	blockBodys, err := p.getChunk(req)
+	blockBodys, err := p.getChunk(req, true)
 	if err != nil {
 		log.Error("GetChunkBlockBody", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		m.ReplyErr("", err)
