@@ -88,6 +88,9 @@ func (app *notAllowApp) GetDriverName() string {
 
 func (app *notAllowApp) Allow(tx *types.Transaction, index int) error {
 
+	if app.GetHeight() == 0 {
+		return types.ErrActionNotSupport
+	}
 	// 这里简单模拟 同比交易不同action 的allow限定，大于0 只是配合上述测试用例
 	if index > 0 || string(tx.Execer) == "notAllow" {
 		return nil
