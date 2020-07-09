@@ -87,8 +87,11 @@ func (client *Client) ProcEvent(msg *queue.Message) bool {
 	return false
 }
 
-//CheckBlock solo不检查任何的交易
+//CheckBlock solo没有交易时返回错误
 func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	if len(current.Block.Txs) == 0 {
+		return types.ErrEmptyTx
+	}
 	return nil
 }
 
