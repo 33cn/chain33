@@ -11,6 +11,7 @@ import (
 
 // manage peer info
 
+// PeerInfoManager peer info manager
 type PeerInfoManager struct {
 	peerInfo sync.Map
 	client   queue.Client
@@ -22,6 +23,7 @@ type peerStoreInfo struct {
 	peer      *types.Peer
 }
 
+// Add add peer info
 func (p *PeerInfoManager) Add(pid string, info *types.Peer) {
 	var storeInfo peerStoreInfo
 	storeInfo.storeTime = time.Duration(time.Now().Unix())
@@ -29,6 +31,7 @@ func (p *PeerInfoManager) Add(pid string, info *types.Peer) {
 	p.peerInfo.Store(pid, &storeInfo)
 }
 
+// Copy copy peer info
 func (p *PeerInfoManager) Copy(dest *types.Peer, source *types.P2PPeerInfo) {
 	dest.Addr = source.GetAddr()
 	dest.Name = source.GetName()
@@ -38,7 +41,7 @@ func (p *PeerInfoManager) Copy(dest *types.Peer, source *types.P2PPeerInfo) {
 	dest.Port = source.GetPort()
 }
 
-//只获取
+// GetPeerInfoInMin get peer info
 func (p *PeerInfoManager) GetPeerInfoInMin(key string) *types.Peer {
 	v, ok := p.peerInfo.Load(key)
 	if !ok {
@@ -52,6 +55,7 @@ func (p *PeerInfoManager) GetPeerInfoInMin(key string) *types.Peer {
 	return info.peer
 }
 
+// FetchPeerInfosInMin fetch peer info
 func (p *PeerInfoManager) FetchPeerInfosInMin() []*types.Peer {
 
 	var peers []*types.Peer
@@ -69,6 +73,7 @@ func (p *PeerInfoManager) FetchPeerInfosInMin() []*types.Peer {
 	return peers
 }
 
+// MonitorPeerInfos monitor peer info
 func (p *PeerInfoManager) MonitorPeerInfos() {
 	for {
 		select {
@@ -83,6 +88,7 @@ func (p *PeerInfoManager) MonitorPeerInfos() {
 	}
 }
 
+// Close close peer info manager
 func (p *PeerInfoManager) Close() {
 	defer func() {
 		if recover() != nil {
@@ -93,6 +99,7 @@ func (p *PeerInfoManager) Close() {
 	close(p.done)
 }
 
+// NewPeerInfoManager new peer info manager
 func NewPeerInfoManager(cli queue.Client) *PeerInfoManager {
 
 	peerInfoManage := &PeerInfoManager{done: make(chan struct{})}

@@ -1,6 +1,7 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
 package types
 
 import (
@@ -70,12 +71,12 @@ func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 func (s *BaseStreamHandler) Handle(core.Stream) {
 }
 
-//SignProtoMessage sign data
+// SignProtoMessage sign data
 func (s *BaseStreamHandler) SignProtoMessage(message types.Message, host core.Host) ([]byte, error) {
 	return SignProtoMessage(message, host)
 }
 
-//VerifyRequest verify data
+// VerifyRequest verify data
 func (s *BaseStreamHandler) VerifyRequest(message types.Message, messageComm *types.MessageComm) bool {
 	//基类统一验证数据, 不需要验证,重写该方法直接返回true
 

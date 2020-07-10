@@ -1,3 +1,4 @@
+// Package protocol p2p protocol
 package protocol
 
 import (
@@ -36,6 +37,7 @@ type P2PEnv struct {
 	RoutingTable RoutingTabler
 }
 
+// RoutingTabler routing table interface
 type RoutingTabler interface {
 	RoutingTable() *kbt.RoutingTable
 }

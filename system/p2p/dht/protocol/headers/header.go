@@ -19,12 +19,12 @@ var (
 
 const (
 	protoTypeID   = "HeadersProtocolType"
-	HeaderInfoReq = "/chain33/headerinfoReq/1.0.0"
+	headerInfoReq = "/chain33/headerinfoReq/1.0.0"
 )
 
 func init() {
 	prototypes.RegisterProtocol(protoTypeID, &headerInfoProtol{})
-	prototypes.RegisterStreamHandler(protoTypeID, HeaderInfoReq, &headerInfoHander{})
+	prototypes.RegisterStreamHandler(protoTypeID, headerInfoReq, &headerInfoHander{})
 }
 
 //type Istream
@@ -32,6 +32,7 @@ type headerInfoProtol struct {
 	*prototypes.BaseProtocol
 }
 
+// InitProtocol init protocol
 func (h *headerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	h.P2PEnv = env
 	prototypes.RegisterEventHandler(types.EventFetchBlockHeaders, h.handleEvent)
@@ -108,7 +109,7 @@ func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 		req := &prototypes.StreamRequest{
 			PeerID: rID,
 			Data:   headerReq,
-			MsgID:  HeaderInfoReq,
+			MsgID:  headerInfoReq,
 		}
 		var resp types.MessageHeaderResp
 		err = h.SendRecvPeer(req, &resp)
@@ -129,12 +130,12 @@ type headerInfoHander struct {
 	*prototypes.BaseStreamHandler
 }
 
-//Handle 处理请求
+// Handle 处理请求
 func (d *headerInfoHander) Handle(stream core.Stream) {
 
 	protocol := d.GetProtocol().(*headerInfoProtol)
 	//解析处理
-	if stream.Protocol() == HeaderInfoReq {
+	if stream.Protocol() == headerInfoReq {
 		var data types.MessageHeaderReq
 		err := prototypes.ReadStream(&data, stream)
 		if err != nil {

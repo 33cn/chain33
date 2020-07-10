@@ -181,6 +181,7 @@ func (p *P2P) managePeers() {
 
 }
 
+// StartP2P start p2p
 func (p *P2P) StartP2P() {
 
 	//提供给其他插件使用的共享接口
@@ -271,6 +272,7 @@ func (p *P2P) handleP2PEvent() {
 	}
 }
 
+// CloseP2P close p2p
 func (p *P2P) CloseP2P() {
 	log.Info("p2p closing")
 	p.mgr.PubSub.Unsub(p.subChan)
