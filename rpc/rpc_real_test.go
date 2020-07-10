@@ -166,6 +166,7 @@ func TestExprieCreateNoBalanceTransaction(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	err = types.Decode(txByteData, &tx)
+	assert.Nil(t, err)
 	txgroup, err := tx.GetTxGroup()
 	assert.Nil(t, err)
 	assert.True(t, txgroup.GetTxs()[0].GetExpire() > 0)
@@ -184,6 +185,7 @@ func TestExprieSignRawTx(t *testing.T) {
 	}
 	var res string
 	err := jrpcClient.Call("Chain33.CreateTransaction", req, &res)
+	assert.Nil(t, err)
 
 	txNone := &types.Transaction{Execer: []byte(cfg.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))
@@ -202,6 +204,7 @@ func TestExprieSignRawTx(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	err = types.Decode(txByteData, &tx)
+	assert.Nil(t, err)
 	req3 := &types.ReqSignRawTx{
 		TxHex:   common.ToHex(types.Encode(&tx)),
 		Privkey: common.ToHex(gen),
@@ -215,6 +218,7 @@ func TestExprieSignRawTx(t *testing.T) {
 	assert.Nil(t, err)
 	var tx2 types.Transaction
 	err = types.Decode(txByteData, &tx2)
+	assert.Nil(t, err)
 	txgroup2, err := tx2.GetTxGroup()
 	assert.Nil(t, err)
 	assert.True(t, txgroup2.GetTxs()[0].GetExpire() > 0)

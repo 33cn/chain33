@@ -103,7 +103,7 @@ vet:
 	@go vet `go list -f {{.Dir}} ./... | grep -v "common/crypto/sha3"`
 
 ineffassign:
-	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign  -n ./...
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign  ./...
 
 test: ## Run unittests
 	@go clean -testcache

@@ -1,6 +1,8 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
+//Package types
 package types
 
 import (
@@ -9,7 +11,7 @@ import (
 )
 
 const (
-	// P2P client version
+	//Version P2P client version
 	Version = "1.0.0"
 	// DHTTypeName p2p插件名称，底层基于libp2p框架, dht结构化网络
 	DHTTypeName = "dht"

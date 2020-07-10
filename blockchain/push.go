@@ -447,7 +447,7 @@ func (push *Push) runTask(input *pushNotify) {
 	push.updateLastSeq(input.subscribe.Name)
 
 	go func(in *pushNotify) {
-		var lastesBlockSeq int64 = -1
+		var lastesBlockSeq int64
 		var continueFailCount int32
 		var err error
 

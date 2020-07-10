@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	//ErrNoBlockToChunk ErrNoBlockToChunk
 	ErrNoBlockToChunk        = errors.New("ErrNoBlockToChunk")
 	ErrNoChunkInfoToDownLoad = errors.New("ErrNoChunkInfoToDownLoad")
 	ErrNoChunkNumSerial      = errors.New("ErrNoChunkNumSerial")

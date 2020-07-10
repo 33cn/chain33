@@ -88,6 +88,7 @@ type BestPeerInfo struct {
 //记录最新区块上链的时间，长时间没有更新需要做对应的超时处理
 //主要是处理联盟链区块高度相差一个区块
 //整个网络长时间不出块时需要主动去获取最新的区块
+//BlockOnChain struct
 type BlockOnChain struct {
 	sync.RWMutex
 	Height      int64
@@ -103,7 +104,7 @@ func (chain *BlockChain) initOnChainTimeout() {
 	chain.blockOnChain.OnChainTime = types.Now().Unix()
 }
 
-//onChainTimeout 最新区块长时间没有更新并超过设置的超时时间
+//OnChainTimeout 最新区块长时间没有更新并超过设置的超时时间
 func (chain *BlockChain) OnChainTimeout(height int64) bool {
 	chain.blockOnChain.Lock()
 	defer chain.blockOnChain.Unlock()

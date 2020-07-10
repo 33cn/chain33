@@ -144,7 +144,6 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	assert.Equal(t, count, 0)
 
 	//获取平行链title对应的区块高度，向后翻
-	count = 0
 	req.Direction = 1
 	paraTxs, err = blockchain.LoadParaTxByTitle(&req)
 	require.NoError(t, err)

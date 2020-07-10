@@ -499,10 +499,11 @@ func (chain *BlockChain) InitIndexAndBestView() {
 	for ; height <= curheight; height++ {
 		header, err := chain.blockStore.GetBlockHeaderByHeight(height)
 		if header == nil {
+			chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
 			//开始升级localdb到2.0.0版本时需要兼容旧的存储方式
 			header, err = chain.blockStore.getBlockHeaderByHeightOld(height)
 			if header == nil {
-				chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
+				chainlog.Error("InitIndexAndBestView getBlockHeaderByHeightOld", "height", height, "err", err)
 				panic("InitIndexAndBestView fail!")
 			}
 		}

@@ -572,6 +572,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	return lastSequence, nil
 }
 
+//BlockdetailToBlockBody get block detail
 func (bs *BlockStore) BlockdetailToBlockBody(blockdetail *types.BlockDetail) *types.BlockBody {
 	cfg := bs.client.GetConfig()
 	height := blockdetail.Block.Height
@@ -1687,6 +1688,7 @@ func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
 	return chunk.ChunkHash, err
 }
 
+//GetMaxSerialChunkNum get max serial chunk num
 func (bs *BlockStore) GetMaxSerialChunkNum() int64 {
 	value, err := bs.db.Get(MaxSerialChunkNum)
 	if err != nil {
@@ -1700,6 +1702,7 @@ func (bs *BlockStore) GetMaxSerialChunkNum() int64 {
 	return chunkNum.Data
 }
 
+//SetMaxSerialChunkNum set max serial chunk num
 func (bs *BlockStore) SetMaxSerialChunkNum(chunkNum int64) error {
 	data := &types.Int64{
 		Data: chunkNum,
