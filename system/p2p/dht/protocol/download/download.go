@@ -26,12 +26,12 @@ var (
 
 func init() {
 	prototypes.RegisterProtocol(protoTypeID, &downloadProtol{})
-	prototypes.RegisterStreamHandler(protoTypeID, DownloadBlockReq, &downloadHander{})
+	prototypes.RegisterStreamHandler(protoTypeID, downloadBlockReq, &downloadHander{})
 }
 
 const (
 	protoTypeID      = "DownloadProtocolType"
-	DownloadBlockReq = "/chain33/downloadBlockReq/1.0.0"
+	downloadBlockReq = "/chain33/downloadBlockReq/1.0.0"
 )
 
 //type Istream
@@ -55,7 +55,7 @@ func (d *downloadHander) Handle(stream core.Stream) {
 	protocol := d.GetProtocol().(*downloadProtol)
 
 	//解析处理
-	if stream.Protocol() == DownloadBlockReq {
+	if stream.Protocol() == downloadBlockReq {
 		var data types.MessageGetBlocksReq
 		err := prototypes.ReadStream(&data, stream)
 		if err != nil {
@@ -160,7 +160,7 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 			goto Wait
 		}
 		atomic.AddInt32(&maxgoroutin, 1)
-		go func(blockheight int64, tasks Tasks) {
+		go func(blockheight int64, tasks tasks) {
 			err := d.downloadBlock(blockheight, tasks)
 			if err != nil {
 				mutex.Lock()
@@ -193,14 +193,14 @@ func (d *downloadProtol) handleEvent(msg *queue.Message) {
 	}
 
 	wg.Wait()
-	d.CheckTask(taskID, pids, reDownload)
+	d.checkTask(taskID, pids, reDownload)
 	log.Debug("Download Job Complete!", "TaskID++++++++++++++", taskID,
 		"cost time", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6),
 		"from", pids)
 
 }
 
-func (d *downloadProtol) downloadBlock(blockheight int64, tasks Tasks) error {
+func (d *downloadProtol) downloadBlock(blockheight int64, tasks tasks) error {
 
 	var retryCount uint
 	tasks.Sort() //对任务节点时延进行排序，优先选择时延低的节点进行下载
@@ -241,7 +241,7 @@ ReDownload:
 	req := &prototypes.StreamRequest{
 		PeerID: task.Pid,
 		Data:   blockReq,
-		MsgID:  DownloadBlockReq,
+		MsgID:  downloadBlockReq,
 	}
 	var resp types.MessageGetBlocksResp
 	err := d.SendRecvPeer(req, &resp)

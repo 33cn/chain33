@@ -14,6 +14,7 @@ import (
 	relay "github.com/libp2p/go-libp2p/p2p/host/relay"
 )
 
+// Relay p2p relay
 type Relay struct {
 	advertise *discovery.RoutingDiscovery
 	crelay    *circuit.Relay
@@ -27,6 +28,7 @@ func newRelay(ctx context.Context, host host.Host, opts ...circuit.RelayOpt) (*c
 	return r, nil
 }
 
+// NewRelayDiscovery new relay discovery
 func NewRelayDiscovery(host host.Host, adv *discovery.RoutingDiscovery, opts ...circuit.RelayOpt) *Relay {
 	r := new(Relay)
 	r.advertise = adv
@@ -38,7 +40,7 @@ func NewRelayDiscovery(host host.Host, adv *discovery.RoutingDiscovery, opts ...
 	return r
 }
 
-//Advertise 如果自己支持relay模式，愿意充当relay中继器，则需要调用此函数
+// Advertise 如果自己支持relay模式，愿意充当relay中继器，则需要调用此函数
 func (r *Relay) Advertise(ctx context.Context) {
 	discovery.Advertise(ctx, r.advertise, relay.RelayRendezvous)
 }
@@ -50,7 +52,7 @@ func (r *Relay) FindOpPeers() ([]peer.AddrInfo, error) {
 	return discovery.FindPeers(dctx, r.advertise, relay.RelayRendezvous, coredis.Limit(100))
 }
 
-//DialDestPeer 通过hop中继节点连接dst节点
+// DialDestPeer 通过hop中继节点连接dst节点
 func (r *Relay) DialDestPeer(host host.Host, hop, dst peer.AddrInfo) (*circuit.Conn, error) {
 
 	rctx, rcancel := context.WithTimeout(context.Background(), time.Second)

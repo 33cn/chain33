@@ -22,8 +22,8 @@ import (
 
 const (
 	protoTypeID    = "PeerProtocolType"
-	PeerInfoReq    = "/chain33/peerinfoReq/1.0.0"
-	PeerVersionReq = "/chain33/peerVersion/1.0.0"
+	peerInfoReq    = "/chain33/peerinfoReq/1.0.0"
+	peerVersionReq = "/chain33/peerVersion/1.0.0"
 	pubsubTypeID   = "PubSubProtoType"
 )
 
@@ -31,8 +31,8 @@ var log = log15.New("module", "p2p.peer")
 
 func init() {
 	prototypes.RegisterProtocol(protoTypeID, &peerInfoProtol{})
-	prototypes.RegisterStreamHandler(protoTypeID, PeerInfoReq, &peerInfoHandler{})
-	prototypes.RegisterStreamHandler(protoTypeID, PeerVersionReq, &peerInfoHandler{})
+	prototypes.RegisterStreamHandler(protoTypeID, peerInfoReq, &peerInfoHandler{})
+	prototypes.RegisterStreamHandler(protoTypeID, peerVersionReq, &peerInfoHandler{})
 	prototypes.RegisterProtocol(pubsubTypeID, &peerPubSub{})
 
 }
@@ -45,6 +45,7 @@ type peerInfoProtol struct {
 	mutex        sync.Mutex
 }
 
+// InitProtocol init protocol
 func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	p.P2PEnv = env
 	p.p2pCfg = env.SubConfig
@@ -144,7 +145,7 @@ func (p *peerInfoProtol) getPeerInfo() {
 			req := &prototypes.StreamRequest{
 				PeerID: peerid,
 				Data:   msgReq,
-				MsgID:  PeerInfoReq,
+				MsgID:  peerInfoReq,
 			}
 			var resp types.MessagePeerInfoResp
 			err := p.SendRecvPeer(req, &resp)
@@ -255,7 +256,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
 				Message: &version}
 
-			s, err := prototypes.NewStream(p.Host, pid, PeerVersionReq)
+			s, err := prototypes.NewStream(p.Host, pid, peerVersionReq)
 			if err != nil {
 				log.Error("NewStream", "err", err, "remoteID", pid)
 				continue
@@ -319,13 +320,13 @@ type peerInfoHandler struct {
 	*prototypes.BaseStreamHandler
 }
 
-//Handle 处理请求
+// Handle 处理请求
 func (h *peerInfoHandler) Handle(stream core.Stream) {
 	protocol := h.GetProtocol().(*peerInfoProtol)
 
 	//解析处理
 	log.Debug("PeerInfo Handler", "stream proto", stream.Protocol())
-	if stream.Protocol() == PeerInfoReq {
+	if stream.Protocol() == peerInfoReq {
 		var req types.MessagePeerInfoReq
 		err := prototypes.ReadStream(&req, stream)
 		if err != nil {
@@ -333,7 +334,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 		}
 		protocol.onReq(&req, stream)
 		return
-	} else if stream.Protocol() == PeerVersionReq {
+	} else if stream.Protocol() == peerVersionReq {
 		var req types.MessageP2PVersionReq
 		err := prototypes.ReadStream(&req, stream)
 		if err != nil {

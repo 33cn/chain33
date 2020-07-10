@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package types protocol and stream register	`
+// Package types protocol and stream register	`
 package types
 
 import (
@@ -25,6 +25,7 @@ var (
 	protocolTypeMap = make(map[string]reflect.Type)
 )
 
+// IProtocol protocol interface
 type IProtocol interface {
 	InitProtocol(*P2PEnv)
 	GetP2PEnv() *P2PEnv
@@ -72,6 +73,7 @@ type P2PEnv struct {
 	Cancel          context.CancelFunc
 }
 
+// IConnManager connection manager interface
 type IConnManager interface {
 	FetchConnPeers() []peer.ID
 	BoundSize() (in int, out int)
@@ -79,6 +81,7 @@ type IConnManager interface {
 	GetLatencyByPeer(pids []peer.ID) map[string]time.Duration
 }
 
+// IPeerInfoManager peer info manager interface
 type IPeerInfoManager interface {
 	Copy(dest *types.Peer, source *types.P2PPeerInfo)
 	Add(pid string, info *types.Peer)

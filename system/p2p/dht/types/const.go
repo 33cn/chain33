@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//Package types
+//Package types dht public types
 package types
 
 import (
@@ -21,16 +21,25 @@ const (
 )
 
 var (
-	ErrLength             = errors.New("length not equal")
+	// ErrLength err length
+	ErrLength = errors.New("length not equal")
+	// ErrInvalidMessageType invalid message type err
 	ErrInvalidMessageType = errors.New("invalid message type")
-	ErrNotFound           = errors.New("not found")
-	ErrInvalidParam       = errors.New("invalid parameter")
-	ErrWrongSignature     = errors.New("wrong signature")
-	ErrUnknown            = errors.New("unknown error")
+	// ErrNotFound not found err
+	ErrNotFound = errors.New("not found")
+	// ErrInvalidParam invalid param err
+	ErrInvalidParam = errors.New("invalid parameter")
+	// ErrWrongSignature wrong signature err
+	ErrWrongSignature = errors.New("wrong signature")
+	// ErrUnknown unknown err
+	ErrUnknown = errors.New("unknown error")
 
 	//ExpiredTime          = time.Hour * 4
 	//RefreshInterval      = time.Hour * 1
-	ExpiredTime          = time.Minute * 30
-	RefreshInterval      = time.Minute * 10
+	// ExpiredTime expired time
+	ExpiredTime = time.Minute * 30
+	// RefreshInterval refresh interval
+	RefreshInterval = time.Minute * 10
+	// CheckHealthyInterval check healthy interval
 	CheckHealthyInterval = time.Minute * 5
 )

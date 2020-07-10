@@ -9,9 +9,9 @@ import (
 )
 
 // task datastruct
-type Tasks []*TaskInfo
+type tasks []*taskInfo
 
-type TaskInfo struct {
+type taskInfo struct {
 	ID      string        //一次下载任务的任务ID
 	TaskNum int           //节点同时最大处理任务数量
 	Pid     peer.ID       //节点ID
@@ -21,21 +21,21 @@ type TaskInfo struct {
 }
 
 //Len size of the Invs data
-func (t Tasks) Len() int {
+func (t tasks) Len() int {
 	return len(t)
 }
 
 //Less Sort from low to high
-func (t Tasks) Less(a, b int) bool {
+func (t tasks) Less(a, b int) bool {
 	return t[a].Latency < t[b].Latency
 }
 
 //Swap  the param
-func (t Tasks) Swap(a, b int) {
+func (t tasks) Swap(a, b int) {
 	t[a], t[b] = t[b], t[a]
 }
 
-func (t Tasks) Remove(task *TaskInfo) Tasks {
+func (t tasks) Remove(task *taskInfo) tasks {
 	task.mtx.Lock()
 	defer task.mtx.Unlock()
 	if task.Index+1 > t.Size() {
@@ -46,17 +46,17 @@ func (t Tasks) Remove(task *TaskInfo) Tasks {
 	return t
 }
 
-func (t Tasks) Sort() Tasks {
+func (t tasks) Sort() tasks {
 	sort.Sort(t)
 	return t
 }
 
-func (t Tasks) Size() int {
+func (t tasks) Size() int {
 	return len(t)
 }
 
-func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
-	var JobPeerIds Tasks
+func (d *downloadProtol) initJob(pids []string, jobID string) tasks {
+	var JobPeerIds tasks
 	var pIDs []peer.ID
 	for _, pid := range pids {
 		pID, err := peer.IDB58Decode(pid)
@@ -75,7 +75,7 @@ func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
 		if pID.Pretty() == d.GetHost().ID().Pretty() {
 			continue
 		}
-		var job TaskInfo
+		var job taskInfo
 		job.Pid = pID
 		job.ID = jobID
 		var ok bool
@@ -94,11 +94,11 @@ func (d *downloadProtol) initJob(pids []string, jobID string) Tasks {
 	return JobPeerIds
 }
 
-func (d *downloadProtol) CheckTask(taskID string, pids []string, faildJobs map[string]interface{}) {
+func (d *downloadProtol) checkTask(taskID string, pids []string, faildJobs map[string]interface{}) {
 
 	select {
 	case <-d.Ctx.Done():
-		log.Warn("CheckTask", "process", "done+++++++")
+		log.Warn("checkTask", "process", "done+++++++")
 		return
 	default:
 		break
@@ -112,13 +112,13 @@ func (d *downloadProtol) CheckTask(taskID string, pids []string, faildJobs map[s
 	faildJob := v.(map[int64]bool)
 	for blockheight := range faildJob {
 		jobS := d.initJob(pids, taskID)
-		log.Warn("CheckTask<<<<<<<<<<", "taskID", taskID, "faildJob", blockheight)
+		log.Warn("checkTask<<<<<<<<<<", "taskID", taskID, "faildJob", blockheight)
 		d.downloadBlock(blockheight, jobS)
 
 	}
 }
 
-func (d *downloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
+func (d *downloadProtol) availbTask(ts tasks, blockheight int64) *taskInfo {
 
 	var limit int
 	if len(ts) > 10 {
@@ -153,7 +153,7 @@ func (d *downloadProtol) availbTask(ts Tasks, blockheight int64) *TaskInfo {
 
 }
 
-func (d *downloadProtol) releaseJob(js *TaskInfo) {
+func (d *downloadProtol) releaseJob(js *taskInfo) {
 	js.mtx.Lock()
 	defer js.mtx.Unlock()
 	js.TaskNum--
