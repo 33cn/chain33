@@ -1581,6 +1581,10 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 	defer f.Close()
 
 	fileContent, err := ioutil.ReadAll(f)
+	if err != nil {
+		walletlog.Error("ProcImportPrivkeysFile read file error", "fileName", fileName, "err", err)
+		return err
+	}
 	accounts := strings.Split(string(fileContent), "&ffzm.&**&")
 	for _, value := range accounts {
 		Decrypter, err := AesgcmDecrypter([]byte(passwd), []byte(value))

@@ -223,7 +223,7 @@ func Test_addSubscriber_Success(t *testing.T) {
 	key := calcPushKey(subscribe.Name)
 	subInfo, err := chain.push.store.GetKey(key)
 	assert.NotEqual(t, err, nil)
-	//assert.Equal(t, subInfo, nil)
+	assert.NotEqual(t, subInfo, nil)
 
 	err = chain.push.addSubscriber(subscribe)
 	assert.Equal(t, err, nil)
@@ -678,7 +678,7 @@ func Test_RecoverPush(t *testing.T) {
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(3 * time.Second)
 	assert.Equal(t, atomic.LoadInt32(&pushNotifyInfo.status), notRunning)
-	lastSeq, _ = chain.ProcGetLastPushSeq(subscribe.Name)
+	chain.ProcGetLastPushSeq(subscribe.Name)
 
 	//chain33的push服务重启后，不会将其添加到task中，
 	chainAnother := &BlockChain{
