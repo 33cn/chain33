@@ -41,10 +41,12 @@ func init() {
 	types.RegExec(CoinsX, InitExecutor)
 }
 
+// InitFork initials coins forks.
 func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(CoinsX, "Enable", 0)
 }
 
+// InitExecutor registers coins.
 func InitExecutor(cfg *types.Chain33Config) {
 	types.RegistorExecutor(CoinsX, NewType(cfg))
 }

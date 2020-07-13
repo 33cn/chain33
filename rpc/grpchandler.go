@@ -383,6 +383,7 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyStri
 	return reply.(*pb.ReplyString), nil
 }
 
+// DumpPrivkeysFile dumps private key to file.
 func (g *Grpc) DumpPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*pb.Reply, error) {
 	reply, err := g.cli.ExecWalletFunc("wallet", "DumpPrivkeysFile", in)
 	if err != nil {
@@ -391,6 +392,7 @@ func (g *Grpc) DumpPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*p
 	return reply.(*pb.Reply), nil
 }
 
+// ImportPrivkeysFile imports private key from file.
 func (g *Grpc) ImportPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*pb.Reply, error) {
 	reply, err := g.cli.ExecWalletFunc("wallet", "ImportPrivkeysFile", in)
 	if err != nil {

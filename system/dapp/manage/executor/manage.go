@@ -23,6 +23,7 @@ func Init(name string, cfg *types.Chain33Config, sub []byte) {
 	InitExecType()
 }
 
+// InitExecType initials coins functions.
 func InitExecType() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&Manage{}))

@@ -19,6 +19,7 @@ import (
 
 var log = log15.New("module", "protocol.p2pstore")
 
+// Protocol ...
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
@@ -38,6 +39,7 @@ func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
 
+//InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
 		P2PEnv:              env,
@@ -50,30 +52,30 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
-	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk)) //数据较大，采用特殊写入方式
-	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
-	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.HandleStreamGetHeader))
-	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.HandleStreamGetChunkRecord))
+	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.handleStreamFetchChunk)) //数据较大，采用特殊写入方式
+	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunk))
+	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
+	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
-	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, protocol.EventHandlerWithRecover(p.HandleEventNotifyStoreChunk))
-	protocol.RegisterEventHandler(types.EventGetChunkBlock, protocol.EventHandlerWithRecover(p.HandleEventGetChunkBlock))
-	protocol.RegisterEventHandler(types.EventGetChunkBlockBody, protocol.EventHandlerWithRecover(p.HandleEventGetChunkBlockBody))
-	protocol.RegisterEventHandler(types.EventGetChunkRecord, protocol.EventHandlerWithRecover(p.HandleEventGetChunkRecord))
+	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, protocol.EventHandlerWithRecover(p.handleEventNotifyStoreChunk))
+	protocol.RegisterEventHandler(types.EventGetChunkBlock, protocol.EventHandlerWithRecover(p.handleEventGetChunkBlock))
+	protocol.RegisterEventHandler(types.EventGetChunkBlockBody, protocol.EventHandlerWithRecover(p.handleEventGetChunkBlockBody))
+	protocol.RegisterEventHandler(types.EventGetChunkRecord, protocol.EventHandlerWithRecover(p.handleEventGetChunkRecord))
 
 	go p.startRepublish()
 	go p.startUpdateHealthyRoutingTable()
 }
 
-func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.Stream) {
+func (p *Protocol) handleStreamFetchChunk(req *types.P2PRequest, stream network.Stream) {
 	var res types.P2PResponse
 	defer func() {
 		t := time.Now()
 		_, err := stream.Write(types.Encode(&res))
 		if err != nil {
-			log.Error("HandleStreamFetchChunk", "write stream error", err)
+			log.Error("handleStreamFetchChunk", "write stream error", err)
 		}
 		cost := time.Since(t)
-		log.Info("HandleStreamFetchChunk", "time cost", cost)
+		log.Info("handleStreamFetchChunk", "time cost", cost)
 	}()
 
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
@@ -101,7 +103,7 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.
 
 	addrInfosData, err := json.Marshal(addrInfos)
 	if err != nil {
-		log.Error("HandleStreamFetchChunk", "marshal error", err)
+		log.Error("handleStreamFetchChunk", "marshal error", err)
 		return
 	}
 	res.Response = &types.P2PResponse_AddrInfo{AddrInfo: addrInfosData}
@@ -113,7 +115,7 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.
 	1）若已保存则只更新时间即可
 	2）若未保存则从网络中请求chunk数据
 */
-func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, _ network.Stream) {
+func (p *Protocol) handleStreamStoreChunk(req *types.P2PRequest, _ network.Stream) {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	chunkHashHex := hex.EncodeToString(param.ChunkHash)
 	//已有其他节点通知该节点保存该chunk，正在网络中查找数据, 避免接收到多个节点的通知后重复查询数据
@@ -156,7 +158,7 @@ func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, _ network.Strea
 	}
 }
 
-func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func (p *Protocol) handleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	param := req.Request.(*types.P2PRequest_ReqBlocks)
 	msg := p.QueueClient.NewMessage("blockchain", types.EventGetHeaders, param.ReqBlocks)
 	err := p.QueueClient.Send(msg, true)
@@ -175,7 +177,7 @@ func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PRe
 	return types.ErrNotFound
 }
 
-func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func (p *Protocol) handleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	param := req.Request.(*types.P2PRequest_ReqChunkRecords).ReqChunkRecords
 	records, err := p.getChunkRecordFromBlockchain(param)
 	if err != nil {
@@ -185,9 +187,9 @@ func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 	return nil
 }
 
-//HandleEventNotifyStoreChunk handles notification of blockchain,
+//handleEventNotifyStoreChunk handles notification of blockchain,
 // store chunk if this node is the nearest *count* node in the local routing table.
-func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
+func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ChunkInfoMsg)
 	//如果本节点是本地路由表中距离该chunk最近的 *count* 个节点之一，则保存数据；否则不需要保存数据
@@ -204,7 +206,7 @@ func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	log.Info("StoreChunk", "local pid", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
 }
 
-func (p *Protocol) HandleEventGetChunkBlock(m *queue.Message) {
+func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
 	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ChunkInfoMsg)
 	bodys, err := p.getChunk(req)
@@ -246,7 +248,7 @@ func (p *Protocol) HandleEventGetChunkBlock(m *queue.Message) {
 	_, _ = p.QueueClient.Wait(msg)
 }
 
-func (p *Protocol) HandleEventGetChunkBlockBody(m *queue.Message) {
+func (p *Protocol) handleEventGetChunkBlockBody(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
 	blockBodys, err := p.getChunk(req)
 	if err != nil {
@@ -257,7 +259,7 @@ func (p *Protocol) HandleEventGetChunkBlockBody(m *queue.Message) {
 	m.Reply(&queue.Message{Data: blockBodys})
 }
 
-func (p *Protocol) HandleEventGetChunkRecord(m *queue.Message) {
+func (p *Protocol) handleEventGetChunkRecord(m *queue.Message) {
 	m.Reply(queue.NewMessage(0, "", 0, &types.Reply{IsOk: true}))
 	req := m.GetData().(*types.ReqChunkRecords)
 	records := p.getChunkRecords(req)

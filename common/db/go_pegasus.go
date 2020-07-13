@@ -517,6 +517,7 @@ func (db *PegasusBatch) Reset() {
 	db.size = 0
 }
 
+// UpdateWriteSync ...
 func (db *PegasusBatch) UpdateWriteSync(sync bool) {
 }
 

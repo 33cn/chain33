@@ -255,6 +255,7 @@ func (header *Header) Size() int {
 	return Size(header)
 }
 
+// Size 获取paraTxDetail的Size
 func (paraTxDetail *ParaTxDetail) Size() int {
 	return Size(paraTxDetail)
 }
