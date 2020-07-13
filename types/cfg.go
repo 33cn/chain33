@@ -242,7 +242,7 @@ type HealthCheck struct {
 	UnSyncMaxTimes uint32 `protobuf:"varint,3,opt,name=unSyncMaxTimes" json:"unSyncMaxTimes,omitempty"`
 }
 
-// Metrics:相关测量配置信息
+//Metrics 相关测量配置信息
 type Metrics struct {
 	EnableMetrics bool   `protobuf:"varint,1,opt,name=enableMetrics" json:"enableMetrics,omitempty"`
 	DataEmitMode  string `protobuf:"bytes,2,opt,name=dataEmitMode" json:"dataEmitMode,omitempty"`

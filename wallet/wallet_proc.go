@@ -1190,7 +1190,7 @@ func (wallet *Wallet) GenSeed(lang int32) (*types.ReplySeed, error) {
 	return wallet.genSeed(lang)
 }
 
-//GetSeed:获取seed种子, 通过钱包密码
+//GetSeed 获取seed种子, 通过钱包密码
 func (wallet *Wallet) GetSeed(password string) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
