@@ -46,6 +46,7 @@ type CommonStore interface {
 	List(prefix []byte) ([][]byte, error)
 }
 
+//SequenceStore ...
 type SequenceStore interface {
 	LoadBlockLastSequence() (int64, error)
 	// seqUpdateChan -> block sequence
@@ -60,6 +61,7 @@ type SequenceStore interface {
 	GetSequenceByHash(hash []byte) (int64, error)
 }
 
+//PostService ...
 type PostService interface {
 	PostData(subscribe *types.PushSubscribeReq, postdata []byte, seq int64) (err error)
 }
@@ -89,6 +91,7 @@ type Push struct {
 	postwg         *sync.WaitGroup
 }
 
+//PushClient ...
 type PushClient struct {
 	client *http.Client
 }

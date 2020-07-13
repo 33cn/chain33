@@ -18,6 +18,7 @@ import (
 	tml "github.com/BurntSushi/toml"
 )
 
+//Create ...
 type Create func(cfg *Chain33Config)
 
 //区块链共识相关的参数，重要参数不要随便修改
@@ -43,6 +44,7 @@ const (
 	DefaultMinFee   int64 = 1e5
 )
 
+//Chain33Config ...
 type Chain33Config struct {
 	mcfg            *Config
 	scfg            *ConfigSubModule
@@ -56,13 +58,13 @@ type Chain33Config struct {
 	enableCheckFork bool
 }
 
-// ChainParam 结构体
+//ChainParam 结构体
 type ChainParam struct {
 	MaxTxNumber  int64
 	PowLimitBits uint32
 }
 
-// Reg 注册每个模块的自动初始化函数
+//RegFork Reg 注册每个模块的自动初始化函数
 func RegFork(name string, create Create) {
 	if create == nil {
 		panic("config: Register Module Init is nil")
@@ -73,12 +75,14 @@ func RegFork(name string, create Create) {
 	regModuleInit[name] = create
 }
 
+//RegForkInit ...
 func RegForkInit(cfg *Chain33Config) {
 	for _, item := range regModuleInit {
 		item(cfg)
 	}
 }
 
+//RegExec ...
 func RegExec(name string, create Create) {
 	if create == nil {
 		panic("config: Register Exec Init is nil")
@@ -89,6 +93,7 @@ func RegExec(name string, create Create) {
 	regExecInit[name] = create
 }
 
+//RegExecInit ...
 func RegExecInit(cfg *Chain33Config) {
 	runonce.Do(func() {
 		for _, item := range regExecInit {
@@ -97,6 +102,7 @@ func RegExecInit(cfg *Chain33Config) {
 	})
 }
 
+//NewChain33Config ...
 func NewChain33Config(cfgstring string) *Chain33Config {
 	cfg, sub := InitCfgString(cfgstring)
 	chain33Cfg := &Chain33Config{
@@ -120,6 +126,7 @@ func NewChain33Config(cfgstring string) *Chain33Config {
 	return chain33Cfg
 }
 
+//NewChain33ConfigNoInit ...
 func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 	cfg, sub := InitCfgString(cfgstring)
 	chain33Cfg := &Chain33Config{
@@ -141,18 +148,22 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 	return chain33Cfg
 }
 
+//GetModuleConfig ...
 func (c *Chain33Config) GetModuleConfig() *Config {
 	return c.mcfg
 }
 
+//GetSubConfig ...
 func (c *Chain33Config) GetSubConfig() *ConfigSubModule {
 	return c.scfg
 }
 
+//EnableCheckFork ...
 func (c *Chain33Config) EnableCheckFork(enable bool) {
 	c.enableCheckFork = false
 }
 
+//GetForks ...
 func (c *Chain33Config) GetForks() (map[string]int64, error) {
 	if c.forks == nil {
 		return nil, ErrNotFound
@@ -611,6 +622,7 @@ func getkey(key, key1 string) string {
 	return key + "." + key1
 }
 
+//MergeCfg ...
 func MergeCfg(cfgstring, cfgdefault string) string {
 	if cfgdefault != "" {
 		return mergeCfgString(cfgstring, cfgdefault)
@@ -704,6 +716,7 @@ type subModule struct {
 	P2P       map[string]interface{}
 }
 
+//ReadFile ...
 func ReadFile(path string) string {
 	return readFile(path)
 }
@@ -853,6 +866,7 @@ func (query *ConfQuery) MIsEnable(key string, height int64) bool {
 	return query.cfg.MIsEnable(getkey(query.prefix, key), height)
 }
 
+//SetCliSysParam ...
 func SetCliSysParam(title string, cfg *Chain33Config) {
 	if cfg == nil {
 		panic("set cli system Chain33Config param is nil")
@@ -860,6 +874,7 @@ func SetCliSysParam(title string, cfg *Chain33Config) {
 	cliSysParam[title] = cfg
 }
 
+//GetCliSysParam ...
 func GetCliSysParam(title string) *Chain33Config {
 	if v, ok := cliSysParam[title]; ok {
 		return v
@@ -867,6 +882,7 @@ func GetCliSysParam(title string) *Chain33Config {
 	panic(fmt.Sprintln("can not find CliSysParam title", title))
 }
 
+//AssertConfig ...
 func AssertConfig(check interface{}) {
 	if check == nil {
 		panic("check object is nil (Chain33Config)")

@@ -213,6 +213,7 @@ total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 useBalance=false
 `
 
+//GetDefaultCfgstring ...
 func GetDefaultCfgstring() string {
 	return cfgstring
 }
