@@ -346,10 +346,10 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		localChunkInfo:      make(map[string]LocalChunkInfo),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.HandleStreamStoreChunk))
-	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.HandleStreamFetchChunk))
-	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.HandleStreamGetHeader))
-	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.HandleStreamGetChunkRecord))
+	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunk))
+	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p.handleStreamFetchChunk))
+	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
+	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
 	p.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 	go p.startUpdateHealthyRoutingTable()
 	client1.Sub("p2p")
@@ -363,13 +363,13 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		for msg := range client2.Recv() {
 			switch msg.Ty {
 			case types.EventNotifyStoreChunk:
-				protocol.EventHandlerWithRecover(p.HandleEventNotifyStoreChunk)(msg)
+				protocol.EventHandlerWithRecover(p.handleEventNotifyStoreChunk)(msg)
 			case types.EventGetChunkBlock:
-				protocol.EventHandlerWithRecover(p.HandleEventGetChunkBlock)(msg)
+				protocol.EventHandlerWithRecover(p.handleEventGetChunkBlock)(msg)
 			case types.EventGetChunkBlockBody:
-				protocol.EventHandlerWithRecover(p.HandleEventGetChunkBlockBody)(msg)
+				protocol.EventHandlerWithRecover(p.handleEventGetChunkBlockBody)(msg)
 			case types.EventGetChunkRecord:
-				protocol.EventHandlerWithRecover(p.HandleEventGetChunkRecord)(msg)
+				protocol.EventHandlerWithRecover(p.handleEventGetChunkRecord)(msg)
 			}
 		}
 	}()

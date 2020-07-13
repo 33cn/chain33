@@ -881,6 +881,7 @@ func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 	return nil
 }
 
+// DumpPrivkeysFile dumps private key to file.
 func (c *Chain33) DumpPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}) error {
 	reply, err := c.cli.ExecWalletFunc("wallet", "DumpPrivkeysFile", &in)
 	if err != nil {
@@ -894,6 +895,7 @@ func (c *Chain33) DumpPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}
 	return nil
 }
 
+// ImportPrivkeysFile imports private key from file.
 func (c *Chain33) ImportPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}) error {
 	reply, err := c.cli.ExecWalletFunc("wallet", "ImportPrivkeysFile", &in)
 	if err != nil {

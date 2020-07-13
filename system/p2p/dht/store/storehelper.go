@@ -8,11 +8,12 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 )
 
+//Helper for testing
 type Helper struct {
 }
 
-func (s *Helper) PutBlock(routing *dht.IpfsDHT, block *types.Block, blockHash []byte) error {
-	key := MakeBlockHashAsKey(blockHash)
+func (s *Helper) putBlock(routing *dht.IpfsDHT, block *types.Block, blockHash []byte) error {
+	key := makeBlockHashAsKey(blockHash)
 	value, err := proto.Marshal(block)
 	if err != nil {
 		return err
@@ -20,8 +21,8 @@ func (s *Helper) PutBlock(routing *dht.IpfsDHT, block *types.Block, blockHash []
 	return routing.PutValue(context.Background(), key, value)
 }
 
-func (s *Helper) GetBlockByHash(routing *dht.IpfsDHT, blockHash []byte) (*types.Block, error) {
-	key := MakeBlockHashAsKey(blockHash)
+func (s *Helper) getBlockByHash(routing *dht.IpfsDHT, blockHash []byte) (*types.Block, error) {
+	key := makeBlockHashAsKey(blockHash)
 	value, err := routing.GetValue(context.Background(), key)
 	if err != nil {
 		return nil, err

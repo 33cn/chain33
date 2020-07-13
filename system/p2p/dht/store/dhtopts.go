@@ -6,6 +6,7 @@ import (
 	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 )
 
+//NewDataStore new...
 func NewDataStore(cfg *p2pty.P2PSubConfig) *Persistent {
 	var DHTDataDriver string
 	var DHTDataPath string
@@ -32,10 +33,10 @@ func NewDataStore(cfg *p2pty.P2PSubConfig) *Persistent {
 	return &Persistent{db}
 }
 
-func DataStoreOption(cfg *p2pty.P2PSubConfig) opts.Option {
+func dataStoreOption(cfg *p2pty.P2PSubConfig) opts.Option {
 	return opts.Datastore(NewDataStore(cfg))
 }
 
-func ValidatorOption() opts.Option {
-	return opts.NamespacedValidator(DhtStoreNamespace, &Validator{})
+func validatorOption() opts.Option {
+	return opts.NamespacedValidator(DhtStoreNamespace, &validator{})
 }

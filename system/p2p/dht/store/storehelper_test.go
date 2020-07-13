@@ -27,7 +27,7 @@ func createNode(t *testing.T, port int32, path string) (*dht.IpfsDHT, host.Host)
 	assert.NoError(t, err)
 
 	subCfg := &p2pty.P2PSubConfig{DHTDataPath: path}
-	dhtRouting, err := dht.New(context.Background(), host, DataStoreOption(subCfg), ValidatorOption())
+	dhtRouting, err := dht.New(context.Background(), host, dataStoreOption(subCfg), validatorOption())
 	assert.NoError(t, err)
 
 	return dhtRouting, host
@@ -58,10 +58,10 @@ func TestStoreHelper(t *testing.T) {
 	block1.Height = 99999
 
 	storeHelper := &Helper{}
-	err1 := storeHelper.PutBlock(dhtRouting1, block1, block1.MainHash)
+	err1 := storeHelper.putBlock(dhtRouting1, block1, block1.MainHash)
 	assert.NoError(t, err1)
 
-	block2, err := storeHelper.GetBlockByHash(dhtRouting2, block1.MainHash)
+	block2, err := storeHelper.getBlockByHash(dhtRouting2, block1.MainHash)
 	assert.NoError(t, err)
 
 	assert.Equal(t, block1.Height, block2.Height)

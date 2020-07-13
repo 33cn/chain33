@@ -20,16 +20,20 @@ import (
 )
 
 var (
-	fileHeaderKey                       = []byte("F:header:")
-	endBlockKey                         = []byte("F:endblock:")
-	blockHeightKey                      = []byte("F:blockH:")
-	blockCount                    int64 = 1024 //只处理当前高度减去1024之前的区块，避免导出侧链的数据
-	dbCache                       int32 = 4
-	exportlog                           = chainlog.New("submodule", "export")
-	ErrIsOrphan                         = errors.New("ErrIsOrphan")
-	ErrIsSideChain                      = errors.New("ErrIsSideChain")
-	ErrBlockHeightDiscontinuous         = errors.New("ErrBlockHeightDiscontinuous")
-	ErrCurHeightMoreThanEndHeight       = errors.New("ErrCurHeightMoreThanEndHeight")
+	fileHeaderKey        = []byte("F:header:")
+	endBlockKey          = []byte("F:endblock:")
+	blockHeightKey       = []byte("F:blockH:")
+	blockCount     int64 = 1024 //只处理当前高度减去1024之前的区块，避免导出侧链的数据
+	dbCache        int32 = 4
+	exportlog            = chainlog.New("submodule", "export")
+)
+
+// errors
+var (
+	ErrIsOrphan                   = errors.New("ErrIsOrphan")
+	ErrIsSideChain                = errors.New("ErrIsSideChain")
+	ErrBlockHeightDiscontinuous   = errors.New("ErrBlockHeightDiscontinuous")
+	ErrCurHeightMoreThanEndHeight = errors.New("ErrCurHeightMoreThanEndHeight")
 )
 
 func calcblockHeightKey(height int64) []byte {
@@ -205,7 +209,7 @@ func (chain *BlockChain) exportMainBlock(startHeight, endheight int64, batch dbm
 	return nil
 }
 
-//ImportBlock通过指定文件导入block
+//ImportBlock 通过指定文件导入block
 func (chain *BlockChain) ImportBlock(filename, dbPath string) error {
 	cfg := chain.client.GetConfig()
 	if len(filename) == 0 {
