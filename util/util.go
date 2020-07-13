@@ -305,10 +305,12 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 			dupErrChan <- err
 			return
 		}
-		ulog.Error("PreExecBlock", "prevtx", len(block.Txs), "newtx", len(cacheTxs))
-		if len(block.Txs) != len(cacheTxs) && errReturn {
-			dupErrChan <- types.ErrTxDup
-			return
+		if len(block.Txs) != len(cacheTxs) {
+			ulog.Error("PreExecBlock", "prevtx", len(block.Txs), "newtx", len(cacheTxs))
+			if errReturn {
+				dupErrChan <- types.ErrTxDup
+				return
+			}
 		}
 		dupErrChan <- nil
 	}()
