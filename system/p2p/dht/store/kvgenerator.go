@@ -5,6 +5,6 @@ import (
 	"fmt"
 )
 
-func MakeBlockHashAsKey(hash []byte) string {
+func makeBlockHashAsKey(hash []byte) string {
 	return fmt.Sprintf("/%s/%s", DhtStoreNamespace, hex.EncodeToString(hash))
 }

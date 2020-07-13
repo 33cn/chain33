@@ -12,6 +12,7 @@ import (
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
+// prefix key and const parameters
 const (
 	LocalChunkInfoKey = "local-chunk-info"
 	ChunkNameSpace    = "chunk"
@@ -19,6 +20,7 @@ const (
 	Backup            = 20
 )
 
+//LocalChunkInfo warps local chunk key with time.
 type LocalChunkInfo struct {
 	*types.ChunkInfoMsg
 	Time time.Time

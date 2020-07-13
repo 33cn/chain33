@@ -421,7 +421,7 @@ func (chain *BlockChain) ChunkDownLoadBlocks() {
 	for {
 		curheight := chain.GetBlockHeight()
 		peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
-		targetHeight := chain.caclSafetyChunkHeight(peerMaxBlkHeight) // 节点生成chunk的高度滞后于当前高度
+		targetHeight := chain.calcSafetyChunkHeight(peerMaxBlkHeight) // 节点生成chunk的高度滞后于当前高度
 		pids := chain.GetBestChainPids()
 		//节点启动时只有落后最优链batchsyncblocknum个区块时才开启这种下载模式
 		if pids != nil && peerMaxBlkHeight != -1 && curheight+batchsyncblocknum >= peerMaxBlkHeight {
@@ -445,7 +445,7 @@ func (chain *BlockChain) ChunkDownLoadBlocks() {
 	}
 }
 
-//ReqDownLoadBlocks 请求DownLoad处理的blocks
+//ReqDownLoadChunkBlocks 请求DownLoad处理的blocks
 func (chain *BlockChain) ReqDownLoadChunkBlocks() {
 	info := chain.GetDownLoadInfo()
 	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {

@@ -36,7 +36,8 @@ const (
 	onceScanCount           = 10000 // 单次扫描数目
 	onceCount               = 1000  // 容器长度
 	batchDataSize           = 1024 * 1024 * 1
-	DefaultPruneHeight      = 10000
+	//DefaultPruneHeight ...
+	DefaultPruneHeight = 10000
 )
 
 var (

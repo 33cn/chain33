@@ -322,7 +322,7 @@ func (chain *BlockChain) InitBlockChain() {
 
 	if !chain.cfg.DisableShard {
 		chain.tickerwg.Add(1)
-		go chain.ChunkProcessRoutine()
+		go chain.chunkProcessRoutine()
 	}
 
 	//初始化默认DownLoadInfo
