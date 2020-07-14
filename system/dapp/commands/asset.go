@@ -54,8 +54,8 @@ func assetBalance(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
 	execer, _ := cmd.Flags().GetString("exec")
-	asset_symbol, _ := cmd.Flags().GetString("asset_symbol")
-	asset_exec, _ := cmd.Flags().GetString("asset_exec")
+	assetSymbol, _ := cmd.Flags().GetString("asset_symbol")
+	assetExec, _ := cmd.Flags().GetString("asset_exec")
 	height, _ := cmd.Flags().GetInt("height")
 
 	err := address.CheckAddress(addr)
@@ -66,7 +66,7 @@ func assetBalance(cmd *cobra.Command, args []string) {
 		}
 	}
 	if execer == "" {
-		execer = asset_exec
+		execer = assetExec
 	}
 
 	if ok := types.IsAllowExecName([]byte(execer), []byte(execer)); !ok {
@@ -98,8 +98,8 @@ func assetBalance(cmd *cobra.Command, args []string) {
 		Addresses:   addrs,
 		Execer:      execer,
 		StateHash:   stateHash,
-		AssetExec:   asset_exec,
-		AssetSymbol: asset_symbol,
+		AssetExec:   assetExec,
+		AssetSymbol: assetSymbol,
 	}
 	var res []*rpcTypes.Account
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
