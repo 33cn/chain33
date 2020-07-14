@@ -284,8 +284,8 @@ func TestIterateCallBack_Mode1(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg, nil, nil).(*Store)
+	var storeCfg = newStoreCfg(dir)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 	//mavldb.EnableMavlPrefix(true)
 	//defer mavldb.EnableMavlPrefix(false)
@@ -429,8 +429,8 @@ func TestIterateCallBack_Mode2(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = newStoreCfg(dir)
-	store := New(store_cfg, nil, nil).(*Store)
+	var storeCfg = newStoreCfg(dir)
+	store := New(storeCfg, nil, nil).(*Store)
 	assert.NotNil(t, store)
 	//mavldb.EnableMavlPrefix(true)
 	//defer mavldb.EnableMavlPrefix(false)
