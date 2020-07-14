@@ -1,3 +1,4 @@
+// Package protocol p2p protocol
 package protocol
 
 import (
@@ -11,6 +12,7 @@ import (
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
+// all protocols
 const (
 	//p2pstore protocols
 	FetchChunk     = "/chain33/fetch-chunk/" + types2.Version
@@ -36,6 +38,7 @@ type P2PEnv struct {
 	RoutingTable RoutingTabler
 }
 
+// RoutingTabler routing table interface
 type RoutingTabler interface {
 	RoutingTable() *kbt.RoutingTable
 }

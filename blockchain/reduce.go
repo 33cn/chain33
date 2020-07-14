@@ -170,7 +170,7 @@ func (chain *BlockChain) ReduceLocalDB() {
 	}
 }
 
-// TryReduce try reduce
+//TryReduceLocalDB TryReduce try reduce
 func (chain *BlockChain) TryReduceLocalDB(flagHeight int64, rangeHeight int64) (newHeight int64) {
 	if rangeHeight <= 0 {
 		rangeHeight = 100

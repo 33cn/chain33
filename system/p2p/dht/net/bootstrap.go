@@ -1,3 +1,4 @@
+// Package net net utils
 package net
 
 import (
@@ -46,6 +47,7 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 	}
 }
 
+// ConvertPeers conver peers to addr info
 func ConvertPeers(peers []string) map[string]*peer.AddrInfo {
 	pinfos := make(map[string]*peer.AddrInfo, len(peers))
 	for _, addr := range peers {

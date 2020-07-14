@@ -42,7 +42,7 @@ func Run(RPCAddr, ParaName, name string) {
 		}
 	}
 
-	exist, _ := PathExists(configPath)
+	exist, _ := pathExists(configPath)
 	var chain33Cfg *types.Chain33Config
 	if exist {
 		chain33Cfg = types.NewChain33Config(types.ReadFile(configPath))
@@ -135,7 +135,7 @@ func testTLS(RPCAddr string) string {
 	return "https://" + RPCAddr[7:]
 }
 
-func PathExists(path string) (bool, error) {
+func pathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true, nil

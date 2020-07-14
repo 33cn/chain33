@@ -220,14 +220,14 @@ func (mem *Mempool) GetLatestTx() []*types.Transaction {
 	return mem.cache.GetLatestTx()
 }
 
-//  GetTotalCacheBytes 获取缓存交易的总占用空间
+// GetTotalCacheBytes 获取缓存交易的总占用空间
 func (mem *Mempool) GetTotalCacheBytes() int64 {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	return mem.cache.qcache.GetCacheBytes()
 }
 
-// pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
+// pollLastHeader 在初始化后循环获取LastHeader，直到获取成功后，返回
 func (mem *Mempool) pollLastHeader() {
 	defer mem.wg.Done()
 	defer func() {

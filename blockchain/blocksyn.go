@@ -85,9 +85,11 @@ type BestPeerInfo struct {
 	IsBestChain bool
 }
 
+//BlockOnChain ...
 //记录最新区块上链的时间，长时间没有更新需要做对应的超时处理
 //主要是处理联盟链区块高度相差一个区块
 //整个网络长时间不出块时需要主动去获取最新的区块
+//BlockOnChain struct
 type BlockOnChain struct {
 	sync.RWMutex
 	Height      int64
@@ -103,7 +105,7 @@ func (chain *BlockChain) initOnChainTimeout() {
 	chain.blockOnChain.OnChainTime = types.Now().Unix()
 }
 
-//onChainTimeout 最新区块长时间没有更新并超过设置的超时时间
+//OnChainTimeout 最新区块长时间没有更新并超过设置的超时时间
 func (chain *BlockChain) OnChainTimeout(height int64) bool {
 	chain.blockOnChain.Lock()
 	defer chain.blockOnChain.Unlock()
@@ -630,7 +632,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		pids := chain.GetBestChainPids()
 		if pids != nil {
 			recvChunk := chain.GetCurRecvChunkNum()
-			curShouldChunk, _, _ := chain.CaclChunkInfo(curheight + 1)
+			curShouldChunk, _, _ := chain.CalcChunkInfo(curheight + 1)
 			// TODO 后期可修改为同步节点不使用FetchChunkBlock，即让对端节点去查找具体的chunk，这里不做区分
 			if !chain.cfg.DisableShard && chain.cfg.EnableFetchP2pstore &&
 				curheight+MaxRollBlockNum < peerMaxBlkHeight && recvChunk >= curShouldChunk {
@@ -1099,8 +1101,8 @@ func (chain *BlockChain) ChunkRecordSync() {
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 	recvChunk := chain.GetCurRecvChunkNum()
 
-	curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
-	targetChunk, _, _ := chain.CaclSafetyChunkInfo(peerMaxBlkHeight)
+	curShouldChunk, _, _ := chain.CalcChunkInfo(curheight)
+	targetChunk, _, _ := chain.CalcSafetyChunkInfo(peerMaxBlkHeight)
 	if targetChunk < 0 ||
 		curShouldChunk >= targetChunk || //说明已同步上来了不需要再进行chunk请求
 		recvChunk >= targetChunk {
@@ -1192,7 +1194,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 	if blockcount < 0 {
 		return types.ErrStartBigThanEnd
 	}
-	chunkNum, _, end := chain.CaclChunkInfo(startHeight)
+	chunkNum, _, end := chain.CalcChunkInfo(startHeight)
 
 	var chunkhash []byte
 	for i := 0; i < waitTimeDownLoad; i++ {

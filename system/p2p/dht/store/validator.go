@@ -1,12 +1,14 @@
 package store
 
-type Validator struct {
+type validator struct {
 }
 
-func (Validator) Validate(_ string, _ []byte) error {
+//Validate for testing
+func (validator) Validate(_ string, _ []byte) error {
 	return nil
 }
 
-func (Validator) Select(_ string, _ [][]byte) (int, error) {
+//Select for testing
+func (validator) Select(_ string, _ [][]byte) (int, error) {
 	return 0, nil
 }

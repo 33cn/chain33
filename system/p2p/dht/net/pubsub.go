@@ -12,6 +12,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
+// TopicMap topic map
 type TopicMap map[string]*topicinfo
 
 type topicinfo struct {
@@ -22,6 +23,7 @@ type topicinfo struct {
 	topic    string
 }
 
+// PubSub pub sub
 type PubSub struct {
 	ps         *pubsub.PubSub
 	topics     TopicMap
@@ -29,6 +31,7 @@ type PubSub struct {
 	ctx        context.Context
 }
 
+// SubMsg sub message
 type SubMsg struct {
 	Data  []byte
 	Topic string
@@ -37,6 +40,7 @@ type SubMsg struct {
 
 type subCallBack func(msg *SubMsg)
 
+// NewPubSub new pub sub
 func NewPubSub(ctx context.Context, host host.Host) (*PubSub, error) {
 	p := &PubSub{
 		ps:     nil,
@@ -54,10 +58,12 @@ func NewPubSub(ctx context.Context, host host.Host) (*PubSub, error) {
 	return p, nil
 }
 
+// GetTopics get topics
 func (p *PubSub) GetTopics() []string {
 	return p.ps.GetTopics()
 }
 
+// HasTopic check topic exist
 func (p *PubSub) HasTopic(topic string) bool {
 	p.topicMutex.Lock()
 	defer p.topicMutex.Unlock()
@@ -65,7 +71,7 @@ func (p *PubSub) HasTopic(topic string) bool {
 	return ok
 }
 
-//加入topic&subTopic
+// JoinTopicAndSubTopic 加入topic&subTopic
 func (p *PubSub) JoinTopicAndSubTopic(topic string, callback subCallBack, opts ...pubsub.TopicOpt) error {
 
 	Topic, err := p.ps.Join(topic, opts...)
@@ -93,7 +99,7 @@ func (p *PubSub) JoinTopicAndSubTopic(topic string, callback subCallBack, opts .
 	return nil
 }
 
-//Publish 发布消息
+// Publish 发布消息
 func (p *PubSub) Publish(topic string, msg []byte) error {
 	p.topicMutex.Lock()
 	defer p.topicMutex.Unlock()
@@ -133,6 +139,7 @@ func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, callbac
 
 }
 
+// RemoveTopic remove topic
 func (p *PubSub) RemoveTopic(topic string) {
 
 	p.topicMutex.Lock()
@@ -152,6 +159,7 @@ func (p *PubSub) RemoveTopic(topic string) {
 
 }
 
+// FetchTopicPeers fetch peers with topic
 func (p *PubSub) FetchTopicPeers(topic string) []peer.ID {
 	p.topicMutex.Lock()
 	defer p.topicMutex.Unlock()
@@ -162,6 +170,7 @@ func (p *PubSub) FetchTopicPeers(topic string) []peer.ID {
 	return nil
 }
 
+// TopicNum get topic number
 func (p *PubSub) TopicNum() int {
 	return len(p.ps.GetTopics())
 

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package manage 实现多种类型p2p兼容管理
+// Package p2p 实现多种类型p2p兼容管理
 package p2p
 
 import (

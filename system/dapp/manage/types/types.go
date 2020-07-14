@@ -30,11 +30,13 @@ func init() {
 	types.RegExec(ManageX, InitExecutor)
 }
 
+//InitFork init
 func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(ManageX, "Enable", 120000)
 	cfg.RegisterDappFork(ManageX, "ForkManageExec", 400000)
 }
 
+//InitExecutor init Executor
 func InitExecutor(cfg *types.Chain33Config) {
 	types.RegistorExecutor(ManageX, NewType(cfg))
 }

@@ -63,6 +63,7 @@ func ReleaseGlobalMem() {
 	}
 }
 
+// TreeConfig ...
 type TreeConfig struct {
 	EnableMavlPrefix bool
 	EnableMVCC       bool

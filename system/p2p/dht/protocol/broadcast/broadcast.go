@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package broadcast broadcast protocol
+// Package broadcast broadcast protocol
 package broadcast
 
 import (
@@ -25,12 +25,12 @@ var log = log15.New("module", "p2p.broadcast")
 
 const (
 	protoTypeID = "BroadcastProtocolType"
-	ID          = "/chain33/p2p/broadcast/1.0.0"
+	broadcastID = "/chain33/p2p/broadcast/1.0.0"
 )
 
 func init() {
 	prototypes.RegisterProtocol(protoTypeID, &broadCastProtocol{})
-	prototypes.RegisterStreamHandler(protoTypeID, ID, &broadCastHandler{})
+	prototypes.RegisterStreamHandler(protoTypeID, broadcastID, &broadCastHandler{})
 }
 
 //
@@ -88,7 +88,7 @@ type broadCastHandler struct {
 	*prototypes.BaseStreamHandler
 }
 
-//Handle 处理请求
+// Handle 处理请求
 func (handler *broadCastHandler) Handle(stream core.Stream) {
 
 	protocol := handler.GetProtocol().(*broadCastProtocol)
@@ -117,7 +117,7 @@ func (handler *broadCastHandler) VerifyRequest(types.Message, *types.MessageComm
 //
 func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 
-	//log.Debug("HandleBroadCastEvent", "msgTy", msg.Ty, "msgID", msg.ID)
+	//log.Debug("HandleBroadCastEvent", "msgTy", msg.Ty, "msgID", msg.broadcastID)
 	var sendData interface{}
 	if tx, ok := msg.GetData().(*types.Transaction); ok {
 		txHash := hex.EncodeToString(tx.Hash())
@@ -177,7 +177,7 @@ func (protocol *broadCastProtocol) sendPeer(pid peer.ID, data interface{}, delay
 	broadData := &types.MessageBroadCast{
 		Message: sendData}
 
-	stream, err := prototypes.NewStream(protocol.Host, pid, ID)
+	stream, err := prototypes.NewStream(protocol.Host, pid, broadcastID)
 	if err != nil {
 		log.Error("sendPeer", "id", pid.Pretty(), "NewStreamErr", err)
 		return nil, err

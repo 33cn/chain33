@@ -65,6 +65,7 @@ func (store *Store) GetBlockBatch(sync bool) db.Batch {
 	return store.blkBatch
 }
 
+//FreeBlockBatch free
 func (store *Store) FreeBlockBatch() {
 	store.batchLock.Unlock()
 }

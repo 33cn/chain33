@@ -798,10 +798,12 @@ func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
 	return []*Asset{asset}, nil
 }
 
+//GetConfig ...
 func (base *ExecTypeBase) GetConfig() *Chain33Config {
 	return base.cfg
 }
 
+//SetConfig ...
 func (base *ExecTypeBase) SetConfig(cfg *Chain33Config) {
 	base.cfg = cfg
 }

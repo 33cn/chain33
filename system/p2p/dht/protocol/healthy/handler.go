@@ -11,11 +11,13 @@ import (
 )
 
 const (
+	// MaxQuery means maximum of peers to query.
 	MaxQuery = 50
 )
 
 var log = log15.New("module", "protocol.healthy")
 
+//Protocol ....
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
@@ -26,14 +28,15 @@ func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
 
+//InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
 	p := Protocol{
 		P2PEnv:     env,
 		fallBehind: 1<<63 - 1,
 	}
-	p.Host.SetStreamHandler(protocol.IsSync, protocol.HandlerWithRW(p.HandleStreamIsSync))
-	p.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(p.HandleStreamIsHealthy))
-	p.Host.SetStreamHandler(protocol.GetLastHeader, protocol.HandlerWithRW(p.HandleStreamLastHeader))
+	p.Host.SetStreamHandler(protocol.IsSync, protocol.HandlerWithRW(p.handleStreamIsSync))
+	p.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(p.handleStreamIsHealthy))
+	p.Host.SetStreamHandler(protocol.GetLastHeader, protocol.HandlerWithRW(p.handleStreamLastHeader))
 
 	//保存一个全局变量备查，避免频繁到网络中请求。
 	//全节点不参与分布式存储，因此不需要更新
@@ -43,8 +46,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 
 }
 
-// HandleStreamIsSync 实时查询是否已同步完成
-func (p *Protocol) HandleStreamIsSync(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+// handleStreamIsSync 实时查询是否已同步完成
+func (p *Protocol) handleStreamIsSync(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	peers := p.Host.Network().Peers()
 	shuffle(peers)
 
@@ -53,7 +56,7 @@ func (p *Protocol) HandleStreamIsSync(_ *types.P2PRequest, res *types.P2PRespons
 	for _, pid := range peers {
 		header, err := p.getLastHeaderFromPeer(pid)
 		if err != nil {
-			log.Error("HandleStreamIsSync", "getLastHeaderFromPeer error", err, "pid", pid)
+			log.Error("handleStreamIsSync", "getLastHeaderFromPeer error", err, "pid", pid)
 			continue
 		}
 		if header.Height > maxHeight {
@@ -71,7 +74,7 @@ func (p *Protocol) HandleStreamIsSync(_ *types.P2PRequest, res *types.P2PRespons
 	}
 	header, err := p.getLastHeaderFromBlockChain()
 	if err != nil {
-		log.Error("HandleStreamIsSync", "getLastHeaderFromBlockchain error", err)
+		log.Error("handleStreamIsSync", "getLastHeaderFromBlockchain error", err)
 		return types2.ErrUnknown
 	}
 
@@ -90,8 +93,8 @@ func (p *Protocol) HandleStreamIsSync(_ *types.P2PRequest, res *types.P2PRespons
 	return nil
 }
 
-// HandleStreamIsHealthy 非实时查询，定期更新
-func (p *Protocol) HandleStreamIsHealthy(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+// handleStreamIsHealthy 非实时查询，定期更新
+func (p *Protocol) handleStreamIsHealthy(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	maxFallBehind := req.Request.(*types.P2PRequest_HealthyHeight).HealthyHeight
 
 	var isHealthy bool
@@ -103,11 +106,11 @@ func (p *Protocol) HandleStreamIsHealthy(req *types.P2PRequest, res *types.P2PRe
 			IsOk: isHealthy,
 		},
 	}
-	log.Info("HandleStreamIsHealthy", "isHealthy", isHealthy)
+	log.Info("handleStreamIsHealthy", "isHealthy", isHealthy)
 	return nil
 }
 
-func (p *Protocol) HandleStreamLastHeader(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func (p *Protocol) handleStreamLastHeader(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	header, err := p.getLastHeaderFromBlockChain()
 	if err != nil {
 		return err

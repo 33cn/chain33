@@ -30,6 +30,7 @@ type AddrBook struct {
 	bookDb  db.DB
 }
 
+// NewAddrBook new addr book
 func NewAddrBook(cfg *types.P2P) *AddrBook {
 	a := &AddrBook{
 		cfg: cfg,
@@ -44,6 +45,7 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 
 }
 
+// AddrsInfo get addr infos
 func (a *AddrBook) AddrsInfo() []peer.AddrInfo {
 	var addrsInfo []peer.AddrInfo
 	if a.bookDb == nil {
@@ -99,10 +101,10 @@ func (a *AddrBook) initKey() {
 
 	}
 
-	a.SaveKey(hex.EncodeToString(priv), hex.EncodeToString(pub))
+	a.saveKey(hex.EncodeToString(priv), hex.EncodeToString(pub))
 }
 
-func (a *AddrBook) SaveKey(priv, pub string) {
+func (a *AddrBook) saveKey(priv, pub string) {
 	a.setKey(priv, pub)
 	err := a.bookDb.Set([]byte(privKeyTag), []byte(priv))
 	if err != nil {
@@ -110,6 +112,7 @@ func (a *AddrBook) SaveKey(priv, pub string) {
 	}
 }
 
+// GetPrivkey get private key
 func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -141,6 +144,7 @@ func (a *AddrBook) setKey(privkey, pubkey string) {
 
 }
 
+// SaveAddr save addr
 func (a *AddrBook) SaveAddr(addrinfos []peer.AddrInfo) error {
 
 	jsonBytes, err := json.Marshal(addrinfos)
@@ -191,6 +195,7 @@ func GenPrivPubkey() ([]byte, []byte, error) {
 
 }
 
+// GenPubkey generate public key
 func GenPubkey(key string) (string, error) {
 	keybytes, err := hex.DecodeString(key)
 	if err != nil {

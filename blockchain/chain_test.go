@@ -1189,7 +1189,7 @@ func TestOnChainTimeout(t *testing.T) {
 	//2秒后超时
 	time.Sleep(2 * time.Second)
 	lastheight := blockchain.GetBlockHeight()
-	isTimeOut = blockchain.OnChainTimeout(lastheight)
+	blockchain.OnChainTimeout(lastheight)
 	println("curheight:", curheight)
 	println("lastheight:", lastheight)
 	if lastheight == curheight {

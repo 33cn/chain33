@@ -422,10 +422,10 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		localChunkInfo:      make(map[string]LocalChunkInfo),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	p2.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p2.HandleStreamStoreChunk))
-	p2.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p2.HandleStreamFetchChunk))
-	p2.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p2.HandleStreamGetHeader))
-	p2.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p2.HandleStreamGetChunkRecord))
+	p2.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunk))
+	p2.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p2.handleStreamFetchChunk))
+	p2.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
+	p2.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p2.handleStreamGetChunkRecord))
 	p2.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 	go func() {
 		for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
@@ -444,13 +444,13 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		for msg := range client2.Recv() {
 			switch msg.Ty {
 			case types.EventNotifyStoreChunk:
-				protocol.EventHandlerWithRecover(p2.HandleEventNotifyStoreChunk)(msg)
+				protocol.EventHandlerWithRecover(p2.handleEventNotifyStoreChunk)(msg)
 			case types.EventGetChunkBlock:
-				protocol.EventHandlerWithRecover(p2.HandleEventGetChunkBlock)(msg)
+				protocol.EventHandlerWithRecover(p2.handleEventGetChunkBlock)(msg)
 			case types.EventGetChunkBlockBody:
-				protocol.EventHandlerWithRecover(p2.HandleEventGetChunkBlockBody)(msg)
+				protocol.EventHandlerWithRecover(p2.handleEventGetChunkBlockBody)(msg)
 			case types.EventGetChunkRecord:
-				protocol.EventHandlerWithRecover(p2.HandleEventGetChunkRecord)(msg)
+				protocol.EventHandlerWithRecover(p2.handleEventGetChunkRecord)(msg)
 			}
 		}
 	}()
@@ -520,10 +520,10 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		localChunkInfo:      make(map[string]LocalChunkInfo),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	p3.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p3.HandleStreamStoreChunk))
-	p3.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p3.HandleStreamFetchChunk))
-	p3.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p3.HandleStreamGetHeader))
-	p3.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.HandleStreamGetChunkRecord))
+	p3.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunk))
+	p3.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p3.handleStreamFetchChunk))
+	p3.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
+	p3.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
 	p3.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy2))
 	go func() {
 		for i := 0; i < 3; i++ {
@@ -544,13 +544,13 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		for msg := range client3.Recv() {
 			switch msg.Ty {
 			case types.EventNotifyStoreChunk:
-				protocol.EventHandlerWithRecover(p3.HandleEventNotifyStoreChunk)(msg)
+				protocol.EventHandlerWithRecover(p3.handleEventNotifyStoreChunk)(msg)
 			case types.EventGetChunkBlock:
-				protocol.EventHandlerWithRecover(p3.HandleEventGetChunkBlock)(msg)
+				protocol.EventHandlerWithRecover(p3.handleEventGetChunkBlock)(msg)
 			case types.EventGetChunkBlockBody:
-				protocol.EventHandlerWithRecover(p3.HandleEventGetChunkBlockBody)(msg)
+				protocol.EventHandlerWithRecover(p3.handleEventGetChunkBlockBody)(msg)
 			case types.EventGetChunkRecord:
-				protocol.EventHandlerWithRecover(p3.HandleEventGetChunkRecord)(msg)
+				protocol.EventHandlerWithRecover(p3.handleEventGetChunkRecord)(msg)
 			}
 		}
 	}()

@@ -772,7 +772,7 @@ func CalcTxShortHash(hash []byte) string {
 	return ""
 }
 
-//TransactionSort:对主链以及平行链交易分类
+//TransactionSort 对主链以及平行链交易分类
 //构造一个map用于临时存储各个子链的交易, 按照title分类，主链交易的title设置成main
 //并对map按照title进行排序，不然每次遍历map顺序会不一致
 func TransactionSort(rawtxs []*Transaction) []*Transaction {

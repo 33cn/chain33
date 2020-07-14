@@ -1,6 +1,7 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
 package utils
 
 import (
@@ -9,7 +10,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-// lru缓存封装, 控制占用空间大小
+// SpaceLimitCache lru缓存封装, 控制占用空间大小
 type SpaceLimitCache struct {
 	capacity int
 	maxSize  int

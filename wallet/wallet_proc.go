@@ -1190,7 +1190,7 @@ func (wallet *Wallet) GenSeed(lang int32) (*types.ReplySeed, error) {
 	return wallet.genSeed(lang)
 }
 
-//GetSeed:获取seed种子, 通过钱包密码
+//GetSeed 获取seed种子, 通过钱包密码
 func (wallet *Wallet) GetSeed(password string) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -1581,6 +1581,10 @@ func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 	defer f.Close()
 
 	fileContent, err := ioutil.ReadAll(f)
+	if err != nil {
+		walletlog.Error("ProcImportPrivkeysFile read file error", "fileName", fileName, "err", err)
+		return err
+	}
 	accounts := strings.Split(string(fileContent), "&ffzm.&**&")
 	for _, value := range accounts {
 		Decrypter, err := AesgcmDecrypter([]byte(passwd), []byte(value))

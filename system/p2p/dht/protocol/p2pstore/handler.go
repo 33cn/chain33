@@ -14,16 +14,16 @@ import (
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
-func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.Stream) {
+func (p *Protocol) handleStreamFetchChunk(req *types.P2PRequest, stream network.Stream) {
 	var res types.P2PResponse
 	defer func() {
 		t := time.Now()
 		_, err := stream.Write(types.Encode(&res))
 		if err != nil {
-			log.Error("HandleStreamFetchChunk", "write stream error", err)
+			log.Error("handleStreamFetchChunk", "write stream error", err)
 		}
 		cost := time.Since(t)
-		log.Info("HandleStreamFetchChunk", "time cost", cost)
+		log.Info("handleStreamFetchChunk", "time cost", cost)
 	}()
 
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
@@ -86,7 +86,7 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.
 
 	addrInfosData, err := json.Marshal(addrInfos)
 	if err != nil {
-		log.Error("HandleStreamFetchChunk", "marshal error", err)
+		log.Error("handleStreamFetchChunk", "marshal error", err)
 		return
 	}
 	res.Response = &types.P2PResponse_AddrInfo{AddrInfo: addrInfosData}
@@ -98,7 +98,7 @@ func (p *Protocol) HandleStreamFetchChunk(req *types.P2PRequest, stream network.
 	1）若已保存则只更新时间即可
 	2）若未保存则从网络中请求chunk数据
 */
-func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.Stream) {
+func (p *Protocol) handleStreamStoreChunk(req *types.P2PRequest, stream network.Stream) {
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	chunkHashHex := hex.EncodeToString(param.ChunkHash)
 	//已有其他节点通知该节点保存该chunk，正在网络中查找数据, 避免接收到多个节点的通知后重复查询数据
@@ -154,7 +154,7 @@ func (p *Protocol) HandleStreamStoreChunk(req *types.P2PRequest, stream network.
 
 }
 
-func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func (p *Protocol) handleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	param := req.Request.(*types.P2PRequest_ReqBlocks)
 	msg := p.QueueClient.NewMessage("blockchain", types.EventGetHeaders, param.ReqBlocks)
 	err := p.QueueClient.Send(msg, true)
@@ -173,7 +173,7 @@ func (p *Protocol) HandleStreamGetHeader(req *types.P2PRequest, res *types.P2PRe
 	return types.ErrNotFound
 }
 
-func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func (p *Protocol) handleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
 	param := req.Request.(*types.P2PRequest_ReqChunkRecords).ReqChunkRecords
 	records, err := p.getChunkRecordFromBlockchain(param)
 	if err != nil {
@@ -183,9 +183,9 @@ func (p *Protocol) HandleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 	return nil
 }
 
-//HandleEventNotifyStoreChunk handles notification of blockchain,
+//handleEventNotifyStoreChunk handles notification of blockchain,
 // store chunk if this node is the nearest *count* node in the local routing table.
-func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
+func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
 	if p.SubConfig.IsFullNode {
 		//全节点保存所有chunk, blockchain模块通知保存chunk时直接保存到本地，检查本地保存的chunk是否连续
@@ -209,7 +209,7 @@ func (p *Protocol) HandleEventNotifyStoreChunk(m *queue.Message) {
 	log.Info("StoreChunk", "local pid", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
 }
 
-func (p *Protocol) HandleEventGetChunkBlock(m *queue.Message) {
+func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
 	bodys, err := p.getChunk(req, true)
 	if err != nil {
@@ -248,7 +248,7 @@ func (p *Protocol) HandleEventGetChunkBlock(m *queue.Message) {
 	}
 }
 
-func (p *Protocol) HandleEventGetChunkBlockBody(m *queue.Message) {
+func (p *Protocol) handleEventGetChunkBlockBody(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
 	blockBodys, err := p.getChunk(req, true)
 	if err != nil {
@@ -259,7 +259,7 @@ func (p *Protocol) HandleEventGetChunkBlockBody(m *queue.Message) {
 	m.Reply(&queue.Message{Data: blockBodys})
 }
 
-func (p *Protocol) HandleEventGetChunkRecord(m *queue.Message) {
+func (p *Protocol) handleEventGetChunkRecord(m *queue.Message) {
 	req := m.GetData().(*types.ReqChunkRecords)
 	records := p.getChunkRecords(req)
 	if records == nil {
