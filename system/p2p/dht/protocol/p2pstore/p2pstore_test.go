@@ -486,7 +486,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	mcfg := &types2.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
-	mcfg.FullNodes = []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/p2p/%s", 13809, host3.ID())}
 	mcfg.DisableFindLANPeers = true
 	env1 := protocol.P2PEnv{
 		ChainCfg:     cfg,
@@ -507,7 +506,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		ChainCfg:    cfg,
 		QueueClient: client3,
 		Host:        host3,
-		SubConfig:   mcfg,
+		SubConfig:   mcfg2,
 		RoutingTable: net.InitDhtDiscovery(context.Background(), host3, nil, cfg, &types2.P2PSubConfig{
 			Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty())},
 			Channel: 888,
@@ -524,6 +523,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	p3.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p3.handleStreamFetchChunk))
 	p3.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
 	p3.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
+	p3.Host.SetStreamHandler(protocol.BroadcastFullNode, protocol.HandlerWithRead(p3.handleStreamBroadcastFullNode))
 	p3.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy2))
 	go func() {
 		for i := 0; i < 3; i++ {
@@ -531,6 +531,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 			time.Sleep(time.Second * 1)
 		}
 	}()
+	p3.broadcastFullNodes()
 
 	client1.Sub("p2p")
 	client3.Sub("p2p3")

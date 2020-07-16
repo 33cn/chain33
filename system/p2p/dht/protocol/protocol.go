@@ -15,10 +15,11 @@ import (
 // all protocols
 const (
 	//p2pstore protocols
-	FetchChunk     = "/chain33/fetch-chunk/" + types2.Version
-	StoreChunk     = "/chain33/store-chunk/" + types2.Version
-	GetHeader      = "/chain33/headers/" + types2.Version
-	GetChunkRecord = "/chain33/chunk-record/" + types2.Version
+	FetchChunk        = "/chain33/fetch-chunk/" + types2.Version
+	StoreChunk        = "/chain33/store-chunk/" + types2.Version
+	GetHeader         = "/chain33/headers/" + types2.Version
+	GetChunkRecord    = "/chain33/chunk-record/" + types2.Version
+	BroadcastFullNode = "chain33/full-node" + types2.Version
 
 	//sync protocols
 	IsSync        = "/chain33/is-sync/" + types2.Version

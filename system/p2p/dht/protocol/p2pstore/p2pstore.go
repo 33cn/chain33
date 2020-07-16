@@ -1,7 +1,6 @@
 package p2pstore
 
 import (
-	"math/rand"
 	"sync"
 	"time"
 
@@ -10,10 +9,8 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kb "github.com/libp2p/go-libp2p-kbucket"
-	"github.com/multiformats/go-multiaddr"
 )
 
 var log = log15.New("module", "protocol.p2pstore")
@@ -34,7 +31,7 @@ type Protocol struct {
 	retryInterval time.Duration
 
 	//full nodes
-	fullNodes []peer.ID
+	fullNodes sync.Map
 }
 
 func init() {
@@ -60,6 +57,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunk))
 	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
 	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
+	p.Host.SetStreamHandler(protocol.BroadcastFullNode, protocol.HandlerWithRead(p.handleStreamBroadcastFullNode))
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
 	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, protocol.EventHandlerWithRecover(p.handleEventNotifyStoreChunk))
 	protocol.RegisterEventHandler(types.EventGetChunkBlock, protocol.EventHandlerWithRecover(p.handleEventGetChunkBlock))
@@ -67,9 +65,6 @@ func InitProtocol(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventGetChunkRecord, protocol.EventHandlerWithRecover(p.handleEventGetChunkRecord))
 
 	//全节点的p2pstore保存所有chunk, 不进行republish操作
-	if err := p.initFullNodes(); err != nil {
-		panic(err)
-	}
 	go func() {
 		for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
 			p.updateHealthyRoutingTable()
@@ -85,7 +80,16 @@ func InitProtocol(env *protocol.P2PEnv) {
 				p.localChunkInfoMutex.Lock()
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
 				p.localChunkInfoMutex.Unlock()
+				var count int
+				p.fullNodes.Range(func(k, v interface{}) bool {
+					log.Info("debugFullNode", "full node", k.(peer.ID))
+					count++
+					return true
+				})
+				log.Info("debugFullNode", "total count", count)
+
 			case <-ticker2:
+				p.broadcastFullNodes()
 				p.republish()
 			case <-ticker3:
 				p.updateHealthyRoutingTable()
@@ -102,37 +106,4 @@ func (p *Protocol) updateChunkWhiteList() {
 		}
 		return true
 	})
-}
-
-func (p *Protocol) initFullNodes() error {
-	if p.SubConfig.IsFullNode {
-		return nil
-	}
-
-	for _, node := range p.SubConfig.FullNodes {
-		// Turn the destination into a multiaddr.
-		maddr, err := multiaddr.NewMultiaddr(node)
-		if err != nil {
-			return err
-		}
-		// Extract the peer ID from the multiaddr.
-		info, err := peer.AddrInfoFromP2pAddr(maddr)
-		if err != nil {
-			return err
-		}
-		p.Host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
-		p.fullNodes = append(p.fullNodes, info.ID)
-	}
-	shuffle(p.fullNodes)
-	return nil
-}
-
-func shuffle(slice []peer.ID) {
-	r := rand.New(rand.NewSource(time.Now().Unix()))
-	for len(slice) > 0 {
-		n := len(slice)
-		randIndex := r.Intn(n)
-		slice[n-1], slice[randIndex] = slice[randIndex], slice[n-1]
-		slice = slice[:n-1]
-	}
 }

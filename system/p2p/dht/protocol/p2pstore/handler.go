@@ -50,6 +50,7 @@ func (p *Protocol) handleStreamFetchChunk(req *types.P2PRequest, stream network.
 				chunkInfo, ok := p.getChunkInfoByHash(param.ChunkHash)
 				if !ok {
 					log.Error("HandleStreamFetchChunk chunkInfo not found", "chunk hash", hexHash)
+					return
 				}
 				p.notifyStoreChunk(chunkInfo.ChunkInfoMsg)
 			}()
@@ -181,6 +182,19 @@ func (p *Protocol) handleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 	}
 	res.Response = &types.P2PResponse_ChunkRecords{ChunkRecords: records}
 	return nil
+}
+
+func (p *Protocol) handleStreamBroadcastFullNode(req *types.P2PRequest, _ network.Stream) {
+	param := req.Request.(*types.P2PRequest_AddrInfo).AddrInfo
+	var addrInfos []peer.AddrInfo
+	err := json.Unmarshal(param, &addrInfos)
+	if err != nil {
+		log.Error("handleStreamBroadcastFullNode", "unmarshal error", err)
+		return
+	}
+	for _, addrInfo := range addrInfos {
+		p.fullNodes.Store(addrInfo.ID, addrInfo)
+	}
 }
 
 //handleEventNotifyStoreChunk handles notification of blockchain,

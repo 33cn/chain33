@@ -188,13 +188,20 @@ Retry:
 	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
 	if !p.SubConfig.IsFullNode {
-		for _, pid := range p.fullNodes {
-			bodys, _, err := p.fetchChunkOrNearerPeers(ctx, req, pid)
+		var fullNodes []peer.AddrInfo
+		p.fullNodes.Range(func(k, v interface{}) bool {
+			addrInfo := v.(peer.AddrInfo)
+			fullNodes = append(fullNodes, addrInfo)
+			return true
+		})
+		for _, addrInfo := range fullNodes {
+			p.Host.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, time.Hour)
+			bodys, _, err := p.fetchChunkOrNearerPeers(ctx, req, addrInfo.ID)
 			if bodys == nil {
-				log.Error("fetchChunkOrNearerPeers from full node failed", "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", err)
+				log.Error("fetchChunkOrNearerPeers from full node failed", "pid", addrInfo.ID, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", err)
 				continue
 			}
-			log.Info("fetchChunkOrNearerPeers from full node succeed", "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
+			log.Info("fetchChunkOrNearerPeers from full node succeed", "pid", addrInfo.ID, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
 			return bodys, nil
 		}
 	}
