@@ -36,7 +36,7 @@ func newTestPubProtocol(q queue.Queue) *peerPubSub {
 	return newTestpeerPubSubWithQueue(q)
 }
 
-func TespeerPubSub_InitProtocol(t *testing.T) {
+func TestPeerPubSubInitProtocol(t *testing.T) {
 	q := queue.New("test")
 	protocol := newTestPubProtocol(q)
 	assert.NotNil(t, protocol)
