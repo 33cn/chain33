@@ -15,6 +15,7 @@ import (
 
 var log = log15.New("module", "protocol.p2pstore")
 
+//Protocol ...
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
@@ -38,6 +39,7 @@ func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
 
+//InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
 		P2PEnv:              env,

@@ -209,7 +209,6 @@ Retry:
 }
 
 func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
-	log.Info("into fetchChunkOrNearerPeers", "pid", pid)
 	childCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 	stream, err := p.Host.NewStream(childCtx, pid, protocol.FetchChunk)

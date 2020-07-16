@@ -21,6 +21,12 @@ func (p *Protocol) broadcastFullNodes() {
 		fullNodes = append(fullNodes, addrInfo)
 	}
 	p.fullNodes.Range(func(k, v interface{}) bool {
+		//广播之前确认节点是否可达
+		_, err := p.checkPeerHealth(k.(peer.ID))
+		if err != nil {
+			p.fullNodes.Delete(k)
+			return true
+		}
 		fullNodes = append(fullNodes, v.(peer.AddrInfo))
 		return true
 	})

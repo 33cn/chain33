@@ -208,10 +208,12 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
-	if len(addrs) > 0 {
-		p.setExternalAddr(addrs[len(addrs)-1].String())
-	}
-	preExternalAddr := p.getExternalAddr()
+	//下表越界会直接panic, 不过正常情况不会越界，且panic只可能发生在节点刚启动时
+	preExternalAddr := strings.Split(addrs[len(addrs)-1].String(), "/")[2]
+	p.mutex.Lock()
+	p.externalAddr = preExternalAddr
+	p.mutex.Unlock()
+
 	netIP := net.ParseIP(preExternalAddr)
 	if isPublicIP(netIP) { //检测是PubIp不用继续通过其他节点获取
 		log.Debug("detectNodeAddr", "testPubIp", preExternalAddr)
