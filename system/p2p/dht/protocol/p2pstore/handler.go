@@ -114,45 +114,24 @@ func (p *Protocol) handleStreamStoreChunk(req *types.P2PRequest, stream network.
 	}
 
 	var bodys *types.BlockBodys
-	var err error
-	defer func() {
-		if bodys == nil {
-			log.Error("HandleStreamStoreChunk error", "chunkhash", hex.EncodeToString(param.ChunkHash), "start", param.Start)
-			return
-		}
-		err = p.addChunkBlock(param, bodys)
-		if err != nil {
-			log.Error("onStoreChunk", "store block error", err)
-			return
-		}
-	}()
-
-	//blockchain模块可能有数据，blockchain模块保存了最新的10000+2*chunk_len个区块
-	//如果请求的区块高度在 [lastHeight-10000-2*chunk_len, lastHeight] 之间，则到blockchain模块去请求区块，否则到网络中请求
-	lastHeader, _ := p.getLastHeaderFromBlockChain()
-	chunkLen := param.End - param.Start + 1
-	if lastHeader != nil && param.Start >= lastHeader.Height-10000-2*chunkLen && param.End <= lastHeader.Height {
-		bodys, err = p.getChunkFromBlockchain(param)
-		if bodys != nil {
-			return
-		}
-		log.Error("onStoreChunk", "getChunkFromBlockchain error", err)
+	bodys, _ = p.getChunkFromBlockchain(param)
+	if bodys == nil {
+		//blockchain模块没有数据，从网络中搜索数据
+		bodys, _ = p.mustFetchChunk(param)
+	}
+	if bodys == nil {
+		//网络中最近的节点群中没有查找到数据, 从发通知的对端节点上去查找数据
+		bodys, _, _ = p.fetchChunkOrNearerPeers(context.Background(), param, stream.Conn().RemotePeer())
 	}
 
-	//blockchain模块没有数据，从网络中搜索数据
-	bodys, err = p.mustFetchChunk(param)
-	if bodys != nil {
+	if bodys == nil {
+		log.Error("HandleStreamStoreChunk error", "chunkhash", hex.EncodeToString(param.ChunkHash), "start", param.Start)
 		return
 	}
-	log.Error("onStoreChunk", "get bodys from nearest peer error", err)
 
-	//网络中最近的节点群中没有查找到数据, 从发通知的对端节点上去查找数据
-	bodys, _, err = p.fetchChunkOrNearerPeers(context.Background(), param, stream.Conn().RemotePeer())
-	if bodys != nil {
-		return
+	if err := p.addChunkBlock(param, bodys); err != nil {
+		log.Error("onStoreChunk", "store block error", err)
 	}
-	log.Error("onStoreChunk", "get bodys from remote peer error", err)
-
 }
 
 func (p *Protocol) handleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {

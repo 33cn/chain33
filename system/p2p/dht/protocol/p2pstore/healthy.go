@@ -12,7 +12,7 @@ import (
 )
 
 func (p *Protocol) updateHealthyRoutingTable() {
-	for _, pid := range p.RoutingTable.RoutingTable().ListPeers() {
+	for _, pid := range p.RoutingTable.ListPeers() {
 		if ok, err := p.checkPeerHealth(pid); err != nil {
 			log.Error("checkPeerHealth", "error", err, "pid", pid)
 		} else if ok {

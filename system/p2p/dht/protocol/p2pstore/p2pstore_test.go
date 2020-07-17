@@ -394,27 +394,31 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	mcfg := &types2.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
 	mcfg.DisableFindLANPeers = true
+	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888})
 	env1 := protocol.P2PEnv{
-		ChainCfg:     cfg,
-		QueueClient:  client1,
-		Host:         host1,
-		SubConfig:    mcfg,
-		RoutingTable: net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888}),
-		DB:           newTestDB(),
+		ChainCfg:         cfg,
+		QueueClient:      client1,
+		Host:             host1,
+		SubConfig:        mcfg,
+		RoutingDiscovery: discovery1.RoutingDiscovery,
+		RoutingTable:     discovery1.RoutingTable(),
+		DB:               newTestDB(),
 	}
 	InitProtocol(&env1)
 	host1.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 
+	discovery2 := net.InitDhtDiscovery(context.Background(), host2, nil, cfg, &types2.P2PSubConfig{
+		Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty())},
+		Channel: 888,
+	})
 	env2 := protocol.P2PEnv{
-		ChainCfg:    cfg,
-		QueueClient: client2,
-		Host:        host2,
-		SubConfig:   mcfg,
-		RoutingTable: net.InitDhtDiscovery(context.Background(), host2, nil, cfg, &types2.P2PSubConfig{
-			Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty())},
-			Channel: 888,
-		}),
-		DB: newTestDB(),
+		ChainCfg:         cfg,
+		QueueClient:      client2,
+		Host:             host2,
+		SubConfig:        mcfg,
+		RoutingDiscovery: discovery2.RoutingDiscovery,
+		RoutingTable:     discovery2.RoutingTable(),
+		DB:               newTestDB(),
 	}
 	p2 := &Protocol{
 		P2PEnv:              &env2,
@@ -487,31 +491,35 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	mcfg := &types2.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
 	mcfg.DisableFindLANPeers = true
+	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888})
 	env1 := protocol.P2PEnv{
-		ChainCfg:     cfg,
-		QueueClient:  client1,
-		Host:         host1,
-		SubConfig:    mcfg,
-		RoutingTable: net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888}),
-		DB:           newTestDB(),
+		ChainCfg:         cfg,
+		QueueClient:      client1,
+		Host:             host1,
+		SubConfig:        mcfg,
+		RoutingDiscovery: discovery1.RoutingDiscovery,
+		RoutingTable:     discovery1.RoutingTable(),
+		DB:               newTestDB(),
 	}
 	InitProtocol(&env1)
 	host1.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 
-	mcfg2 := &types2.P2PSubConfig{}
-	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg2)
-	mcfg2.IsFullNode = true
-	mcfg2.DisableFindLANPeers = true
+	mcfg3 := &types2.P2PSubConfig{}
+	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg3)
+	mcfg3.IsFullNode = true
+	mcfg3.DisableFindLANPeers = true
+	discovery3 := net.InitDhtDiscovery(context.Background(), host3, nil, cfg, &types2.P2PSubConfig{
+		Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty())},
+		Channel: 888,
+	})
 	env3 := protocol.P2PEnv{
-		ChainCfg:    cfg,
-		QueueClient: client3,
-		Host:        host3,
-		SubConfig:   mcfg2,
-		RoutingTable: net.InitDhtDiscovery(context.Background(), host3, nil, cfg, &types2.P2PSubConfig{
-			Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty())},
-			Channel: 888,
-		}),
-		DB: newTestDB(),
+		ChainCfg:         cfg,
+		QueueClient:      client3,
+		Host:             host3,
+		SubConfig:        mcfg3,
+		RoutingDiscovery: discovery3.RoutingDiscovery,
+		RoutingTable:     discovery3.RoutingTable(),
+		DB:               newTestDB(),
 	}
 	p3 := &Protocol{
 		P2PEnv:              &env3,

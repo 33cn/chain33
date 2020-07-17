@@ -7,7 +7,6 @@ import (
 
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -38,7 +37,7 @@ func (p *Protocol) broadcastFullNodes() {
 		log.Error("broadcastFullNodes", "marshal error", err)
 		return
 	}
-	for _, pid := range p.RoutingTable.RoutingTable().ListPeers() {
+	for _, pid := range p.RoutingTable.ListPeers() {
 		if err := p.notifyFullNodes(pid, data); err != nil {
 			log.Error("broadcastFullNodes", "pid", pid, "error", err)
 		}

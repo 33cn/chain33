@@ -35,7 +35,7 @@ func (p *Protocol) getChunk(req *types.ChunkInfoMsg, queryRemote bool) (*types.B
 }
 
 func (p *Protocol) getHeaders(param *types.ReqBlocks) *types.Headers {
-	for _, pid := range p.P2PEnv.RoutingTable.RoutingTable().ListPeers() {
+	for _, pid := range p.P2PEnv.RoutingTable.ListPeers() {
 		headers, err := p.getHeadersFromPeer(param, pid)
 		if err != nil {
 			log.Error("getHeaders", "peer", pid, "error", err)
@@ -92,7 +92,7 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 		return records
 	}
 
-	for _, pid := range p.P2PEnv.RoutingTable.RoutingTable().ListPeers() {
+	for _, pid := range p.P2PEnv.RoutingTable.ListPeers() {
 		records, err := p.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
 			log.Error("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
@@ -141,19 +141,17 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, e
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	var retryCount int
-Retry:
 	//保存查询过的节点，防止重复查询
 	searchedPeers := make(map[peer.ID]struct{})
 	searchedPeers[p.Host.ID()] = struct{}{}
 	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
-	if len(peers) == 0 {
-		log.Error("mustFetchChunk", "error", "no healthy peers")
-	}
 	log.Info("into mustFetchChunk", "healthy peers len", p.healthyRoutingTable.Size())
 	for len(peers) != 0 {
 		var newPeers []peer.ID
 		for _, pid := range peers {
+			if _, ok := searchedPeers[pid]; ok {
+				continue
+			}
 			searchedPeers[pid] = struct{}{}
 			start := time.Now()
 			bodys, nearerPeers, err := p.fetchChunkOrNearerPeers(ctx, req, pid)
@@ -162,28 +160,33 @@ Retry:
 				log.Error("mustFetchChunk", "fetchChunkOrNearerPeers error", err, "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "maddrs", p.Host.Peerstore().Addrs(pid))
 				continue
 			}
+			//找到了数据
 			if bodys != nil {
 				log.Info("mustFetchChunk found", "pid", pid, "maddrs", p.Host.Peerstore().Addrs(pid))
 				return bodys, nil
 			}
+			//没找到数据，返回了更近的节点信息
 			newPeers = append(newPeers, nearerPeers...)
 		}
+		peers = newPeers
+	}
 
-		peers = nil
-		for _, newPeer := range newPeers {
-			//已经查询过的节点就不再查询
-			if _, ok := searchedPeers[newPeer]; !ok {
-				peers = append(peers, newPeer)
+	//找不到数据重试3次，防止因为网络问题导致数据找不到
+	//测试网和全节点不重试
+	//重试时直接遍历一遍searchedPeers
+	peers = nil
+	for pid := range searchedPeers {
+		peers = append(peers, pid)
+	}
+	for retryCount := 0; !p.ChainCfg.IsTestNet() && !p.SubConfig.IsFullNode && retryCount < 3; retryCount++ {
+		log.Info("mustFetchChunk", "retry count", retryCount)
+		time.Sleep(p.retryInterval)
+		for _, pid := range peers {
+			bodys, _, err := p.fetchChunkOrNearerPeers(ctx, req, pid)
+			if err == nil {
+				return bodys, nil
 			}
 		}
-	}
-	retryCount++
-	//找不到数据重试5次，防止因为网络问题导致数据找不到
-	//测试网和全节点不重试
-	if !p.ChainCfg.IsTestNet() && !p.SubConfig.IsFullNode && retryCount < 5 {
-		log.Error("mustFetchChunk", "retry count", retryCount)
-		time.Sleep(p.retryInterval)
-		goto Retry
 	}
 	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
@@ -197,7 +200,7 @@ Retry:
 		for _, addrInfo := range fullNodes {
 			p.Host.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, time.Hour)
 			bodys, _, err := p.fetchChunkOrNearerPeers(ctx, req, addrInfo.ID)
-			if bodys == nil {
+			if err != nil {
 				log.Error("fetchChunkOrNearerPeers from full node failed", "pid", addrInfo.ID, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", err)
 				continue
 			}
@@ -381,18 +384,18 @@ func (p *Protocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords) (*ty
 	return nil, types2.ErrNotFound
 }
 
-func (p *Protocol) getLastHeaderFromBlockChain() (*types.Header, error) {
-	msg := p.QueueClient.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	err := p.QueueClient.Send(msg, true)
-	if err != nil {
-		return nil, err
-	}
-	reply, err := p.QueueClient.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	if header, ok := reply.Data.(*types.Header); ok {
-		return header, nil
-	}
-	return nil, types2.ErrNotFound
-}
+//func (p *Protocol) getLastHeaderFromBlockChain() (*types.Header, error) {
+//	msg := p.QueueClient.NewMessage("blockchain", types.EventGetLastHeader, nil)
+//	err := p.QueueClient.Send(msg, true)
+//	if err != nil {
+//		return nil, err
+//	}
+//	reply, err := p.QueueClient.Wait(msg)
+//	if err != nil {
+//		return nil, err
+//	}
+//	if header, ok := reply.Data.(*types.Header); ok {
+//		return header, nil
+//	}
+//	return nil, types2.ErrNotFound
+//}

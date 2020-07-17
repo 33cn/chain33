@@ -31,7 +31,7 @@ const dhtProtoID = "/ipfs/kad/%s/1.0.0/%d"
 // Discovery dht discovery
 type Discovery struct {
 	kademliaDHT      *dht.IpfsDHT
-	routingDiscovery *discovery.RoutingDiscovery
+	RoutingDiscovery *discovery.RoutingDiscovery
 	mdnsService      *mdns
 	ctx              context.Context
 }
@@ -56,7 +56,7 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 	if err = d.kademliaDHT.Bootstrap(ctx); err != nil {
 		panic(err)
 	}
-	d.routingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
+	d.RoutingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
 	return d
 }
 
@@ -66,10 +66,10 @@ func (d *Discovery) FindPeers(RendezvousString string, gossip bool) ([]peer.Addr
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if gossip {
-		discovery.Advertise(ctx, d.routingDiscovery, RendezvousString)
+		discovery.Advertise(ctx, d.RoutingDiscovery, RendezvousString)
 	}
 
-	addrinfos, err := discovery.FindPeers(ctx, d.routingDiscovery, RendezvousString, coredis.Limit(100))
+	addrinfos, err := discovery.FindPeers(ctx, d.RoutingDiscovery, RendezvousString, coredis.Limit(100))
 	//peerChan, err := d.routingDiscovery.FindPeers(context.Background(), RendezvousString)
 	if err != nil {
 		//panic(err)

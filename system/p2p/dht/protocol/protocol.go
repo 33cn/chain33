@@ -9,6 +9,7 @@ import (
 	"github.com/33cn/chain33/types"
 	ds "github.com/ipfs/go-datastore"
 	core "github.com/libp2p/go-libp2p-core"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -19,7 +20,7 @@ const (
 	StoreChunk        = "/chain33/store-chunk/" + types2.Version
 	GetHeader         = "/chain33/headers/" + types2.Version
 	GetChunkRecord    = "/chain33/chunk-record/" + types2.Version
-	BroadcastFullNode = "chain33/full-node" + types2.Version
+	BroadcastFullNode = "/chain33/full-node/" + types2.Version
 
 	//sync protocols
 	IsSync        = "/chain33/is-sync/" + types2.Version
@@ -36,10 +37,7 @@ type P2PEnv struct {
 	SubConfig   *p2pty.P2PSubConfig
 	DB          ds.Datastore
 
-	RoutingTable RoutingTabler
-}
+	*discovery.RoutingDiscovery
 
-// RoutingTabler routing table interface
-type RoutingTabler interface {
-	RoutingTable() *kbt.RoutingTable
+	RoutingTable *kbt.RoutingTable
 }

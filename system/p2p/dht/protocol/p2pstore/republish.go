@@ -21,7 +21,7 @@ func (p *Protocol) republish() {
 	}
 	p.localChunkInfoMutex.RUnlock()
 	log.Info("republish", ">>>>>>>>>>>>>> record amount:", len(m))
-	log.Info("republish", "rt count", len(p.RoutingTable.RoutingTable().ListPeers()), "healthy count", len(p.healthyRoutingTable.ListPeers()))
+	log.Info("republish", "rt count", len(p.RoutingTable.ListPeers()), "healthy count", len(p.healthyRoutingTable.ListPeers()))
 	for hash, info := range m {
 		if time.Since(info.Time) > types2.ExpiredTime {
 			if err := p.deleteChunkBlock(info.ChunkHash); err != nil {

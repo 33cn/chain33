@@ -47,8 +47,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 		retryInterval:       30 * time.Second,
 	}
 	//routing table更新时同时更新healthy routing table
-	rm := p.RoutingTable.RoutingTable().PeerRemoved
-	p.RoutingTable.RoutingTable().PeerRemoved = func(id peer.ID) {
+	rm := p.RoutingTable.PeerRemoved
+	p.RoutingTable.PeerRemoved = func(id peer.ID) {
 		rm(id)
 		p.healthyRoutingTable.Remove(id)
 	}

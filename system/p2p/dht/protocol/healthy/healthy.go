@@ -20,6 +20,21 @@ func (p *Protocol) startUpdateFallBehind() {
 }
 
 func (p *Protocol) updateFallBehind() {
+	maxHeight := p.queryMaxHeight()
+	if maxHeight == -1 {
+		return
+	}
+	header, err := p.getLastHeaderFromBlockChain()
+	if err != nil {
+		log.Error("updateFallBehind", "getLastHeaderFromBlockchain error", err)
+		return
+	}
+
+	atomic.StoreInt64(&p.fallBehind, maxHeight-header.Height)
+	log.Info("updateFallBehind", "fall behind", maxHeight-header.Height)
+}
+
+func (p *Protocol) queryMaxHeight() int64 {
 	peers := p.Host.Network().Peers()
 	shuffle(peers)
 
@@ -40,18 +55,7 @@ func (p *Protocol) updateFallBehind() {
 			break
 		}
 	}
-
-	if maxHeight == -1 {
-		return
-	}
-	header, err := p.getLastHeaderFromBlockChain()
-	if err != nil {
-		log.Error("updateFallBehind", "getLastHeaderFromBlockchain error", err)
-		return
-	}
-
-	atomic.StoreInt64(&p.fallBehind, maxHeight-header.Height)
-	log.Info("updateFallBehind", "fall behind", maxHeight-header.Height)
+	return maxHeight
 }
 
 func (p *Protocol) getLastHeaderFromPeer(pid peer.ID) (*types.Header, error) {

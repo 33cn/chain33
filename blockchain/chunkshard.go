@@ -377,9 +377,6 @@ func (chain *BlockChain) CalcChunkInfo(height int64) (chunkNum, start, end int64
 }
 
 func calcChunkInfo(cfg *types.BlockChain, height int64) (chunkNum, start, end int64) {
-	if cfg.ChunkblockNum == 0 {
-		panic("ChunkBlockNum can not be zero")
-	}
 	chunkNum = height / cfg.ChunkblockNum
 	start = chunkNum * cfg.ChunkblockNum
 	end = start + cfg.ChunkblockNum - 1

@@ -168,9 +168,6 @@ func (p *peerInfoProtol) getPeerInfo() {
 }
 
 func (p *peerInfoProtol) setExternalAddr(addr string) {
-
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
 	var spliteAddr string
 	splites := strings.Split(addr, "/")
 	if len(splites) == 1 {
@@ -179,13 +176,14 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 		spliteAddr = splites[2]
 	}
 	if spliteAddr != p.externalAddr && isPublicIP(net.ParseIP(spliteAddr)) {
+		p.mutex.Lock()
 		p.externalAddr = spliteAddr
+		p.mutex.Unlock()
 		//设置外部地址时同时保存到peerstore里
 		addr := fmt.Sprintf("/ip4/%s/tcp/%d", spliteAddr, p.SubConfig.Port)
 		ma, _ := multiaddr.NewMultiaddr(addr)
 		p.Host.Peerstore().AddAddr(p.Host.ID(), ma, peerstore.PermanentAddrTTL)
 	}
-
 }
 
 func (p *peerInfoProtol) getExternalAddr() string {
@@ -208,7 +206,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
-	//下表越界会直接panic, 不过正常情况不会越界，且panic只可能发生在节点刚启动时
+	//下标越界会直接panic, 不过正常情况不会越界，且panic只可能发生在节点刚启动时
 	preExternalAddr := strings.Split(addrs[len(addrs)-1].String(), "/")[2]
 	p.mutex.Lock()
 	p.externalAddr = preExternalAddr
