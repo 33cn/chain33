@@ -13,12 +13,12 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
@@ -531,7 +531,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	p3.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p3.handleStreamFetchChunk))
 	p3.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
 	p3.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
-	p3.Host.SetStreamHandler(protocol.BroadcastFullNode, protocol.HandlerWithRead(p3.handleStreamBroadcastFullNode))
 	p3.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy2))
 	go func() {
 		for i := 0; i < 3; i++ {
@@ -539,7 +538,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 			time.Sleep(time.Second * 1)
 		}
 	}()
-	p3.broadcastFullNodes()
+	discovery.Advertise(context.Background(), p3.RoutingDiscovery, protocol.BroadcastFullNode)
 
 	client1.Sub("p2p")
 	client3.Sub("p2p3")

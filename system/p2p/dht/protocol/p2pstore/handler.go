@@ -163,19 +163,6 @@ func (p *Protocol) handleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 	return nil
 }
 
-func (p *Protocol) handleStreamBroadcastFullNode(req *types.P2PRequest, _ network.Stream) {
-	param := req.Request.(*types.P2PRequest_AddrInfo).AddrInfo
-	var addrInfos []peer.AddrInfo
-	err := json.Unmarshal(param, &addrInfos)
-	if err != nil {
-		log.Error("handleStreamBroadcastFullNode", "unmarshal error", err)
-		return
-	}
-	for _, addrInfo := range addrInfos {
-		p.fullNodes.Store(addrInfo.ID, addrInfo)
-	}
-}
-
 //handleEventNotifyStoreChunk handles notification of blockchain,
 // store chunk if this node is the nearest *count* node in the local routing table.
 func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {

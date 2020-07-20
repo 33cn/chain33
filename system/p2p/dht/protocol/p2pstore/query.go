@@ -8,6 +8,8 @@ import (
 	"io"
 	"time"
 
+	discovery "github.com/libp2p/go-libp2p-discovery"
+
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -172,16 +174,15 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, e
 	}
 
 	//找不到数据重试3次，防止因为网络问题导致数据找不到
-	//测试网和全节点不重试
-	//重试时直接遍历一遍searchedPeers
-	peers = nil
-	for pid := range searchedPeers {
-		peers = append(peers, pid)
+	totalRetry := 3
+	if p.ChainCfg.IsTestNet() || p.SubConfig.IsFullNode {
+		totalRetry = 0 //测试网和全节点不重试
 	}
-	for retryCount := 0; !p.ChainCfg.IsTestNet() && !p.SubConfig.IsFullNode && retryCount < 3; retryCount++ {
+	//重试时直接遍历一遍searchedPeers
+	for retryCount := 0; retryCount < totalRetry; retryCount++ {
 		log.Info("mustFetchChunk", "retry count", retryCount)
 		time.Sleep(p.retryInterval)
-		for _, pid := range peers {
+		for pid := range searchedPeers {
 			bodys, _, err := p.fetchChunkOrNearerPeers(ctx, req, pid)
 			if err == nil {
 				return bodys, nil
@@ -191,13 +192,15 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, e
 	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
 	if !p.SubConfig.IsFullNode {
-		var fullNodes []peer.AddrInfo
-		p.fullNodes.Range(func(k, v interface{}) bool {
-			addrInfo := v.(peer.AddrInfo)
-			fullNodes = append(fullNodes, addrInfo)
-			return true
-		})
-		for _, addrInfo := range fullNodes {
+		ctx2, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		peerInfos, err := discovery.FindPeers(ctx2, p.RoutingDiscovery, protocol.BroadcastFullNode)
+		if err != nil {
+			log.Error("mustFetchChunk", "Find full peers error", err)
+			return nil, types2.ErrNotFound
+		}
+
+		for _, addrInfo := range peerInfos {
 			p.Host.Peerstore().AddAddrs(addrInfo.ID, addrInfo.Addrs, time.Hour)
 			bodys, _, err := p.fetchChunkOrNearerPeers(ctx, req, addrInfo.ID)
 			if err != nil {

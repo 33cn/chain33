@@ -220,6 +220,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 	log.Info("detectNodeAddr", "+++++++++++++++", preExternalAddr, "addrs", addrs)
 	localID := p.GetHost().ID()
 	var rangeCount int
+	queryInterval := time.Minute
 	for {
 
 		if p.checkDone() {
@@ -234,11 +235,13 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		//启动后间隔1分钟，以充分获得节点外网地址
 		rangeCount++
 		if rangeCount > 2 {
-			time.Sleep(time.Minute)
+			time.Sleep(queryInterval)
 		}
 		log.Info("detectNodeAddr", "conns amount", len(p.Host.Network().Conns()))
 		for _, conn := range p.Host.Network().Conns() {
-
+			if rangeCount > 2 {
+				time.Sleep(time.Second / 10)
+			}
 			var version types.P2PVersion
 			pid := conn.RemotePeer()
 			pubkey, _ := p.GetHost().Peerstore().PubKey(localID).Bytes()
@@ -276,7 +279,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			if err != nil {
 				continue
 			}
-			p.Host.Peerstore().AddAddr(pid, remoteMAddr, peerstore.TempAddrTTL*2)
+			p.Host.Peerstore().AddAddr(pid, remoteMAddr, queryInterval*3)
 		}
 	}
 
