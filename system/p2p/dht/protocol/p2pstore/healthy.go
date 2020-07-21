@@ -43,7 +43,7 @@ func (p *Protocol) checkPeerHealth(id peer.ID) (bool, error) {
 		return false, err
 	}
 	reply, ok := res.Response.(*types.P2PResponse_Reply)
-	if !ok && reply.Reply.IsOk {
+	if !ok {
 		return false, types2.ErrUnknown
 
 	}

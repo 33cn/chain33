@@ -13,13 +13,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (p *Protocol) startUpdateFallBehind() {
-	for range time.Tick(types2.CheckHealthyInterval) {
-		p.updateFallBehind()
-	}
-}
-
 func (p *Protocol) updateFallBehind() {
+	//全节点不参与分布式存储，因此不需要更新
+	if p.SubConfig.IsFullNode {
+		return
+	}
 	maxHeight := p.queryMaxHeight()
 	if maxHeight == -1 {
 		return

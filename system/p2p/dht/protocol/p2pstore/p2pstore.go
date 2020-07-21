@@ -64,7 +64,6 @@ func InitProtocol(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventGetChunkBlockBody, protocol.EventHandlerWithRecover(p.handleEventGetChunkBlockBody))
 	protocol.RegisterEventHandler(types.EventGetChunkRecord, protocol.EventHandlerWithRecover(p.handleEventGetChunkRecord))
 
-	//全节点的p2pstore保存所有chunk, 不进行republish操作
 	go func() {
 		for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
 			p.updateHealthyRoutingTable()
@@ -74,21 +73,24 @@ func InitProtocol(env *protocol.P2PEnv) {
 			discovery.Advertise(context.Background(), p.RoutingDiscovery, protocol.BroadcastFullNode)
 		}
 
-		ticker1 := time.Tick(time.Minute)
-		ticker2 := time.Tick(types2.RefreshInterval)
-		ticker3 := time.Tick(types2.CheckHealthyInterval)
+		ticker1 := time.NewTicker(time.Minute)
+		ticker2 := time.NewTicker(types2.RefreshInterval)
+		ticker3 := time.NewTicker(types2.CheckHealthyInterval)
+		ticker4 := time.NewTicker(time.Hour)
 		for {
 			select {
-			case <-ticker1:
+			case <-ticker1.C:
 				p.updateChunkWhiteList()
+			case <-ticker2.C:
+				p.republish()
+			case <-ticker3.C:
+				p.updateHealthyRoutingTable()
+			case <-ticker4.C:
+				//debug info
 				p.localChunkInfoMutex.Lock()
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
 				p.localChunkInfoMutex.Unlock()
 				p.debugFullNode()
-			case <-ticker2:
-				p.republish()
-			case <-ticker3:
-				p.updateHealthyRoutingTable()
 			}
 		}
 	}()

@@ -11,6 +11,7 @@ import (
 )
 
 func (p *Protocol) republish() {
+	//全节点的p2pstore保存所有chunk, 不进行republish操作
 	if p.SubConfig.IsFullNode {
 		return
 	}

@@ -2,6 +2,7 @@ package healthy
 
 import (
 	"sync/atomic"
+	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -39,10 +40,12 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.Host.SetStreamHandler(protocol.GetLastHeader, protocol.HandlerWithRW(p.handleStreamLastHeader))
 
 	//保存一个全局变量备查，避免频繁到网络中请求。
-	//全节点不参与分布式存储，因此不需要更新
-	if !p.SubConfig.IsFullNode {
-		go p.startUpdateFallBehind()
-	}
+	go func() {
+		ticker1 := time.NewTicker(types2.CheckHealthyInterval)
+		for range ticker1.C {
+			p.updateFallBehind()
+		}
+	}()
 
 }
 
