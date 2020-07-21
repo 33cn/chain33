@@ -206,13 +206,14 @@ func (p *P2P) StartP2P() {
 
 	//debug new
 	env2 := &protocol.P2PEnv{
-		ChainCfg:     p.chainCfg,
-		QueueClient:  p.client,
-		Host:         p.host,
-		P2PManager:   p.mgr,
-		SubConfig:    p.subCfg,
-		DB:           p.db,
-		RoutingTable: p.discovery,
+		ChainCfg:         p.chainCfg,
+		QueueClient:      p.client,
+		Host:             p.host,
+		P2PManager:       p.mgr,
+		SubConfig:        p.subCfg,
+		DB:               p.db,
+		RoutingDiscovery: p.discovery.RoutingDiscovery,
+		RoutingTable:     p.discovery.RoutingTable(),
 	}
 	p.env = env2
 	protocol.InitAllProtocol(env2)

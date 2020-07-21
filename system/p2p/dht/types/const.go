@@ -34,12 +34,10 @@ var (
 	// ErrUnknown unknown err
 	ErrUnknown = errors.New("unknown error")
 
-	//ExpiredTime          = time.Hour * 4
-	//RefreshInterval      = time.Hour * 1
 	// ExpiredTime expired time
-	ExpiredTime = time.Minute * 30
+	ExpiredTime = time.Minute * 360
 	// RefreshInterval refresh interval
-	RefreshInterval = time.Minute * 10
+	RefreshInterval = time.Minute * 150
 	// CheckHealthyInterval check healthy interval
 	CheckHealthyInterval = time.Minute * 5
 )

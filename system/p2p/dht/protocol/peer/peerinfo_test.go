@@ -202,10 +202,10 @@ func Test_util(t *testing.T) {
 
 	//-----------------
 	proto.getPeerInfo()
-	proto.setExternalAddr("192.168.1.1")
+	proto.setExternalAddr("150.109.6.160")
 	assert.NotEmpty(t, proto.getExternalAddr())
-	proto.setExternalAddr("/ip4/192.168.1.1/tcp/13802")
-	assert.Equal(t, "192.168.1.1", proto.getExternalAddr())
+	proto.setExternalAddr("/ip4/150.109.6.160/tcp/13802")
+	assert.Equal(t, "150.109.6.160", proto.getExternalAddr())
 	assert.True(t, !isPublicIP(snet.ParseIP("127.0.0.1")))
 	ips, err := localIPv4s()
 	assert.Nil(t, err)

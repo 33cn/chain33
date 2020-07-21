@@ -37,7 +37,7 @@ tcp/ip协议中，专门保留了三个IP地址区域作为私有地址，其地
 192.168.0.0/16：192.168.0.0～192.168.255.255
 */
 func isPublicIP(IP net.IP) bool {
-	if IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
+	if IP == nil || IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
 		return false
 	}
 	if ip4 := IP.To4(); ip4 != nil {

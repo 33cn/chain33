@@ -38,30 +38,17 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(p.handleStreamIsHealthy))
 	p.Host.SetStreamHandler(protocol.GetLastHeader, protocol.HandlerWithRW(p.handleStreamLastHeader))
 
-	//保存一个全局变量备查，避免频繁到网络中请求
-	go p.startUpdateFallBehind()
+	//保存一个全局变量备查，避免频繁到网络中请求。
+	//全节点不参与分布式存储，因此不需要更新
+	if !p.SubConfig.IsFullNode {
+		go p.startUpdateFallBehind()
+	}
+
 }
 
 // handleStreamIsSync 实时查询是否已同步完成
 func (p *Protocol) handleStreamIsSync(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
-	peers := p.Host.Network().Peers()
-	if len(peers) > MaxQuery {
-		shuffle(peers)
-		peers = peers[:MaxQuery]
-	}
-
-	maxHeight := int64(-1)
-	for _, pid := range peers {
-		header, err := p.getLastHeaderFromPeer(pid)
-		if err != nil {
-			log.Error("handleStreamIsSync", "getLastHeaderFromPeer error", err, "pid", pid)
-			continue
-		}
-		if header.Height > maxHeight {
-			maxHeight = header.Height
-		}
-	}
-
+	maxHeight := p.queryMaxHeight()
 	if maxHeight == -1 {
 		return types2.ErrUnknown
 	}

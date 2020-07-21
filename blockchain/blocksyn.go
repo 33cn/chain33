@@ -1166,14 +1166,9 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 	}
 
 	msg := chain.client.NewMessage("p2p", types.EventGetChunkRecord, reqRec)
-	err = chain.client.Send(msg, true)
+	err = chain.client.Send(msg, false)
 	if err != nil {
 		synlog.Error("FetchChunkRecords", "client.Send err:", err)
-		return err
-	}
-	_, err = chain.client.Wait(msg)
-	if err != nil {
-		synlog.Error("FetchChunkRecords", "client.Wait err:", err)
 		return err
 	}
 	return err
@@ -1259,14 +1254,9 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 	}
 	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End, "isDownLoad", isDownLoad, "chunkhash", common.ToHex(chunkhash))
 	msg := chain.client.NewMessage("p2p", types.EventGetChunkBlock, &requestblock)
-	err = chain.client.Send(msg, true)
+	err = chain.client.Send(msg, false)
 	if err != nil {
 		synlog.Error("FetchChunkBlock", "client.Send err:", err)
-		return err
-	}
-	_, err = chain.client.Wait(msg)
-	if err != nil {
-		synlog.Error("FetchChunkBlock", "client.Wait err:", err)
 		return err
 	}
 	return err

@@ -1,9 +1,7 @@
 syntax = "proto3";
 
 import "transaction.proto";
-import "blockchain.proto";
 import "account.proto";
-import "executor.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
