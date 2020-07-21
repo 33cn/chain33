@@ -578,7 +578,12 @@ func (c *Chain33) GetPeerInfo(in types.P2PGetPeerReq, result *interface{}) error
 				Hash:       common.ToHex(peer.GetHeader().GetHash()),
 				TxCount:    peer.GetHeader().GetTxCount(),
 			}
+
+			pr.Version = peer.GetVersion()
+			pr.LocalDBVersion = peer.GetLocalDBVersion()
+			pr.StoreDBVersion = peer.GetStoreDBVersion()
 			peerlist.Peers = append(peerlist.Peers, &pr)
+
 		}
 		*result = &peerlist
 	}
@@ -1000,11 +1005,13 @@ func (c *Chain33) GetNetInfo(in types.P2PGetNetInfoReq, result *interface{}) err
 		return err
 	}
 	*result = &rpctypes.NodeNetinfo{
-		Externaladdr: resp.GetExternaladdr(),
-		Localaddr:    resp.GetLocaladdr(),
-		Service:      resp.GetService(),
-		Outbounds:    resp.GetOutbounds(),
-		Inbounds:     resp.GetInbounds(),
+		Externaladdr:     resp.GetExternaladdr(),
+		Localaddr:        resp.GetLocaladdr(),
+		Service:          resp.GetService(),
+		Outbounds:        resp.GetOutbounds(),
+		Inbounds:         resp.GetInbounds(),
+		PeerstoreSize:    resp.GetPeerstoreSize(),
+		RoutingTableSize: resp.GetRoutingTableSize(),
 	}
 	return nil
 }

@@ -241,7 +241,7 @@ ReDownload:
 	req := &prototypes.StreamRequest{
 		PeerID: task.Pid,
 		Data:   blockReq,
-		MsgID:  downloadBlockReq,
+		MsgID:  []core.ProtocolID{downloadBlockReq},
 	}
 	var resp types.MessageGetBlocksResp
 	err := d.SendRecvPeer(req, &resp)

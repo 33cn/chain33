@@ -177,7 +177,7 @@ func (protocol *broadCastProtocol) sendPeer(pid peer.ID, data interface{}, delay
 	broadData := &types.MessageBroadCast{
 		Message: sendData}
 
-	stream, err := prototypes.NewStream(protocol.Host, pid, broadcastID)
+	stream, err := prototypes.NewStream(protocol.Host, pid, []core.ProtocolID{broadcastID})
 	if err != nil {
 		log.Error("sendPeer", "id", pid.Pretty(), "NewStreamErr", err)
 		return nil, err

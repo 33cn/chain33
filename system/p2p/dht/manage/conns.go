@@ -116,7 +116,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 
 			//debug
 			for _, pid := range s.discovery.ListPeers() {
-				log.Info("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
+				log.Debug("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
 			}
 
 		case <-time.After(time.Minute * 10):

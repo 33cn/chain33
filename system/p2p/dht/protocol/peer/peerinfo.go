@@ -2,13 +2,8 @@ package peer
 
 import (
 	"fmt"
-	"net"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-
 	"github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/queue"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
@@ -18,11 +13,17 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	multiaddr "github.com/multiformats/go-multiaddr"
+	"net"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 const (
 	protoTypeID    = "PeerProtocolType"
-	peerInfoReq    = "/chain33/peerinfoReq/1.0.0"
+	peerInfoReq    = "/chain33/peerinfoReq/1.0.0" //老版本
+	peerInfoReqV2  = "/chain33/peerinfoReq/1.0.1" //新版本，增加chain33 version 信息反馈
 	peerVersionReq = "/chain33/peerVersion/1.0.0"
 	pubsubTypeID   = "PubSubProtoType"
 )
@@ -32,6 +33,7 @@ var log = log15.New("module", "p2p.peer")
 func init() {
 	prototypes.RegisterProtocol(protoTypeID, &peerInfoProtol{})
 	prototypes.RegisterStreamHandler(protoTypeID, peerInfoReq, &peerInfoHandler{})
+	prototypes.RegisterStreamHandler(protoTypeID, peerInfoReqV2, &peerInfoHandler{})
 	prototypes.RegisterStreamHandler(protoTypeID, peerVersionReq, &peerInfoHandler{})
 	prototypes.RegisterProtocol(pubsubTypeID, &peerPubSub{})
 
@@ -68,7 +70,21 @@ func (p *peerInfoProtol) fetchPeersInfo() {
 
 	}
 }
+func (p *peerInfoProtol) getLoacalPeerInfoV2() *types.P2PPeerInfoV2 {
+	var peerinfo types.P2PPeerInfoV2
+	err := types.Decode(types.Encode(p.getLoacalPeerInfo()), &peerinfo)
+	if err != nil {
+		log.Error("getLoacalPeerInfoV2", "err", err)
+		return nil
+	}
+	peerinfo.Version = version.GetVersion()
+	peerinfo.StoreDBVersion = version.GetStoreDBVersion()
+	peerinfo.LocalDBVersion = version.GetLocalDBVersion()
+	return &peerinfo
+}
+
 func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
+
 	var peerinfo types.P2PPeerInfo
 
 	resp, err := p.QueryMempool(types.EventGetMempoolSize, nil)
@@ -106,12 +122,17 @@ func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 func (p *peerInfoProtol) onReq(req *types.MessagePeerInfoReq, s core.Stream) {
 	log.Debug(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
 
-	peerinfo := p.getLoacalPeerInfo()
 	peerID := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(peerID).Bytes()
-
-	resp := &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(uuid.New().String(), peerID.Pretty(), pubkey, false),
-		Message: peerinfo}
+	var resp *types.MessagePeerInfoResp
+	if s.Protocol() == peerInfoReq {
+		peerinfo := p.getLoacalPeerInfo()
+		resp = &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(req.MessageData.GetId(), peerID.Pretty(), pubkey, false),
+			Value: &types.MessagePeerInfoResp_Message{Message: peerinfo}}
+	} else if s.Protocol() == peerInfoReqV2 {
+		resp = &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(req.MessageData.GetId(), peerID.Pretty(), pubkey, false),
+			Value: &types.MessagePeerInfoResp_PeerInfo{PeerInfo: p.getLoacalPeerInfoV2()}}
+	}
 
 	err := prototypes.WriteStream(resp, s)
 	if err != nil {
@@ -145,7 +166,7 @@ func (p *peerInfoProtol) getPeerInfo() {
 			req := &prototypes.StreamRequest{
 				PeerID: peerid,
 				Data:   msgReq,
-				MsgID:  peerInfoReq,
+				MsgID:  []core.ProtocolID{peerInfoReq, peerInfoReqV2},
 			}
 			var resp types.MessagePeerInfoResp
 			err := p.SendRecvPeer(req, &resp)
@@ -153,12 +174,22 @@ func (p *peerInfoProtol) getPeerInfo() {
 				log.Error("handleEvent", "WriteStream", err)
 				return
 			}
-
-			if resp.GetMessage() == nil {
-				return
-			}
 			var dest types.Peer
-			p.PeerInfoManager.Copy(&dest, resp.GetMessage())
+			if resp.GetMessage() != nil { //旧版本
+				p.PeerInfoManager.Copy(&dest, resp.GetMessage())
+
+			}
+			if resp.GetPeerInfo() != nil { //新版本，包含版本信息
+				dest.LocalDBVersion = resp.GetPeerInfo().LocalDBVersion
+				dest.StoreDBVersion = resp.GetPeerInfo().StoreDBVersion
+				dest.Version = resp.GetPeerInfo().Version
+				dest.Name = resp.GetPeerInfo().GetName()
+				dest.Port = resp.GetPeerInfo().GetPort()
+				dest.MempoolSize = resp.GetPeerInfo().GetMempoolSize()
+				dest.Header = resp.GetPeerInfo().GetHeader()
+				dest.Addr = resp.GetPeerInfo().GetAddr()
+				//json.Unmarshal(types.Encode(resp.GetPeerInfo()), &dest)
+			}
 			p.PeerInfoManager.Add(peerid.Pretty(), &dest)
 		}(remoteID)
 
@@ -256,7 +287,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
 				Message: &version}
 
-			s, err := prototypes.NewStream(p.Host, pid, peerVersionReq)
+			s, err := prototypes.NewStream(p.Host, pid, []core.ProtocolID{peerVersionReq})
 			if err != nil {
 				log.Error("NewStream", "err", err, "remoteID", pid)
 				continue
@@ -298,7 +329,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
 	pinfos := p.PeerInfoManager.FetchPeerInfosInMin()
 	var peers []*types.Peer
-	var peer types.Peer
+
 	for _, pinfo := range pinfos {
 		if pinfo == nil {
 			continue
@@ -307,10 +338,21 @@ func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
 		peers = append(peers, pinfo)
 
 	}
-	peerinfo := p.getLoacalPeerInfo()
-	p.PeerInfoManager.Copy(&peer, peerinfo)
-	peer.Self = true
-	peers = append(peers, &peer)
+	peerinfo := p.getLoacalPeerInfoV2()
+	if peerinfo != nil {
+		var peer types.Peer
+		peer.LocalDBVersion = peerinfo.LocalDBVersion
+		peer.StoreDBVersion = peerinfo.StoreDBVersion
+		peer.Version = peerinfo.Version
+		peer.Name = peerinfo.GetName()
+		peer.Port = peerinfo.GetPort()
+		peer.MempoolSize = peerinfo.GetMempoolSize()
+		peer.Header = peerinfo.GetHeader()
+		peer.Addr = peerinfo.GetAddr()
+		//p.PeerInfoManager.Copy(&peer, peerinfo)
+		peer.Self = true
+		peers = append(peers, &peer)
+	}
 
 	msg.Reply(p.GetQueueClient().NewMessage("blockchain", types.EventPeerList, &types.PeerList{Peers: peers}))
 
@@ -326,15 +368,16 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 
 	//解析处理
 	log.Debug("PeerInfo Handler", "stream proto", stream.Protocol())
-	if stream.Protocol() == peerInfoReq {
+
+	switch stream.Protocol() {
+	case peerInfoReq, peerInfoReqV2:
 		var req types.MessagePeerInfoReq
 		err := prototypes.ReadStream(&req, stream)
 		if err != nil {
 			return
 		}
 		protocol.onReq(&req, stream)
-		return
-	} else if stream.Protocol() == peerVersionReq {
+	case peerVersionReq:
 		var req types.MessageP2PVersionReq
 		err := prototypes.ReadStream(&req, stream)
 		if err != nil {
