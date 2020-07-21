@@ -7,10 +7,9 @@ import (
 	"sync"
 	"time"
 
-	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
-
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/net"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -82,9 +81,12 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 // MonitorAllPeers monitory all peers
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	bootstraps := net.ConvertPeers(s.cfg.BootStraps)
+	ticker1 := time.NewTicker(time.Minute)
+	ticker2 := time.NewTicker(time.Minute * 10)
+	ticker3 := time.NewTicker(time.Hour * 6)
 	for {
 		select {
-		case <-time.After(time.Minute):
+		case <-ticker1.C:
 			var LatencyInfo = fmt.Sprintln("--------------时延--------------------")
 			peers := s.FetchConnPeers()
 			bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
@@ -103,9 +105,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 						stat.RateOut,
 						stat.TotalIn,
 						stat.TotalOut)
-
 				}
-
 			}
 			log.Debug(LatencyInfo)
 			insize, outsize := s.BoundSize()
@@ -114,12 +114,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			trackerInfo += fmt.Sprintln("-------------------------------------")
 			log.Debug(trackerInfo)
 
-			//debug
-			for _, pid := range s.discovery.ListPeers() {
-				log.Info("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
-			}
-
-		case <-time.After(time.Minute * 10):
+		case <-ticker2.C:
 			//处理当前连接的节点问题
 			if s.OutboundSize() > maxOutBounds || s.Size() > maxBounds {
 				continue
@@ -127,16 +122,21 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			//如果连接的节点数较少，尝试连接内置的和配置的种子节点
 			//无须担心重新连接的问题，底层会自己判断是否已经连接了此节点，如果已经连接了就会忽略
 			for _, seed := range net.ConvertPeers(seeds) {
-				s.host.Connect(context.Background(), *seed)
+				_ = s.host.Connect(context.Background(), *seed)
 			}
 
 			for _, node := range bootstraps {
-				s.host.Connect(context.Background(), *node)
+				_ = s.host.Connect(context.Background(), *node)
+			}
+
+		//debug
+		case <-ticker3.C:
+			for _, pid := range s.discovery.ListPeers() {
+				log.Info("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
 			}
 
 		case <-s.Done:
 			return
-
 		}
 	}
 }
@@ -159,7 +159,6 @@ func (s *ConnManager) Delete(pid peer.ID) {
 
 // Get get peer add info by id
 func (s *ConnManager) Get(pid peer.ID) *peer.AddrInfo {
-
 	peerinfo := s.discovery.FindLocalPeer(pid)
 	return &peerinfo
 }
@@ -167,14 +166,11 @@ func (s *ConnManager) Get(pid peer.ID) *peer.AddrInfo {
 // FetchNearestPeers fetch nearest peer ids
 func (s *ConnManager) FetchNearestPeers() []peer.ID {
 	return s.discovery.FindNearestPeers(s.host.ID(), 50)
-
 }
 
 // Size connections size
 func (s *ConnManager) Size() int {
-
 	return len(s.host.Network().Conns())
-
 }
 
 // FetchConnPeers 获取连接的Peer's ID 这个连接包含被连接的peer以及主动连接的peer.
@@ -209,14 +205,6 @@ func (s *ConnManager) convertMapToArr(in map[string]peer.ID) []peer.ID {
 		pids = append(pids, id)
 	}
 	return pids
-}
-
-func (s *ConnManager) convertArrToMap(in []peer.ID) map[string]peer.ID {
-	var m = make(map[string]peer.ID)
-	for _, pid := range in {
-		m[pid.Pretty()] = pid
-	}
-	return m
 }
 
 // CheckDiraction 检查连接的节点ID是被连接的还是主动连接的
