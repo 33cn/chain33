@@ -216,7 +216,6 @@ func (p *peerInfoProtol) detectNodeAddr() {
 	if isPublicIP(netIP) { //检测是PubIp不用继续通过其他节点获取
 		log.Debug("detectNodeAddr", "testPubIp", preExternalAddr)
 	}
-
 	log.Info("detectNodeAddr", "+++++++++++++++", preExternalAddr, "addrs", addrs)
 	localID := p.GetHost().ID()
 	var rangeCount int
