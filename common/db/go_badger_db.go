@@ -335,5 +335,6 @@ func (mBatch *GoBadgerDBBatch) Reset() {
 	mBatch.len = 0
 }
 
+// UpdateWriteSync ...
 func (mBatch *GoBadgerDBBatch) UpdateWriteSync(sync bool) {
 }

@@ -648,7 +648,7 @@ func (bc *BaseClient) CmpBestBlock(newBlock *types.Block, cmpHash []byte) bool {
 	return false
 }
 
-//RequestBlockByHash 通过区块hash获取区块信息
+//ReqBlockByHash 通过区块hash获取区块信息
 func (bc *BaseClient) ReqBlockByHash(hash []byte) (*types.Block, error) {
 	if bc.client == nil {
 		panic("bc not bind message queue.")

@@ -66,7 +66,7 @@ func CalcBitMapByBitMap(bases, subs [][]byte, bitmap []byte) []byte {
 	return rst.Bytes()
 }
 
-//设置addrGroup范围内的bitmap，如果addrs在addrGroup不存在，也不设置,返回未命中的addrs
+//SetAddrsBitMap 设置addrGroup范围内的bitmap，如果addrs在addrGroup不存在，也不设置,返回未命中的addrs
 func SetAddrsBitMap(addrGroup, addrs []string) ([]byte, map[string]bool) {
 	rst := big.NewInt(0)
 	addrsMap := make(map[string]bool)
@@ -83,7 +83,7 @@ func SetAddrsBitMap(addrGroup, addrs []string) ([]byte, map[string]bool) {
 	return rst.Bytes(), addrsMap
 }
 
-//根据bitmap获取addrGroup范围内的addrs，
+//GetAddrsByBitMap 根据bitmap获取addrGroup范围内的addrs，
 func GetAddrsByBitMap(addrGroup []string, bitmap []byte) []string {
 	rst := big.NewInt(0).SetBytes(bitmap)
 	addrs := make([]string, 0)

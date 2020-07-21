@@ -479,7 +479,7 @@ func (wallet *Wallet) getWalletAccounts() ([]*types.WalletAccountStore, error) {
 	return WalletAccStores, err
 }
 
-//GetWalletAccounts: 获取账号列表
+//GetWalletAccounts 获取账号列表
 func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited

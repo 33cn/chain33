@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package types 外部公用类型
+// Package types 外部公用类型
 package types
 
 // P2PSubConfig p2p 子配置
@@ -50,4 +50,7 @@ type P2PSubConfig struct {
 	DHTDataDriver string `protobuf:"bytes,14,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
 	DHTDataPath   string `protobuf:"bytes,15,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
 	DHTDataCache  int32  `protobuf:"varint,16,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
+
+	//是否开启全节点模式
+	IsFullNode bool `protobuf:"varint,17,opt,name=isFullNode" json:"isFullNode,omitempty"`
 }

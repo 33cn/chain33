@@ -123,7 +123,7 @@ func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to
 	return tx
 }
 
-// // CreateNoneTxWithTxHeight 使用txHeight作为交易过期
+//CreateNoneTxWithTxHeight 使用txHeight作为交易过期
 func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) *types.Transaction {
 
 	tx := CreateNoneTx(cfg, nil)
@@ -305,10 +305,12 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 			dupErrChan <- err
 			return
 		}
-		ulog.Error("PreExecBlock", "prevtx", len(block.Txs), "newtx", len(cacheTxs))
-		if len(block.Txs) != len(cacheTxs) && errReturn {
-			dupErrChan <- types.ErrTxDup
-			return
+		if len(block.Txs) != len(cacheTxs) {
+			ulog.Error("PreExecBlock", "prevtx", len(block.Txs), "newtx", len(cacheTxs))
+			if errReturn {
+				dupErrChan <- types.ErrTxDup
+				return
+			}
 		}
 		dupErrChan <- nil
 	}()
@@ -469,7 +471,7 @@ func CreateNewBlock(cfg *types.Chain33Config, parent *types.Block, txs []*types.
 	return newblock
 }
 
-// ExecAndCheckBlock2 :
+//ExecAndCheckBlock ...
 func ExecAndCheckBlock(qclient queue.Client, block *types.Block, txs []*types.Transaction, result []int) (*types.Block, error) {
 	return ExecAndCheckBlockCB(qclient, block, txs, func(index int, receipt *types.ReceiptData) error {
 		if len(result) <= index {

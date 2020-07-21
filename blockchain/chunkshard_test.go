@@ -208,8 +208,8 @@ func TestNotifyStoreChunkToP2P(t *testing.T) {
 	}
 	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data: data})
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
-	client.On("Wait", mock.Anything).Return(rspMsg, nil)
+	//rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
+	//client.On("Wait", mock.Anything).Return(rspMsg, nil)
 	chain.notifyStoreChunkToP2P(data)
 }
 
@@ -320,30 +320,30 @@ func TestCaclChunkInfo(t *testing.T) {
 
 	chainCfg := cfg.GetModuleConfig().BlockChain
 	chainCfg.ChunkblockNum = 1
-	chunkNum, start, end := chain.CaclChunkInfo(0)
+	chunkNum, start, end := chain.CalcChunkInfo(0)
 	assert.Equal(t, chunkNum, int64(0))
 	assert.Equal(t, start, int64(0))
 	assert.Equal(t, end, int64(0))
 
-	chunkNum, start, end = chain.CaclChunkInfo(1)
+	chunkNum, start, end = chain.CalcChunkInfo(1)
 	assert.Equal(t, chunkNum, int64(1))
 	assert.Equal(t, start, int64(1))
 	assert.Equal(t, end, int64(1))
 
 	chainCfg.ChunkblockNum = 2
-	chunkNum, start, end = chain.CaclChunkInfo(0)
+	chunkNum, start, end = chain.CalcChunkInfo(0)
 	assert.Equal(t, chunkNum, int64(0))
 	assert.Equal(t, start, int64(0))
 	assert.Equal(t, end, int64(1))
-	chunkNum, start, end = chain.CaclChunkInfo(2)
+	chunkNum, start, end = chain.CalcChunkInfo(2)
 	assert.Equal(t, chunkNum, int64(1))
 	assert.Equal(t, start, int64(2))
 	assert.Equal(t, end, int64(3))
-	chunkNum, start, end = chain.CaclChunkInfo(3)
+	chunkNum, start, end = chain.CalcChunkInfo(3)
 	assert.Equal(t, chunkNum, int64(1))
 	assert.Equal(t, start, int64(2))
 	assert.Equal(t, end, int64(3))
-	chunkNum, start, end = chain.CaclChunkInfo(4)
+	chunkNum, start, end = chain.CalcChunkInfo(4)
 	assert.Equal(t, chunkNum, int64(2))
 	assert.Equal(t, start, int64(4))
 	assert.Equal(t, end, int64(5))

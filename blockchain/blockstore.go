@@ -572,6 +572,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	return lastSequence, nil
 }
 
+//BlockdetailToBlockBody get block detail
 func (bs *BlockStore) BlockdetailToBlockBody(blockdetail *types.BlockDetail) *types.BlockBody {
 	cfg := bs.client.GetConfig()
 	height := blockdetail.Block.Height
@@ -1564,7 +1565,7 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 	//获取body
 	var blockbody *types.BlockBody
 	if chainCfg.EnableIfDelLocalChunk { // 6.6之后，测试完成之后该分支进行删除
-		chunkNum, _, _ := caclChunkInfo(chainCfg, blockheader.Height)
+		chunkNum, _, _ := calcChunkInfo(chainCfg, blockheader.Height)
 		if bs.Height() > blockheader.Height+MaxRollBlockNum+chainCfg.ChunkblockNum+int64(DelRollbackChunkNum) { // 这里模拟删除情况下去网络中查找
 			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
 			if bodys == nil || len(bodys.Items) == 0 || err != nil {
@@ -1687,6 +1688,7 @@ func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
 	return chunk.ChunkHash, err
 }
 
+//GetMaxSerialChunkNum get max serial chunk num
 func (bs *BlockStore) GetMaxSerialChunkNum() int64 {
 	value, err := bs.db.Get(MaxSerialChunkNum)
 	if err != nil {
@@ -1700,6 +1702,7 @@ func (bs *BlockStore) GetMaxSerialChunkNum() int64 {
 	return chunkNum.Data
 }
 
+//SetMaxSerialChunkNum set max serial chunk num
 func (bs *BlockStore) SetMaxSerialChunkNum(chunkNum int64) error {
 	data := &types.Int64{
 		Data: chunkNum,

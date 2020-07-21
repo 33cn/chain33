@@ -18,9 +18,6 @@ import (
 const (
 	notRunning               = int32(1)
 	running                  = int32(2)
-	PushBlock                = int32(0)
-	PushBlockHeader          = int32(1)
-	PushTxReceipt            = int32(2)
 	pushBlockMaxSeq          = 10
 	pushTxReceiptMaxSeq      = 100
 	pushMaxSize              = 1 * 1024 * 1024
@@ -29,6 +26,13 @@ const (
 	subscribeStatusNotActive = int32(2)
 	postFail2Sleep           = int32(60) //一次发送失败，sleep的次数
 	chanBufCap               = int(10)
+)
+
+// Push types ID
+const (
+	PushBlock       = int32(0)
+	PushBlockHeader = int32(1)
+	PushTxReceipt   = int32(2)
 )
 
 // CommonStore 通用的store 接口
@@ -42,6 +46,7 @@ type CommonStore interface {
 	List(prefix []byte) ([][]byte, error)
 }
 
+//SequenceStore ...
 type SequenceStore interface {
 	LoadBlockLastSequence() (int64, error)
 	// seqUpdateChan -> block sequence
@@ -56,6 +61,7 @@ type SequenceStore interface {
 	GetSequenceByHash(hash []byte) (int64, error)
 }
 
+//PostService ...
 type PostService interface {
 	PostData(subscribe *types.PushSubscribeReq, postdata []byte, seq int64) (err error)
 }
@@ -73,6 +79,7 @@ type pushNotify struct {
 	postFail2Sleep int32
 }
 
+//Push ...
 type Push struct {
 	store          CommonStore
 	sequenceStore  SequenceStore
@@ -84,16 +91,19 @@ type Push struct {
 	postwg         *sync.WaitGroup
 }
 
+//PushClient ...
 type PushClient struct {
 	client *http.Client
 }
 
+// PushType ...
 type PushType int32
 
 func (pushType PushType) string() string {
 	return []string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "NotSupported"}[pushType]
 }
 
+//PostData ...
 func (pushClient *PushClient) PostData(subscribe *types.PushSubscribeReq, postdata []byte, seq int64) (err error) {
 	//post data in body
 	chainlog.Info("postData begin", "seq", seq, "subscribe name", subscribe.Name)
@@ -183,7 +193,7 @@ func (chain *BlockChain) ProcListPush() (*types.PushSubscribes, error) {
 	return &listSeqCBs, nil
 }
 
-// GetLastPushSeq Seq的合法值从0开始的，所以没有获取到或者获取失败都应该返回-1
+// ProcGetLastPushSeq Seq的合法值从0开始的，所以没有获取到或者获取失败都应该返回-1
 func (chain *BlockChain) ProcGetLastPushSeq(name string) (int64, error) {
 	if !chain.isRecordBlockSequence {
 		return -1, types.ErrRecordBlockSequence
@@ -263,6 +273,7 @@ func (push *Push) init() {
 	}
 }
 
+// Close ...
 func (push *Push) Close() {
 	push.mu.Lock()
 	for _, task := range push.tasks {
@@ -447,7 +458,7 @@ func (push *Push) runTask(input *pushNotify) {
 	push.updateLastSeq(input.subscribe.Name)
 
 	go func(in *pushNotify) {
-		var lastesBlockSeq int64 = -1
+		var lastesBlockSeq int64
 		var continueFailCount int32
 		var err error
 

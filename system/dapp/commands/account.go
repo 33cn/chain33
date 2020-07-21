@@ -353,6 +353,7 @@ func parseSetLabelRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
+//DumpKeysFileCmd dump file
 func DumpKeysFileCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dump_keys",
@@ -366,6 +367,7 @@ func DumpKeysFileCmd() *cobra.Command {
 	return cmd
 }
 
+//ImportKeysFileCmd import key
 func ImportKeysFileCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import_keys",

@@ -19,6 +19,7 @@ type peerPubSub struct {
 	topicMoudle sync.Map
 }
 
+// InitProtocol init protocol
 func (p *peerPubSub) InitProtocol(env *prototypes.P2PEnv) {
 	p.P2PEnv = env
 	p.p2pCfg = env.SubConfig

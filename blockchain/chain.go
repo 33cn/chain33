@@ -30,6 +30,7 @@ var (
 )
 
 const maxFutureBlocks = 256
+const defaultChunkBlockNum = 1
 
 //BlockChain 区块链结构体
 type BlockChain struct {
@@ -123,7 +124,6 @@ type BlockChain struct {
 
 	//记录当前已经连续的最高高度
 	maxSerialChunkNum int64
-	maxSeriallock     sync.Mutex
 }
 
 //New new
@@ -138,7 +138,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		defCacheSize = mcfg.DefCacheSize
 	}
 	if atomic.LoadInt64(&mcfg.ChunkblockNum) == 0 {
-		atomic.StoreInt64(&mcfg.ChunkblockNum, 1)
+		atomic.StoreInt64(&mcfg.ChunkblockNum, defaultChunkBlockNum)
 	}
 	blockchain := &BlockChain{
 		cache:              NewBlockCache(cfg, defCacheSize),
@@ -322,7 +322,7 @@ func (chain *BlockChain) InitBlockChain() {
 
 	if !chain.cfg.DisableShard {
 		chain.tickerwg.Add(1)
-		go chain.ChunkProcessRoutine()
+		go chain.chunkProcessRoutine()
 	}
 
 	//初始化默认DownLoadInfo
@@ -499,10 +499,11 @@ func (chain *BlockChain) InitIndexAndBestView() {
 	for ; height <= curheight; height++ {
 		header, err := chain.blockStore.GetBlockHeaderByHeight(height)
 		if header == nil {
+			chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
 			//开始升级localdb到2.0.0版本时需要兼容旧的存储方式
 			header, err = chain.blockStore.getBlockHeaderByHeightOld(height)
 			if header == nil {
-				chainlog.Error("InitIndexAndBestView GetBlockHeaderByHeight", "height", height, "err", err)
+				chainlog.Error("InitIndexAndBestView getBlockHeaderByHeightOld", "height", height, "err", err)
 				panic("InitIndexAndBestView fail!")
 			}
 		}

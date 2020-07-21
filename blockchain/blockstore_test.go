@@ -431,6 +431,7 @@ func TestGetBodyFromP2Pstore(t *testing.T) {
 		Height: 1,
 	}
 	body, err := blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blcokHash), nil)
+	assert.Nil(t, body)
 	assert.Equal(t, err, types.ErrHashNotExist)
 	bcConfig := cfg.GetModuleConfig().BlockChain
 	bcConfig.EnableFetchP2pstore = true

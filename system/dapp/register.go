@@ -79,6 +79,7 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 	return nil, types.ErrUnknowDriver
 }
 
+//LoadDriverWithClient load
 func LoadDriverWithClient(qclent client.QueueProtocolAPI, name string, height int64) (driver Driver, err error) {
 	driver, err = LoadDriver(name, height)
 	if err != nil {
