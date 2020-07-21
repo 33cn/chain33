@@ -42,14 +42,16 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	defer wallet.mtx.Unlock()
 	index := unsigned.Index
 
-	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok || err != nil {
-		return "", err
-	}
+	//Privacy交易功能，需要在隐私plugin里面检查，而不是所有交易签名都检查，在隐私启动scan时候会导致其他交易签名失败，同时这里在scaning时候，
+	//需要返回一个错误，而不是nil
+	//if ok, err := wallet.IsRescanUtxosFlagScaning(); ok || err != nil {
+	//	return "", err types.ErrNotSupport
+	//}
 
 	var key crypto.PrivKey
 	if unsigned.GetAddr() != "" {
-		ok, err := wallet.checkWalletStatus()
-		if !ok {
+		_, err := wallet.checkWalletStatus()
+		if err != nil {
 			return "", err
 		}
 		key, err = wallet.getPrivKeyByAddr(unsigned.GetAddr())
@@ -58,8 +60,11 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		}
 	} else if unsigned.GetPrivkey() != "" {
 		keyByte, err := common.FromHex(unsigned.GetPrivkey())
-		if err != nil || len(keyByte) == 0 {
+		if err != nil {
 			return "", err
+		}
+		if len(keyByte) == 0 {
+			return "", types.ErrPrivateKeyLen
 		}
 		cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 		if err != nil {
@@ -111,8 +116,11 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if policy, ok := wcom.PolicyContainer[string(cfg.GetParaExec(tx.Execer))]; ok {
 		// 尝试让策略自己去完成签名
 		needSysSign, signtx, err := policy.SignTransaction(key, unsigned)
+		if err != nil {
+			return "", err
+		}
 		if !needSysSign {
-			return signtx, err
+			return signtx, types.ErrSign
 		}
 	}
 
