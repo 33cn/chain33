@@ -115,6 +115,7 @@ func (client *Client) CreateBlock() {
 		maxTxNum := int(cfg.GetP(lastBlock.Height + 1).MaxTxNumber)
 		txs := client.RequestTx(maxTxNum, nil)
 		txs = client.CheckTxDup(txs)
+
 		// 为方便测试，设定基准测试模式，每个块交易数保持恒定，为配置的最大交易数
 		if len(txs) == 0 || (client.subcfg.BenchMode && len(txs) < maxTxNum) {
 			log.Debug("======SoloWaitMoreTxs======", "currTxNum", len(txs))
