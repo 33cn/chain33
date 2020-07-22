@@ -120,18 +120,19 @@ func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 
 //p2pserver 端接收处理事件
 func (p *peerInfoProtol) onReq(req *types.MessagePeerInfoReq, s core.Stream) {
-	log.Debug(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
+	log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
 
 	peerID := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(peerID).Bytes()
 	var resp *types.MessagePeerInfoResp
-	if s.Protocol() == peerInfoReq {
+	if s.Protocol() == peerInfoReqV2 {
+		resp = &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(req.MessageData.GetId(), peerID.Pretty(), pubkey, false),
+			Value: &types.MessagePeerInfoResp_PeerInfo{PeerInfo: p.getLoacalPeerInfoV2()}}
+
+	} else if s.Protocol() == peerInfoReq {
 		peerinfo := p.getLoacalPeerInfo()
 		resp = &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(req.MessageData.GetId(), peerID.Pretty(), pubkey, false),
 			Value: &types.MessagePeerInfoResp_Message{Message: peerinfo}}
-	} else if s.Protocol() == peerInfoReqV2 {
-		resp = &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(req.MessageData.GetId(), peerID.Pretty(), pubkey, false),
-			Value: &types.MessagePeerInfoResp_PeerInfo{PeerInfo: p.getLoacalPeerInfoV2()}}
 	}
 
 	err := prototypes.WriteStream(resp, s)
@@ -166,7 +167,7 @@ func (p *peerInfoProtol) getPeerInfo() {
 			req := &prototypes.StreamRequest{
 				PeerID: peerid,
 				Data:   msgReq,
-				MsgID:  []core.ProtocolID{peerInfoReq, peerInfoReqV2},
+				MsgID:  []core.ProtocolID{peerInfoReqV2, peerInfoReq},
 			}
 			var resp types.MessagePeerInfoResp
 			err := p.SendRecvPeer(req, &resp)
@@ -367,7 +368,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 	protocol := h.GetProtocol().(*peerInfoProtol)
 
 	//解析处理
-	log.Debug("PeerInfo Handler", "stream proto", stream.Protocol())
+	log.Info("PeerInfo Handler", "stream proto", stream.Protocol())
 
 	switch stream.Protocol() {
 	case peerInfoReq, peerInfoReqV2:
