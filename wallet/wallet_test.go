@@ -780,6 +780,21 @@ func testSignRawTx(t *testing.T, wallet *Wallet) {
 	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "SignRawTx", unsigned)
 	assert.Equal(t, err, types.ErrNoPrivKeyOrAddr)
 
+	unsigned.Privkey = "0x"
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "SignRawTx", unsigned)
+	assert.Equal(t, err, types.ErrPrivateKeyLen)
+
+	unsigned.Privkey = "0x5Z"
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "SignRawTx", unsigned)
+	assert.NotNil(t, err)
+
+	signTy := wallet.SignType
+	wallet.SignType = 0xff
+	unsigned.Privkey = "0x55"
+	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "SignRawTx", unsigned)
+	assert.NotNil(t, err)
+	wallet.SignType = signTy
+
 	println("TestSignRawTx end")
 	println("--------------------------")
 }

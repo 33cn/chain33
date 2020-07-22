@@ -50,8 +50,8 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 
 	var key crypto.PrivKey
 	if unsigned.GetAddr() != "" {
-		_, err := wallet.checkWalletStatus()
-		if err != nil {
+		ok, err := wallet.checkWalletStatus()
+		if !ok {
 			return "", err
 		}
 		key, err = wallet.getPrivKeyByAddr(unsigned.GetAddr())
@@ -116,11 +116,8 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if policy, ok := wcom.PolicyContainer[string(cfg.GetParaExec(tx.Execer))]; ok {
 		// 尝试让策略自己去完成签名
 		needSysSign, signtx, err := policy.SignTransaction(key, unsigned)
-		if err != nil {
-			return "", err
-		}
 		if !needSysSign {
-			return signtx, types.ErrSign
+			return signtx, err
 		}
 	}
 
