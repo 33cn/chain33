@@ -355,7 +355,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 
 	chainlog.Debug("SendAddBlockEvent -->>mempool")
 	msg := chain.client.NewMessage("mempool", types.EventAddBlock, block)
-	//此处采用同步发送模式，主要是为了消息在消息队列内部走高速通道，这样能尽快被mempool模块处理
+	//此处采用同步发送模式，主要是为了消息在消息队列内部走高速通道，尽快被mempool模块处理
 	Err := chain.client.Send(msg, true)
 	if Err != nil {
 		chainlog.Error("SendAddBlockEvent -->>mempool", "err", Err)
