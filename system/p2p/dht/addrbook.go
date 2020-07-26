@@ -121,10 +121,16 @@ func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
 		log.Error("GetPrivkey", "DecodeString Error", err.Error())
 		return nil
 	}
+	log.Info("GetPrivkey", "privvvvvvvvvvvv", a.privkey)
 	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
 	if err != nil {
-		log.Error("GetPrivkey", "PrivKeyUnmarshaller", err.Error())
-		return nil
+
+		privkey, err = p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
+		if err != nil {
+			log.Error("GetPrivkey", "UnmarshalSecp256k1PrivateKey", err.Error())
+			return nil
+		}
+		return privkey
 	}
 	return privkey
 }
@@ -177,16 +183,19 @@ func (a *AddrBook) StoreHostID(id peer.ID, path string) {
 
 // GenPrivPubkey return key and pubkey in bytes
 func GenPrivPubkey() ([]byte, []byte, error) {
-	priv, pub, err := p2pcrypto.GenerateKeyPairWithReader(p2pcrypto.Secp256k1, 2048, rand.Reader)
+	priv, pub, err := p2pcrypto.GenerateSecp256k1Key(rand.Reader)
+	//priv, pub, err := p2pcrypto.GenerateKeyPairWithReader(p2pcrypto.Secp256k1, 2048, rand.Reader)
 	if err != nil {
 		return nil, nil, err
 	}
-	privkey, err := priv.Bytes()
+
+	privkey, err := priv.Raw()
+	log.Info("GenPrivPubkey", "keyyyyyyyyyyyyyy", len(privkey))
 	if err != nil {
 		return nil, nil, err
 
 	}
-	pubkey, err := pub.Bytes()
+	pubkey, err := pub.Raw()
 	if err != nil {
 		return nil, nil, err
 
@@ -202,10 +211,19 @@ func GenPubkey(key string) (string, error) {
 		log.Error("DecodeString Error", "Error", err.Error())
 		return "", err
 	}
+
+	log.Info("GenPubkey", "key size", len(keybytes))
+
 	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
 	if err != nil {
-		log.Error("genPubkey", "PrivKeyUnmarshaller", err.Error())
-		return "", err
+
+		//切换
+		privkey, err = p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
+		if err != nil {
+			log.Error("genPubkey", "UnmarshalSecp256k1PrivateKey", err.Error())
+			return "", err
+		}
+
 	}
 	pubkey, err := privkey.GetPublic().Bytes()
 	if err != nil {
@@ -213,5 +231,15 @@ func GenPubkey(key string) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(pubkey), nil
+
+}
+
+func UnmarshalSpecp256k1Privkey(key string) (p2pcrypto.PrivKey, error) {
+	keybytes, err := hex.DecodeString(key)
+	if err != nil {
+		log.Error("DecodeString Error", "Error", err.Error())
+		return nil, err
+	}
+	return p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
 
 }

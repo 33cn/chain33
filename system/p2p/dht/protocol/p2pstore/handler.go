@@ -3,6 +3,7 @@ package p2pstore
 import (
 	"encoding/hex"
 	"encoding/json"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	"sync"
 	"time"
 
@@ -21,8 +22,8 @@ var log = log15.New("module", "protocol.p2pstore")
 
 // Protocol ...
 type Protocol struct {
-	*protocol.P2PEnv //协议共享接口变量
-
+	//*protocol.P2PEnv //协议共享接口变量
+	*prototypes.P2PEnv
 	notifying sync.Map
 
 	//普通路由表的一个子表，仅包含接近同步完成的节点
@@ -40,7 +41,7 @@ func init() {
 }
 
 //InitProtocol initials the protocol.
-func InitProtocol(env *protocol.P2PEnv) {
+func InitProtocol(env *prototypes.P2PEnv) {
 	p := &Protocol{
 		P2PEnv:              env,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),

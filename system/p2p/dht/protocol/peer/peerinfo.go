@@ -72,7 +72,11 @@ func (p *peerInfoProtol) fetchPeersInfo() {
 }
 func (p *peerInfoProtol) getLoacalPeerInfoV2() *types.P2PPeerInfoV2 {
 	var peerinfo types.P2PPeerInfoV2
-	err := types.Decode(types.Encode(p.getLoacalPeerInfo()), &peerinfo)
+	localpeerinfo := p.getLoacalPeerInfo()
+	if localpeerinfo == nil {
+		return nil
+	}
+	err := types.Decode(types.Encode(localpeerinfo), &peerinfo)
 	if err != nil {
 		log.Error("getLoacalPeerInfoV2", "err", err)
 		return nil
@@ -84,7 +88,11 @@ func (p *peerInfoProtol) getLoacalPeerInfoV2() *types.P2PPeerInfoV2 {
 }
 
 func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
-
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("getLoacalPeerInfo", "recoverErr", r)
+		}
+	}()
 	var peerinfo types.P2PPeerInfo
 
 	resp, err := p.QueryMempool(types.EventGetMempoolSize, nil)

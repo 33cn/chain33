@@ -7,6 +7,8 @@ package types
 
 import (
 	"context"
+	ds "github.com/ipfs/go-datastore"
+	kbt "github.com/libp2p/go-libp2p-kbucket"
 	"reflect"
 	"time"
 
@@ -71,6 +73,13 @@ type P2PEnv struct {
 	Pubsub          *net.PubSub
 	Ctx             context.Context
 	Cancel          context.CancelFunc
+	DB              ds.Datastore
+	RoutingTable    RoutingTabler
+}
+
+// RoutingTabler routing table interface
+type RoutingTabler interface {
+	RoutingTable() *kbt.RoutingTable
 }
 
 // IConnManager connection manager interface

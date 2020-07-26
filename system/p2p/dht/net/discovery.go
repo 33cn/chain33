@@ -58,6 +58,11 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 	}
 	d.routingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
 	return d
+
+}
+
+func (d *Discovery) CloseDht() {
+	d.kademliaDHT.Close()
 }
 
 // FindPeers find peers

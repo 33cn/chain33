@@ -7,7 +7,9 @@ package dht
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -54,6 +56,7 @@ type P2P struct {
 
 	pubsub  *net.PubSub
 	closed  int32
+	restart int32
 	p2pCfg  *types.P2P
 	subCfg  *p2pty.P2PSubConfig
 	mgr     *p2p.Manager
@@ -61,8 +64,9 @@ type P2P struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 
-	db  ds.Datastore
-	env *protocol.P2PEnv
+	db ds.Datastore
+	//env *protocol.P2PEnv
+	env *prototypes.P2PEnv
 }
 
 // New new dht p2p network
@@ -75,47 +79,113 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	if mcfg.Port == 0 {
 		mcfg.Port = p2pty.DefaultP2PPort
 	}
-
+	client := mgr.Client
 	addrbook := NewAddrBook(p2pCfg)
-	priv := addrbook.GetPrivkey()
+	return &P2P{
+		client:   client,
+		chainCfg: chainCfg,
+		subCfg:   mcfg,
+		p2pCfg:   p2pCfg,
+		mgr:      mgr,
+		api:      mgr.SysAPI,
+		addrbook: addrbook,
+	}
 
+}
+
+// StartP2P start p2p
+func (p *P2P) StartP2P() {
+	//addrbook := NewAddrBook(p.p2pCfg)
+	priv := p.addrbook.GetPrivkey()
 	bandwidthTracker := metrics.NewBandwidthCounter()
 
-	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", mcfg.Port))
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", p.subCfg.Port))
 	if err != nil {
 		panic(err)
 	}
 	log.Info("NewMulti", "addr", maddr.String())
-	host := newHost(mcfg, priv, bandwidthTracker, maddr)
+	host := newHost(p.subCfg, priv, bandwidthTracker, maddr)
+	p.host = host
+	p.peerInfoManag = manage.NewPeerInfoManager(p.client)
+	//p.addrbook = addrbook
+	p.taskGroup = &sync.WaitGroup{}
+	p.db = store.NewDataStore(p.subCfg)
 
-	p2p := &P2P{
-		host:          host,
-		peerInfoManag: manage.NewPeerInfoManager(mgr.Client),
-		chainCfg:      chainCfg,
-		subCfg:        mcfg,
-		p2pCfg:        p2pCfg,
-		client:        mgr.Client,
-		api:           mgr.SysAPI,
-		addrbook:      addrbook,
-		mgr:           mgr,
-		taskGroup:     &sync.WaitGroup{},
-		db:            store.NewDataStore(mcfg),
-	}
-	p2p.ctx, p2p.cancel = context.WithCancel(context.Background())
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 
-	p2p.subChan = p2p.mgr.PubSub.Sub(p2pty.DHTTypeName)
-	p2p.discovery = net.InitDhtDiscovery(p2p.ctx, p2p.host, p2p.addrbook.AddrsInfo(), p2p.chainCfg, p2p.subCfg)
-	p2p.connManag = manage.NewConnManager(p2p.host, p2p.discovery, bandwidthTracker, p2p.subCfg)
+	p.subChan = p.mgr.PubSub.Sub(p2pty.DHTTypeName)
+	p.discovery = net.InitDhtDiscovery(p.ctx, p.host, p.addrbook.AddrsInfo(), p.chainCfg, p.subCfg)
+	p.connManag = manage.NewConnManager(p.host, p.discovery, bandwidthTracker, p.subCfg)
 
-	pubsub, err := net.NewPubSub(p2p.ctx, p2p.host)
+	pubsub, err := net.NewPubSub(p.ctx, p.host)
 	if err != nil {
-		return nil
+		return
 	}
 
-	p2p.pubsub = pubsub
-	p2p.addrbook.StoreHostID(p2p.host.ID(), p2pCfg.DbPath)
-	log.Info("NewP2p", "peerId", p2p.host.ID(), "addrs", p2p.host.Addrs())
-	return p2p
+	p.pubsub = pubsub
+	p.addrbook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
+	pubkey, err := p.host.ID().ExtractPublicKey()
+	if err != nil {
+		panic(err)
+	}
+	pbs, err := pubkey.Raw()
+	if err != nil {
+		panic(err)
+	}
+	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs(), "hexPubkeyxxxxxxxxxxxxxxxxxxxxxxxxxxxx", hex.EncodeToString(pbs))
+
+	//提供给其他插件使用的共享接口
+	env := &prototypes.P2PEnv{
+		ChainCfg:        p.chainCfg,
+		QueueClient:     p.client,
+		Host:            p.host,
+		ConnManager:     p.connManag,
+		PeerInfoManager: p.peerInfoManag,
+		P2PManager:      p.mgr,
+		SubConfig:       p.subCfg,
+		Discovery:       p.discovery,
+		Pubsub:          p.pubsub,
+		Ctx:             p.ctx,
+		Cancel:          p.cancel,
+		DB:              p.db,
+		RoutingTable:    p.discovery,
+	}
+	protocol.Init(env)
+	protocol.InitAllProtocol(env)
+	p.env = env
+	go p.managePeers()
+	go p.handleP2PEvent()
+	go p.findLANPeers()
+	go p.genAirDropKey()
+
+}
+
+// CloseP2P close p2p
+func (p *P2P) CloseP2P() {
+	log.Info("p2p closing")
+	p.mgr.PubSub.Unsub(p.subChan)
+
+	p.cancel()
+	p.connManag.Close()
+	p.peerInfoManag.Close()
+	p.discovery.CloseFindLANPeers()
+	p.discovery.CloseDht()
+	p.host.Close()
+	p.waitTaskDone()
+	p.db.Close()
+
+	atomic.StoreInt32(&p.closed, 1)
+	protocol.ClearEventHandler()
+	prototypes.ClearEventHandler()
+
+	log.Info("p2p closeddddddddddddddddddddddddddd")
+}
+
+func (p *P2P) reStart() {
+
+	p.CloseP2P()
+	p.StartP2P()
+
 }
 
 func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) core.Host {
@@ -169,53 +239,18 @@ func (p *P2P) managePeers() {
 
 	for {
 		log.Debug("managePeers", "table size", p.discovery.RoutingTableSize())
-		if p.isClose() {
+		select {
+		case <-p.ctx.Done():
 			log.Info("managePeers", "p2p", "closed")
 			return
+		case <-time.After(time.Minute * 10):
+			//Reflesh addrbook
+			peersInfo := p.discovery.FindLocalPeers(p.connManag.FetchNearestPeers())
+			p.addrbook.SaveAddr(peersInfo)
 		}
-		<-time.After(time.Minute * 10)
-		//Reflesh addrbook
-		peersInfo := p.discovery.FindLocalPeers(p.connManag.FetchNearestPeers())
-		p.addrbook.SaveAddr(peersInfo)
+
 	}
 
-}
-
-// StartP2P start p2p
-func (p *P2P) StartP2P() {
-
-	//提供给其他插件使用的共享接口
-	env := &prototypes.P2PEnv{
-		ChainCfg:        p.chainCfg,
-		QueueClient:     p.client,
-		Host:            p.host,
-		ConnManager:     p.connManag,
-		PeerInfoManager: p.peerInfoManag,
-		P2PManager:      p.mgr,
-		SubConfig:       p.subCfg,
-		Discovery:       p.discovery,
-		Pubsub:          p.pubsub,
-		Ctx:             p.ctx,
-		Cancel:          p.cancel,
-	}
-	protocol.Init(env)
-
-	go p.managePeers()
-	go p.handleP2PEvent()
-	go p.findLANPeers()
-
-	//debug new
-	env2 := &protocol.P2PEnv{
-		ChainCfg:     p.chainCfg,
-		QueueClient:  p.client,
-		Host:         p.host,
-		P2PManager:   p.mgr,
-		SubConfig:    p.subCfg,
-		DB:           p.db,
-		RoutingTable: p.discovery,
-	}
-	p.env = env2
-	protocol.InitAllProtocol(env2)
 }
 
 //查询本局域网内是否有节点
@@ -253,42 +288,34 @@ func (p *P2P) findLANPeers() {
 func (p *P2P) handleP2PEvent() {
 
 	//TODO, control goroutine num
-	for data := range p.subChan {
-		if p.isClose() {
+	for {
+		select {
+		case <-p.ctx.Done():
 			return
-		}
-		msg, ok := data.(*queue.Message)
-		if !ok {
-			log.Error("handleP2PEvent", "recv invalid msg, data=", data)
-		}
-		p.taskGroup.Add(1)
-		go func(qmsg *queue.Message) {
-			defer p.taskGroup.Done()
-			//log.Debug("handleP2PEvent", "recv msg ty", qmsg.Ty)
-			protocol.HandleEvent(qmsg)
+		case data := <-p.subChan:
+			msg, ok := data.(*queue.Message)
+			if !ok || data == nil {
+				log.Error("handleP2PEvent", "recv invalid msg, data=", data)
+				continue
+			}
+			p.taskGroup.Add(1)
+			go func(qmsg *queue.Message) {
+				defer p.taskGroup.Done()
+				//log.Debug("handleP2PEvent", "recv msg ty", qmsg.Ty)
+				protocol.HandleEvent(qmsg)
 
-		}(msg)
+			}(msg)
+		}
 
 	}
-}
 
-// CloseP2P close p2p
-func (p *P2P) CloseP2P() {
-	log.Info("p2p closing")
-	p.mgr.PubSub.Unsub(p.subChan)
-	atomic.StoreInt32(&p.closed, 1)
-	p.cancel()
-	p.connManag.Close()
-	p.peerInfoManag.Close()
-	p.host.Close()
-	p.waitTaskDone()
-	protocol.ClearEventHandler()
-	prototypes.ClearEventHandler()
-	log.Info("p2p closed")
 }
 
 func (p *P2P) isClose() bool {
 	return atomic.LoadInt32(&p.closed) == 1
+}
+func (p *P2P) isRestart() bool {
+	return atomic.LoadInt32(&p.restart) == 1
 }
 
 func (p *P2P) waitTaskDone() {
@@ -303,4 +330,104 @@ func (p *P2P) waitTaskDone() {
 	case <-time.After(time.Second * 20):
 		log.Error("waitTaskDone", "err", "20s timeout")
 	}
+}
+
+//创建空投地址
+func (p *P2P) genAirDropKey() {
+
+	for {
+		select {
+		case <-p.ctx.Done():
+			log.Info("genAirDropKey", "p2p closed")
+			return
+		case <-time.After(time.Second):
+
+			resp, err := p.api.ExecWalletFunc("wallet", "GetWalletStatus", &types.ReqNil{})
+			if err != nil {
+				time.Sleep(time.Second)
+				continue
+			}
+			if resp.(*types.WalletStatus).GetIsWalletLock() { //上锁状态，无法用助记词创建空投地址,等待...
+				continue
+			}
+
+			if !resp.(*types.WalletStatus).GetIsHasSeed() {
+				continue
+			}
+
+		}
+		break
+	}
+	log.Info("------------------------------------------->>>>>>>>>>>>>>")
+	//用助记词和随机索引创建空投地址
+	r := rand.New(rand.NewSource(types.Now().Unix()))
+	var minIndex int32 = 100000000
+	randIndex := minIndex + r.Int31n(1000000)
+	reqIndex := &types.Int32{Data: randIndex}
+	msg, err := p.api.ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
+	if err != nil {
+		log.Error("genAirDropKey", "NewAccountByIndex err", err)
+		return
+	}
+
+	var hexPrivkey string
+	if reply, ok := msg.(*types.ReplyString); !ok {
+		log.Error("genAirDropKey", "wrong format data", "")
+		panic(err)
+
+	} else {
+		hexPrivkey = reply.GetData()
+	}
+	if hexPrivkey[:2] == "0x" {
+		hexPrivkey = hexPrivkey[2:]
+	}
+
+	log.Info("genAirDropKey", "wallettttttttttttttthexprivkeyyyyyyyyyyy", hexPrivkey)
+	hexpubkey, err := GenPubkey(hexPrivkey)
+	if err != nil {
+		return
+	}
+	log.Info("genAirDropKey", "hexpubkeyxxxxxxxxxxxxxxxxxxxxxx", hexpubkey)
+	//如果addrbook之前保存的savePrivkey相同，则意味着节点启动之前已经创建了airdrop 空投地址
+	savePrivkey, _ := p.addrbook.GetPrivPubKey()
+	if savePrivkey == hexPrivkey {
+		log.Info("----------------------------------------++++++++++++++++++++++++++++++++++", "equal key")
+		return
+	}
+	if savePrivkey != "" {
+		//savePrivkey是随机私钥，兼容老版本，先对其进行导入钱包处理
+		//进行压缩处理
+
+		var parm types.ReqWalletImportPrivkey
+		parm.Privkey = savePrivkey
+		parm.Label = "dht node award"
+		log.Info("genAirDropKey", "parm.Privkey xxxxxxxx", parm.Privkey)
+	ReTry:
+		_, err = p.api.ExecWalletFunc("wallet", "WalletImportPrivkey", &parm)
+		if err != nil {
+			if err == types.ErrPrivkeyExist {
+				//return
+			}
+			if err == types.ErrLabelHasUsed {
+				//切换随机lable
+				parm.Label = fmt.Sprintf("node award %d", rand.Int31n(16888))
+				time.Sleep(time.Second)
+				goto ReTry
+			}
+
+		}
+
+		//log.Debug("WalletImportPrivkey", "resp", resp.(*types.WalletAccount), "label", "dht node award")
+
+		//用seed返回的私钥重置addrbook
+		p.addrbook.saveKey(hexPrivkey, hexpubkey)
+
+		p.reStart(p.subCfg, hexPrivkey)
+		return
+	}
+
+	//
+	p.addrbook.saveKey(hexPrivkey, hexpubkey)
+	p.reStart(p.subCfg, hexPrivkey)
+	return
 }

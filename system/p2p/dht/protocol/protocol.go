@@ -28,13 +28,12 @@ const (
 
 // P2PEnv p2p全局公共变量
 type P2PEnv struct {
-	ChainCfg    *types.Chain33Config
-	QueueClient queue.Client
-	Host        core.Host
-	P2PManager  *p2p.Manager
-	SubConfig   *p2pty.P2PSubConfig
-	DB          ds.Datastore
-
+	ChainCfg     *types.Chain33Config
+	QueueClient  queue.Client
+	Host         core.Host
+	P2PManager   *p2p.Manager
+	SubConfig    *p2pty.P2PSubConfig
+	DB           ds.Datastore
 	RoutingTable RoutingTabler
 }
 
