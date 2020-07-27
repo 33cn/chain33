@@ -148,7 +148,7 @@ func (p *P2P) StartP2P() {
 		Ctx:             p.ctx,
 		Cancel:          p.cancel,
 		DB:              p.db,
-		RoutingTable:    p.discovery,
+		RoutingTable:    p.discovery.RoutingTable(),
 	}
 	protocol.Init(env)
 	protocol.InitAllProtocol(env)
@@ -422,12 +422,12 @@ func (p *P2P) genAirDropKey() {
 		//用seed返回的私钥重置addrbook
 		p.addrbook.saveKey(hexPrivkey, hexpubkey)
 
-		p.reStart(p.subCfg, hexPrivkey)
+		p.reStart()
 		return
 	}
 
 	//
 	p.addrbook.saveKey(hexPrivkey, hexpubkey)
-	p.reStart(p.subCfg, hexPrivkey)
+	p.reStart()
 	return
 }

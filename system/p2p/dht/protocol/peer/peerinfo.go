@@ -2,6 +2,15 @@ package peer
 
 import (
 	"fmt"
+
+	"net"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/multiformats/go-multiaddr"
+
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/queue"
@@ -12,12 +21,6 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	multiaddr "github.com/multiformats/go-multiaddr"
-	"net"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
@@ -207,36 +210,22 @@ func (p *peerInfoProtol) getPeerInfo() {
 }
 
 func (p *peerInfoProtol) setExternalAddr(addr string) {
-
-	defer func() { //防止出错，数组索引越界
-		if r := recover(); r != nil {
-			log.Error("setExternalAddr", "recoverErr", r)
-		}
-	}()
-
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
 	var spliteAddr string
 	splites := strings.Split(addr, "/")
 	if len(splites) == 1 {
 		spliteAddr = splites[0]
-	} else {
+	} else if len(splites) > 2 {
 		spliteAddr = splites[2]
 	}
-	if spliteAddr == p.externalAddr {
-		return
+	if spliteAddr != p.externalAddr && isPublicIP(net.ParseIP(spliteAddr)) {
+		p.mutex.Lock()
+		p.externalAddr = spliteAddr
+		p.mutex.Unlock()
+		//设置外部地址时同时保存到peerstore里
+		addr := fmt.Sprintf("/ip4/%s/tcp/%d", spliteAddr, p.SubConfig.Port)
+		ma, _ := multiaddr.NewMultiaddr(addr)
+		p.Host.Peerstore().AddAddr(p.Host.ID(), ma, peerstore.PermanentAddrTTL)
 	}
-	p.externalAddr = spliteAddr
-	//增加外网地址
-
-	selfExternalAddr := fmt.Sprintf("/ip4/%v/tcp/%d", p.externalAddr, p.p2pCfg.Port)
-	newmAddr, err := multiaddr.NewMultiaddr(selfExternalAddr)
-	if err != nil {
-		return
-	}
-
-	p.Host.Peerstore().AddAddr(p.GetHost().ID(), newmAddr, peerstore.AddressTTL)
-	log.Debug("setExternalAddr", "afterSetAddrs", p.Host.Addrs(), "peerstoreAddr", p.Host.Peerstore().Addrs(p.Host.ID()))
 }
 
 func (p *peerInfoProtol) getExternalAddr() string {
@@ -259,18 +248,20 @@ func (p *peerInfoProtol) detectNodeAddr() {
 
 	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
-	if len(addrs) > 0 {
-		p.setExternalAddr(addrs[len(addrs)-1].String())
-	}
-	preExternalAddr := p.getExternalAddr()
+	//下标越界会直接panic, 不过正常情况不会越界，且panic只可能发生在节点刚启动时
+	preExternalAddr := strings.Split(addrs[len(addrs)-1].String(), "/")[2]
+	p.mutex.Lock()
+	p.externalAddr = preExternalAddr
+	p.mutex.Unlock()
+
 	netIP := net.ParseIP(preExternalAddr)
 	if isPublicIP(netIP) { //检测是PubIp不用继续通过其他节点获取
 		log.Debug("detectNodeAddr", "testPubIp", preExternalAddr)
 	}
-
 	log.Info("detectNodeAddr", "+++++++++++++++", preExternalAddr, "addrs", addrs)
 	localID := p.GetHost().ID()
 	var rangeCount int
+	queryInterval := time.Minute
 	for {
 
 		if p.checkDone() {
@@ -285,13 +276,15 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		//启动后间隔1分钟，以充分获得节点外网地址
 		rangeCount++
 		if rangeCount > 2 {
-			time.Sleep(time.Minute)
+			time.Sleep(queryInterval)
 		}
-
-		for _, pid := range p.GetConnsManager().FetchConnPeers() {
-
+		log.Info("detectNodeAddr", "conns amount", len(p.Host.Network().Conns()))
+		for _, conn := range p.Host.Network().Conns() {
+			if rangeCount > 2 {
+				time.Sleep(time.Second / 10)
+			}
 			var version types.P2PVersion
-
+			pid := conn.RemotePeer()
 			pubkey, _ := p.GetHost().Peerstore().PubKey(localID).Bytes()
 			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
 				Message: &version}
@@ -322,13 +315,12 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			}
 			prototypes.CloseStream(s)
 			addr := resp.GetMessage().GetAddrRecv()
-			if len(strings.Split(addr, "/")) < 3 {
+			p.setExternalAddr(addr)
+			remoteMAddr, err := multiaddr.NewMultiaddr(resp.GetMessage().GetAddrFrom())
+			if err != nil {
 				continue
 			}
-			spliteAddr := strings.Split(addr, "/")[2]
-			if isPublicIP(net.ParseIP(spliteAddr)) {
-				p.setExternalAddr(addr)
-			}
+			p.Host.Peerstore().AddAddr(pid, remoteMAddr, queryInterval*3)
 		}
 	}
 

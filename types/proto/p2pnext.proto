@@ -241,6 +241,7 @@ message P2PRequest {
         ReqBlocks       reqBlocks       = 4;
         //新的协议可以继续添加request类型
         int64 healthyHeight = 5;
+        bytes addrInfo      = 6;
     }
 }
 

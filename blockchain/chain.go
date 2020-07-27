@@ -30,6 +30,7 @@ var (
 )
 
 const maxFutureBlocks = 256
+const defaultChunkBlockNum = 1
 
 //BlockChain 区块链结构体
 type BlockChain struct {
@@ -123,7 +124,6 @@ type BlockChain struct {
 
 	//记录当前已经连续的最高高度
 	maxSerialChunkNum int64
-	maxSeriallock     sync.Mutex
 }
 
 //New new
@@ -138,7 +138,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		defCacheSize = mcfg.DefCacheSize
 	}
 	if atomic.LoadInt64(&mcfg.ChunkblockNum) == 0 {
-		atomic.StoreInt64(&mcfg.ChunkblockNum, 1)
+		atomic.StoreInt64(&mcfg.ChunkblockNum, defaultChunkBlockNum)
 	}
 	blockchain := &BlockChain{
 		cache:              NewBlockCache(cfg, defCacheSize),

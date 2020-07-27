@@ -147,8 +147,7 @@ func testGetChunkRecordMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchai
 	}
 
 	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventGetChunkRecord, records)
-	mock33.GetClient().Send(msgGen, true)
-	_, err := mock33.GetClient().Wait(msgGen)
+	err := mock33.GetClient().Send(msgGen, false)
 	assert.NoError(t, err)
 	chainlog.Debug("testGetChunkRecordMsg end --------------------")
 }
@@ -161,9 +160,8 @@ func testAddChunkRecordMsg(t *testing.T, mock33 *testnode.Chain33Mock, chain *bl
 	}
 
 	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventAddChunkRecord, records)
-	mock33.GetClient().Send(msgGen, true)
-	resp, _ := mock33.GetClient().Wait(msgGen)
-	assert.Equal(t, resp.GetData().(*types.Reply).IsOk, true)
+	err := mock33.GetClient().Send(msgGen, false)
+	assert.Nil(t, err)
 	chainlog.Debug("testAddChunkRecordMsg end --------------------")
 }
 
@@ -210,11 +208,7 @@ func testAddChunkBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain
 	}
 
 	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventAddChunkBlock, blocks)
-	mock33.GetClient().Send(msgGen, true)
-	resp, _ := mock33.GetClient().Wait(msgGen)
-	if resp.GetData().(*types.Reply).IsOk {
-		t.Error("testAddChunkBlockMsg  only in parachain ")
-	}
+	mock33.GetClient().Send(msgGen, false)
 	chainlog.Debug("testAddChunkBlockMsg end --------------------")
 }
 

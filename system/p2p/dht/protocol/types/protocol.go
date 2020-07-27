@@ -8,6 +8,7 @@ package types
 import (
 	"context"
 	ds "github.com/ipfs/go-datastore"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 	"reflect"
 	"time"
@@ -74,7 +75,8 @@ type P2PEnv struct {
 	Ctx             context.Context
 	Cancel          context.CancelFunc
 	DB              ds.Datastore
-	RoutingTable    RoutingTabler
+	RoutingTable    *kbt.RoutingTable
+	*discovery.RoutingDiscovery
 }
 
 // RoutingTabler routing table interface

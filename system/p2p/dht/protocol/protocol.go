@@ -9,16 +9,18 @@ import (
 	"github.com/33cn/chain33/types"
 	ds "github.com/ipfs/go-datastore"
 	core "github.com/libp2p/go-libp2p-core"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
 // all protocols
 const (
 	//p2pstore protocols
-	FetchChunk     = "/chain33/fetch-chunk/" + types2.Version
-	StoreChunk     = "/chain33/store-chunk/" + types2.Version
-	GetHeader      = "/chain33/headers/" + types2.Version
-	GetChunkRecord = "/chain33/chunk-record/" + types2.Version
+	FetchChunk        = "/chain33/fetch-chunk/" + types2.Version
+	StoreChunk        = "/chain33/store-chunk/" + types2.Version
+	GetHeader         = "/chain33/headers/" + types2.Version
+	GetChunkRecord    = "/chain33/chunk-record/" + types2.Version
+	BroadcastFullNode = "/chain33/full-node/" + types2.Version
 
 	//sync protocols
 	IsSync        = "/chain33/is-sync/" + types2.Version
@@ -28,16 +30,12 @@ const (
 
 // P2PEnv p2p全局公共变量
 type P2PEnv struct {
-	ChainCfg     *types.Chain33Config
-	QueueClient  queue.Client
-	Host         core.Host
-	P2PManager   *p2p.Manager
-	SubConfig    *p2pty.P2PSubConfig
-	DB           ds.Datastore
-	RoutingTable RoutingTabler
-}
-
-// RoutingTabler routing table interface
-type RoutingTabler interface {
-	RoutingTable() *kbt.RoutingTable
+	ChainCfg    *types.Chain33Config
+	QueueClient queue.Client
+	Host        core.Host
+	P2PManager  *p2p.Manager
+	SubConfig   *p2pty.P2PSubConfig
+	DB          ds.Datastore
+	*discovery.RoutingDiscovery
+	RoutingTable *kbt.RoutingTable
 }
