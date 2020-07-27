@@ -73,7 +73,6 @@ type P2PEnv struct {
 	SubConfig       *p2pty.P2PSubConfig
 	Pubsub          *net.PubSub
 	Ctx             context.Context
-	Cancel          context.CancelFunc
 	DB              ds.Datastore
 	RoutingTable    *kbt.RoutingTable
 	*discovery.RoutingDiscovery

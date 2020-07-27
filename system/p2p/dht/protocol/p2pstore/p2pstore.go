@@ -92,6 +92,8 @@ func InitProtocol(env *prototypes.P2PEnv) {
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
 				p.localChunkInfoMutex.Unlock()
 				p.debugFullNode()
+			case <-p.P2PEnv.Ctx.Done():
+				return
 			}
 		}
 	}()

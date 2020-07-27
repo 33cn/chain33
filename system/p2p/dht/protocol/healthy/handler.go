@@ -43,9 +43,15 @@ func InitProtocol(env *prototypes.P2PEnv) {
 	//保存一个全局变量备查，避免频繁到网络中请求。
 	go func() {
 		ticker1 := time.NewTicker(types2.CheckHealthyInterval)
-		for range ticker1.C {
-			p.updateFallBehind()
+		for {
+			select {
+			case <-ticker1.C:
+				p.updateFallBehind()
+			case <-p.P2PEnv.Ctx.Done():
+				return
+			}
 		}
+
 	}()
 
 }
