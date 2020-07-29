@@ -123,16 +123,18 @@ func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
 		return nil
 	}
 	log.Debug("GetPrivkey", "privsize", len(keybytes))
-	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
+
+	privkey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
 	if err != nil {
-		log.Debug("GetPrivkey", "try UnmarshalSecp256k1PrivateKey", len(keybytes))
-		privkey, err = p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
+		privkey, err = p2pcrypto.UnmarshalPrivateKey(keybytes)
 		if err != nil {
-			log.Error("GetPrivkey", "UnmarshalSecp256k1PrivateKey", err.Error())
-			return nil
+			log.Error("GetPrivkey", "UnmarshalPrivateKey", err.Error())
+			return privkey
 		}
-		return privkey
+
+		return nil
 	}
+
 	return privkey
 }
 
@@ -232,19 +234,18 @@ func GenPubkey(key string) (string, error) {
 	}
 
 	log.Info("GenPubkey", "key size", len(keybytes))
-
-	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
+	privkey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
 	if err != nil {
 
-		//切换
-		privkey, err = p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
+		privkey, err = p2pcrypto.UnmarshalPrivateKey(keybytes)
 		if err != nil {
-			log.Error("genPubkey", "UnmarshalSecp256k1PrivateKey", err.Error())
+			//切换
+			log.Error("genPubkey", "UnmarshalPrivateKey", err.Error())
 			return "", err
 		}
-
 	}
-	pubkey, err := privkey.GetPublic().Bytes()
+
+	pubkey, err := privkey.GetPublic().Raw()
 	if err != nil {
 		log.Error("genPubkey", "GetPubkey", err.Error())
 		return "", err

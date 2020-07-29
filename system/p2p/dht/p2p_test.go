@@ -278,8 +278,9 @@ func testHost(t *testing.T) {
 	priv, pub, err := GenPrivPubkey()
 	assert.Nil(t, err)
 	t.Log("priv size", len(priv))
-	cpriv, err := crypto.UnmarshalPrivateKey(priv)
+	cpriv, err := crypto.UnmarshalSecp256k1PrivateKey(priv)
 	assert.Nil(t, err)
+
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 26666))
 
 	if err != nil {
@@ -291,7 +292,7 @@ func testHost(t *testing.T) {
 	mcfg.MaxConnectNum = 10000
 	host := newHost(mcfg, cpriv, nil, maddr)
 	hpub := host.Peerstore().PubKey(host.ID())
-	hpb, err := hpub.Bytes()
+	hpb, err := hpub.Raw()
 	assert.Nil(t, err)
 	assert.Equal(t, hpb, pub)
 	host.Close()
