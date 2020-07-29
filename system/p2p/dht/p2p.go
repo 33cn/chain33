@@ -79,7 +79,6 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		mcfg.Port = p2pty.DefaultP2PPort
 	}
 	client := mgr.Client
-	addrbook := NewAddrBook(p2pCfg)
 	return &P2P{
 		client:   client,
 		chainCfg: chainCfg,
@@ -87,7 +86,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		p2pCfg:   p2pCfg,
 		mgr:      mgr,
 		api:      mgr.SysAPI,
-		addrbook: addrbook,
+		addrbook: NewAddrBook(p2pCfg),
 		subChan:  mgr.PubSub.Sub(p2pty.DHTTypeName),
 	}
 
@@ -151,6 +150,7 @@ func (p *P2P) StartP2P() {
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()
+	//TODO 考虑增加配置，选择是否创建空投地址
 	go p.genAirDropKey()
 
 }
@@ -279,7 +279,7 @@ func (p *P2P) findLANPeers() {
 			p.connManag.AddNeighbors(&neighbors)
 
 		case <-p.ctx.Done():
-			log.Warn("findLANPeers", "process", "done")
+			log.Info("findLANPeers", "process", "done")
 			return
 		}
 	}
@@ -334,7 +334,7 @@ func (p *P2P) waitTaskDone() {
 //创建空投地址
 func (p *P2P) genAirDropKey() {
 
-	for {
+	for { //等待钱包创建，解锁
 		select {
 		case <-p.ctx.Done():
 			log.Info("genAirDropKey", "p2p closed")
@@ -357,7 +357,7 @@ func (p *P2P) genAirDropKey() {
 		}
 		break
 	}
-	log.Info("------------------------------------------->>>>>>>>>>>>>>")
+
 	//用助记词和随机索引创建空投地址
 	r := rand.New(rand.NewSource(types.Now().Unix()))
 	var minIndex int32 = 100000000
@@ -381,17 +381,31 @@ func (p *P2P) genAirDropKey() {
 		hexPrivkey = hexPrivkey[2:]
 	}
 
-	//log.Info("genAirDropKey", "wallettttttttttttttthexprivkeyyyyyyyyyyy", hexPrivkey)
 	hexpubkey, err := GenPubkey(hexPrivkey)
 	if err != nil {
 		return
 	}
-	//log.Info("genAirDropKey", "hexpubkeyxxxxxxxxxxxxxxxxxxxxxx", hexpubkey)
 	//如果addrbook之前保存的savePrivkey相同，则意味着节点启动之前已经创建了airdrop 空投地址
 	savePrivkey, _ := p.addrbook.GetPrivPubKey()
-	if savePrivkey == hexPrivkey {
-		log.Info("----------------------------------------++++++++++++++++++++++++++++++++++", "equal key")
+	if savePrivkey == hexPrivkey { //addrbook与wallet保存了相同的空投私钥，不需要继续导入
+		log.Debug("genAirDropKey", " process done")
 		return
+	}
+
+	if len(savePrivkey) != 2*PrivKeyCompressBytesLen { //非压缩私钥,兼容之前老版本的DHT非压缩私钥
+		log.Debug("len savePrivkey", len(savePrivkey))
+		unCompkey := p.addrbook.GetPrivkey()
+		if unCompkey == nil {
+			savePrivkey = ""
+		} else {
+			compkey, err := unCompkey.Raw() //compress key
+			if err != nil {
+				savePrivkey = ""
+				log.Error("genAirDropKey", "compressKey.Raw err", err)
+			}
+			savePrivkey = hex.EncodeToString(compkey)
+		}
+
 	}
 	if savePrivkey != "" {
 		//savePrivkey是随机私钥，兼容老版本，先对其进行导入钱包处理
@@ -400,7 +414,6 @@ func (p *P2P) genAirDropKey() {
 		var parm types.ReqWalletImportPrivkey
 		parm.Privkey = savePrivkey
 		parm.Label = "dht node award"
-		log.Info("genAirDropKey", "parm.Privkey xxxxxxxx", parm.Privkey)
 	ReTry:
 		_, err = p.api.ExecWalletFunc("wallet", "WalletImportPrivkey", &parm)
 		if err != nil {
@@ -416,11 +429,8 @@ func (p *P2P) genAirDropKey() {
 
 		}
 
-		//log.Debug("WalletImportPrivkey", "resp", resp.(*types.WalletAccount), "label", "dht node award")
-
 		//用seed返回的私钥重置addrbook
 		p.addrbook.saveKey(hexPrivkey, hexpubkey)
-
 		p.reStart()
 		return
 	}

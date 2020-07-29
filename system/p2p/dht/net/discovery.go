@@ -131,7 +131,6 @@ func (d *Discovery) FindSpecialPeer(pid peer.ID) (*peer.AddrInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &peerInfo, nil
 
 }
