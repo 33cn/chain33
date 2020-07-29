@@ -150,10 +150,10 @@ func (c *CoinsType) GetAssets(tx *types.Transaction) ([]*types.Asset, error) {
 	if err != nil || len(assets) == 0 {
 		return nil, err
 	}
-	if assets[0].Symbol == "" {
-		types := c.GetConfig()
-		assets[0].Symbol = types.GetCoinSymbol()
-	}
+
+	types := c.GetConfig()
+	assets[0].Symbol = types.GetCoinSymbol()
+
 	if assets[0].Symbol == "bty" {
 		assets[0].Symbol = "BTY"
 	}
