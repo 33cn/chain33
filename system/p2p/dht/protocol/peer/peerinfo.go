@@ -245,10 +245,13 @@ func (p *peerInfoProtol) checkDone() bool {
 }
 
 func (p *peerInfoProtol) detectNodeAddr() {
-
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("detectNodeAddr", "recover", r)
+		}
+	}()
 	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
 	addrs := p.GetHost().Addrs()
-	//下标越界会直接panic, 不过正常情况不会越界，且panic只可能发生在节点刚启动时
 	preExternalAddr := strings.Split(addrs[len(addrs)-1].String(), "/")[2]
 	p.mutex.Lock()
 	p.externalAddr = preExternalAddr
