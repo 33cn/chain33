@@ -61,6 +61,7 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 
 }
 
+//CloseDht close the dht
 func (d *Discovery) CloseDht() error {
 	return d.kademliaDHT.Close()
 }
