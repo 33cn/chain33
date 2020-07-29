@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	"sync"
 	"testing"
 	"time"
+
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/net"
