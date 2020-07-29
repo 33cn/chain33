@@ -2,9 +2,10 @@ package p2pstore
 
 import (
 	"context"
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	"sync"
 	"time"
+
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"

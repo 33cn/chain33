@@ -5,14 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
+	"sync"
+
 	"github.com/33cn/chain33/common/db"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet/bipwallet"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"os"
-	"sync"
 )
 
 const (
