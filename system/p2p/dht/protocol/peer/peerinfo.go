@@ -131,7 +131,7 @@ func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 
 //p2pserver 端接收处理事件
 func (p *peerInfoProtol) onReq(req *types.MessagePeerInfoReq, s core.Stream) {
-	log.Info(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
+	log.Debug(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
 
 	peerID := p.GetHost().ID()
 	pubkey, _ := p.GetHost().Peerstore().PubKey(peerID).Bytes()
@@ -368,7 +368,7 @@ func (h *peerInfoHandler) Handle(stream core.Stream) {
 	protocol := h.GetProtocol().(*peerInfoProtol)
 
 	//解析处理
-	log.Info("PeerInfo Handler", "stream proto", stream.Protocol())
+	log.Debug("PeerInfo Handler", "stream proto", stream.Protocol())
 
 	switch stream.Protocol() {
 	case peerInfoReq, peerInfoReqV2:
