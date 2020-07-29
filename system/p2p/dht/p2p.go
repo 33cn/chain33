@@ -111,7 +111,6 @@ func (p *P2P) StartP2P() {
 	atomic.StoreInt32(&p.restart, 0)
 	p.discovery = net.InitDhtDiscovery(p.ctx, p.host, p.addrbook.AddrsInfo(), p.chainCfg, p.subCfg)
 	p.connManag = manage.NewConnManager(p.host, p.discovery, bandwidthTracker, p.subCfg)
-
 	pubsub, err := net.NewPubSub(p.ctx, p.host)
 	if err != nil {
 		return
@@ -119,15 +118,8 @@ func (p *P2P) StartP2P() {
 
 	p.pubsub = pubsub
 	p.addrbook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
-	pubkey, err := p.host.ID().ExtractPublicKey()
-	if err != nil {
-		panic(err)
-	}
-	pbs, err := pubkey.Raw()
-	if err != nil {
-		panic(err)
-	}
-	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs(), "hexPubkey", hex.EncodeToString(pbs))
+
+	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
 
 	//提供给其他插件使用的共享接口
 	env := &prototypes.P2PEnv{

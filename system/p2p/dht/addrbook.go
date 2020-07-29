@@ -130,10 +130,9 @@ func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
 		privkey, err = p2pcrypto.UnmarshalPrivateKey(keybytes)
 		if err != nil {
 			log.Error("GetPrivkey", "UnmarshalPrivateKey", err.Error())
-			return privkey
+			return nil
 		}
 
-		return nil
 	}
 
 	return privkey
