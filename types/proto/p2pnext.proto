@@ -48,14 +48,11 @@ message MessagePeerInfoReq {
 
 message MessagePeerInfoResp {
     MessageComm messageData = 1;
-    oneof       value{
-      P2PPeerInfo    message     = 2;
-      P2PPeerInfoV2  peerInfo  =3;
+    oneof       value {
+        P2PPeerInfo   message  = 2;
+        P2PPeerInfoV2 peerInfo = 3;
     }
-
 }
-
-
 
 /**
  * p2p节点间发送版本数据结构

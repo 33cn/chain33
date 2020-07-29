@@ -7,11 +7,12 @@ package types
 
 import (
 	"context"
+	"reflect"
+	"time"
+
 	ds "github.com/ipfs/go-datastore"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
-	"reflect"
-	"time"
 
 	"github.com/33cn/chain33/system/p2p/dht/net"
 
