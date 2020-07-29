@@ -154,7 +154,6 @@ func (p *P2P) CloseP2P() {
 	p.cancel()
 	p.connManag.Close()
 	p.peerInfoManag.Close()
-	p.discovery.CloseFindLANPeers()
 	p.discovery.CloseDht()
 	p.waitTaskDone()
 	p.db.Close()
@@ -272,6 +271,7 @@ func (p *P2P) findLANPeers() {
 
 		case <-p.ctx.Done():
 			log.Info("findLANPeers", "process", "done")
+			p.discovery.CloseFindLANPeers()
 			return
 		}
 	}

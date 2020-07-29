@@ -98,7 +98,7 @@ func (d *Discovery) FindLANPeers(host host.Host, serviceTag string) (<-chan peer
 // CloseFindLANPeers close peers
 func (d *Discovery) CloseFindLANPeers() {
 	if d.mdnsService != nil {
-		d.mdnsService.Service.UnregisterNotifee(d.mdnsService.notifee)
+		d.mdnsService.Service.Close()
 	}
 }
 
