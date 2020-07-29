@@ -394,15 +394,16 @@ func (p *P2P) genAirDropKey() {
 			if err != nil {
 				savePrivkey = ""
 				log.Error("genAirDropKey", "compressKey.Raw err", err)
+			} else {
+				savePrivkey = hex.EncodeToString(compkey)
 			}
-			savePrivkey = hex.EncodeToString(compkey)
 		}
 
 	}
+
 	if savePrivkey != "" {
 		//savePrivkey是随机私钥，兼容老版本，先对其进行导入钱包处理
 		//进行压缩处理
-
 		var parm types.ReqWalletImportPrivkey
 		parm.Privkey = savePrivkey
 		parm.Label = "dht node award"
@@ -420,14 +421,8 @@ func (p *P2P) genAirDropKey() {
 			}
 
 		}
-
-		//用seed返回的私钥重置addrbook
-		p.addrbook.saveKey(hexPrivkey, hexpubkey)
-		p.reStart()
-		return
 	}
 
-	//
 	p.addrbook.saveKey(hexPrivkey, hexpubkey)
 	p.reStart()
 	return

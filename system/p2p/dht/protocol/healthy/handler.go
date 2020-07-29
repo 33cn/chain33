@@ -47,7 +47,7 @@ func InitProtocol(env *prototypes.P2PEnv) {
 			select {
 			case <-ticker1.C:
 				p.updateFallBehind()
-			case <-p.P2PEnv.Ctx.Done():
+			case <-p.Ctx.Done():
 				return
 			}
 		}

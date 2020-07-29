@@ -156,6 +156,7 @@ func initEnv(t *testing.T, q queue.Queue) []*Protocol {
 		SubConfig:        mcfg,
 		RoutingDiscovery: discovery1.RoutingDiscovery,
 		RoutingTable:     discovery1.RoutingTable(),
+		Ctx:              context.Background(),
 	}
 	InitProtocol(&env1)
 	p1 := &Protocol{
@@ -174,6 +175,7 @@ func initEnv(t *testing.T, q queue.Queue) []*Protocol {
 		SubConfig:        mcfg,
 		RoutingDiscovery: discovery2.RoutingDiscovery,
 		RoutingTable:     discovery2.RoutingTable(),
+		Ctx:              context.Background(),
 	}
 	p2 := &Protocol{
 		P2PEnv:     &env2,
