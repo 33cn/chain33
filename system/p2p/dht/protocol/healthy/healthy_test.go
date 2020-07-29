@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	"testing"
 	"time"
 
@@ -148,7 +149,7 @@ func initEnv(t *testing.T, q queue.Queue) []*Protocol {
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
 	mcfg.DisableFindLANPeers = true
 	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888})
-	env1 := protocol.P2PEnv{
+	env1 := prototypes.P2PEnv{
 		ChainCfg:         cfg,
 		QueueClient:      client1,
 		Host:             host1,
@@ -166,7 +167,7 @@ func initEnv(t *testing.T, q queue.Queue) []*Protocol {
 		Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty())},
 		Channel: 888,
 	})
-	env2 := protocol.P2PEnv{
+	env2 := prototypes.P2PEnv{
 		ChainCfg:         cfg,
 		QueueClient:      client2,
 		Host:             host2,

@@ -68,7 +68,7 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		SubConfig:       subCfg,
 	}
 
-	ctx, _ := context.WithCancel(context.Background())
+	ctx := context.Background()
 	env.Ctx = ctx
 	return env
 }
