@@ -312,8 +312,8 @@ func testAddrbook(t *testing.T, cfg *types.P2P) {
 
 }
 func Test_Id(t *testing.T) {
-	encodeIdStr := "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"
-	pubkey, err := PeerIdToPubkey(encodeIdStr)
+	encodeIDStr := "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"
+	pubkey, err := PeerIDToPubkey(encodeIDStr)
 	assert.Nil(t, err)
 	assert.Equal(t, pubkey, "02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0")
 

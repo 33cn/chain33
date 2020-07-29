@@ -17,10 +17,9 @@ import (
 )
 
 const (
-	addrkeyTag                = "mutiaddrs"
-	privKeyTag                = "privkey"
-	PrivKeyCompressBytesLen   = 32
-	PrivKeyUnCompressBytesLen = 36
+	addrkeyTag              = "mutiaddrs"
+	privKeyTag              = "privkey"
+	privKeyCompressBytesLen = 32
 )
 
 // AddrBook peer address manager
@@ -182,7 +181,7 @@ func (a *AddrBook) StoreHostID(id peer.ID, path string) {
 	defer pf.Close()
 	var peerInfo = make(map[string]interface{})
 	var info = make(map[string]interface{})
-	pubkey, err := PeerIdToPubkey(id.Pretty())
+	pubkey, err := PeerIDToPubkey(id.Pretty())
 	if err == nil {
 		info["pubkey"] = pubkey
 		pbytes, _ := hex.DecodeString(pubkey)
@@ -255,16 +254,16 @@ func GenPubkey(key string) (string, error) {
 }
 
 //提供节点ID转换为pubkey,进而通过pubkey创建chain33 地址的功能
-func PeerIdToPubkey(id string) (string, error) {
+func PeerIDToPubkey(id string) (string, error) {
 	//encodeIdStr := "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"
 	//hexpubStr:="02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0"
 	//chain33 address:13ohj5JH6NE15ENfuQRneqGdg29nT27K3k
-	pId, err := peer.Decode(id)
+	pID, err := peer.Decode(id)
 	if err != nil {
 		return "", err
 	}
 
-	pub, err := pId.ExtractPublicKey()
+	pub, err := pID.ExtractPublicKey()
 	if err != nil {
 		return "", err
 	}

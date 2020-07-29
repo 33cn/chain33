@@ -165,7 +165,6 @@ func (p *P2P) CloseP2P() {
 
 	}
 	log.Info("p2p closed")
-	return
 
 }
 
@@ -384,7 +383,7 @@ func (p *P2P) genAirDropKey() {
 		return
 	}
 
-	if len(savePrivkey) != 2*PrivKeyCompressBytesLen { //非压缩私钥,兼容之前老版本的DHT非压缩私钥
+	if len(savePrivkey) != 2*privKeyCompressBytesLen { //非压缩私钥,兼容之前老版本的DHT非压缩私钥
 		log.Debug("len savePrivkey", len(savePrivkey))
 		unCompkey := p.addrbook.GetPrivkey()
 		if unCompkey == nil {
@@ -425,5 +424,5 @@ func (p *P2P) genAirDropKey() {
 
 	p.addrbook.saveKey(hexPrivkey, hexpubkey)
 	p.reStart()
-	return
+
 }

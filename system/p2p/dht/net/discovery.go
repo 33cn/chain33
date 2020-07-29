@@ -61,8 +61,8 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 
 }
 
-func (d *Discovery) CloseDht() {
-	d.kademliaDHT.Close()
+func (d *Discovery) CloseDht() error {
+	return d.kademliaDHT.Close()
 }
 
 // FindPeers find peers
