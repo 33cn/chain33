@@ -6,9 +6,12 @@ package types
 import (
 	context "context"
 	fmt "fmt"
+	math "math"
+
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
-	math "math"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -2269,7 +2272,9 @@ func init() {
 	proto.RegisterType((*PeersInfo)(nil), "types.PeersInfo")
 }
 
-func init() { proto.RegisterFile("p2p.proto", fileDescriptor_e7fdddb109e6467a) }
+func init() {
+	proto.RegisterFile("p2p.proto", fileDescriptor_e7fdddb109e6467a)
+}
 
 var fileDescriptor_e7fdddb109e6467a = []byte{
 	// 1670 bytes of a gzipped FileDescriptorProto
@@ -2382,11 +2387,11 @@ var fileDescriptor_e7fdddb109e6467a = []byte{
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
-var _ grpc.ClientConn
+var _ grpc.ClientConnInterface
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
-const _ = grpc.SupportPackageIsVersion4
+const _ = grpc.SupportPackageIsVersion6
 
 // P2PgserviceClient is the client API for P2Pgservice service.
 //
@@ -2427,10 +2432,10 @@ type P2PgserviceClient interface {
 }
 
 type p2PgserviceClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewP2PgserviceClient(cc *grpc.ClientConn) P2PgserviceClient {
+func NewP2PgserviceClient(cc grpc.ClientConnInterface) P2PgserviceClient {
 	return &p2PgserviceClient{cc}
 }
 
@@ -2692,6 +2697,62 @@ type P2PgserviceServer interface {
 	// grpc 收集inpeers
 	CollectInPeers(context.Context, *P2PPing) (*PeerList, error)
 	CollectInPeers2(context.Context, *P2PPing) (*PeersReply, error)
+}
+
+// UnimplementedP2PgserviceServer can be embedded to have forward compatible implementations.
+type UnimplementedP2PgserviceServer struct {
+}
+
+func (*UnimplementedP2PgserviceServer) BroadCastTx(ctx context.Context, req *P2PTx) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BroadCastTx not implemented")
+}
+func (*UnimplementedP2PgserviceServer) BroadCastBlock(ctx context.Context, req *P2PBlock) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BroadCastBlock not implemented")
+}
+func (*UnimplementedP2PgserviceServer) Ping(ctx context.Context, req *P2PPing) (*P2PPong, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetAddr(ctx context.Context, req *P2PGetAddr) (*P2PAddr, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAddr not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetAddrList(ctx context.Context, req *P2PGetAddr) (*P2PAddrList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAddrList not implemented")
+}
+func (*UnimplementedP2PgserviceServer) Version(ctx context.Context, req *P2PVersion) (*P2PVerAck, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Version not implemented")
+}
+func (*UnimplementedP2PgserviceServer) Version2(ctx context.Context, req *P2PVersion) (*P2PVersion, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Version2 not implemented")
+}
+func (*UnimplementedP2PgserviceServer) SoftVersion(ctx context.Context, req *P2PPing) (*Reply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SoftVersion not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetBlocks(ctx context.Context, req *P2PGetBlocks) (*P2PInv, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBlocks not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetMemPool(ctx context.Context, req *P2PGetMempool) (*P2PInv, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMemPool not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetData(req *P2PGetData, srv P2Pgservice_GetDataServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetData not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetHeaders(ctx context.Context, req *P2PGetHeaders) (*P2PHeaders, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHeaders not implemented")
+}
+func (*UnimplementedP2PgserviceServer) GetPeerInfo(ctx context.Context, req *P2PGetPeerInfo) (*P2PPeerInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPeerInfo not implemented")
+}
+func (*UnimplementedP2PgserviceServer) ServerStreamRead(srv P2Pgservice_ServerStreamReadServer) error {
+	return status.Errorf(codes.Unimplemented, "method ServerStreamRead not implemented")
+}
+func (*UnimplementedP2PgserviceServer) ServerStreamSend(req *P2PPing, srv P2Pgservice_ServerStreamSendServer) error {
+	return status.Errorf(codes.Unimplemented, "method ServerStreamSend not implemented")
+}
+func (*UnimplementedP2PgserviceServer) CollectInPeers(ctx context.Context, req *P2PPing) (*PeerList, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CollectInPeers not implemented")
+}
+func (*UnimplementedP2PgserviceServer) CollectInPeers2(ctx context.Context, req *P2PPing) (*PeersReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CollectInPeers2 not implemented")
 }
 
 func RegisterP2PgserviceServer(s *grpc.Server, srv P2PgserviceServer) {

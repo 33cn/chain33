@@ -48,7 +48,7 @@ message MessagePeerInfoReq {
 
 message MessagePeerInfoResp {
     MessageComm messageData = 1;
-    P2PPeerInfo   message  = 2;
+    P2PPeerInfo message     = 2;
 }
 
 /**
