@@ -1005,13 +1005,13 @@ func (c *Chain33) GetNetInfo(in types.P2PGetNetInfoReq, result *interface{}) err
 		return err
 	}
 	*result = &rpctypes.NodeNetinfo{
-		Externaladdr:     resp.GetExternaladdr(),
-		Localaddr:        resp.GetLocaladdr(),
-		Service:          resp.GetService(),
-		Outbounds:        resp.GetOutbounds(),
-		Inbounds:         resp.GetInbounds(),
-		PeerstoreSize:    resp.GetPeerstoreSize(),
-		RoutingTableSize: resp.GetRoutingTableSize(),
+		Externaladdr: resp.GetExternaladdr(),
+		Localaddr:    resp.GetLocaladdr(),
+		Service:      resp.GetService(),
+		Outbounds:    resp.GetOutbounds(),
+		Inbounds:     resp.GetInbounds(),
+		Peerstore:    resp.GetPeerstore(),
+		Routingtable: resp.GetRoutingtable(),
 	}
 	return nil
 }

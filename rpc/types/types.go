@@ -318,13 +318,13 @@ type WalletStatus struct {
 
 // NodeNetinfo node net info
 type NodeNetinfo struct {
-	Externaladdr     string `json:"externalAddr"`
-	Localaddr        string `json:"localAddr"`
-	Service          bool   `json:"service"`
-	Outbounds        int32  `json:"outbounds"`
-	Inbounds         int32  `json:"inbounds"`
-	RoutingTableSize int32  `json:"routingTableSize,omitempty"`
-	PeerstoreSize    int32  `json:"peerstoreSize,omitempty"`
+	Externaladdr string `json:"externalAddr"`
+	Localaddr    string `json:"localAddr"`
+	Service      bool   `json:"service"`
+	Outbounds    int32  `json:"outbounds"`
+	Inbounds     int32  `json:"inbounds"`
+	Routingtable int32  `json:"routingtable"`
+	Peerstore    int32  `json:"peerstore"`
 }
 
 // ReplyCacheTxList reply cache tx list

@@ -360,25 +360,25 @@ func (p *P2P) genAirDropKey() {
 		return
 	}
 
-	var hexPrivkey string
+	var walletPrivkey string
 	if reply, ok := msg.(*types.ReplyString); !ok {
 		log.Error("genAirDropKey", "wrong format data", "")
 		panic(err)
 
 	} else {
-		hexPrivkey = reply.GetData()
+		walletPrivkey = reply.GetData()
 	}
-	if hexPrivkey[:2] == "0x" {
-		hexPrivkey = hexPrivkey[2:]
+	if walletPrivkey[:2] == "0x" {
+		walletPrivkey = walletPrivkey[2:]
 	}
 
-	hexpubkey, err := GenPubkey(hexPrivkey)
+	walletPubkey, err := GenPubkey(walletPrivkey)
 	if err != nil {
 		return
 	}
 	//如果addrbook之前保存的savePrivkey相同，则意味着节点启动之前已经创建了airdrop 空投地址
 	savePrivkey, _ := p.addrbook.GetPrivPubKey()
-	if savePrivkey == hexPrivkey { //addrbook与wallet保存了相同的空投私钥，不需要继续导入
+	if savePrivkey == walletPrivkey { //addrbook与wallet保存了相同的空投私钥，不需要继续导入
 		log.Debug("genAirDropKey", " process done")
 		return
 	}
@@ -406,23 +406,27 @@ func (p *P2P) genAirDropKey() {
 		var parm types.ReqWalletImportPrivkey
 		parm.Privkey = savePrivkey
 		parm.Label = "dht node award"
-	ReTry:
-		_, err = p.api.ExecWalletFunc("wallet", "WalletImportPrivkey", &parm)
-		if err != nil {
-			if err == types.ErrPrivkeyExist {
-				//return
-			}
-			if err == types.ErrLabelHasUsed {
-				//切换随机lable
-				parm.Label = fmt.Sprintf("node award %d", rand.Int31n(16888))
-				time.Sleep(time.Second)
-				goto ReTry
-			}
 
+		for {
+			_, err = p.api.ExecWalletFunc("wallet", "WalletImportPrivkey", &parm)
+			if err != nil {
+				if err == types.ErrPrivkeyExist {
+					break
+				}
+				if err == types.ErrLabelHasUsed {
+					//切换随机lable
+					parm.Label = fmt.Sprintf("node award %d", rand.Int31n(1024000))
+					time.Sleep(time.Second)
+					continue
+				}
+				break
+
+			}
+			break
 		}
 	}
 
-	p.addrbook.saveKey(hexPrivkey, hexpubkey)
+	p.addrbook.saveKey(walletPrivkey, walletPubkey)
 	p.reStart()
 
 }

@@ -39,6 +39,9 @@ func (p *PeerInfoManager) Copy(dest *types.Peer, source *types.P2PPeerInfo) {
 	dest.Self = false
 	dest.MempoolSize = source.GetMempoolSize()
 	dest.Port = source.GetPort()
+	dest.Version = source.GetVersion()
+	dest.StoreDBVersion = source.GetStoreDBVersion()
+	dest.LocalDBVersion = source.GetLocalDBVersion()
 }
 
 // GetPeerInfoInMin get peer info

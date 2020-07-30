@@ -75,23 +75,12 @@ message P2PPeerInfo {
     int32 mempoolSize = 4;
     ///节点当前高度头部数据
     Header header = 5;
-}
-
-message P2PPeerInfoV2 {
-    ///节点的IP地址
-    string addr = 1;
-    ///节点的外网端口
-    int32 port = 2;
-    ///节点的名称
-    string name = 3;
-    /// mempool 的大小
-    int32 mempoolSize = 4;
-    ///节点当前高度头部数据
-    Header header         = 5;
-    string version        = 6;
+    string version = 6;
     string localDBVersion = 7;
     string storeDBVersion = 8;
 }
+
+
 
 /**
  * p2p节点间发送版本数据结构
@@ -388,8 +377,8 @@ message NodeNetInfo {
     bool   service          = 3;
     int32  outbounds        = 4;
     int32  inbounds         = 5;
-    int32  routingTableSize = 6;
-    int32  peerstoreSize    = 7;
+    int32  routingtable = 6;
+    int32  peerstore    = 7;
 }
 
 /**

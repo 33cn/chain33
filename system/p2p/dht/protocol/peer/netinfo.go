@@ -27,8 +27,8 @@ func (p *peerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 	if netinfo.Inbounds != 0 {
 		netinfo.Service = true
 	}
-	netinfo.PeerstoreSize = int32(len(p.Host.Peerstore().PeersWithAddrs()))
-	netinfo.RoutingTableSize = int32(p.Discovery.RoutingTableSize())
+	netinfo.Peerstore = int32(len(p.Host.Peerstore().PeersWithAddrs()))
+	netinfo.Routingtable = int32(p.Discovery.RoutingTableSize())
 	msg.Reply(p.GetQueueClient().NewMessage("rpc", types.EventReplyNetInfo, &netinfo))
 }
 
