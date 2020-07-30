@@ -33,7 +33,7 @@ func (p *Protocol) getChunk(req *types.ChunkInfoMsg, queryRemote bool) (*types.B
 	}
 
 	//本地数据不存在或已过期，则向临近节点查询
-	return p.mustFetchChunk(req)
+	return p.mustFetchChunk(req, true)
 }
 
 func (p *Protocol) getHeaders(param *types.ReqBlocks) *types.Headers {
@@ -138,7 +138,7 @@ func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid pee
 }
 
 //若网络中有节点保存了该chunk，该方法可以保证查询到
-func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
+func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg, queryFull bool) (*types.BlockBodys, error) {
 	//递归查询时间上限一小时
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
@@ -173,25 +173,27 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, e
 		peers = newPeers
 	}
 
+	//TODO o not retry
 	//找不到数据重试3次，防止因为网络问题导致数据找不到
-	totalRetry := 3
-	if p.ChainCfg.IsTestNet() || p.SubConfig.IsFullNode {
-		totalRetry = 0 //测试网和全节点不重试
-	}
-	//重试时直接遍历一遍searchedPeers
-	for retryCount := 0; retryCount < totalRetry; retryCount++ {
-		log.Info("mustFetchChunk", "retry count", retryCount)
-		time.Sleep(p.retryInterval)
-		for pid := range searchedPeers {
-			bodys, _, err := p.fetchChunkOrNearerPeers(ctx, req, pid)
-			if err == nil {
-				return bodys, nil
-			}
-		}
-	}
+	//totalRetry := 3
+	//if p.ChainCfg.IsTestNet() || p.SubConfig.IsFullNode {
+	//	totalRetry = 0 //测试网和全节点不重试
+	//}
+	////重试时直接遍历一遍searchedPeers
+	//delete(searchedPeers, p.Host.ID())
+	//for retryCount := 0; retryCount < totalRetry; retryCount++ {
+	//	log.Info("mustFetchChunk", "retry count", retryCount)
+	//	time.Sleep(p.retryInterval)
+	//	for pid := range searchedPeers {
+	//		bodys, _, err := p.fetchChunkOrNearerPeers(ctx, req, pid)
+	//		if err == nil {
+	//			return bodys, nil
+	//		}
+	//	}
+	//}
 	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
-	if !p.SubConfig.IsFullNode {
+	if queryFull {
 		ctx2, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		peerInfos, err := discovery.FindPeers(ctx2, p.RoutingDiscovery, protocol.BroadcastFullNode)
@@ -236,7 +238,7 @@ func (p *Protocol) fetchChunkOrNearerPeers(ctx context.Context, params *types.Ch
 	}
 	var res types.P2PResponse
 	var result []byte
-	buf := make([]byte, 1024*1024)
+	buf := make([]byte, 1024)
 	t := time.Now()
 	for {
 		n, err := stream.Read(buf)
@@ -330,7 +332,7 @@ func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
 }
 
 func (p *Protocol) checkAndStoreChunk(req *types.ChunkInfoMsg, queryRemote bool) error {
-	//先检查之前的chunk是否可以在网络中查到
+	//先检查之前的chunk是否以在网络中查到
 	infos := p.checkHistoryChunk(req, queryRemote)
 	infos = append(infos, req)
 	var err error

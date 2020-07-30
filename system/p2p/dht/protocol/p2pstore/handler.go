@@ -37,7 +37,7 @@ func (p *Protocol) handleStreamFetchChunk(req *types.P2PRequest, stream network.
 				Start:     param.Start,
 				End:       param.Start, //只检查chunk是否存在，因此为减少网络带宽消耗，只请求一个区块即可
 			}
-			_, err := p.mustFetchChunk(newParam)
+			_, err := p.mustFetchChunk(newParam, false)
 			if err == nil {
 				//网络中可以查到数据，不应该到全节点来要数据
 				res.Error = "some shard peers have this chunk"
@@ -117,7 +117,7 @@ func (p *Protocol) handleStreamStoreChunk(req *types.P2PRequest, stream network.
 	bodys, _ = p.getChunkFromBlockchain(param)
 	if bodys == nil {
 		//blockchain模块没有数据，从网络中搜索数据
-		bodys, _ = p.mustFetchChunk(param)
+		bodys, _ = p.mustFetchChunk(param, true)
 	}
 	if bodys == nil {
 		//网络中最近的节点群中没有查找到数据, 从发通知的对端节点上去查找数据
