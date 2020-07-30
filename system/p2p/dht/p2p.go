@@ -410,18 +410,11 @@ func (p *P2P) genAirDropKey() {
 
 		for {
 			_, err = p.api.ExecWalletFunc("wallet", "WalletImportPrivkey", &parm)
-			if err != nil {
-				if err == types.ErrPrivkeyExist {
-					break
-				}
-				if err == types.ErrLabelHasUsed {
-					//切换随机lable
-					parm.Label = fmt.Sprintf("node award %d", rand.Int31n(1024000))
-					time.Sleep(time.Second)
-					continue
-				}
-				break
-
+			if err == types.ErrLabelHasUsed {
+				//切换随机lable
+				parm.Label = fmt.Sprintf("node award %d", rand.Int31n(1024000))
+				time.Sleep(time.Second)
+				continue
 			}
 			break
 		}
