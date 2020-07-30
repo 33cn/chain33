@@ -123,18 +123,19 @@ func (p *P2P) StartP2P() {
 
 	//提供给其他插件使用的共享接口
 	env := &prototypes.P2PEnv{
-		ChainCfg:        p.chainCfg,
-		QueueClient:     p.client,
-		Host:            p.host,
-		ConnManager:     p.connManag,
-		PeerInfoManager: p.peerInfoManag,
-		P2PManager:      p.mgr,
-		SubConfig:       p.subCfg,
-		Discovery:       p.discovery,
-		Pubsub:          p.pubsub,
-		Ctx:             p.ctx,
-		DB:              p.db,
-		RoutingTable:    p.discovery.RoutingTable(),
+		ChainCfg:         p.chainCfg,
+		QueueClient:      p.client,
+		Host:             p.host,
+		ConnManager:      p.connManag,
+		PeerInfoManager:  p.peerInfoManag,
+		P2PManager:       p.mgr,
+		SubConfig:        p.subCfg,
+		Discovery:        p.discovery,
+		Pubsub:           p.pubsub,
+		Ctx:              p.ctx,
+		DB:               p.db,
+		RoutingTable:     p.discovery.RoutingTable(),
+		RoutingDiscovery: p.discovery.RoutingDiscovery,
 	}
 	protocol.Init(env)
 	protocol.InitAllProtocol(env)
