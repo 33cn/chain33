@@ -307,8 +307,8 @@ func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
 		}
 
 		peers = append(peers, pinfo)
-
 	}
+
 	peerinfo := p.getLoacalPeerInfo()
 	if peerinfo != nil {
 		var peer types.Peer
