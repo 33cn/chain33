@@ -165,12 +165,11 @@ func (p *peerInfoProtol) getPeerInfo() {
 				return
 			}
 			var dest types.Peer
-			if resp.GetMessage() != nil { //旧版本
+			if resp.GetMessage() != nil {
 				p.PeerInfoManager.Copy(&dest, resp.GetMessage())
-
+				p.PeerInfoManager.Add(peerid.Pretty(), &dest)
 			}
 
-			p.PeerInfoManager.Add(peerid.Pretty(), &dest)
 		}(remoteID)
 
 	}
