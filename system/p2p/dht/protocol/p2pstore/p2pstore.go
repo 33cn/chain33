@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
@@ -19,8 +21,8 @@ var log = log15.New("module", "protocol.p2pstore")
 
 //Protocol ...
 type Protocol struct {
-	*protocol.P2PEnv //协议共享接口变量
-
+	//*protocol.P2PEnv //协议共享接口变量
+	*prototypes.P2PEnv
 	notifying      sync.Map
 	chunkWhiteList sync.Map
 
@@ -39,7 +41,7 @@ func init() {
 }
 
 //InitProtocol initials the protocol.
-func InitProtocol(env *protocol.P2PEnv) {
+func InitProtocol(env *prototypes.P2PEnv) {
 	p := &Protocol{
 		P2PEnv:              env,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
@@ -91,6 +93,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
 				p.localChunkInfoMutex.Unlock()
 				p.debugFullNode()
+			case <-p.Ctx.Done():
+				return
 			}
 		}
 	}()

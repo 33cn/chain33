@@ -278,8 +278,9 @@ func testHost(t *testing.T) {
 	priv, pub, err := GenPrivPubkey()
 	assert.Nil(t, err)
 	t.Log("priv size", len(priv))
-	cpriv, err := crypto.UnmarshalPrivateKey(priv)
+	cpriv, err := crypto.UnmarshalSecp256k1PrivateKey(priv)
 	assert.Nil(t, err)
+
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 26666))
 
 	if err != nil {
@@ -291,7 +292,7 @@ func testHost(t *testing.T) {
 	mcfg.MaxConnectNum = 10000
 	host := newHost(mcfg, cpriv, nil, maddr)
 	hpub := host.Peerstore().PubKey(host.ID())
-	hpb, err := hpub.Bytes()
+	hpb, err := hpub.Raw()
 	assert.Nil(t, err)
 	assert.Equal(t, hpb, pub)
 	host.Close()
@@ -308,6 +309,13 @@ func testAddrbook(t *testing.T, cfg *types.P2P) {
 	addrbook.SaveAddr(paddrinfos)
 	addrbook.setKey(priv, pub)
 	assert.True(t, addrbook.loadDb())
+
+}
+func Test_Id(t *testing.T) {
+	encodeIDStr := "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"
+	pubkey, err := PeerIDToPubkey(encodeIDStr)
+	assert.Nil(t, err)
+	assert.Equal(t, pubkey, "02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0")
 
 }
 func Test_p2p(t *testing.T) {

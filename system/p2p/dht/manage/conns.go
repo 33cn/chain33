@@ -82,7 +82,7 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	bootstraps := net.ConvertPeers(s.cfg.BootStraps)
 	ticker1 := time.NewTicker(time.Minute)
-	ticker2 := time.NewTicker(time.Minute * 10)
+	ticker2 := time.NewTicker(time.Minute * 2)
 	ticker3 := time.NewTicker(time.Hour * 6)
 	for {
 		select {
@@ -115,6 +115,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			log.Debug(trackerInfo)
 
 		case <-ticker2.C:
+
 			//处理当前连接的节点问题
 			if s.OutboundSize() > maxOutBounds || s.Size() > maxBounds {
 				continue

@@ -6,6 +6,7 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -20,8 +21,8 @@ var log = log15.New("module", "protocol.healthy")
 
 //Protocol ....
 type Protocol struct {
-	*protocol.P2PEnv //协议共享接口变量
-
+	//*protocol.P2PEnv //协议共享接口变量
+	*prototypes.P2PEnv
 	fallBehind int64 //落后多少高度，同步完成时该值应该为0
 }
 
@@ -30,7 +31,7 @@ func init() {
 }
 
 //InitProtocol initials the protocol.
-func InitProtocol(env *protocol.P2PEnv) {
+func InitProtocol(env *prototypes.P2PEnv) {
 	p := Protocol{
 		P2PEnv:     env,
 		fallBehind: 1<<63 - 1,
@@ -42,9 +43,15 @@ func InitProtocol(env *protocol.P2PEnv) {
 	//保存一个全局变量备查，避免频繁到网络中请求。
 	go func() {
 		ticker1 := time.NewTicker(types2.CheckHealthyInterval)
-		for range ticker1.C {
-			p.updateFallBehind()
+		for {
+			select {
+			case <-ticker1.C:
+				p.updateFallBehind()
+			case <-p.Ctx.Done():
+				return
+			}
 		}
+
 	}()
 
 }

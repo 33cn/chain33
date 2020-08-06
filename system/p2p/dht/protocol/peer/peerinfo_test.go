@@ -77,15 +77,12 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		SubConfig:       subCfg,
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 	pubsub, err := net.NewPubSub(ctx, env.Host)
 	if err != nil {
-		cancel()
 		return nil
 	}
 	env.Ctx = ctx
-	env.Cancel = cancel
-
 	env.Pubsub = pubsub
 	env.Discovery = net.InitDhtDiscovery(env.Ctx, host, nil, cfg, subCfg)
 	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil, subCfg)
@@ -160,7 +157,6 @@ func testNetInfoHandleEvent(protocol *peerInfoProtol, msg *queue.Message) {
 func TestPeerInfoEvent(t *testing.T) {
 	q := queue.New("test")
 	protocol := newTestProtocol(q)
-	defer protocol.Cancel()
 	assert.Equal(t, false, protocol.checkDone())
 
 	time.Sleep(time.Second * 11)
@@ -183,7 +179,6 @@ func TestPeerInfoEvent(t *testing.T) {
 func Test_util(t *testing.T) {
 	q := queue.New("test")
 	proto := newTestProtocol(q)
-	defer proto.Cancel()
 	handler := &peerInfoHandler{}
 	handler.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	handler.SetProtocol(proto)
