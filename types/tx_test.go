@@ -62,16 +62,18 @@ type=string  length   data
 func TestGetRealFee(t *testing.T) {
 	cfg := NewChain33Config(GetDefaultCfgstring())
 	tx := &Transaction{
-		Payload: []byte(strings.Repeat("a", 633)),
+		Payload: []byte(strings.Repeat("a", 641)),
 	}
 	tx, err := FormatTx(cfg, "user.p.none", tx)
+	// nonce值大小会影响proto内部编码的最终大小, 这里直接采用固定值
+	tx.Nonce = 1
 	assert.Equal(t, err, nil)
-	assert.Equal(t, tx.Size(), 699)
+	assert.Equal(t, 699, tx.Size())
 	fee1, err := tx.GetRealFee(cfg.GetMinTxFeeRate())
 	assert.Equal(t, err, nil)
 	assert.Equal(t, fee1, cfg.GetMinTxFeeRate())
 	tx.ReCalcCacheHash()
-	assert.Equal(t, tx.Size()-699, 68)
+	assert.Equal(t, 68, tx.Size()-699)
 	fee2, err := tx.GetRealFee(cfg.GetMinTxFeeRate())
 	assert.Equal(t, err, nil)
 	assert.Equal(t, fee2, cfg.GetMinTxFeeRate())
