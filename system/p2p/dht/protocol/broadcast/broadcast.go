@@ -274,7 +274,19 @@ func addIgnoreSendPeerAtomic(filter *utils.Filterdata, key string, pid peer.ID) 
 		data, _ := filter.Get(key)
 		info = data.(*sendFilterInfo)
 	}
-	_, exist = info.ignoreSendPeers[pid.Pretty()]
-	info.ignoreSendPeers[pid.Pretty()] = true
+	_, exist = info.ignoreSendPeers[string(pid)]
+	info.ignoreSendPeers[string(pid)] = true
 	return exist
+}
+
+// 删除发送过滤器记录
+func removeIgnoreSendPeerAtomic(filter *utils.Filterdata, key string, pid peer.ID) {
+
+	filter.GetAtomicLock()
+	defer filter.ReleaseAtomicLock()
+	if filter.Contains(key) {
+		data, _ := filter.Get(key)
+		info := data.(*sendFilterInfo)
+		delete(info.ignoreSendPeers, string(pid))
+	}
 }

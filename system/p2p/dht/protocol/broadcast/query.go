@@ -50,6 +50,8 @@ func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid 
 		//再次发送完整交易至节点, ttl重设为1
 		p2pTx.Route = &types.P2PRoute{TTL: 1}
 		reply = p2pTx
+		// 轻广播交易需要再次发送交易，删除发送过滤相关记录，确保不被拦截
+		removeIgnoreSendPeerAtomic(protocol.txSendFilter, txHash, pid)
 
 	} else if blcReq := query.GetBlockTxReq(); blcReq != nil {
 

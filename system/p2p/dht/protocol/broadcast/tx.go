@@ -18,8 +18,8 @@ func (protocol *broadCastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadC
 	ttl := tx.GetRoute().GetTTL()
 	isLightSend := ttl >= protocol.p2pCfg.LightTxTTL
 
-	//检测冗余发送, 短哈希广播不记录发送过滤, 已经发送或者接收过此Tx
-	if !isLightSend && addIgnoreSendPeerAtomic(protocol.txSendFilter, txHash, pid) {
+	//检测冗余发送, 已经发送或者接收过此Tx
+	if addIgnoreSendPeerAtomic(protocol.txSendFilter, txHash, pid) {
 		return false
 	}
 
