@@ -5,14 +5,20 @@
 package solo
 
 import (
+	"bytes"
+	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	_ "net/http/pprof" //
 	"sync"
 	"testing"
 	"time"
 
-	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/common"
+	log "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/decred/base58"
 	b58 "github.com/mr-tron/base58"
 
@@ -90,17 +96,46 @@ func BenchmarkSendTx(b *testing.B) {
 	solocfg, err = types.ModifySubConfig(solocfg, "benchMode", true)
 	assert.Nil(b, err)
 	subcfg.Consensus["solo"] = solocfg
-	mock33 := testnode.NewWithConfig(cfg, nil)
+	cfg.GetModuleConfig().RPC.JrpcBindAddr = "localhost:8801"
+	cfg.GetModuleConfig().RPC.GrpcBindAddr = "localhost:8802"
+	mock33 := testnode.NewWithRPC(cfg, nil)
+	log.SetLogLevel("error")
 	defer mock33.Close()
 	priv := mock33.GetGenesisKey()
 	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			b.StopTimer()
-			tx := util.CreateNoneTxWithTxHeight(cfg, priv, 0)
-			b.StartTimer()
-			mock33.GetAPI().SendTx(tx)
-		}
+	b.Run("SendTx-Internal", func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				tx := util.CreateNoneTxWithTxHeight(cfg, priv, 0)
+				mock33.GetAPI().SendTx(tx)
+			}
+		})
+	})
+
+	b.Run("SendTx-GRPC", func(b *testing.B) {
+		gcli, _ := grpcclient.NewMainChainClient(cfg, "localhost:8802")
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				tx := util.CreateNoneTxWithTxHeight(cfg, priv, 0)
+				gcli.SendTransaction(context.Background(), tx)
+			}
+		})
+	})
+
+	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 100
+	defer http.DefaultClient.CloseIdleConnections()
+	b.Run("SendTx-JSONRPC", func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				tx := util.CreateNoneTxWithTxHeight(cfg, priv, 0)
+				poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,
+					common.ToHex(types.Encode(tx)))
+
+				resp, _ := http.Post("http://localhost:8801", "application/json", bytes.NewBufferString(poststr))
+				ioutil.ReadAll(resp.Body)
+				resp.Body.Close()
+			}
+		})
 	})
 }
 
@@ -152,7 +187,7 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 
 		err := mock33.WaitHeight(int64(i + 1))
 		for err != nil {
-			log.Info("SoloNewBlock", "waitblkerr", err)
+			b.Log("SoloNewBlock", "waitblkerr", err)
 			time.Sleep(time.Second / 10)
 			err = mock33.WaitHeight(int64(i + 1))
 		}
