@@ -7,6 +7,8 @@ package broadcast
 
 import (
 	"encoding/hex"
+	"sync"
+	"time"
 
 	"github.com/33cn/chain33/p2p/utils"
 
@@ -43,6 +45,8 @@ type broadCastProtocol struct {
 	blockSendFilter *utils.Filterdata
 	ltBlockCache    *utils.SpaceLimitCache
 	p2pCfg          *p2pty.P2PSubConfig
+	neighbCache     []peer.ID
+	cacheLock       sync.RWMutex
 }
 
 // InitProtocol init protocol
@@ -82,6 +86,25 @@ func (protocol *broadCastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 	//内部组装成功失败或成功都会进行清理，实际运行并不会长期占用内存，只要限制极端情况最大值
 	protocol.ltBlockCache = utils.NewSpaceLimitCache(ltBlockCacheNum, int(subCfg.LtBlockCacheSize*1024*1024))
 	protocol.p2pCfg = &subCfg
+	go protocol.fetchNeighbours()
+}
+
+// 定时获取邻居节点信息 提高效率
+func (protocol *broadCastProtocol) fetchNeighbours() {
+
+	// 节点启动前十分钟，网络还未稳定，仍然采用实时获取方式
+	time.Sleep(time.Minute * 9)
+	tick := time.NewTicker(time.Minute)
+	for {
+		select {
+		case <-tick.C:
+			protocol.cacheLock.Lock()
+			protocol.neighbCache = protocol.GetConnsManager().FetchConnPeers()
+			protocol.cacheLock.Unlock()
+		case <-protocol.Ctx.Done():
+			return
+		}
+	}
 }
 
 type broadCastHandler struct {
@@ -144,10 +167,15 @@ func (protocol *broadCastProtocol) handleEvent(msg *queue.Message) {
 
 func (protocol *broadCastProtocol) broadcast(data interface{}) {
 
-	pds := protocol.GetConnsManager().FetchConnPeers()
-	//log.Debug("broadcast", "peerNum", len(pds))
 	openedStreams := make([]core.Stream, 0)
-	for _, pid := range pds {
+	protocol.cacheLock.RLock()
+	defer protocol.cacheLock.RUnlock()
+	peers := protocol.neighbCache
+	//节点启动十分钟内需要实时获取
+	if len(peers) == 0 {
+		peers = protocol.GetConnsManager().FetchConnPeers()
+	}
+	for _, pid := range peers {
 
 		stream, err := protocol.sendPeer(pid, data, true)
 		if err != nil {
