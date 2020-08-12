@@ -37,7 +37,7 @@ func TestCheckGenChunkNum(t *testing.T) {
 	data := &types.ChunkInfo{}
 	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data: data})
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
+	rspMsg := &queue.Message{Data: &types.Reply{IsOk: true}}
 	client.On("Wait", mock.Anything).Return(rspMsg, nil)
 	// set config
 	chain.cfg.ChunkblockNum = 5
@@ -97,46 +97,6 @@ func TestDeleteBlockBody(t *testing.T) {
 	}
 }
 
-func TestIsNeedChunk(t *testing.T) {
-	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir) // clean up
-	os.RemoveAll(dir)       //删除已存在目录
-
-	chain := InitEnv()
-	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
-	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
-	chain.blockStore = blockStore
-	chain.cfg.ChunkblockNum = 2
-	setChunkInfo := &types.ChunkInfo{
-		ChunkNum: 6,
-	}
-	blockStore.Set(calcChunkNumToHash(6), types.Encode(setChunkInfo))
-	// check
-	// 当前数据库中最大chunNum=6 高度为3的区块计算的chunkNum为1
-	baseNum := MaxRollBlockNum + chain.cfg.ChunkblockNum
-	isNeed, chunk := chain.IsNeedChunk(baseNum + 3)
-	assert.Equal(t, isNeed, false)
-	assert.Equal(t, chunk.Start, int64(2))
-	assert.Equal(t, chunk.End, int64(3))
-	// 当前数据库中最大chunNum=6 高度为12的区块计算的chunkNum为6
-	isNeed, chunk = chain.IsNeedChunk(baseNum + 12)
-	assert.Equal(t, isNeed, false)
-	assert.Equal(t, chunk.Start, int64(12))
-	assert.Equal(t, chunk.End, int64(13))
-	// 当前数据库中最大chunNum=6 高度为13的区块计算的chunkNum为6
-	isNeed, chunk = chain.IsNeedChunk(baseNum + 13)
-	assert.Equal(t, isNeed, false)
-	assert.Equal(t, chunk.Start, int64(12))
-	assert.Equal(t, chunk.End, int64(13))
-	// 当前数据库中最大chunNum=6 高度为14的区块计算的chunkNum为7
-	isNeed, chunk = chain.IsNeedChunk(baseNum + 14)
-	assert.Equal(t, isNeed, true)
-	assert.Equal(t, chunk.Start, int64(14))
-	assert.Equal(t, chunk.End, int64(15))
-}
-
 func TestGenDeleteChunkSign(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
@@ -185,16 +145,12 @@ func TestMaxSerialChunkNum(t *testing.T) {
 	assert.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	// test noerror
-	end := 100
 	for i := 0; i < 100; i++ {
-		err = chain.updateMaxSerialChunkNum(int64(i))
+		err = chain.updateMaxSerialChunkNum()
 		assert.NoError(t, err)
 		chunkNum := chain.getMaxSerialChunkNum()
 		assert.Equal(t, int64(i), chunkNum)
 	}
-	// test error
-	err = chain.updateMaxSerialChunkNum(int64(end + 5))
-	assert.Error(t, err, ErrNoChunkNumSerial)
 }
 
 func TestNotifyStoreChunkToP2P(t *testing.T) {
@@ -208,9 +164,10 @@ func TestNotifyStoreChunkToP2P(t *testing.T) {
 	}
 	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{Data: data})
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
-	//rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
-	//client.On("Wait", mock.Anything).Return(rspMsg, nil)
-	chain.notifyStoreChunkToP2P(data)
+	rspMsg := &queue.Message{Data: &types.Reply{IsOk: true}}
+	client.On("Wait", mock.Anything).Return(rspMsg, nil)
+	err := chain.notifyStoreChunkToP2P(data)
+	assert.Nil(t, err)
 }
 
 func TestGenChunkBlocks(t *testing.T) {

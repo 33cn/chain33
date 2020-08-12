@@ -153,8 +153,8 @@ func (chain *BlockChain) SynRoutine() {
 	//2分钟尝试检测一次最优链，确保本节点在最优链
 	checkBestChainTicker := time.NewTicker(120 * time.Second)
 
-	//60s尝试从peer节点请求ChunkRecord
-	chunkRecordSynTicker := time.NewTicker(60 * time.Second)
+	//30s尝试从peer节点请求ChunkRecord
+	chunkRecordSynTicker := time.NewTicker(30 * time.Second)
 
 	//节点下载模式
 	go chain.DownLoadBlocks()
