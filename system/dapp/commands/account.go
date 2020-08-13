@@ -311,7 +311,7 @@ func parseCreateAccountRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-//
+//GetAccountCmd get account by label
 func GetAccountCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",

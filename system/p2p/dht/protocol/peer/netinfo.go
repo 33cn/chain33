@@ -40,8 +40,7 @@ func (p *peerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 // ratebytes means bytes sent / received per second.
 func rateCaculate(ratebytes float64) string {
 	kbytes := ratebytes / 1024
-	var rate string
-	rate = fmt.Sprintf("%.3f KB/s", kbytes)
+	rate := fmt.Sprintf("%.3f KB/s", kbytes)
 	if kbytes/1024 > 0.1 {
 		rate = fmt.Sprintf("%.3f MB/s", kbytes/1024)
 	}
