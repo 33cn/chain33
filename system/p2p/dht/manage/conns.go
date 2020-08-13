@@ -280,3 +280,8 @@ func (s *ConnManager) BoundSize() (insize int, outsize int) {
 	return insize, outsize
 
 }
+
+func (s *ConnManager) GetNetRate() metrics.Stats {
+
+	return s.bandwidthTracker.GetBandwidthTotals()
+}

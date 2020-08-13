@@ -7,6 +7,7 @@ package types
 
 import (
 	"context"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	"reflect"
 	"time"
 
@@ -90,6 +91,7 @@ type IConnManager interface {
 	BoundSize() (in int, out int)
 	IsNeighbors(id peer.ID) bool
 	GetLatencyByPeer(pids []peer.ID) map[string]time.Duration
+	GetNetRate() metrics.Stats
 }
 
 // IPeerInfoManager peer info manager interface

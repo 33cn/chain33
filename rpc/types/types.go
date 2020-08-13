@@ -325,6 +325,9 @@ type NodeNetinfo struct {
 	Inbounds     int32  `json:"inbounds"`
 	Routingtable int32  `json:"routingtable"`
 	Peerstore    int32  `json:"peerstore"`
+	Ratein       string `json:"ratein"`
+	Rateout      string `json:"rateout"`
+	Ratetotal    string `json:"ratetotal"`
 }
 
 // ReplyCacheTxList reply cache tx list
