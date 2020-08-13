@@ -7,9 +7,10 @@ package types
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/metrics"
 	"reflect"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/metrics"
 
 	ds "github.com/ipfs/go-datastore"
 	discovery "github.com/libp2p/go-libp2p-discovery"
