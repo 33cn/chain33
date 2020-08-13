@@ -119,8 +119,8 @@ message ReqNewAccount {
 }
 
 //根据label获取账户地址
-message ReqGetAccount{
-    string label=1;
+message ReqGetAccount {
+    string label = 1;
 }
 
 //获取钱包交易的详细信息
