@@ -370,13 +370,16 @@ message P2PGetNetInfoReq {
  *当前节点的网络信息
  */
 message NodeNetInfo {
-    string externaladdr = 1;
-    string localaddr    = 2;
-    bool   service      = 3;
-    int32  outbounds    = 4;
-    int32  inbounds     = 5;
-    int32  routingtable = 6;
-    int32  peerstore    = 7;
+    string externaladdr =  1;
+    string localaddr    =  2;
+    bool   service      =  3;
+    int32  outbounds    =  4;
+    int32  inbounds     =  5;
+    int32  routingtable =  6;
+    int32  peerstore    =  7;
+    string ratein       =  8;
+    string rateout      =  9;
+    string ratetotal    = 10;
 }
 
 /**
