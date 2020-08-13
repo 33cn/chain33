@@ -2,6 +2,7 @@
 package protocol
 
 import (
+	"context"
 	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
@@ -30,6 +31,7 @@ const (
 
 // P2PEnv p2p全局公共变量
 type P2PEnv struct {
+	Ctx         context.Context
 	ChainCfg    *types.Chain33Config
 	QueueClient queue.Client
 	Host        core.Host

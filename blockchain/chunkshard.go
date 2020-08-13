@@ -26,7 +26,7 @@ var (
 
 const (
 	// OnceMaxChunkNum 每次检测最大生成chunk数
-	OnceMaxChunkNum int32 = 10
+	OnceMaxChunkNum int32 = 30
 	// DelRollbackChunkNum 删除小于当前chunk为DelRollbackChunkNum
 	DelRollbackChunkNum int32 = 10
 	// MaxReqChunkRecord 每次请求最大MaxReqChunkRecord个chunk的record
@@ -49,7 +49,7 @@ func (chain *BlockChain) chunkProcessRoutine() {
 			// 6.5版本先不做删除
 			//chain.CheckDeleteBlockBody()
 		case <-checkGenChunkTicker.C:
-			//chain.CheckGenChunkNum()
+			chain.CheckGenChunkNum()
 		}
 	}
 }

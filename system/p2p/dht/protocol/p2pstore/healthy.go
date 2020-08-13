@@ -4,9 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
-
-	protocol2 "github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -22,14 +21,14 @@ func (p *Protocol) updateHealthyRoutingTable() {
 }
 
 func (p *Protocol) checkPeerHealth(id peer.ID) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute)
 	defer cancel()
-	stream, err := p.Host.NewStream(ctx, id, protocol2.IsHealthy)
+	stream, err := p.Host.NewStream(ctx, id, protocol.IsHealthy)
 	if err != nil {
 		return false, err
 	}
-	defer protocol2.CloseStream(stream)
-	err = protocol2.WriteStream(&types.P2PRequest{
+	defer protocol.CloseStream(stream)
+	err = protocol.WriteStream(&types.P2PRequest{
 		Request: &types.P2PRequest_HealthyHeight{
 			HealthyHeight: 50,
 		},
@@ -38,7 +37,7 @@ func (p *Protocol) checkPeerHealth(id peer.ID) (bool, error) {
 		return false, err
 	}
 	var res types.P2PResponse
-	err = protocol2.ReadStream(&res, stream)
+	err = protocol.ReadStream(&res, stream)
 	if err != nil {
 		return false, err
 	}

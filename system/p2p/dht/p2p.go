@@ -206,6 +206,7 @@ func (p *P2P) StartP2P() {
 
 	//debug new
 	env2 := &protocol.P2PEnv{
+		Ctx:              p.ctx,
 		ChainCfg:         p.chainCfg,
 		QueueClient:      p.client,
 		Host:             p.host,

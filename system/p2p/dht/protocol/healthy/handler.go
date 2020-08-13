@@ -8,7 +8,6 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/network"
 )
 
 const (
@@ -50,7 +49,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 }
 
 // handleStreamIsSync 实时查询是否已同步完成
-func (p *Protocol) handleStreamIsSync(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func (p *Protocol) handleStreamIsSync(_ *types.P2PRequest, res *types.P2PResponse) error {
 	maxHeight := p.queryMaxHeight()
 	if maxHeight == -1 {
 		return types2.ErrUnknown
@@ -77,7 +76,7 @@ func (p *Protocol) handleStreamIsSync(_ *types.P2PRequest, res *types.P2PRespons
 }
 
 // handleStreamIsHealthy 非实时查询，定期更新
-func (p *Protocol) handleStreamIsHealthy(req *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func (p *Protocol) handleStreamIsHealthy(req *types.P2PRequest, res *types.P2PResponse) error {
 	maxFallBehind := req.Request.(*types.P2PRequest_HealthyHeight).HealthyHeight
 
 	var isHealthy bool
@@ -93,7 +92,7 @@ func (p *Protocol) handleStreamIsHealthy(req *types.P2PRequest, res *types.P2PRe
 	return nil
 }
 
-func (p *Protocol) handleStreamLastHeader(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func (p *Protocol) handleStreamLastHeader(_ *types.P2PRequest, res *types.P2PResponse) error {
 	header, err := p.getLastHeaderFromBlockChain()
 	if err != nil {
 		return err

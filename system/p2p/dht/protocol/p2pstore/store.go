@@ -17,10 +17,10 @@ const (
 	LocalChunkInfoKey = "local-chunk-info"
 	ChunkNameSpace    = "chunk"
 	AlphaValue        = 3
-	Backup            = 5
+	Backup            = 10
 )
 
-//LocalChunkInfo warps local chunk key with time.
+//LocalChunkInfo wraps local chunk key with time.
 type LocalChunkInfo struct {
 	*types.ChunkInfoMsg
 	Time time.Time
@@ -32,7 +32,7 @@ func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys types.Message) 
 	if err != nil {
 		return err
 	}
-	return p.DB.Put(genChunkKey(info.ChunkHash), types.Encode(bodys))
+	return p.DB.Put(genChunkDBKey(info.ChunkHash), types.Encode(bodys))
 }
 
 // 更新本地chunk保存时间，只更新索引即可
@@ -54,7 +54,7 @@ func (p *Protocol) deleteChunkBlock(hash []byte) error {
 	if err != nil {
 		return err
 	}
-	return p.DB.Delete(genChunkKey(hash))
+	return p.DB.Delete(genChunkDBKey(hash))
 }
 
 // 获取本地chunk数据
@@ -68,7 +68,7 @@ func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, er
 		return nil, types2.ErrNotFound
 	}
 
-	b, err := p.DB.Get(genChunkKey(req.ChunkHash))
+	b, err := p.DB.Get(genChunkDBKey(req.ChunkHash))
 	if err != nil {
 		return nil, err
 	}
@@ -139,14 +139,14 @@ func (p *Protocol) getChunkInfoByHash(hash []byte) (LocalChunkInfo, bool) {
 }
 
 // 适配libp2p，按路径格式生成数据的key值，便于区分多种数据类型的命名空间，以及key值合法性校验
-func genChunkPath(hash []byte) string {
+func genChunkNameSpaceKey(hash []byte) string {
 	return fmt.Sprintf("/%s/%s", ChunkNameSpace, hex.EncodeToString(hash))
 }
 
-func genChunkKey(hash []byte) datastore.Key {
-	return datastore.NewKey(genChunkPath(hash))
+func genChunkDBKey(hash []byte) datastore.Key {
+	return datastore.NewKey(genChunkNameSpaceKey(hash))
 }
 
 func genDHTID(chunkHash []byte) kb.ID {
-	return kb.ConvertKey(genChunkPath(chunkHash))
+	return kb.ConvertKey(genChunkNameSpaceKey(chunkHash))
 }
