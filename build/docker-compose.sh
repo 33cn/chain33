@@ -99,6 +99,8 @@ function base_init() {
     sed -i $sedfix 's/^enablePushSubscribe=.*/enablePushSubscribe=true/g' ${testtoml}
     sed -i $sedfix 's/^enableReduceLocaldb=.*/enableReduceLocaldb=false/g' ${testtoml}
 
+    sed -i $sedfix 's/^enableTLS=.*/enableTLS=true/g' ${testtoml}
+
     cp ${testtoml} ${testtomlsolo}
     #consens
     consens_init "solo"
