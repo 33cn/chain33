@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"fmt"
 	"net"
 	"net/rpc"
 	"time"
@@ -164,7 +165,7 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 	if rpcCfg.EnableTLS {
 		creds, err := credentials.NewServerTLSFromFile(rpcCfg.CertFile, rpcCfg.KeyFile)
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("err=%s, if cert.pem not found, run chain33-cli cert --host=127.0.0.1 to create", err.Error()))
 		}
 		credsOps := grpc.Creds(creds)
 		opts = append(opts, credsOps)
