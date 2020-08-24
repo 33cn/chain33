@@ -5,11 +5,13 @@
 package crypto_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/init"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,6 +31,7 @@ func TestGet(t *testing.T) {
 	require.True(ty == 2)
 	ty = crypto.GetType("sm2")
 	require.True(ty == 3)
+	require.Panics(func() { crypto.RegisterType("testCrypto", crypto.GetType("secp256k1")) })
 }
 
 func TestRipemd160(t *testing.T) {
@@ -173,4 +176,80 @@ func Verify(signType string, pubBytes, msg, signBytes []byte) bool {
 	}
 
 	return pub.VerifyBytes(msg, sign)
+}
+
+func TestAggregate(t *testing.T) {
+	c, err := crypto.New("secp256k1")
+	if err != nil {
+		panic(err)
+	}
+	_, err = crypto.ToAggregate(c)
+	assert.Equal(t, err, crypto.ErrNotSupportAggr)
+
+	c = democrypto{}
+	aggr, err := crypto.ToAggregate(c)
+	assert.Nil(t, err)
+	sig, err := aggr.Aggregate(nil)
+	assert.Nil(t, sig)
+	assert.Nil(t, err)
+}
+
+type democrypto struct{}
+
+func (d democrypto) GenKey() (crypto.PrivKey, error) {
+	return nil, nil
+}
+
+func (d democrypto) SignatureFromBytes([]byte) (crypto.Signature, error) {
+	return nil, nil
+}
+func (d democrypto) PrivKeyFromBytes([]byte) (crypto.PrivKey, error) {
+	return nil, nil
+}
+func (d democrypto) PubKeyFromBytes([]byte) (crypto.PubKey, error) {
+	return nil, nil
+}
+
+//AggregateCrypto 聚合签名
+
+func (d democrypto) Aggregate(sigs []crypto.Signature) (crypto.Signature, error) {
+	return nil, nil
+}
+func (d democrypto) AggregatePublic(pubs []crypto.PubKey) (crypto.PubKey, error) {
+	return nil, nil
+}
+func (d democrypto) VerifyAggregatedOne(pubs []crypto.PubKey, m []byte, sig crypto.Signature) error {
+	return nil
+}
+func (d democrypto) VerifyAggregatedN(pubs []crypto.PubKey, ms [][]byte, sig crypto.Signature) error {
+	return nil
+}
+
+type democryptoCGO struct {
+	democrypto
+}
+
+func (d democryptoCGO) GenKey() (crypto.PrivKey, error) {
+	return nil, errors.New("testCGO")
+}
+
+func TestRegister(t *testing.T) {
+	c, err := crypto.New("secp256k1")
+	if err != nil {
+		panic(err)
+	}
+	p, err := c.GenKey()
+	assert.Nil(t, err)
+	assert.NotNil(t, p)
+	crypto.Register("secp256k1", democryptoCGO{}, true)
+	crypto.RegisterType("secp256k1", 1)
+	assert.Panics(t, func() { crypto.RegisterType("secp256k1_cgo", 1) })
+	assert.Panics(t, func() { crypto.RegisterType("secp256k1", 2) })
+	c, err = crypto.New("secp256k1")
+	if err != nil {
+		panic(err)
+	}
+	p, err = c.GenKey()
+	assert.Nil(t, p)
+	assert.Equal(t, errors.New("testCGO"), err)
 }

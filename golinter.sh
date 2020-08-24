@@ -18,7 +18,8 @@ function filterLinter() {
             --enable=goimports \
             --enable=misspell \
             --enable=golint \
-            --exclude=underscores
+            --exclude=underscores \
+            --exclude-use-default=false
     )
     #	    --enable=staticcheck \
     #	    --enable=gocyclo \
@@ -59,7 +60,8 @@ function testLinter() {
         --enable=goimports \
         --enable=misspell \
         --enable=golint \
-        --exclude=underscores
+        --exclude=underscores \
+        --exclude-use-default=false
 
     cd - >/dev/null || exit
 }

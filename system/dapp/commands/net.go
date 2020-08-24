@@ -5,6 +5,7 @@
 package commands
 
 import (
+	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
 
 	"github.com/33cn/chain33/rpc/jsonclient"
@@ -34,17 +35,20 @@ func NetCmd() *cobra.Command {
 // GetPeerInfoCmd  get peers connected info
 func GetPeerInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "peer_info",
+		Use:   "peer",
 		Short: "Get remote peer nodes",
 		Run:   peerInfo,
 	}
+	cmd.Flags().StringP("type", "t", "", "p2p type, gossip or dht")
 	return cmd
 }
 
 func peerInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.PeerList
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetPeerInfo", nil, &res)
+	p2pty, _ := cmd.Flags().GetString("type")
+	req := types.P2PGetPeerReq{P2PType: p2pty}
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetPeerInfo", req, &res)
 	ctx.Run()
 }
 
@@ -89,13 +93,16 @@ func GetNetInfoCmd() *cobra.Command {
 		Short: "Get net information",
 		Run:   netInfo,
 	}
+	cmd.Flags().StringP("type", "t", "", "p2p type, gossip or dht")
 	return cmd
 }
 
 func netInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	p2pty, _ := cmd.Flags().GetString("type")
+	req := types.P2PGetNetInfoReq{P2PType: p2pty}
 	var res rpctypes.NodeNetinfo
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetNetInfo", nil, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetNetInfo", req, &res)
 	ctx.Run()
 }
 

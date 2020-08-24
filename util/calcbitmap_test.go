@@ -132,3 +132,40 @@ func TestCalcBitMapByBitMap(t *testing.T) {
 	check := []byte{0x17}
 	assert.Equal(t, check, rst)
 }
+
+func TestSetAddrsBitMap(t *testing.T) {
+	group := []string{"aa", "bb", "cc", "dd", "ee", "ff", "gg", "h", "i", "j"}
+	addrs := []string{"aa", "ee"}
+
+	rst, mis := SetAddrsBitMap(group, addrs)
+	assert.Equal(t, []byte{0x11}, rst)
+	assert.Equal(t, 0, len(mis))
+
+	addrs = []string{"f", "ee"}
+	rst, mis = SetAddrsBitMap(group, addrs)
+	assert.Equal(t, []byte{0x10}, rst)
+	assert.Equal(t, 1, len(mis))
+
+	addrs = []string{"i", "j", "ee"}
+	rst, mis = SetAddrsBitMap(group, addrs)
+	assert.Equal(t, []byte{0x3, 0x10}, rst)
+	assert.Equal(t, 0, len(mis))
+}
+
+func TestGetAddrsByBitMap(t *testing.T) {
+	group := []string{"aa", "bb", "cc", "dd", "ee"}
+	bitmap := []byte{0x10}
+
+	addrs := GetAddrsByBitMap(group, bitmap)
+	expect := []string{"ee"}
+	assert.Equal(t, expect, addrs)
+
+	bitmap = []byte{0x11}
+	addrs = GetAddrsByBitMap(group, bitmap)
+	expect = []string{"aa", "ee"}
+	assert.Equal(t, expect, addrs)
+
+	bitmap = []byte{0x1f}
+	addrs = GetAddrsByBitMap(group, bitmap)
+	assert.Equal(t, group, addrs)
+}

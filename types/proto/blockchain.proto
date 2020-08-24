@@ -47,16 +47,6 @@ message Blocks {
     repeated Block items = 1;
 }
 
-message BlockSeqCB {
-    string name   = 1;
-    string URL    = 2;
-    string encode = 3;
-}
-
-message BlockSeqCBs {
-    repeated BlockSeqCB items = 1;
-}
-
 message BlockSeq {
     int64         num    = 1;
     BlockSequence seq    = 2;
@@ -111,22 +101,6 @@ message Receipts {
     repeated Receipt receipts = 1;
 }
 
-message PrivacyKV {
-    repeated PrivacyKVToken privacyKVToken = 1;
-}
-
-message PrivacyKVToken {
-    string   token       = 1;
-    int32    txIndex     = 2;
-    bytes    txhash      = 3;
-    repeated KeyValue KV = 4;
-}
-
-message ReceiptsAndPrivacyKV {
-    Receipts  receipts  = 1;
-    PrivacyKV privacyKV = 2;
-}
-
 message ReceiptCheckTxList {
     repeated string errs = 1;
 }
@@ -164,12 +138,29 @@ message ReplyBlockHeight {
 //区块体信息
 // 	 txs : 区块上所有交易列表
 //	 receipts :区块上所有交易的收据信息列表
+// 	 mainHash : 主链区块hash，平行链使用
+//	 mainHeight :主链区块高度，平行链使用
+// 	 hash : 本链区块hash
+//	 height :本链区块高度
 message BlockBody {
     repeated Transaction txs        = 1;
     repeated ReceiptData receipts   = 2;
     bytes                mainHash   = 3;
     int64                mainHeight = 4;
+    bytes                hash       = 5;
+    int64                height     = 6;
 }
+
+//区块回执
+//	 receipts :区块上所有交易的收据信息列表
+// 	 hash : 本链区块hash
+//	 height :本链区块高度
+message BlockReceipt {
+    repeated ReceiptData receipts = 1;
+    bytes                hash     = 2;
+    int64                height   = 3;
+}
+
 //  区块追赶主链状态，用于判断本节点区块是否已经同步好
 message IsCaughtUp {
     bool Iscaughtup = 1;
@@ -218,10 +209,16 @@ message ParaTxDetails {
 // type:平行链交易所在区块add/del操作，方便平行链回滚
 // header:平行链交易所在区块头信息
 // txDetails:本区块中指定title平行链的所有交易
+// proofs:对应平行链子roothash的存在证明路径
+// childHash:此平行链交易的子roothash
+// index:对应平行链子roothash在整个区块中的索引
 message ParaTxDetail {
     int64    type               = 1;
     Header   header             = 2;
     repeated TxDetail txDetails = 3;
+    bytes             childHash = 4;
+    uint32            index     = 5;
+    repeated bytes proofs       = 6;
 }
 
 //交易的详情：
@@ -255,4 +252,142 @@ message FileHeader {
 message EndBlock {
     int64 height = 1;
     bytes hash   = 2;
+}
+
+//通过seq获取区块的header信息
+message HeaderSeq {
+    int64         num    = 1;
+    BlockSequence seq    = 2;
+    Header        header = 3;
+}
+
+//批量推送区块的header信息
+message HeaderSeqs {
+    repeated HeaderSeq seqs = 1;
+}
+
+//记录本平行链所在区块的信息以及子根hash值
+// childHash:平行链子roothash值
+// startIndex:此平行链的第一笔交易的index索引值
+// childHashIndex:此平行链子roothash在本区块中的索引值
+// txCount:此平行链交易的个数
+message HeightPara {
+    int64  height         = 1;
+    string title          = 2;
+    bytes  hash           = 3;
+    bytes  childHash      = 4;
+    int32  startIndex     = 5;
+    uint32 childHashIndex = 6;
+    int32  txCount        = 7;
+}
+
+message HeightParas {
+    repeated HeightPara items = 1;
+}
+
+//记录平行链第一笔交易的index,以及平行链的roothash
+// title:子链名字，主链的默认是main
+// startIndex:子链第一笔交易的索引
+// childHash:子链的根hash
+// txCount:子链交易的数量
+message ChildChain {
+    string title      = 1;
+    int32  startIndex = 2;
+    bytes  childHash  = 3;
+    int32  txCount    = 4;
+}
+
+//通过指定title以及height翻页获取拥有此title交易的区块高度列表
+message ReqHeightByTitle {
+    int64  height    = 1;
+    string title     = 2;
+    int32  count     = 3;
+    int32  direction = 4;
+}
+
+message ReplyHeightByTitle {
+    string   title           = 1;
+    repeated BlockInfo items = 2;
+}
+
+// title平行链交易所在主链区块的信息
+message BlockInfo {
+    int64 height = 1;
+    bytes hash   = 2;
+}
+
+//通过高度列表和title获取平行链交易
+message ReqParaTxByHeight {
+    repeated int64 items = 1;
+    string         title = 2;
+}
+
+//用于比较最优区块的消息结构
+message CmpBlock {
+    Block block   = 1;
+    bytes cmpHash = 2;
+}
+
+// BlockBodys
+message BlockBodys {
+    repeated BlockBody items = 1;
+}
+
+// ChunkRecords
+message ChunkRecords {
+    repeated ChunkInfo infos = 1;
+}
+
+// ChunkInfoMsg 用于消息传递
+message ChunkInfoMsg {
+    bytes chunkHash = 1;
+    int64 start     = 2;
+    int64 end       = 3;
+}
+
+// ChunkInfo用于记录chunk的信息
+message ChunkInfo {
+    int64 chunkNum  = 1;
+    bytes chunkHash = 2;
+    int64 start     = 3;
+    int64 end       = 4;
+}
+
+//获取ChunkRecord信息
+// 	 start : 获取Chunk的开始高度
+//	 end :获取Chunk的结束高度
+// 	 Isdetail : 是否需要获取所有Chunk Record 信息，false时候获取到chunkNum--->chunkhash的KV对，true获取全部
+// 	 pid : peer列表
+message ReqChunkRecords {
+    int64    start      = 1;
+    int64    end        = 2;
+    bool     isDetail   = 3;
+    repeated string pid = 4;
+}
+
+message PushSubscribeReq {
+    string name          = 1;
+    string URL           = 2;
+    string encode        = 3;
+    int64  lastSequence  = 4;
+    int64  lastHeight    = 5;
+    string lastBlockHash = 6;
+    // 0:代表区块；1:代表区块头信息；2：代表交易回执
+    int32 type = 7;
+    //允许订阅多个类型的交易回执
+    map<string, bool> contract = 8;
+}
+
+message PushWithStatus {
+    PushSubscribeReq push   = 1;
+    int32            status = 2;
+}
+
+message PushSubscribes {
+    repeated PushSubscribeReq pushes = 1;
+}
+
+message ReplySubscribePush {
+    bool   isOk = 1;
+    string msg  = 2;
 }

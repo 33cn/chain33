@@ -125,7 +125,7 @@ msgCacheSize=10240
 driver="leveldb"
 [mempool]
 poolCacheSize=102400
-minTxFee=100000
+minTxFeeRate=100000
 [consensus]
 name="ticket"
 minerstart=true
@@ -195,8 +195,7 @@ minFee=100000
 driver="leveldb"
 signType="secp256k1"
 [exec]
-isFree=false
-minExecFee=100000
+
 [exec.sub.token]
 #配置一个空值，防止配置文件被覆盖
 tokenApprs = []
@@ -226,6 +225,7 @@ ForkTxGroupPara= -1
 ForkChainParamV2= -1
 ForkBase58AddressCheck=1800000
 ForkTicketFundAddrV1=-1
+ForkRootHash=1
 [fork.sub.coins]
 Enable=0
 [fork.sub.ticket]

@@ -152,6 +152,15 @@ type TransactionDetail struct {
 	Fromaddr   string             `json:"fromAddr"`
 	ActionName string             `json:"actionName"`
 	Assets     []*Asset           `json:"assets"`
+	TxProofs   []*TxProof         `json:"txProofs"`
+	FullHash   string             `json:"fullHash"`
+}
+
+// TxProof :
+type TxProof struct {
+	Proofs   []string `json:"proofs"`
+	Index    uint32   `json:"index"`
+	RootHash string   `json:"rootHash"`
 }
 
 // ReplyTxInfos reply tx infos
@@ -200,12 +209,15 @@ type PeerList struct {
 
 // Peer  information
 type Peer struct {
-	Addr        string  `json:"addr"`
-	Port        int32   `json:"port"`
-	Name        string  `json:"name"`
-	MempoolSize int32   `json:"mempoolSize"`
-	Self        bool    `json:"self"`
-	Header      *Header `json:"header"`
+	Addr           string  `json:"addr"`
+	Port           int32   `json:"port"`
+	Name           string  `json:"name"`
+	MempoolSize    int32   `json:"mempoolSize"`
+	Self           bool    `json:"self"`
+	Header         *Header `json:"header"`
+	Version        string  `json:"version,omitempty"`
+	LocalDBVersion string  `json:"localDBVersion,omitempty"`
+	StoreDBVersion string  `json:"storeDBVersion,omitempty"`
 }
 
 // WalletAccounts Wallet Module
@@ -251,13 +263,9 @@ type ReqHashes struct {
 
 // ReqWalletTransactionList require wallet transaction list
 type ReqWalletTransactionList struct {
-	FromTx          string `json:"fromTx"`
-	Count           int32  `json:"count"`
-	Direction       int32  `json:"direction"`
-	Mode            int32  `json:"mode,omitempty"`
-	SendRecvPrivacy int32  `json:"sendRecvPrivacy,omitempty"`
-	Address         string `json:"address,omitempty"`
-	TokenName       string `json:"tokenname,omitempty"`
+	FromTx    string `json:"fromTx"`
+	Count     int32  `json:"count"`
+	Direction int32  `json:"direction"`
 }
 
 // WalletTxDetails wallet tx details
@@ -315,13 +323,11 @@ type NodeNetinfo struct {
 	Service      bool   `json:"service"`
 	Outbounds    int32  `json:"outbounds"`
 	Inbounds     int32  `json:"inbounds"`
-}
-
-// ReplyPrivacyPkPair   reply privekey pubkey pair
-type ReplyPrivacyPkPair struct {
-	ShowSuccessful bool   `json:"showSuccessful,omitempty"`
-	ViewPub        string `json:"viewPub,omitempty"`
-	SpendPub       string `json:"spendPub,omitempty"`
+	Routingtable int32  `json:"routingtable"`
+	Peerstore    int32  `json:"peerstore"`
+	Ratein       string `json:"ratein"`
+	Rateout      string `json:"rateout"`
+	Ratetotal    string `json:"ratetotal"`
 }
 
 // ReplyCacheTxList reply cache tx list

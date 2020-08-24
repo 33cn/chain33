@@ -140,33 +140,9 @@ func (c *chainView) nodeByHeight(height int64) *blockNode {
 	return nil
 }
 
-func (c *chainView) NodeByHeight(height int64) *blockNode {
-	c.mtx.Lock()
-	node := c.nodeByHeight(height)
-	c.mtx.Unlock()
-	return node
-}
-
-// This function is safe for concurrent access.
-func (c *chainView) Equals(other *chainView) bool {
-	c.mtx.Lock()
-	other.mtx.Lock()
-	equals := len(c.nodes) == len(other.nodes) && c.tip() == other.tip()
-	other.mtx.Unlock()
-	c.mtx.Unlock()
-	return equals
-}
-
 // contains returns whether or not the chain view contains the passed block node.
 func (c *chainView) contains(node *blockNode) bool {
 	return c.nodeByHeight(node.height) == node
-}
-
-func (c *chainView) Contains(node *blockNode) bool {
-	c.mtx.Lock()
-	contains := c.contains(node)
-	c.mtx.Unlock()
-	return contains
 }
 
 func (c *chainView) next(node *blockNode) *blockNode {
@@ -223,14 +199,4 @@ func (c *chainView) HaveBlock(hash []byte, height int64) bool {
 		}
 	}
 	return false
-}
-
-func (c *chainView) PrintTip() {
-	chainlog.Error("PrintTip info:")
-	var next *list.Element
-	for e := c.cacheQueue.Front(); e != nil; e = next {
-		next = e.Next()
-		blocknode := e.Value.(*blockNode)
-		chainlog.Error("PrintTip node:", "blocknode.height", blocknode.height, "blocknode.hash", common.ToHex(blocknode.hash))
-	}
 }

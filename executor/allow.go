@@ -21,7 +21,8 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 	}
 	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
 	//注意: user.p.guodun.user.evm.hash -> user.evm.hash 而不是 evm
-	exec := types.GetParaExec(tx.Execer)
+	cfg := e.api.GetConfig()
+	exec := cfg.GetParaExec(tx.Execer)
 	//默认规则1: (执行器只能修改执行器自己内部的数据)
 	if bytes.Equal(keyExecer, exec) {
 		return true
@@ -29,7 +30,7 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 	// 历史原因做只针对对bityuan的fork特殊化处理一下
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
-	if !types.IsFork(e.height, "ForkExecKey") {
+	if !cfg.IsFork(e.height, "ForkExecKey") {
 		if bytes.Equal(exec, []byte("manage")) && bytes.Equal(keyExecer, []byte("config")) {
 			return true
 		}
@@ -53,17 +54,19 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
+	//此处loadDriver比较特殊，传入了空交易和当前交易的index
+	//主要为了内部driver.Allow可能会基于index进行逻辑判断，如挖矿交易限定只能是区块的第一笔交易
 	c := e.loadDriver(&types.Transaction{Execer: execdriver}, index)
 	//交给 -> friend 来判定
 	return c.IsFriend(execdriver, key, tx)
 }
 
-func isAllowLocalKey(execer []byte, key []byte) error {
-	err := isAllowLocalKey2(execer, key)
+func isAllowLocalKey(cfg *types.Chain33Config, execer []byte, key []byte) error {
+	err := isAllowLocalKey2(cfg, execer, key)
 	if err != nil {
 		realexec := types.GetRealExecName(execer)
 		if !bytes.Equal(realexec, execer) {
-			err2 := isAllowLocalKey2(realexec, key)
+			err2 := isAllowLocalKey2(cfg, realexec, key)
 			err = errors.Wrapf(err2, "1st check err: %s. 2nd check err", err.Error())
 		}
 		if err != nil {
@@ -75,7 +78,7 @@ func isAllowLocalKey(execer []byte, key []byte) error {
 	return nil
 }
 
-func isAllowLocalKey2(execer []byte, key []byte) error {
+func isAllowLocalKey2(cfg *types.Chain33Config, execer []byte, key []byte) error {
 	if len(execer) < 1 {
 		return errors.Wrap(types.ErrLocalPrefix, "execer empty")
 	}
@@ -87,7 +90,7 @@ func isAllowLocalKey2(execer []byte, key []byte) error {
 	if key[minkeylen-1] != '-' || key[len(types.LocalPrefix)] != '-' {
 		err := errors.Wrapf(types.ErrLocalPrefix,
 			"isAllowLocalKey prefix last char or separator is not '-'. key=%s exec=%s minkeylen=%d title=%s",
-			string(key), string(execer), minkeylen, types.GetTitle())
+			string(key), string(execer), minkeylen, cfg.GetTitle())
 		return err
 	}
 	if !bytes.HasPrefix(key, types.LocalPrefix) {

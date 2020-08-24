@@ -36,7 +36,7 @@ func (c *channelClient) Init(q queue.Client, api client.QueueProtocolAPI) {
 		}
 	}
 	c.QueueProtocolAPI = api
-	c.accountdb = account.NewCoinsAccount()
+	c.accountdb = account.NewCoinsAccount(q.GetConfig())
 }
 
 // CreateRawTransaction create rawtransaction
@@ -53,14 +53,16 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	}
 	//因为历史原因，这里还是有部分token 的字段，但是没有依赖token dapp
 	//未来这个调用可能会被废弃
-	execer := types.ExecName(ety.CoinsX)
+	types.AssertConfig(c.QueueProtocolAPI)
+	cfg := c.QueueProtocolAPI.GetConfig()
+	execer := cfg.ExecName(ety.CoinsX)
 	if param.IsToken {
-		execer = types.ExecName("token")
+		execer = cfg.ExecName("token")
 	}
 	if param.Execer != "" {
 		execer = param.Execer
 	}
-	reply, err := types.CallCreateTx(execer, "", param)
+	reply, err := types.CallCreateTx(cfg, execer, "", param)
 	if err != nil {
 		return nil, err
 	}
@@ -89,6 +91,8 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 }
 
 func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) {
+	types.AssertConfig(c.QueueProtocolAPI)
+	cfg := c.QueueProtocolAPI.GetConfig()
 	if param == nil || param.Tx == "" {
 		log.Error("ReWriteRawTx", "Error", types.ErrInvalidParam)
 		return nil, types.ErrInvalidParam
@@ -110,7 +114,7 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 		if err != nil {
 			return nil, err
 		}
-		tx.SetExpire(time.Duration(expire))
+		tx.SetExpire(cfg, time.Duration(expire))
 	}
 	group, err := tx.GetTxGroup()
 	if err != nil {
@@ -136,7 +140,7 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 		}
 		if param.Expire != "" {
 			for i := 0; i < len(group.Txs); i++ {
-				group.SetExpire(i, time.Duration(expire))
+				group.SetExpire(cfg, i, time.Duration(expire))
 			}
 		}
 		group.RebuiltGroup()
@@ -150,7 +154,7 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 		group.Txs[0].Fee = param.Fee
 	}
 	if param.Expire != "" {
-		group.SetExpire(int(index), time.Duration(expire))
+		group.SetExpire(cfg, int(index), time.Duration(expire))
 	}
 	group.RebuiltGroup()
 	grouptx := group.Tx()
@@ -160,12 +164,14 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 
 // CreateRawTxGroup create rawtransaction for group
 func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([]byte, error) {
+	types.AssertConfig(c.QueueProtocolAPI)
+	cfg := c.QueueProtocolAPI.GetConfig()
 	if param == nil || len(param.Txs) <= 1 {
 		return nil, types.ErrTxGroupCountLessThanTwo
 	}
 	var transactions []*types.Transaction
 	for _, t := range param.Txs {
-		txByte, err := hex.DecodeString(t)
+		txByte, err := common.FromHex(t)
 		if err != nil {
 			return nil, err
 		}
@@ -176,7 +182,7 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 		}
 		transactions = append(transactions, &transaction)
 	}
-	feeRate := types.GInt("MinFee")
+	feeRate := cfg.GetMinTxFeeRate()
 	//get proper fee rate
 	proper, err := c.GetProperFee(nil)
 	if err != nil {
@@ -199,22 +205,43 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 // CreateNoBalanceTxs create the multiple transaction with no balance
 // 实际使用的时候要注意，一般情况下，不要传递 private key 到服务器端，除非是本地localhost 的服务。
 func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Transaction, error) {
-	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
+	types.AssertConfig(c.QueueProtocolAPI)
+	cfg := c.QueueProtocolAPI.GetConfig()
+	txNone := &types.Transaction{Execer: []byte(cfg.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))
-	txNone, err := types.FormatTx(types.ExecName(types.NoneX), txNone)
+	txNone, err := types.FormatTx(cfg, cfg.ExecName(types.NoneX), txNone)
 	if err != nil {
 		return nil, err
 	}
+	//不设置时默认为永不超时
+	if in.Expire == "" {
+		in.Expire = "0"
+	}
+	expire, err := types.ParseExpire(in.Expire)
+	if err != nil {
+		return nil, err
+	}
+	//交易组只需要设置单笔交易超时
+	txNone.SetExpire(cfg, time.Duration(expire))
+	isParaTx := false
 	transactions := []*types.Transaction{txNone}
 	for _, txhex := range in.TxHexs {
 		tx, err := decodeTx(txhex)
 		if err != nil {
 			return nil, err
 		}
+		if types.IsParaExecName(string(tx.GetExecer())) {
+			isParaTx = true
+		}
 		transactions = append(transactions, tx)
 	}
 
-	feeRate := types.GInt("MinFee")
+	//平行链下不允许设置高度作为过期判定, issue#706
+	if expire > 0 && expire <= types.ExpireBound && isParaTx {
+		return nil, types.ErrInvalidExpire
+	}
+
+	feeRate := cfg.GetMinTxFeeRate()
 	//get proper fee rate
 	proper, err := c.GetProperFee(nil)
 	if err != nil {
@@ -228,7 +255,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(0, types.GInt("MinFee"), types.GInt("MaxFee"))
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 	if err != nil {
 		return nil, err
 	}
@@ -238,66 +265,18 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	if in.PayAddr != "" || in.Privkey != "" {
 		rawTx := hex.EncodeToString(types.Encode(newtx))
 		req := &types.ReqSignRawTx{Addr: in.PayAddr, Privkey: in.Privkey, Expire: in.Expire, TxHex: rawTx, Index: 1}
-		signedTx, err := c.SignRawTx(req)
+		signedTx, err := c.ExecWalletFunc("wallet", "SignRawTx", req)
 		if err != nil {
 			return nil, err
 		}
-		return decodeTx(signedTx.TxHex)
-	}
-	return newtx, nil
-}
-
-// CreateNoBalanceTransaction create the transaction with no balance
-// 实际使用的时候要注意，一般情况下，不要传递 private key 到服务器端，除非是本地localhost 的服务。
-func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*types.Transaction, error) {
-	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
-	txNone.To = address.ExecAddress(string(txNone.Execer))
-	txNone, err := types.FormatTx(types.ExecName(types.NoneX), txNone)
-	if err != nil {
-		return nil, err
-	}
-	tx, err := decodeTx(in.TxHex)
-	if err != nil {
-		return nil, err
-	}
-	transactions := []*types.Transaction{txNone, tx}
-	feeRate := types.GInt("MinFee")
-	//get proper fee rate
-	proper, err := c.GetProperFee(nil)
-	if err != nil {
-		log.Error("CreateNoBalance", "GetProperFeeErr", err)
-		return nil, err
-	}
-	if proper.GetProperFee() > feeRate {
-		feeRate = proper.ProperFee
-	}
-	group, err := types.CreateTxGroup(transactions, feeRate)
-	if err != nil {
-		return nil, err
-	}
-
-	err = group.Check(0, feeRate, types.GInt("MaxFee"))
-	if err != nil {
-		return nil, err
-	}
-
-	newtx := group.Tx()
-	//如果可能要做签名
-	if in.PayAddr != "" || in.Privkey != "" {
-		rawTx := hex.EncodeToString(types.Encode(newtx))
-		req := &types.ReqSignRawTx{Addr: in.PayAddr, Privkey: in.Privkey, Expire: in.Expire, TxHex: rawTx, Index: 1}
-		signedTx, err := c.SignRawTx(req)
-		if err != nil {
-			return nil, err
-		}
-		return decodeTx(signedTx.TxHex)
+		return decodeTx(signedTx.(*types.ReplySignRawTx).TxHex)
 	}
 	return newtx, nil
 }
 
 func decodeTx(hexstr string) (*types.Transaction, error) {
 	var tx types.Transaction
-	data, err := hex.DecodeString(hexstr)
+	data, err := common.FromHex(hexstr)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +322,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		return c.accountdb.GetBalance(c.QueueProtocolAPI, in)
 	}
 
-	acc, err := account.NewAccountDB(in.AssetExec, in.AssetSymbol, nil)
+	acc, err := account.NewAccountDB(c.QueueProtocolAPI.GetConfig(), in.AssetExec, in.AssetSymbol, nil)
 	if err != nil {
 		log.Error("GetBalance", "Error", err.Error())
 		return nil, err
@@ -353,6 +332,8 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 // GetAllExecBalance get balance of exec
 func (c *channelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.AllExecBalance, error) {
+	types.AssertConfig(c.QueueProtocolAPI)
+	cfg := c.QueueProtocolAPI.GetConfig()
 	addr := in.Addr
 	err := address.CheckAddress(addr)
 	if err != nil {
@@ -364,7 +345,7 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.A
 	addrs = append(addrs, addr)
 	allBalance := &types.AllExecBalance{Addr: addr}
 	for _, exec := range types.AllowUserExec {
-		execer := types.ExecName(string(exec))
+		execer := cfg.ExecName(string(exec))
 		params := &types.ReqBalance{
 			Addresses:   addrs,
 			Execer:      execer,
@@ -415,8 +396,8 @@ func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransactio
 
 // GetTimeStatus get status of time
 func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
-	ntpTime := common.GetRealTimeRetry(types.NtpHosts, 10)
-	local := types.Now()
+	ntpTime := common.GetRealTimeRetry(types.NtpHosts, 2)
+	local := time.Now()
 	if ntpTime.IsZero() {
 		return &types.TimeStatus{NtpTime: "", LocalTime: local.Format("2006-01-02 15:04:05"), Diff: 0}, nil
 	}

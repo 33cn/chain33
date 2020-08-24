@@ -127,6 +127,8 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 		Fromaddr:   res.Fromaddr,
 		ActionName: res.ActionName,
 		Assets:     res.Assets,
+		TxProofs:   res.TxProofs,
+		FullHash:   res.FullHash,
 	}
 	return result, nil
 }

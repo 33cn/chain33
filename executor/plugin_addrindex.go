@@ -35,7 +35,8 @@ func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail)
 			fromkey2 := types.CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey1, Value: txinfobyte})
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey2, Value: txinfobyte})
-			kv, err := updateAddrTxsCount(executor.localDB, txindex.from, 1, true)
+			types.AssertConfig(executor.api)
+			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.from, 1, true)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
 			}
@@ -45,7 +46,8 @@ func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail)
 			tokey2 := types.CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey1, Value: txinfobyte})
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey2, Value: txinfobyte})
-			kv, err := updateAddrTxsCount(executor.localDB, txindex.to, 1, true)
+			types.AssertConfig(executor.api)
+			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.to, 1, true)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
 			}
@@ -67,7 +69,7 @@ func (p *addrindexPlugin) ExecDelLocal(executor *executor, data *types.BlockDeta
 			fromkey2 := types.CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey1, Value: nil})
 			set.KV = append(set.KV, &types.KeyValue{Key: fromkey2, Value: nil})
-			kv, err := updateAddrTxsCount(executor.localDB, txindex.from, 1, false)
+			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.from, 1, false)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
 			}
@@ -77,7 +79,7 @@ func (p *addrindexPlugin) ExecDelLocal(executor *executor, data *types.BlockDeta
 			tokey2 := types.CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey1, Value: nil})
 			set.KV = append(set.KV, &types.KeyValue{Key: tokey2, Value: nil})
-			kv, err := updateAddrTxsCount(executor.localDB, txindex.to, 1, false)
+			kv, err := updateAddrTxsCount(executor.api.GetConfig(), executor.localDB, txindex.to, 1, false)
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
 			}
@@ -114,9 +116,9 @@ func setAddrTxsCount(db dbm.KVDB, addr string, count int64) error {
 	return db.Set(kv.Key, kv.Value)
 }
 
-func updateAddrTxsCount(cachedb dbm.KVDB, addr string, amount int64, isadd bool) (*types.KeyValue, error) {
+func updateAddrTxsCount(cfg *types.Chain33Config, cachedb dbm.KVDB, addr string, amount int64, isadd bool) (*types.KeyValue, error) {
 	//blockchaindb 数据库0版本不支持此功能
-	ver := types.GInt("dbversion")
+	ver := cfg.GInt("dbversion")
 	if ver == 0 {
 		return nil, types.ErrNotFound
 	}

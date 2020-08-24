@@ -7,6 +7,7 @@ package util
 import (
 	"errors"
 
+	clientApi "github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -154,7 +155,9 @@ func CheckDupTx(client queue.Client, txs []*types.Transaction, height int64) (tr
 //CheckTxDup : check whether the tx is duplicated within the while chain
 func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList
-	if types.IsFork(height, "ForkCheckTxDup") {
+	types.AssertConfig(client)
+	cfg := client.GetConfig()
+	if cfg.IsFork(height, "ForkCheckTxDup") {
 		txs = DelDupTx(txs)
 	}
 	for _, tx := range txs {
@@ -169,6 +172,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 		return nil, err
 	}
 	dupTxList, err := client.Wait(hashList)
+
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +180,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	dupMap := make(map[string]bool)
 	for _, hash := range dupTxs {
 		dupMap[string(hash)] = true
-		log.Debug("CheckTxDup", "TxDuphash", common.ToHex(hash))
+		log.Error("CheckTxDup", "TxDuphash", common.ToHex(hash))
 	}
 	for _, tx := range txs {
 		hash := tx.Hash()
@@ -185,6 +189,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 		}
 		transactions = append(transactions, tx)
 	}
+	client.FreeMessage(hashList, dupTxList)
 	return transactions, nil
 }
 
@@ -202,10 +207,15 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	reportErrEvent.Frommodule = frommodule
 	reportErrEvent.Tomodule = tomodule
 	reportErrEvent.Error = err.Error()
-	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
-	err = client.Send(msg, false)
+
+	api, err := clientApi.New(client, nil)
 	if err != nil {
-		log.Error("send", "EventErrToFront msg err", err)
+		log.Error("client", "new err", err)
+	}
+
+	_, err = api.ExecWalletFunc(tomodule, "ErrToFront", &reportErrEvent)
+	if err != nil {
+		log.Error("send", "ErrToFront msg err", err)
 	}
 }
 
@@ -225,4 +235,26 @@ func DelDupKey(kvs []*types.KeyValue) []*types.KeyValue {
 		}
 	}
 	return kvs[0:n]
+}
+
+//CmpBestBlock : 选择最优区块,通知共识模块newblock是否是最优区块
+// height,time,parentHash一致时根据共识各自规则判断
+func CmpBestBlock(client queue.Client, newBlock *types.Block, cmpHash []byte) bool {
+	cfg := client.GetConfig()
+	req := types.CmpBlock{Block: newBlock, CmpHash: cmpHash}
+	msg := client.NewMessage("consensus", types.EventCmpBestBlock, &req)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("CmpBestBlock:Send", "cmpHash", common.ToHex(cmpHash), "newBlockHash", common.ToHex(newBlock.Hash(cfg)), "err", err)
+		return false
+	}
+	resp, err := client.Wait(msg)
+	if err != nil {
+		log.Error("CmpBestBlock:Wait", "cmpHash", common.ToHex(cmpHash), "newBlockHash", common.ToHex(newBlock.Hash(cfg)), "err", err)
+		return false
+	}
+	reply := resp.GetData().(*types.Reply)
+
+	log.Debug("CmpBestBlock", "newBlockHash", common.ToHex(newBlock.Hash(cfg)), "cmpHash", common.ToHex(cmpHash), "isBestBlock", reply.IsOk)
+	return reply.IsOk
 }

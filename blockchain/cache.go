@@ -20,10 +20,11 @@ type BlockCache struct {
 	cachelock  sync.Mutex
 	cacheQueue *list.List
 	maxHeight  int64 //用来辅助判断cache 是否正确
+	sysPm      *types.Chain33Config
 }
 
 //NewBlockCache new
-func NewBlockCache(defCacheSize int64) *BlockCache {
+func NewBlockCache(param *types.Chain33Config, defCacheSize int64) *BlockCache {
 	return &BlockCache{
 		cache:      make(map[int64]*list.Element),
 		cacheHash:  make(map[string]*list.Element),
@@ -31,6 +32,7 @@ func NewBlockCache(defCacheSize int64) *BlockCache {
 		cacheSize:  defCacheSize,
 		cacheQueue: list.New(),
 		maxHeight:  0,
+		sysPm:      param,
 	}
 }
 
@@ -112,7 +114,7 @@ func (chain *BlockCache) addCacheBlock(blockdetail *types.BlockDetail) {
 	// Create entry in cache and append to cacheQueue.
 	elem := chain.cacheQueue.PushBack(blockdetail)
 	chain.cache[blockdetail.Block.Height] = elem
-	chain.cacheHash[string(blockdetail.Block.Hash())] = elem
+	chain.cacheHash[string(blockdetail.Block.Hash(chain.sysPm))] = elem
 	for _, tx := range blockdetail.Block.Txs {
 		chain.cacheTxs[string(tx.Hash())] = true
 	}
@@ -120,7 +122,7 @@ func (chain *BlockCache) addCacheBlock(blockdetail *types.BlockDetail) {
 
 func (chain *BlockCache) delCacheBlock(blockdetail *types.BlockDetail) {
 	delete(chain.cache, blockdetail.Block.Height)
-	delete(chain.cacheHash, string(blockdetail.Block.Hash()))
+	delete(chain.cacheHash, string(blockdetail.Block.Hash(chain.sysPm)))
 	for _, tx := range blockdetail.Block.Txs {
 		delete(chain.cacheTxs, string(tx.Hash()))
 	}

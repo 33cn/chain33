@@ -12,7 +12,6 @@ import (
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/consensus"
-
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 )
@@ -35,6 +34,7 @@ type subConfig struct {
 	Genesis          string `json:"genesis"`
 	GenesisBlockTime int64  `json:"genesisBlockTime"`
 	WaitTxMs         int64  `json:"waitTxMs"`
+	BenchMode        bool   `json:"benchMode"`
 }
 
 //New new
@@ -87,14 +87,19 @@ func (client *Client) ProcEvent(msg *queue.Message) bool {
 	return false
 }
 
-//CheckBlock solo不检查任何的交易
+//CheckBlock solo没有交易时返回错误
 func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	if len(current.Block.Txs) == 0 {
+		return types.ErrEmptyTx
+	}
 	return nil
 }
 
 //CreateBlock 创建区块
 func (client *Client) CreateBlock() {
 	issleep := true
+	types.AssertConfig(client.GetAPI())
+	cfg := client.GetAPI().GetConfig()
 	for {
 		if client.IsClosed() {
 			break
@@ -107,26 +112,29 @@ func (client *Client) CreateBlock() {
 			time.Sleep(client.sleepTime)
 		}
 		lastBlock := client.GetCurrentBlock()
-		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
-		if len(txs) == 0 {
+		maxTxNum := int(cfg.GetP(lastBlock.Height + 1).MaxTxNumber)
+		txs := client.RequestTx(maxTxNum, nil)
+		txs = client.CheckTxDup(txs)
+
+		// 为方便测试，设定基准测试模式，每个块交易数保持恒定，为配置的最大交易数
+		if len(txs) == 0 || (client.subcfg.BenchMode && len(txs) < maxTxNum) {
+			log.Debug("======SoloWaitMoreTxs======", "currTxNum", len(txs))
 			issleep = true
 			continue
 		}
 		issleep = false
-		//check dup
-		txs = client.CheckTxDup(txs)
-		//没有交易时不出块
-		if len(txs) == 0 {
-			issleep = true
-			continue
-		}
+
 		var newblock types.Block
-		newblock.ParentHash = lastBlock.Hash()
+		newblock.ParentHash = lastBlock.Hash(cfg)
 		newblock.Height = lastBlock.Height + 1
 		client.AddTxsToBlock(&newblock, txs)
 		//solo 挖矿固定难度
-		newblock.Difficulty = types.GetP(0).PowLimitBits
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		newblock.Difficulty = cfg.GetP(0).PowLimitBits
+		//需要首先对交易进行排序然后再计算TxHash
+		if cfg.IsFork(newblock.GetHeight(), "ForkRootHash") {
+			newblock.Txs = types.TransactionSort(newblock.Txs)
+		}
+		newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 		newblock.BlockTime = types.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
@@ -138,4 +146,9 @@ func (client *Client) CreateBlock() {
 			continue
 		}
 	}
+}
+
+//CmpBestBlock 比较newBlock是不是最优区块
+func (client *Client) CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool {
+	return false
 }

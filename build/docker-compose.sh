@@ -70,6 +70,7 @@ echo "CLI=$CLI"
 ####################
 
 testtoml=chain33.toml
+# to close solo miner config in un-miner node
 testtomlsolo=chain33-solo.toml
 
 function base_init() {
@@ -93,6 +94,12 @@ function base_init() {
 
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' ${testtoml}
+
+    #使能注册推送
+    sed -i $sedfix 's/^enablePushSubscribe=.*/enablePushSubscribe=true/g' ${testtoml}
+    sed -i $sedfix 's/^enableReduceLocaldb=.*/enableReduceLocaldb=false/g' ${testtoml}
+
+    sed -i $sedfix 's/^enableTLS=.*/enableTLS=true/g' ${testtoml}
 
     cp ${testtoml} ${testtomlsolo}
     #consens
@@ -133,8 +140,8 @@ function start() {
     ${CLI} block last_header
     ${CLI} net info
 
-    ${CLI} net peer_info
-    peersCount=$(${CLI} net peer_info | jq '.[] | length')
+    ${CLI} net peer
+    peersCount=$(${CLI} net peer | jq '.[] | length')
     echo "peersCount=${peersCount}"
 
     echo "=========== # save seed to wallet ============="
@@ -344,6 +351,25 @@ function transfer() {
         fi
     done
 
+    echo "=========== # add more blocks ============="
+    # at least to height 3 for other test
+    test_add_block
+    test_add_block
+
+}
+
+function test_add_block() {
+    echo "=========== # add one block ============="
+    ${CLI} block last_header
+    local height=0
+    height=$(${CLI} block last_header | jq ".height")
+    echo "curheight=$height"
+
+    hash=$(${CLI} send coins transfer -a 1 -n test -t 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
+    echo "$hash"
+
+    block_wait_by_height "$height", 1
+    ${CLI} tx query_hash -s "${hash}"
 }
 
 function base_config() {

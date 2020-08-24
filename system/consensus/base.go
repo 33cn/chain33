@@ -5,6 +5,7 @@
 package consensus
 
 import (
+	"bytes"
 	"errors"
 	"math/rand"
 	"sync"
@@ -37,8 +38,10 @@ type Miner interface {
 	CreateGenesisTx() []*types.Transaction
 	GetGenesisBlockTime() int64
 	CreateBlock()
+	AddBlock(b *types.Block) error
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	ProcEvent(msg *queue.Message) bool
+	CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool
 }
 
 //BaseClient ...
@@ -88,6 +91,11 @@ func (bc *BaseClient) SetAPI(api client.QueueProtocolAPI) {
 	bc.api = api
 }
 
+//AddBlock 添加区块的时候，通知系统做处理
+func (bc *BaseClient) AddBlock(b *types.Block) error {
+	return nil
+}
+
 //InitClient 初始化
 func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	log.Info("Enter SetQueueClient method of consensus")
@@ -131,6 +139,7 @@ func (bc *BaseClient) SetQueueClient(c queue.Client) {
 
 //InitBlock change init block
 func (bc *BaseClient) InitBlock() {
+	cfg := bc.client.GetConfig()
 	block, err := bc.RequestLastBlock()
 	if err != nil {
 		panic(err)
@@ -144,9 +153,10 @@ func (bc *BaseClient) InitBlock() {
 		newblock.ParentHash = zeroHash[:]
 		tx := bc.child.CreateGenesisTx()
 		newblock.Txs = tx
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 		if newblock.Height == 0 {
-			newblock.Difficulty = types.GetP(0).PowLimitBits
+			types.AssertConfig(bc.client)
+			newblock.Difficulty = cfg.GetP(0).PowLimitBits
 		}
 		err := bc.WriteBlock(zeroHash[:], newblock)
 		if err != nil {
@@ -235,6 +245,7 @@ func (bc *BaseClient) EventLoop() {
 			} else if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
 				bc.SetCurrentBlock(block)
+				bc.child.AddBlock(block)
 			} else if msg.Ty == types.EventCheckBlock {
 				block := msg.GetData().(*types.BlockDetail)
 				err := bc.CheckBlock(block)
@@ -255,6 +266,11 @@ func (bc *BaseClient) EventLoop() {
 			} else if msg.Ty == types.EventDelBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
 				bc.UpdateCurrentBlock(block)
+			} else if msg.Ty == types.EventCmpBestBlock {
+				var reply types.Reply
+				cmpBlock := msg.GetData().(*types.CmpBlock)
+				reply.IsOk = bc.CmpBestBlock(cmpBlock.Block, cmpBlock.CmpHash)
+				msg.Reply(bc.api.NewMessage("", 0, &reply))
 			} else {
 				if !bc.child.ProcEvent(msg) {
 					msg.ReplyErr("BaseClient.EventLoop() ", types.ErrActionNotSupport)
@@ -278,19 +294,21 @@ func (bc *BaseClient) CheckBlock(block *types.BlockDetail) error {
 	if parent.Height+1 != block.Block.Height {
 		return types.ErrBlockHeight
 	}
-	if types.IsFork(block.Block.Height, "ForkCheckBlockTime") && parent.BlockTime > block.Block.BlockTime {
+	types.AssertConfig(bc.client)
+	cfg := bc.client.GetConfig()
+	if cfg.IsFork(block.Block.Height, "ForkCheckBlockTime") && parent.BlockTime > block.Block.BlockTime {
 		return types.ErrBlockTime
 	}
 	//check parent hash
-	if string(block.Block.GetParentHash()) != string(parent.Hash()) {
+	if string(block.Block.GetParentHash()) != string(parent.Hash(cfg)) {
 		return types.ErrParentHash
 	}
 	//check block size and tx count
-	if types.IsFork(block.Block.Height, "ForkBlockCheck") {
+	if cfg.IsFork(block.Block.Height, "ForkBlockCheck") {
 		if block.Block.Size() > types.MaxBlockSize {
 			return types.ErrBlockSize
 		}
-		if int64(len(block.Block.Txs)) > types.GetP(block.Block.Height).MaxTxNumber {
+		if int64(len(block.Block.Txs)) > cfg.GetP(block.Block.Height).MaxTxNumber {
 			return types.ErrManyTx
 		}
 	}
@@ -412,6 +430,28 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	return nil
 }
 
+// PreExecBlock 预执行区块, 用于raft, tendermint等共识, errReturn表示区块来源于自己还是别人
+func (bc *BaseClient) PreExecBlock(block *types.Block, errReturn bool) *types.Block {
+	lastBlock, err := bc.RequestBlock(block.Height - 1)
+	if err != nil {
+		log.Error("PreExecBlock RequestBlock fail", "err", err)
+		return nil
+	}
+	blockdetail, deltx, err := util.PreExecBlock(bc.client, lastBlock.StateHash, block, errReturn, false, true)
+	if err != nil {
+		log.Error("util.PreExecBlock fail", "err", err)
+		return nil
+	}
+	if len(deltx) > 0 {
+		err := bc.delMempoolTx(deltx)
+		if err != nil {
+			log.Error("PreExecBlock delMempoolTx fail", "err", err)
+			return nil
+		}
+	}
+	return blockdetail.Block
+}
+
 func diffTx(tx1, tx2 []*types.Transaction) (deltx []*types.Transaction) {
 	txlist2 := make(map[string]bool)
 	for _, tx := range tx2 {
@@ -484,7 +524,9 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 	size := block.Size()
 	max := types.MaxBlockSize - 100000 //留下100K空间，添加其他的交易
 	currentCount := int64(len(block.Txs))
-	maxTx := types.GetP(block.Height).MaxTxNumber
+	types.AssertConfig(bc.client)
+	cfg := bc.client.GetConfig()
+	maxTx := cfg.GetP(block.Height).MaxTxNumber
 	addedTx := make([]*types.Transaction, 0, len(txs))
 	for i := 0; i < len(txs); i++ {
 		txGroup, err := txs[i].GetTxGroup()
@@ -525,11 +567,13 @@ func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, bloc
 	var txlist types.Transactions
 	var hasTxExpire bool
 
+	types.AssertConfig(bc.client)
+	cfg := bc.client.GetConfig()
 	for i := 0; i < len(txs); i++ {
 
 		groupCount := txs[i].GroupCount
 		if groupCount == 0 {
-			if isExpire(txs[i:i+1], height, blocktime) {
+			if isExpire(cfg, txs[i:i+1], height, blocktime) {
 				txs[i] = nil
 				hasTxExpire = true
 			}
@@ -543,7 +587,7 @@ func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, bloc
 
 		//交易组有过期交易时需要将整个交易组都删除
 		grouptxs := txs[i : i+int(groupCount)]
-		if isExpire(grouptxs, height, blocktime) {
+		if isExpire(cfg, grouptxs, height, blocktime) {
 			for j := i; j < i+int(groupCount); j++ {
 				txs[j] = nil
 				hasTxExpire = true
@@ -566,12 +610,63 @@ func (bc *BaseClient) CheckTxExpire(txs []*types.Transaction, height int64, bloc
 }
 
 //检测交易数组是否过期，只要有一个过期就认为整个交易组过期
-func isExpire(txs []*types.Transaction, height int64, blocktime int64) bool {
+func isExpire(cfg *types.Chain33Config, txs []*types.Transaction, height int64, blocktime int64) bool {
 	for _, tx := range txs {
-		if height > 0 && blocktime > 0 && tx.IsExpire(height, blocktime) {
+		if height > 0 && blocktime > 0 && tx.IsExpire(cfg, height, blocktime) {
 			log.Debug("isExpire", "height", height, "blocktime", blocktime, "hash", common.ToHex(tx.Hash()), "Expire", tx.Expire)
 			return true
 		}
 	}
 	return false
+}
+
+//CmpBestBlock 最优区块的比较
+//height,BlockTime,ParentHash必须一致才可以继续比较
+//通过比较newBlock是最优区块就返回true，否则返回false
+func (bc *BaseClient) CmpBestBlock(newBlock *types.Block, cmpHash []byte) bool {
+
+	cfg := bc.client.GetConfig()
+	curBlock := bc.GetCurrentBlock()
+
+	//需要比较的区块就是当前区块,
+	if bytes.Equal(cmpHash, curBlock.Hash(cfg)) {
+		if curBlock.GetHeight() == newBlock.GetHeight() && curBlock.BlockTime == newBlock.BlockTime && bytes.Equal(newBlock.GetParentHash(), curBlock.GetParentHash()) {
+			return bc.child.CmpBestBlock(newBlock, curBlock)
+		}
+		return false
+	}
+	//需要比较的区块不是当前区块，需要从blockchain模块获取cmpHash对应的block信息
+	block, err := bc.ReqBlockByHash(cmpHash)
+	if err != nil {
+		log.Error("CmpBestBlock:RequestBlockByHash", "Hash", common.ToHex(cmpHash), "err", err)
+		return false
+	}
+
+	if block.GetHeight() == newBlock.GetHeight() && block.BlockTime == newBlock.BlockTime && bytes.Equal(block.GetParentHash(), newBlock.GetParentHash()) {
+		return bc.child.CmpBestBlock(newBlock, block)
+	}
+	return false
+}
+
+//ReqBlockByHash 通过区块hash获取区块信息
+func (bc *BaseClient) ReqBlockByHash(hash []byte) (*types.Block, error) {
+	if bc.client == nil {
+		panic("bc not bind message queue.")
+	}
+	hashes := types.ReqHashes{}
+	hashes.Hashes = append(hashes.Hashes, hash)
+	msg := bc.client.NewMessage("blockchain", types.EventGetBlockByHashes, &hashes)
+	err := bc.client.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := bc.client.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	blocks := resp.GetData().(*types.BlockDetails)
+	if len(blocks.Items) == 1 && blocks.Items[0] != nil {
+		return blocks.Items[0].Block, nil
+	}
+	return nil, types.ErrHashNotExist
 }

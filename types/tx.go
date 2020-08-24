@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"reflect"
+	"sort"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -154,18 +155,18 @@ func (txgroup *Transactions) RebuiltGroup() {
 }
 
 //SetExpire 设置交易组中交易的过期时间
-func (txgroup *Transactions) SetExpire(n int, expire time.Duration) {
+func (txgroup *Transactions) SetExpire(cfg *Chain33Config, n int, expire time.Duration) {
 	if n >= len(txgroup.GetTxs()) {
 		return
 	}
-	txgroup.GetTxs()[n].SetExpire(expire)
+	txgroup.GetTxs()[n].SetExpire(cfg, expire)
 }
 
 //IsExpire 交易是否过期
-func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
+func (txgroup *Transactions) IsExpire(cfg *Chain33Config, height, blocktime int64) bool {
 	txs := txgroup.Txs
 	for i := 0; i < len(txs); i++ {
-		if txs[i].isExpire(height, blocktime) {
+		if txs[i].isExpire(cfg, height, blocktime) {
 			return true
 		}
 	}
@@ -173,7 +174,7 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 }
 
 //CheckWithFork 和fork 无关的有个检查函数
-func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, minfee, maxFee int64) error {
+func (txgroup *Transactions) CheckWithFork(cfg *Chain33Config, checkFork, paraFork bool, height, minfee, maxFee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
@@ -183,7 +184,7 @@ func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, min
 		if txs[i] == nil {
 			return ErrTxGroupEmpty
 		}
-		err := txs[i].check(height, 0, maxFee)
+		err := txs[i].check(cfg, height, 0, maxFee)
 		if err != nil {
 			return err
 		}
@@ -262,10 +263,10 @@ func (txgroup *Transactions) CheckWithFork(checkFork, paraFork bool, height, min
 }
 
 //Check height == 0 的时候，不做检查
-func (txgroup *Transactions) Check(height, minfee, maxFee int64) error {
-	paraFork := IsFork(height, "ForkTxGroupPara")
-	checkFork := IsFork(height, "ForkBlockCheck")
-	return txgroup.CheckWithFork(checkFork, paraFork, height, minfee, maxFee)
+func (txgroup *Transactions) Check(cfg *Chain33Config, height, minfee, maxFee int64) error {
+	paraFork := cfg.IsFork(height, "ForkTxGroupPara")
+	checkFork := cfg.IsFork(height, "ForkBlockCheck")
+	return txgroup.CheckWithFork(cfg, checkFork, paraFork, height, minfee, maxFee)
 }
 
 //TransactionCache 交易缓存结构
@@ -331,7 +332,7 @@ func (tx *TransactionCache) Tx() *Transaction {
 }
 
 //Check 交易缓存中交易组合费用的检测
-func (tx *TransactionCache) Check(height, minfee, maxFee int64) error {
+func (tx *TransactionCache) Check(cfg *Chain33Config, height, minfee, maxFee int64) error {
 	if !tx.checked {
 		tx.checked = true
 		txs, err := tx.GetTxGroup()
@@ -340,9 +341,9 @@ func (tx *TransactionCache) Check(height, minfee, maxFee int64) error {
 			return err
 		}
 		if txs == nil {
-			tx.checkok = tx.check(height, minfee, maxFee)
+			tx.checkok = tx.check(cfg, height, minfee, maxFee)
 		} else {
-			tx.checkok = txs.Check(height, minfee, maxFee)
+			tx.checkok = txs.Check(cfg, height, minfee, maxFee)
 		}
 	}
 	return tx.checkok
@@ -454,31 +455,6 @@ func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 	return nil, nil
 }
 
-//Hash 交易的hash不包含header的值，引入tx group的概念后，做了修改
-func (tx *Transaction) Hash() []byte {
-	copytx := clone(tx)
-	copytx.Signature = nil
-	copytx.Header = nil
-	data := Encode(copytx)
-	return common.Sha256(data)
-}
-
-//clone copytx := proto.Clone(tx).(*Transaction) too slow
-func clone(tx *Transaction) *Transaction {
-	copytx := &Transaction{}
-	copytx.Execer = tx.Execer
-	copytx.Payload = tx.Payload
-	copytx.Signature = tx.Signature
-	copytx.Fee = tx.Fee
-	copytx.Expire = tx.Expire
-	copytx.Nonce = tx.Nonce
-	copytx.To = tx.To
-	copytx.GroupCount = tx.GroupCount
-	copytx.Header = tx.Header
-	copytx.Next = tx.Next
-	return copytx
-}
-
 //Size 交易大小
 func (tx *Transaction) Size() int {
 	return Size(tx)
@@ -487,6 +463,7 @@ func (tx *Transaction) Size() int {
 //Sign 交易签名
 func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	tx.Signature = nil
+	tx.UnsetCacheHash()
 	data := Encode(tx)
 	pub := priv.PubKey()
 	sign := priv.Sign(data)
@@ -506,6 +483,7 @@ func (tx *Transaction) CheckSign() bool {
 func (tx *Transaction) checkSign() bool {
 	copytx := *tx
 	copytx.Signature = nil
+	copytx.UnsetCacheHash()
 	data := Encode(&copytx)
 	if tx.GetSignature() == nil {
 		return false
@@ -514,40 +492,40 @@ func (tx *Transaction) checkSign() bool {
 }
 
 //Check 交易检测
-func (tx *Transaction) Check(height, minfee, maxFee int64) error {
+func (tx *Transaction) Check(cfg *Chain33Config, height, minfee, maxFee int64) error {
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return err
 	}
 	if group == nil {
-		return tx.check(height, minfee, maxFee)
+		return tx.check(cfg, height, minfee, maxFee)
 	}
-	return group.Check(height, minfee, maxFee)
+	return group.Check(cfg, height, minfee, maxFee)
 }
 
-func (tx *Transaction) check(height, minfee, maxFee int64) error {
-	txSize := Size(tx)
-	if txSize > int(MaxTxSize) {
-		return ErrTxMsgSizeTooBig
-	}
+func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) error {
 	if minfee == 0 {
 		return nil
 	}
+	// 获取当前交易最小交易费
+	realFee, err := tx.GetRealFee(minfee)
+	if err != nil {
+		return err
+	}
 	// 检查交易费是否小于最低值
-	realFee := int64(txSize/1000+1) * minfee
 	if tx.Fee < realFee {
 		return ErrTxFeeTooLow
 	}
-	if tx.Fee > maxFee && maxFee > 0 && IsFork(height, "ForkBlockCheck") {
+	if tx.Fee > maxFee && maxFee > 0 && cfg.IsFork(height, "ForkBlockCheck") {
 		return ErrTxFeeTooHigh
 	}
 	return nil
 }
 
 //SetExpire 设置交易过期时间
-func (tx *Transaction) SetExpire(expire time.Duration) {
+func (tx *Transaction) SetExpire(cfg *Chain33Config, expire time.Duration) {
 	//Txheight处理
-	if IsEnable("TxHeight") && int64(expire) > TxHeightFlag {
+	if cfg.IsEnable("TxHeight") && int64(expire) > TxHeightFlag {
 		tx.Expire = int64(expire)
 		return
 	}
@@ -569,6 +547,13 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	//如果签名为空，那么加上签名的空间
 	if tx.Signature == nil {
 		txSize += 300
+	}
+	// hash cache 不作为fee大小计算, byte数组经过proto编码会有2个字节的标志长度
+	if tx.HashCache != nil {
+		txSize -= len(tx.HashCache) + 2
+	}
+	if tx.FullHashCache != nil {
+		txSize -= len(tx.FullHashCache) + 2
 	}
 	if txSize > int(MaxTxSize) {
 		return 0, ErrTxMsgSizeTooBig
@@ -594,12 +579,12 @@ func (tx *Transaction) SetRealFee(minFee int64) error {
 var ExpireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 //IsExpire 交易是否过期
-func (tx *Transaction) IsExpire(height, blocktime int64) bool {
+func (tx *Transaction) IsExpire(cfg *Chain33Config, height, blocktime int64) bool {
 	group, _ := tx.GetTxGroup()
 	if group == nil {
-		return tx.isExpire(height, blocktime)
+		return tx.isExpire(cfg, height, blocktime)
 	}
-	return group.IsExpire(height, blocktime)
+	return group.IsExpire(cfg, height, blocktime)
 }
 
 //GetTxFee 获取交易的费用，区分单笔交易和交易组
@@ -617,7 +602,7 @@ func (tx *Transaction) From() string {
 }
 
 //检查交易是否过期，过期返回true，未过期返回false
-func (tx *Transaction) isExpire(height, blocktime int64) bool {
+func (tx *Transaction) isExpire(cfg *Chain33Config, height, blocktime int64) bool {
 	valid := tx.Expire
 	// Expire为0，返回false
 	if valid == 0 {
@@ -628,7 +613,7 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		return valid <= height
 	}
 	//EnableTxHeight 选项开启, 并且符合条件
-	if txHeight := GetTxHeight(valid, height); txHeight > 0 {
+	if txHeight := GetTxHeight(cfg, valid, height); txHeight > 0 {
 		if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
 			return false
 		}
@@ -639,8 +624,8 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 }
 
 //GetTxHeight 获取交易高度
-func GetTxHeight(valid int64, height int64) int64 {
-	if IsEnableFork(height, "ForkTxHeight", IsEnable("TxHeight")) && valid > TxHeightFlag {
+func GetTxHeight(cfg *Chain33Config, valid int64, height int64) int64 {
+	if cfg.IsEnableFork(height, "ForkTxHeight", cfg.IsEnable("TxHeight")) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
 	return -1
@@ -785,4 +770,77 @@ func CalcTxShortHash(hash []byte) string {
 		return hex.EncodeToString(hash[0:5])
 	}
 	return ""
+}
+
+//TransactionSort 对主链以及平行链交易分类
+//构造一个map用于临时存储各个子链的交易, 按照title分类，主链交易的title设置成main
+//并对map按照title进行排序，不然每次遍历map顺序会不一致
+func TransactionSort(rawtxs []*Transaction) []*Transaction {
+	txMap := make(map[string]*Transactions)
+
+	for _, tx := range rawtxs {
+		title, isPara := GetParaExecTitleName(string(tx.Execer))
+		if !isPara {
+			title = MainChainName
+		}
+		if txMap[title] != nil {
+			txMap[title].Txs = append(txMap[title].Txs, tx)
+		} else {
+			var temptxs Transactions
+			temptxs.Txs = append(temptxs.Txs, tx)
+			txMap[title] = &temptxs
+		}
+	}
+
+	//需要按照title排序，不然每次遍历的map的顺序会不一致
+	var newMp = make([]string, 0)
+	for k := range txMap {
+		newMp = append(newMp, k)
+	}
+	sort.Strings(newMp)
+
+	var txs Transactions
+	for _, v := range newMp {
+		txs.Txs = append(txs.Txs, txMap[v].GetTxs()...)
+	}
+	return txs.GetTxs()
+}
+
+//Hash 交易的hash不包含header的值，引入tx group的概念后，做了修改
+func (tx *Transaction) Hash() []byte {
+	if tx.HashCache != nil {
+		return tx.HashCache
+	}
+	copytx := cloneTx(tx)
+	copytx.Signature = nil
+	copytx.Header = nil
+	copytx.FullHashCache = nil
+	data := Encode(copytx)
+	return common.Sha256(data)
+}
+
+//FullHash 交易的fullhash包含交易的签名信息，
+//这里做了clone 主要是因为 Encode 可能会修改 tx 的 Size 字段，可能会引起data race
+func (tx *Transaction) FullHash() []byte {
+
+	if tx.FullHashCache != nil {
+		return tx.FullHashCache
+	}
+	copytx := tx.Clone()
+	copytx.HashCache = nil
+	data := Encode(copytx)
+	return common.Sha256(data)
+}
+
+// UnsetCacheHash 清空hash缓存，交易向外部系统发送时调用
+func (tx *Transaction) UnsetCacheHash() {
+	tx.HashCache = nil
+	tx.FullHashCache = nil
+}
+
+// ReCalcCacheHash 重新计算 hash缓存， 通常交易首次进入系统时调用
+func (tx *Transaction) ReCalcCacheHash() {
+	tx.UnsetCacheHash()
+	tx.HashCache = tx.Hash()
+	tx.FullHashCache = tx.FullHash()
 }

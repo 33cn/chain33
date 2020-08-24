@@ -6,11 +6,12 @@ import (
 
 // LocalDB local db for store key value in local
 type LocalDB struct {
-	txcache DB
-	cache   DB
-	maindb  DB
-	intx    bool
-	mu      sync.RWMutex
+	txcache  DB
+	cache    DB
+	maindb   DB
+	intx     bool
+	mu       sync.RWMutex
+	readOnly bool
 }
 
 func newMemDB() DB {
@@ -22,7 +23,14 @@ func newMemDB() DB {
 }
 
 // NewLocalDB new local db
-func NewLocalDB(maindb DB) KVDB {
+func NewLocalDB(maindb DB, readOnly bool) KVDB {
+	if readOnly {
+		//只读模式不需要memdb，比如交易检查，可以使用该localdb，减少memdb内存开销
+		return &LocalDB{
+			maindb:   maindb,
+			readOnly: true,
+		}
+	}
 	return &LocalDB{
 		cache:   newMemDB(),
 		txcache: newMemDB(),
@@ -35,6 +43,10 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	value, err := l.get(key)
+	if isdeleted(value) {
+		//表示已经删除了(空值要用内部定义的 emptyvalue)
+		return nil, ErrNotFoundInDb
+	}
 	return value, err
 }
 
@@ -44,16 +56,20 @@ func (l *LocalDB) get(key []byte) ([]byte, error) {
 			return value, nil
 		}
 	}
-	if value, err := l.cache.Get(key); err == nil {
-		return value, nil
+	if l.cache != nil {
+		if value, err := l.cache.Get(key); err == nil {
+			return value, nil
+		}
 	}
 	value, err := l.maindb.Get(key)
 	if err != nil {
 		return nil, err
 	}
-	err = l.cache.Set(key, value)
-	if err != nil {
-		panic(err)
+	if l.cache != nil {
+		err = l.cache.Set(key, value)
+		if err != nil {
+			panic(err)
+		}
 	}
 	return value, nil
 }
@@ -62,13 +78,16 @@ func (l *LocalDB) get(key []byte) ([]byte, error) {
 func (l *LocalDB) Set(key []byte, value []byte) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.readOnly {
+		panic("set local db in read only mode")
+	}
 	if l.intx {
 		if l.txcache == nil {
 			l.txcache = newMemDB()
 		}
-		setdb(l.txcache, key, value)
-	} else {
-		setdb(l.cache, key, value)
+		setdb2(l.txcache, key, value)
+	} else if l.cache != nil {
+		setdb2(l.cache, key, value)
 	}
 	return nil
 }
@@ -150,16 +169,10 @@ func (l *LocalDB) resetTx() {
 	l.txcache = nil
 }
 
-func setdb(d DB, key []byte, value []byte) {
-	if value == nil {
-		err := d.Delete(key)
-		if err != nil {
-			return
-		}
-	} else {
-		err := d.Set(key, value)
-		if err != nil {
-			panic(err)
-		}
+func setdb2(d DB, key []byte, value []byte) {
+	//value == nil 特殊标记key，代表key已经删除了
+	err := d.Set(key, value)
+	if err != nil {
+		panic(err)
 	}
 }

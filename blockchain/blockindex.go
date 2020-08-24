@@ -22,6 +22,7 @@ type blockNode struct {
 	broadcast  bool
 	pid        string
 	sequence   int64
+	BlockTime  int64
 }
 
 type blockIndex struct {
@@ -34,21 +35,22 @@ const (
 	indexCacheLimit = 102400 //目前 暂定index链缓存blocknode的个数
 )
 
-func initBlockNode(node *blockNode, block *types.Block, broadcast bool, pid string, sequence int64) {
+func initBlockNode(cfg *types.Chain33Config, node *blockNode, block *types.Block, broadcast bool, pid string, sequence int64) {
 	*node = blockNode{
-		hash:       block.Hash(),
+		hash:       block.Hash(cfg),
 		Difficulty: difficulty.CalcWork(block.Difficulty),
 		height:     block.Height,
 		statehash:  block.GetStateHash(),
 		broadcast:  broadcast,
 		pid:        pid,
 		sequence:   sequence,
+		BlockTime:  block.BlockTime,
 	}
 }
 
-func newBlockNode(broadcast bool, block *types.Block, pid string, sequence int64) *blockNode {
+func newBlockNode(cfg *types.Chain33Config, broadcast bool, block *types.Block, pid string, sequence int64) *blockNode {
 	var node blockNode
-	initBlockNode(&node, block, broadcast, pid, sequence)
+	initBlockNode(cfg, &node, block, broadcast, pid, sequence)
 	return &node
 }
 
@@ -62,6 +64,7 @@ func newBlockNodeByHeader(broadcast bool, header *types.Header, pid string, sequ
 		broadcast:  broadcast,
 		pid:        pid,
 		sequence:   sequence,
+		BlockTime:  header.BlockTime,
 	}
 	return node
 }

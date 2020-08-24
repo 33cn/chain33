@@ -73,18 +73,18 @@ func MakeStringToLower(in string, pos, count int) (out string, err error) {
 }
 
 //GenNoneTxs : 创建一些 none 执行器的 交易列表，一般用于测试
-func GenNoneTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
+func GenNoneTxs(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	for i := 0; i < int(n); i++ {
-		txs = append(txs, CreateNoneTx(priv))
+		txs = append(txs, CreateNoneTx(cfg, priv))
 	}
 	return txs
 }
 
 //GenCoinsTxs : generate txs to be executed on exector coin
-func GenCoinsTxs(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
+func GenCoinsTxs(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
-		txs = append(txs, CreateCoinsTx(priv, to, n+1))
+		txs = append(txs, CreateCoinsTx(cfg, priv, to, n+1))
 	}
 	return txs
 }
@@ -104,19 +104,42 @@ func Genaddress() (string, crypto.PrivKey) {
 }
 
 // CreateNoneTx : Create None Tx
-func CreateNoneTx(priv crypto.PrivKey) *types.Transaction {
-	return CreateTxWithExecer(priv, "none")
+func CreateNoneTx(cfg *types.Chain33Config, priv crypto.PrivKey) *types.Transaction {
+	return CreateTxWithExecer(cfg, priv, "none")
+}
+
+func updateExpireWithTxHeight(tx *types.Transaction, priv crypto.PrivKey, currHeight int64) {
+	tx.Expire = currHeight + types.LowAllowPackHeight + types.TxHeightFlag
+	if priv != nil {
+		tx.Sign(types.SECP256K1, priv)
+	}
+}
+
+// CreateCoinsTxWithTxHeight 使用txHeight作为交易过期
+func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, currHeight int64) *types.Transaction {
+
+	tx := CreateCoinsTx(cfg, nil, to, amount)
+	updateExpireWithTxHeight(tx, priv, currHeight)
+	return tx
+}
+
+//CreateNoneTxWithTxHeight 使用txHeight作为交易过期
+func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) *types.Transaction {
+
+	tx := CreateNoneTx(cfg, nil)
+	updateExpireWithTxHeight(tx, priv, currHeight)
+	return tx
 }
 
 // CreateTxWithExecer ： Create Tx With Execer
-func CreateTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
+func CreateTxWithExecer(cfg *types.Chain33Config, priv crypto.PrivKey, execer string) *types.Transaction {
 	if execer == "coins" {
 		to, _ := Genaddress()
-		return CreateCoinsTx(priv, to, types.Coin)
+		return CreateCoinsTx(cfg, priv, to, types.Coin)
 	}
 	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none")}
 	tx.To = address.ExecAddress(execer)
-	tx, err := types.FormatTx(execer, tx)
+	tx, err := types.FormatTx(cfg, execer, tx)
 	if err != nil {
 		return nil
 	}
@@ -147,7 +170,7 @@ func JSONPrint(t TestingT, input interface{}) {
 }
 
 // CreateManageTx : Create Manage Tx
-func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transaction {
+func CreateManageTx(cfg *types.Chain33Config, priv crypto.PrivKey, key, op, value string) *types.Transaction {
 	v := &types.ModifyConfig{Key: key, Op: op, Value: value, Addr: ""}
 	exec := types.LoadExecutorType("manage")
 	if exec == nil {
@@ -157,7 +180,7 @@ func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transacti
 	if err != nil {
 		panic(err)
 	}
-	tx, err = types.FormatTx("manage", tx)
+	tx, err = types.FormatTx(cfg, "manage", tx)
 	if err != nil {
 		return nil
 	}
@@ -166,13 +189,13 @@ func CreateManageTx(priv crypto.PrivKey, key, op, value string) *types.Transacti
 }
 
 // CreateCoinsTx : Create Coins Tx
-func CreateCoinsTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	tx := createCoinsTx(to, amount)
+func CreateCoinsTx(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+	tx := createCoinsTx(cfg, to, amount)
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
 
-func createCoinsTx(to string, amount int64) *types.Transaction {
+func createCoinsTx(cfg *types.Chain33Config, to string, amount int64) *types.Transaction {
 	exec := types.LoadExecutorType("coins")
 	if exec == nil {
 		panic("unknow driver coins")
@@ -185,7 +208,7 @@ func createCoinsTx(to string, amount int64) *types.Transaction {
 		panic(err)
 	}
 	tx.To = to
-	tx, err = types.FormatTx("coins", tx)
+	tx, err = types.FormatTx(cfg, "coins", tx)
 	if err != nil {
 		return nil
 	}
@@ -193,18 +216,18 @@ func createCoinsTx(to string, amount int64) *types.Transaction {
 }
 
 //CreateTxWithTxHeight : Create Tx With Tx Height
-func CreateTxWithTxHeight(priv crypto.PrivKey, to string, amount, expire int64) *types.Transaction {
-	tx := createCoinsTx(to, amount)
+func CreateTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, expire int64) *types.Transaction {
+	tx := createCoinsTx(cfg, to, amount)
 	tx.Expire = expire + types.TxHeightFlag
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
 
 // GenTxsTxHeigt : Gen Txs with Heigt
-func GenTxsTxHeigt(priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
+func GenTxsTxHeigt(cfg *types.Chain33Config, priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
-		tx := CreateTxWithTxHeight(priv, to, types.Coin*(n+1), 20+height)
+		tx := CreateTxWithTxHeight(cfg, priv, to, types.Coin*(n+1), 20+height)
 		txs = append(txs, tx)
 	}
 	return txs
@@ -213,120 +236,160 @@ func GenTxsTxHeigt(priv crypto.PrivKey, n, height int64) (txs []*types.Transacti
 var zeroHash [32]byte
 
 // CreateNoneBlock : Create None Block
-func CreateNoneBlock(priv crypto.PrivKey, n int64) *types.Block {
+func CreateNoneBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = 1
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
-	newblock.Txs = GenNoneTxs(priv, n)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.Txs = GenNoneTxs(cfg, priv, n)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	return newblock
 }
 
 //CreateCoinsBlock : create coins block, n size
-func CreateCoinsBlock(priv crypto.PrivKey, n int64) *types.Block {
+func CreateCoinsBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = 1
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
-	newblock.Txs = GenCoinsTxs(priv, n)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.Txs = GenCoinsTxs(cfg, priv, n)
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	return newblock
 }
 
 // ExecBlock : just exec block
 func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
-	//发送执行交易给execs模块
-	//通过consensus module 再次检查
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := types.Now()
-	beg2 := beg
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg2))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
 	}()
 
-	if errReturn && block.Height > 0 && !block.CheckSign() {
+	detail, deltx, err := PreExecBlock(client, prevStateRoot, block, errReturn, sync, checkblock)
+	if err != nil {
+		return nil, nil, err
+	}
+	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
+	err = ExecKVSetCommit(client, block.StateHash, false)
+	if err != nil {
+		return nil, nil, err
+	}
+	return detail, deltx, nil
+}
+
+// PreExecBlock : pre exec block
+func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
+	//发送执行交易给execs模块
+	//通过consensus module 再次检查
+	config := client.GetConfig()
+	dupErrChan := make(chan error, 1)
+	cacheTxs := types.TxsToCache(block.Txs)
+	beg := types.Now()
+	//check sign routine
+	if errReturn && block.Height > 0 && !block.CheckSign(config) {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
 	}
-	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
-	cacheTxs := types.TxsToCache(block.Txs)
-	oldtxscount := len(cacheTxs)
-	var err error
-	cacheTxs, err = CheckTxDup(client, cacheTxs, block.Height)
-	if err != nil {
-		return nil, nil, err
-	}
-	ulog.Debug("ExecBlock", "CheckTxDup", types.Since(beg))
+	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "CheckSign", types.Since(beg))
+
+	//check dup routine
+	go func() {
+		beg := types.Now()
+		defer func() {
+			ulog.Debug("PreExecBlock", "height", block.GetHeight(), "CheckTxDup", types.Since(beg))
+		}()
+		//check tx Duplicate
+		var err error
+		cacheTxs, err = CheckTxDup(client, cacheTxs, block.Height)
+		if err != nil {
+			dupErrChan <- err
+			return
+		}
+		if len(block.Txs) != len(cacheTxs) {
+			ulog.Error("PreExecBlock", "prevtx", len(block.Txs), "newtx", len(cacheTxs))
+			if errReturn {
+				dupErrChan <- types.ErrTxDup
+				return
+			}
+		}
+		dupErrChan <- nil
+	}()
+
+	// exec tx routine
 	beg = types.Now()
-	newtxscount := len(cacheTxs)
-	if oldtxscount != newtxscount && errReturn {
-		return nil, nil, types.ErrTxDup
-	}
-	ulog.Debug("ExecBlock", "prevtx", oldtxscount, "newtx", newtxscount)
-	block.Txs = types.CacheToTxs(cacheTxs)
-	//println("1")
+	//对区块的正确性保持乐观，在检测结束前先执行，达到并行执行目的
 	receipts, err := ExecTx(client, prevStateRoot, block)
+	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "ExecTx", types.Since(beg))
+	beg = types.Now()
+
+	//检查交易查重结果
+	if dupErr := <-dupErrChan; dupErr != nil {
+		ulog.Error("PreExecBlock", "height", block.GetHeight(), "CheckDupErr", dupErr)
+		return nil, nil, dupErr
+	}
+	//有重复交易， 需要重新赋值交易内容并执行
+	if len(block.Txs) != len(cacheTxs) {
+		block.Txs = types.CacheToTxs(cacheTxs)
+		receipts, err = ExecTx(client, prevStateRoot, block)
+	}
+	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "WaitDupCheck", types.Since(beg))
 	if err != nil {
 		return nil, nil, err
 	}
-	ulog.Debug("ExecBlock", "ExecTx", types.Since(beg))
+
 	beg = types.Now()
 	var kvset []*types.KeyValue
-	var deltxlist = make(map[int]bool)
 	var rdata []*types.ReceiptData //save to db receipt log
-	for i := 0; i < len(receipts.Receipts); i++ {
-		receipt := receipts.Receipts[i]
+	//删除无效的交易
+	var deltxs []*types.Transaction
+	index := 0
+	for i, receipt := range receipts.Receipts {
 		if receipt.Ty == types.ExecErr {
-			ulog.Error("exec tx err", "err", receipt)
+			errTx := block.Txs[i]
+			ulog.Error("exec tx err", "err", receipt, "txhash", common.ToHex(errTx.Hash()))
 			if errReturn { //认为这个是一个错误的区块
 				return nil, nil, types.ErrBlockExec
 			}
-			deltxlist[i] = true
+			deltxs = append(deltxs, errTx)
 			continue
 		}
+		block.Txs[index] = block.Txs[i]
+		cacheTxs[index] = cacheTxs[i]
+		index++
 		rdata = append(rdata, &types.ReceiptData{Ty: receipt.Ty, Logs: receipt.Logs})
 		kvset = append(kvset, receipt.KV...)
 	}
-	kvset = DelDupKey(kvset)
-	//删除无效的交易
-	var deltx []*types.Transaction
-	if len(deltxlist) > 0 {
-		index := 0
-		for i := 0; i < len(block.Txs); i++ {
-			if deltxlist[i] {
-				deltx = append(deltx, block.Txs[i])
-				continue
-			}
-			block.Txs[index] = block.Txs[i]
-			cacheTxs[index] = cacheTxs[i]
-			index++
-		}
-		block.Txs = block.Txs[0:index]
-		cacheTxs = cacheTxs[0:index]
-	}
-	//交易有执行不成功的，报错(TxHash一定不同)
-	if len(deltx) > 0 && errReturn {
-		return nil, nil, types.ErrCheckTxHash
-	}
+	block.Txs = block.Txs[:index]
+	cacheTxs = cacheTxs[:index]
+
 	//检查block的txhash值
-	calcHash := merkle.CalcMerkleRootCache(cacheTxs)
-	if errReturn && !bytes.Equal(calcHash, block.TxHash) {
+	var txHash []byte
+	height := block.Height
+	//此时需要区分主链和平行链
+	if config.IsPara() {
+		height = block.MainHeight
+	}
+	if !config.IsFork(height, "ForkRootHash") {
+		txHash = merkle.CalcMerkleRootCache(cacheTxs)
+	} else {
+		txHash = merkle.CalcMerkleRoot(config, height, types.TransactionSort(block.Txs))
+	}
+	if errReturn && !bytes.Equal(txHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}
-	ulog.Debug("ExecBlock", "CalcMerkleRootCache", types.Since(beg))
+	block.TxHash = txHash
+	ulog.Debug("PreExecBlock", "CalcMerkleRootCache", types.Since(beg))
 	beg = types.Now()
-	block.TxHash = calcHash
-	var detail types.BlockDetail
-	calcHash, err = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync, false)
+	kvset = DelDupKey(kvset)
+	stateHash, err := ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync, false)
 	if err != nil {
 		return nil, nil, err
 	}
 	//println("2")
-	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
-		err = ExecKVSetRollback(client, calcHash)
+	if errReturn && !bytes.Equal(block.StateHash, stateHash) {
+		err = ExecKVSetRollback(client, stateHash)
 		if err != nil {
-			ulog.Error("execBlock-->ExecKVSetRollback", "err", err)
+			ulog.Error("PreExecBlock-->ExecKVSetRollback", "err", err)
 		}
 		if len(rdata) > 0 {
 			for i, rd := range rdata {
@@ -335,25 +398,22 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		}
 		return nil, nil, types.ErrCheckStateHash
 	}
-	block.StateHash = calcHash
+	block.StateHash = stateHash
+	var detail types.BlockDetail
 	detail.Block = block
 	detail.Receipts = rdata
 	if detail.Block.Height > 0 && checkblock {
 		err := CheckBlock(client, &detail)
 		if err != nil {
-			ulog.Debug("CheckBlock-->", "err=", err)
-			return nil, deltx, err
+			ulog.Error("PreExecBlock", "height", block.GetHeight(), "checkBlockErr", err)
+			return nil, nil, err
 		}
 	}
-	ulog.Debug("ExecBlock", "CheckBlock", types.Since(beg))
-	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
-	err = ExecKVSetCommit(client, block.StateHash, false)
-	if err != nil {
-		return nil, nil, err
-	}
+	ulog.Debug("PreExecBlock", "CheckBlock", types.Since(beg))
+
 	detail.KV = kvset
 	detail.PrevStatusHash = prevStateRoot
-	return &detail, deltx, nil
+	return &detail, deltxs, nil
 }
 
 // ExecBlockUpgrade : just exec block
@@ -367,10 +427,7 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 		ulog.Info("ExecBlockUpgrade", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg1))
 	}()
 
-	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
-	cacheTxs := types.TxsToCache(block.Txs)
 	var err error
-	block.Txs = types.CacheToTxs(cacheTxs)
 	//println("1")
 	receipts, err := ExecTx(client, prevStateRoot, block)
 	if err != nil {
@@ -399,34 +456,23 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 }
 
 //CreateNewBlock : Create a New Block
-func CreateNewBlock(parent *types.Block, txs []*types.Transaction) *types.Block {
+func CreateNewBlock(cfg *types.Chain33Config, parent *types.Block, txs []*types.Transaction) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = parent.Height + 1
 	newblock.BlockTime = parent.BlockTime + 1
-	newblock.ParentHash = parent.Hash()
+	newblock.ParentHash = parent.Hash(cfg)
 	newblock.Txs = append(newblock.Txs, txs...)
-	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+
+	//需要首先对交易进行排序然后再计算TxHash
+	if cfg.IsFork(newblock.GetHeight(), "ForkRootHash") {
+		newblock.Txs = types.TransactionSort(newblock.Txs)
+	}
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 	return newblock
 }
 
-//ExecAndCheckBlock : Exec and Check Block
-func ExecAndCheckBlock(qclient queue.Client, block *types.Block, txs []*types.Transaction, status int) (*types.Block, error) {
-	return ExecAndCheckBlockCB(qclient, block, txs, func(index int, receipt *types.ReceiptData) error {
-		if status == 0 && receipt != nil {
-			return errors.New("all must failed index = " + fmt.Sprint(index))
-		}
-		if status > 0 && receipt == nil {
-			return errors.New("all must not faild, but index = " + fmt.Sprint(index))
-		}
-		if status > 0 && receipt.Ty != int32(status) {
-			return errors.New("status not equal, but index = " + fmt.Sprint(index))
-		}
-		return nil
-	})
-}
-
-// ExecAndCheckBlock2 :
-func ExecAndCheckBlock2(qclient queue.Client, block *types.Block, txs []*types.Transaction, result []int) (*types.Block, error) {
+//ExecAndCheckBlock ...
+func ExecAndCheckBlock(qclient queue.Client, block *types.Block, txs []*types.Transaction, result []int) (*types.Block, error) {
 	return ExecAndCheckBlockCB(qclient, block, txs, func(index int, receipt *types.ReceiptData) error {
 		if len(result) <= index {
 			return errors.New("txs num and status len not equal")
@@ -447,7 +493,7 @@ func ExecAndCheckBlock2(qclient queue.Client, block *types.Block, txs []*types.T
 
 //ExecAndCheckBlockCB :
 func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.Transaction, cb func(int, *types.ReceiptData) error) (*types.Block, error) {
-	block2 := CreateNewBlock(block, txs)
+	block2 := CreateNewBlock(qclient.GetConfig(), block, txs)
 	detail, deltx, err := ExecBlock(qclient, block.StateHash, block2, false, true, false)
 	if err != nil {
 		return nil, err

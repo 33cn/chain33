@@ -71,8 +71,7 @@ func TestMergeLevel2Error(t *testing.T) {
 }
 
 func TestMergeToml(t *testing.T) {
-	S("cfg.bityuan", bityuancfg)
-	newcfg := mergeCfg(readFile("../cmd/chain33/bityuan.toml"))
+	newcfg := MergeCfg(ReadFile("../cmd/chain33/bityuan.toml"), bityuancfg)
 	cfg1, err := initCfgString(newcfg)
 	assert.Nil(t, err)
 	cfg2, err := initCfgString(readFile("testdata/bityuan.toml"))
@@ -93,14 +92,10 @@ singleMode=false
 
 [p2p]
 enable=true
-serverStart=true
-msgCacheSize=10240
 driver="leveldb"
 
 [mempool]
 poolCacheSize=102400
-minTxFee=100000
-maxTxFee=1000000000
 
 [consensus]
 name="ticket"
@@ -185,9 +180,7 @@ driver="leveldb"
 signType="secp256k1"
 
 [exec]
-isFree=false
-minExecFee=100000
-maxExecFee=1000000000
+
 
 [exec.sub.token]
 #配置一个空值，防止配置文件被覆盖
@@ -224,6 +217,7 @@ ForkBlockCheck=1725000
 ForkLocalDBAccess=1
 ForkBase58AddressCheck=1800000
 ForkTicketFundAddrV1=-1
+ForkRootHash=1
 [fork.sub.coins]
 Enable=0
 

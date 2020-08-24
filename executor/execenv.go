@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/client/api"
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	drivers "github.com/33cn/chain33/system/dapp"
@@ -32,7 +33,14 @@ type executor struct {
 	gcli       types.Chain33Client
 	execapi    api.ExecutorAPI
 	receipts   []*types.ReceiptData
-	execCache  map[string]drivers.Driver
+	//单个区块执行期间执行器缓存
+	driverCache map[string]drivers.Driver
+	//在单笔交易执行期间，将当前交易的执行driver缓存，避免多次load
+	currTxIdx  int
+	currExecTx *types.Transaction
+	currDriver drivers.Driver
+	cfg        *types.Chain33Config
+	exec       *Executor
 }
 
 type executorCtx struct {
@@ -47,12 +55,15 @@ type executorCtx struct {
 
 func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
 	client := exec.client
+	types.AssertConfig(client)
+	cfg := client.GetConfig()
 	enableMVCC := exec.pluginEnable["mvcc"]
 	opt := &StateDBOption{EnableMVCC: enableMVCC, Height: ctx.height}
+
 	e := &executor{
 		stateDB:      NewStateDB(client, ctx.stateHash, localdb, opt),
 		localDB:      localdb,
-		coinsAccount: account.NewCoinsAccount(),
+		coinsAccount: account.NewCoinsAccount(cfg),
 		height:       ctx.height,
 		blocktime:    ctx.blocktime,
 		difficulty:   ctx.difficulty,
@@ -61,7 +72,10 @@ func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*type
 		receipts:     receipts,
 		api:          exec.qclient,
 		gcli:         exec.grpccli,
-		execCache:    make(map[string]drivers.Driver),
+		driverCache:  make(map[string]drivers.Driver),
+		currTxIdx:    -1,
+		cfg:          cfg,
+		exec:         exec,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -134,27 +148,31 @@ func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
 }
 
 func (e *executor) checkTx(tx *types.Transaction, index int) error {
-	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) {
+
+	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.cfg, e.height, e.blocktime) {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(e.height, types.GInt("MinFee"), types.GInt("MaxFee")); err != nil {
+	if err := tx.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee()); err != nil {
 		return err
 	}
 	//允许重写的情况
 	//看重写的名字 name, 是否被允许执行
 	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
+		elog.Error("checkTx execNameNotAllow", "realname", string(e.getRealExecName(tx, index)), "exec", string(tx.Execer))
 		return types.ErrExecNameNotAllow
 	}
 	return nil
 }
 
 func (e *executor) setEnv(exec drivers.Driver) {
+	exec.SetAPI(e.api)
+	//执行器共用一个coins account对象
+	exec.SetCoinsAccount(e.coinsAccount)
 	exec.SetStateDB(e.stateDB)
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetBlockInfo(e.ctx.parentHash, e.ctx.mainHash, e.ctx.mainHeight)
-	exec.SetAPI(e.api)
 	exec.SetExecutorAPI(e.api, e.gcli)
 	e.execapi = exec.GetExecutorAPI()
 	exec.SetTxs(e.txs)
@@ -162,11 +180,12 @@ func (e *executor) setEnv(exec drivers.Driver) {
 }
 
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
-	if e.height > 0 && e.blocktime > 0 && txgroup.IsExpire(e.height, e.blocktime) {
+
+	if e.height > 0 && e.blocktime > 0 && txgroup.IsExpire(e.cfg, e.height, e.blocktime) {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(e.height, types.GInt("MinFee"), types.GInt("MaxFee")); err != nil {
+	if err := txgroup.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee()); err != nil {
 		return err
 	}
 	return nil
@@ -182,21 +201,28 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	if err := address.CheckAddress(tx.To); err != nil {
 		return err
 	}
-	//checkInExec
-	exec := e.loadDriver(tx, index)
+	var exec drivers.Driver
+
+	//暂时只对none driver做了缓存处理 TODO: 增加其他执行器pool缓存
+	if types.Bytes2Str(tx.Execer) == "none" {
+		exec = e.getNoneDriver()
+		defer e.freeNoneDriver(exec)
+	} else {
+		exec = e.loadDriver(tx, index)
+	}
 	//手续费检查
-	if !exec.IsFree() && types.GInt("MinFee") > 0 {
+	if !exec.IsFree() && e.cfg.GetMinTxFeeRate() > 0 {
 		from := tx.From()
 		accFrom := e.coinsAccount.LoadAccount(from)
 
 		//余额少于手续费时直接返回错误
 		if accFrom.GetBalance() < tx.GetTxFee() {
-			elog.Error("execCheckTx", "ispara", types.IsPara(), "exec", string(tx.Execer), "Balance", accFrom.GetBalance(), "TxFee", tx.GetTxFee())
+			elog.Error("execCheckTx", "ispara", e.cfg.IsPara(), "exec", string(tx.Execer), "Balance", accFrom.GetBalance(), "TxFee", tx.GetTxFee())
 			return types.ErrNoBalance
 		}
 
-		if accFrom.GetBalance() < types.GInt("MinBalanceTransfer") {
-			elog.Error("execCheckTx", "ispara", types.IsPara(), "exec", string(tx.Execer), "nonce", tx.Nonce, "Balance", accFrom.GetBalance())
+		if accFrom.GetBalance() < e.cfg.GInt("MinBalanceTransfer") {
+			elog.Error("execCheckTx", "ispara", e.cfg.IsPara(), "exec", string(tx.Execer), "nonce", tx.Nonce, "Balance", accFrom.GetBalance())
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 
@@ -208,10 +234,10 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriver(tx, index)
 	//to 必须是一个地址
-	if err := drivers.CheckAddress(tx.GetRealToAddr(), e.height); err != nil {
+	if err := drivers.CheckAddress(e.cfg, tx.GetRealToAddr(), e.height); err != nil {
 		return nil, err
 	}
-	if e.localDB != nil && types.IsFork(e.height, "ForkLocalDBAccess") {
+	if e.localDB != nil && e.cfg.IsFork(e.height, "ForkLocalDBAccess") {
 		e.localDB.(*LocalDB).DisableWrite()
 		if exec.ExecutorOrder() != drivers.ExecLocalSameTime {
 			e.localDB.(*LocalDB).DisableRead()
@@ -241,30 +267,83 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 	return exec.ExecDelLocal(tx, r, index)
 }
 
+func (e *executor) getNoneDriver() drivers.Driver {
+	none := e.exec.noneDriverPool.Get().(drivers.Driver)
+	e.setEnv(none)
+	return none
+}
+
+func (e *executor) freeNoneDriver(none drivers.Driver) {
+	e.exec.noneDriverPool.Put(none)
+}
+
+// 加载none执行器
+func (e *executor) loadNoneDriver() drivers.Driver {
+	none, ok := e.driverCache["none"]
+	var err error
+	if !ok {
+		none, err = drivers.LoadDriverWithClient(e.api, "none", 0)
+		if err != nil {
+			panic(err)
+		}
+		e.driverCache["none"] = none
+	}
+	return none
+}
+
+// loadDriver 加载执行器
+// 对单笔交易执行期间的执行器做了缓存，避免多次加载
+// 只有参数的tx，index，和记录的当前交易，当前索引，均相等时，才返回缓存的当前交易执行器
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
-	if types.IsFork(e.height, "ForkCacheDriver") {
-		return e.loadDriverNoCache(tx, index)
-	}
-	return e.loadDriverWithCache(tx, index)
-}
 
-func (e *executor) loadDriverNoCache(tx *types.Transaction, index int) (c drivers.Driver) {
-	exec := drivers.LoadDriverAllow(tx, index, e.height)
-	e.setEnv(exec)
-	return exec
-}
-
-// cache exec name bug: 部分执行是否可以执行依赖于合约里的具体操作， 而不是只依赖执行器名字
-func (e *executor) loadDriverWithCache(tx *types.Transaction, index int) (c drivers.Driver) {
-	ename := string(tx.Execer)
-	exec, ok := e.execCache[ename]
-	if ok {
-		return exec
+	// 交易和index都相等时，返回已缓存的当前交易执行器
+	if e.currExecTx == tx && e.currTxIdx == index {
+		return e.currDriver
 	}
-	exec = drivers.LoadDriverAllow(tx, index, e.height)
-	e.setEnv(exec)
-	e.execCache[ename] = exec
-	return exec
+	var err error
+	name := types.Bytes2Str(tx.Execer)
+	driver, ok := e.driverCache[name]
+	isFork := e.cfg.IsFork(e.height, "ForkCacheDriver")
+
+	if !ok {
+		driver, err = drivers.LoadDriverWithClient(e.api, name, e.height)
+		if err != nil {
+			driver = e.loadNoneDriver()
+		}
+		e.driverCache[name] = driver
+	}
+
+	//fork之前，多笔相同执行器的交易只有第一笔会进行Allow判定，从缓存中获取的执行器不需要进行allow判定
+	//fork之后，所有的交易均需要单独执行Allow判定
+	if !ok || isFork {
+		driver.SetEnv(e.height, 0, 0)
+		err = driver.Allow(tx, index)
+	}
+
+	// allow不通过时，统一加载none执行器
+	if err != nil {
+		driver = e.loadNoneDriver()
+		//fork之前，cache中存放的是经过allow判定后，实际用于执行的执行器，比如主链执行平行链交易的执行器对应的是none对象
+		//fork之后，cache中存放的是和Execer名称对应的driver对象
+		//历史遗留问题 fork之前的问题在于cache缓存错乱，不应该缓存实际用于执行的，即缓存包含了allow的逻辑，导致错乱
+		//增加fork是由于已经存在由于cache问题导致的错误交易
+		//正确逻辑是，cache中的执行器对象和名称是一一对应的，保证了driver对象复用，但同时不同交易的allow需要重新判定
+		if !isFork {
+			e.driverCache[name] = driver
+		}
+	} else {
+		driver.SetName(types.Bytes2Str(types.GetRealExecName(tx.Execer)))
+		driver.SetCurrentExecName(name)
+	}
+	e.setEnv(driver)
+
+	//均不相等时，表明当前交易已更新，需要同步更新缓存，并记录当前交易及其index
+	if e.currExecTx != tx && e.currTxIdx != index {
+		e.currExecTx = tx
+		e.currTxIdx = index
+		e.currDriver = driver
+	}
+	return driver
 }
 
 func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Receipt, error) {
@@ -292,7 +371,7 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 			return nil, err
 		}
 		//状态数据库回滚
-		if types.IsFork(e.height, "ForkExecRollback") {
+		if e.cfg.IsFork(e.height, "ForkExecRollback") {
 			e.rollback()
 		}
 		return receipts, nil
@@ -309,7 +388,7 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 				receipts[k] = &types.Receipt{Ty: types.ExecPack}
 			}
 			//撤销txs[0]的交易
-			if types.IsFork(e.height, "ForkResetTx0") {
+			if e.cfg.IsFork(e.height, "ForkResetTx0") {
 				receipts[0] = rollbackLog
 			}
 			//撤销所有的数据库更新
@@ -345,7 +424,7 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 	ex := e.loadDriver(tx, index)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
-	if bytes.Equal(address.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {
+	if bytes.Equal(address.ExecPubKey(execer), tx.GetSignature().GetPubkey()) {
 		err := ex.CheckTx(tx, index)
 		if err != nil {
 			return nil, err
@@ -353,7 +432,7 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 	}
 	var err error
 	//公链不允许手续费为0
-	if !types.IsPara() && types.GInt("MinFee") > 0 && !ex.IsFree() {
+	if !e.cfg.IsPara() && e.cfg.GetMinTxFeeRate() > 0 && !ex.IsFree() {
 		feelog, err = e.processFee(tx)
 		if err != nil {
 			return nil, err
@@ -398,7 +477,7 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 	if err != nil {
 		return feelog, err
 	}
-	err = e.execLocalSameTime(tx, feelog, index)
+	err = e.execLocalSameTime(tx, receipt, index)
 	if err != nil {
 		elog.Error("execLocalSameTime", "err", err)
 		errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(err.Error())}
@@ -410,7 +489,7 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 		feelog.Logs = append(feelog.Logs, receipt.Logs...)
 		feelog.Ty = receipt.Ty
 	}
-	if types.IsFork(e.height, "ForkStateDBSet") {
+	if e.cfg.IsFork(e.height, "ForkStateDBSet") {
 		for _, v := range feelog.KV {
 			if err := e.stateDB.Set(v.Key, v.Value); err != nil {
 				panic(err)
@@ -452,8 +531,7 @@ func (e *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, i
 }
 
 func (e *executor) begin() {
-	matchfork := types.IsFork(e.height, "ForkExecRollback")
-	if matchfork {
+	if e.cfg.IsFork(e.height, "ForkExecRollback") {
 		if e.stateDB != nil {
 			e.stateDB.Begin()
 		}
@@ -464,8 +542,7 @@ func (e *executor) begin() {
 }
 
 func (e *executor) commit() error {
-	matchfork := types.IsFork(e.height, "ForkExecRollback")
-	if matchfork {
+	if e.cfg.IsFork(e.height, "ForkExecRollback") {
 		if e.stateDB != nil {
 			if err := e.stateDB.Commit(); err != nil {
 				return err
@@ -490,8 +567,7 @@ func (e *executor) startTx() {
 }
 
 func (e *executor) rollback() {
-	matchfork := types.IsFork(e.height, "ForkExecRollback")
-	if matchfork {
+	if e.cfg.IsFork(e.height, "ForkExecRollback") {
 		if e.stateDB != nil {
 			e.stateDB.Rollback()
 		}
@@ -517,6 +593,10 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	//2. 打包的时候，尽量打包更多的交易，只要基本的签名，以及格式没有问题
 	err := e.checkTx(tx, index)
 	if err != nil {
+		elog.Error("execTx.checkTx ", "txhash", common.ToHex(tx.Hash()), "err", err)
+		if e.cfg.IsPara() {
+			panic(err)
+		}
 		return nil, err
 	}
 	//处理交易手续费(先把手续费收了)
@@ -565,7 +645,7 @@ func (e *executor) isExecLocalSameTime(tx *types.Transaction, index int) bool {
 
 func (e *executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
 	for i := 0; i < len(kvs); i++ {
-		err := isAllowLocalKey(execer, kvs[i].Key)
+		err := isAllowLocalKey(e.cfg, execer, kvs[i].Key)
 		if err != nil {
 			//测试的情况下，先panic，实际情况下会删除返回错误
 			panic(err)

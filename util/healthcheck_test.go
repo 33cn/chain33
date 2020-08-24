@@ -7,6 +7,8 @@ package util
 import (
 	"testing"
 
+	"github.com/stretchr/testify/mock"
+
 	"time"
 
 	"github.com/33cn/chain33/client/mocks"
@@ -25,7 +27,7 @@ func TestStart(t *testing.T) {
 	peer1 := &types.Peer{Addr: "addr1"}
 	peer2 := &types.Peer{Addr: "addr2"}
 	peers := &types.PeerList{Peers: []*types.Peer{peer1, peer2}}
-	api.On("PeerInfo").Return(peers, nil)
+	api.On("PeerInfo", mock.Anything).Return(peers, nil)
 	api.On("Close").Return()
 	health.api = api
 
@@ -44,7 +46,7 @@ func TestGetHealth(t *testing.T) {
 	api.On("IsSync").Return(reply, nil).Once()
 	peer2 := &types.Peer{Addr: "addr2"}
 	peerlist := &types.PeerList{Peers: []*types.Peer{peer2}}
-	api.On("PeerInfo").Return(peerlist, nil).Once()
+	api.On("PeerInfo", mock.Anything).Return(peerlist, nil).Once()
 
 	healthNil := NewHealthCheckServer(nil)
 	assert.Nil(t, healthNil)

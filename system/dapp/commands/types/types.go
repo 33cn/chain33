@@ -85,6 +85,8 @@ type TxDetailResult struct {
 	Fromaddr   string                      `json:"fromaddr"`
 	ActionName string                      `json:"actionname"`
 	Assets     []*rpctypes.Asset           `json:"assets"`
+	TxProofs   []*rpctypes.TxProof         `json:"txProofs"`
+	FullHash   string                      `json:"fullHash"`
 }
 
 // TxDetailsResult defines txdetails result command
@@ -148,38 +150,6 @@ type GetTotalCoinsResult struct {
 	DifferenceAmount string `json:"differenceAmount,omitempty"`
 }
 
-// UTXOGlobalIndex defines  utxo globalindex command
-type UTXOGlobalIndex struct {
-	// Height   int64  `json:"height,omitempty"`
-	// Txindex  int32  `json:"txindex,omitempty"`
-	Outindex int32  `json:"outindex,omitempty"`
-	Txhash   string `json:"txhash,omitempty"`
-}
-
-// KeyInput defines keyinput info command
-type KeyInput struct {
-	Amount          string             `json:"amount,omitempty"`
-	UtxoGlobalIndex []*UTXOGlobalIndex `json:"utxoGlobalIndex,omitempty"`
-	KeyImage        string             `json:"keyImage,omitempty"`
-}
-
-// PrivacyInput defines privacy input command
-type PrivacyInput struct {
-	Keyinput []*KeyInput `json:"keyinput,omitempty"`
-}
-
-// KeyOutput privacy output
-type KeyOutput struct {
-	Amount        string `json:"amount,omitempty"`
-	Onetimepubkey string `json:"onetimepubkey,omitempty"`
-}
-
-// ReceiptPrivacyOutput defines receipt privacy output command
-type ReceiptPrivacyOutput struct {
-	Token     string       `json:"token,omitempty"`
-	Keyoutput []*KeyOutput `json:"keyoutput,omitempty"`
-}
-
 // AllExecBalance defines all balance of exec command
 type AllExecBalance struct {
 	Addr        string         `json:"addr"`
@@ -190,97 +160,6 @@ type AllExecBalance struct {
 type ExecAccount struct {
 	Execer  string         `json:"execer"`
 	Account *AccountResult `json:"account"`
-}
-
-// CoinsTransferCLI  decodetx
-type CoinsTransferCLI struct {
-	Cointoken string `json:"cointoken,omitempty"`
-	Amount    string `json:"amount,omitempty"`
-	Note      string `json:"note,omitempty"`
-	To        string `json:"to,omitempty"`
-}
-
-// CoinsWithdrawCLI defines coins withdrawcli command
-type CoinsWithdrawCLI struct {
-	Cointoken string `json:"cointoken,omitempty"`
-	Amount    string `json:"amount,omitempty"`
-	Note      string `json:"note,omitempty"`
-	ExecName  string `json:"execName,omitempty"`
-	To        string `json:"to,omitempty"`
-}
-
-// CoinsGenesisCLI defines coins genesis cli command
-type CoinsGenesisCLI struct {
-	Amount        string `json:"amount,omitempty"`
-	ReturnAddress string `json:"returnAddress,omitempty"`
-}
-
-// CoinsTransferToExecCLI defines coins transfertoexec cli command
-type CoinsTransferToExecCLI struct {
-	Cointoken string `json:"cointoken,omitempty"`
-	Amount    string `json:"amount,omitempty"`
-	Note      string `json:"note,omitempty"`
-	ExecName  string `json:"execName,omitempty"`
-	To        string `json:"to,omitempty"`
-}
-
-// HashlockLockCLI defines hashlocklockcli rpc command
-type HashlockLockCLI struct {
-	Amount        string `json:"amount,omitempty"`
-	Time          int64  `json:"time,omitempty"`
-	Hash          []byte `json:"hash,omitempty"`
-	ToAddress     string `json:"toAddress,omitempty"`
-	ReturnAddress string `json:"returnAddress,omitempty"`
-}
-
-// TicketMinerCLI defines ticket minercli command
-type TicketMinerCLI struct {
-	Bits     uint32 `json:"bits,omitempty"`
-	Reward   string `json:"reward,omitempty"`
-	TicketID string `json:"ticketId,omitempty"`
-	Modify   []byte `json:"modify,omitempty"`
-}
-
-// TokenPreCreateCLI defines token precreatecli command
-type TokenPreCreateCLI struct {
-	Name         string `json:"name,omitempty"`
-	Symbol       string `json:"symbol,omitempty"`
-	Introduction string `json:"introduction,omitempty"`
-	Total        int64  `json:"total,omitempty"`
-	Price        string `json:"price,omitempty"`
-	Owner        string `json:"owner,omitempty"`
-}
-
-// Public2PrivacyCLI defines public to privacy cli command
-type Public2PrivacyCLI struct {
-	Tokenname string         `json:"tokenname,omitempty"`
-	Amount    string         `json:"amount,omitempty"`
-	Note      string         `json:"note,omitempty"`
-	Output    *PrivacyOutput `json:"output,omitempty"`
-}
-
-// Privacy2PrivacyCLI defines privacy to privacy cli command
-type Privacy2PrivacyCLI struct {
-	Tokenname string         `json:"tokenname,omitempty"`
-	Amount    string         `json:"amount,omitempty"`
-	Note      string         `json:"note,omitempty"`
-	Input     *PrivacyInput  `json:"input,omitempty"`
-	Output    *PrivacyOutput `json:"output,omitempty"`
-}
-
-// Privacy2PublicCLI defines privacy to public cli command
-type Privacy2PublicCLI struct {
-	Tokenname string         `json:"tokenname,omitempty"`
-	Amount    string         `json:"amount,omitempty"`
-	Note      string         `json:"note,omitempty"`
-	Input     *PrivacyInput  `json:"input,omitempty"`
-	Output    *PrivacyOutput `json:"output,omitempty"`
-}
-
-// PrivacyOutput defines Privacy output command
-type PrivacyOutput struct {
-	RpubKeytx string       `protobuf:"bytes,1,opt,name=RpubKeytx,proto3" json:"RpubKeytx,omitempty"`
-	Keyoutput []*KeyOutput `protobuf:"bytes,2,rep,name=keyoutput" json:"keyoutput,omitempty"`
 }
 
 // GetExecBalanceResult  defines balance of exec result rpc command

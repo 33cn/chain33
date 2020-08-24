@@ -16,7 +16,8 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/33cn/chain33/common/log"
+
+	//	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
@@ -28,16 +29,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	types.Init("local", nil)
-}
-
 var TxHeightOffset int64
 var sendTxWait = time.Millisecond * 5
 var chainlog = log15.New("module", "chain_test")
 
-func addTx(priv crypto.PrivKey, api client.QueueProtocolAPI) ([]*types.Transaction, string, error) {
-	txs := util.GenCoinsTxs(priv, 1)
+func addTx(cfg *types.Chain33Config, priv crypto.PrivKey, api client.QueueProtocolAPI) ([]*types.Transaction, string, error) {
+	txs := util.GenCoinsTxs(cfg, priv, 1)
 	hash := common.ToHex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
@@ -49,8 +46,8 @@ func addTx(priv crypto.PrivKey, api client.QueueProtocolAPI) ([]*types.Transacti
 	return txs, hash, nil
 }
 
-func addTxTxHeigt(priv crypto.PrivKey, api client.QueueProtocolAPI, height int64) ([]*types.Transaction, string, error) {
-	txs := util.GenTxsTxHeigt(priv, 1, height+TxHeightOffset)
+func addTxTxHeigt(cfg *types.Chain33Config, priv crypto.PrivKey, api client.QueueProtocolAPI, height int64) ([]*types.Transaction, string, error) {
+	txs := util.GenTxsTxHeigt(cfg, priv, 1, height+TxHeightOffset)
 	hash := common.ToHex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
@@ -63,9 +60,10 @@ func addTxTxHeigt(priv crypto.PrivKey, api client.QueueProtocolAPI, height int64
 }
 
 func TestBlockChain(t *testing.T) {
-	log.SetLogLevel("crit")
+	//log.SetLogLevel("crit")
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
+	cfg := mock33.GetClient().GetConfig()
 	blockchain := mock33.GetBlockChain()
 	//等待共识模块增长10个区块
 	testProcAddBlockMsg(t, mock33, blockchain)
@@ -74,7 +72,7 @@ func TestBlockChain(t *testing.T) {
 
 	testGetTxHashList(t, blockchain)
 
-	testProcQueryTxMsg(t, blockchain)
+	testProcQueryTxMsg(cfg, t, blockchain)
 
 	testGetBlocksMsg(t, blockchain)
 
@@ -82,36 +80,35 @@ func TestBlockChain(t *testing.T) {
 
 	testProcGetLastHeaderMsg(t, blockchain)
 
-	testGetBlockByHash(t, blockchain)
+	testGetBlockByHash(t, cfg, blockchain)
 
 	testProcGetLastSequence(t, blockchain)
 
 	testGetBlockSequences(t, blockchain)
 
-	testGetBlockByHashes(t, blockchain)
+	testGetBlockByHashes(t, cfg, blockchain)
 	testGetSeqByHash(t, blockchain)
 	testPrefixCount(t, mock33, blockchain)
 	testAddrTxCount(t, mock33, blockchain)
 
 	// QM add
-	testGetBlockHerderByHash(t, blockchain)
+	testGetBlockHerderByHash(t, cfg, blockchain)
 
 	testProcGetTransactionByHashes(t, blockchain)
 
-	textProcGetBlockOverview(t, blockchain)
+	textProcGetBlockOverview(t, cfg, blockchain)
 
-	testProcGetAddrOverview(t, blockchain)
+	testProcGetAddrOverview(t, cfg, blockchain)
 
-	testProcGetBlockHash(t, blockchain)
+	testProcGetBlockHash(t, cfg, blockchain)
 
 	//	testSendDelBlockEvent(t, blockchain)
 
-	testGetOrphanRoot(t, blockchain)
+	testGetOrphanRoot(t, cfg, blockchain)
 
-	testRemoveOrphanBlock(t, blockchain)
+	testRemoveOrphanBlock(t, cfg, blockchain)
 
 	testLoadBlockBySequence(t, blockchain)
-	testAddBlockSeqCB(t, blockchain)
 	testProcDelParaChainBlockMsg(t, mock33, blockchain)
 
 	testProcAddParaChainBlockMsg(t, mock33, blockchain)
@@ -122,7 +119,7 @@ func TestBlockChain(t *testing.T) {
 
 	testGetsynBlkHeight(t, blockchain)
 	testProcDelChainBlockMsg(t, mock33, blockchain)
-	testFaultPeer(t, blockchain)
+	testFaultPeer(t, cfg, blockchain)
 	testCheckBlock(t, blockchain)
 	testWriteBlockToDbTemp(t, blockchain)
 	testReadBlockToExec(t, blockchain)
@@ -130,10 +127,93 @@ func TestBlockChain(t *testing.T) {
 	testUpgradeStore(t, blockchain)
 
 	testProcMainSeqMsg(t, blockchain)
+	testAddOrphanBlock(t, blockchain)
+	testCheckBestChainProc(t, cfg, blockchain)
+
+	// chunk
+	testGetChunkRecordMsg(t, mock33, blockchain)
+	testAddChunkRecordMsg(t, mock33, blockchain)
+	testGetChunkBlockBodyMsg(t, mock33, blockchain)
+	testAddChunkBlockMsg(t, mock33, blockchain)
+}
+
+func testGetChunkRecordMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testGetChunkRecordMsg begin --------------------")
+
+	records := &types.ReqChunkRecords{
+		Start:    1,
+		End:      1,
+		IsDetail: false,
+	}
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventGetChunkRecord, records)
+	err := mock33.GetClient().Send(msgGen, false)
+	assert.NoError(t, err)
+	chainlog.Debug("testGetChunkRecordMsg end --------------------")
+}
+
+func testAddChunkRecordMsg(t *testing.T, mock33 *testnode.Chain33Mock, chain *blockchain.BlockChain) {
+	chainlog.Debug("testAddChunkRecordMsg begin --------------------")
+
+	records := &types.ChunkRecords{
+		Infos: []*types.ChunkInfo{{ChunkNum: 1, ChunkHash: []byte("11111111111")}},
+	}
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventAddChunkRecord, records)
+	err := mock33.GetClient().Send(msgGen, false)
+	assert.Nil(t, err)
+	chainlog.Debug("testAddChunkRecordMsg end --------------------")
+}
+
+func testGetChunkBlockBodyMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testGetChunkBlockBodyMsg begin --------------------")
+
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight - 1)
+	require.NoError(t, err)
+
+	end := block.Block.Height
+	start := block.Block.Height - 2
+	if start < 0 {
+		start = 0
+	}
+
+	blocks := &types.ChunkInfoMsg{
+		ChunkHash: []byte{},
+		Start:     start,
+		End:       end,
+	}
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventGetChunkBlockBody, blocks)
+	mock33.GetClient().Send(msgGen, true)
+	resp, _ := mock33.GetClient().Wait(msgGen)
+	if resp.GetData() != nil {
+		bds := resp.Data.(*types.BlockBodys)
+		assert.Equal(t, len(bds.Items), int(end-start+1))
+	}
+	chainlog.Debug("testGetChunkBlockBodyMsg end --------------------")
+}
+
+func testAddChunkBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testAddChunkBlockMsg begin --------------------")
+
+	curheight := blockchain.GetBlockHeight()
+	block1, err := blockchain.GetBlock(curheight - 1)
+	require.NoError(t, err)
+	block2, err := blockchain.GetBlock(curheight - 2)
+	require.NoError(t, err)
+
+	blocks := &types.Blocks{
+		Items: []*types.Block{block1.Block, block2.Block},
+	}
+
+	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventAddChunkBlock, blocks)
+	mock33.GetClient().Send(msgGen, false)
+	chainlog.Debug("testAddChunkBlockMsg end --------------------")
 }
 
 func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcAddBlockMsg begin --------------------")
+	chainlog.Debug("testProcAddBlockMsg begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 10
@@ -142,12 +222,12 @@ func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain 
 	if err != nil {
 		require.NoError(t, err)
 	}
-
+	cfg := mock33.GetClient().GetConfig()
 	for {
-		_, _, err = addTx(mock33.GetGenesisKey(), mock33.GetAPI())
+		_, _, err = addTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI())
 		require.NoError(t, err)
 		curheight = blockchain.GetBlockHeight()
-		chainlog.Info("testProcAddBlockMsg ", "curheight", curheight)
+		chainlog.Debug("testProcAddBlockMsg ", "curheight", curheight)
 		_, err = blockchain.GetBlock(curheight)
 		require.NoError(t, err)
 		if curheight >= addblockheight {
@@ -155,17 +235,17 @@ func testProcAddBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain 
 		}
 		time.Sleep(sendTxWait)
 	}
-	chainlog.Info("testProcAddBlockMsg end --------------------")
+	chainlog.Debug("testProcAddBlockMsg end --------------------")
 }
 
 func testGetTx(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("TestGetTx begin --------------------")
+	chainlog.Debug("TestGetTx begin --------------------")
 	//构建txhash
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight)
 	require.NoError(t, err)
 
-	chainlog.Info("testGetTx :", "curheight", curheight)
+	chainlog.Debug("testGetTx :", "curheight", curheight)
 	txResult, err := blockchain.GetTxResultFromDb(block.Block.Txs[0].Hash())
 	require.NoError(t, err)
 
@@ -175,11 +255,11 @@ func testGetTx(t *testing.T, blockchain *blockchain.BlockChain) {
 			t.Error("ExecerName error")
 		}
 	}
-	chainlog.Info("TestGetTx end --------------------")
+	chainlog.Debug("TestGetTx end --------------------")
 }
 
 func testGetTxHashList(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("TestGetTxHashList begin --------------------")
+	chainlog.Debug("TestGetTxHashList begin --------------------")
 	var txhashlist types.TxHashList
 	total := 10
 	Txs := make([]*types.Transaction, total)
@@ -198,7 +278,7 @@ func testGetTxHashList(t *testing.T, blockchain *blockchain.BlockChain) {
 
 		Txs[j] = &transaction
 		txhash := Txs[j].Hash()
-		//chainlog.Info("testGetTxHashList", "height", i, "count", j, "txhash", txhash)
+		//chainlog.Debug("testGetTxHashList", "height", i, "count", j, "txhash", txhash)
 		txhashlist.Hashes = append(txhashlist.Hashes, txhash[:])
 	}
 	duptxhashlist, err := blockchain.GetDuplicateTxHashList(&txhashlist)
@@ -209,11 +289,11 @@ func testGetTxHashList(t *testing.T, blockchain *blockchain.BlockChain) {
 	if duptxhashlist != nil {
 		for _, duptxhash := range duptxhashlist.Hashes {
 			if duptxhash != nil {
-				chainlog.Info("testGetTxHashList", "duptxhash", duptxhash)
+				chainlog.Debug("testGetTxHashList", "duptxhash", duptxhash)
 			}
 		}
 	}
-	chainlog.Info("TestGetTxHashList end --------------------")
+	chainlog.Debug("TestGetTxHashList end --------------------")
 }
 
 func checkDupTx(cacheTxs []*types.Transaction, blockchain *blockchain.BlockChain) (*types.TxHashList, error) {
@@ -221,7 +301,7 @@ func checkDupTx(cacheTxs []*types.Transaction, blockchain *blockchain.BlockChain
 	i := blockchain.GetBlockHeight()
 	for j, tx := range cacheTxs {
 		txhash := tx.Hash()
-		chainlog.Info("checkDupTx", "height", i, "count", j, "txhash", txhash)
+		chainlog.Debug("checkDupTx", "height", i, "count", j, "txhash", txhash)
 		txhashlist.Hashes = append(txhashlist.Hashes, txhash[:])
 	}
 	//count 现在是高度，当前的高度
@@ -239,7 +319,7 @@ func checkDupTxHeight(cacheTxsTxHeigt []*types.Transaction, blockchain *blockcha
 	i := blockchain.GetBlockHeight()
 	for j, tx := range cacheTxsTxHeigt {
 		txhash := tx.Hash()
-		chainlog.Info("checkDupTxHeight", "height", i, "count", j, "txhash", txhash)
+		chainlog.Debug("checkDupTxHeight", "height", i, "count", j, "txhash", common.ToHex(txhash))
 		txhashlist.Hashes = append(txhashlist.Hashes, txhash[:])
 		txhashlist.Expire = append(txhashlist.Expire, tx.Expire)
 	}
@@ -251,212 +331,8 @@ func checkDupTxHeight(cacheTxsTxHeigt []*types.Transaction, blockchain *blockcha
 	return duptxhashlist, nil
 }
 
-//构造10个区块，10笔交易不带TxHeight，缓存size128
-func TestCheckDupTxHashList01(t *testing.T) {
-	types.S("TxHeight", true)
-	mock33 := testnode.New("", nil)
-	defer func() {
-		defer mock33.Close()
-		types.S("TxHeight", false)
-	}()
-	chainlog.Info("TestCheckDupTxHashList01 begin --------------------")
-
-	blockchain := mock33.GetBlockChain()
-	curheight := blockchain.GetBlockHeight()
-	addblockheight := curheight + 10
-	var txs []*types.Transaction
-	for {
-		txlist, _, err := addTx(mock33.GetGenesisKey(), mock33.GetAPI())
-		require.NoError(t, err)
-		txs = append(txs, txlist...)
-		curheight := blockchain.GetBlockHeight()
-		chainlog.Info("testCheckDupTxHashList01", "curheight", curheight, "addblockheight", addblockheight)
-		_, err = blockchain.GetBlock(curheight)
-		require.NoError(t, err)
-		if curheight >= addblockheight {
-			break
-		}
-		time.Sleep(sendTxWait)
-	}
-	time.Sleep(time.Second)
-	//重复交易
-	duptxhashlist, err := checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), len(txs))
-	//非重复交易
-	txs = util.GenCoinsTxs(mock33.GetGenesisKey(), 50)
-	duptxhashlist, err = checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-
-	txlist := util.GenTxsTxHeigt(mock33.GetGenesisKey(), 50, 10)
-	txs = append(txs, txlist...)
-	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-	chainlog.Info("TestCheckDupTxHashList01 end --------------------")
-}
-
-//构造10个区块，10笔交易带TxHeight，缓存size128
-func TestCheckDupTxHashList02(t *testing.T) {
-	types.S("TxHeight", true)
-	mock33 := testnode.New("", nil)
-	defer func() {
-		defer mock33.Close()
-		types.S("TxHeight", false)
-	}()
-	chainlog.Info("TestCheckDupTxHashList02 begin --------------------")
-	blockchain := mock33.GetBlockChain()
-	curheight := blockchain.GetBlockHeight()
-	addblockheight := curheight + 10
-	var txs []*types.Transaction
-	for {
-		txlist, _, err := addTxTxHeigt(mock33.GetGenesisKey(), mock33.GetAPI(), curheight)
-		txs = append(txs, txlist...)
-		require.NoError(t, err)
-		curheight := blockchain.GetBlockHeight()
-		chainlog.Info("testCheckDupTxHashList02", "curheight", curheight, "addblockheight", addblockheight)
-		_, err = blockchain.GetBlock(curheight)
-		require.NoError(t, err)
-		if curheight >= addblockheight {
-			break
-		}
-		time.Sleep(sendTxWait)
-	}
-	time.Sleep(time.Second)
-	//重复交易
-	duptxhashlist, err := checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), len(txs))
-
-	//非重复交易
-	txs = util.GenCoinsTxs(mock33.GetGenesisKey(), 50)
-	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-
-	txlist := util.GenTxsTxHeigt(mock33.GetGenesisKey(), 50, 10)
-	txs = append(txs, txlist...)
-	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-
-	chainlog.Info("TestCheckDupTxHashList02 end --------------------")
-}
-
-//构造130个区块，130笔交易不带TxHeight，缓存满
-func TestCheckDupTxHashList03(t *testing.T) {
-	types.S("TxHeight", true)
-	mock33 := testnode.New("", nil)
-	defer func() {
-		defer mock33.Close()
-		types.S("TxHeight", false)
-	}()
-	chainlog.Info("TestCheckDupTxHashList03 begin --------------------")
-	blockchain := mock33.GetBlockChain()
-	curheight := blockchain.GetBlockHeight()
-	addblockheight := curheight + 130
-	var txs []*types.Transaction
-	for {
-		txlist, _, err := addTx(mock33.GetGenesisKey(), mock33.GetAPI())
-		txs = append(txs, txlist...)
-		require.NoError(t, err)
-		curheight := blockchain.GetBlockHeight()
-		chainlog.Info("testCheckDupTxHashList03", "curheight", curheight, "addblockheight", addblockheight)
-		_, err = blockchain.GetBlock(curheight)
-		require.NoError(t, err)
-		if curheight >= addblockheight {
-			break
-		}
-		time.Sleep(sendTxWait)
-	}
-	time.Sleep(time.Second)
-	//重复交易,不带TxHeight，cache没有会检查db
-	duptxhashlist, err := checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), len(txs))
-
-	txs = util.GenCoinsTxs(mock33.GetGenesisKey(), 50)
-	duptxhashlist, err = checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-
-	txlist := util.GenTxsTxHeigt(mock33.GetGenesisKey(), 50, 10)
-	txs = append(txs, txlist...)
-	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-	chainlog.Info("TestCheckDupTxHashList03 end --------------------")
-}
-
-//构造130个区块，130笔交易带TxHeight，缓存满
-func TestCheckDupTxHashList04(t *testing.T) {
-	types.S("TxHeight", true)
-	mock33 := testnode.New("", nil)
-	defer func() {
-		defer mock33.Close()
-		types.S("TxHeight", false)
-	}()
-	chainlog.Info("TestCheckDupTxHashList04 begin --------------------")
-	blockchain := mock33.GetBlockChain()
-	curheight := blockchain.GetBlockHeight()
-	addblockheight := curheight + 130
-	curheightForExpire := curheight
-	var txs []*types.Transaction
-	for {
-		txlist, _, err := addTxTxHeigt(mock33.GetGenesisKey(), mock33.GetAPI(), curheightForExpire)
-		txs = append(txs, txlist...)
-		require.NoError(t, err)
-		curheightForExpire = blockchain.GetBlockHeight()
-		chainlog.Info("testCheckDupTxHashList04", "curheight", curheightForExpire, "addblockheight", addblockheight)
-		_, err = blockchain.GetBlock(curheightForExpire)
-		require.NoError(t, err)
-		if curheightForExpire >= addblockheight {
-			break
-		}
-		time.Sleep(sendTxWait)
-	}
-	time.Sleep(time.Second)
-	duptxhashlist, err := checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), len(txs))
-
-	//非重复交易
-	txs = util.GenCoinsTxs(mock33.GetGenesisKey(), 50)
-	duptxhashlist, err = checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-
-	txlist := util.GenTxsTxHeigt(mock33.GetGenesisKey(), 50, 10)
-	txs = append(txs, txlist...)
-	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
-
-	chainlog.Info("TestCheckDupTxHashList04 end --------------------")
-}
-
-//异常：构造10个区块，10笔交易带TxHeight，TxHeight不满足条件 size128
-func TestCheckDupTxHashList05(t *testing.T) {
-	types.S("TxHeight", true)
-	mock33 := testnode.New("", nil)
-	defer func() {
-		defer mock33.Close()
-		types.S("TxHeight", false)
-	}()
-	chainlog.Info("TestCheckDupTxHashList05 begin --------------------")
-	TxHeightOffset = 60
-	//发送带TxHeight交易且TxHeight不满足条件
-	for i := 1; i < 10; i++ {
-		_, _, err := addTxTxHeigt(mock33.GetGenesisKey(), mock33.GetAPI(), int64(i))
-		require.EqualError(t, err, "ErrTxExpire")
-		time.Sleep(sendTxWait)
-	}
-	chainlog.Info("TestCheckDupTxHashList05 end --------------------")
-}
-
-func testProcQueryTxMsg(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("TestProcQueryTxMsg begin --------------------")
+func testProcQueryTxMsg(cfg *types.Chain33Config, t *testing.T, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("TestProcQueryTxMsg begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	var merkleroothash []byte
 	var txhash []byte
@@ -472,20 +348,46 @@ func testProcQueryTxMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 			txindex = index
 		}
 	}
-	txproof, err := blockchain.ProcQueryTxMsg(txhash)
+	txProof, err := blockchain.ProcQueryTxMsg(txhash)
 	require.NoError(t, err)
-
-	//证明txproof的正确性
-	brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, uint32(txindex))
-	if !bytes.Equal(merkleroothash, brroothash) {
-		t.Error("txproof roothash error")
+	if len(block.Block.Txs) <= 1 {
+		assert.Nil(t, txProof.GetProofs())
+		assert.Nil(t, txProof.GetTxProofs()[0].GetProofs())
 	}
 
-	chainlog.Info("TestProcQueryTxMsg end --------------------")
+	blockheight := block.Block.GetHeight()
+	if cfg.IsPara() {
+		blockheight = block.Block.GetMainHeight()
+	}
+	if cfg.IsFork(blockheight, "ForkRootHash") {
+		txhash = block.Block.Txs[txindex].FullHash()
+	}
+	//证明txproof的正确性,
+	if txProof.GetProofs() != nil { //ForkRootHash 之前的proof证明
+		brroothash := merkle.GetMerkleRootFromBranch(txProof.GetProofs(), txhash, uint32(txindex))
+		assert.Equal(t, merkleroothash, brroothash)
+	} else if txProof.GetTxProofs() != nil { //ForkRootHash 之后的proof证明
+		var childhash []byte
+		for i, txproof := range txProof.GetTxProofs() {
+			if i == 0 {
+				childhash = merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, txproof.GetIndex())
+				if txproof.GetRootHash() != nil {
+					assert.Equal(t, txproof.GetRootHash(), childhash)
+				} else {
+					assert.Equal(t, txproof.GetIndex(), uint32(txindex))
+					assert.Equal(t, merkleroothash, childhash)
+				}
+			} else {
+				brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), childhash, txproof.GetIndex())
+				assert.Equal(t, merkleroothash, brroothash)
+			}
+		}
+	}
+	chainlog.Debug("TestProcQueryTxMsg end --------------------")
 }
 
 func testGetBlocksMsg(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("TestGetBlocksMsg begin --------------------")
+	chainlog.Debug("TestGetBlocksMsg begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	var reqBlock types.ReqBlocks
 	if curheight >= 5 {
@@ -508,11 +410,11 @@ func testGetBlocksMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	_, err = blockchain.ProcGetBlockDetailsMsg(&reqBlock)
 	assert.Equal(t, err, types.ErrMaxCountPerTime)
 
-	chainlog.Info("TestGetBlocksMsg end --------------------")
+	chainlog.Debug("TestGetBlocksMsg end --------------------")
 }
 
 func testProcGetHeadersMsg(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("TestProcGetHeadersMsg begin --------------------")
+	chainlog.Debug("TestProcGetHeadersMsg begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
 	var reqBlock types.ReqBlocks
@@ -531,48 +433,52 @@ func testProcGetHeadersMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 		}
 	}
 	reqBlock.Start = 0
-	reqBlock.End = 1000
+	reqBlock.End = 100000
 	_, err = blockchain.ProcGetHeadersMsg(&reqBlock)
 	assert.Equal(t, err, types.ErrMaxCountPerTime)
 
-	chainlog.Info("TestProcGetHeadersMsg end --------------------")
+	chainlog.Debug("TestProcGetHeadersMsg end --------------------")
 }
 
+//新增区块时代码中是先更新UpdateHeight2，然后再更新UpdateLastBlock2
+// 可能存在调用GetBlockHeight时已经更新，但UpdateLastBlock2还没有来得及更新最新区块
+// GetBlockHeight()获取的最新高度 >= ProcGetLastHeaderMsg()获取的区块高度
 func testProcGetLastHeaderMsg(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("TestProcGetLastHeaderMsg begin --------------------")
+	chainlog.Debug("TestProcGetLastHeaderMsg begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	blockheader, err := blockchain.ProcGetLastHeaderMsg()
 	if err == nil && blockheader != nil {
-		if curheight != blockheader.Height {
+		if curheight < blockheader.Height {
+			chainlog.Debug("TestProcGetLastHeaderMsg", "curheight", curheight, "blockheader.Height", blockheader.Height)
 			t.Error("testProcGetLastHeaderMsg Last Header  check error")
 		}
 	}
-	chainlog.Info("TestProcGetLastHeaderMsg end --------------------")
+	chainlog.Debug("TestProcGetLastHeaderMsg end --------------------")
 }
 
-func testGetBlockByHash(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("TestGetBlockByHash begin --------------------")
+func testGetBlockByHash(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("TestGetBlockByHash begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block1, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
 
-	blockhash1 := block1.Block.Hash()
+	blockhash1 := block1.Block.Hash(cfg)
 	block2, err := blockchain.GetBlock(curheight - 4)
 	require.NoError(t, err)
 
 	if !bytes.Equal(blockhash1, block2.Block.ParentHash) {
 		fmt.Println("block.ParentHash != prehash: nextParentHash", blockhash1, block2.Block.ParentHash)
 	}
-	block3, err := blockchain.ProcGetBlockByHashMsg(block2.Block.Hash())
+	block3, err := blockchain.ProcGetBlockByHashMsg(block2.Block.Hash(cfg))
 	require.NoError(t, err)
-	if !bytes.Equal(block2.Block.Hash(), block3.Block.Hash()) {
+	if !bytes.Equal(block2.Block.Hash(cfg), block3.Block.Hash(cfg)) {
 		t.Error("testGetBlockByHash Block Hash check error")
 	}
-	chainlog.Info("TestGetBlockByHash end --------------------")
+	chainlog.Debug("TestGetBlockByHash end --------------------")
 }
 
 func testProcGetLastSequence(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcGetLastSequence begin --------------------")
+	chainlog.Debug("testProcGetLastSequence begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
 
@@ -581,11 +487,11 @@ func testProcGetLastSequence(t *testing.T, blockchain *blockchain.BlockChain) {
 	if curheight != lastSequence {
 		t.Error("testProcGetLastSequence Last Sequence check error")
 	}
-	chainlog.Info("testProcGetLastSequence end --------------------")
+	chainlog.Debug("testProcGetLastSequence end --------------------")
 }
 
 func testGetBlockSequences(t *testing.T, chain *blockchain.BlockChain) {
-	chainlog.Info("testGetBlockSequences begin --------------------")
+	chainlog.Debug("testGetBlockSequences begin --------------------")
 	lastSequence, _ := chain.GetStore().LoadBlockLastSequence()
 	var reqBlock types.ReqBlocks
 	if lastSequence >= 5 {
@@ -606,11 +512,11 @@ func testGetBlockSequences(t *testing.T, chain *blockchain.BlockChain) {
 	_, err = chain.GetBlockSequences(&reqBlock)
 	assert.Equal(t, err, types.ErrMaxCountPerTime)
 
-	chainlog.Info("testGetBlockSequences end --------------------")
+	chainlog.Debug("testGetBlockSequences end --------------------")
 }
 
-func testGetBlockByHashes(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testGetBlockByHashes begin --------------------")
+func testGetBlockByHashes(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testGetBlockByHashes begin --------------------")
 	lastSequence, _ := blockchain.GetStore().LoadBlockLastSequence()
 	var reqBlock types.ReqBlocks
 	if lastSequence >= 5 {
@@ -629,16 +535,16 @@ func testGetBlockByHashes(t *testing.T, blockchain *blockchain.BlockChain) {
 	blocks, err := blockchain.GetBlockByHashes(hashes)
 	if err == nil && blocks != nil {
 		for index, block := range blocks.Items {
-			if !bytes.Equal(hashes[index], block.Block.Hash()) {
+			if !bytes.Equal(hashes[index], block.Block.Hash(cfg)) {
 				t.Error("testGetBlockByHashes block hash check error")
 			}
 		}
 	}
-	chainlog.Info("testGetBlockByHashes end --------------------")
+	chainlog.Debug("testGetBlockByHashes end --------------------")
 }
 
 func testGetSeqByHash(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testGetSeqByHash begin --------------------")
+	chainlog.Debug("testGetSeqByHash begin --------------------")
 	lastSequence, _ := blockchain.GetStore().LoadBlockLastSequence()
 	var reqBlock types.ReqBlocks
 
@@ -659,11 +565,11 @@ func testGetSeqByHash(t *testing.T, blockchain *blockchain.BlockChain) {
 		t.Error(" GetSeqByHash err")
 	}
 
-	chainlog.Info("testGetSeqByHash end --------------------")
+	chainlog.Debug("testGetSeqByHash end --------------------")
 }
 
 func testPrefixCount(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testPrefixCount begin --------------------")
+	chainlog.Debug("testPrefixCount begin --------------------")
 
 	msgGen := mock33.GetClient().NewMessage("blockchain", types.EventLocalPrefixCount, &types.ReqKey{Key: []byte("TxAddrHash:14KEKbYtKKQm4wMthSK9J4La4nAiidGozt:")})
 	mock33.GetClient().Send(msgGen, true)
@@ -672,14 +578,15 @@ func testPrefixCount(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blo
 	if count == 0 {
 		t.Error("testPrefixCount count check error ")
 	}
-	chainlog.Info("testPrefixCount end --------------------")
+	chainlog.Debug("testPrefixCount end --------------------")
 }
 
 func testAddrTxCount(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testAddrTxCount begin --------------------")
+	chainlog.Debug("testAddrTxCount begin --------------------")
+	cfg := mock33.GetClient().GetConfig()
 	var reqkey types.ReqKey
 	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"))
-	count, err := mock33.GetAPI().Query(types.ExecName("coins"), "GetAddrTxsCount", &reqkey)
+	count, err := mock33.GetAPI().Query(cfg.ExecName("coins"), "GetAddrTxsCount", &reqkey)
 	if err != nil {
 		t.Error(err)
 		return
@@ -687,32 +594,32 @@ func testAddrTxCount(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blo
 	if count.(*types.Int64).GetData() == 0 {
 		t.Error("testAddrTxCount count check error ")
 	}
-	chainlog.Info("testAddrTxCount end --------------------")
+	chainlog.Debug("testAddrTxCount end --------------------")
 }
 
-func testGetBlockHerderByHash(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testGetBlockHerderByHash begin --------------------")
+func testGetBlockHerderByHash(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testGetBlockHerderByHash begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
 
-	blockhash := block.Block.Hash()
+	blockhash := block.Block.Hash(cfg)
 	block, err = blockchain.GetBlock(curheight - 4)
 	require.NoError(t, err)
 
 	if !bytes.Equal(blockhash, block.Block.ParentHash) {
 		fmt.Println("block.ParentHash != prehash: nextParentHash", blockhash, block.Block.ParentHash)
 	}
-	header, err := blockchain.GetStore().GetBlockHeaderByHash(block.Block.Hash())
+	header, err := blockchain.GetStore().GetBlockHeaderByHash(block.Block.Hash(cfg))
 	require.NoError(t, err)
-	if !bytes.Equal(header.Hash, block.Block.Hash()) {
+	if !bytes.Equal(header.Hash, block.Block.Hash(cfg)) {
 		t.Error("testGetBlockHerderByHash block header hash check error")
 	}
-	chainlog.Info("testGetBlockHerderByHash end --------------------")
+	chainlog.Debug("testGetBlockHerderByHash end --------------------")
 }
 
 func testProcGetTransactionByHashes(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("textProcGetTransactionByHashes begin --------------------")
+	chainlog.Debug("textProcGetTransactionByHashes begin --------------------")
 	parm := &types.ReqAddr{
 		Addr:   "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
 		Height: -1,
@@ -744,37 +651,37 @@ func testProcGetTransactionByHashes(t *testing.T, blockchain *blockchain.BlockCh
 	_, err = blockchain.ProcGetTransactionByAddr(parm)
 	assert.Equal(t, err, types.ErrMaxCountPerTime)
 
-	chainlog.Info("textProcGetTransactionByHashes end --------------------")
+	chainlog.Debug("textProcGetTransactionByHashes end --------------------")
 }
 
-func textProcGetBlockOverview(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("textProcGetBlockOverview begin --------------------")
+func textProcGetBlockOverview(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("textProcGetBlockOverview begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
 
 	parm := &types.ReqHash{
-		Hash: block.Block.Hash(),
+		Hash: block.Block.Hash(cfg),
 	}
 	blockOverview, err := blockchain.ProcGetBlockOverview(parm)
 	require.NoError(t, err)
 
 	if blockOverview != nil {
-		if !bytes.Equal(block.Block.Hash(), blockOverview.Head.Hash) {
+		if !bytes.Equal(block.Block.Hash(cfg), blockOverview.Head.Hash) {
 			t.Error("textProcGetBlockOverview  block hash check error")
 		}
 
 	}
-	chainlog.Info("textProcGetBlockOverview end --------------------")
+	chainlog.Debug("textProcGetBlockOverview end --------------------")
 }
 
-func testProcGetAddrOverview(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcGetAddrOverview begin --------------------")
+func testProcGetAddrOverview(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testProcGetAddrOverview begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
 
-	blockhash := block.Block.Hash()
+	blockhash := block.Block.Hash(cfg)
 	block, err = blockchain.GetBlock(curheight - 4)
 	require.NoError(t, err)
 
@@ -793,11 +700,11 @@ func testProcGetAddrOverview(t *testing.T, blockchain *blockchain.BlockChain) {
 			t.Error("testProcGetAddrOverview  TxCount check error")
 		}
 	}
-	chainlog.Info("testProcGetAddrOverview end --------------------")
+	chainlog.Debug("testProcGetAddrOverview end --------------------")
 }
 
-func testProcGetBlockHash(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcGetBlockHash begin --------------------")
+func testProcGetBlockHash(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testProcGetBlockHash begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
@@ -805,28 +712,28 @@ func testProcGetBlockHash(t *testing.T, blockchain *blockchain.BlockChain) {
 	hash, err := blockchain.ProcGetBlockHash(height)
 	require.NoError(t, err)
 
-	if !bytes.Equal(block.Block.Hash(), hash.Hash) {
+	if !bytes.Equal(block.Block.Hash(cfg), hash.Hash) {
 		t.Error("testProcGetBlockHash  block hash check error")
 	}
 
-	chainlog.Info("testProcGetBlockHash end --------------------")
+	chainlog.Debug("testProcGetBlockHash end --------------------")
 }
 
-func testGetOrphanRoot(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testGetOrphanRoot begin --------------------")
+func testGetOrphanRoot(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testGetOrphanRoot begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
 
-	hash := blockchain.GetOrphanPool().GetOrphanRoot(block.Block.Hash())
-	if !bytes.Equal(block.Block.Hash(), hash) {
+	hash := blockchain.GetOrphanPool().GetOrphanRoot(block.Block.Hash(cfg))
+	if !bytes.Equal(block.Block.Hash(cfg), hash) {
 		t.Error("testGetOrphanRoot  Orphan Root hash check error")
 	}
-	chainlog.Info("testGetOrphanRoot end --------------------")
+	chainlog.Debug("testGetOrphanRoot end --------------------")
 }
 
-func testRemoveOrphanBlock(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testRemoveOrphanBlock begin --------------------")
+func testRemoveOrphanBlock(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testRemoveOrphanBlock begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
@@ -835,40 +742,43 @@ func testRemoveOrphanBlock(t *testing.T, blockchain *blockchain.BlockChain) {
 	block.Block.ParentHash = ParentHashNotexist
 
 	blockchain.GetOrphanPool().RemoveOrphanBlock2(block.Block, time.Time{}, false, "123", 0)
-	blockchain.GetOrphanPool().RemoveOrphanBlockByHash(block.Block.Hash())
+	blockchain.GetOrphanPool().RemoveOrphanBlockByHash(block.Block.Hash(cfg))
 
-	chainlog.Info("testRemoveOrphanBlock end --------------------")
+	chainlog.Debug("testRemoveOrphanBlock end --------------------")
 }
 
 func testDelBlock(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testDelBlock begin --------------------")
+	chainlog.Debug("testDelBlock begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight)
 	require.NoError(t, err)
-	block.Block.Difficulty = block.Block.Difficulty - 100
+
 	newblock := types.BlockDetail{}
-	newblock.Block = block.Block
+	newblock.Block = types.Clone(block.Block).(*types.Block)
+	newblock.Block.Difficulty = block.Block.Difficulty - 100
 
 	blockchain.ProcessBlock(true, &newblock, "1", true, 0)
-	chainlog.Info("testDelBlock end --------------------")
+	chainlog.Debug("testDelBlock end --------------------")
 }
 
 func testLoadBlockBySequence(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testLoadBlockBySequence begin ---------------------")
+	chainlog.Debug("testLoadBlockBySequence begin ---------------------")
 
 	curheight := blockchain.GetBlockHeight()
 	lastseq, _ := blockchain.GetStore().LoadBlockLastSequence()
+	sequence, err := blockchain.GetStore().GetBlockSequence(lastseq)
+	require.NoError(t, err)
 	block, _, err := blockchain.GetStore().LoadBlockBySequence(lastseq)
 	require.NoError(t, err)
 
-	if block.Block.Height != curheight {
+	if block.Block.Height != curheight && types.DelBlock != sequence.GetType() {
 		t.Error("testLoadBlockBySequence", "curheight", curheight, "lastseq", lastseq, "Block.Height", block.Block.Height)
 	}
-	chainlog.Info("testLoadBlockBySequence end -------------------------")
+	chainlog.Debug("testLoadBlockBySequence end -------------------------")
 }
 
 func testProcDelParaChainBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcDelParaChainBlockMsg begin --------------------")
+	chainlog.Debug("testProcDelParaChainBlockMsg begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight - 1)
@@ -884,11 +794,11 @@ func testProcDelParaChainBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, bl
 	if resp.GetData().(*types.Reply).IsOk {
 		t.Error("testProcDelParaChainBlockMsg  only in parachain ")
 	}
-	chainlog.Info("testProcDelParaChainBlockMsg end --------------------")
+	chainlog.Debug("testProcDelParaChainBlockMsg end --------------------")
 }
 
 func testProcAddParaChainBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcAddParaChainBlockMsg begin --------------------")
+	chainlog.Debug("testProcAddParaChainBlockMsg begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight)
@@ -906,11 +816,11 @@ func testProcAddParaChainBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, bl
 		t.Log(err)
 		//t.Error("testProcAddParaChainBlockMsg  only in parachain ")
 	}
-	chainlog.Info("testProcAddParaChainBlockMsg end --------------------")
+	chainlog.Debug("testProcAddParaChainBlockMsg end --------------------")
 }
 
 func testProcGetBlockBySeqMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcGetBlockBySeqMsg begin --------------------")
+	chainlog.Debug("testProcGetBlockBySeqMsg begin --------------------")
 
 	seq, err := blockchain.GetStore().LoadBlockLastSequence()
 	assert.Nil(t, err)
@@ -928,69 +838,28 @@ func testProcGetBlockBySeqMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockc
 	}
 	blockseq := msg.Data.(*types.BlockSeq)
 	assert.Equal(t, seq, blockseq.Num)
-	chainlog.Info("testProcGetBlockBySeqMsg end --------------------")
+	chainlog.Debug("testProcGetBlockBySeqMsg end --------------------")
 }
 
 func testProcBlockChainFork(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcBlockChainFork begin --------------------")
+	chainlog.Debug("testProcBlockChainFork begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
-	blockchain.ProcDownLoadBlocks(curheight-1, curheight+256, []string{"self"})
-	chainlog.Info("testProcBlockChainFork end --------------------")
+	blockchain.ProcDownLoadBlocks(curheight-1, curheight+256, false, []string{"self"})
+	chainlog.Debug("testProcBlockChainFork end --------------------")
 }
 
-func testAddBlockSeqCB(t *testing.T, chain *blockchain.BlockChain) {
-	chainlog.Info("testAddBlockSeqCB begin ---------------------")
-
-	cb := &types.BlockSeqCB{
-		Name:   "test",
-		URL:    "http://192.168.1.107:15760",
-		Encode: "json",
-	}
-	blockchain.MaxSeqCB = 1
-	err := chain.ProcAddBlockSeqCB(cb)
-	require.NoError(t, err)
-
-	cbs, err := chain.ProcListBlockSeqCB()
-	require.NoError(t, err)
-	exist := false
-	for _, temcb := range cbs.Items {
-		if temcb.Name == cb.Name {
-			exist = true
-		}
-	}
-	if !exist {
-		t.Error("testAddBlockSeqCB  listSeqCB fail", "cb", cb, "cbs", cbs)
-	}
-	num := chain.ProcGetSeqCBLastNum(cb.Name)
-	if num != -1 {
-		t.Error("testAddBlockSeqCB  getSeqCBLastNum", "num", num, "name", cb.Name)
-	}
-
-	cb2 := &types.BlockSeqCB{
-		Name:   "test1",
-		URL:    "http://192.168.1.107:15760",
-		Encode: "json",
-	}
-
-	err = chain.ProcAddBlockSeqCB(cb2)
-	if err != types.ErrTooManySeqCB {
-		t.Error("testAddBlockSeqCB", "cb", cb2, "err", err)
-	}
-
-	chainlog.Info("testAddBlockSeqCB end -------------------------")
-}
 func testIsRecordFaultErr(t *testing.T) {
-	chainlog.Info("testIsRecordFaultErr begin ---------------------")
+	chainlog.Debug("testIsRecordFaultErr begin ---------------------")
 	isok := blockchain.IsRecordFaultErr(types.ErrFutureBlock)
 	if isok {
 		t.Error("testIsRecordFaultErr  IsRecordFaultErr", "isok", isok)
 	}
-	chainlog.Info("testIsRecordFaultErr end ---------------------")
+	chainlog.Debug("testIsRecordFaultErr end ---------------------")
 }
 
 func testProcDelChainBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcDelChainBlockMsg begin --------------------")
+	chainlog.Debug("testProcDelChainBlockMsg begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight)
@@ -1004,10 +873,10 @@ func testProcDelChainBlockMsg(t *testing.T, mock33 *testnode.Chain33Mock, blockc
 	mock33.GetClient().Send(msgGen, true)
 	mock33.GetClient().Wait(msgGen)
 
-	chainlog.Info("testProcDelChainBlockMsg end --------------------")
+	chainlog.Debug("testProcDelChainBlockMsg end --------------------")
 }
 func testGetsynBlkHeight(t *testing.T, chain *blockchain.BlockChain) {
-	chainlog.Info("testGetsynBlkHeight begin --------------------")
+	chainlog.Debug("testGetsynBlkHeight begin --------------------")
 	curheight := chain.GetBlockHeight()
 	chain.UpdatesynBlkHeight(curheight)
 
@@ -1025,11 +894,11 @@ func testGetsynBlkHeight(t *testing.T, chain *blockchain.BlockChain) {
 		chainlog.Error("testGetsynBlkHeight:GetMaxPeerInfo", "maxpeer", maxpeer)
 	}
 
-	chainlog.Info("testGetsynBlkHeight end --------------------")
+	chainlog.Debug("testGetsynBlkHeight end --------------------")
 }
 
-func testFaultPeer(t *testing.T, chain *blockchain.BlockChain) {
-	chainlog.Info("testFaultPeer begin ---------------------")
+func testFaultPeer(t *testing.T, cfg *types.Chain33Config, chain *blockchain.BlockChain) {
+	chainlog.Debug("testFaultPeer begin ---------------------")
 	curheight := chain.GetBlockHeight()
 	block, err := chain.GetBlock(curheight)
 	require.NoError(t, err)
@@ -1038,14 +907,14 @@ func testFaultPeer(t *testing.T, chain *blockchain.BlockChain) {
 		t.Error("testFaultPeer:IsFaultPeer")
 	}
 	//记录故障peer信息
-	chain.RecordFaultPeer("self", curheight+1, block.Block.Hash(), types.ErrSign)
+	chain.RecordFaultPeer("self", curheight+1, block.Block.Hash(cfg), types.ErrSign)
 
 	var faultnode blockchain.FaultPeerInfo
 	var peerinfo blockchain.PeerInfo
 	peerinfo.Name = "self"
 	faultnode.Peer = &peerinfo
 	faultnode.FaultHeight = curheight + 1
-	faultnode.FaultHash = block.Block.Hash()
+	faultnode.FaultHash = block.Block.Hash(cfg)
 	faultnode.ErrInfo = types.ErrSign
 	faultnode.ReqFlag = false
 	chain.AddFaultPeer(&faultnode)
@@ -1058,7 +927,7 @@ func testFaultPeer(t *testing.T, chain *blockchain.BlockChain) {
 	chain.UpdateFaultPeer("self", true)
 
 	chain.RemoveFaultPeer("self")
-	chainlog.Info("testFaultPeer end ---------------------")
+	chainlog.Debug("testFaultPeer end ---------------------")
 }
 func testCheckBlock(t *testing.T, chain *blockchain.BlockChain) {
 	curheight := chain.GetBlockHeight()
@@ -1086,14 +955,14 @@ func testCheckBlock(t *testing.T, chain *blockchain.BlockChain) {
 	chain.ProcBlockHeaders(&blockheaders, "self")
 }
 func testReadBlockToExec(t *testing.T, chain *blockchain.BlockChain) {
-	chainlog.Info("testReadBlockToExec begin ---------------------")
+	chainlog.Debug("testReadBlockToExec begin ---------------------")
 	curheight := chain.GetBlockHeight()
 	chain.ReadBlockToExec(curheight+1, false)
 	chain.DownLoadTimeOutProc(curheight - 1)
-	chainlog.Info("testReadBlockToExec end ---------------------")
+	chainlog.Debug("testReadBlockToExec end ---------------------")
 }
 func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
-	chainlog.Info("WriteBlockToDbTemp begin ---------------------")
+	chainlog.Debug("WriteBlockToDbTemp begin ---------------------")
 	curheight := chain.GetBlockHeight()
 	block, err := chain.GetBlock(curheight)
 	if err != nil {
@@ -1114,24 +983,25 @@ func testWriteBlockToDbTemp(t *testing.T, chain *blockchain.BlockChain) {
 	if err != nil {
 		t.Error("testWriteBlockToDbTemp", "err", err)
 	}
-	chainlog.Info("WriteBlockToDbTemp end ---------------------")
+	chain.UpdateDownLoadPids()
+	chainlog.Debug("WriteBlockToDbTemp end ---------------------")
 }
 
 func testReExecBlock(t *testing.T, chain *blockchain.BlockChain) {
-	chainlog.Info("ReExecBlock begin ---------------------")
+	chainlog.Debug("ReExecBlock begin ---------------------")
 	curheight := chain.GetBlockHeight()
 	chain.ReExecBlock(0, curheight)
-	chainlog.Info("ReExecBlock end ---------------------")
+	chainlog.Debug("ReExecBlock end ---------------------")
 }
 
 func testUpgradeStore(t *testing.T, chain *blockchain.BlockChain) {
-	chainlog.Info("UpgradeStore begin ---------------------")
+	chainlog.Debug("UpgradeStore begin ---------------------")
 	chain.UpgradeStore()
-	chainlog.Info("UpgradeStore end ---------------------")
+	chainlog.Debug("UpgradeStore end ---------------------")
 }
 
 func testProcMainSeqMsg(t *testing.T, blockchain *blockchain.BlockChain) {
-	chainlog.Info("testProcMainSeqMsg begin -------------------")
+	chainlog.Debug("testProcMainSeqMsg begin -------------------")
 
 	msg := queue.NewMessage(1, "blockchain", types.EventGetLastBlockMainSequence, nil)
 	blockchain.GetLastBlockMainSequence(msg)
@@ -1141,7 +1011,38 @@ func testProcMainSeqMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	blockchain.GetMainSeqByHash(msg)
 	assert.Equal(t, int64(types.EventGetMainSeqByHash), msg.Ty)
 
-	chainlog.Info("testProcMainSeqMsg end --------------------")
+	chainlog.Debug("testProcMainSeqMsg end --------------------")
+}
+
+func testAddOrphanBlock(t *testing.T, blockchain *blockchain.BlockChain) {
+
+	chainlog.Debug("testAddOrphanBlock begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+	block.Block.ParentHash = block.Block.GetTxHash()
+	newblock := types.BlockDetail{}
+	newblock.Block = block.Block
+
+	blockchain.ProcessBlock(true, &newblock, "1", true, 0)
+	chainlog.Debug("testAddOrphanBlock end --------------------")
+}
+func testCheckBestChainProc(t *testing.T, cfg *types.Chain33Config, blockchain *blockchain.BlockChain) {
+	chainlog.Debug("testCheckBestChainProc begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+	header := block.Block.GetHeader(cfg)
+
+	var headers types.Headers
+	headers.Items = append(headers.Items, header)
+	blockchain.CheckBestChainProc(&headers, "test")
+
+	blockchain.CheckBestChain(true)
+	blockchain.GetNtpClockSyncStatus()
+	blockchain.UpdateNtpClockSyncStatus(true)
+	blockchain.IsErrExecBlock(curheight, block.Block.Hash(cfg))
+	chainlog.Debug("testCheckBestChainProc end --------------------")
 }
 
 //测试kv对的读写
@@ -1150,7 +1051,7 @@ func TestSetValueByKey(t *testing.T) {
 	defer func() {
 		defer mock33.Close()
 	}()
-	chainlog.Info("TestSetValueByKey begin --------------------")
+	chainlog.Debug("TestSetValueByKey begin --------------------")
 	blockchain := mock33.GetBlockChain()
 
 	//设置kv对到数据库，key的前缀错误
@@ -1262,6 +1163,290 @@ func TestSetValueByKey(t *testing.T) {
 	if count < 3 {
 		t.Error("TestSetValueByKey:GetValueByKey:fail")
 	}
-	chainlog.Info("TestSetValueByKey end --------------------")
+	chainlog.Debug("TestSetValueByKey end --------------------")
+}
 
+func TestOnChainTimeout(t *testing.T) {
+	chainlog.Debug("TestOnChainTimeout begin --------------------")
+
+	cfg := testnode.GetDefaultConfig()
+	mcfg := cfg.GetModuleConfig()
+	mcfg.BlockChain.OnChainTimeout = 1
+	mock33 := testnode.NewWithConfig(cfg, nil)
+
+	defer mock33.Close()
+	blockchain := mock33.GetBlockChain()
+
+	//等待共识模块增长10个区块
+	testProcAddBlockMsg(t, mock33, blockchain)
+
+	curheight := blockchain.GetBlockHeight()
+
+	//没有超时
+	isTimeOut := blockchain.OnChainTimeout(curheight)
+	assert.Equal(t, isTimeOut, false)
+
+	//2秒后超时
+	time.Sleep(2 * time.Second)
+	lastheight := blockchain.GetBlockHeight()
+	blockchain.OnChainTimeout(lastheight)
+	println("curheight:", curheight)
+	println("lastheight:", lastheight)
+	if lastheight == curheight {
+		isTimeOut = blockchain.OnChainTimeout(lastheight)
+		assert.Equal(t, isTimeOut, true)
+	} else {
+		time.Sleep(2 * time.Second)
+		isTimeOut = blockchain.OnChainTimeout(lastheight)
+		assert.Equal(t, isTimeOut, true)
+	}
+
+	chainlog.Debug("TestOnChainTimeout end --------------------")
+}
+
+func TestProcessDelBlock(t *testing.T) {
+	chainlog.Debug("TestProcessDelBlock begin --------------------")
+	mock33 := testnode.New("", nil)
+	defer mock33.Close()
+	blockchain := mock33.GetBlockChain()
+
+	//构造十个区块
+	curheight := blockchain.GetBlockHeight()
+	addblockheight := curheight + 10
+
+	_, err := blockchain.GetBlock(curheight)
+	if err != nil {
+		require.NoError(t, err)
+	}
+	cfg := mock33.GetClient().GetConfig()
+
+	// 确保只出指定数量的区块
+	isFirst := true
+	prevheight := curheight
+	for {
+		if isFirst || curheight > prevheight {
+			_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
+			require.NoError(t, err)
+			if curheight > prevheight {
+				prevheight = curheight
+			}
+			isFirst = false
+		}
+		curheight = blockchain.GetBlockHeight()
+		_, err = blockchain.GetBlock(curheight)
+		require.NoError(t, err)
+		if curheight >= addblockheight {
+			break
+		}
+		time.Sleep(sendTxWait)
+	}
+
+	curheight = blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	//删除最新的区块:可能存在GetBlockHeight()获取的是最新区块，
+	//但是在删除时b.bestChain.Tip()中还没有更新成最新的区块,此时会返回ErrBlockHashNoMatch错误信息
+
+	isok := false
+	count := 0
+	for {
+		_, ok, _, err := blockchain.ProcessDelParaChainBlock(true, block, "self", curheight)
+		if err != nil {
+			time.Sleep(sendTxWait)
+			count++
+		} else if true == ok && err == nil {
+			isok = true
+			break
+		} else if count == 10 {
+			isok = false
+			chainlog.Error("TestProcessDelBlock 50ms timeout --------------------")
+			break
+		}
+	}
+	if !isok {
+		chainlog.Error("TestProcessDelBlock:ProcessDelParaChainBlock:fail!")
+		return
+	}
+
+	//获取已经删除的区块上的title
+	var req types.ReqParaTxByTitle
+	req.Start = curheight + 1
+	req.End = curheight + 1
+	req.Title = "user.p.para."
+	req.IsSeq = true
+
+	paratxs, err := blockchain.GetParaTxByTitle(&req)
+	require.NoError(t, err)
+	assert.NotNil(t, paratxs)
+	for _, paratx := range paratxs.Items {
+		assert.Equal(t, types.DelBlock, paratx.Type)
+		assert.Nil(t, paratx.TxDetails)
+		assert.Nil(t, paratx.ChildHash)
+		assert.Nil(t, paratx.Proofs)
+		assert.Equal(t, uint32(0), paratx.Index)
+	}
+
+	req.Title = "user.p.hyb."
+	maintxs, err := blockchain.GetParaTxByTitle(&req)
+	require.NoError(t, err)
+	assert.NotNil(t, maintxs)
+	for _, maintx := range maintxs.Items {
+		assert.Equal(t, types.DelBlock, maintx.Type)
+		roothash := merkle.GetMerkleRootFromBranch(maintx.Proofs, maintx.ChildHash, maintx.Index)
+		var txs []*types.Transaction
+		for _, tx := range maintx.TxDetails {
+			txs = append(txs, tx.Tx)
+		}
+		hash := merkle.CalcMerkleRoot(cfg, maintx.GetHeader().GetHeight(), txs)
+		assert.Equal(t, hash, roothash)
+	}
+	chainlog.Debug("TestProcessDelBlock end --------------------")
+}
+
+func TestEnableCmpBestBlock(t *testing.T) {
+	chainlog.Debug("TestEnableCmpBestBlock begin --------------------")
+	defaultCfg := testnode.GetDefaultConfig()
+	mcfg := defaultCfg.GetModuleConfig()
+	mcfg.Consensus.EnableBestBlockCmp = true
+	mock33 := testnode.NewWithConfig(defaultCfg, nil)
+
+	defer mock33.Close()
+	blockchain := mock33.GetBlockChain()
+
+	//构造十个区块
+	curheight := blockchain.GetBlockHeight()
+	addblockheight := curheight + 10
+
+	_, err := blockchain.GetBlock(curheight)
+	if err != nil {
+		require.NoError(t, err)
+	}
+	cfg := mock33.GetClient().GetConfig()
+
+	// 确保只出指定数量的区块
+	isFirst := true
+	prevheight := curheight
+	for {
+		if isFirst || curheight > prevheight {
+			_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
+			require.NoError(t, err)
+			if curheight > prevheight {
+				prevheight = curheight
+			}
+			isFirst = false
+		}
+		curheight = blockchain.GetBlockHeight()
+		_, err = blockchain.GetBlock(curheight)
+		require.NoError(t, err)
+		if curheight >= addblockheight {
+			break
+		}
+		time.Sleep(sendTxWait)
+	}
+
+	curheight = blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	temblock := types.Clone(block.Block)
+	newblock := temblock.(*types.Block)
+	newblock.GetTxs()[0].Nonce = newblock.GetTxs()[0].Nonce + 1
+	newblock.GetTxs()[0].ReCalcCacheHash()
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.GetHeight(), newblock.GetTxs())
+	blockDetail := types.BlockDetail{Block: newblock}
+	_, err = blockchain.ProcAddBlockMsg(true, &blockDetail, "peer")
+
+	//直接修改了交易的Nonce，执行时会报ErrSign错误
+	if err != nil {
+		assert.Equal(t, types.ErrSign, err)
+	} else {
+		require.NoError(t, err)
+	}
+
+	//当前节点做对比
+	curheight = blockchain.GetBlockHeight()
+	curblock, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	testCmpBestBlock(t, mock33.GetClient(), curblock.Block, cfg)
+
+	//非当前节点做对比
+	curheight = blockchain.GetBlockHeight()
+	oldblock, err := blockchain.GetBlock(curheight - 1)
+	require.NoError(t, err)
+
+	testCmpBestBlock(t, mock33.GetClient(), oldblock.Block, cfg)
+
+	chainlog.Debug("TestEnableCmpBestBlock end --------------------")
+}
+
+func TestDisableCmpBestBlock(t *testing.T) {
+	chainlog.Debug("TestDisableCmpBestBlock begin --------------------")
+	defaultCfg := testnode.GetDefaultConfig()
+	mock33 := testnode.NewWithConfig(defaultCfg, nil)
+
+	defer mock33.Close()
+	blockchain := mock33.GetBlockChain()
+
+	//构造十个区块
+	curheight := blockchain.GetBlockHeight()
+	addblockheight := curheight + 10
+
+	_, err := blockchain.GetBlock(curheight)
+	if err != nil {
+		require.NoError(t, err)
+	}
+	cfg := mock33.GetClient().GetConfig()
+
+	// 确保只出指定数量的区块
+	isFirst := true
+	prevheight := curheight
+	for {
+		if isFirst || curheight > prevheight {
+			_, err = addSingleParaTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), "user.p.hyb.none")
+			require.NoError(t, err)
+			if curheight > prevheight {
+				prevheight = curheight
+			}
+			isFirst = false
+		}
+		curheight = blockchain.GetBlockHeight()
+		_, err = blockchain.GetBlock(curheight)
+		require.NoError(t, err)
+		if curheight >= addblockheight {
+			break
+		}
+		time.Sleep(sendTxWait)
+	}
+
+	curheight = blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	temblock := types.Clone(block.Block)
+	newblock := temblock.(*types.Block)
+	newblock.GetTxs()[0].Nonce = newblock.GetTxs()[0].Nonce + 1
+	newblock.GetTxs()[0].ReCalcCacheHash()
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.GetHeight(), newblock.GetTxs())
+	blockDetail := types.BlockDetail{Block: newblock}
+	_, err = blockchain.ProcAddBlockMsg(true, &blockDetail, "peer")
+
+	//直接修改了交易的Nonce，执行时会报ErrSign错误
+	if err != nil {
+		assert.Equal(t, types.ErrSign, err)
+	} else {
+		require.NoError(t, err)
+	}
+	chainlog.Debug("TestDisableCmpBestBlock end --------------------")
+}
+
+func testCmpBestBlock(t *testing.T, client queue.Client, block *types.Block, cfg *types.Chain33Config) {
+	temblock := types.Clone(block)
+	newblock := temblock.(*types.Block)
+	newblock.GetTxs()[0].Nonce = newblock.GetTxs()[0].Nonce + 1
+	newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.GetHeight(), newblock.GetTxs())
+
+	isbestBlock := util.CmpBestBlock(client, newblock, block.Hash(cfg))
+	assert.Equal(t, isbestBlock, false)
 }

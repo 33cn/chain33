@@ -43,17 +43,19 @@ func (wallet *Wallet) GetAllPrivKeys() ([]crypto.PrivKey, error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
 	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	return wallet.getAllPrivKeys()
 }
 
 func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
-	accounts, err := wallet.GetWalletAccounts()
+	accounts, err := wallet.getWalletAccounts()
 	if err != nil {
 		return nil, err
 	}
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-	ok, err := wallet.CheckWalletStatus()
+
+	ok, err := wallet.checkWalletStatus()
 	if !ok && err != types.ErrOnlyTicketUnLocked {
 		return nil, err
 	}
@@ -104,6 +106,9 @@ func (wallet *Wallet) SendTransaction(payload types.Message, execer []byte, priv
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
 	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	return wallet.sendTransaction(payload, execer, priv, to)
 }
 
@@ -111,7 +116,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	if to == "" {
 		to = address.ExecAddress(string(execer))
 	}
-	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: minFee, To: to}
+	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: wallet.minFee, To: to}
 	tx.Nonce = rand.Int63()
 	proper, err := wallet.api.GetProperFee(nil)
 	if err != nil {
@@ -122,8 +127,8 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 		return nil, err
 	}
 	tx.Fee = fee
-	tx.SetExpire(time.Second * 120)
-	tx.Sign(int32(SignType), priv)
+	tx.SetExpire(wallet.client.GetConfig(), time.Second*120)
+	tx.Sign(int32(wallet.SignType), priv)
 	reply, err := wallet.sendTx(tx)
 	if err != nil {
 		return nil, err
@@ -197,6 +202,8 @@ func (wallet *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
 
 // SendToAddress 想合约地址转账
 func (wallet *Wallet) SendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
 	return wallet.sendToAddress(priv, addrto, amount, note, Istoken, tokenSymbol)
 }
 
@@ -230,7 +237,8 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 	if err != nil {
 		return nil, err
 	}
-	tx.SetExpire(time.Second * 120)
+	cfg := wallet.client.GetConfig()
+	tx.SetExpire(cfg, time.Second*120)
 	proper, err := wallet.api.GetProperFee(nil)
 	if err != nil {
 		return nil, err
@@ -247,8 +255,8 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 		tx.Execer = []byte(exec)
 	}
 
-	if types.IsPara() {
-		tx.Execer = []byte(types.GetTitle() + string(tx.Execer))
+	if cfg.IsPara() {
+		tx.Execer = []byte(cfg.GetTitle() + string(tx.Execer))
 		tx.To = address.ExecAddress(string(tx.Execer))
 	}
 
@@ -261,7 +269,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 	if err != nil {
 		return nil, err
 	}
-	tx.Sign(int32(SignType), priv)
+	tx.Sign(int32(wallet.SignType), priv)
 
 	reply, err := wallet.api.SendTx(tx)
 	if err != nil {
@@ -287,7 +295,7 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-		accounts, err := accountdb.LoadAccounts(wallet.api, exaddrs)
+		accounts, err := wallet.accountdb.LoadAccounts(wallet.api, exaddrs)
 		if err != nil {
 			walletlog.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -298,7 +306,7 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
-			acc, err := accountdb.LoadExecAccountQueue(wallet.api, addr, execaddress)
+			acc, err := wallet.accountdb.LoadExecAccountQueue(wallet.api, addr, execaddress)
 			if err != nil {
 				walletlog.Error("GetBalance", "err", err.Error())
 				return nil, err
@@ -311,8 +319,10 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 func (wallet *Wallet) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{Data: addr}
+	//ticket和pos33执行器有对应的miner
+	consensus := wallet.client.GetConfig().GetModuleConfig().Consensus.Name
 	req := types.ChainExecutor{
-		Driver:   "ticket",
+		Driver:   consensus,
 		FuncName: "MinerSourceList",
 		Param:    types.Encode(reqaddr),
 	}

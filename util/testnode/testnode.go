@@ -7,13 +7,14 @@
 package testnode
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/p2p"
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/blockchain"
@@ -27,7 +28,6 @@ import (
 	"github.com/33cn/chain33/consensus"
 	"github.com/33cn/chain33/executor"
 	"github.com/33cn/chain33/mempool"
-	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/rpc"
@@ -72,50 +72,62 @@ type Chain33Mock struct {
 }
 
 //GetDefaultConfig :
-func GetDefaultConfig() (*types.Config, *types.ConfigSubModule) {
-	return types.InitCfgString(cfgstring)
+func GetDefaultConfig() *types.Chain33Config {
+	return types.NewChain33Config(types.GetDefaultCfgstring())
 }
 
 //NewWithConfig :
-func NewWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	return newWithConfig(cfg, sub, mockapi)
+func NewWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	return newWithConfig(cfg, mockapi)
 }
 
-func newWithConfig(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	return newWithConfigNoLock(cfg, sub, mockapi)
+// NewWithRPC 创建测试节点 并开放rpc服务
+func NewWithRPC(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	mock := newWithConfigNoLock(cfg, mockapi)
+	mock.rpc.Close()
+	server := rpc.New(cfg)
+	server.SetAPI(mock.api)
+	server.SetQueueClient(mock.q.Client())
+	mock.rpc = server
+	return mock
 }
 
-func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	types.Init(cfg.Title, cfg)
+func newWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	return newWithConfigNoLock(cfg, mockapi)
+}
+
+func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	mfg := cfg.GetModuleConfig()
+	sub := cfg.GetSubConfig()
 	q := queue.New("channel")
+	q.SetConfig(cfg)
 	types.Debug = false
-	datadir := util.ResetDatadir(cfg, "$TEMP/")
-	mock := &Chain33Mock{cfg: cfg, sub: sub, q: q, datadir: datadir}
+	datadir := util.ResetDatadir(mfg, "$TEMP/")
+	mock := &Chain33Mock{cfg: mfg, sub: sub, q: q, datadir: datadir}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 
-	mock.exec = executor.New(cfg.Exec, sub.Exec)
+	mock.exec = executor.New(cfg)
 	mock.exec.SetQueueClient(q.Client())
-	types.SetMinFee(cfg.Exec.MinExecFee)
 	lognode.Info("init exec")
 
-	mock.store = store.New(cfg.Store, sub.Store)
+	mock.store = store.New(cfg)
 	mock.store.SetQueueClient(q.Client())
 	lognode.Info("init store")
 
-	mock.chain = blockchain.New(cfg.BlockChain)
+	mock.chain = blockchain.New(cfg)
 	mock.chain.SetQueueClient(q.Client())
 	lognode.Info("init blockchain")
 
-	mock.cs = consensus.New(cfg.Consensus, sub.Consensus)
+	mock.cs = consensus.New(cfg)
 	mock.cs.SetQueueClient(q.Client())
-	lognode.Info("init consensus " + cfg.Consensus.Name)
+	lognode.Info("init consensus " + mfg.Consensus.Name)
 
-	mock.mem = mempool.New(cfg.Mempool, sub.Mempool)
+	mock.mem = mempool.New(cfg)
 	mock.mem.SetQueueClient(q.Client())
 	mock.mem.Wait()
 	lognode.Info("init mempool")
-	if cfg.P2P.Enable {
-		mock.network = p2p.New(cfg.P2P)
+	if mfg.P2P.Enable {
+		mock.network = p2p.NewP2PMgr(cfg)
 		mock.network.SetQueueClient(q.Client())
 	} else {
 		mock.network = &mockP2P{}
@@ -123,7 +135,7 @@ func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi 
 	}
 	lognode.Info("init P2P")
 	cli := q.Client()
-	w := wallet.New(cfg.Wallet, sub.Wallet)
+	w := wallet.New(cfg)
 	mock.client = q.Client()
 	mock.wallet = w
 	mock.wallet.SetQueueClient(cli)
@@ -137,7 +149,7 @@ func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi 
 		newWalletRealize(mockapi)
 	}
 	mock.api = mockapi
-	server := rpc.New(cfg.RPC)
+	server := rpc.New(cfg)
 	server.SetAPI(mock.api)
 	server.SetQueueClientNoListen(q.Client())
 	mock.rpc = server
@@ -146,23 +158,30 @@ func newWithConfigNoLock(cfg *types.Config, sub *types.ConfigSubModule, mockapi 
 
 //New :
 func New(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
-	var cfg *types.Config
-	var sub *types.ConfigSubModule
+	var cfg *types.Chain33Config
 	if cfgpath == "" || cfgpath == "--notset--" || cfgpath == "--free--" {
-		cfg, sub = types.InitCfgString(cfgstring)
+		cfg = types.NewChain33Config(types.GetDefaultCfgstring())
 		if cfgpath == "--free--" {
-			setFee(cfg, 0)
+			setFee(cfg.GetModuleConfig(), 0)
+			cfg.SetMinFee(0)
 		}
 	} else {
-		cfg, sub = types.InitCfg(cfgpath)
+		cfg = types.NewChain33Config(types.ReadFile(cfgpath))
 	}
-	return newWithConfig(cfg, sub, mockapi)
+	return newWithConfig(cfg, mockapi)
 }
 
 //Listen :
 func (mock *Chain33Mock) Listen() {
 	pluginmgr.AddRPC(mock.rpc)
-	portgrpc, portjsonrpc := mock.rpc.Listen()
+	var portgrpc, portjsonrpc int
+	for {
+		portgrpc, portjsonrpc = mock.rpc.Listen()
+		if portgrpc != 0 && portjsonrpc != 0 {
+			break
+		}
+	}
+
 	if strings.HasSuffix(mock.cfg.RPC.JrpcBindAddr, ":0") {
 		l := len(mock.cfg.RPC.JrpcBindAddr)
 		mock.cfg.RPC.JrpcBindAddr = mock.cfg.RPC.JrpcBindAddr[0:l-2] + ":" + fmt.Sprint(portjsonrpc)
@@ -174,14 +193,15 @@ func (mock *Chain33Mock) Listen() {
 }
 
 //ModifyParaClient modify para config
-func ModifyParaClient(sub *types.ConfigSubModule, gaddr string) {
+func ModifyParaClient(cfg *types.Chain33Config, gaddr string) {
+	sub := cfg.GetSubConfig()
 	if sub.Consensus["para"] != nil {
 		data, err := types.ModifySubConfig(sub.Consensus["para"], "ParaRemoteGrpcClient", gaddr)
 		if err != nil {
 			panic(err)
 		}
 		sub.Consensus["para"] = data
-		types.S("config.consensus.sub.para.ParaRemoteGrpcClient", gaddr)
+		cfg.S("config.consensus.sub.para.ParaRemoteGrpcClient", gaddr)
 	}
 }
 
@@ -191,12 +211,8 @@ func (mock *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
 }
 
 func setFee(cfg *types.Config, fee int64) {
-	cfg.Exec.MinExecFee = fee
-	cfg.Mempool.MinTxFee = fee
+	cfg.Mempool.MinTxFeeRate = fee
 	cfg.Wallet.MinFee = fee
-	if fee == 0 {
-		cfg.Exec.IsFree = true
-	}
 }
 
 //GetJSONC :
@@ -210,7 +226,7 @@ func (mock *Chain33Mock) GetJSONC() *jsonclient.JSONClient {
 
 //SendAndSign :
 func (mock *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte, error) {
-	txbytes, err := hex.DecodeString(hextx)
+	txbytes, err := common.FromHex(hextx)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +246,7 @@ func (mock *Chain33Mock) SendAndSign(priv crypto.PrivKey, hextx string) ([]byte,
 
 //SendAndSignNonce 用外部传入的nonce 重写nonce
 func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, nonce int64) ([]byte, error) {
-	txbytes, err := hex.DecodeString(hextx)
+	txbytes, err := common.FromHex(hextx)
 	if err != nil {
 		return nil, err
 	}
@@ -254,24 +270,24 @@ func newWalletRealize(qAPI client.QueueProtocolAPI) {
 		Seed:   "subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant",
 		Passwd: "123456fuzamei",
 	}
-	reply, err := qAPI.SaveSeed(seed)
-	if !reply.IsOk && err != nil {
+	reply, err := qAPI.ExecWalletFunc("wallet", "SaveSeed", seed)
+	if !reply.(*types.Reply).IsOk && err != nil {
 		panic(err)
 	}
-	reply, err = qAPI.WalletUnLock(&types.WalletUnLock{Passwd: "123456fuzamei"})
-	if !reply.IsOk && err != nil {
+	reply, err = qAPI.ExecWalletFunc("wallet", "WalletUnLock", &types.WalletUnLock{Passwd: "123456fuzamei"})
+	if !reply.(*types.Reply).IsOk && err != nil {
 		panic(err)
 	}
 	for i, priv := range util.TestPrivkeyHex {
 		privkey := &types.ReqWalletImportPrivkey{Privkey: priv, Label: fmt.Sprintf("label%d", i)}
-		acc, err := qAPI.WalletImportprivkey(privkey)
+		acc, err := qAPI.ExecWalletFunc("wallet", "WalletImportPrivkey", privkey)
 		if err != nil {
 			panic(err)
 		}
-		lognode.Info("import", "index", i, "addr", acc.Acc.Addr)
+		lognode.Info("import", "index", i, "addr", acc.(*types.WalletAccount).Acc.Addr)
 	}
 	req := &types.ReqAccountList{WithoutBalance: true}
-	_, err = qAPI.WalletGetAccountList(req)
+	_, err = qAPI.ExecWalletFunc("wallet", "WalletGetAccountList", req)
 	if err != nil {
 		panic(err)
 	}
@@ -290,6 +306,11 @@ func (mock *Chain33Mock) GetRPC() *rpc.RPC {
 //GetCfg :
 func (mock *Chain33Mock) GetCfg() *types.Config {
 	return mock.cfg
+}
+
+//GetLastSendTx :
+func (mock *Chain33Mock) GetLastSendTx() []byte {
+	return mock.lastsend
 }
 
 //Close :
@@ -360,7 +381,8 @@ func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error
 
 //SendHot :
 func (mock *Chain33Mock) SendHot() error {
-	tx := util.CreateCoinsTx(mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
+	types.AssertConfig(mock.client)
+	tx := util.CreateCoinsTx(mock.client.GetConfig(), mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
 	mock.SendTx(tx)
 	return mock.Wait()
 }
@@ -410,7 +432,8 @@ func (mock *Chain33Mock) Wait() error {
 //GetAccount :
 func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Account {
 	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
-	acc := account.NewCoinsAccount()
+	types.AssertConfig(mock.client)
+	acc := account.NewCoinsAccount(mock.client.GetConfig())
 	acc.SetDB(statedb)
 	return acc.LoadAccount(addr)
 }
@@ -418,7 +441,8 @@ func (mock *Chain33Mock) GetAccount(stateHash []byte, addr string) *types.Accoun
 //GetExecAccount :get execer account info
 func (mock *Chain33Mock) GetExecAccount(stateHash []byte, execer, addr string) *types.Account {
 	statedb := executor.NewStateDB(mock.client, stateHash, nil, nil)
-	acc := account.NewCoinsAccount()
+	types.AssertConfig(mock.client)
+	acc := account.NewCoinsAccount(mock.client.GetConfig())
 	acc.SetDB(statedb)
 	return acc.LoadExecAccount(addr, address.ExecAddress(execer))
 }
@@ -481,6 +505,7 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 			case types.EventGetNetInfo:
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.NodeNetInfo{}))
 			case types.EventTxBroadcast, types.EventBlockBroadcast:
+				client.FreeMessage(msg)
 			default:
 				msg.ReplyErr("p2p->Do not support "+types.GetEventName(int(msg.Ty)), types.ErrNotSupport)
 			}

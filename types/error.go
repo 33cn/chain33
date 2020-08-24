@@ -10,6 +10,8 @@ import (
 
 // chain33定义的错误类型
 var (
+	ErrSequenceNotMatch        = errors.New("ErrSequenceNotMatch")
+	ErrSequenceTooBig          = errors.New("ErrSequenceTooBig")
 	ErrTooManySeqCB            = errors.New("ErrTooManySeqCB")
 	ErrPushSeqPostData         = errors.New("ErrPushSeqPostData")
 	ErrMethodReturnType        = errors.New("ErrMethodReturnType")
@@ -49,6 +51,7 @@ var (
 	ErrBlockNotFound           = errors.New("ErrBlockNotFound")
 	ErrLogType                 = errors.New("ErrLogType")
 	ErrInvalidParam            = errors.New("ErrInvalidParam")
+	ErrInvalidExpire           = errors.New("ErrInvalidExpire")
 	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
 	ErrNotInited               = errors.New("ErrNotInited")
 
@@ -188,7 +191,14 @@ var (
 	ErrDisableWrite = errors.New("ErrDisableWrite")
 	ErrDisableRead  = errors.New("ErrDisableRead")
 
-	ErrConsensusHashErr  = errors.New("ErrConsensusHashErr")
-	ErrMaxCountPerTime   = errors.New("ErrMaxCountPerTime")
-	ErrInValidFileHeader = errors.New("ErrInValidFileHeader")
+	ErrConsensusHashErr   = errors.New("ErrConsensusHashErr")
+	ErrMaxCountPerTime    = errors.New("ErrMaxCountPerTime")
+	ErrInValidFileHeader  = errors.New("ErrInValidFileHeader")
+	ErrFileExists         = errors.New("ErrFileExists")
+	ErrSubscriberExist    = errors.New("ErrSubscriberExist")
+	ErrTooManySubscriber  = errors.New("ErrTooManySubscriber")
+	ErrPushNotSupport     = errors.New("ErrPushNotSupport")
+	ErrNotAllowModifyPush = errors.New("ErrNotAllowModifyPush")
+	ErrTxReceiptReduced   = errors.New("ErrTxReceiptReduced")
+	ErrPushNotSubscribed  = errors.New("ErrPushNotSubscribed")
 )

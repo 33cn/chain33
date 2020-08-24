@@ -33,7 +33,7 @@ func (c executorCodeFile) GetFiles() map[string]string {
 
 func (c executorCodeFile) GetFileReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagImportPath, types.TagClassName}
+	return []string{types.TagExecName, types.TagExecObject, types.TagImportPath, types.TagClassName}
 }
 
 var (
@@ -42,7 +42,7 @@ var (
 
 import (
 	log "github.com/33cn/chain33/common/log/log15"
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 )
@@ -58,16 +58,18 @@ var (
 	elog = log.New("module", "${EXECNAME}.executor")
 )
 
-var driverName = ptypes.${CLASSNAME}X
-
-func init() {
-	ety := types.LoadExecutorType(driverName)
-	ety.InitFuncList(types.ListMethod(&${EXECNAME}{}))
-}
+var driverName = ${EXECNAME}types.${CLASSNAME}X
 
 // Init register dapp
-func Init(name string, sub []byte) {
-	drivers.Register(GetName(), new${CLASSNAME}, types.GetDappFork(driverName, "Enable"))
+func Init(name string, cfg *types.Chain33Config, sub []byte) {
+	drivers.Register(cfg, GetName(), new${CLASSNAME}, cfg.GetDappFork(driverName, "Enable"))
+    InitExecType()
+}
+
+// InitExecType Init Exec Type
+func InitExecType() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&${EXECNAME}{}))
 }
 
 type ${EXECNAME} struct {
@@ -86,12 +88,12 @@ func GetName() string {
 	return new${CLASSNAME}().GetName()
 }
 
-func (*${EXECNAME}) GetDriverName() string {
+func (${EXEC_OBJECT} *${EXECNAME}) GetDriverName() string {
 	return driverName
 }
 
 // CheckTx 实现自定义检验交易接口，供框架调用
-func (*${EXECNAME}) CheckTx(tx *types.Transaction, index int) error {
+func (${EXEC_OBJECT} *${EXECNAME}) CheckTx(tx *types.Transaction, index int) error {
 	// implement code
 	return nil
 }

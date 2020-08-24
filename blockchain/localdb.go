@@ -81,7 +81,7 @@ func (chain *BlockChain) localSet(msg *queue.Message) {
 
 //创建 localdb transaction
 func (chain *BlockChain) localNew(msg *queue.Message) {
-	tx := db.NewLocalDB(chain.blockStore.db)
+	tx := db.NewLocalDB(chain.blockStore.db, msg.GetData().(bool))
 	id := common.StorePointer(tx)
 	msg.Reply(chain.client.NewMessage("", types.EventLocalNew, &types.Int64{Data: id}))
 }

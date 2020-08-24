@@ -1,9 +1,7 @@
 syntax = "proto3";
 
 import "transaction.proto";
-import "blockchain.proto";
 import "account.proto";
-import "executor.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
@@ -120,6 +118,11 @@ message ReqNewAccount {
     string label = 1;
 }
 
+//根据label获取账户地址
+message ReqGetAccount {
+    string label = 1;
+}
+
 //获取钱包交易的详细信息
 // 	 fromTx : []byte( Sprintf("%018d", height*100000 + index)，
 //				表示从高度 height 中的 index 开始获取交易列表；
@@ -226,4 +229,9 @@ message Int32 {
 
 message ReqAccountList {
     bool withoutBalance = 1;
+}
+
+message ReqPrivkeysFile {
+    string fileName = 1;
+    string passwd   = 2;
 }

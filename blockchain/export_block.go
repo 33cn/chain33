@@ -20,16 +20,20 @@ import (
 )
 
 var (
-	fileHeaderKey                       = []byte("F:header:")
-	endBlockKey                         = []byte("F:endblock:")
-	blockHeightKey                      = []byte("F:blockH:")
-	blockCount                    int64 = 1024 //只处理当前高度减去1024之前的区块，避免导出侧链的数据
-	dbCache                       int32 = 4
-	exportlog                           = chainlog.New("submodule", "export")
-	ErrIsOrphan                         = errors.New("ErrIsOrphan")
-	ErrIsSideChain                      = errors.New("ErrIsSideChain")
-	ErrBlockHeightDiscontinuous         = errors.New("ErrBlockHeightDiscontinuous")
-	ErrCurHeightMoreThanEndHeight       = errors.New("ErrCurHeightMoreThanEndHeight")
+	fileHeaderKey        = []byte("F:header:")
+	endBlockKey          = []byte("F:endblock:")
+	blockHeightKey       = []byte("F:blockH:")
+	blockCount     int64 = 1024 //只处理当前高度减去1024之前的区块，避免导出侧链的数据
+	dbCache        int32 = 4
+	exportlog            = chainlog.New("submodule", "export")
+)
+
+// errors
+var (
+	ErrIsOrphan                   = errors.New("ErrIsOrphan")
+	ErrIsSideChain                = errors.New("ErrIsSideChain")
+	ErrBlockHeightDiscontinuous   = errors.New("ErrBlockHeightDiscontinuous")
+	ErrCurHeightMoreThanEndHeight = errors.New("ErrCurHeightMoreThanEndHeight")
 )
 
 func calcblockHeightKey(height int64) []byte {
@@ -70,12 +74,14 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 	if startHeight < 0 {
 		return types.ErrInvalidParam
 	}
+	cfg := chain.client.GetConfig()
+	cfgTitle := cfg.GetTitle()
 	//title检测
 	if len(title) == 0 {
-		title = types.GetTitle()
+		title = cfgTitle
 	}
-	if title != types.GetTitle() {
-		exportlog.Error("exportBlock", "title", title, "configTitle", types.GetTitle())
+	if title != cfgTitle {
+		exportlog.Error("exportBlock", "title", title, "configTitle", cfgTitle)
 		return types.ErrInvalidParam
 	}
 	//获取blockstore中当前区块的最新高度
@@ -101,7 +107,7 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 		newfileHeader := types.FileHeader{
 			Title:   title,
 			Driver:  chain.cfg.Driver,
-			TestNet: types.IsTestNet(),
+			TestNet: cfg.IsTestNet(),
 		}
 		if !isValidFileHeader(oldfileHeader, &newfileHeader) {
 			exportlog.Error("exportBlock:inValidFileHeader", "oldfileHeader", oldfileHeader, "newfileHeader", newfileHeader)
@@ -126,7 +132,7 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 		}
 		parentHash := block.Block.ParentHash
 		if !bytes.Equal(endBlock.Hash, parentHash) {
-			exportlog.Error("exportBlock:block discontinuous", "endHeight", endBlock.Height, "hash", common.ToHex(endBlock.Hash), "nextHeight", endBlock.Height+1, "parentHash", common.ToHex(parentHash), "hash", common.ToHex(block.Block.Hash()))
+			exportlog.Error("exportBlock:block discontinuous", "endHeight", endBlock.Height, "hash", common.ToHex(endBlock.Hash), "nextHeight", endBlock.Height+1, "parentHash", common.ToHex(parentHash), "hash", common.ToHex(block.Block.Hash(cfg)))
 			return types.ErrBlockHashNoMatch
 		}
 		fileExist = true
@@ -139,7 +145,7 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 		fileHeader := types.FileHeader{
 			Title:       title,
 			Driver:      chain.cfg.Driver,
-			TestNet:     types.IsTestNet(),
+			TestNet:     cfg.IsTestNet(),
 			StartHeight: startHeight,
 		}
 		setFileHeader(batch, &fileHeader)
@@ -162,7 +168,7 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 
 //导出主链block信息到文件中
 func (chain *BlockChain) exportMainBlock(startHeight, endheight int64, batch dbm.Batch) error {
-
+	cfg := chain.client.GetConfig()
 	var count = 0
 	for height := startHeight; height <= endheight; height++ {
 		block, err := chain.blockStore.LoadBlockByHeight(height)
@@ -176,7 +182,7 @@ func (chain *BlockChain) exportMainBlock(startHeight, endheight int64, batch dbm
 
 		endBlock := types.EndBlock{
 			Height: height,
-			Hash:   block.Block.Hash(),
+			Hash:   block.Block.Hash(cfg),
 		}
 		setEndBlock(batch, &endBlock)
 
@@ -203,10 +209,11 @@ func (chain *BlockChain) exportMainBlock(startHeight, endheight int64, batch dbm
 	return nil
 }
 
-//ImportBlock通过指定文件导入block
+//ImportBlock 通过指定文件导入block
 func (chain *BlockChain) ImportBlock(filename, dbPath string) error {
+	cfg := chain.client.GetConfig()
 	if len(filename) == 0 {
-		filename = types.GetTitle()
+		filename = cfg.GetTitle()
 	}
 
 	db := dbm.NewDB(filename, chain.cfg.Driver, dbPath, dbCache)
@@ -214,9 +221,9 @@ func (chain *BlockChain) ImportBlock(filename, dbPath string) error {
 
 	//获取文件头信息并做基本的校验
 	newfileHeader := types.FileHeader{
-		Title:   types.GetTitle(),
+		Title:   cfg.GetTitle(),
 		Driver:  chain.cfg.Driver,
-		TestNet: types.IsTestNet(),
+		TestNet: cfg.IsTestNet(),
 	}
 	fileHeader, err := getFileHeader(db)
 
@@ -268,11 +275,11 @@ func (chain *BlockChain) ImportBlock(filename, dbPath string) error {
 
 //mainChainImport 主链的导入区块处理函数
 func (chain *BlockChain) mainChainImport(block *types.Block) error {
-
+	cfg := chain.client.GetConfig()
 	blockDetail := types.BlockDetail{
 		Block: block,
 	}
-	exportlog.Info("mainChainImport", "height", block.Height, "Hash", common.ToHex(block.Hash()), "ParentHash", common.ToHex(block.ParentHash))
+	exportlog.Info("mainChainImport", "height", block.Height, "Hash", common.ToHex(block.Hash(cfg)), "ParentHash", common.ToHex(block.ParentHash))
 
 	_, isMainChain, isOrphan, err := chain.ProcessBlock(false, &blockDetail, "import", true, -1)
 	if err == types.ErrBlockExist {

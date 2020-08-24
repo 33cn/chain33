@@ -169,28 +169,28 @@ func testDBIterator(t *testing.T, db DB) {
 	assert.Equal(t, list0, list)
 	require.Equal(t, list, [][]byte{[]byte("aaaaaa/1"), []byte("my"), []byte("my_"), []byte("my_key/1"), []byte("my_key/2"), []byte("my_key/3"), []byte("my_key/4"), []byte("zzzzzz/1"), []byte("0xff")})
 	t.Log("test IteratorScanFromFirst")
-	list = it.IteratorScanFromFirst([]byte("my"), 2)
+	list = it.IteratorScanFromFirst([]byte("my"), 2, ListASC)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
 	require.Equal(t, list, [][]byte{[]byte("my"), []byte("my_")})
 
 	t.Log("test IteratorScanFromLast")
-	list = it.IteratorScanFromLast([]byte("my"), 100)
+	list = it.IteratorScanFromLast([]byte("my"), 100, ListDESC)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
 	require.Equal(t, list, [][]byte{[]byte("my_key/4"), []byte("my_key/3"), []byte("my_key/2"), []byte("my_key/1"), []byte("my_"), []byte("my")})
 
 	t.Log("test IteratorScan 1")
-	list = it.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 1)
+	list = it.IteratorScan([]byte("my"), []byte("my_key/3"), 100, ListASC)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
 	require.Equal(t, list, [][]byte{[]byte("my_key/4")})
 
 	t.Log("test IteratorScan 0")
-	list = it.IteratorScan([]byte("my"), []byte("my_key/3"), 100, 0)
+	list = it.IteratorScan([]byte("my"), []byte("my_key/3"), 100, ListDESC)
 	/*for _, v = range list {
 		t.Log(string(v))
 	}*/
@@ -217,19 +217,19 @@ func testDBBoundary(t *testing.T, db DB) {
 	require.Equal(t, list, [][]byte{[]byte("0x0f"), []byte("0x0fff")})
 
 	t.Log("IteratorScanFromFirst")
-	list = it.IteratorScanFromFirst(a, 2)
+	list = it.IteratorScanFromFirst(a, 2, ListASC)
 	require.Equal(t, list, [][]byte{[]byte("0x0f"), []byte("0x0fff")})
 
 	t.Log("IteratorScanFromLast")
-	list = it.IteratorScanFromLast(a, 100)
+	list = it.IteratorScanFromLast(a, 100, ListDESC)
 	require.Equal(t, list, [][]byte{[]byte("0x0fff"), []byte("0x0f")})
 
 	t.Log("IteratorScan 1")
-	list = it.IteratorScan(a, a, 100, 1)
+	list = it.IteratorScan(a, a, 100, ListASC)
 	require.Equal(t, list, [][]byte{[]byte("0x0fff")})
 
 	t.Log("IteratorScan 0")
-	list = it.IteratorScan(a, a, 100, 0)
+	list = it.IteratorScan(a, a, 100, ListDESC)
 	require.Equal(t, list, [][]byte(nil))
 
 	// ff为prefix
@@ -238,19 +238,19 @@ func testDBBoundary(t *testing.T, db DB) {
 	require.Equal(t, list, [][]byte{[]byte("0xff"), []byte("0xffff")})
 
 	t.Log("IteratorScanFromFirst")
-	list = it.IteratorScanFromFirst(b, 2)
+	list = it.IteratorScanFromFirst(b, 2, ListASC)
 	require.Equal(t, list, [][]byte{[]byte("0xff"), []byte("0xffff")})
 
 	t.Log("IteratorScanFromLast")
-	list = it.IteratorScanFromLast(b, 100)
+	list = it.IteratorScanFromLast(b, 100, ListDESC)
 	require.Equal(t, list, [][]byte{[]byte("0xffff"), []byte("0xff")})
 
 	t.Log("IteratorScan 1")
-	list = it.IteratorScan(b, b, 100, 1)
+	list = it.IteratorScan(b, b, 100, ListASC)
 	require.Equal(t, list, [][]byte{[]byte("0xffff")})
 
 	t.Log("IteratorScan 0")
-	list = it.IteratorScan(b, d, 100, 0)
+	list = it.IteratorScan(b, d, 100, ListDESC)
 	require.Equal(t, list, [][]byte{[]byte("0xff")})
 }
 
@@ -320,4 +320,43 @@ func testTransaction(t *testing.T, db DB) {
 	value, err = db.Get([]byte("hello2"))
 	assert.Nil(t, err)
 	assert.Equal(t, "world2", string(value))
+}
+
+// 返回值测试
+func testDBIteratorResult(t *testing.T, db DB) {
+	t.Log("test Set")
+	db.Set([]byte("aaaaaa/1"), []byte("aaaaaa/1"))
+	db.Set([]byte("my_key/1"), []byte("my_value/1"))
+	db.Set([]byte("my_key/2"), []byte("my_value/2"))
+	db.Set([]byte("my_key/3"), []byte("my_value/3"))
+	db.Set([]byte("my_key/4"), []byte("my_value/4"))
+	db.Set([]byte("my"), []byte("my"))
+	db.Set([]byte("my_"), []byte("my_"))
+	db.Set([]byte("zzzzzz/1"), []byte("zzzzzz/1"))
+	b, err := hex.DecodeString("ff")
+	require.NoError(t, err)
+	db.Set(b, []byte("0xff"))
+
+	t.Log("test Get")
+	v, _ := db.Get([]byte("aaaaaa/1"))
+	require.Equal(t, string(v), "aaaaaa/1")
+	//test list:
+	it0 := NewListHelper(db)
+	list0 := it0.List([]byte("my_key"), nil, 100, ListASC|ListKeyOnly)
+	require.Equal(t, list0, [][]byte{[]byte("my_key/1"), []byte("my_key/2"), []byte("my_key/3"), []byte("my_key/4")})
+
+	it1 := NewListHelper(db)
+	list1 := it1.List([]byte("my_key"), nil, 100, ListASC)
+	require.Equal(t, list1, [][]byte{[]byte("my_value/1"), []byte("my_value/2"), []byte("my_value/3"), []byte("my_value/4")})
+
+	it2 := NewListHelper(db)
+	list2 := it2.List([]byte("my_key"), nil, 100, ListASC|ListWithKey)
+	require.Equal(t, 4, len(list2))
+	for i, v := range list2 {
+		var kv types.KeyValue
+		err = types.Decode(v, &kv)
+		require.Equal(t, nil, err)
+		require.Equal(t, fmt.Sprintf("my_key/%d", i+1), string(kv.Key))
+		require.Equal(t, fmt.Sprintf("my_value/%d", i+1), string(kv.Value))
+	}
 }

@@ -6,7 +6,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
  [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/33cn/chain33?svg=true&branch=master&passingText=Windows%20-%20OK&failingText=Windows%20-%20failed&pendingText=Windows%20-%20pending)](https://ci.appveyor.com/project/33cn/chain33)
 [![codecov](https://codecov.io/gh/33cn/chain33/branch/master/graph/badge.svg)](https://codecov.io/gh/33cn/chain33) [![Join the chat at https://gitter.im/33cn/Lobby](https://badges.gitter.im/33cn/Lobby.svg)](https://gitter.im/33cn/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-# Chain33 区块链开发框架
+# Chain33 区块链开发框架(为了适合go module 的版本号标准 最新版本号改为: 1.64.0)
 
 高度模块化, 遵循 KISS原则的区块链开发框架
 
@@ -38,7 +38,7 @@ L3 20000
 
 ## Building from source
 
-环境要求: Go (version 1.12 or later)
+环境要求: Go (version 1.13 or later)
 
 编译:
 

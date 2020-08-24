@@ -6,7 +6,6 @@ package mempool
 
 import (
 	"github.com/33cn/chain33/types"
-	"github.com/golang/protobuf/proto"
 )
 
 //QueueCache 排队交易处理
@@ -18,6 +17,7 @@ type QueueCache interface {
 	Size() int
 	Walk(count int, cb func(tx *Item) bool)
 	GetProperFee() int64
+	GetCacheBytes() int64
 }
 
 // Item 为Mempool中包装交易的数据结构
@@ -31,9 +31,8 @@ type Item struct {
 type txCache struct {
 	*AccountTxIndex
 	*LastTxCache
-	qcache    QueueCache
-	totalFee  int64
-	totalByte int64
+	qcache   QueueCache
+	totalFee int64
 	*SHashTxCache
 }
 
@@ -65,7 +64,6 @@ func (cache *txCache) Remove(hash string) {
 	cache.AccountTxIndex.Remove(tx)
 	cache.LastTxCache.Remove(tx)
 	cache.totalFee -= tx.Fee
-	cache.totalByte -= int64(proto.Size(tx))
 	cache.SHashTxCache.Remove(tx)
 }
 
@@ -75,14 +73,6 @@ func (cache *txCache) Exist(hash string) bool {
 		return false
 	}
 	return cache.qcache.Exist(hash)
-}
-
-//GetProperFee 获取合适手续费
-func (cache *txCache) GetProperFee() int64 {
-	if cache.qcache == nil {
-		return 0
-	}
-	return cache.qcache.GetProperFee()
 }
 
 //Size cache tx num
@@ -96,11 +86,6 @@ func (cache *txCache) Size() int {
 //TotalFee 手续费总和
 func (cache *txCache) TotalFee() int64 {
 	return cache.totalFee
-}
-
-//TotalByte 交易字节数总和
-func (cache *txCache) TotalByte() int64 {
-	return cache.totalByte
 }
 
 //Walk iter all txs
@@ -134,15 +119,14 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 	}
 	cache.LastTxCache.Push(tx)
 	cache.totalFee += tx.Fee
-	cache.totalByte += int64(proto.Size(tx))
 	cache.SHashTxCache.Push(tx)
 	return nil
 }
 
-func (cache *txCache) removeExpiredTx(height, blocktime int64) {
+func (cache *txCache) removeExpiredTx(cfg *types.Chain33Config, height, blocktime int64) {
 	var txs []string
 	cache.qcache.Walk(0, func(tx *Item) bool {
-		if isExpired(tx, height, blocktime) {
+		if isExpired(cfg, tx, height, blocktime) {
 			txs = append(txs, string(tx.Value.Hash()))
 		}
 		return true
@@ -151,11 +135,11 @@ func (cache *txCache) removeExpiredTx(height, blocktime int64) {
 }
 
 //判断交易是否过期
-func isExpired(item *Item, height, blockTime int64) bool {
+func isExpired(cfg *types.Chain33Config, item *Item, height, blockTime int64) bool {
 	if types.Now().Unix()-item.EnterTime >= mempoolExpiredInterval {
 		return true
 	}
-	if item.Value.IsExpire(height, blockTime) {
+	if item.Value.IsExpire(cfg, height, blockTime) {
 		return true
 	}
 	return false

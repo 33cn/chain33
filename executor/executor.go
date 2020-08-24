@@ -22,6 +22,7 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	typ "github.com/33cn/chain33/types"
 )
 
 var elog = log.New("module", "execs")
@@ -38,45 +39,46 @@ func DisableLog() {
 
 // Executor executor struct
 type Executor struct {
-	disableLocal bool
-	client       queue.Client
-	qclient      client.QueueProtocolAPI
-	grpccli      types.Chain33Client
-	pluginEnable map[string]bool
-	alias        map[string]string
+	disableLocal   bool
+	client         queue.Client
+	qclient        client.QueueProtocolAPI
+	grpccli        types.Chain33Client
+	pluginEnable   map[string]bool
+	alias          map[string]string
+	noneDriverPool *sync.Pool
 }
 
-func execInit(sub map[string][]byte) {
-	pluginmgr.InitExec(sub)
+func execInit(cfg *typ.Chain33Config) {
+	pluginmgr.InitExec(cfg)
 }
 
 var runonce sync.Once
 
 // New new executor
-func New(cfg *types.Exec, sub map[string][]byte) *Executor {
+func New(cfg *typ.Chain33Config) *Executor {
 	// init executor
 	runonce.Do(func() {
-		execInit(sub)
+		execInit(cfg)
 	})
-	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
-	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
-	if cfg.MinExecFee == 0 && cfg.IsFree {
-		elog.Warn("set executor to free fee")
-		types.SetMinFee(0)
-	}
-	if cfg.MinExecFee > 0 {
-		types.SetMinFee(cfg.MinExecFee)
-	}
+	mcfg := cfg.GetModuleConfig().Exec
 	exec := &Executor{}
 	exec.pluginEnable = make(map[string]bool)
-	exec.pluginEnable["stat"] = cfg.EnableStat
-	exec.pluginEnable["mvcc"] = cfg.EnableMVCC
-	exec.pluginEnable["addrindex"] = !cfg.DisableAddrIndex
+	exec.pluginEnable["stat"] = mcfg.EnableStat
+	exec.pluginEnable["mvcc"] = mcfg.EnableMVCC
+	exec.pluginEnable["addrindex"] = !mcfg.DisableAddrIndex
 	exec.pluginEnable["txindex"] = true
 	exec.pluginEnable["fee"] = true
-
+	exec.noneDriverPool = &sync.Pool{
+		New: func() interface{} {
+			none, err := drivers.LoadDriver("none", 0)
+			if err != nil {
+				panic("load none driver err")
+			}
+			return none
+		},
+	}
 	exec.alias = make(map[string]string)
-	for _, v := range cfg.Alias {
+	for _, v := range mcfg.Alias {
 		data := strings.Split(v, ":")
 		if len(data) != 2 {
 			panic("exec.alias config error: " + v)
@@ -104,12 +106,15 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 	if err != nil {
 		panic(err)
 	}
-	if types.IsPara() {
-		exec.grpccli, err = grpcclient.NewMainChainClient("")
+	types.AssertConfig(exec.client)
+	cfg := exec.client.GetConfig()
+	if cfg.IsPara() {
+		exec.grpccli, err = grpcclient.NewMainChainClient(cfg, "")
 		if err != nil {
 			panic(err)
 		}
 	}
+
 	//recv 消息的处理
 	go func() {
 		for msg := range exec.client.Recv() {
@@ -124,16 +129,70 @@ func (exec *Executor) SetQueueClient(qcli queue.Client) {
 				go exec.procExecCheckTx(msg)
 			} else if msg.Ty == types.EventBlockChainQuery {
 				go exec.procExecQuery(msg)
+			} else if msg.Ty == types.EventUpgrade {
+				//执行升级过程中不允许执行其他的事件，这个事件直接不采用异步执行
+				exec.procUpgrade(msg)
 			}
 		}
 	}()
+}
+
+func (exec *Executor) procUpgrade(msg *queue.Message) {
+	var kvset types.LocalDBSet
+	for _, plugin := range pluginmgr.GetExecList() {
+		elog.Info("begin upgrade plugin ", "name", plugin)
+		kvset1, err := exec.upgradePlugin(plugin)
+		if err != nil {
+			msg.Reply(exec.client.NewMessage("", types.EventUpgrade, err))
+			panic(err)
+		}
+		if kvset1 != nil && kvset1.KV != nil && len(kvset1.KV) > 0 {
+			kvset.KV = append(kvset.KV, kvset1.KV...)
+		}
+	}
+	elog.Info("upgrade plugin success")
+	msg.Reply(exec.client.NewMessage("", types.EventUpgrade, &kvset))
+}
+
+func (exec *Executor) upgradePlugin(plugin string) (*types.LocalDBSet, error) {
+	header, err := exec.qclient.GetLastHeader()
+	if err != nil {
+		return nil, err
+	}
+	driver, err := drivers.LoadDriverWithClient(exec.qclient, plugin, header.GetHeight())
+	if err == types.ErrUnknowDriver { //已经注册插件，但是没有启动
+		elog.Info("upgrade ignore ", "name", plugin)
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var localdb dbm.KVDB
+	if !exec.disableLocal {
+		localdb = NewLocalDB(exec.client, false)
+		defer localdb.(*LocalDB).Close()
+		driver.SetLocalDB(localdb)
+	}
+	//目前升级不允许访问statedb
+	driver.SetStateDB(nil)
+	driver.SetAPI(exec.qclient)
+	driver.SetExecutorAPI(exec.qclient, exec.grpccli)
+	driver.SetEnv(header.GetHeight(), header.GetBlockTime(), uint64(header.GetDifficulty()))
+	localdb.Begin()
+	kvset, err := driver.Upgrade()
+	if err != nil {
+		localdb.Rollback()
+		return nil, err
+	}
+	localdb.Commit()
+	return kvset, nil
 }
 
 func (exec *Executor) procExecQuery(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("query panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
@@ -144,7 +203,7 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 		return
 	}
 	data := msg.GetData().(*types.ChainExecutor)
-	driver, err := drivers.LoadDriver(data.Driver, header.GetHeight())
+	driver, err := drivers.LoadDriverWithClient(exec.qclient, data.Driver, header.GetHeight())
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
@@ -154,7 +213,8 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		//query 只需要读取localdb
+		localdb = NewLocalDB(exec.client, true)
 		defer localdb.(*LocalDB).Close()
 		driver.SetLocalDB(localdb)
 	}
@@ -180,7 +240,7 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("check panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
@@ -196,8 +256,10 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 		parentHash: datas.ParentHash,
 	}
 	var localdb dbm.KVDB
+
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		//交易检查只需要读取localdb，只读模式
+		localdb = NewLocalDB(exec.client, true)
 		defer localdb.(*LocalDB).Close()
 	}
 	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
@@ -224,7 +286,7 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("exec tx list panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
@@ -241,7 +303,7 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		localdb = NewLocalDB(exec.client, false)
 		defer localdb.(*LocalDB).Close()
 	}
 	execute := newExecutor(ctx, exec, localdb, datas.Txs, nil)
@@ -271,7 +333,7 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 			continue
 		}
 		//所有tx.GroupCount > 0 的交易都是错误的交易
-		if !types.IsFork(datas.Height, "ForkTxGroup") {
+		if !execute.cfg.IsFork(datas.Height, "ForkTxGroup") {
 			receipts = append(receipts, types.NewErrReceipt(types.ErrTxGroupNotSupport))
 			continue
 		}
@@ -306,7 +368,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("add blk panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
@@ -324,7 +386,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		localdb = NewLocalDB(exec.client, false)
 		defer localdb.(*LocalDB).Close()
 	}
 	execute := newExecutor(ctx, exec, localdb, b.Txs, datas.Receipts)
@@ -382,7 +444,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("panic error", "err", r)
+			elog.Error("del blk panic error", "err", r)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
@@ -400,7 +462,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	}
 	var localdb dbm.KVDB
 	if !exec.disableLocal {
-		localdb = NewLocalDB(exec.client)
+		localdb = NewLocalDB(exec.client, false)
 		defer localdb.(*LocalDB).Close()
 	}
 	execute := newExecutor(ctx, exec, localdb, b.Txs, nil)

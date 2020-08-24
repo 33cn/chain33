@@ -37,28 +37,27 @@ batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
 enableTxQuickIndex=false
-
+# 使能精简localdb
+enableReduceLocaldb=false
+# 关闭分片存储,默认false为开启分片存储;平行链不需要分片需要修改此默认参数为true
+disableShard=false
+# 分片存储中每个大块包含的区块数
+chunkblockNum=1000
+# 使能从P2pStore中获取数据
+enableFetchP2pstore=false
+# 使能假设已删除已归档数据后,获取数据情况
+enableIfDelLocalChunk=false
 
 [p2p]
-port=13802
-seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
+types=[ "dht"]
 enable=true
-isSeed=true
-serverStart=true
-msgCacheSize=10240
 driver="memdb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-channel=216
-#waitPid 等待seed导入
-waitPid=false
-#交易开始采用哈希传播的ttl
-lightTxTTL=3
-#最大交易传播ttl
-maxTTL=20
-#是否固定只连接seeds中配置的节点
-fixedSeed=false
+
+[p2p.sub.dht]
+port=13803
 
 [rpc]
 jrpcBindAddr="localhost:8801"
@@ -73,7 +72,12 @@ keyFile="key.pem"
 [mempool]
 name="timeline"
 poolCacheSize=10240
-minTxFee=100000
+# 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
+minTxFeeRate=100000
+# 最大的交易手续费率, 0.1 coins
+maxTxFeeRate=10000000
+# 单笔交易最大的手续费, 10 coins
+maxTxFee=1000000000
 maxTxNumPerAccount=100
 isLevelFee=false
 
@@ -174,14 +178,12 @@ driver="memdb"
 dbPath="datadir/wallet"
 dbCache=16
 signType="secp256k1"
+coinType="bty"
 
 [wallet.sub.ticket]
 minerwhitelist=["*"]
 
 [exec]
-isFree=false
-minExecFee=100000
-maxExecFee=1000000000
 enableStat=false
 enableMVCC=false
 
@@ -222,3 +224,18 @@ useBalance=false
 listenAddr="localhost:8805"
 checkInterval=1
 unSyncMaxTimes=2
+
+[metrics]
+#是否使能发送metrics数据的发送
+enableMetrics=false
+#数据保存模式
+dataEmitMode="influxdb"
+
+[metrics.sub.influxdb]
+#以纳秒为单位的发送间隔
+duration=1000000000
+url="http://influxdb:8086"
+database="chain33metrics"
+username=""
+password=""
+namespace=""

@@ -25,7 +25,7 @@ func (p *feePlugin) ExecLocal(executor *executor, data *types.BlockDetail) ([]*t
 		fee.Fee += tx.Fee
 		fee.TxCount++
 	}
-	kv, err := saveFee(executor, fee, data.Block.ParentHash, data.Block.Hash())
+	kv, err := saveFee(executor, fee, data.Block.ParentHash, data.Block.Hash(executor.api.GetConfig()))
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (p *feePlugin) ExecLocal(executor *executor, data *types.BlockDetail) ([]*t
 }
 
 func (p *feePlugin) ExecDelLocal(executor *executor, data *types.BlockDetail) ([]*types.KeyValue, error) {
-	kv, err := delFee(executor, data.Block.Hash())
+	kv, err := delFee(executor, data.Block.Hash(executor.api.GetConfig()))
 	if err != nil {
 		return nil, err
 	}

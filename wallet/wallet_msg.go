@@ -14,7 +14,8 @@ import (
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
-		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.ID)
+		id := msg.ID
+		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(id)), "Id", id)
 		beg := types.Now()
 		reply, err := wallet.ExecWallet(msg)
 		if err != nil {
@@ -23,7 +24,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		} else {
 			msg.Reply(wallet.api.NewMessage("", 0, reply))
 		}
-		walletlog.Debug("end process", "msg.id", msg.ID, "cost", types.Since(beg))
+		walletlog.Debug("end process", "msg.id", id, "cost", types.Since(beg))
 	}
 }
 
@@ -91,6 +92,15 @@ func (wallet *Wallet) On_WalletSetLabel(req *types.ReqWalletSetLabel) (types.Mes
 	reply, err := wallet.ProcWalletSetLabel(req)
 	if err != nil {
 		walletlog.Error("ProcWalletSetLabel", "err", err.Error())
+	}
+	return reply, err
+}
+
+// On_WalletGetAccount 通过账户标签获取账户地址
+func (wallet *Wallet) On_WalletGetAccount(req *types.ReqGetAccount) (types.Message, error) {
+	reply, err := wallet.ProcGetAccount(req)
+	if err != nil {
+		walletlog.Error("On_WalletGetAccount", "err", err.Error())
 	}
 	return reply, err
 }
@@ -178,7 +188,7 @@ func (wallet *Wallet) On_GenSeed(req *types.GenSeedLang) (types.Message, error) 
 // On_GetSeed 处理获取Seed
 func (wallet *Wallet) On_GetSeed(req *types.GetSeedByPw) (types.Message, error) {
 	reply := &types.ReplySeed{}
-	seed, err := wallet.getSeed(req.Passwd)
+	seed, err := wallet.GetSeed(req.Passwd)
 	if err != nil {
 		walletlog.Error("getSeed", "err", err.Error())
 	} else {
@@ -253,7 +263,7 @@ func (wallet *Wallet) ExecWallet(msg *queue.Message) (types.Message, error) {
 	var data []byte
 	if msg.Data != nil {
 		if d, ok := msg.Data.(types.Message); ok {
-			data = types.Encode(d)
+			data = types.Encode(types.Clone(d))
 		} else {
 			return nil, types.ErrInvalidParam
 		}
@@ -293,4 +303,32 @@ func (wallet *Wallet) On_NewAccountByIndex(req *types.Int32) (types.Message, err
 		walletlog.Error("On_NewAccountByIndex", "err", err.Error())
 	}
 	return &types.ReplyString{Data: reply}, err
+}
+
+// On_DumpPrivkeysFile 处理到处私钥
+func (wallet *Wallet) On_DumpPrivkeysFile(req *types.ReqPrivkeysFile) (types.Message, error) {
+	reply := &types.Reply{
+		IsOk: true,
+	}
+	err := wallet.ProcDumpPrivkeysFile(req.FileName, req.Passwd)
+	if err != nil {
+		walletlog.Error("ProcDumpPrivkeysFile", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	return reply, err
+}
+
+//On_ImportPrivkeysFile 响应导入多个私钥
+func (wallet *Wallet) On_ImportPrivkeysFile(req *types.ReqPrivkeysFile) (types.Message, error) {
+	reply := &types.Reply{
+		IsOk: true,
+	}
+	err := wallet.ProcImportPrivkeysFile(req.FileName, req.Passwd)
+	if err != nil {
+		walletlog.Error("ProcImportPrivkeysFile", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	return reply, err
 }

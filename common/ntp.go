@@ -7,7 +7,6 @@ package common
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"math"
 	"net"
 	"sort"
@@ -159,11 +158,11 @@ func GetRealTime(hosts []string) time.Time {
 		go func(host string) {
 			ntptime, err := getTimeRetry(host, 1)
 			if ntptime.IsZero() || err != nil {
-				println("getTimeRetry", err.Error())
+				log.Error("getTimeRetry", "host", host, "err", err)
 				ch <- time.Duration(math.MaxInt64)
 			} else {
 				dt := time.Until(ntptime)
-				fmt.Println(host, dt)
+				log.Info("getTimeRetry", "host", host, "dt", dt)
 				ch <- dt
 			}
 		}(hosts[i])

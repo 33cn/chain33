@@ -6,9 +6,13 @@
 package crypto
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 )
+
+//ErrNotSupportAggr 不支持聚合签名
+var ErrNotSupportAggr = errors.New("AggregateCrypto not support")
 
 //PrivKey 私钥
 type PrivKey interface {
@@ -42,37 +46,54 @@ type Crypto interface {
 	PubKeyFromBytes([]byte) (PubKey, error)
 }
 
+//AggregateCrypto 聚合签名
+type AggregateCrypto interface {
+	Aggregate(sigs []Signature) (Signature, error)
+	AggregatePublic(pubs []PubKey) (PubKey, error)
+	VerifyAggregatedOne(pubs []PubKey, m []byte, sig Signature) error
+	VerifyAggregatedN(pubs []PubKey, ms [][]byte, sig Signature) error
+}
+
+//ToAggregate 判断签名是否可以支持聚合签名，并且返回聚合签名的接口
+func ToAggregate(c Crypto) (AggregateCrypto, error) {
+	if aggr, ok := c.(AggregateCrypto); ok {
+		return aggr, nil
+	}
+	return nil, ErrNotSupportAggr
+}
+
 var (
 	drivers     = make(map[string]Crypto)
+	driversCGO  = make(map[string]Crypto)
 	driversType = make(map[string]int)
+	driverMutex sync.Mutex
 )
 
-var driverMutex sync.Mutex
-
-//const
-const (
-	SignNameED25519 = "ed25519"
-)
-
-//Register 注册
-func Register(name string, driver Crypto) {
+//Register 注册加密算法，允许同种加密算法的cgo版本同时注册
+func Register(name string, driver Crypto, isCGO bool) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
-	if driver == nil {
-		panic("crypto: Register driver is nil")
+	d := drivers
+	if isCGO {
+		d = driversCGO
 	}
-	if _, dup := drivers[name]; dup {
+	if _, dup := d[name]; dup {
 		panic("crypto: Register called twice for driver " + name)
 	}
-	drivers[name] = driver
+	d[name] = driver
 }
 
 //RegisterType 注册类型
 func RegisterType(name string, ty int) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
-	if _, dup := driversType[name]; dup {
-		panic("crypto: Register(ty) called twice for driver " + name)
+	for n, t := range driversType {
+		//由于可能存在cgo版本，允许name，ty都相等情况，重复注册
+		//或者都不相等，添加新的类型
+		//不允许只有一个相等的情况，即不允许修改已经存在的ty或者name
+		if (n == name && t != ty) || (n != name && t == ty) {
+			panic(fmt.Sprintf("crypto: Register Conflict, exist=(%s,%d), register=(%s, %d)", n, t, name, ty))
+		}
 	}
 	driversType[name] = ty
 }
@@ -97,15 +118,18 @@ func GetType(name string) int {
 
 //New new
 func New(name string) (c Crypto, err error) {
-	driverMutex.Lock()
-	defer driverMutex.Unlock()
-	c, ok := drivers[name]
+
+	//优先使用性能更好的cgo版本
+	c, ok := driversCGO[name]
+	if ok {
+		return c, nil
+	}
+	//不存在cgo, 加载普通版本
+	c, ok = drivers[name]
 	if !ok {
 		err = fmt.Errorf("unknown driver %q", name)
-		return
 	}
-
-	return c, nil
+	return c, err
 }
 
 //CertSignature 签名

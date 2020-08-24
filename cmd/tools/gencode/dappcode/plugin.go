@@ -33,11 +33,11 @@ func (c pluginCodeFile) GetFileReplaceTags() []string {
 var (
 	pluginName    = "plugin.go"
 	pluginContent = `
-package ${EXECNAME}
+package types
 
 import (
 	"${IMPORTPATH}/${EXECNAME}/commands"
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	"${IMPORTPATH}/${EXECNAME}/executor"
 	"${IMPORTPATH}/${EXECNAME}/rpc"
 	"github.com/33cn/chain33/pluginmgr"
@@ -49,7 +49,7 @@ import (
 
 func init() {
 	pluginmgr.Register(&pluginmgr.PluginBase{
-		Name:     ptypes.${CLASSNAME}X,
+		Name:     ${EXECNAME}types.${CLASSNAME}X,
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
 		Cmd:      commands.Cmd,

@@ -104,7 +104,7 @@ func (mem *Mempool) Size() int {
 // SetMinFee 设置最小交易费用
 func (mem *Mempool) SetMinFee(fee int64) {
 	mem.proxyMtx.Lock()
-	mem.cfg.MinTxFee = fee
+	mem.cfg.MinTxFeeRate = fee
 	mem.proxyMtx.Unlock()
 }
 
@@ -128,13 +128,15 @@ func (mem *Mempool) getTxList(filterList *types.TxHashList) (txs []*types.Transa
 func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool) (txs []*types.Transaction) {
 	height := mem.header.GetHeight()
 	blocktime := mem.header.GetBlockTime()
+	types.AssertConfig(mem.client)
+	cfg := mem.client.GetConfig()
 	mem.cache.Walk(int(count), func(tx *Item) bool {
-		if dupMap != nil {
+		if len(dupMap) > 0 {
 			if _, ok := dupMap[string(tx.Value.Hash())]; ok {
 				return true
 			}
 		}
-		if isExpired(tx, height, blocktime) && !isAll {
+		if isExpired(cfg, tx, height, blocktime) && !isAll {
 			return true
 		}
 		txs = append(txs, tx.Value)
@@ -218,7 +220,14 @@ func (mem *Mempool) GetLatestTx() []*types.Transaction {
 	return mem.cache.GetLatestTx()
 }
 
-// pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
+// GetTotalCacheBytes 获取缓存交易的总占用空间
+func (mem *Mempool) GetTotalCacheBytes() int64 {
+	mem.proxyMtx.Lock()
+	defer mem.proxyMtx.Unlock()
+	return mem.cache.qcache.GetCacheBytes()
+}
+
+// pollLastHeader 在初始化后循环获取LastHeader，直到获取成功后，返回
 func (mem *Mempool) pollLastHeader() {
 	defer mem.wg.Done()
 	defer func() {
@@ -244,7 +253,8 @@ func (mem *Mempool) pollLastHeader() {
 func (mem *Mempool) removeExpired() {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	mem.cache.removeExpiredTx(mem.header.GetHeight(), mem.header.GetBlockTime())
+	types.AssertConfig(mem.client)
+	mem.cache.removeExpiredTx(mem.client.GetConfig(), mem.header.GetHeight(), mem.header.GetBlockTime())
 }
 
 // removeBlockedTxs 每隔1分钟清理一次已打包的交易
@@ -280,6 +290,22 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	}
 	return true
 }
+func (mem *Mempool) getCacheFeeRate() int64 {
+	if mem.cache.qcache == nil {
+		return 0
+	}
+	feeRate := mem.cache.qcache.GetProperFee()
+
+	//控制精度
+	unitFee := mem.cfg.MinTxFeeRate
+	if unitFee != 0 && feeRate%unitFee > 0 {
+		feeRate = (feeRate/unitFee + 1) * unitFee
+	}
+	if feeRate > mem.cfg.MaxTxFeeRate {
+		feeRate = mem.cfg.MaxTxFeeRate
+	}
+	return feeRate
+}
 
 // GetProperFeeRate 获取合适的手续费率
 func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
@@ -289,17 +315,12 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 	if req.TxSize == 0 {
 		req.TxSize = 10240
 	}
-	feeRate := mem.cache.GetProperFee()
+	feeRate := mem.getCacheFeeRate()
 	if mem.cfg.IsLevelFee {
-		levelFeeRate := mem.getLevelFeeRate(mem.cfg.MinTxFee, req.TxCount, req.TxSize)
+		levelFeeRate := mem.getLevelFeeRate(mem.cfg.MinTxFeeRate, req.TxCount, req.TxSize)
 		if levelFeeRate > feeRate {
 			feeRate = levelFeeRate
 		}
-	}
-	//控制精度
-	minFee := types.GInt("MinFee")
-	if minFee != 0 && feeRate%minFee > 0 {
-		feeRate = (feeRate/minFee + 1) * minFee
 	}
 	return feeRate
 }
@@ -307,18 +328,21 @@ func (mem *Mempool) GetProperFeeRate(req *types.ReqProperFee) int64 {
 // getLevelFeeRate 获取合适的阶梯手续费率, 可以外部传入count, size进行前瞻性估计
 func (mem *Mempool) getLevelFeeRate(baseFeeRate int64, appendCount, appendSize int32) int64 {
 	var feeRate int64
-	sumByte := mem.cache.TotalByte() + int64(appendSize)
-	maxTxNumber := types.GetP(mem.Height()).MaxTxNumber
+	sumByte := mem.GetTotalCacheBytes() + int64(appendSize)
+	types.AssertConfig(mem.client)
+	cfg := mem.client.GetConfig()
+	maxTxNumber := cfg.GetP(mem.Height()).MaxTxNumber
+	memSize := mem.Size()
 	switch {
-	case sumByte >= int64(types.MaxBlockSize/20) || int64(mem.Size()+int(appendCount)) >= maxTxNumber/2:
+	case sumByte >= int64(types.MaxBlockSize/20) || int64(memSize+int(appendCount)) >= maxTxNumber/2:
 		feeRate = 100 * baseFeeRate
-	case sumByte >= int64(types.MaxBlockSize/100) || int64(mem.Size()+int(appendCount)) >= maxTxNumber/10:
+	case sumByte >= int64(types.MaxBlockSize/100) || int64(memSize+int(appendCount)) >= maxTxNumber/10:
 		feeRate = 10 * baseFeeRate
 	default:
 		feeRate = baseFeeRate
 	}
-	if feeRate > 10000000 {
-		feeRate = 10000000
+	if feeRate > mem.cfg.MaxTxFeeRate {
+		feeRate = mem.cfg.MaxTxFeeRate
 	}
 	return feeRate
 }
@@ -330,6 +354,8 @@ func (mem *Mempool) delBlock(block *types.Block) {
 	}
 	blkTxs := block.Txs
 	header := mem.GetHeader()
+	types.AssertConfig(mem.client)
+	cfg := mem.client.GetConfig()
 	for i := 0; i < len(blkTxs); i++ {
 		tx := blkTxs[i]
 		//当前包括ticket和平行链的第一笔挖矿交易，统一actionName为miner
@@ -342,7 +368,7 @@ func (mem *Mempool) delBlock(block *types.Block) {
 			tx = group.Tx()
 			i = i + groupCount - 1
 		}
-		err := tx.Check(header.GetHeight(), mem.cfg.MinTxFee, mem.cfg.MaxTxFee)
+		err := tx.Check(cfg, header.GetHeight(), mem.cfg.MinTxFeeRate, mem.cfg.MaxTxFee)
 		if err != nil {
 			continue
 		}

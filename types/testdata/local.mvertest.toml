@@ -45,18 +45,14 @@ isRecordBlockSequence=false
 enableTxQuickIndex=false
 
 [p2p]
-seeds=[]
+types=["dht"]
 enable=true
-isSeed=false
-serverStart=true
-innerSeedEnable=true
-useGithub=true
-innerBounds=300
-msgCacheSize=10240
 driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
+
+[p2p.sub.dht]
 
 [rpc]
 jrpcBindAddr="localhost:8801"
@@ -67,7 +63,7 @@ grpcFuncWhitelist=["*"]
 
 [mempool]
 poolCacheSize=102400
-minTxFee=100000
+minTxFeeRate=100000
 maxTxNumPerAccount=100
 
 [consensus]
@@ -222,6 +218,7 @@ ForkBase58AddressCheck=1800000
 ForkEnableParaRegExec=0
 ForkCacheDriver=0
 ForkTicketFundAddrV1=-1
+ForkRootHash=1
 [fork.sub.coins]
 Enable=0
 

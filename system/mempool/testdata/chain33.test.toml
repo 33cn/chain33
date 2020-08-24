@@ -40,19 +40,14 @@ enableTxQuickIndex=false
 
 
 [p2p]
-port=13802
-seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
+types=[ "dht"]
 enable=true
-isSeed=true
-serverStart=true
-msgCacheSize=10240
 driver="memdb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-version=216
-verMix=216
-verMax=217
+
+[p2p.sub.dht]
 
 [rpc]
 jrpcBindAddr="localhost:8801"
@@ -67,7 +62,12 @@ keyFile="key.pem"
 [mempool]
 name="timeline"
 poolCacheSize=10240
-minTxFee=100000
+# 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
+minTxFeeRate=100000
+# 最大的交易手续费率, 0.1 coins
+maxTxFeeRate=10000000
+# 单笔交易最大的手续费, 10 coins
+maxTxFee=1000000000
 maxTxNumPerAccount=100
 isLevelFee=false
 
@@ -166,9 +166,7 @@ signType="secp256k1"
 minerwhitelist=["*"]
 
 [exec]
-isFree=false
-minExecFee=100000
-maxExecFee=1000000000
+
 enableStat=false
 enableMVCC=false
 

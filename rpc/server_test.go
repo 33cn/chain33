@@ -5,12 +5,12 @@
 package rpc
 
 import (
-	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/common"
 	qmocks "github.com/33cn/chain33/queue/mocks"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -47,7 +47,11 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
 	api := new(mocks.QueueProtocolAPI)
-	server := NewJSONRPCServer(&qmocks.Client{}, api)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	qm := &qmocks.Client{}
+	qm.On("GetConfig", mock.Anything).Return(cfg)
+	server := NewJSONRPCServer(qm, api)
 	assert.NotNil(t, server)
 	done := make(chan struct{}, 1)
 	go func() {
@@ -94,7 +98,7 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.Equal(t, "123", nodeInfo.Externaladdr)
 
 	var singRet = ""
-	api.On("SignRawTx", mock.Anything).Return(&types.ReplySignRawTx{TxHex: "123"}, nil)
+	api.On("ExecWalletFunc", "wallet", "SignRawTx", mock.Anything).Return(&types.ReplySignRawTx{TxHex: "123"}, nil)
 	err = jsonClient.Call("Chain33.SignRawTx", &types.ReqSignRawTx{}, &singRet)
 	assert.Nil(t, err)
 	assert.Equal(t, "123", singRet)
@@ -110,13 +114,13 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, retNtp)
 	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: 2}, nil)
-	testCreateTxCoins(t, jsonClient)
+	testCreateTxCoins(t, cfg, jsonClient)
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
 }
 
 func testDecodeTxHex(t *testing.T, txHex string) *types.Transaction {
-	txbytes, err := hex.DecodeString(txHex)
+	txbytes, err := common.FromHex(txHex)
 	assert.Nil(t, err)
 	var tx types.Transaction
 	err = types.Decode(txbytes, &tx)
@@ -124,7 +128,7 @@ func testDecodeTxHex(t *testing.T, txHex string) *types.Transaction {
 	return &tx
 }
 
-func testCreateTxCoins(t *testing.T, jsonClient *jsonclient.JSONClient) {
+func testCreateTxCoins(t *testing.T, cfg *types.Chain33Config, jsonClient *jsonclient.JSONClient) {
 	req := &rpctypes.CreateTx{
 		To:          "184wj4nsgVxKyz2NhM3Yb5RK5Ap6AFRFq2",
 		Amount:      10,
@@ -133,7 +137,7 @@ func testCreateTxCoins(t *testing.T, jsonClient *jsonclient.JSONClient) {
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
-		ExecName:    types.ExecName("coins"),
+		ExecName:    cfg.ExecName("coins"),
 	}
 	var res string
 	err := jsonClient.Call("Chain33.CreateRawTransaction", req, &res)
@@ -150,16 +154,20 @@ func testCreateTxCoins(t *testing.T, jsonClient *jsonclient.JSONClient) {
 }
 
 func TestGrpc_Call(t *testing.T) {
-	rpcCfg = new(types.RPC)
+	rpcCfg := new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	InitCfg(rpcCfg)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	_ = NewGrpcServer()
-	server := NewGRpcServer(&qmocks.Client{}, api)
+	qm := &qmocks.Client{}
+	qm.On("GetConfig", mock.Anything).Return(cfg)
+	server := NewGRpcServer(qm, api)
 	assert.NotNil(t, server)
 	go server.Listen()
 	time.Sleep(time.Second)
@@ -196,17 +204,18 @@ func TestGrpc_Call(t *testing.T) {
 }
 
 func TestRPC(t *testing.T) {
-	cfg := &types.RPC{
-		JrpcBindAddr:      "8801",
-		GrpcBindAddr:      "8802",
-		Whitlist:          []string{"127.0.0.1"},
-		JrpcFuncBlacklist: []string{"CloseQueue"},
-		GrpcFuncBlacklist: []string{"CloseQueue"},
-		EnableTrace:       true,
-	}
-	InitCfg(cfg)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	rpcCfg := cfg.GetModuleConfig().RPC
+	rpcCfg.JrpcBindAddr = "8801"
+	rpcCfg.GrpcBindAddr = "8802"
+	rpcCfg.Whitlist = []string{"127.0.0.1"}
+	rpcCfg.JrpcFuncBlacklist = []string{"CloseQueue"}
+	rpcCfg.GrpcFuncBlacklist = []string{"CloseQueue"}
+	rpcCfg.EnableTrace = true
+	InitCfg(rpcCfg)
 	rpc := New(cfg)
 	client := &qmocks.Client{}
+	client.On("GetConfig", mock.Anything).Return(cfg)
 	rpc.SetQueueClient(client)
 
 	assert.Equal(t, client, rpc.GetQueueClient())

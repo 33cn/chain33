@@ -21,22 +21,27 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func init() {
+func Init(cfg *types.Chain33Config) {
 	slog.SetLogLevel("error")
-	types.Init("local", nil)
-	pluginmgr.InitExec(nil)
+	pluginmgr.InitExec(cfg)
 }
 
 func newTestChannelClient() *channelClient {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := &mocks.QueueProtocolAPI{}
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	return &channelClient{
-		QueueProtocolAPI: &mocks.QueueProtocolAPI{},
+		QueueProtocolAPI: api,
 	}
 }
 
 // TODO
 func TestInit(t *testing.T) {
 	client := newTestChannelClient()
-	client.Init(&qmock.Client{}, nil)
+	qm := &qmock.Client{}
+	cfg := client.GetConfig()
+	qm.On("GetConfig", mock.Anything).Return(cfg)
+	client.Init(qm, nil)
 }
 
 func testCreateRawTransactionNil(t *testing.T) {
@@ -49,23 +54,27 @@ func testCreateRawTransactionExecNameErr(t *testing.T) {
 	tx := types.CreateTx{ExecName: "aaa", To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
 
 	client := newTestChannelClient()
+	cfg := client.GetConfig()
+	Init(cfg)
 	_, err := client.CreateRawTransaction(&tx)
 	assert.Equal(t, types.ErrExecNameNotMatch, err)
 }
 
 func testCreateRawTransactionAmoutErr(t *testing.T) {
-	tx := types.CreateTx{ExecName: types.ExecName(cty.CoinsX), Amount: -1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
-
 	client := newTestChannelClient()
+	cfg := client.GetConfig()
+	tx := types.CreateTx{ExecName: cfg.ExecName(cty.CoinsX), Amount: -1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
+
 	_, err := client.CreateRawTransaction(&tx)
 	assert.Equal(t, types.ErrAmount, err)
 }
 
 func testCreateRawTransactionTo(t *testing.T) {
-	name := types.ExecName(cty.CoinsX)
+	client := newTestChannelClient()
+	cfg := client.GetConfig()
+	name := cfg.ExecName(cty.CoinsX)
 	tx := types.CreateTx{ExecName: name, Amount: 1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32", Fee: 1}
 
-	client := newTestChannelClient()
 	rawtx, err := client.CreateRawTransaction(&tx)
 	assert.NoError(t, err)
 
@@ -77,7 +86,7 @@ func testCreateRawTransactionTo(t *testing.T) {
 	var mytx types.Transaction
 	err = types.Decode(rawtx, &mytx)
 	assert.Nil(t, err)
-	if types.IsPara() {
+	if cfg.IsPara() {
 		assert.Equal(t, address.ExecAddress(name), mytx.To)
 	} else {
 		assert.Equal(t, tx.To, mytx.To)
@@ -96,11 +105,12 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 	}
 
 	client := newTestChannelClient()
+	cfg := client.GetConfig()
 	txHex, err := client.CreateRawTransaction(&ctx)
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte(types.ExecName(cty.CoinsX)), tx.Execer)
+	assert.Equal(t, []byte(cfg.ExecName(cty.CoinsX)), tx.Execer)
 
 	var transfer cty.CoinsAction
 	types.Decode(tx.Payload, &transfer)
@@ -108,7 +118,9 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 }
 
 func testCreateRawTransactionCoinTransferExec(t *testing.T) {
-	name := types.ExecName("coins")
+	client := newTestChannelClient()
+	cfg := client.GetConfig()
+	name := cfg.ExecName("coins")
 	ctx := types.CreateTx{
 		ExecName:   name,
 		Amount:     10,
@@ -118,27 +130,27 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 		Note:       []byte("note"),
 		Fee:        1,
 	}
-
-	client := newTestChannelClient()
 	txHex, err := client.CreateRawTransaction(&ctx)
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte(types.ExecName(cty.CoinsX)), tx.Execer)
+	assert.Equal(t, []byte(cfg.ExecName(cty.CoinsX)), tx.Execer)
 
 	var transfer cty.CoinsAction
 	types.Decode(tx.Payload, &transfer)
 	assert.Equal(t, int32(cty.CoinsActionTransferToExec), transfer.Ty)
-	if types.IsPara() {
-		assert.Equal(t, address.ExecAddress(types.ExecName(cty.CoinsX)), tx.To)
+	if cfg.IsPara() {
+		assert.Equal(t, address.ExecAddress(cfg.ExecName(cty.CoinsX)), tx.To)
 	} else {
 		assert.Equal(t, ctx.To, tx.To)
 	}
 }
 
 func testCreateRawTransactionCoinWithdraw(t *testing.T) {
+	client := newTestChannelClient()
+	cfg := client.GetConfig()
 	ctx := types.CreateTx{
-		ExecName:   types.ExecName("coins"),
+		ExecName:   cfg.ExecName("coins"),
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: true,
@@ -147,19 +159,18 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 		Fee:        1,
 	}
 
-	client := newTestChannelClient()
 	txHex, err := client.CreateRawTransaction(&ctx)
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte(types.ExecName(cty.CoinsX)), tx.Execer)
+	assert.Equal(t, []byte(cfg.ExecName(cty.CoinsX)), tx.Execer)
 
 	var transfer cty.CoinsAction
 	types.Decode(tx.Payload, &transfer)
 	assert.Equal(t, int32(cty.CoinsActionWithdraw), transfer.Ty)
 
-	if types.IsPara() {
-		assert.Equal(t, address.ExecAddress(types.ExecName(cty.CoinsX)), tx.To)
+	if cfg.IsPara() {
+		assert.Equal(t, address.ExecAddress(cfg.ExecName(cty.CoinsX)), tx.To)
 	} else {
 		assert.Equal(t, ctx.To, tx.To)
 	}
@@ -235,8 +246,10 @@ func TestChannelClient_GetAddrOverview(t *testing.T) {
 	testChannelClientGetAddrOverviewErr(t)
 }
 
-func testChannelClient_GetBalanceCoin(t *testing.T) {
-	api := new(mocks.QueueProtocolAPI)
+func testChannelClientGetBalanceCoin(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := &mocks.QueueProtocolAPI{}
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	db := new(account.DB)
 	client := &channelClient{
 		QueueProtocolAPI: api,
@@ -267,8 +280,10 @@ func testChannelClient_GetBalanceCoin(t *testing.T) {
 
 }
 
-func testChannelClient_GetBalanceOther(t *testing.T) {
-	api := new(mocks.QueueProtocolAPI)
+func testChannelClientGetBalanceOther(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := &mocks.QueueProtocolAPI{}
+	api.On("GetConfig", mock.Anything).Return(cfg)
 	db := new(account.DB)
 	client := &channelClient{
 		QueueProtocolAPI: api,
@@ -290,7 +305,7 @@ func testChannelClient_GetBalanceOther(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqBalance{
-		Execer:    types.ExecName("ticket"),
+		Execer:    cfg.ExecName("ticket"),
 		Addresses: addrs,
 	}
 	data, err := client.GetBalance(in)
@@ -300,14 +315,18 @@ func testChannelClient_GetBalanceOther(t *testing.T) {
 }
 
 func TestChannelClient_GetBalance(t *testing.T) {
-	testChannelClient_GetBalanceCoin(t)
-	testChannelClient_GetBalanceOther(t)
+	testChannelClientGetBalanceCoin(t)
+	testChannelClientGetBalanceOther(t)
 }
 
 func TestChannelClient_GetTotalCoins(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	client := new(channelClient)
 	api := new(mocks.QueueProtocolAPI)
-	client.Init(&qmock.Client{}, api)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	qm := &qmock.Client{}
+	qm.On("GetConfig", mock.Anything).Return(cfg)
+	client.Init(qm, api)
 	api.On("StoreGetTotalCoins", mock.Anything).Return(&types.ReplyGetTotalCoins{}, nil)
 	_, err := client.GetTotalCoins(&types.ReqGetTotalCoins{})
 	assert.NoError(t, err)
@@ -326,17 +345,41 @@ func TestChannelClient_GetTotalCoins(t *testing.T) {
 }
 
 func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	client := new(channelClient)
 	api := new(mocks.QueueProtocolAPI)
-	client.Init(&qmock.Client{}, api)
-	fee := types.GInt("MinFee") * 2
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	qm := &qmock.Client{}
+	qm.On("GetConfig", mock.Anything).Return(cfg)
+	client.Init(qm, api)
+	fee := cfg.GetMinTxFeeRate() * 2
 	api.On("GetProperFee", mock.Anything).Return(&types.ReplyProperFee{ProperFee: fee}, nil)
 	in := &types.NoBalanceTx{}
-	tx, err := client.CreateNoBalanceTransaction(in)
+	params := &types.NoBalanceTxs{
+		TxHexs:  []string{in.GetTxHex()},
+		PayAddr: in.GetPayAddr(),
+		Privkey: in.GetPrivkey(),
+		Expire:  in.GetExpire(),
+	}
+	tx, err := client.CreateNoBalanceTxs(params)
 	assert.NoError(t, err)
 	gtx, _ := tx.GetTxGroup()
-	assert.NoError(t, gtx.Check(0, fee, types.GInt("MaxFee")))
+	assert.NoError(t, gtx.Check(cfg, 0, fee, cfg.GetMaxTxFee()))
 	assert.NoError(t, err)
+	params.Expire = "300s"
+	tx, err = client.CreateNoBalanceTxs(params)
+	assert.NoError(t, err)
+	assert.Equal(t, true, (tx.GetExpire() > types.Now().Unix()) && (tx.GetExpire() <= types.Now().Unix()+300))
+	params.TxHexs[0] = hex.EncodeToString(types.Encode(&types.Transaction{Execer: []byte("user.p.para.coins")}))
+	params.Expire = "100"
+	tx, err = client.CreateNoBalanceTxs(params)
+	assert.Equal(t, types.ErrInvalidExpire, err)
+	params.Expire = "0"
+	_, err = client.CreateNoBalanceTxs(params)
+	assert.NotEqual(t, types.ErrInvalidExpire, err)
+	params.Expire = fmt.Sprintf("%d", types.ExpireBound+1)
+	_, err = client.CreateNoBalanceTxs(params)
+	assert.NotEqual(t, types.ErrInvalidExpire, err)
 }
 
 func TestClientReWriteRawTx(t *testing.T) {

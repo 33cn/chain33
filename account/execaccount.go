@@ -242,11 +242,11 @@ func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 
 // ExecIssueCoins 增发coins到具体的挖矿合约
 func (acc *DB) ExecIssueCoins(execaddr string, amount int64) (*types.Receipt, error) {
-
+	cfg := acc.cfg
 	//这个函数只有挖矿的合约才能调用
 	allow := false
-	for _, exec := range types.GetMinerExecs() {
-		if acc.ExecAddress(types.ExecName(exec)) == execaddr {
+	for _, exec := range cfg.GetMinerExecs() {
+		if acc.ExecAddress(cfg.ExecName(exec)) == execaddr {
 			allow = true
 			break
 		}

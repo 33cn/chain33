@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -40,15 +41,15 @@ type TxGroup interface {
 }
 
 //ExecName  执行器name
-func ExecName(name string) string {
+func (c *Chain33Config) ExecName(name string) string {
 	if len(name) > 1 && name[0] == '#' {
 		return name[1:]
 	}
 	if IsParaExecName(name) {
 		return name
 	}
-	if IsPara() {
-		return GetTitle() + name
+	if c.IsPara() {
+		return c.GetTitle() + name
 	}
 	return name
 }
@@ -130,16 +131,16 @@ func FindExecer(key []byte) (execer []byte, err error) {
 }
 
 //GetParaExec  获取平行链执行
-func GetParaExec(execer []byte) []byte {
+func (c *Chain33Config) GetParaExec(execer []byte) []byte {
 	//必须是平行链
-	if !IsPara() {
+	if !c.IsPara() {
 		return execer
 	}
 	//必须是相同的平行链
-	if !strings.HasPrefix(string(execer), GetTitle()) {
+	if !strings.HasPrefix(string(execer), c.GetTitle()) {
 		return execer
 	}
-	return execer[len(GetTitle()):]
+	return execer[len(c.GetTitle()):]
 }
 
 //GetParaExecName 获取平行链上的执行器
@@ -325,8 +326,8 @@ func ManageKey(key string) string {
 }
 
 //ManaeKeyWithHeigh 超级管理员账户key
-func ManaeKeyWithHeigh(key string, height int64) string {
-	if IsFork(height, "ForkExecKey") {
+func (c *Chain33Config) ManaeKeyWithHeigh(key string, height int64) string {
+	if c.IsFork(height, "ForkExecKey") {
 		return ManageKey(key)
 	}
 	return ConfigKey(key)
@@ -399,7 +400,7 @@ func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
 
 //IterateRangeByStateHash 迭代查找
 func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
-	fmt.Println("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key))
+	tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key))
 	var acc Account
 	err := Decode(value, &acc)
 	if err != nil {
@@ -483,4 +484,202 @@ func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 
 	item := &ExecBalanceItem{ExecAddr: execAddr, Frozen: acc.Frozen, Active: acc.Balance}
 	t.Items = append(t.Items, item)
+}
+
+//Clone  克隆
+func Clone(data proto.Message) proto.Message {
+	return proto.Clone(data)
+}
+
+//Clone 添加一个浅拷贝函数
+func (sig *Signature) Clone() *Signature {
+	if sig == nil {
+		return nil
+	}
+	return &Signature{
+		Ty:        sig.Ty,
+		Pubkey:    sig.Pubkey,
+		Signature: sig.Signature,
+	}
+}
+
+//这里要避免用 tmp := *tx 这样就会读 可能被 proto 其他线程修改的 size 字段
+//proto buffer 字段发生更改之后，一定要修改这里，否则可能引起严重的bug
+func cloneTx(tx *Transaction) *Transaction {
+	copytx := &Transaction{}
+	copytx.Execer = tx.Execer
+	copytx.Payload = tx.Payload
+	copytx.Signature = tx.Signature
+	copytx.Fee = tx.Fee
+	copytx.Expire = tx.Expire
+	copytx.Nonce = tx.Nonce
+	copytx.To = tx.To
+	copytx.GroupCount = tx.GroupCount
+	copytx.Header = tx.Header
+	copytx.Next = tx.Next
+	return copytx
+}
+
+//Clone copytx := proto.Clone(tx).(*Transaction) too slow
+func (tx *Transaction) Clone() *Transaction {
+	if tx == nil {
+		return nil
+	}
+	tmp := cloneTx(tx)
+	tmp.Signature = tx.Signature.Clone()
+	return tmp
+}
+
+//Clone 浅拷贝： BlockDetail
+func (b *BlockDetail) Clone() *BlockDetail {
+	if b == nil {
+		return nil
+	}
+	return &BlockDetail{
+		Block:          b.Block.Clone(),
+		Receipts:       cloneReceipts(b.Receipts),
+		KV:             cloneKVList(b.KV),
+		PrevStatusHash: b.PrevStatusHash,
+	}
+}
+
+//Clone 浅拷贝ReceiptData
+func (r *ReceiptData) Clone() *ReceiptData {
+	if r == nil {
+		return nil
+	}
+	return &ReceiptData{
+		Ty:   r.Ty,
+		Logs: cloneReceiptLogs(r.Logs),
+	}
+}
+
+//Clone 浅拷贝 receiptLog
+func (r *ReceiptLog) Clone() *ReceiptLog {
+	if r == nil {
+		return nil
+	}
+	return &ReceiptLog{
+		Ty:  r.Ty,
+		Log: r.Log,
+	}
+}
+
+//Clone KeyValue
+func (kv *KeyValue) Clone() *KeyValue {
+	if kv == nil {
+		return nil
+	}
+	return &KeyValue{
+		Key:   kv.Key,
+		Value: kv.Value,
+	}
+}
+
+//Clone Block 浅拷贝(所有的types.Message 进行了拷贝)
+func (b *Block) Clone() *Block {
+	if b == nil {
+		return nil
+	}
+	return &Block{
+		Version:    b.Version,
+		ParentHash: b.ParentHash,
+		TxHash:     b.TxHash,
+		StateHash:  b.StateHash,
+		Height:     b.Height,
+		BlockTime:  b.BlockTime,
+		Difficulty: b.Difficulty,
+		MainHash:   b.MainHash,
+		MainHeight: b.MainHeight,
+		Signature:  b.Signature.Clone(),
+		Txs:        cloneTxs(b.Txs),
+	}
+}
+
+//Clone BlockBody 浅拷贝(所有的types.Message 进行了拷贝)
+func (b *BlockBody) Clone() *BlockBody {
+	if b == nil {
+		return nil
+	}
+	return &BlockBody{
+		Txs:        cloneTxs(b.Txs),
+		Receipts:   cloneReceipts(b.Receipts),
+		MainHash:   b.MainHash,
+		MainHeight: b.MainHeight,
+		Hash:       b.Hash,
+		Height:     b.Height,
+	}
+}
+
+//cloneReceipts 浅拷贝交易回报
+func cloneReceipts(b []*ReceiptData) []*ReceiptData {
+	if b == nil {
+		return nil
+	}
+	rs := make([]*ReceiptData, len(b))
+	for i := 0; i < len(b); i++ {
+		rs[i] = b[i].Clone()
+	}
+	return rs
+}
+
+//cloneReceiptLogs 浅拷贝 ReceiptLogs
+func cloneReceiptLogs(b []*ReceiptLog) []*ReceiptLog {
+	if b == nil {
+		return nil
+	}
+	rs := make([]*ReceiptLog, len(b))
+	for i := 0; i < len(b); i++ {
+		rs[i] = b[i].Clone()
+	}
+	return rs
+}
+
+//cloneTxs  拷贝 txs
+func cloneTxs(b []*Transaction) []*Transaction {
+	if b == nil {
+		return nil
+	}
+	txs := make([]*Transaction, len(b))
+	for i := 0; i < len(b); i++ {
+		txs[i] = b[i].Clone()
+	}
+	return txs
+}
+
+//cloneKVList 拷贝kv 列表
+func cloneKVList(b []*KeyValue) []*KeyValue {
+	if b == nil {
+		return nil
+	}
+	kv := make([]*KeyValue, len(b))
+	for i := 0; i < len(b); i++ {
+		kv[i] = b[i].Clone()
+	}
+	return kv
+}
+
+// Bytes2Str 高效字节数组转字符串
+// 相比普通直接转化，性能提升35倍，提升程度和转换的byte长度线性相关，且不存在内存开销
+// 需要注意b的修改会导致最终string的变更，比较适合临时变量转换，不适合
+func Bytes2Str(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+// Str2Bytes 高效字符串转字节数组
+// 相比普通直接转化，性能提升13倍， 提升程度和转换的byte长度线性相关，且不存在内存开销
+// 需要注意不能修改转换后的byte数组，本质上是修改了底层string，将会panic
+func Str2Bytes(s string) []byte {
+	x := (*[2]uintptr)(unsafe.Pointer(&s))
+	h := [3]uintptr{x[0], x[1], x[1]}
+	return *(*[]byte)(unsafe.Pointer(&h))
+}
+
+//Hash  计算hash
+func (hashes *ReplyHashes) Hash() []byte {
+	data, err := proto.Marshal(hashes)
+	if err != nil {
+		panic(err)
+	}
+	return common.Sha256(data)
 }

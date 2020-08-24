@@ -208,7 +208,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "GetPeerInfo":
-		reply, err := rpc.GetPeerInfo(context.Background(), c.Params.(*types.ReqNil))
+		reply, err := rpc.GetPeerInfo(context.Background(), c.Params.(*types.P2PGetPeerReq))
 		if err == nil {
 			*c.Res.(*types.PeerList) = *reply
 		}
@@ -291,6 +291,18 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.ReplyString) = *reply
 		}
 		errRet = err
+	case "DumpPrivkeysFile":
+		reply, err := rpc.DumpPrivkeysFile(context.Background(), c.Params.(*types.ReqPrivkeysFile))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+		errRet = err
+	case "ImportPrivkeysFile":
+		reply, err := rpc.ImportPrivkeysFile(context.Background(), c.Params.(*types.ReqPrivkeysFile))
+		if err == nil {
+			*c.Res.(*types.Reply) = *reply
+		}
+		errRet = err
 	case "Version":
 		reply, err := rpc.Version(context.Background(), c.Params.(*types.ReqNil))
 		if err == nil {
@@ -310,7 +322,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "NetInfo":
-		reply, err := rpc.NetInfo(context.Background(), c.Params.(*types.ReqNil))
+		reply, err := rpc.NetInfo(context.Background(), c.Params.(*types.P2PGetNetInfoReq))
 		if err == nil {
 			*c.Res.(*types.NodeNetInfo) = *reply
 		}
@@ -329,6 +341,19 @@ func (c *GrpcCtx) Run() (err error) {
 		errRet = err
 	case "GetParaTxByTitle":
 		reply, err := rpc.GetParaTxByTitle(context.Background(), c.Params.(*types.ReqParaTxByTitle))
+		if err == nil {
+			*c.Res.(*types.ParaTxDetails) = *reply
+		}
+		errRet = err
+
+	case "LoadParaTxByTitle":
+		reply, err := rpc.LoadParaTxByTitle(context.Background(), c.Params.(*types.ReqHeightByTitle))
+		if err == nil {
+			*c.Res.(*types.ReplyHeightByTitle) = *reply
+		}
+		errRet = err
+	case "GetParaTxByHeight":
+		reply, err := rpc.GetParaTxByHeight(context.Background(), c.Params.(*types.ReqParaTxByHeight))
 		if err == nil {
 			*c.Res.(*types.ParaTxDetails) = *reply
 		}

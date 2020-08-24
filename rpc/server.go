@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"fmt"
 	"net"
 	"net/rpc"
 	"time"
@@ -164,7 +165,7 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 	if rpcCfg.EnableTLS {
 		creds, err := credentials.NewServerTLSFromFile(rpcCfg.CertFile, rpcCfg.KeyFile)
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("err=%s, if cert.pem not found, run chain33-cli cert --host=127.0.0.1 to create", err.Error()))
 		}
 		credsOps := grpc.Creds(creds)
 		opts = append(opts, credsOps)
@@ -186,8 +187,8 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServer {
 	j := &JSONRPCServer{jrpc: &Chain33{}}
 	j.jrpc.cli.Init(c, api)
-	if types.IsPara() {
-		grpcCli, err := grpcclient.NewMainChainClient("")
+	if c.GetConfig().IsPara() {
+		grpcCli, err := grpcclient.NewMainChainClient(c.GetConfig(), "")
 		if err != nil {
 			panic(err)
 		}
@@ -223,12 +224,13 @@ func InitCfg(cfg *types.RPC) {
 }
 
 // New produce a rpc by cfg
-func New(cfg *types.RPC) *RPC {
-	InitCfg(cfg)
-	if cfg.EnableTrace {
+func New(cfg *types.Chain33Config) *RPC {
+	mcfg := cfg.GetModuleConfig().RPC
+	InitCfg(mcfg)
+	if mcfg.EnableTrace {
 		grpc.EnableTracing = true
 	}
-	return &RPC{cfg: cfg}
+	return &RPC{cfg: mcfg}
 }
 
 // SetAPI set api of rpc
@@ -263,6 +265,7 @@ func (r *RPC) Listen() (port1 int, port2 int) {
 	for i := 0; i < 10; i++ {
 		port1, err = r.gapi.Listen()
 		if err != nil {
+			log.Error("Grpc Listen", "err", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -271,11 +274,13 @@ func (r *RPC) Listen() (port1 int, port2 int) {
 	for i := 0; i < 10; i++ {
 		port2, err = r.japi.Listen()
 		if err != nil {
+			log.Error("Jrpc Listen", "err", err)
 			time.Sleep(time.Second)
 			continue
 		}
 		break
 	}
+	log.Info("rpc Listen ports", "grpc", port1, "jrpc", port2)
 	//sleep for a while
 	time.Sleep(time.Millisecond)
 	return port1, port2

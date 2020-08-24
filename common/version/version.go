@@ -5,7 +5,7 @@
 // Package version 软件版本号
 package version
 
-const version = "6.2.0"
+const version = "1.64.0"
 
 //var
 var (
@@ -14,7 +14,7 @@ var (
 	LocalDBMeta      = []byte("LocalDBMeta")
 	StoreDBMeta      = []byte("StoreDBMeta")
 	MavlTreeVerKey   = []byte("MavlTreeVerKey")
-	localversion     = "1.0.0"
+	localversion     = "2.0.0"
 	storeversion     = "1.0.0"
 	appversion       = "1.0.0"
 	GitCommit        string
@@ -103,3 +103,6 @@ func SetAppVersion(version string) {
 
 //v6.2.0
 //性能加速+mempool 阶梯手续费防止大区块攻击
+
+//v6.4.0
+//优化存储结构，减少存储数据量

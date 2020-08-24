@@ -51,25 +51,26 @@ isParaChain=false
 enableTxQuickIndex=false
 # 升级storedb是否重新执行localdb
 enableReExecLocal=false
+# 使能精简localdb
+enableReduceLocaldb=true
+
+# 关闭分片存储,默认false为开启分片存储;平行链不需要分片需要修改此默认参数为true
+disableShard=false
+# 分片存储中每个大块包含的区块数
+chunkblockNum=1000
+# 使能从P2pStore中获取数据
+enableFetchP2pstore=false
+# 使能假设已删除已归档数据后,获取数据情况
+enableIfDelLocalChunk=false
+
+# 使能推送注册，默认不开启
+enablePushSubscribe=false
 
 [p2p]
-# P2P服务监听端口号
-port=13802
-# 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=["10.0.0.1:13802","10.0.0.2:13802","10.0.0.3:13802"]
-seeds=[]
+# p2p类型
+types=[ "dht"]
 # 是否启动P2P服务
 enable=true
-# 是否为种子节点
-isSeed=false
-# 是否作为服务端，对外提供服务
-serverStart=true
-# 是否使用内置的种子节点
-innerSeedEnable=true
-# 是否使用Github获取种子节点
-useGithub=true
-# 最多的接入节点个数
-innerBounds=300
-msgCacheSize=10240
 # 使用的数据库类型
 driver="leveldb"
 # 使用的数据库类型
@@ -80,6 +81,12 @@ dbCache=4
 grpcLogFile="grpc33.log"
 #waitPid 等待seed导入
 waitPid=false
+
+
+[p2p.sub.dht]
+seeds=[""]
+port=13803
+
 
 [rpc]
 # jrpc绑定地址
@@ -93,7 +100,7 @@ jrpcFuncWhitelist=["*"]
 # grpc方法请求白名单，默认是“*”，允许访问所有RPC方法
 grpcFuncWhitelist=["*"]
 # 是否开启https
-enableTLS=true
+enableTLS=false
 # 证书文件，证书和私钥文件可以用cli工具生成
 certFile="cert.pem"
 # 私钥文件
@@ -104,11 +111,13 @@ keyFile="key.pem"
 name="timeline"
 # mempool缓存容量大小，默认10240
 poolCacheSize=10240
-# 最小得交易手续费用，这个没有默认值，必填，一般是100000
-minTxFee=100000
 # 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
-# 最大得交易手续费用，这个没有默认值，必填，一般是100000
+# 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
+minTxFeeRate=100000
+# 最大的交易手续费率, 0.1 coins
+maxTxFeeRate=10000000
+# 单笔交易最大的手续费, 10 coins
 maxTxFee=1000000000
 # 是否开启阶梯手续费
 isLevelFee=false
@@ -141,8 +150,6 @@ minerExecs=["ticket", "autonomy"]
 [mver.consensus]
 #基金账户地址
 fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
-<<<<<<< HEAD
-=======
 #挖矿难度
 powLimitBits = "0x1f00ffff"
 #区块包含最多交易数
@@ -159,18 +166,12 @@ powLimitBits = "0x1f2fffff"
 fundKeyAddr = "1Ji3W12KGScCM7C2p8bg635sNkayDM8MGY"
 
 [mver.consensus.ticket]
->>>>>>> upstream/master
 #用户回报
 coinReward = 18
 #发展基金回报
 coinDevFund = 12
 #ticket价格
 ticketPrice = 10000
-<<<<<<< HEAD
-#挖矿难度
-powLimitBits = "0x1f00ffff"
-=======
->>>>>>> upstream/master
 #每次调整难度的最大的范围，如果设置成 4 的话，范围是 (1/4 - 4)，一次不能增加 4倍以上的难度，或者难度减少为 原来的 1/4 ，这个参数，是为了难度不会突然爆增加或者减少
 retargetAdjustmentFactor = 4
 #表示如果区块时间大于当前时间 16s ，那么区块就会判定为无效区块。
@@ -179,11 +180,6 @@ futureBlockTime = 16
 ticketFrozenTime = 5    #5s only for test
 ticketWithdrawTime = 10 #10s only for test
 ticketMinerWaitTime = 2 #2s only for test
-<<<<<<< HEAD
-#区块包含最多交易数
-maxTxNumber = 1600      #160
-=======
->>>>>>> upstream/master
 #调整挖矿难度的间隔，(ps:难度不是每个区块都调整的，而是每隔 targetTimespan / targetTimePerBlock 块调整一次)
 targetTimespan = 2304
 #每个区块打包的目标时间
@@ -232,11 +228,7 @@ driver="leveldb"
 dbPath="datadir/mavltree"
 # Cache大小
 dbCache=128
-<<<<<<< HEAD
-# 数据库版本
-=======
 # local数据库版本
->>>>>>> upstream/master
 localdbVersion="1.0.0"
 # store数据库版本
 storedbVersion="1.0.0"
@@ -268,6 +260,8 @@ dbPath="wallet"
 dbCache=16
 # 钱包发送交易签名方式
 signType="secp256k1"
+# 钱包生成账户币种类型
+coinType="bty"
 
 [wallet.sub.ticket]
 # 是否关闭ticket自动挖矿，默认false
@@ -276,14 +270,7 @@ minerdisable=false
 minerwhitelist=["*"]
 
 [exec]
-#执行器执行是否免费
-isFree=false
-#执行器执行所需最小费用,低于Mempool和Wallet设置的MinFee,在minExecFee = 0 的情况下，isFree = true才会生效
-minExecFee=100000
-<<<<<<< HEAD
-=======
-maxExecFee=1000000000
->>>>>>> upstream/master
+#交易费相关统一在mempool中配置
 #是否开启stat插件
 enableStat=false
 #是否开启MVCC插件
@@ -318,11 +305,26 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 [exec.sub.manage]
 #manage执行器超级管理员地址
 superManager=[
-    "1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", 
-    "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 
+    "1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S",
+    "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv",
     "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"
 ]
 
 [exec.sub.autonomy]
 total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 useBalance=false
+
+[metrics]
+#是否使能发送metrics数据的发送
+enableMetrics=false
+#数据保存模式
+dataEmitMode="influxdb"
+
+[metrics.sub.influxdb]
+#以纳秒为单位的发送间隔
+duration=1000000000
+url="http://influxdb:8086"
+database="chain33metrics"
+username=""
+password=""
+namespace=""

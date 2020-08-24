@@ -28,7 +28,7 @@ func (execCode) GetFiles() map[string]string {
 
 func (execCode) GetFileReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagImportPath, types.TagClassName, types.TagExecFileContent}
+	return []string{types.TagExecName, types.TagImportPath, types.TagClassName, types.TagExecFileContent, types.TagExecObject}
 }
 
 type execLocalCode struct {
@@ -44,7 +44,7 @@ func (execLocalCode) GetFiles() map[string]string {
 
 func (execLocalCode) GetFileReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagImportPath, types.TagExecLocalFileContent}
+	return []string{types.TagExecName, types.TagImportPath, types.TagExecLocalFileContent, types.TagExecObject}
 }
 
 type execDelLocalCode struct {
@@ -60,7 +60,7 @@ func (execDelLocalCode) GetFiles() map[string]string {
 
 func (execDelLocalCode) GetFileReplaceTags() []string {
 
-	return []string{types.TagExecName, types.TagImportPath, types.TagExecDelLocalFileContent}
+	return []string{types.TagExecName, types.TagImportPath, types.TagExecDelLocalFileContent, types.TagExecObject}
 }
 
 var (
@@ -68,7 +68,7 @@ var (
 	execContent = `package executor
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -83,7 +83,7 @@ ${EXECFILECONTENT}`
 	execLocalContent = `package executor
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
+	${EXECNAME}types "${IMPORTPATH}/${EXECNAME}/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -92,13 +92,21 @@ import (
  * 非关键数据，本地存储(localDB), 用于辅助查询，效率高
 */
 
-${EXECLOCALFILECONTENT}`
+${EXECLOCALFILECONTENT}
+
+//设置自动回滚
+func (${EXEC_OBJECT} *${EXECNAME}) addAutoRollBack(tx *types.Transaction, kv []*types.KeyValue) *types.LocalDBSet {
+
+	dbSet := &types.LocalDBSet{}
+	dbSet.KV = ${EXEC_OBJECT}.AddRollbackKV(tx, tx.Execer, kv)
+	return dbSet
+}
+`
 
 	execDelName    = "exec_del_local.go"
 	execDelContent = `package executor
 
 import (
-	ptypes "${IMPORTPATH}/${EXECNAME}/types/${EXECNAME}"
 	"github.com/33cn/chain33/types"
 )
 
@@ -106,5 +114,15 @@ import (
  * 实现区块回退时本地执行的数据清除
 */
 
-${EXECDELLOCALFILECONTENT}`
+// ExecDelLocal 回退自动删除，重写基类
+func (${EXEC_OBJECT} *${EXECNAME}) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	kvs, err := ${EXEC_OBJECT}.DelRollbackKV(tx, tx.Execer)
+	if err != nil {
+		return nil, err
+	}
+	dbSet := &types.LocalDBSet{}
+	dbSet.KV = append(dbSet.KV, kvs...)
+	return dbSet, nil
+}
+`
 )

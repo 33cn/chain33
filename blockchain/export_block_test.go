@@ -17,20 +17,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func init() {
-	types.Init("local", nil)
-}
 func TestExportBlockProc(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	blockchain := mock33.GetBlockChain()
-	chainlog.Info("TestExportBlockProc begin --------------------")
+	chainlog.Debug("TestExportBlockProc begin --------------------")
 
 	//构造1030个区块
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 1030
 	var err error
+	cfg := mock33.GetClient().GetConfig()
 	for {
-		_, err = addMainTx(mock33.GetGenesisKey(), mock33.GetAPI())
+		_, err = addMainTx(cfg, mock33.GetGenesisKey(), mock33.GetAPI())
 		require.NoError(t, err)
 
 		curheight = blockchain.GetBlockHeight()
@@ -46,7 +44,12 @@ func TestExportBlockProc(t *testing.T) {
 	title := mock33.GetCfg().Title
 	driver := mock33.GetCfg().BlockChain.Driver
 	dbPath := ""
-	blockchain.ExportBlock(title, dbPath, 0)
+
+	//异常测试
+	err = blockchain.ExportBlock(title, dbPath, 10000)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
+	err = blockchain.ExportBlock(title, dbPath, 0)
 	require.NoError(t, err)
 	//读取文件头信息
 	db := dbm.NewDB(title, driver, dbPath, 4)
@@ -63,14 +66,22 @@ func TestExportBlockProc(t *testing.T) {
 	mock33.Close()
 
 	testImportBlockProc(t)
-	chainlog.Info("TestExportBlock end --------------------")
+
+	//异常测试
+	err = blockchain.ExportBlock(title, dbPath, -1)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
+	err = blockchain.ExportBlock("test", dbPath, 0)
+	assert.Equal(t, err, types.ErrInvalidParam)
+
+	chainlog.Debug("TestExportBlock end --------------------")
 }
 
 func testImportBlockProc(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
 	blockchain := mock33.GetBlockChain()
-	chainlog.Info("TestImportBlockProc begin --------------------")
+	chainlog.Debug("TestImportBlockProc begin --------------------")
 	title := mock33.GetCfg().Title
 	dbPath := ""
 	driver := mock33.GetCfg().BlockChain.Driver
@@ -87,10 +98,11 @@ func testImportBlockProc(t *testing.T) {
 	err = blockchain.ImportBlock(title, dbPath)
 	require.NoError(t, err)
 	curHeader, err := blockchain.ProcGetLastHeaderMsg()
+	require.NoError(t, err)
 	assert.Equal(t, curHeader.Height, endBlock.GetHeight())
 	assert.Equal(t, curHeader.GetHash(), endBlock.GetHash())
 	file := title + ".db"
 	os.RemoveAll(file)
 
-	chainlog.Info("TestImportBlockProc end --------------------")
+	chainlog.Debug("TestImportBlockProc end --------------------")
 }

@@ -37,6 +37,7 @@ const (
 // Driver defines some interface
 type Driver interface {
 	SetStateDB(dbm.KV)
+	SetCoinsAccount(*account.DB)
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
 	//当前交易执行器名称
@@ -73,6 +74,7 @@ type Driver interface {
 	GetExecutorType() types.ExecutorType
 	CheckReceiptExecOk() bool
 	ExecutorOrder() int64
+	Upgrade() (*types.LocalDBSet, error)
 }
 
 // DriverBase defines driverbase type
@@ -97,6 +99,12 @@ type DriverBase struct {
 	ety                  types.ExecutorType
 }
 
+//Upgrade default upgrade only print a message
+func (d *DriverBase) Upgrade() (*types.LocalDBSet, error) {
+	blog.Info("upgrade ", "dapp", d.GetName())
+	return nil, nil
+}
+
 // GetPayloadValue define get payload func
 func (d *DriverBase) GetPayloadValue() types.Message {
 	if d.ety == nil {
@@ -118,7 +126,9 @@ func (d *DriverBase) ExecutorOrder() int64 {
 
 //GetLastHash 获取最后区块的hash，主链和平行链不同
 func (d *DriverBase) GetLastHash() []byte {
-	if types.IsPara() {
+	types.AssertConfig(d.api)
+	cfg := d.api.GetConfig()
+	if cfg.IsPara() {
 		return d.mainHash
 	}
 	return d.parentHash
@@ -225,7 +235,7 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 
 	defer func() {
 		if r := recover(); r != nil {
-			blog.Error("call localexec error", "prefix", prefix, "tx.exec", tx.Execer, "info", r)
+			blog.Error("call localexec error", "prefix", prefix, "tx.exec", string(tx.Execer), "info", r)
 			err = types.ErrActionNotSupport
 			set = nil
 		}
@@ -265,16 +275,15 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 }
 
 // CheckAddress check address
-func CheckAddress(addr string, height int64) error {
+func CheckAddress(cfg *types.Chain33Config, addr string, height int64) error {
 	if IsDriverAddress(addr, height) {
 		return nil
 	}
 	err := address.CheckAddress(addr)
-
-	if !types.IsFork(height, "ForkMultiSignAddress") && err == address.ErrCheckVersion {
+	if !cfg.IsFork(height, "ForkMultiSignAddress") && err == address.ErrCheckVersion {
 		return nil
 	}
-	if !types.IsFork(height, "ForkBase58AddressCheck") && err == address.ErrAddressChecksum {
+	if !cfg.IsFork(height, "ForkBase58AddressCheck") && err == address.ErrAddressChecksum {
 		return nil
 	}
 
@@ -288,7 +297,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			blog.Error("call exec error", "tx.exec", tx.Execer, "info", r)
+			blog.Error("call exec error", "tx.exec", string(tx.Execer), "info", r)
 			err = types.ErrActionNotSupport
 			receipt = nil
 		}
@@ -348,7 +357,8 @@ func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
 		//log.Error("new CoinsAccount")
-		d.coinsaccount = account.NewCoinsAccount()
+		types.AssertConfig(d.api)
+		d.coinsaccount = account.NewCoinsAccount(d.api.GetConfig())
 	}
 	d.statedb = db
 	d.coinsaccount.SetDB(db)
@@ -364,10 +374,12 @@ func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
 	if c <= 0 || c > int(types.MaxTxGroupSize) {
 		return nil, types.ErrTxGroupCount
 	}
+	types.AssertConfig(d.api)
+	cfg := d.api.GetConfig()
 	for i := index; i >= 0 && i >= index-c; i-- {
 		if bytes.Equal(d.txs[i].Header, d.txs[i].Hash()) { //find header
 			txgroup := types.Transactions{Txs: d.txs[i : i+c]}
-			err := txgroup.Check(d.GetHeight(), types.GInt("MinFee"), types.GInt("MaxFee"))
+			err := txgroup.Check(cfg, d.GetHeight(), cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
 			if err != nil {
 				return nil, err
 			}
@@ -409,7 +421,8 @@ func (d *DriverBase) GetHeight() int64 {
 
 // GetMainHeight return height
 func (d *DriverBase) GetMainHeight() int64 {
-	if types.IsPara() {
+	types.AssertConfig(d.api)
+	if d.api.GetConfig().IsPara() {
 		return d.mainHeight
 	}
 	return d.height
@@ -461,10 +474,16 @@ func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 	return true
 }
 
+// SetCoinsAccount sets coins account.
+func (d *DriverBase) SetCoinsAccount(acc *account.DB) {
+	d.coinsaccount = acc
+}
+
 // GetCoinsAccount get coins account
 func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
-		d.coinsaccount = account.NewCoinsAccount()
+		types.AssertConfig(d.api)
+		d.coinsaccount = account.NewCoinsAccount(d.api.GetConfig())
 		d.coinsaccount.SetDB(d.statedb)
 	}
 	return d.coinsaccount

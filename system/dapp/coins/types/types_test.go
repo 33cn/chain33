@@ -9,12 +9,11 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/types"
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTypeReflact(t *testing.T) {
-	ty := NewType()
+	ty := NewType(types.NewChain33Config(types.GetDefaultCfgstring()))
 	assert.NotNil(t, ty)
 	//创建一个json字符串
 	data, err := types.PBToJSON(&types.AssetsTransfer{Amount: 10})
@@ -32,7 +31,7 @@ func TestTypeReflact(t *testing.T) {
 }
 
 func TestCoinsType(t *testing.T) {
-	ty := NewType()
+	ty := NewType(types.NewChain33Config(types.GetDefaultCfgstring()))
 	payload := ty.GetPayload()
 	assert.Equal(t, &CoinsAction{}, payload.(*CoinsAction))
 
@@ -40,27 +39,29 @@ func TestCoinsType(t *testing.T) {
 	assert.Equal(t, logmap, ty.GetLogMap())
 	assert.Equal(t, actionName, ty.GetTypeMap())
 
-	create := &types.CreateTx{}
+	create := &types.CreateTx{TokenSymbol: "NotMe"}
 	tx, err := ty.RPC_Default_Process("transfer", create)
 	assert.NoError(t, err)
 
-	_, err = ty.GetAssets(tx)
+	assets, err := ty.GetAssets(tx)
 	assert.NoError(t, err)
+	assert.Equal(t, 1, len(assets))
+	assert.Equal(t, "BTY", assets[0].GetSymbol())
 }
 
 func TestCoinsPb(t *testing.T) {
-	b := &proto.Buffer{}
+	var b []byte
 	ca := &CoinsAction{Value: &CoinsAction_Transfer{&types.AssetsTransfer{}}}
 	var err error
 
 	transfer := ca.GetTransfer()
 	assert.NotNil(t, transfer)
-	err = _CoinsAction_OneofMarshaler(ca, b)
+	_, err = xxx_messageInfo_CoinsAction.Marshal(b, ca, true)
 	assert.NoError(t, err)
 
 	ca.Value = &CoinsAction_Genesis{&types.AssetsGenesis{}}
 	genesis := ca.GetGenesis()
 	assert.NotNil(t, genesis)
-	err = _CoinsAction_OneofMarshaler(ca, b)
+	_, err = xxx_messageInfo_CoinsAction.Marshal(b, ca, true)
 	assert.NoError(t, err)
 }

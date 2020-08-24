@@ -26,8 +26,9 @@ func TestNeedReExec(t *testing.T) {
 			assert.Equal(t, r, "not support degrade the program")
 		}
 	}()
-	cfg, sub := testnode.GetDefaultConfig()
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	mock33 := testnode.NewWithConfig(cfg, nil)
+
 	//发送交易
 	chain := mock33.GetBlockChain()
 	// 相当于数据库中的版本
@@ -60,38 +61,54 @@ func TestNeedReExec(t *testing.T) {
 	}
 }
 
+func GetAddrTxsCount(db dbm.DB, addr string) (int64, error) {
+	count := types.Int64{}
+	TxsCount, err := db.Get(types.CalcAddrTxsCountKey(addr))
+	if err != nil && err != types.ErrNotFound {
+		return 0, err
+	}
+	if len(TxsCount) == 0 {
+		return 0, nil
+	}
+	err = types.Decode(TxsCount, &count)
+	if err != nil {
+		return 0, err
+	}
+	return count.Data, nil
+}
+
 func TestUpgradeStore(t *testing.T) {
-	cfg, sub := testnode.GetDefaultConfig()
-	cfg.BlockChain.EnableReExecLocal = true
-	mock33 := testnode.NewWithConfig(cfg, sub, nil)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	cfg.GetModuleConfig().BlockChain.EnableReExecLocal = true
+	mock33 := testnode.NewWithConfig(cfg, nil)
 	//发送交易
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), 22)
+	assert.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
-	txs := util.GenCoinsTxs(mock33.GetGenesisKey(), 10)
+	txs := util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(1)
-	txs = util.GenCoinsTxs(mock33.GetGenesisKey(), 10)
+	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(2)
-	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 1)
+	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 1)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
 		assert.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(3)
-	txs = util.GenNoneTxs(mock33.GetGenesisKey(), 2)
+	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 2)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
 		assert.Nil(t, err)
@@ -107,20 +124,4 @@ func TestUpgradeStore(t *testing.T) {
 	count2, err := GetAddrTxsCount(db, addr)
 	assert.NoError(t, err)
 	assert.Equal(t, count1, count2)
-}
-
-func GetAddrTxsCount(db dbm.DB, addr string) (int64, error) {
-	count := types.Int64{}
-	TxsCount, err := db.Get(types.CalcAddrTxsCountKey(addr))
-	if err != nil && err != types.ErrNotFound {
-		return 0, err
-	}
-	if len(TxsCount) == 0 {
-		return 0, nil
-	}
-	err = types.Decode(TxsCount, &count)
-	if err != nil {
-		return 0, err
-	}
-	return count.Data, nil
 }

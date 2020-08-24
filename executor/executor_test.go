@@ -7,9 +7,11 @@ package executor
 import (
 	"encoding/hex"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/client/api"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/queue"
@@ -21,8 +23,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	types.Init("local", nil)
+func initEnv(cfgstring string) (*Executor, queue.Queue) {
+	cfg := types.NewChain33Config(cfgstring)
+	q := queue.New("channel")
+	q.SetConfig(cfg)
+	exec := New(cfg)
+	exec.client = q.Client()
+	exec.qclient, _ = client.New(exec.client, nil)
+	return exec, q
 }
 
 func TestIsModule(t *testing.T) {
@@ -31,17 +39,19 @@ func TestIsModule(t *testing.T) {
 }
 
 func TestExecutorGetTxGroup(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
 	execInit(nil)
 	var txs []*types.Transaction
 	addr2, priv2 := util.Genaddress()
 	addr3, priv3 := util.Genaddress()
 	addr4, _ := util.Genaddress()
 	genkey := util.TestPrivkeyList[0]
-	txs = append(txs, util.CreateCoinsTx(genkey, addr2, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(priv2, addr3, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(priv3, addr4, types.Coin))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.Coin))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.Coin))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.Coin))
 	//执行三笔交易: 全部正确
-	txgroup, err := types.CreateTxGroup(txs, types.GInt("MinFee"))
+	txgroup, err := types.CreateTxGroup(txs, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return
@@ -59,7 +69,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	execute := newExecutor(ctx, &Executor{}, nil, txs, nil)
+	execute := newExecutor(ctx, exec, nil, txs, nil)
 	e := execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	txs2 := e.GetTxs()
@@ -74,7 +84,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 	//err tx group list
 	txs[0].Header = nil
-	execute = newExecutor(ctx, &Executor{}, nil, txs, nil)
+	execute = newExecutor(ctx, exec, nil, txs, nil)
 	e = execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	_, err = e.GetTxGroup(len(txs) - 1)
@@ -83,9 +93,11 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 //gen 1万币需要 2s，主要是签名的花费
 func BenchmarkGenRandBlock(b *testing.B) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
 	_, key := util.Genaddress()
 	for i := 0; i < b.N; i++ {
-		util.CreateNoneBlock(key, 10000)
+		util.CreateNoneBlock(cfg, key, 10000)
 	}
 }
 
@@ -101,6 +113,7 @@ func TestLoadDriver(t *testing.T) {
 }
 
 func TestKeyAllow(t *testing.T) {
+	exect, _ := initEnv(types.GetDefaultCfgstring())
 	execInit(nil)
 	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
 	exec := []byte("retrieve")
@@ -117,13 +130,14 @@ func TestKeyAllow(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	execute := newExecutor(ctx, exect, nil, nil, nil)
 	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("retrieve can modify exec")
 	}
 }
 
 func TestKeyAllow_evm(t *testing.T) {
+	exect, _ := initEnv(types.GetDefaultCfgstring())
 	execInit(nil)
 	key := []byte("mavl-coins-bty-exec-1GacM93StrZveMrPjXDoz5TxajKa9LM5HG:19EJVYexvSn1kZ6MWiKcW14daXsPpdVDuF")
 	exec := []byte("user.evm.0xc79c9113a71c0a4244e20f0780e7c13552f40ee30b05998a38edb08fe617aaa5")
@@ -140,7 +154,7 @@ func TestKeyAllow_evm(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	execute := newExecutor(ctx, &Executor{}, nil, nil, nil)
+	execute := newExecutor(ctx, exect, nil, nil, nil)
 	if !isAllowKeyWrite(execute, key, exec, &tx12, 0) {
 		t.Error("user.evm.hash can modify exec")
 	}
@@ -148,31 +162,41 @@ func TestKeyAllow_evm(t *testing.T) {
 }
 
 func TestKeyLocalAllow(t *testing.T) {
-	err := isAllowLocalKey([]byte("token"), []byte("LODB-token-"))
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	err := isAllowLocalKey(cfg, []byte("token"), []byte("LODB-token-"))
 	assert.Equal(t, err, types.ErrLocalKeyLen)
-	err = isAllowLocalKey([]byte("token"), []byte("LODB_token-a"))
+	err = isAllowLocalKey(cfg, []byte("token"), []byte("LODB_token-a"))
 	assert.Equal(t, err, types.ErrLocalPrefix)
-	err = isAllowLocalKey([]byte("token"), []byte("LODB-token-a"))
+	err = isAllowLocalKey(cfg, []byte("token"), []byte("LODB-token-a"))
 	assert.Nil(t, err)
-	err = isAllowLocalKey([]byte(""), []byte("LODB--a"))
+	err = isAllowLocalKey(cfg, []byte(""), []byte("LODB--a"))
 	assert.Equal(t, err, types.ErrLocalPrefix)
-	err = isAllowLocalKey([]byte("exec"), []byte("LODB-execaa"))
+	err = isAllowLocalKey(cfg, []byte("exec"), []byte("LODB-execaa"))
 	assert.Equal(t, err, types.ErrLocalPrefix)
-	err = isAllowLocalKey([]byte("exec"), []byte("-exec------aa"))
+	err = isAllowLocalKey(cfg, []byte("exec"), []byte("-exec------aa"))
 	assert.Equal(t, err, types.ErrLocalPrefix)
-	err = isAllowLocalKey([]byte("paracross"), []byte("LODB-user.p.para.paracross-xxxx"))
+	err = isAllowLocalKey(cfg, []byte("paracross"), []byte("LODB-user.p.para.paracross-xxxx"))
 	assert.Equal(t, err, types.ErrLocalPrefix)
-	err = isAllowLocalKey([]byte("user.p.para.paracross"), []byte("LODB-user.p.para.paracross-xxxx"))
+	err = isAllowLocalKey(cfg, []byte("user.p.para.paracross"), []byte("LODB-user.p.para.paracross-xxxx"))
 	assert.Nil(t, err)
-	err = isAllowLocalKey([]byte("user.p.para.user.wasm.abc"), []byte("LODB-user.p.para.user.wasm.abc-xxxx"))
+	err = isAllowLocalKey(cfg, []byte("user.p.para.user.wasm.abc"), []byte("LODB-user.p.para.user.wasm.abc-xxxx"))
 	assert.Nil(t, err)
-	err = isAllowLocalKey([]byte("user.p.para.paracross"), []byte("LODB-paracross-xxxx"))
+	err = isAllowLocalKey(cfg, []byte("user.p.para.paracross"), []byte("LODB-paracross-xxxx"))
 	assert.Nil(t, err)
 }
 
 func init() {
-	drivers.Register("demo", newdemoApp, 1)
-	types.AllowUserExec = append(types.AllowUserExec, []byte("demo"))
+	types.AllowUserExec = append(types.AllowUserExec, []byte("demo"), []byte("demof"))
+}
+
+var testRegOnce sync.Once
+
+func Register(cfg *types.Chain33Config) {
+	testRegOnce.Do(func() {
+		drivers.Register(cfg, "demo", newdemoApp, 1)
+		drivers.Register(cfg, "demof", newdemofApp, 1)
+	})
 }
 
 //ErrEnvAPI 测试
@@ -194,16 +218,55 @@ func (demo *demoApp) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	return nil, queue.ErrQueueTimeout
 }
 
+func (demo *demoApp) Upgrade() (*types.LocalDBSet, error) {
+	db := demo.GetLocalDB()
+	db.Set([]byte("LODB-demo-a"), []byte("t1"))
+	db.Set([]byte("LODB-demo-b"), []byte("t2"))
+	var kvset types.LocalDBSet
+	kvset.KV = []*types.KeyValue{
+		{Key: []byte("LODB-demo-a"), Value: []byte("t1")},
+		{Key: []byte("LODB-demo-b"), Value: []byte("t2")},
+	}
+	return &kvset, nil
+}
+
+type demofApp struct {
+	*drivers.DriverBase
+}
+
+func newdemofApp() drivers.Driver {
+	demo := &demofApp{DriverBase: &drivers.DriverBase{}}
+	demo.SetChild(demo)
+	return demo
+}
+
+func (demo *demofApp) GetDriverName() string {
+	return "demof"
+}
+
+func (demo *demofApp) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
+	return nil, queue.ErrQueueTimeout
+}
+
+func (demo *demofApp) Upgrade() (kvset *types.LocalDBSet, err error) {
+	return nil, types.ErrInvalidParam
+}
+
 func TestExecutorErrAPIEnv(t *testing.T) {
-	minfee := types.GInt("MinFee")
-	types.SetMinFee(0)
-	defer types.SetMinFee(minfee)
-	q := queue.New("channel")
-	exec := &Executor{client: q.Client(), disableLocal: true}
-	execInit(nil)
+	exec, q := initEnv(types.GetDefaultCfgstring())
+	exec.disableLocal = true
+	cfg := exec.client.GetConfig()
+	cfg.SetMinFee(0)
+	Register(cfg)
+	execInit(cfg)
+
+	store := store.New(cfg)
+	store.SetQueueClient(q.Client())
+	defer store.Close()
+
 	var txs []*types.Transaction
 	genkey := util.TestPrivkeyList[0]
-	txs = append(txs, util.CreateTxWithExecer(genkey, "demo"))
+	txs = append(txs, util.CreateTxWithExecer(cfg, genkey, "demo"))
 	txlist := &types.ExecTxList{
 		StateHash:  nil,
 		Height:     1,
@@ -221,20 +284,16 @@ func TestExecutorErrAPIEnv(t *testing.T) {
 	assert.Equal(t, true, api.IsAPIEnvError(err))
 }
 func TestCheckTx(t *testing.T) {
-	prev := types.GInt("MinFee")
-	types.SetMinFee(100000)
-	defer types.SetMinFee(prev)
+	exec, q := initEnv(types.ReadFile("../cmd/chain33/chain33.test.toml"))
+	cfg := exec.client.GetConfig()
 
-	q := queue.New("channel")
-
-	cfg, sub := types.InitCfg("../cmd/chain33/chain33.test.toml")
-	store := store.New(cfg.Store, sub.Store)
+	store := store.New(cfg)
 	store.SetQueueClient(q.Client())
 	defer store.Close()
 
 	addr, priv := util.Genaddress()
 
-	tx := util.CreateCoinsTx(priv, addr, types.Coin)
+	tx := util.CreateCoinsTx(cfg, priv, addr, types.Coin)
 	tx.Execer = []byte("user.xxx")
 	tx.To = address.ExecAddress("user.xxx")
 	tx.Fee = 2 * types.Coin
@@ -250,7 +309,48 @@ func TestCheckTx(t *testing.T) {
 		mainHash:   nil,
 		parentHash: nil,
 	}
-	execute := newExecutor(ctx, &Executor{}, nil, txs, nil)
+	execute := newExecutor(ctx, exec, nil, txs, nil)
 	err := execute.execCheckTx(tx, 0)
 	assert.Equal(t, err, types.ErrNoBalance)
+}
+
+func TestExecutorUpgradeMsg(t *testing.T) {
+	exec, q := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	cfg.SetMinFee(0)
+	Register(cfg)
+	execInit(cfg)
+
+	exec.SetQueueClient(q.Client())
+	client := q.Client()
+	msg := client.NewMessage("execs", types.EventUpgrade, nil)
+	err := client.Send(msg, true)
+	assert.Nil(t, err)
+}
+
+func TestExecutorPluginUpgrade(t *testing.T) {
+	exec, q := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	cfg.SetMinFee(0)
+	Register(cfg)
+	execInit(cfg)
+
+	go func() {
+		client := q.Client()
+		client.Sub("blockchain")
+		for msg := range client.Recv() {
+			if msg.Ty == types.EventLocalNew {
+				msg.Reply(client.NewMessage("", types.EventHeader, &types.Int64{Data: 100}))
+			} else {
+				msg.Reply(client.NewMessage("", types.EventHeader, &types.Header{Height: 100}))
+			}
+		}
+	}()
+
+	kvset, err := exec.upgradePlugin("demo")
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(kvset.GetKV()))
+	kvset, err = exec.upgradePlugin("demof")
+	assert.NotNil(t, err)
+	assert.Nil(t, kvset)
 }

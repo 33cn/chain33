@@ -66,6 +66,36 @@ func CalcBitMapByBitMap(bases, subs [][]byte, bitmap []byte) []byte {
 	return rst.Bytes()
 }
 
+//SetAddrsBitMap 设置addrGroup范围内的bitmap，如果addrs在addrGroup不存在，也不设置,返回未命中的addrs
+func SetAddrsBitMap(addrGroup, addrs []string) ([]byte, map[string]bool) {
+	rst := big.NewInt(0)
+	addrsMap := make(map[string]bool)
+	for _, n := range addrs {
+		addrsMap[n] = true
+	}
+
+	for i, a := range addrGroup {
+		if _, exist := addrsMap[a]; exist {
+			rst.SetBit(rst, i, 1)
+			delete(addrsMap, a)
+		}
+	}
+	return rst.Bytes(), addrsMap
+}
+
+//GetAddrsByBitMap 根据bitmap获取addrGroup范围内的addrs，
+func GetAddrsByBitMap(addrGroup []string, bitmap []byte) []string {
+	rst := big.NewInt(0).SetBytes(bitmap)
+	addrs := make([]string, 0)
+
+	for i, a := range addrGroup {
+		if rst.Bit(i) == uint(0x1) {
+			addrs = append(addrs, a)
+		}
+	}
+	return addrs
+}
+
 //BitMapBit :index begin from 0, find the index bit, 1 or 0
 func BitMapBit(bitmap []byte, index uint32) bool {
 	rst := big.NewInt(0).SetBytes(bitmap)

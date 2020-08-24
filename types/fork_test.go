@@ -11,19 +11,18 @@ import (
 )
 
 func TestForks(t *testing.T) {
-	setLocalFork()
-	assert.Equal(t, systemFork.IsFork("abc", 1, "ForkV1"), false)
-	assert.Equal(t, systemFork.IsFork("abc", 1, "ForkV12"), false)
-	assert.Equal(t, systemFork.IsFork("bityuan", 1, "ForkTransferExec"), false)
-	assert.Equal(t, systemFork.IsFork("local", 0, "ForkBlockHash"), false)
-	assert.Equal(t, systemFork.IsFork("local", 1, "ForkBlockHash"), true)
-	assert.Equal(t, systemFork.IsFork("local", 1, "ForkTransferExec"), true)
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	cfg.forks.setLocalFork()
+	assert.Equal(t, cfg.forks.IsFork(1, "ForkV1"), false)
+	assert.Equal(t, cfg.forks.IsFork(1, "ForkV12"), false)
+	assert.Equal(t, cfg.forks.IsFork(0, "ForkBlockHash"), false)
+	assert.Equal(t, cfg.forks.IsFork(1, "ForkBlockHash"), true)
+	assert.Equal(t, cfg.forks.IsFork(1, "ForkTransferExec"), true)
+	assert.Equal(t, cfg.forks.IsFork(0, "ForkBlockHash"), false)
+	assert.Equal(t, cfg.forks.IsFork(1, "ForkBlockHash"), true)
 }
 
 func TestParaFork(t *testing.T) {
-	cfg, _ := InitCfg("testdata/guodun.toml")
-	Init(cfg.Title, cfg)
-
-	cfg, _ = InitCfg("testdata/guodun2.toml")
-	Init(cfg.Title, cfg)
+	NewChain33Config(ReadFile("testdata/guodun.toml"))
+	NewChain33Config(ReadFile("testdata/guodun2.toml"))
 }

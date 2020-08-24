@@ -14,10 +14,9 @@ import (
 	"github.com/tjfoc/gmsm/sm2"
 )
 
-//Signature 签名
-type Signature struct {
-	R, S *big.Int
-}
+const (
+	pubkeyUncompressed byte = 0x4 // x coord + y coord
+)
 
 func canonicalizeInt(val *big.Int) []byte {
 	b := val.Bytes()
@@ -62,23 +61,6 @@ func Deserialize(sigStr []byte) (*big.Int, *big.Int, error) {
 	return sig.R, sig.S, nil
 }
 
-//ToLowS ...
-func ToLowS(k *sm2.PublicKey, s *big.Int) *big.Int {
-	lowS := IsLowS(s)
-	if !lowS && k.Curve != sm2.P256Sm2() {
-		s.Sub(k.Params().N, s)
-
-		return s
-	}
-
-	return s
-}
-
-//IsLowS ...
-func IsLowS(s *big.Int) bool {
-	return s.Cmp(new(big.Int).Rsh(sm2.P256Sm2().Params().N, 1)) != 1
-}
-
 func parsePubKey(pubKeyStr []byte, curve elliptic.Curve) (key *sm2.PublicKey, err error) {
 	pubkey := sm2.PublicKey{}
 	pubkey.Curve = curve
@@ -102,9 +84,13 @@ func parsePubKey(pubKeyStr []byte, curve elliptic.Curve) (key *sm2.PublicKey, er
 }
 
 //SerializePublicKey 公钥序列化
-func SerializePublicKey(p *sm2.PublicKey) []byte {
+func SerializePublicKey(p *sm2.PublicKey, isCompress bool) []byte {
+	if isCompress {
+		return sm2.Compress(p)
+	}
+
 	b := make([]byte, 0, SM2PublicKeyLength)
-	b = append(b, 0x4)
+	b = append(b, pubkeyUncompressed)
 	b = paddedAppend(32, b, p.X.Bytes())
 	return paddedAppend(32, b, p.Y.Bytes())
 }

@@ -7,6 +7,7 @@ package client_test
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/version"
@@ -29,7 +30,8 @@ var (
 func TestMain(m *testing.M) {
 	mock.grpcMock = &grpcMock
 	mock.jrpcMock = &jrpc
-	pluginmgr.InitExec(nil)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	pluginmgr.InitExec(cfg)
 	api = mock.startup(0)
 	flag := m.Run()
 	mock.stop()
@@ -38,8 +40,8 @@ func TestMain(m *testing.M) {
 
 func TestQueueProtocolAPI(t *testing.T) {
 	var option client.QueueProtocolOption
-	option.SendTimeout = 100
-	option.WaitTimeout = 200
+	option.SendTimeout = time.Millisecond
+	option.WaitTimeout = 2 * time.Millisecond
 
 	_, err := client.New(nil, nil)
 	if err == nil {
@@ -54,6 +56,8 @@ func TestQueueProtocolAPI(t *testing.T) {
 	if qc == nil {
 		t.Error("queueprotoapi object is nil")
 	}
+	_, err = qc.Notify("", 1, "data")
+	assert.Nil(t, err)
 
 }
 
@@ -65,17 +69,6 @@ func TestQueueProtocol(t *testing.T) {
 	testQueryTx(t, api)
 	testGetTransactionByHash(t, api)
 	testGetMempool(t, api)
-	testWalletGetAccountList(t, api)
-	testNewAccount(t, api)
-	testWalletTransactionList(t, api)
-	testWalletImportprivkey(t, api)
-	testWalletSendToAddress(t, api)
-	testWalletSetFee(t, api)
-	testWalletSetLabel(t, api)
-	testWalletMergeBalance(t, api)
-	testWalletSetPasswd(t, api)
-	testWalletLock(t, api)
-	testWalletUnLock(t, api)
 	testPeerInfo(t, api)
 	testGetHeaders(t, api)
 	testGetLastMempool(t, api)
@@ -83,18 +76,18 @@ func TestQueueProtocol(t *testing.T) {
 	testGetBlockOverview(t, api)
 	testGetAddrOverview(t, api)
 	testGetBlockHash(t, api)
-	testGenSeed(t, api)
-	testSaveSeed(t, api)
-	testGetSeed(t, api)
-	testGetWalletStatus(t, api)
-	testDumpPrivkey(t, api)
+	testGetBlockByHashes(t, api)
+	testGetBlockSequences(t, api)
+	testAddSeqCallBack(t, api)
+	testListSeqCallBack(t, api)
+	testGetSeqCallBackLastNum(t, api)
+	testGetLastBlockSequence(t, api)
 	testIsSync(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
 	testLocalTransaction(t, api)
 	testLocalList(t, api)
 	testGetLastHeader(t, api)
-	testSignRawTx(t, api)
 	testStoreSet(t, api)
 	testStoreGet(t, api)
 	testStoreMemSet(t, api)
@@ -104,6 +97,17 @@ func TestQueueProtocol(t *testing.T) {
 	testStoreGetTotalCoins(t, api)
 	testStoreList(t, api)
 	testBlockChainQuery(t, api)
+	testQueryConsensus(t, api)
+	testExecWalletFunc(t, api)
+	testGetSequenceByHash(t, api)
+}
+
+func testGetSequenceByHash(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.GetSequenceByHash(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
+	res, err := api.GetSequenceByHash(&types.ReqHash{})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.Int64{Data: 1}, res)
 }
 
 func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
@@ -125,6 +129,100 @@ func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
 		require.Equalf(t, err, test.actualErr, "testBlockChainQuery case index %d", index)
 		require.Equalf(t, res, test.actualRes, "testBlockChainQuery case index %d", index)
 	}
+
+	_, err := api.Query("", "", nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.Query("", "", testCases[1].param)
+	assert.Nil(t, err)
+	assert.Equal(t, res, testCases[1].actualRes)
+}
+
+func testQueryConsensus(t *testing.T, api client.QueueProtocolAPI) {
+	testCases := []struct {
+		param     *types.ChainExecutor
+		actualRes types.Message
+		actualErr error
+	}{
+		{
+			actualErr: types.ErrInvalidParam,
+		},
+		{
+			param:     &types.ChainExecutor{},
+			actualRes: &types.Reply{},
+		},
+	}
+	for index, test := range testCases {
+		res, err := api.QueryConsensus(test.param)
+		require.Equalf(t, err, test.actualErr, "testQueryConsensus case index %d", index)
+		require.Equalf(t, res, test.actualRes, "testQueryConsensus case index %d", index)
+	}
+
+	_, err := api.QueryConsensusFunc("", "", nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.QueryConsensusFunc("", "", testCases[1].param)
+	assert.Nil(t, err)
+	assert.Equal(t, res, testCases[1].actualRes)
+}
+
+func testExecWalletFunc(t *testing.T, api client.QueueProtocolAPI) {
+	testCases := []struct {
+		param     *types.ChainExecutor
+		actualRes types.Message
+		actualErr error
+	}{
+		{
+			actualErr: types.ErrInvalidParam,
+		},
+		{
+			param:     &types.ChainExecutor{},
+			actualRes: &types.Reply{},
+		},
+	}
+	for index, test := range testCases {
+		res, err := api.ExecWallet(test.param)
+		require.Equalf(t, err, test.actualErr, "testQueryConsensus case index %d", index)
+		require.Equalf(t, res, test.actualRes, "testQueryConsensus case index %d", index)
+	}
+
+	_, err := api.ExecWalletFunc("", "", nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.ExecWalletFunc("", "", testCases[1].param)
+	assert.Nil(t, err)
+	assert.Equal(t, res, testCases[1].actualRes)
+}
+
+func testGetBlockByHashes(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.GetBlockByHashes(nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{}})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.BlockDetails{}, res)
+}
+
+func testGetBlockSequences(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.GetBlockSequences(nil)
+	assert.EqualError(t, types.ErrInvalidParam, err.Error())
+	res, err := api.GetBlockSequences(&types.ReqBlocks{Start: 0, End: 1})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.BlockSequences{}, res)
+}
+
+func testAddSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {
+	res, err := api.AddPushSubscribe(&types.PushSubscribeReq{})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.ReplySubscribePush{}, res)
+}
+
+func testListSeqCallBack(t *testing.T, api client.QueueProtocolAPI) {
+	res, err := api.ListPushes()
+	assert.Nil(t, err)
+	assert.Equal(t, &types.PushSubscribes{}, res)
+}
+
+func testGetSeqCallBackLastNum(t *testing.T, api client.QueueProtocolAPI) {
+	res, err := api.GetPushSeqLastNum(&types.ReqString{})
+	assert.Nil(t, err)
+	assert.Equal(t, &types.Int64{}, res)
 }
 
 func testStoreSet(t *testing.T, api client.QueueProtocolAPI) {
@@ -226,21 +324,6 @@ func testStoreList(t *testing.T, api client.QueueProtocolAPI) {
 	}
 }
 
-func testSignRawTx(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.SignRawTx(&types.ReqSignRawTx{})
-	if err != nil {
-		t.Error("Call SignRawTx Failed.", err)
-	}
-	_, err = api.SignRawTx(nil)
-	if err == nil {
-		t.Error("SignRawTx(nil) need return error.")
-	}
-	_, err = api.SignRawTx(&types.ReqSignRawTx{Addr: "case1"})
-	if err == nil {
-		t.Error("SignRawTx(&types.ReqStr{Addr:\"case1\"}) need return error.")
-	}
-}
-
 func testGetLastHeader(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.GetLastHeader()
 	if err != nil {
@@ -271,15 +354,21 @@ func testLocalList(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testLocalTransaction(t *testing.T, api client.QueueProtocolAPI) {
-	txid, err := api.LocalNew(nil)
+	txid, err := api.LocalNew(false)
 	assert.Nil(t, err)
 	assert.Equal(t, txid.Data, int64(9999))
 	err = api.LocalBegin(txid)
 	assert.Nil(t, err)
+	err = api.LocalCommit(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
 	err = api.LocalCommit(txid)
 	assert.Nil(t, err)
+	err = api.LocalRollback(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
 	err = api.LocalRollback(txid)
 	assert.Nil(t, err)
+	err = api.LocalSet(nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
 	param := &types.LocalDBSet{Txid: txid.Data}
 	err = api.LocalSet(param)
 	assert.Nil(t, err)
@@ -298,73 +387,6 @@ func testIsSync(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.IsSync()
 	if err != nil {
 		t.Error("Call IsSync Failed.", err)
-	}
-}
-
-func testDumpPrivkey(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.DumpPrivkey(&types.ReqString{})
-	if err != nil {
-		t.Error("Call DumpPrivkey Failed.", err)
-	}
-	_, err = api.DumpPrivkey(nil)
-	if err == nil {
-		t.Error("DumpPrivkey(nil) need return error.")
-	}
-	_, err = api.DumpPrivkey(&types.ReqString{Data: "case1"})
-	if err == nil {
-		t.Error("DumpPrivkey(&types.ReqStr{ReqStr:\"case1\"}) need return error.")
-	}
-}
-
-func testGetWalletStatus(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.GetWalletStatus()
-	if err != nil {
-		t.Error("Call GetWalletStatus Failed.", err)
-	}
-}
-
-func testGetSeed(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.GetSeed(&types.GetSeedByPw{})
-	if err != nil {
-		t.Error("Call GetSeed Failed.", err)
-	}
-	_, err = api.GetSeed(nil)
-	if err == nil {
-		t.Error("GetSeed(nil) need return error.")
-	}
-	_, err = api.GetSeed(&types.GetSeedByPw{Passwd: "case1"})
-	if err == nil {
-		t.Error("GetSeed(&types.GetSeedByPw{Passwd:\"case1\"}) need return error.")
-	}
-}
-
-func testSaveSeed(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.SaveSeed(&types.SaveSeedByPw{})
-	if err != nil {
-		t.Error("Call SaveSeed Failed.", err)
-	}
-	_, err = api.SaveSeed(nil)
-	if err == nil {
-		t.Error("SaveSeed(nil) need return error.")
-	}
-	_, err = api.SaveSeed(&types.SaveSeedByPw{Seed: "case1"})
-	if err == nil {
-		t.Error("SaveSeed(&types.SaveSeedByPw{Seed:\"case1\"}) need return error.")
-	}
-}
-
-func testGenSeed(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.GenSeed(&types.GenSeedLang{})
-	if err != nil {
-		t.Error("Call GenSeed Failed.", err)
-	}
-	_, err = api.GenSeed(nil)
-	if err == nil {
-		t.Error("GenSeed(nil) need return error.")
-	}
-	_, err = api.GenSeed(&types.GenSeedLang{Lang: 10})
-	if err == nil {
-		t.Error("GenSeed(&types.GenSeedLang{Lang:10}) need return error.")
 	}
 }
 
@@ -447,159 +469,9 @@ func testGetHeaders(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testPeerInfo(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.PeerInfo()
+	_, err := api.PeerInfo(&types.P2PGetPeerReq{})
 	if err != nil {
 		t.Error("Call PeerInfo Failed.", err)
-	}
-}
-
-func testWalletUnLock(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletUnLock(&types.WalletUnLock{})
-	if err != nil {
-		t.Error("Call WalletUnLock Failed.", err)
-	}
-	_, err = api.WalletUnLock(nil)
-	if err == nil {
-		t.Error("WalletUnLock(nil) need return error.")
-	}
-	_, err = api.WalletUnLock(&types.WalletUnLock{Passwd: "case1"})
-	if err == nil {
-		t.Error("WalletUnLock(&types.WalletUnLock{Passwd:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletLock(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletLock()
-	if err != nil {
-		t.Error("Call WalletLock Failed.", err)
-	}
-}
-
-func testWalletSetPasswd(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletSetPasswd(&types.ReqWalletSetPasswd{})
-	if err != nil {
-		t.Error("Call WalletSetPasswd Failed.", err)
-	}
-	_, err = api.WalletSetPasswd(nil)
-	if err == nil {
-		t.Error("WalletSetPasswd(nil) need return error.")
-	}
-	_, err = api.WalletSetPasswd(&types.ReqWalletSetPasswd{OldPass: "case1"})
-	if err == nil {
-		t.Error("WalletSetPasswd(&types.ReqWalletSetPasswd{OldPass:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletMergeBalance(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletMergeBalance(&types.ReqWalletMergeBalance{})
-	if err != nil {
-		t.Error("Call WalletMergeBalance Failed.", err)
-	}
-	_, err = api.WalletMergeBalance(nil)
-	if err == nil {
-		t.Error("WalletMergeBalance(nil) need return error.")
-	}
-	_, err = api.WalletMergeBalance(&types.ReqWalletMergeBalance{To: "case1"})
-	if err == nil {
-		t.Error("WalletMergeBalance(&types.ReqWalletMergeBalance{To:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletSetLabel(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletSetLabel(&types.ReqWalletSetLabel{})
-	if err != nil {
-		t.Error("Call WalletSetLabel Failed.", err)
-	}
-	_, err = api.WalletSetLabel(nil)
-	if err == nil {
-		t.Error("WalletSetLabel(nil) need return error.")
-	}
-	_, err = api.WalletSetLabel(&types.ReqWalletSetLabel{Label: "case1"})
-	if err == nil {
-		t.Error("WalletSetLabel(&types.ReqWalletSetLabel{Label:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletSetFee(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletSetFee(&types.ReqWalletSetFee{})
-	if err != nil {
-		t.Error("Call WalletSetFee Failed.", err)
-	}
-	_, err = api.WalletSetFee(nil)
-	if err == nil {
-		t.Error("WalletSetFee(nil) need return error.")
-	}
-	_, err = api.WalletSetFee(&types.ReqWalletSetFee{Amount: 1000})
-	if err == nil {
-		t.Error("WalletSetFee(&types.ReqWalletSetFee{Amount:1000}) need return error.")
-	}
-}
-
-func testWalletSendToAddress(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletSendToAddress(&types.ReqWalletSendToAddress{})
-	if err != nil {
-		t.Error("Call WalletSendToAddress Failed.", err)
-	}
-	_, err = api.WalletSendToAddress(nil)
-	if err == nil {
-		t.Error("WalletSendToAddress(nil) need return error.")
-	}
-	_, err = api.WalletSendToAddress(&types.ReqWalletSendToAddress{Note: "case1"})
-	if err == nil {
-		t.Error("WalletSendToAddress(&types.ReqWalletSendToAddress{Note:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletImportprivkey(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletImportprivkey(&types.ReqWalletImportPrivkey{})
-	if err != nil {
-		t.Error("Call WalletTransactionList Failed.", err)
-	}
-	_, err = api.WalletImportprivkey(nil)
-	if err == nil {
-		t.Error("WalletImportprivkey(nil) need return error.")
-	}
-	_, err = api.WalletImportprivkey(&types.ReqWalletImportPrivkey{Label: "case1"})
-	if err == nil {
-		t.Error("WalletImportprivkey(&types.ReqWalletImportPrivKey{Label:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletTransactionList(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.WalletTransactionList(&types.ReqWalletTransactionList{})
-	if err != nil {
-		t.Error("Call WalletTransactionList Failed.", err)
-	}
-	_, err = api.WalletTransactionList(nil)
-	if err == nil {
-		t.Error("WalletTransactionList(nil) need return error.")
-	}
-	_, err = api.WalletTransactionList(&types.ReqWalletTransactionList{Direction: 1})
-	if err == nil {
-		t.Error("WalletTransactionList(&types.ReqWalletTransactionList{Direction:1}) need return error.")
-	}
-}
-
-func testNewAccount(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.NewAccount(&types.ReqNewAccount{})
-	if err != nil {
-		t.Error("Call NewAccount Failed.", err)
-	}
-	_, err = api.NewAccount(nil)
-	if err == nil {
-		t.Error("NewAccount(nil) need return error.")
-	}
-	_, err = api.NewAccount(&types.ReqNewAccount{Label: "case1"})
-	if err == nil {
-		t.Error("NewAccount(&types.ReqNewAccount{Label:\"case1\"}) need return error.")
-	}
-}
-
-func testWalletGetAccountList(t *testing.T, api client.QueueProtocolAPI) {
-	req := types.ReqAccountList{WithoutBalance: true}
-	_, err := api.WalletGetAccountList(&req)
-	if err != nil {
-		t.Error("Call WalletGetAccountList Failed.", err)
 	}
 }
 
@@ -676,6 +548,12 @@ func testGetBlocks(t *testing.T, api client.QueueProtocolAPI) {
 	}
 }
 
+func testGetLastBlockSequence(t *testing.T, api client.QueueProtocolAPI) {
+	res, err := api.GetLastBlockSequence()
+	assert.Nil(t, err)
+	assert.Equal(t, &types.Int64{}, res)
+}
+
 func testGetTxList(t *testing.T, api client.QueueProtocolAPI) {
 	_, err := api.GetTxList(&types.TxHashList{})
 	if err != nil {
@@ -726,6 +604,8 @@ func TestJsonRPC(t *testing.T) {
 	testGetNetInfoJSONRPC(t, &jrpc)
 	testGetWalletStatusJSONRPC(t, &jrpc)
 	testDumpPrivkeyJSONRPC(t, &jrpc)
+	testDumpPrivkeysFileJSONRPC(t, &jrpc)
+	testImportPrivkeysFileJSONRPC(t, &jrpc)
 	testGetAccountsJSONRPC(t, &jrpc)
 }
 
@@ -745,6 +625,22 @@ func testDumpPrivkeyJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	}
 }
 
+func testDumpPrivkeysFileJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res rpctypes.Reply
+	err := rpc.newRPCCtx("Chain33.DumpPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
+	if err != nil {
+		t.Error("testDumpPrivkeysFileJSONRPC Failed.", err)
+	}
+}
+
+func testImportPrivkeysFileJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
+	var res rpctypes.Reply
+	err := rpc.newRPCCtx("Chain33.ImportPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
+	if err != nil {
+		t.Error("testImportPrivkeysFileJSONRPC Failed.", err)
+	}
+}
+
 func testGetWalletStatusJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res rpctypes.WalletStatus
 	err := rpc.newRPCCtx("Chain33.GetWalletStatus", &types.ReqNil{}, &res)
@@ -753,7 +649,6 @@ func testGetWalletStatusJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	} else {
 		if res.IsTicketLock || res.IsAutoMining || !res.IsHasSeed || !res.IsWalletLock {
 			t.Error("testGetWalletStatusJSONRPC return type error.")
-
 		}
 	}
 }
@@ -761,7 +656,7 @@ func testGetWalletStatusJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 func testGetNetInfoJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res rpctypes.NodeNetinfo
 	err := rpc.newRPCCtx("Chain33.GetNetInfo",
-		nil, &res)
+		types.P2PGetNetInfoReq{}, &res)
 	if err != nil {
 		t.Error("testGetNetInfoJSONRPC failed. Error", err)
 	}
@@ -788,7 +683,7 @@ func testIsNtpClockSyncJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 func testGetPeerInfoJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	var res types.PeerList
 	err := rpc.newRPCCtx("Chain33.GetPeerInfo",
-		nil, &res)
+		types.P2PGetPeerReq{}, &res)
 	if err != nil {
 		t.Error("testGetPeerInfoJSONRPC failed. Error", err)
 	}
@@ -934,17 +829,20 @@ func TestGRPC(t *testing.T) {
 	testQueryChainGRPC(t, &grpcMock)
 	testGetHexTxByHashGRPC(t, &grpcMock)
 	testDumpPrivkeyGRPC(t, &grpcMock)
+	testDumpPrivkeysFileGRPC(t, &grpcMock)
+	testImportPrivkeysFileGRPC(t, &grpcMock)
 	testVersionGRPC(t, &grpcMock)
 	testIsSyncGRPC(t, &grpcMock)
 	testIsNtpClockSyncGRPC(t, &grpcMock)
 	testNetInfoGRPC(t, &grpcMock)
 	testGetParaTxByTitleGRPC(t, &grpcMock)
-
+	testLoadParaTxByTitleGRPC(t, &grpcMock)
+	testGetParaTxByHeightGRPC(t, &grpcMock)
 }
 
 func testNetInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.NodeNetInfo
-	err := rpc.newRPCCtx("NetInfo", &types.ReqNil{}, &res)
+	err := rpc.newRPCCtx("NetInfo", &types.P2PGetNetInfoReq{}, &res)
 	if err != nil {
 		t.Error("Call NetInfo Failed.", err)
 	}
@@ -980,6 +878,22 @@ func testDumpPrivkeyGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	err := rpc.newRPCCtx("DumpPrivkey", &types.ReqString{}, &res)
 	if err != nil {
 		t.Error("Call DumpPrivkey Failed.", err)
+	}
+}
+
+func testDumpPrivkeysFileGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRPCCtx("DumpPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
+	if err != nil {
+		t.Error("Call DumpPrivkeysFile Failed.", err)
+	}
+}
+
+func testImportPrivkeysFileGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRPCCtx("ImportPrivkeysFile", &types.ReqPrivkeysFile{}, &res)
+	if err != nil {
+		t.Error("Call ImportPrivkeysFile Failed.", err)
 	}
 }
 
@@ -1081,7 +995,7 @@ func testGetProperFeeGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testGetPeerInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.PeerList
-	err := rpc.newRPCCtx("GetPeerInfo", &types.ReqNil{}, &res)
+	err := rpc.newRPCCtx("GetPeerInfo", &types.P2PGetPeerReq{}, &res)
 	if err != nil {
 		t.Error("Call GetPeerInfo Failed.", err)
 	}
@@ -1324,4 +1238,45 @@ func TestGetParaTxByTitle(t *testing.T) {
 	_, err := q.GetParaTxByTitle(nil)
 	assert.NotNil(t, err)
 
+}
+
+func testLoadParaTxByTitleGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyHeightByTitle
+	var req types.ReqHeightByTitle
+	req.Count = 1
+	req.Direction = 0
+	req.Title = "user"
+	req.Height = 0
+
+	err := rpc.newRPCCtx("LoadParaTxByTitle", &req, &res)
+	assert.NotNil(t, err)
+
+	req.Title = "user.p.para."
+	err = rpc.newRPCCtx("LoadParaTxByTitle", &req, &res)
+	assert.Nil(t, err)
+}
+
+func TestLoadParaTxByTitle(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.LoadParaTxByTitle(nil)
+	assert.NotNil(t, err)
+}
+
+func testGetParaTxByHeightGRPC(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ParaTxDetails
+	var req types.ReqParaTxByHeight
+	req.Items = append(req.Items, 0)
+	req.Title = "user"
+	err := rpc.newRPCCtx("GetParaTxByHeight", &req, &res)
+	assert.NotNil(t, err)
+
+	req.Title = "user.p.para."
+	err = rpc.newRPCCtx("GetParaTxByHeight", &req, &res)
+	assert.Nil(t, err)
+}
+
+func TestGetParaTxByHeight(t *testing.T) {
+	q := client.QueueProtocol{}
+	_, err := q.GetParaTxByHeight(nil)
+	assert.NotNil(t, err)
 }

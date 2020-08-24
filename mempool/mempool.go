@@ -7,15 +7,17 @@ import (
 )
 
 // New new mempool queue module
-func New(cfg *types.Mempool, sub map[string][]byte) queue.Module {
-	con, err := mempool.Load(cfg.Name)
+func New(cfg *types.Chain33Config) queue.Module {
+	mcfg := cfg.GetModuleConfig().Mempool
+	sub := cfg.GetSubConfig().Mempool
+	con, err := mempool.Load(mcfg.Name)
 	if err != nil {
-		panic("Unsupported mempool type:" + cfg.Name + " " + err.Error())
+		panic("Unsupported mempool type:" + mcfg.Name + " " + err.Error())
 	}
-	subcfg, ok := sub[cfg.Name]
+	subcfg, ok := sub[mcfg.Name]
 	if !ok {
 		subcfg = nil
 	}
-	obj := con(cfg, subcfg)
+	obj := con(mcfg, subcfg)
 	return obj
 }

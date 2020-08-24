@@ -38,7 +38,8 @@ func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *Sta
 		opt = &StateDBOption{}
 	}
 	db := &StateDB{
-		cache:     make(map[string][]byte),
+		//预分配一个单位
+		cache:     make(map[string][]byte, 1),
 		txcache:   make(map[string][]byte),
 		intx:      false,
 		client:    client,
@@ -71,7 +72,9 @@ func (s *StateDB) enableMVCC(hash []byte) {
 func (s *StateDB) Begin() {
 	s.intx = true
 	s.keys = nil
-	if types.IsFork(s.height, "ForkExecRollback") {
+	types.AssertConfig(s.client)
+	cfg := s.client.GetConfig()
+	if cfg.IsFork(s.height, "ForkExecRollback") {
 		s.txcache = nil
 	}
 }
@@ -88,7 +91,9 @@ func (s *StateDB) Commit() error {
 	}
 	s.intx = false
 	s.keys = nil
-	if types.IsFork(s.height, "ForkExecRollback") {
+	types.AssertConfig(s.client)
+	cfg := s.client.GetConfig()
+	if cfg.IsFork(s.height, "ForkExecRollback") {
 		s.resetTx()
 	}
 	return nil
@@ -108,7 +113,7 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 }
 
 func (s *StateDB) get(key []byte) ([]byte, error) {
-	skey := string(key)
+	skey := types.Bytes2Str(key)
 	if s.intx && s.txcache != nil {
 		if value, ok := s.txcache[skey]; ok {
 			return value, nil
@@ -136,6 +141,7 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 	if err != nil {
 		panic(err) //no happen for ever
 	}
+	defer s.client.FreeMessage(msg, resp)
 	if nil == resp.GetData().(*types.StoreReplyValue).Values {
 		return nil, types.ErrNotFound
 	}
@@ -145,7 +151,7 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 		return nil, types.ErrNotFound
 	}
 	//get 的值可以写入cache，因为没有对系统的值做修改
-	s.cache[skey] = value
+	s.cache[string(key)] = value
 	return value, nil
 }
 

@@ -20,8 +20,9 @@ import (
 
 //const
 const (
-	SM2PrivateKeyLength = 32
-	SM2PublicKeyLength  = 65
+	SM2PrivateKeyLength    = 32
+	SM2PublicKeyLength     = 65
+	SM2PublicKeyCompressed = 33
 )
 
 //Driver 驱动
@@ -52,7 +53,7 @@ func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
 
 //PubKeyFromBytes 字节转为公钥
 func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
-	if len(b) != SM2PublicKeyLength {
+	if len(b) != SM2PublicKeyLength && len(b) != SM2PublicKeyCompressed {
 		return nil, errors.New("invalid pub key byte")
 	}
 	pubKeyBytes := new([SM2PublicKeyLength]byte)
@@ -92,7 +93,6 @@ func (privKey PrivKeySM2) Sign(msg []byte) crypto.Signature {
 	if err != nil {
 		return nil
 	}
-
 	//sm2不需要LowS转换
 	//s = ToLowS(pub, s)
 	return SignatureSM2(Serialize(r, s))
@@ -102,7 +102,7 @@ func (privKey PrivKeySM2) Sign(msg []byte) crypto.Signature {
 func (privKey PrivKeySM2) PubKey() crypto.PubKey {
 	_, pub := privKeyFromBytes(sm2.P256Sm2(), privKey[:])
 	var pubSM2 PubKeySM2
-	copy(pubSM2[:], SerializePublicKey(pub))
+	copy(pubSM2[:], sm2.Compress(pub))
 	return pubSM2
 }
 
@@ -124,9 +124,17 @@ type PubKeySM2 [SM2PublicKeyLength]byte
 
 //Bytes 字节格式
 func (pubKey PubKeySM2) Bytes() []byte {
-	s := make([]byte, SM2PublicKeyLength)
-	copy(s, pubKey[:])
+	length := SM2PublicKeyLength
+	if pubKey.isCompressed() {
+		length = SM2PublicKeyCompressed
+	}
+	s := make([]byte, length)
+	copy(s, pubKey[0:length])
 	return s
+}
+
+func (pubKey PubKeySM2) isCompressed() bool {
+	return pubKey[0] != pubkeyUncompressed
 }
 
 //VerifyBytes 验证字节
@@ -134,25 +142,27 @@ func (pubKey PubKeySM2) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 	if wrap, ok := sig.(SignatureS); ok {
 		sig = wrap.Signature
 	}
-
 	sigSM2, ok := sig.(SignatureSM2)
 	if !ok {
 		fmt.Printf("convert failed\n")
 		return false
 	}
-
-	pub, err := parsePubKey(pubKey[:], sm2.P256Sm2())
-	if err != nil {
-		fmt.Printf("parse pubkey failed\n")
-		return false
+	var pub *sm2.PublicKey
+	if pubKey.isCompressed() {
+		pub = sm2.Decompress(pubKey[0:SM2PublicKeyCompressed])
+	} else {
+		var err error
+		pub, err = parsePubKey(pubKey[:], sm2.P256Sm2())
+		if err != nil {
+			fmt.Printf("parse pubkey failed\n")
+			return false
+		}
 	}
-
 	r, s, err := Deserialize(sigSM2)
 	if err != nil {
 		fmt.Printf("unmarshal sign failed")
 		return false
 	}
-
 	//国密签名算法和ecdsa不一样，-s验签不通过，所以不需要LowS检查
 	//fmt.Printf("verify:%x, r:%d, s:%d\n", crypto.Sm3Hash(msg), r, s)
 	//lowS := IsLowS(s)
@@ -180,7 +190,6 @@ func (pubKey PubKeySM2) Equals(other crypto.PubKey) bool {
 		return bytes.Equal(pubKey[:], otherSecp[:])
 	}
 	return false
-
 }
 
 //SignatureSM2 签名
@@ -223,7 +232,7 @@ const (
 )
 
 func init() {
-	crypto.Register(Name, &Driver{})
+	crypto.Register(Name, &Driver{}, false)
 	crypto.RegisterType(Name, ID)
 }
 

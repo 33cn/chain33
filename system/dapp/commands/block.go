@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -35,9 +36,9 @@ func BlockCmd() *cobra.Command {
 		GetBlockByHashsCmd(),
 		GetBlockSequencesCmd(),
 		GetLastBlockSequenceCmd(),
-		AddBlockSeqCallBackCmd(),
-		ListBlockSeqCallBackCmd(),
-		GetSeqCallBackLastNumCmd(),
+		AddPushSubscribeCmd(),
+		ListPushesCmd(),
+		GetPushSeqLastNumCmd(),
 	)
 
 	return cmd
@@ -300,18 +301,18 @@ func getblockbyhashs(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// AddBlockSeqCallBackCmd add block sequence call back
-func AddBlockSeqCallBackCmd() *cobra.Command {
+// AddPushSubscribeCmd add block sequence call back
+func AddPushSubscribeCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "add_callback",
-		Short: "add block sequence call back",
-		Run:   addblockSeqCallBackCmd,
+		Use:   "add_push",
+		Short: "add push for block or tx receipt",
+		Run:   addPushSubscribe,
 	}
-	addblockSeqCallBackCmdFlags(cmd)
+	addPushSubscribeFlags(cmd)
 	return cmd
 }
 
-func addblockSeqCallBackCmdFlags(cmd *cobra.Command) {
+func addPushSubscribeFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("name", "n", "", "call back name")
 	cmd.MarkFlagRequired("name")
 
@@ -320,60 +321,91 @@ func addblockSeqCallBackCmdFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("encode", "e", "", "data encode type,json or proto buff")
 	cmd.MarkFlagRequired("encode")
+
+	cmd.Flags().StringP("isheader", "i", "f", "push header or block (0/f/false for block; 1/t/true for header)")
+
+	cmd.Flags().Int64P("lastSequence", "", 0, "lastSequence")
+	cmd.Flags().Int64P("lastHeight", "", 0, "lastHeight")
+	cmd.Flags().StringP("lastBlockHash", "", "", "lastBlockHash")
 }
 
-func addblockSeqCallBackCmd(cmd *cobra.Command, args []string) {
+func addPushSubscribe(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	name, _ := cmd.Flags().GetString("name")
 	url, _ := cmd.Flags().GetString("url")
 	encode, _ := cmd.Flags().GetString("encode")
 
-	params := types.BlockSeqCB{
-		Name:   name,
-		URL:    url,
-		Encode: encode,
+	isHeaderStr, _ := cmd.Flags().GetString("isheader")
+	isHeader, err := strconv.ParseBool(isHeaderStr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
 	}
 
-	var res rpctypes.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddSeqCallBack", params, &res)
+	lastSeq, _ := cmd.Flags().GetInt64("lastSequence")
+	lastHeight, _ := cmd.Flags().GetInt64("lastHeight")
+	lastBlockHash, _ := cmd.Flags().GetString("lastBlockHash")
+	if lastSeq != 0 || lastHeight != 0 || lastBlockHash != "" {
+		if lastSeq == 0 || lastHeight == 0 || lastBlockHash == "" {
+			fmt.Println("lastSequence, lastHeight, lastBlockHash need at the same time")
+			return
+		}
+	}
+	pushType := blockchain.PushBlock
+	if isHeader {
+		pushType = blockchain.PushBlockHeader
+	}
+
+	params := types.PushSubscribeReq{
+		Name:          name,
+		URL:           url,
+		Encode:        encode,
+		LastSequence:  lastSeq,
+		LastHeight:    lastHeight,
+		LastBlockHash: lastBlockHash,
+		Type:          pushType,
+	}
+
+	var res types.ReplySubscribePush
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddPushSubscribe", params, &res)
 	ctx.Run()
 }
 
-// ListBlockSeqCallBackCmd list block sequence call back
-func ListBlockSeqCallBackCmd() *cobra.Command {
+// ListPushesCmd list block sequence call back
+func ListPushesCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "list_callback",
-		Short: "list block sequence call back",
-		Run:   listBlockSeqCallBackCmd,
+		Use:   "list_pushes",
+		Short: "list pushes",
+		Run:   listPushes,
 	}
 	return cmd
 }
 
-func listBlockSeqCallBackCmd(cmd *cobra.Command, args []string) {
+func listPushes(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 
-	var res types.BlockSeqCBs
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ListSeqCallBack", nil, &res)
+	var res types.PushSubscribes
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ListPushes", nil, &res)
 	ctx.Run()
 }
 
-// GetSeqCallBackLastNumCmd Get Seq Call Back Last Num
-func GetSeqCallBackLastNumCmd() *cobra.Command {
+// GetPushSeqLastNumCmd Get Seq Call Back Last Num
+func GetPushSeqLastNumCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "last_callback_sequence",
-		Short: "last call back sequence by name",
-		Run:   getSeqCallBackLastNumCmd,
+		Use:   "last_push",
+		Short: "show the sequence number of last push",
+		Run:   getPushSeqLastNumCmd,
 	}
-	getSeqCallBackLastNumCmdFlags(cmd)
+	getPushSeqLastNumFlags(cmd)
 	return cmd
 }
 
-func getSeqCallBackLastNumCmdFlags(cmd *cobra.Command) {
+func getPushSeqLastNumFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("name", "n", "", "call back name")
 	cmd.MarkFlagRequired("name")
 }
 
-func getSeqCallBackLastNumCmd(cmd *cobra.Command, args []string) {
+func getPushSeqLastNumCmd(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	name, _ := cmd.Flags().GetString("name")
 
@@ -382,6 +414,6 @@ func getSeqCallBackLastNumCmd(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.Int64
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetSeqCallBackLastNum", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetPushSeqLastNum", params, &res)
 	ctx.Run()
 }

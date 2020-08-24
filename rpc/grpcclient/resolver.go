@@ -45,7 +45,7 @@ func parseTarget(target, defaultPort string) (host, port string, err error) {
 
 type multipleBuilder struct{}
 
-func (*multipleBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOption) (resolver.Resolver, error) {
+func (*multipleBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
 	r := &multipleResolver{
 		target: target,
 		cc:     cc,
@@ -84,7 +84,7 @@ func (r *multipleResolver) start() {
 	r.cc.NewAddress(r.addrs)
 }
 
-func (*multipleResolver) ResolveNow(o resolver.ResolveNowOption) {}
+func (*multipleResolver) ResolveNow(o resolver.ResolveNowOptions) {}
 
 func (*multipleResolver) Close() {}
 

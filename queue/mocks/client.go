@@ -44,6 +44,33 @@ func (_m *Client) CloseQueue() (*types.Reply, error) {
 	return r0, r1
 }
 
+// FreeMessage provides a mock function with given fields: msg
+func (_m *Client) FreeMessage(msg ...*queue.Message) {
+	_va := make([]interface{}, len(msg))
+	for _i := range msg {
+		_va[_i] = msg[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _va...)
+	_m.Called(_ca...)
+}
+
+// GetConfig provides a mock function with given fields:
+func (_m *Client) GetConfig() *types.Chain33Config {
+	ret := _m.Called()
+
+	var r0 *types.Chain33Config
+	if rf, ok := ret.Get(0).(func() *types.Chain33Config); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Chain33Config)
+		}
+	}
+
+	return r0
+}
+
 // NewMessage provides a mock function with given fields: topic, ty, data
 func (_m *Client) NewMessage(topic string, ty int64, data interface{}) *queue.Message {
 	ret := _m.Called(topic, ty, data)

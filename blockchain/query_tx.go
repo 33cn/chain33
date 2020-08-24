@@ -5,6 +5,7 @@
 package blockchain
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/33cn/chain33/common"
@@ -46,7 +47,8 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	//查询的drivers--> main 驱动的名称
 	//查询的方法：  --> GetTxsByAddr
 	//查询的参数：  --> interface{} 类型
-	txinfos, err := chain.query.Query(types.ExecName("coins"), "GetTxsByAddr", addr)
+	cfg := chain.client.GetConfig()
+	txinfos, err := chain.query.Query(cfg.ExecName("coins"), "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -66,35 +68,33 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	var txDetails types.TransactionDetails
 	for _, txhash := range hashs {
 		txresult, err := chain.GetTxResultFromDb(txhash)
+		var txDetail types.TransactionDetail
 		if err == nil && txresult != nil {
-			var txDetail types.TransactionDetail
 			setTxDetailFromTxResult(&txDetail, txresult)
 
 			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		} else {
-			txDetails.Txs = append(txDetails.Txs, nil)
+			txDetails.Txs = append(txDetails.Txs, &txDetail) //
 			chainlog.Debug("ProcGetTransactionByHashes hash no exit", "txhash", common.ToHex(txhash))
 		}
 	}
 	return &txDetails, nil
 }
 
-//GetTransactionProofs 获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
-func GetTransactionProofs(Txs []*types.Transaction, index int32) ([][]byte, error) {
+//getTxHashProofs 获取指定txindex在txs中的proof ，注释：index从0开始
+func getTxHashProofs(Txs []*types.Transaction, index int32) [][]byte {
 	txlen := len(Txs)
-
-	//计算tx的hash值
 	leaves := make([][]byte, txlen)
+
 	for index, tx := range Txs {
 		leaves[index] = tx.Hash()
-		//chainlog.Info("GetTransactionDetail txhash", "index", index, "txhash", tx.Hash())
 	}
 
 	proofs := merkle.GetMerkleBranch(leaves, uint32(index))
-	chainlog.Debug("GetTransactionDetail proofs", "proofs", proofs)
+	chainlog.Debug("getTransactionDetail", "index", index, "proofs", proofs)
 
-	return proofs, nil
+	return proofs
 }
 
 //GetTxResultFromDb 通过txhash 从txindex db中获取tx信息
@@ -134,12 +134,13 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 	if txhashlist.Expire != nil && len(txhashlist.Expire) != len(txhashlist.Hashes) {
 		return nil, types.ErrInvalidParam
 	}
+	cfg := chain.client.GetConfig()
 	for i, txhash := range txhashlist.Hashes {
 		expire := int64(0)
 		if txhashlist.Expire != nil {
 			expire = txhashlist.Expire[i]
 		}
-		txHeight := types.GetTxHeight(expire, txhashlist.Count)
+		txHeight := types.GetTxHeight(cfg, expire, txhashlist.Count)
 		//在txHeight > 0 的情况下，可以安全的查询cache
 		if txHeight > 0 {
 			onlyquerycache = true
@@ -168,20 +169,32 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	if err != nil {
 		return nil, err
 	}
-	var TransactionDetail types.TransactionDetail
-	//获取指定tx在txlist中的proof
-	proofs, err := GetTransactionProofs(block.Block.Txs, txresult.Index)
-	if err != nil {
-		return nil, err
+
+	var txDetail types.TransactionDetail
+	cfg := chain.client.GetConfig()
+	height := block.Block.GetHeight()
+	if chain.isParaChain {
+		height = block.Block.GetMainHeight()
 	}
-	TransactionDetail.Proofs = proofs
-	setTxDetailFromTxResult(&TransactionDetail, txresult)
-	return &TransactionDetail, nil
+	//获取指定tx在txlist中的proof,需要区分ForkRootHash前后proof证明数据
+	if !cfg.IsFork(height, "ForkRootHash") {
+		proofs := getTxHashProofs(block.Block.Txs, txresult.Index)
+		txDetail.Proofs = proofs
+	} else {
+		txproofs := chain.getMultiLayerProofs(txresult.Height, block.Block.Hash(cfg), block.Block.Txs, txresult.Index)
+		txDetail.TxProofs = txproofs
+		txDetail.FullHash = block.Block.Txs[txresult.Index].FullHash()
+	}
+
+	setTxDetailFromTxResult(&txDetail, txresult)
+	return &txDetail, nil
 }
 
 func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresult *types.TxResult) {
 	TransactionDetail.Receipt = txresult.Receiptdate
 	TransactionDetail.Tx = txresult.GetTx()
+	//缓存哈希置空
+	TransactionDetail.Tx.UnsetCacheHash()
 	TransactionDetail.Height = txresult.GetHeight()
 	TransactionDetail.Index = int64(txresult.GetIndex())
 	TransactionDetail.Blocktime = txresult.GetBlocktime()
@@ -210,7 +223,7 @@ func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresul
 //	int64 balance = 2;
 //	int64 txCount = 3;}
 func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOverview, error) {
-
+	cfg := chain.client.GetConfig()
 	if addr == nil || len(addr.Addr) == 0 {
 		chainlog.Error("ProcGetAddrOverview input err!")
 		return nil, types.ErrInvalidParam
@@ -220,14 +233,14 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.query.Query(types.ExecName("coins"), "GetAddrReciver", addr)
+	amount, err := chain.query.Query(cfg.ExecName("coins"), "GetAddrReciver", addr)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
 		addrOverview.Reciver = 0
 	} else {
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	if err != nil {
+	if err != nil && err != types.ErrEmpty {
 		return nil, err
 	}
 
@@ -236,7 +249,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	//新的代码不支持PrefixCount查询地址交易计数，executor/localdb.go PrefixCount
 	//现有的节点都已经升级了localdb，也就是都支持通过GetAddrTxsCount来获取地址交易计数
 	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
-	count, err := chain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", &reqkey)
+	count, err := chain.query.Query(cfg.ExecName("coins"), "GetAddrTxsCount", &reqkey)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrTxsCount err", err)
 		addrOverview.TxCount = 0
@@ -246,4 +259,95 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	chainlog.Debug("GetAddrTxsCount", "TxCount ", addrOverview.TxCount)
 
 	return &addrOverview, nil
+}
+
+//getTxFullHashProofs 获取指定txinde在txs中的proof, ForkRootHash之后使用fullhash来计算
+func getTxFullHashProofs(Txs []*types.Transaction, index int32) [][]byte {
+	txlen := len(Txs)
+	leaves := make([][]byte, txlen)
+
+	for index, tx := range Txs {
+		leaves[index] = tx.FullHash()
+	}
+
+	proofs := merkle.GetMerkleBranch(leaves, uint32(index))
+
+	return proofs
+}
+
+//获取指定交易在子链中的路径证明,使用fullhash
+func (chain *BlockChain) getMultiLayerProofs(height int64, blockHash []byte, Txs []*types.Transaction, index int32) []*types.TxProof {
+	var proofs []*types.TxProof
+
+	//平行链节点上的交易都是单层merkle树，使用FullHash直接计算即可
+	if chain.isParaChain {
+		txProofs := getTxFullHashProofs(Txs, index)
+		proof := types.TxProof{Proofs: txProofs, Index: uint32(index)}
+		proofs = append(proofs, &proof)
+		return proofs
+	}
+
+	//主链节点的处理
+	title, haveParaTx := types.GetParaExecTitleName(string(Txs[index].Execer))
+	if !haveParaTx {
+		title = types.MainChainName
+	}
+
+	replyparaTxs, err := chain.LoadParaTxByHeight(height, "", 0, 1)
+	if err != nil || 0 == len(replyparaTxs.Items) {
+		filterlog.Error("getMultiLayerProofs", "height", height, "blockHash", common.ToHex(blockHash), "err", err)
+		return nil
+	}
+
+	//获取本子链的第一笔交易的index值，以及最后一笔交易的index值
+	var startIndex int32
+	var childIndex uint32
+	var hashes [][]byte
+	var exist bool
+	var childHash []byte
+	var txCount int32
+
+	for _, paratx := range replyparaTxs.Items {
+		if title == paratx.Title && bytes.Equal(blockHash, paratx.GetHash()) {
+			startIndex = paratx.GetStartIndex()
+			childIndex = paratx.ChildHashIndex
+			childHash = paratx.ChildHash
+			txCount = paratx.GetTxCount()
+			exist = true
+		}
+		hashes = append(hashes, paratx.ChildHash)
+	}
+	//只有主链的交易,没有其他平行链的交易
+	if len(replyparaTxs.Items) == 1 && startIndex == 0 && childIndex == 0 {
+		txProofs := getTxFullHashProofs(Txs, index)
+		proof := types.TxProof{Proofs: txProofs, Index: uint32(index)}
+		proofs = append(proofs, &proof)
+		return proofs
+	}
+
+	endindex := startIndex + txCount
+	//不存在或者获取到的索引错误直接返回
+	if !exist || startIndex > index || endindex > int32(len(Txs)) || childIndex >= uint32(len(replyparaTxs.Items)) {
+		filterlog.Error("getMultiLayerProofs", "height", height, "blockHash", common.ToHex(blockHash), "exist", exist, "replyparaTxs", replyparaTxs)
+		filterlog.Error("getMultiLayerProofs", "startIndex", startIndex, "index", index, "childIndex", childIndex)
+		return nil
+	}
+
+	//主链和平行链交易都存在,获取本子链所有交易的hash值
+	var childHashes [][]byte
+	for i := startIndex; i < endindex; i++ {
+		childHashes = append(childHashes, Txs[i].FullHash())
+	}
+	txOnChildIndex := index - startIndex
+
+	//计算单笔交易在子链中的路径证明
+	txOnChildBranch := merkle.GetMerkleBranch(childHashes, uint32(txOnChildIndex))
+	txproof := types.TxProof{Proofs: txOnChildBranch, Index: uint32(txOnChildIndex), RootHash: childHash}
+	proofs = append(proofs, &txproof)
+
+	//子链在整个区块中的路径证明
+	childBranch := merkle.GetMerkleBranch(hashes, childIndex)
+	childproof := types.TxProof{Proofs: childBranch, Index: childIndex}
+	proofs = append(proofs, &childproof)
+	return proofs
 }

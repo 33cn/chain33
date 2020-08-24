@@ -27,15 +27,13 @@ import (
 )
 
 var (
-	minFee           int64
+	//minFee           int64
 	maxTxNumPerBlock int64 = types.MaxTxsPerBlock
 	// MaxTxHashsPerTime 每次处理的最大交易哈希数量
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
-	// SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
-	SignType    = 1
-	accountdb   *account.DB
-	accTokenMap = make(map[string]*account.DB)
+	//accountdb         *account.DB
+	//accTokenMap = make(map[string]*account.DB)
 )
 
 func init() {
@@ -74,6 +72,12 @@ type Wallet struct {
 	rescanwg           *sync.WaitGroup
 	lastHeader         *types.Header
 	initFlag           uint32 // 钱包模块是否初始化完毕的标记，默认为0，表示未初始化
+	SignType           int    // SignType 签名类型 1；secp256k1，2：ed25519，3：sm2
+	CoinType           uint32 // CoinType 币种类型 bty:0x80003333,ycc:0x80003334
+
+	minFee      int64
+	accountdb   *account.DB
+	accTokenMap map[string]*account.DB
 }
 
 // SetLogLevel 设置日志登记
@@ -88,34 +92,38 @@ func DisableLog() {
 }
 
 // New 创建一个钱包对象
-func New(cfg *types.Wallet, sub map[string][]byte) *Wallet {
+func New(cfg *types.Chain33Config) *Wallet {
+	mcfg := cfg.GetModuleConfig().Wallet
 	//walletStore
-	accountdb = account.NewCoinsAccount()
-	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
+	//accountdb = account.NewCoinsAccount()
+	walletStoreDB := dbm.NewDB("wallet", mcfg.Driver, mcfg.DbPath, mcfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
 	walletStore := newStore(walletStoreDB)
-	minFee = cfg.MinFee
-	signType := types.GetSignType("", cfg.SignType)
+	//minFee = cfg.MinFee
+	signType := types.GetSignType("", mcfg.SignType)
 	if signType == types.Invalid {
 		signType = types.SECP256K1
 	}
-	SignType = signType
 
 	wallet := &Wallet{
 		walletStore:      walletStore,
 		isWalletLocked:   1,
 		fatalFailureFlag: 0,
 		wg:               &sync.WaitGroup{},
-		FeeAmount:        walletStore.GetFeeAmount(minFee),
+		FeeAmount:        walletStore.GetFeeAmount(mcfg.MinFee),
 		EncryptFlag:      walletStore.GetEncryptionFlag(),
 		done:             make(chan struct{}),
-		cfg:              cfg,
+		cfg:              mcfg,
 		rescanwg:         &sync.WaitGroup{},
 		initFlag:         0,
+		SignType:         signType,
+		CoinType:         CoinType(mcfg.CoinType),
+		minFee:           mcfg.MinFee,
+		accountdb:        account.NewCoinsAccount(cfg),
+		accTokenMap:      make(map[string]*account.DB),
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	wcom.QueryData.SetThis("wallet", reflect.ValueOf(wallet))
-	wcom.Init(wallet, sub)
 	return wallet
 }
 
@@ -130,8 +138,19 @@ func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport)
 	if wallet.mineStatusReporter != nil {
 		return errors.New("ReporterIsExisted")
 	}
-	wallet.mineStatusReporter = reporter
+	consensus := wallet.client.GetConfig().GetModuleConfig().Consensus.Name
+
+	if !isConflict(consensus, reporter.PolicyName()) {
+		wallet.mineStatusReporter = reporter
+	}
 	return nil
+}
+
+//检测当policy和Consensus有冲突时，不挂接对应的reporter
+func isConflict(curConsensus string, policy string) bool {
+	walletlog.Info("isConflict", "curConsensus", curConsensus, "policy", policy)
+
+	return curConsensus != policy
 }
 
 // GetConfig 获取钱包配置
@@ -144,11 +163,6 @@ func (wallet *Wallet) GetAPI() client.QueueProtocolAPI {
 	return wallet.api
 }
 
-// GetMutex 获取钱包互斥量
-func (wallet *Wallet) GetMutex() *sync.Mutex {
-	return &wallet.mtx
-}
-
 // GetDBStore 获取数据库存储对象操作接口
 func (wallet *Wallet) GetDBStore() dbm.DB {
 	return wallet.walletStore.GetDB()
@@ -156,11 +170,19 @@ func (wallet *Wallet) GetDBStore() dbm.DB {
 
 // GetSignType 获取签名类型
 func (wallet *Wallet) GetSignType() int {
-	return SignType
+	return wallet.SignType
+}
+
+// GetCoinType 获取币种类型
+func (wallet *Wallet) GetCoinType() uint32 {
+	return wallet.CoinType
 }
 
 // GetPassword 获取密码
 func (wallet *Wallet) GetPassword() string {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	return wallet.Password
 }
 
@@ -196,6 +218,8 @@ func (wallet *Wallet) GetWalletDone() chan struct{} {
 
 // GetLastHeader 获取最新高度信息
 func (wallet *Wallet) GetLastHeader() *types.Header {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
 	return wallet.lastHeader
 }
 
@@ -268,6 +292,9 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	if err != nil {
 		panic("SetQueueClient client.New err")
 	}
+	sub := cli.GetConfig().GetSubConfig().Wallet
+	// 置完client之后才做Init
+	wcom.Init(wallet, sub)
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 	for _, policy := range wcom.PolicyContainer {
@@ -291,6 +318,9 @@ func (wallet *Wallet) GetPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
 	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
 	return wallet.getPrivKeyByAddr(addr)
 }
 
@@ -311,7 +341,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 
 	privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
 	if err != nil {
 		walletlog.Error("getPrivKeyByAddr", "err", err)
 		return nil, err
@@ -322,11 +352,6 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 	return priv, nil
-}
-
-//外部已经加了lock
-func (wallet *Wallet) getFee() int64 {
-	return wallet.FeeAmount
 }
 
 // AddrInWallet 地址对应的账户是否属于本钱包
@@ -346,8 +371,16 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 
 //IsTransfer 检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
 func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
 
-	ok, err := wallet.CheckWalletStatus()
+	return wallet.isTransfer(addr)
+}
+
+//isTransfer 检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
+func (wallet *Wallet) isTransfer(addr string) (bool, error) {
+
+	ok, err := wallet.checkWalletStatus()
 	//钱包已经解锁或者错误是ErrSaveSeedFirst直接返回
 	if ok || err == types.ErrSaveSeedFirst {
 		return ok, err
@@ -355,7 +388,9 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
 	//这里依赖了ticket 挖矿合约
 	if !wallet.isTicketLocked() {
-		if addr == address.ExecAddress("ticket") {
+		consensus := wallet.client.GetConfig().GetModuleConfig().Consensus.Name
+
+		if addr == address.ExecAddress(consensus) {
 			return true, nil
 		}
 	}
@@ -367,6 +402,15 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	if !wallet.isInited() {
 		return false, types.ErrNotInited
 	}
+
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	return wallet.checkWalletStatus()
+}
+
+//CheckWalletStatus 钱包状态检测函数,解锁状态，seed是否已保存
+func (wallet *Wallet) checkWalletStatus() (bool, error) {
 	// 钱包锁定，ticket已经解锁，返回只解锁了ticket的错误
 	if wallet.IsWalletLocked() && !wallet.isTicketLocked() {
 		return false, types.ErrOnlyTicketUnLocked
@@ -421,12 +465,10 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 //	Addr      string
 //	TimeStamp string
 //获取钱包的所有账户地址列表，
-func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
+func (wallet *Wallet) getWalletAccounts() ([]*types.WalletAccountStore, error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
 	}
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
 
 	//通过Account前缀查找获取钱包中的所有账户信息
 	WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
@@ -435,6 +477,17 @@ func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 		return nil, err
 	}
 	return WalletAccStores, err
+}
+
+//GetWalletAccounts 获取账号列表
+func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
+	if !wallet.isInited() {
+		return nil, types.ErrNotInited
+	}
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	return wallet.getWalletAccounts()
 }
 
 func (wallet *Wallet) updateLastHeader(block *types.BlockDetail, mode int) error {

@@ -36,19 +36,9 @@ enableTxQuickIndex=false
 enableReExecLocal=false
 
 [p2p]
-# P2P服务监听端口号
-port=13802
-# 种子节点，格式为ip:port，多个节点以逗号分隔，如seeds=["10.0.0.1:13802","10.0.0.2:13802","10.0.0.3:13802"]
-seeds=[]
-# 是否为种子节点
-isSeed=false
-# 是否使用内置的种子节点
-innerSeedEnable=true
-# 是否使用Github获取种子节点
-useGithub=true
-# 最多的接入节点个数
-innerBounds=300
-# 数据库文件目录
+# p2p类型
+types=[ "dht"]
+# 使用的数据库类型
 dbPath="datadir/addrbook"
 # 数据库缓存大小
 dbCache=4
@@ -56,6 +46,9 @@ dbCache=4
 grpcLogFile="grpc33.log"
 #waitPid 等待seed导入
 waitPid=false
+
+
+[p2p.sub.dht]
 
 [rpc]
 # jrpc绑定地址
@@ -78,6 +71,12 @@ keyFile="key.pem"
 [mempool]
 # 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
+# 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
+minTxFeeRate=100000
+# 最大的交易手续费率, 0.1 coins
+maxTxFeeRate=10000000
+# 单笔交易最大的手续费, 10 coins
+maxTxFee=1000000000
 
 [store]
 # 数据文件存储路径

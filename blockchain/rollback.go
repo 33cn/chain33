@@ -32,7 +32,8 @@ func (chain *BlockChain) NeedRollback(curHeight, rollHeight int64) bool {
 		chainlog.Info("curHeight is small than rollback height, no need rollback")
 		return false
 	}
-	kvmvccMavlFork := types.GetDappFork("store-kvmvccmavl", "ForkKvmvccmavl")
+	cfg := chain.client.GetConfig()
+	kvmvccMavlFork := cfg.GetDappFork("store-kvmvccmavl", "ForkKvmvccmavl")
 	if curHeight >= kvmvccMavlFork+10000 && rollHeight <= kvmvccMavlFork {
 		chainlog.Info("because ForkKvmvccmavl", "current height", curHeight, "not support rollback to", rollHeight)
 		return false
@@ -42,6 +43,7 @@ func (chain *BlockChain) NeedRollback(curHeight, rollHeight int64) bool {
 
 // Rollback chain Rollback
 func (chain *BlockChain) Rollback() {
+	cfg := chain.client.GetConfig()
 	//获取当前的tip节点
 	tipnode := chain.bestChain.Tip()
 	startHeight := tipnode.height
@@ -63,18 +65,18 @@ func (chain *BlockChain) Rollback() {
 		sequence := int64(-1)
 		if chain.isParaChain {
 			// 获取平行链的seq
-			sequence, err = chain.ProcGetMainSeqByHash(blockdetail.Block.Hash())
+			sequence, err = chain.ProcGetMainSeqByHash(blockdetail.Block.Hash(cfg))
 			if err != nil {
-				chainlog.Error("chain rollback get main seq fail", "height: ", i, "err", err, "hash", common.ToHex(blockdetail.Block.Hash()))
+				chainlog.Error("chain rollback get main seq fail", "height: ", i, "err", err, "hash", common.ToHex(blockdetail.Block.Hash(cfg)))
 			}
 		}
 		err = chain.disBlock(blockdetail, sequence)
 		if err != nil {
-			panic(fmt.Sprintln("rollback block fail ", "height", blockdetail.Block.Height, "blockHash:", common.ToHex(blockdetail.Block.Hash())))
+			panic(fmt.Sprintln("rollback block fail ", "height", blockdetail.Block.Height, "blockHash:", common.ToHex(blockdetail.Block.Hash(cfg))))
 		}
 		// 删除storedb中的状态高度
 		chain.sendDelStore(blockdetail.Block.StateHash, blockdetail.Block.Height)
-		chainlog.Info("chain rollback ", "height: ", i, "blockheight", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "state hash", common.ToHex(blockdetail.Block.StateHash))
+		chainlog.Info("chain rollback ", "height: ", i, "blockheight", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash(cfg)), "state hash", common.ToHex(blockdetail.Block.StateHash))
 	}
 }
 
@@ -113,10 +115,12 @@ func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64
 	//删除缓存中的block信息
 	chain.cache.delBlockFromCache(blockdetail.Block.Height)
 
-	//目前非平行链并开启isRecordBlockSequence功能
-	if chain.isRecordBlockSequence {
-		chain.pushseq.updateSeq(lastSequence)
+	//目前非平行链并开启isRecordBlockSequence功能和enablePushSubscribe
+	if chain.isRecordBlockSequence && chain.enablePushSubscribe {
+		chain.push.UpdateSeq(lastSequence)
+		chainlog.Debug("isRecordBlockSequence", "lastSequence", lastSequence, "height", blockdetail.Block.Height)
 	}
+
 	return nil
 }
 
