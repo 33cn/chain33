@@ -48,15 +48,12 @@ type subConfig struct {
 	EnableMavlPrune bool `json:"enableMavlPrune"`
 	// 裁剪高度间隔
 	PruneHeight int32 `json:"pruneHeight"`
-<<<<<<< HEAD
-=======
 	// 是否使能内存树
 	EnableMemTree bool `json:"enableMemTree"`
 	// 是否使能内存树中叶子节点
 	EnableMemVal bool `json:"enableMemVal"`
 	// 缓存close ticket数目
 	TkCloseCacheLen int32 `json:"tkCloseCacheLen"`
->>>>>>> upstream/master
 }
 
 // New new mavl store module
