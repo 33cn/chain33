@@ -8,6 +8,7 @@ var cfgstring = `
 Title="local"
 TestNet=true
 FixTime=false
+TxHeight=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -44,7 +45,6 @@ batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
 enableTxQuickIndex=true
-txHeight=true
 
 # 使能精简localdb
 enableReduceLocaldb=false

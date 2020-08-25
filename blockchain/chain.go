@@ -181,7 +181,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 
 func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	mcfg := cfg.GetModuleConfig().BlockChain
-	if cfg.IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
+	if cfg.IsEnable("config.TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
 		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
 	}
 
@@ -291,7 +291,7 @@ func (chain *BlockChain) InitBlockChain() {
 
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
-	if chain.client.GetConfig().IsEnable("TxHeight") {
+	if chain.client.GetConfig().IsEnable("config.TxHeight") {
 		chain.InitCache(curheight)
 	}
 	//获取数据库中最新的10240个区块加载到index和bestview链中

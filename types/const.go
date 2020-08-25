@@ -128,11 +128,6 @@ const (
 	ExecOk   = 2
 )
 
-// TODO 后续调试确认放的位置
-//func init() {
-//	S("TxHeight", false)
-//}
-
 //flag:
 
 //TxHeight 选项

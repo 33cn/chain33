@@ -23,7 +23,6 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		defer mock33.Close()
 	}()
 	cfg := mock33.GetClient().GetConfig()
-	cfg.S("TxHeight", true)
 	chainlog.Debug("TestCheckDupTxHashList01 begin --------------------")
 
 	blockchain := mock33.GetBlockChain()
@@ -69,7 +68,6 @@ func TestCheckDupTxHashList02(t *testing.T) {
 		defer mock33.Close()
 	}()
 	cfg := mock33.GetClient().GetConfig()
-	cfg.S("TxHeight", true)
 	chainlog.Debug("TestCheckDupTxHashList02 begin --------------------")
 	blockchain := mock33.GetBlockChain()
 	curheight := blockchain.GetBlockHeight()
@@ -116,7 +114,6 @@ func TestCheckDupTxHashList03(t *testing.T) {
 		defer mock33.Close()
 	}()
 	cfg := mock33.GetClient().GetConfig()
-	cfg.S("TxHeight", true)
 	chainlog.Debug("TestCheckDupTxHashList03 begin --------------------")
 	blockchain := mock33.GetBlockChain()
 	curheight := blockchain.GetBlockHeight()
@@ -161,7 +158,6 @@ func TestCheckDupTxHashList04(t *testing.T) {
 		defer mock33.Close()
 	}()
 	cfg := mock33.GetClient().GetConfig()
-	cfg.S("TxHeight", true)
 	chainlog.Debug("TestCheckDupTxHashList04 begin --------------------")
 	blockchain := mock33.GetBlockChain()
 	curheight := blockchain.GetBlockHeight()
@@ -208,7 +204,6 @@ func TestCheckDupTxHashList05(t *testing.T) {
 		defer mock33.Close()
 	}()
 	cfg := mock33.GetClient().GetConfig()
-	cfg.S("TxHeight", true)
 	chainlog.Debug("TestCheckDupTxHashList05 begin --------------------")
 	TxHeightOffset = 60
 	//发送带TxHeight交易且TxHeight不满足条件

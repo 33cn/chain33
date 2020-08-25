@@ -525,7 +525,7 @@ func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) e
 //SetExpire 设置交易过期时间
 func (tx *Transaction) SetExpire(cfg *Chain33Config, expire time.Duration) {
 	//Txheight处理
-	if cfg.IsEnable("TxHeight") && int64(expire) > TxHeightFlag {
+	if cfg.IsEnable("config.TxHeight") && int64(expire) > TxHeightFlag {
 		tx.Expire = int64(expire)
 		return
 	}
@@ -625,7 +625,7 @@ func (tx *Transaction) isExpire(cfg *Chain33Config, height, blocktime int64) boo
 
 //GetTxHeight 获取交易高度
 func GetTxHeight(cfg *Chain33Config, valid int64, height int64) int64 {
-	if cfg.IsEnableFork(height, "ForkTxHeight", cfg.IsEnable("TxHeight")) && valid > TxHeightFlag {
+	if cfg.IsEnableFork(height, "ForkTxHeight", cfg.IsEnable("config.TxHeight")) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
 	return -1

@@ -172,19 +172,22 @@ func (c *Chain33Config) GetForks() (map[string]int64, error) {
 }
 
 func (c *Chain33Config) setDefaultConfig() {
-	c.S("TestNet", false)
-	c.SetMinFee(DefaultMinFee)
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.setChainConfig("TestNet", false)
+	c.setDefaultFeeConfig(DefaultMinFee)
 	for key, cfg := range chaincfg.LoadAll() {
-		c.S("cfg."+key, cfg)
+		c.setChainConfig("cfg."+key, cfg)
 	}
-	//防止报error 错误，不影响功能
-	if !c.HasConf("cfg.chain33") {
-		c.S("cfg.chain33", "")
+	//预设置空值， 防止报error 错误，不影响功能
+	if _, ok := c.chainConfig["cfg.chain33"]; !ok {
+		c.setChainConfig("cfg.chain33", "")
 	}
-	if !c.HasConf("cfg.local") {
-		c.S("cfg.local", "")
+	if _, ok := c.chainConfig["cfg.local"]; !ok {
+		c.setChainConfig("cfg.local", "")
 	}
-	c.S("TxHeight", false)
+	c.setChainConfig("config.TxHeight", false)
 }
 
 func (c *Chain33Config) setFlatConfig(cfgstring string) {
@@ -224,12 +227,8 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	c.forks.SetTestNetFork()
 
 	if cfg != nil {
-		if c.isLocal() {
-			c.setTestNet(true)
-		} else {
-			c.setTestNet(cfg.TestNet)
-		}
-
+		//title为local时设置测试标志
+		c.setTestNet(c.isLocal() || cfg.TestNet)
 		if cfg.Wallet.MinFee < cfg.Mempool.MinTxFeeRate {
 			panic("config must meet: wallet.minFee >= mempool.minTxFeeRate")
 		}
@@ -260,7 +259,6 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	if c.needSetForkZero() { //local 只用于单元测试
 		if c.isLocal() {
 			c.forks.setLocalFork()
-			c.setChainConfig("TxHeight", true)
 			c.setChainConfig("Debug", true)
 		} else {
 			c.forks.setForkForParaZero()
@@ -289,12 +287,7 @@ func (c *Chain33Config) needSetForkZero() bool {
 }
 
 func (c *Chain33Config) setTestNet(isTestNet bool) {
-	if !isTestNet {
-		c.setChainConfig("TestNet", false)
-		return
-	}
-	c.setChainConfig("TestNet", true)
-	//const 初始化TestNet 的初始化参数
+	c.setChainConfig("TestNet", isTestNet)
 }
 
 // GetP 获取ChainParam
@@ -510,7 +503,11 @@ func (c *Chain33Config) setTxFeeConfig(minTxFeeRate, maxTxFeeRate, maxTxFee int6
 func (c *Chain33Config) SetMinFee(fee int64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.setTxFeeConfig(fee, fee*100, fee*10000)
+	c.setDefaultFeeConfig(fee)
+}
+
+func (c *Chain33Config) setDefaultFeeConfig(minFeeRate int64) {
+	c.setTxFeeConfig(minFeeRate, minFeeRate*100, minFeeRate*10000)
 }
 
 func (c *Chain33Config) isPara() bool {
