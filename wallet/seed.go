@@ -239,11 +239,3 @@ func AesgcmDecrypter(password []byte, seed []byte) ([]byte, error) {
 	//seedlog.Info("AesgcmDecrypter", "password", string(password), "seed", seed, "decryptered", string(decryptered))
 	return decryptered, nil
 }
-
-//CoinType 通过coinname获取对应的cointype值
-func CoinType(name string) uint32 {
-	if name == types.CoinTypeYcc {
-		return bipwallet.TypeYcc
-	}
-	return bipwallet.TypeBty
-}
