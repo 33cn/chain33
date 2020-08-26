@@ -243,7 +243,7 @@ type HealthCheck struct {
 	UnSyncMaxTimes uint32 `json:"unSyncMaxTimes,omitempty"`
 }
 
-// Metrics:相关测量配置信息
+// Metrics 相关测量配置信息
 type Metrics struct {
 	EnableMetrics bool   `json:"enableMetrics,omitempty"`
 	DataEmitMode  string `json:"dataEmitMode,omitempty"`
