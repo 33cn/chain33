@@ -108,8 +108,6 @@ type Wallet struct {
 	DbCache int32 `json:"dbCache,omitempty"`
 	// 钱包发送交易签名方式
 	SignType string `json:"signType,omitempty"`
-	// 钱包生成账户时需要指定币种类型
-	CoinType string `json:"coinType,omitempty"`
 }
 
 // Store 配置
