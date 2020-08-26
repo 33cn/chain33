@@ -8,6 +8,7 @@ var cfgstring = `
 Title="local"
 TestNet=true
 FixTime=false
+TxHeight=false
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
