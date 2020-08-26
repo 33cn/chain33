@@ -118,7 +118,7 @@ func New(cfg *types.Chain33Config) *Wallet {
 		rescanwg:         &sync.WaitGroup{},
 		initFlag:         0,
 		SignType:         signType,
-		CoinType:         bipwallet.GetSLIP0044CoinType(cfg.GetCoinSymbol()),
+		CoinType:         bipwallet.GetSLIP0044CoinType(mcfg.CoinType),
 		minFee:           mcfg.MinFee,
 		accountdb:        account.NewCoinsAccount(cfg),
 		accTokenMap:      make(map[string]*account.DB),

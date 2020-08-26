@@ -62,7 +62,7 @@ func GetSLIP0044CoinType(name string) uint32 {
 		return ty
 	}
 	log.Error("GetSLIP0044CoinType: " + name + " not exist.")
-	return 0
+	return TypeBty
 }
 
 // HDWallet 支持BIP-44标准的HD钱包

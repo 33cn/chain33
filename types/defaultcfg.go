@@ -172,6 +172,7 @@ driver="leveldb"
 dbPath="wallet"
 dbCache=16
 signType="secp256k1"
+coinType="bty"
 
 [wallet.sub.ticket]
 minerdisable=false
