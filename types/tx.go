@@ -625,6 +625,9 @@ func (tx *Transaction) isExpire(cfg *Chain33Config, height, blocktime int64) boo
 
 //GetTxHeight 获取交易高度
 func GetTxHeight(cfg *Chain33Config, valid int64, height int64) int64 {
+	if cfg.IsPara() {
+		return -1
+	}
 	if cfg.IsEnableFork(height, "ForkTxHeight", cfg.IsEnable("TxHeight")) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
