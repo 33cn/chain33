@@ -155,6 +155,3 @@ var HighAllowPackHeight int64 = 90
 
 //LowAllowPackHeight 允许打包的low区块高度
 var LowAllowPackHeight int64 = 30
-
-//EnableTxGroupParaFork 默认情况下不开启fork
-var EnableTxGroupParaFork = false
