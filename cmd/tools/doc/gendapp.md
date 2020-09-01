@@ -49,9 +49,9 @@ message DemoAction {
     int32 ty = 3;
 }
 ``` 
-* package name设为合约名，适配后续生成目录结构
+* package name设为types，适配后续生成目录结构
 ```proto
-package demo;
+package types;
 ```
 
 * 定义service，直接以合约名作为名称
@@ -91,9 +91,11 @@ demo
 
 ```
 ##### 生成pb.go文件
+pb.go文件基于protobuf提供的proto-gen-go插件生成，这里protobuf的版本必须和chain33引用的保持一致，
+具体可以查看chain33项目go.mod文件，github.com/golang/protobuf库的版本
 ```
 //进入到上述proto目录执行相关脚本，将会在types目录下生成对应pb.go文件
-$ cd proto && chmod +x ./create_protobuf.sh && make
+$ cd proto && make
 ```
 
 ##### 后续开发   
