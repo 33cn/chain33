@@ -130,7 +130,8 @@ const (
 交易log结构由开发者自由定义，这里logMap需要将对应结构按格式填充，
 如本例中加减乘除都有对应的log类型（也可以采用一个通用结构对应多个交易回执），依次按照格式填入即可
 ```go
-//定义action的name和id
+
+    //定义action的name和id
 	actionMap = map[string]int32{
 		NameAddAction: TyAddAction,
 		NameSubAction: TySubAction,
@@ -227,18 +228,20 @@ func (c *calculator) ExecLocal_Add(payload *ptypes.Add, tx *types.Transaction, r
 	}
 	countInfo.Count++
 	dbSet = &types.LocalDBSet{KV: []*types.KeyValue{{Key:localKey, Value:types.Encode(&countInfo)}}}
-	return c.addAutoRollBack(tx, dbSet.KV), nil
+	//封装kv，适配框架自动回滚，这部分代码已经自动生成
+    return c.addAutoRollBack(tx, dbSet.KV), nil
 }
 ```
 
 ##### 实现ExecDelLocal类接口(executor/exec_del_local.go)
->ExecDelLocal类接口可以理解为ExecLocal的逆过程，在区块回退时候被调用，目前框架已经支持自动回滚，无需实现
+>ExecDelLocal类接口可以理解为ExecLocal的逆过程，在区块回退时候被调用，生成代码已支持自动回滚，无需实现
 
 ##### 实现Query类接口(executor/query.go)
 > Query类接口主要实现查询相关业务逻辑，如访问合约数据库，
 Query类接口需要满足框架规范(固定格式函数名称和签名)，才能被框架注册和使用，
 具体调用方法将在rpc模块介绍，本例实现查询运算符计算次数的接口
 ```go
+//函数名称，Query_+实际方法名格式，返回值为protobuf Message结构
 func (c *calculator) Query_CalcCount(in *ptypes.ReqQueryCalcCount) (types.Message, error) {
 
 	var countInfo ptypes.ReplyQueryCalcCount
@@ -286,12 +289,12 @@ func (c *channelClient)QueryCalcCount(ctx context.Context, in *ptypes.ReqQueryCa
 }
 ```
 
-##### json rpc相关接口
+##### json rpc接口
 >json rpc主要给前端相关平台产品调用，本例为查询计算次数接口
 ```go
 func (j *Jrpc)QueryCalcCount(in *ptypes.ReqQueryCalcCount, result *interface{}) error {
 
-    //这里直接调用内部的grpc接口
+    //此处直接调用内部的grpc接口
 	reply, err := j.cli.QueryCalcCount(context.Background(), in)
 	if err != nil {
 		return err
@@ -302,10 +305,9 @@ func (j *Jrpc)QueryCalcCount(in *ptypes.ReqQueryCalcCount, result *interface{}) 
 ```
 
 ##### rpc说明
->对于构造交易和query可以通过chain33框架的rpc去调用，
+>对于构造交易和query类接口可以通过chain33框架的rpc去调用，
 分别是Chain33.CreateTransaction和Chain33.Query，上述代码只是示例如何开发rpc接口，
-实际开发中，实现了query接口，无需实现对应的rpc，
-而直接调用框架的rpc，当然也支持自定义rpc，将在commands模块介绍如何调用
+实际使用中，只需要实现query接口，并通过框架rpc调用，也可以根据需求封装rpc接口，在commands模块将会介绍如何调用框架rpc
 
 #### commands命令行模块
 如果需要支持命令行交互式访问区块节点，开发者需要实现具体合约的命令，
@@ -391,7 +393,7 @@ func queryCalcCountCmd() *cobra.Command {
  	res = &calculatortypes.ReplyQueryCalcCount{}
  	//调用框架Query rpc接口, 通过框架调用，需要指定query对应的函数名称，具体参数见Query4Jrpc结构
  	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", chain33Req, &res)
- 	//调用合约内部rpc接口, 注意合约自定义的rpc是以合约名称作为rpc名称的，这里为calculator.
+ 	//调用合约内部rpc接口, 注意合约自定义的rpc接口是以合约名称作为rpc服务，这里为calculator
  	//ctx := jsonclient.NewRPCCtx(rpcLaddr, "calculator.QueryCalcCount", req, &res)
  	ctx.Run()
  }
@@ -446,7 +448,7 @@ curl -kd '{"method":"calculator.QueryCalcCount", "params":[{"action":"Add"}]}' h
 
 #### 进阶
 ##### 计算器
-基于 [本例代码](https://github.com/bysomeone/plugin/tree/dapp-example-caculator) 实现减法等交易行为
+基于 [本例代码](https://github.com/bysomeone/plugin/tree/dapp-example-calculator) 实现减法等交易行为
 ##### 其他例子
 官方 [plugin项目](https://github.com/33cn/plugin) 提供了丰富的插件，可以参考学习
 
