@@ -391,10 +391,6 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		}
 	}
 
-	if block.Height%b.cfg.ChunkblockNum == 0 && !b.cfg.DisableShard {
-		go b.CheckGenChunkNum()
-	}
-
 	//目前非平行链并开启isRecordBlockSequence功能和enablePushSubscribe
 	if b.isRecordBlockSequence && b.enablePushSubscribe {
 		b.push.UpdateSeq(lastSequence)

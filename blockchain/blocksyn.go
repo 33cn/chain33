@@ -1149,18 +1149,15 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 		Pid:      pid,
 	}
 	var cb func()
-	var timeoutcb func(chunkNum int64)
 	if count >= int64(MaxReqChunkRecord) { // 每次请求最大MaxReqChunkRecord个chunk的record
 		reqRec.End = reqRec.Start + int64(MaxReqChunkRecord) - 1
 		cb = func() {
 			chain.ChunkRecordSync()
 		}
-	} else {
-		reqRec.End = end
 	}
 	// 目前数据量小可在一个节点下载多个chunk记录
 	// TODO 后续可以多个节点并发下载
-	err = chain.chunkRecordTask.Start(reqRec.Start, reqRec.End, cb, timeoutcb)
+	err = chain.chunkRecordTask.Start(reqRec.Start, reqRec.End, cb, nil)
 	if err != nil {
 		return err
 	}

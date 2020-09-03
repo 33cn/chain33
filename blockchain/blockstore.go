@@ -1620,7 +1620,7 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 	stime := time.Now()
 	defer func() {
 		etime := time.Now()
-		storeLog.Info("getBodyFromP2Pstore", "cost time is:", etime.Sub(stime))
+		storeLog.Info("getBodyFromP2Pstore", "start", start, "end", end, "cost time", etime.Sub(stime))
 	}()
 	value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
 	if value == nil || err != nil {

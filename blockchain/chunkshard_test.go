@@ -48,19 +48,12 @@ func TestCheckGenChunkNum(t *testing.T) {
 	//just for test
 	chain.blockStore.UpdateHeight2(MaxRollBlockNum + 150)
 	// check
-	lastChunkNum := int64(0)
-	for i := 0; i < 5; i++ {
+	for i := int64(0); i < 5; i++ {
 		chain.CheckGenChunkNum()
 		// check
 		serChunkNum := chain.getMaxSerialChunkNum()
 		curChunkNum := chain.GetCurChunkNum()
 		assert.Equal(t, serChunkNum, curChunkNum)
-		if i >= 3 {
-			assert.Equal(t, lastChunkNum, curChunkNum)
-		} else {
-			assert.NotEqualf(t, lastChunkNum, curChunkNum, "not equal")
-		}
-		lastChunkNum = curChunkNum
 	}
 }
 
