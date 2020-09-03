@@ -45,11 +45,11 @@ func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHas
 		return nil, types.ErrInvalidParam
 	}
 	var ReplyHash types.ReplyHash
-	block, err := chain.GetBlock(height.GetHeight())
+	hash, err := chain.blockStore.GetBlockHashByHeight(height.GetHeight())
 	if err != nil {
 		return nil, err
 	}
-	ReplyHash.Hash = block.Block.Hash(chain.client.GetConfig())
+	ReplyHash.Hash = hash
 	return &ReplyHash, nil
 }
 
