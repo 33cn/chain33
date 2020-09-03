@@ -234,13 +234,13 @@ func (p *Protocol) handleEventGetChunkRecord(m *queue.Message) {
 	req := m.GetData().(*types.ReqChunkRecords)
 	records := p.getChunkRecords(req)
 	if records == nil {
-		log.Error("GetChunkRecord", "error", types2.ErrNotFound)
+		log.Error("handleEventGetChunkRecord", "getChunkRecords error", types2.ErrNotFound)
 		return
 	}
 	msg := p.QueueClient.NewMessage("blockchain", types.EventAddChunkRecord, records)
 	err := p.QueueClient.Send(msg, false)
 	if err != nil {
-		log.Error("EventGetChunkBlockBody", "reply message error", err)
+		log.Error("handleEventGetChunkRecord", "reply message error", err)
 	}
 }
 

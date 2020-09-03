@@ -30,6 +30,9 @@ func (p *Protocol) republish() {
 			}
 			continue
 		}
+		if time.Since(info.Time) > types2.RefreshInterval*11/10 {
+			continue
+		}
 		log.Info("local chunk", "hash", hash, "start", info.Start)
 		peers := p.healthyRoutingTable.NearestPeers(genDHTID(info.ChunkHash), Backup-1)
 		for _, pid := range peers {
