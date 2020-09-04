@@ -83,8 +83,9 @@ func (a *AddrBook) loadDb() bool {
 }
 
 //Randkey Rand keypair
-func (a *AddrBook) Randkey() {
+func (a *AddrBook) Randkey() p2pcrypto.PrivKey {
 	a.initKey()
+	return a.GetPrivkey()
 }
 func (a *AddrBook) initKey() {
 

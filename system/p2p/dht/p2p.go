@@ -103,9 +103,8 @@ func (p *P2P) StartP2P() {
 			if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
 				p.genAirDropKey()
 				priv = p.addrbook.GetPrivkey()
-			} else {
-				p.addrbook.Randkey()
-				priv = p.addrbook.GetPrivkey()
+			} else { //创建随机公私钥对,生成临时pid，待创建钱包之后，提换钱包生成的pid
+				priv = p.addrbook.Randkey()
 				go p.genAirDropKey() //非阻塞模式
 
 			}
