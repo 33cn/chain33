@@ -38,10 +38,7 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 	}
 	dbPath := cfg.DbPath + "/" + p2pty.DHTTypeName
 	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, dbPath, a.cfg.DbCache)
-
-	if !a.loadDb() {
-		a.initKey()
-	}
+	a.loadDb()
 	return a
 
 }
@@ -85,6 +82,10 @@ func (a *AddrBook) loadDb() bool {
 
 }
 
+//Randkey Rand keypair
+func (a *AddrBook) Randkey() {
+	a.initKey()
+}
 func (a *AddrBook) initKey() {
 
 	priv, pub, err := GenPrivPubkey()

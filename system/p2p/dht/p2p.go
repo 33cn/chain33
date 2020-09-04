@@ -94,58 +94,73 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 
 // StartP2P start p2p
 func (p *P2P) StartP2P() {
-	priv := p.addrbook.GetPrivkey()
-	bandwidthTracker := metrics.NewBandwidthCounter()
-	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", p.subCfg.Port))
-	if err != nil {
-		panic(err)
-	}
-	log.Info("NewMulti", "addr", maddr.String())
-	host := newHost(p.subCfg, priv, bandwidthTracker, maddr)
-	p.host = host
-	p.peerInfoManag = manage.NewPeerInfoManager(p.client)
-	p.taskGroup = &sync.WaitGroup{}
-	p.db = store.NewDataStore(p.subCfg)
+	go func() {
+		p.ctx, p.cancel = context.WithCancel(context.Background())
+		atomic.StoreInt32(&p.restart, 0)
+		priv := p.addrbook.GetPrivkey()
 
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	atomic.StoreInt32(&p.restart, 0)
-	p.discovery = net.InitDhtDiscovery(p.ctx, p.host, p.addrbook.AddrsInfo(), p.chainCfg, p.subCfg)
-	p.connManag = manage.NewConnManager(p.host, p.discovery, bandwidthTracker, p.subCfg)
-	pubsub, err := net.NewPubSub(p.ctx, p.host)
-	if err != nil {
-		return
-	}
+		if priv == nil { //addrbook存储的peer key 为空
+			if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
+				p.genAirDropKey()
+				priv = p.addrbook.GetPrivkey()
+			} else {
+				p.addrbook.Randkey()
+				priv = p.addrbook.GetPrivkey()
+				go p.genAirDropKey() //非阻塞模式
 
-	p.pubsub = pubsub
-	p.addrbook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
+			}
+		} else { //非阻塞模式
+			go p.genAirDropKey()
+		}
 
-	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
+		bandwidthTracker := metrics.NewBandwidthCounter()
+		maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", p.subCfg.Port))
+		if err != nil {
+			panic(err)
+		}
+		log.Info("NewMulti", "addr", maddr.String())
+		host := newHost(p.subCfg, priv, bandwidthTracker, maddr)
+		p.host = host
+		p.peerInfoManag = manage.NewPeerInfoManager(p.client)
+		p.taskGroup = &sync.WaitGroup{}
+		p.db = store.NewDataStore(p.subCfg)
 
-	//提供给其他插件使用的共享接口
-	env := &prototypes.P2PEnv{
-		ChainCfg:         p.chainCfg,
-		QueueClient:      p.client,
-		Host:             p.host,
-		ConnManager:      p.connManag,
-		PeerInfoManager:  p.peerInfoManag,
-		P2PManager:       p.mgr,
-		SubConfig:        p.subCfg,
-		Discovery:        p.discovery,
-		Pubsub:           p.pubsub,
-		Ctx:              p.ctx,
-		DB:               p.db,
-		RoutingTable:     p.discovery.RoutingTable(),
-		RoutingDiscovery: p.discovery.RoutingDiscovery,
-	}
-	protocol.Init(env)
-	protocol.InitAllProtocol(env)
-	p.env = env
-	go p.managePeers()
-	go p.handleP2PEvent()
-	go p.findLANPeers()
-	//TODO 考虑增加配置，选择是否创建空投地址
-	go p.genAirDropKey()
+		pubsub, err := net.NewPubSub(p.ctx, p.host)
+		if err != nil {
+			return
+		}
+		p.pubsub = pubsub
+		p.discovery = net.InitDhtDiscovery(p.ctx, p.host, p.addrbook.AddrsInfo(), p.chainCfg, p.subCfg)
+		p.connManag = manage.NewConnManager(p.host, p.discovery, bandwidthTracker, p.subCfg)
 
+		p.addrbook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
+
+		log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
+
+		//提供给其他插件使用的共享接口
+		env := &prototypes.P2PEnv{
+			ChainCfg:         p.chainCfg,
+			QueueClient:      p.client,
+			Host:             p.host,
+			ConnManager:      p.connManag,
+			PeerInfoManager:  p.peerInfoManag,
+			P2PManager:       p.mgr,
+			SubConfig:        p.subCfg,
+			Discovery:        p.discovery,
+			Pubsub:           p.pubsub,
+			Ctx:              p.ctx,
+			DB:               p.db,
+			RoutingTable:     p.discovery.RoutingTable(),
+			RoutingDiscovery: p.discovery.RoutingDiscovery,
+		}
+		protocol.Init(env)
+		protocol.InitAllProtocol(env)
+		p.env = env
+		go p.managePeers()
+		go p.handleP2PEvent()
+		go p.findLANPeers()
+
+	}()
 }
 
 // CloseP2P close p2p
@@ -172,6 +187,11 @@ func (p *P2P) CloseP2P() {
 func (p *P2P) reStart() {
 	atomic.StoreInt32(&p.restart, 1)
 	log.Info("p2p will restart")
+	if p.host == nil {
+		//说明p2p还没有开始启动，无需重启
+		log.Info("p2p no nee restart...")
+		return
+	}
 	p.CloseP2P()
 	p.StartP2P()
 
@@ -338,11 +358,11 @@ func (p *P2P) genAirDropKey() {
 				time.Sleep(time.Second)
 				continue
 			}
-			if resp.(*types.WalletStatus).GetIsWalletLock() { //上锁状态，无法用助记词创建空投地址,等待...
+			if !resp.(*types.WalletStatus).GetIsHasSeed() {
 				continue
 			}
 
-			if !resp.(*types.WalletStatus).GetIsHasSeed() {
+			if resp.(*types.WalletStatus).GetIsWalletLock() { //上锁状态，无法用助记词创建空投地址,等待...
 				continue
 			}
 
@@ -369,7 +389,7 @@ func (p *P2P) genAirDropKey() {
 	} else {
 		walletPrivkey = reply.GetData()
 	}
-	if walletPrivkey[:2] == "0x" {
+	if walletPrivkey != "" && walletPrivkey[:2] == "0x" {
 		walletPrivkey = walletPrivkey[2:]
 	}
 
@@ -380,7 +400,7 @@ func (p *P2P) genAirDropKey() {
 	//如果addrbook之前保存的savePrivkey相同，则意味着节点启动之前已经创建了airdrop 空投地址
 	savePrivkey, _ := p.addrbook.GetPrivPubKey()
 	if savePrivkey == walletPrivkey { //addrbook与wallet保存了相同的空投私钥，不需要继续导入
-		log.Debug("genAirDropKey", " process done")
+		log.Debug("genAirDropKey", " same privekey ,process done")
 		return
 	}
 
@@ -401,7 +421,7 @@ func (p *P2P) genAirDropKey() {
 
 	}
 
-	if savePrivkey != "" {
+	if savePrivkey != "" && !p.p2pCfg.WaitPid { //如果是waitpid 则不生成dht node award,保证之后一个空投地址，即钱包创建的airdropaddr
 		//savePrivkey是随机私钥，兼容老版本，先对其进行导入钱包处理
 		//进行压缩处理
 		var parm types.ReqWalletImportPrivkey
