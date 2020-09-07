@@ -47,7 +47,7 @@ func (chain *BlockChain) chunkProcessRoutine() {
 			return
 		case <-checkDelTicker.C:
 			// 6.5版本先不做删除
-			//chain.CheckDeleteBlockBody()
+			chain.CheckDeleteBlockBody()
 		case <-checkGenChunkTicker.C:
 			chain.CheckGenChunkNum()
 		}
