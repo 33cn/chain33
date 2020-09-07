@@ -22,7 +22,7 @@ type StreamRequest struct {
 	// PeerID peer id
 	PeerID core.PeerID
 	// MsgID stream msg id
-	MsgID string
+	MsgID []core.ProtocolID
 	// Data request data
 	Data types.Message
 }
@@ -63,13 +63,13 @@ func (base *BaseProtocol) SendRecvPeer(req *StreamRequest, resp types.Message) e
 }
 
 //NewStream new libp2p stream
-func NewStream(host core.Host, pid core.PeerID, msgID string) (core.Stream, error) {
+func NewStream(host core.Host, pid core.PeerID, msgID []core.ProtocolID) (core.Stream, error) {
 
-	stream, err := host.NewStream(context.Background(), pid, core.ProtocolID(msgID))
+	stream, err := host.NewStream(context.Background(), pid, msgID...)
 	// EOF表示底层连接断开， 增加一次重试
 	if err == io.EOF {
 		log.Debug("NewStream", "msg", "RetryConnectEOF")
-		stream, err = host.NewStream(context.Background(), pid, core.ProtocolID(msgID))
+		stream, err = host.NewStream(context.Background(), pid, msgID...)
 	}
 	if err != nil {
 		log.Error("NewStream", "pid", pid.Pretty(), "msgID", msgID, " err", err)

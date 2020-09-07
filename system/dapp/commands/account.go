@@ -34,6 +34,7 @@ func AccountCmd() *cobra.Command {
 		SetLabelCmd(),
 		DumpKeysFileCmd(),
 		ImportKeysFileCmd(),
+		GetAccountCmd(),
 	)
 
 	return cmd
@@ -310,6 +311,17 @@ func parseCreateAccountRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
+//GetAccountCmd get account by label
+func GetAccountCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get",
+		Short: "Get account by label",
+		Run:   getAccount,
+	}
+	addGetAccountFlags(cmd)
+	return cmd
+}
+
 // SetLabelCmd set label of an account
 func SetLabelCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -320,13 +332,28 @@ func SetLabelCmd() *cobra.Command {
 	addSetLabelFlags(cmd)
 	return cmd
 }
-
+func addGetAccountFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("label", "l", "", "account label")
+	cmd.MarkFlagRequired("label")
+}
 func addSetLabelFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account address")
 	cmd.MarkFlagRequired("addr")
 
 	cmd.Flags().StringP("label", "l", "", "account label")
 	cmd.MarkFlagRequired("label")
+}
+
+func getAccount(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	label, _ := cmd.Flags().GetString("label")
+	params := types.ReqGetAccount{
+		Label: label,
+	}
+	var res types.WalletAccount
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAccount", params, &res)
+	ctx.SetResultCb(parseSetLabelRes)
+	ctx.Run()
 }
 
 func setLabel(cmd *cobra.Command, args []string) {

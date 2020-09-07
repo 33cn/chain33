@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/peer"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -21,6 +22,8 @@ var log = log15.New("module", "protocol.p2pstore")
 //Protocol ...
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
+
+	*lru.Cache
 
 	//cache the notify message when other peers notify this node to store chunk.
 	notifying sync.Map
@@ -77,6 +80,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 		ticker1 := time.NewTicker(time.Minute)
 		ticker2 := time.NewTicker(types2.RefreshInterval)
 		ticker3 := time.NewTicker(types2.CheckHealthyInterval)
+		ticker4 := time.NewTicker(time.Hour)
+
 		for {
 			select {
 			case <-ticker1.C:
@@ -86,6 +91,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 			case <-ticker3.C:
 				p.updateHealthyRoutingTable()
 				p.AdvertiseFullNode()
+			case <-ticker4.C:
 				//debug info
 				p.localChunkInfoMutex.Lock()
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
@@ -96,6 +102,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 					log.Info("LatencyEWMA", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid), "latency", p.Host.Peerstore().LatencyEWMA(pid))
 				}
 				log.Info("debug length", "notifying msg len", len(p.notifyingQueue))
+			case <-p.Ctx.Done():
+				return
 			}
 		}
 	}()

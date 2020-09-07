@@ -10,6 +10,12 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/metrics"
+
+	ds "github.com/ipfs/go-datastore"
+	discovery "github.com/libp2p/go-libp2p-discovery"
+	kbt "github.com/libp2p/go-libp2p-kbucket"
+
 	"github.com/33cn/chain33/system/p2p/dht/net"
 
 	"github.com/33cn/chain33/p2p"
@@ -70,7 +76,14 @@ type P2PEnv struct {
 	SubConfig       *p2pty.P2PSubConfig
 	Pubsub          *net.PubSub
 	Ctx             context.Context
-	Cancel          context.CancelFunc
+	DB              ds.Datastore
+	RoutingTable    *kbt.RoutingTable
+	*discovery.RoutingDiscovery
+}
+
+// RoutingTabler routing table interface
+type RoutingTabler interface {
+	RoutingTable() *kbt.RoutingTable
 }
 
 // IConnManager connection manager interface
@@ -79,6 +92,7 @@ type IConnManager interface {
 	BoundSize() (in int, out int)
 	IsNeighbors(id peer.ID) bool
 	GetLatencyByPeer(pids []peer.ID) map[string]time.Duration
+	GetNetRate() metrics.Stats
 }
 
 // IPeerInfoManager peer info manager interface

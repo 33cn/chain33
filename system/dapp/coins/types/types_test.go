@@ -39,12 +39,14 @@ func TestCoinsType(t *testing.T) {
 	assert.Equal(t, logmap, ty.GetLogMap())
 	assert.Equal(t, actionName, ty.GetTypeMap())
 
-	create := &types.CreateTx{}
+	create := &types.CreateTx{TokenSymbol: "NotMe"}
 	tx, err := ty.RPC_Default_Process("transfer", create)
 	assert.NoError(t, err)
 
-	_, err = ty.GetAssets(tx)
+	assets, err := ty.GetAssets(tx)
 	assert.NoError(t, err)
+	assert.Equal(t, 1, len(assets))
+	assert.Equal(t, "BTY", assets[0].GetSymbol())
 }
 
 func TestCoinsPb(t *testing.T) {

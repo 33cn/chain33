@@ -26,8 +26,9 @@ import (
 
 func TestUpdateChunkWhiteList(t *testing.T) {
 	p := &Protocol{}
+
 	p.chunkWhiteList.Store("test1", time.Now())
-	p.chunkWhiteList.Store("test2", time.Now().Add(-time.Minute*10))
+	p.chunkWhiteList.Store("test2", time.Now().Add(-time.Minute*11))
 	p.updateChunkWhiteList()
 	_, ok := p.chunkWhiteList.Load("test1")
 	assert.True(t, ok)

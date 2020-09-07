@@ -82,7 +82,7 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	bootstraps := net.ConvertPeers(s.cfg.BootStraps)
 	ticker1 := time.NewTicker(time.Minute)
-	ticker2 := time.NewTicker(time.Minute * 10)
+	ticker2 := time.NewTicker(time.Minute * 2)
 	ticker3 := time.NewTicker(time.Hour * 6)
 	for {
 		select {
@@ -278,4 +278,10 @@ func (s *ConnManager) BoundSize() (insize int, outsize int) {
 
 	return insize, outsize
 
+}
+
+// GetNetRate get rateinfo
+func (s *ConnManager) GetNetRate() metrics.Stats {
+
+	return s.bandwidthTracker.GetBandwidthTotals()
 }

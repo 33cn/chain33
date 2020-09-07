@@ -58,6 +58,12 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 	}
 	d.RoutingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
 	return d
+
+}
+
+//CloseDht close the dht
+func (d *Discovery) CloseDht() error {
+	return d.kademliaDHT.Close()
 }
 
 // FindPeers find peers
@@ -93,7 +99,7 @@ func (d *Discovery) FindLANPeers(host host.Host, serviceTag string) (<-chan peer
 // CloseFindLANPeers close peers
 func (d *Discovery) CloseFindLANPeers() {
 	if d.mdnsService != nil {
-		d.mdnsService.Service.UnregisterNotifee(d.mdnsService.notifee)
+		d.mdnsService.Service.Close()
 	}
 }
 
@@ -126,7 +132,6 @@ func (d *Discovery) FindSpecialPeer(pid peer.ID) (*peer.AddrInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return &peerInfo, nil
 
 }

@@ -60,7 +60,7 @@ func readDappActionFromProto(protoContent, actionName string) ([]*actionInfoItem
 func formatExecContent(infos []*actionInfoItem, dappName string) string {
 
 	fnFmtStr := `func (${EXEC_OBJECT} *%s) Exec_%s(payload *%stypes.%s, tx *types.Transaction, index int) (*types.Receipt, error) {
-	var receipt *types.Receipt
+	receipt := &types.Receipt{Ty: types.ExecOk}
 	//implement code
 	return receipt, nil
 }
@@ -78,8 +78,10 @@ func formatExecLocalContent(infos []*actionInfoItem, dappName string) string {
 
 	fnFmtStr := `func (${EXEC_OBJECT} *%s) ExecLocal_%s(payload *%stypes.%s, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	dbSet := &types.LocalDBSet{}
-	//implement code
-	return ${EXEC_OBJECT}.addAutoRollBack(tx, dbSet.KV), nil
+	//implement code, add customize kv to dbSet...
+	
+	//auto gen for localdb auto rollback
+	return ${EXEC_OBJECT}.addAutoRollBack(tx, dbSet.KV), nil  
 }
 
 `

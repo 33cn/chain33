@@ -19,9 +19,8 @@ var log = log15.New("module", "protocol.healthy")
 
 //Protocol ....
 type Protocol struct {
-	*protocol.P2PEnv //协议共享接口变量
-
-	fallBehind int64 //落后多少高度，同步完成时该值应该为0
+	*protocol.P2PEnv       //协议共享接口变量
+	fallBehind       int64 //落后多少高度，同步完成时该值应该为0
 }
 
 func init() {
@@ -41,8 +40,13 @@ func InitProtocol(env *protocol.P2PEnv) {
 	//保存一个全局变量备查，避免频繁到网络中请求。
 	go func() {
 		ticker1 := time.NewTicker(types2.CheckHealthyInterval)
-		for range ticker1.C {
-			p.updateFallBehind()
+		for {
+			select {
+			case <-ticker1.C:
+				p.updateFallBehind()
+			case <-p.Ctx.Done():
+				return
+			}
 		}
 	}()
 

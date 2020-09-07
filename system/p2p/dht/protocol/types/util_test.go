@@ -91,15 +91,15 @@ func TestStream(t *testing.T) {
 	proto.P2PEnv = &P2PEnv{Host: h1}
 	req := &StreamRequest{
 		PeerID: h2.ID(),
-		MsgID:  msgID,
+		MsgID:  []core.ProtocolID{core.ProtocolID(msgID)},
 		Data:   &types.Transaction{},
 	}
 	err = proto.SendPeer(req)
 	assert.Nil(t, err)
-	req.MsgID = msgID2
+	req.MsgID = []core.ProtocolID{core.ProtocolID(msgID2)}
 	err = proto.SendRecvPeer(req, &types.Transaction{})
 	assert.Nil(t, err)
-	stream, err := NewStream(h1, h2.ID(), msgID2)
+	stream, err := NewStream(h1, h2.ID(), []core.ProtocolID{core.ProtocolID(msgID2)})
 	assert.Equal(t, msgID2, string(stream.Protocol()))
 	assert.Nil(t, err)
 	err = WriteStream(&types.Transaction{}, stream)
@@ -127,7 +127,7 @@ func BenchmarkNewStream(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			NewStream(h1, h2.ID(), msgID)
+			NewStream(h1, h2.ID(), []core.ProtocolID{core.ProtocolID((msgID))})
 		}
 	})
 }

@@ -710,10 +710,24 @@ func TestChain33_NewAccount(t *testing.T) {
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
-
 	mock.AssertExpectationsForObjects(t, api)
 }
 
+func TestChain33_GetAccount(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	testChain33 := newTestChain33(api)
+
+	api.On("ExecWalletFunc", "wallet", "WalletGetAccount", &types.ReqGetAccount{}).Return(nil, errors.New("error value"))
+
+	var testResult interface{}
+	err := testChain33.GetAccount(types.ReqGetAccount{}, &testResult)
+	t.Log(err)
+	assert.Equal(t, nil, testResult)
+	assert.NotNil(t, err)
+	mock.AssertExpectationsForObjects(t, api)
+}
 func TestChain33_WalletTxList(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)

@@ -209,12 +209,15 @@ type PeerList struct {
 
 // Peer  information
 type Peer struct {
-	Addr        string  `json:"addr"`
-	Port        int32   `json:"port"`
-	Name        string  `json:"name"`
-	MempoolSize int32   `json:"mempoolSize"`
-	Self        bool    `json:"self"`
-	Header      *Header `json:"header"`
+	Addr           string  `json:"addr"`
+	Port           int32   `json:"port"`
+	Name           string  `json:"name"`
+	MempoolSize    int32   `json:"mempoolSize"`
+	Self           bool    `json:"self"`
+	Header         *Header `json:"header"`
+	Version        string  `json:"version,omitempty"`
+	LocalDBVersion string  `json:"localDBVersion,omitempty"`
+	StoreDBVersion string  `json:"storeDBVersion,omitempty"`
 }
 
 // WalletAccounts Wallet Module
@@ -320,6 +323,11 @@ type NodeNetinfo struct {
 	Service      bool   `json:"service"`
 	Outbounds    int32  `json:"outbounds"`
 	Inbounds     int32  `json:"inbounds"`
+	Routingtable int32  `json:"routingtable"`
+	Peerstore    int32  `json:"peerstore"`
+	Ratein       string `json:"ratein"`
+	Rateout      string `json:"rateout"`
+	Ratetotal    string `json:"ratetotal"`
 }
 
 // ReplyCacheTxList reply cache tx list

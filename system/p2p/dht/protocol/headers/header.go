@@ -101,7 +101,8 @@ func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 			Message: p2pgetheaders}
 
 		// headerReq.MessageData.Sign = signature
-		rID, err := peer.IDB58Decode(pid)
+		//rID, err := peer.IDB58Decode(pid)
+		rID, err := peer.Decode(pid)
 		if err != nil {
 			log.Error("handleEvent", "err", err)
 			continue
@@ -109,7 +110,7 @@ func (h *headerInfoProtol) handleEvent(msg *queue.Message) {
 		req := &prototypes.StreamRequest{
 			PeerID: rID,
 			Data:   headerReq,
-			MsgID:  headerInfoReq,
+			MsgID:  []core.ProtocolID{headerInfoReq},
 		}
 		var resp types.MessageHeaderResp
 		err = h.SendRecvPeer(req, &resp)

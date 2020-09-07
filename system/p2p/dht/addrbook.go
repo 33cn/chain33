@@ -8,17 +8,18 @@ import (
 	"os"
 	"sync"
 
-	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
-
 	"github.com/33cn/chain33/common/db"
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/wallet/bipwallet"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 const (
-	addrkeyTag = "mutiaddrs"
-	privKeyTag = "privkey"
+	addrkeyTag              = "mutiaddrs"
+	privKeyTag              = "privkey"
+	privKeyCompressBytesLen = 32
 )
 
 // AddrBook peer address manager
@@ -121,11 +122,18 @@ func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
 		log.Error("GetPrivkey", "DecodeString Error", err.Error())
 		return nil
 	}
-	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
+	log.Debug("GetPrivkey", "privsize", len(keybytes))
+
+	privkey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
 	if err != nil {
-		log.Error("GetPrivkey", "PrivKeyUnmarshaller", err.Error())
-		return nil
+		privkey, err = p2pcrypto.UnmarshalPrivateKey(keybytes)
+		if err != nil {
+			log.Error("GetPrivkey", "UnmarshalPrivateKey", err.Error())
+			return nil
+		}
+
 	}
+
 	return privkey
 }
 
@@ -171,22 +179,43 @@ func (a *AddrBook) StoreHostID(id peer.ID, path string) {
 	}
 
 	defer pf.Close()
-	pf.WriteString(id.Pretty())
+	var peerInfo = make(map[string]interface{})
+	var info = make(map[string]interface{})
+	pubkey, err := PeerIDToPubkey(id.Pretty())
+	if err == nil {
+		info["pubkey"] = pubkey
+		pbytes, _ := hex.DecodeString(pubkey)
+		addr, _ := bipwallet.PubToAddress(pbytes)
+		info["address"] = addr
+	}
+
+	peerInfo[id.Pretty()] = info
+	bs, err := json.MarshalIndent(peerInfo, "", "\t")
+	if err != nil {
+		log.Error("StoreHostId", "MarshalIndent", err.Error())
+		return
+	}
+	_, err = pf.Write(bs)
+	if err != nil {
+		return
+	}
 
 }
 
 // GenPrivPubkey return key and pubkey in bytes
 func GenPrivPubkey() ([]byte, []byte, error) {
-	priv, pub, err := p2pcrypto.GenerateKeyPairWithReader(p2pcrypto.Secp256k1, 2048, rand.Reader)
+	priv, pub, err := p2pcrypto.GenerateSecp256k1Key(rand.Reader)
+	//priv, pub, err := p2pcrypto.GenerateKeyPairWithReader(p2pcrypto.Secp256k1, 2048, rand.Reader)
 	if err != nil {
 		return nil, nil, err
 	}
-	privkey, err := priv.Bytes()
+
+	privkey, err := priv.Raw()
 	if err != nil {
 		return nil, nil, err
 
 	}
-	pubkey, err := pub.Bytes()
+	pubkey, err := pub.Raw()
 	if err != nil {
 		return nil, nil, err
 
@@ -202,16 +231,47 @@ func GenPubkey(key string) (string, error) {
 		log.Error("DecodeString Error", "Error", err.Error())
 		return "", err
 	}
-	privkey, err := p2pcrypto.UnmarshalPrivateKey(keybytes)
+
+	log.Info("GenPubkey", "key size", len(keybytes))
+	privkey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
 	if err != nil {
-		log.Error("genPubkey", "PrivKeyUnmarshaller", err.Error())
-		return "", err
+
+		privkey, err = p2pcrypto.UnmarshalPrivateKey(keybytes)
+		if err != nil {
+			//切换
+			log.Error("genPubkey", "UnmarshalPrivateKey", err.Error())
+			return "", err
+		}
 	}
-	pubkey, err := privkey.GetPublic().Bytes()
+
+	pubkey, err := privkey.GetPublic().Raw()
 	if err != nil {
 		log.Error("genPubkey", "GetPubkey", err.Error())
 		return "", err
 	}
 	return hex.EncodeToString(pubkey), nil
+
+}
+
+//PeerIDToPubkey 提供节点ID转换为pubkey,进而通过pubkey创建chain33 地址的功能
+func PeerIDToPubkey(id string) (string, error) {
+	//encodeIdStr := "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"
+	//hexpubStr:="02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0"
+	//chain33 address:13ohj5JH6NE15ENfuQRneqGdg29nT27K3k
+	pID, err := peer.Decode(id)
+	if err != nil {
+		return "", err
+	}
+
+	pub, err := pID.ExtractPublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	pbs, err := pub.Raw()
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(pbs), nil
 
 }

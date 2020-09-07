@@ -13,7 +13,6 @@ require (
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.3.4
-	github.com/golangci/golangci-lint v1.18.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/influxdata/influxdb v1.7.9
@@ -52,6 +51,5 @@ require (
 	gopkg.in/go-playground/webhooks.v5 v5.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
-	mvdan.cc/sh v2.6.4+incompatible // indirect
 
 )
