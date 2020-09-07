@@ -23,7 +23,8 @@ var log = log15.New("module", "protocol.p2pstore")
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
-	*lru.Cache
+	//cache the block body requested recently to avoid the repeated network requests.
+	blockBodyLRU *lru.Cache
 
 	//cache the notify message when other peers notify this node to store chunk.
 	notifying sync.Map
@@ -46,8 +47,13 @@ func init() {
 
 //InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
+	LRU, err := lru.New(100)
+	if err != nil {
+		panic("lru initial error")
+	}
 	p := &Protocol{
 		P2PEnv:              env,
+		blockBodyLRU:        LRU,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 		notifyingQueue:      make(chan *types.ChunkInfoMsg, 1024),
 	}

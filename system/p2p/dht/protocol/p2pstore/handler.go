@@ -221,11 +221,21 @@ func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
 
 func (p *Protocol) handleEventGetChunkBlockBody(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
+	//只有请求一个区块时去查询缓存
+	if req.Start == req.End {
+		if body, ok := p.blockBodyLRU.Get(req.Start); ok {
+			m.Reply(&queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{body.(*types.BlockBody)}}})
+			return
+		}
+	}
 	blockBodys, _, err := p.getChunk(req)
 	if err != nil {
 		log.Error("GetChunkBlockBody", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		m.ReplyErr("", err)
 		return
+	}
+	for _, body := range blockBodys.Items {
+		p.blockBodyLRU.Add(body.Height, blockBodys.Items[0])
 	}
 	m.Reply(&queue.Message{Data: blockBodys})
 }
