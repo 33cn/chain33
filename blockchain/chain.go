@@ -30,6 +30,8 @@ var (
 )
 
 const maxFutureBlocks = 256
+const maxActiveBlocks = 128
+
 const defaultChunkBlockNum = 1
 
 //BlockChain 区块链结构体
@@ -133,6 +135,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 	if err != nil {
 		panic("when New BlockChain lru.New return err")
 	}
+
 	defCacheSize := int64(128)
 	if mcfg.DefCacheSize > 0 {
 		defCacheSize = mcfg.DefCacheSize
@@ -403,6 +406,8 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 
 //GetBlock 用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
 func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err error) {
+
+	//从缓存的最新区块中尝试获取，最新区块的add是在执行block流程中处理
 	blockdetail := chain.cache.CheckcacheBlock(height)
 	if blockdetail != nil {
 		if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
@@ -410,12 +415,22 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 		}
 		return blockdetail, nil
 	}
+
+	//从缓存的活跃区块中尝试获取
+	block, exist := chain.blockStore.GetActiveBlock(height)
+	if exist {
+		return block, nil
+	}
+
 	//从blockstore db中通过block height获取block
 	blockinfo, err := chain.blockStore.LoadBlockByHeight(height)
 	if blockinfo != nil {
 		if len(blockinfo.Receipts) == 0 && len(blockinfo.Block.Txs) != 0 {
 			chainlog.Debug("GetBlock  LoadBlock Receipts ==0", "height", height)
 		}
+
+		//缓存到活跃区块中
+		chain.blockStore.AddActiveBlock(height, blockinfo)
 		return blockinfo, nil
 	}
 	return nil, err
@@ -472,7 +487,7 @@ func (chain *BlockChain) InitCache(height int64) {
 		if err != nil {
 			panic(err)
 		}
-		chain.cache.cacheBlock(blockdetail)
+		chain.cache.CacheBlock(blockdetail)
 	}
 }
 
@@ -566,4 +581,12 @@ func (chain *BlockChain) SetValueByKey(kvs *types.LocalDBSet) error {
 //GetValueByKey 通过key值从blockchain数据库中获取value值
 func (chain *BlockChain) GetValueByKey(keys *types.LocalDBGet) *types.LocalReplyValue {
 	return chain.blockStore.Get(keys)
+}
+
+//DelCacheBlock 删除缓存的中对应的区块
+func (chain *BlockChain) DelCacheBlock(height int64) {
+
+	chain.cache.DelBlockFromCache(height)
+
+	chain.blockStore.RemoveActiveBlock(height)
 }
