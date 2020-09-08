@@ -70,7 +70,7 @@ func (chain *BlockCache) HasCacheTx(hash []byte) bool {
 }
 
 //添加block到cache中，方便快速查询
-func (chain *BlockCache) cacheBlock(blockdetail *types.BlockDetail) {
+func (chain *BlockCache) CacheBlock(blockdetail *types.BlockDetail) {
 	chain.cachelock.Lock()
 	defer chain.cachelock.Unlock()
 	if chain.maxHeight > 0 && blockdetail.Block.Height != chain.maxHeight+1 {
@@ -93,7 +93,7 @@ func (chain *BlockCache) cacheBlock(blockdetail *types.BlockDetail) {
 }
 
 //添加block到cache中，方便快速查询
-func (chain *BlockCache) delBlockFromCache(height int64) {
+func (chain *BlockCache) DelBlockFromCache(height int64) {
 	chain.cachelock.Lock()
 	defer chain.cachelock.Unlock()
 	if chain.maxHeight > 0 && height != chain.maxHeight {

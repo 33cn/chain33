@@ -22,6 +22,7 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 //var
@@ -170,6 +171,9 @@ type BlockStore struct {
 	saveSequence   bool
 	isParaChain    bool
 	batch          dbm.Batch
+
+	//记录当前活跃的block，减少数据库的访问提高效率
+	activeBlocks *lru.Cache
 }
 
 //NewBlockStore new
@@ -218,6 +222,12 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 		}
 	}
 	blockStore.batch = db.NewBatch(true)
+
+	activeBlocks, err := lru.New(maxActiveBlocks)
+	if err != nil {
+		panic("when New activeBlocks lru.New return err")
+	}
+	blockStore.activeBlocks = activeBlocks
 
 	return blockStore
 }
@@ -657,18 +667,32 @@ func (bs *BlockStore) getRealTxResult(txr *types.TxResult) *types.TxResult {
 	if !cfg.IsEnable("reduceLocaldb") {
 		return txr
 	}
-	// 如果是精简版的localdb 则需要从block中获取tx交易内容以及receipt
-	blockinfo, err := bs.LoadBlockByHeight(txr.Height)
-	if err != nil {
-		chainlog.Error("getRealTxResult LoadBlockByHeight", "height", txr.Height, "error", err)
-		return txr
+
+	var blockinfo *types.BlockDetail
+	var err error
+	var exist bool
+
+	//首先从缓存的活跃区块中获取，不存在时再从数据库获取并保存到活跃区块中供下次使用
+	blockinfo, exist = bs.GetActiveBlock(txr.Height)
+	if !exist {
+		// 如果是精简版的localdb 则需要从block中获取tx交易内容以及receipt
+		blockinfo, err = bs.LoadBlockByHeight(txr.Height)
+		if err != nil {
+			chainlog.Error("getRealTxResult LoadBlockByHeight", "height", txr.Height, "error", err)
+			return txr
+		}
+
+		//添加到活跃区块的缓存中
+		bs.AddActiveBlock(txr.Height, blockinfo)
 	}
+
 	if int(txr.Index) < len(blockinfo.Block.Txs) {
 		txr.Tx = blockinfo.Block.Txs[txr.Index]
 	}
 	if int(txr.Index) < len(blockinfo.Receipts) {
 		txr.Receiptdate = blockinfo.Receipts[txr.Index]
 	}
+
 	return txr
 }
 
@@ -1712,4 +1736,23 @@ func (bs *BlockStore) SetMaxSerialChunkNum(chunkNum int64) error {
 		return err
 	}
 	return nil
+}
+
+// GetActiveBlock :从缓存的活跃区块中获取对应高度的区块
+func (bs *BlockStore) GetActiveBlock(height int64) (*types.BlockDetail, bool) {
+	block, exist := bs.activeBlocks.Get(height)
+	if exist {
+		return block.(*types.BlockDetail), exist
+	}
+	return nil, exist
+}
+
+// AddActiveBlock :将区块缓存到活跃区块中
+func (bs *BlockStore) AddActiveBlock(height int64, block *types.BlockDetail) bool {
+	return bs.activeBlocks.Add(height, block)
+}
+
+// RemoveActiveBlock :从缓存的活跃区块中删除对应的区块
+func (bs *BlockStore) RemoveActiveBlock(height int64) bool {
+	return bs.activeBlocks.Remove(height)
 }

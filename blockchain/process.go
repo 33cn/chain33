@@ -332,7 +332,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	saveBlkCost := types.Since(beg)
 	//cache new add block
 	beg = types.Now()
-	b.cache.cacheBlock(blockdetail)
+	b.cache.CacheBlock(blockdetail)
 
 	cacheCost := types.Since(beg)
 	//保存block的总难度到db中
@@ -455,7 +455,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	newtipnode := b.bestChain.Tip()
 
 	//删除缓存中的block信息
-	b.cache.delBlockFromCache(blockdetail.Block.Height)
+	b.DelCacheBlock(blockdetail.Block.Height)
 
 	if newtipnode != node.parent {
 		chainlog.Error("disconnectBlock newtipnode err:", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
