@@ -5,6 +5,7 @@
 package broadcast
 
 import (
+	"context"
 	"encoding/hex"
 	"testing"
 
@@ -37,6 +38,7 @@ var (
 		Txs:    txList,
 	}
 	testAddr   = "testPeerAddr"
+	testPidStr = "16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U"
 	testPid, _ = peer.Decode("16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U")
 )
 
@@ -60,19 +62,20 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		Discovery:       nil,
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
+		Ctx: context.Background(),
 	}
 	return env
 }
 
-func newTestProtocolWithQueue(q queue.Queue) *broadCastProtocol {
+func newTestProtocolWithQueue(q queue.Queue) *broadcastProtocol {
 	env := newTestEnv(q)
-	protocol := &broadCastProtocol{}
+	protocol := &broadcastProtocol{}
 	prototypes.ClearEventHandler()
 	protocol.InitProtocol(env)
 	return protocol
 }
 
-func newTestProtocol() *broadCastProtocol {
+func newTestProtocol() *broadcastProtocol {
 
 	q := queue.New("test")
 	return newTestProtocolWithQueue(q)
@@ -85,7 +88,7 @@ func TestBroadCastProtocol_InitProtocol(t *testing.T) {
 	assert.Equal(t, defaultLtTxBroadCastTTL, int(protocol.p2pCfg.LightTxTTL))
 }
 
-func testHandleEvent(protocol *broadCastProtocol, msg *queue.Message) {
+func testHandleEvent(protocol *broadcastProtocol, msg *queue.Message) {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -115,7 +118,7 @@ func TestBroadCastEvent(t *testing.T) {
 
 func Test_util(t *testing.T) {
 	proto := newTestProtocol()
-	handler := &broadCastHandler{}
+	handler := &broadcastHandler{}
 	handler.BaseStreamHandler = &prototypes.BaseStreamHandler{}
 	handler.SetProtocol(proto)
 	ok := handler.VerifyRequest(nil, nil)

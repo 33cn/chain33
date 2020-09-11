@@ -54,6 +54,8 @@ type StreamHandler interface {
 	SignProtoMessage(message types.Message, host core.Host) ([]byte, error)
 	// Handle 处理请求
 	Handle(stream core.Stream)
+	// ReuseStream 复用stream，处理后不进行关闭
+	ReuseStream() bool
 }
 
 // BaseStreamHandler base stream handler
@@ -89,11 +91,20 @@ func (s *BaseStreamHandler) GetProtocol() IProtocol {
 	return s.Protocol
 }
 
+// ReuseStream 复用stream
+func (s *BaseStreamHandler) ReuseStream() bool {
+	return false
+}
+
 // HandleStream stream事件预处理函数
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 	//log.Debug("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
 	//TODO verify校验放在这里
 	s.child.Handle(stream)
+	// 业务端设置了复用stream，将不进行关闭，由业务端进行stream维护管理
+	if s.child.ReuseStream() {
+		return
+	}
 	CloseStream(stream)
 }
 

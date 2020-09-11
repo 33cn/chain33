@@ -259,7 +259,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
 				Message: &version}
 
-			s, err := prototypes.NewStream(p.Host, pid, []core.ProtocolID{peerVersionReq})
+			s, err := prototypes.NewStream(p.Host, pid, peerVersionReq)
 			if err != nil {
 				log.Error("NewStream", "err", err, "remoteID", pid)
 				continue

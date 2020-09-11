@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/libp2p/go-libp2p-core/helpers"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -39,6 +40,7 @@ import (
 var log = logger.New("module", p2pty.DHTTypeName)
 
 func init() {
+	setLibp2pParams()
 	p2p.RegisterP2PCreate(p2pty.DHTTypeName, New)
 }
 
@@ -423,4 +425,10 @@ func (p *P2P) genAirDropKey() {
 	p.addrbook.saveKey(walletPrivkey, walletPubkey)
 	p.reStart()
 
+}
+
+
+func setLibp2pParams() {
+
+	helpers.EOFTimeout = time.Second * 20
 }

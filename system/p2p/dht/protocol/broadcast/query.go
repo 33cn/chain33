@@ -11,28 +11,27 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (protocol *broadCastProtocol) sendQueryData(query *types.P2PQueryData, p2pData *types.BroadCastData, peerAddr string) bool {
+func (protocol *broadcastProtocol) sendQueryData(query *types.P2PQueryData, p2pData *types.BroadCastData, peerAddr string) bool {
 	log.Debug("P2PSendQueryData", "peerAddr", peerAddr)
 	p2pData.Value = &types.BroadCastData_Query{Query: query}
 	return true
 }
 
-func (protocol *broadCastProtocol) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCastData, peerAddr string) bool {
+func (protocol *broadcastProtocol) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCastData, peerAddr string) bool {
 	log.Debug("P2PSendQueryReply", "peerAddr", peerAddr)
 	p2pData.Value = &types.BroadCastData_BlockRep{BlockRep: rep}
 	return true
 }
 
-func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid peer.ID, peerAddr string) error {
+func (protocol *broadcastProtocol) recvQueryData(query *types.P2PQueryData, pid, peerAddr, version string) error {
 
 	var reply interface{}
 	if txReq := query.GetTxReq(); txReq != nil {
 
 		txHash := hex.EncodeToString(txReq.TxHash)
-		log.Debug("recvQueryTx", "txHash", txHash, "pid", pid.Pretty())
+		log.Debug("recvQueryTx", "txHash", txHash, "pid", pid)
 		//向mempool请求交易
 		resp, err := protocol.QueryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
 		if err != nil {
@@ -83,18 +82,17 @@ func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid 
 	}
 
 	if reply != nil {
-		_, err := protocol.sendPeer(pid, reply, false)
-		if err != nil {
+		if err := protocol.sendPeer(reply, pid, version); err != nil {
 			log.Error("recvQueryData", "pid", pid, "addr", peerAddr, "err", err)
-			return errSendStream
+			return errSendPeer
 		}
 	}
 	return nil
 }
 
-func (protocol *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid peer.ID, peerAddr string) (err error) {
+func (protocol *broadcastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr, version string) (err error) {
 
-	log.Debug("recvQueryReply", "hash", rep.BlockHash, "queryTxsCount", len(rep.GetTxIndices()), "pid", pid.Pretty())
+	log.Debug("recvQueryReply", "hash", rep.BlockHash, "queryTxsCount", len(rep.GetTxIndices()), "pid", pid)
 	val, exist := protocol.ltBlockCache.Remove(rep.BlockHash)
 	block, _ := val.(*types.Block)
 	//not exist in cache or nil block
@@ -141,12 +139,11 @@ func (protocol *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pi
 	block.Txs = nil
 	protocol.ltBlockCache.Add(rep.BlockHash, block, block.Size())
 	//query peer
-	_, err = protocol.sendPeer(pid, query, false)
-	if err != nil {
+	if err = protocol.sendPeer(query, pid, version); err != nil {
 		log.Error("recvQueryReply", "pid", pid, "addr", peerAddr, "err", err)
 		protocol.ltBlockCache.Remove(rep.BlockHash)
 		protocol.blockFilter.Remove(rep.BlockHash)
-		return errSendStream
+		return errSendPeer
 	}
 	return
 }
