@@ -197,6 +197,9 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 func (p *Protocol) fetchChunkFromPeer(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
 	childCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
+	tag := "p2pstore"
+	p.Host.ConnManager().Protect(pid, tag)
+	defer p.Host.ConnManager().Unprotect(pid, tag)
 	stream, err := p.Host.NewStream(childCtx, pid, protocol.FetchChunk)
 	if err != nil {
 		log.Error("fetchChunkFromPeer", "error", err)
