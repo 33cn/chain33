@@ -6,11 +6,13 @@ import (
 	"testing"
 	"time"
 
+	core "github.com/libp2p/go-libp2p-core"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func testMsg(msg *SubMsg) {
-	fmt.Println("testMsg", msg.From, "data", string(msg.Data))
+func testMsg(topic string, msg SubMsg) {
+	fmt.Println("testMsg", core.PeerID(msg.From).String(), "data", string(msg.Data))
 }
 
 func Test_pubsub(t *testing.T) {
@@ -21,7 +23,7 @@ func Test_pubsub(t *testing.T) {
 	connect(t, hosts[0], hosts[1])
 	psub, err := NewPubSub(ctx, hosts[0])
 	assert.Nil(t, err)
-	err = psub.JoinTopicAndSubTopic("bztest", testMsg)
+	err = psub.JoinAndSubTopic("bztest", testMsg)
 	assert.Nil(t, err)
 	err = psub.Publish("bztest", []byte("hello,world"))
 	assert.Nil(t, err)
