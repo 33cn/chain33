@@ -41,6 +41,8 @@ type QueueProtocolAPI interface {
 	PeerInfo(param *types.P2PGetPeerReq) (*types.PeerList, error)
 	// types.EventGetNetInfo
 	GetNetInfo(param *types.P2PGetNetInfoReq) (*types.NodeNetInfo, error)
+	//type.EventNetProtocols
+	NetProtocols(*types.ReqNil) (*types.NetProtocolInfos, error)
 	// --------------- p2p interfaces end
 	// +++++++++++++++ wallet interfaces begin
 	// types.EventLocalGet

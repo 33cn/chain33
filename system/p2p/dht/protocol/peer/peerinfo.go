@@ -56,6 +56,7 @@ func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	p.p2pCfg = env.SubConfig
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
+	prototypes.RegisterEventHandler(types.EventNetProtocols, p.netprotocolsHandleEvent)
 
 	go p.detectNodeAddr()
 	go p.fetchPeersInfo()

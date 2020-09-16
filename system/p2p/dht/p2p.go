@@ -14,6 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/system/p2p/dht/store"
 	core "github.com/libp2p/go-libp2p-core"
 
 	"github.com/33cn/chain33/client"
@@ -24,7 +25,6 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
-	"github.com/33cn/chain33/system/p2p/dht/store"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	ds "github.com/ipfs/go-datastore"
@@ -54,16 +54,16 @@ type P2P struct {
 	addrbook      *AddrBook
 	taskGroup     *sync.WaitGroup
 
-	pubsub  *net.PubSub
-	restart int32
-	p2pCfg  *types.P2P
-	subCfg  *p2pty.P2PSubConfig
-	mgr     *p2p.Manager
-	subChan chan interface{}
-	ctx     context.Context
-	cancel  context.CancelFunc
-
-	db ds.Datastore
+	pubsub     *net.PubSub
+	restart    int32
+	p2pCfg     *types.P2P
+	subCfg     *p2pty.P2PSubConfig
+	mgr        *p2p.Manager
+	subChan    chan interface{}
+	ctx        context.Context
+	cancel     context.CancelFunc
+	blackCache *manage.TimeCache
+	db         ds.Datastore
 	//env *protocol.P2PEnv
 	env *prototypes.P2PEnv
 }
@@ -79,7 +79,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		mcfg.Port = p2pty.DefaultP2PPort
 	}
 	client := mgr.Client
-	return &P2P{
+	p := &P2P{
 		client:   client,
 		chainCfg: chainCfg,
 		subCfg:   mcfg,
@@ -90,52 +90,66 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		subChan:  mgr.PubSub.Sub(p2pty.DHTTypeName),
 	}
 
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+	p.blackCache = manage.NewTimeCache(p.ctx, time.Minute*5)
+	priv := p.addrbook.GetPrivkey()
+
+	if priv == nil { //addrbook存储的peer key 为空
+		if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
+			p.genAirDropKey()
+			priv = p.addrbook.GetPrivkey()
+		} else { //创建随机公私钥对,生成临时pid，待创建钱包之后，提换钱包生成的pid
+			priv = p.addrbook.Randkey()
+			go p.genAirDropKey() //非阻塞模式
+
+		}
+	} else { //非阻塞模式
+		go p.genAirDropKey()
+	}
+
+	return initP2P(p)
+
+}
+
+func initP2P(p *P2P) *P2P {
+	//other init work
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", p.subCfg.Port))
+	if err != nil {
+		panic(err)
+	}
+	log.Info("NewMulti", "addr", maddr.String())
+
+	bandwidthTracker := metrics.NewBandwidthCounter()
+	options := p.buildHostOptions(p.addrbook.GetPrivkey(), bandwidthTracker, maddr)
+	host, err := libp2p.New(p.ctx, options...)
+	if err != nil {
+		panic(err)
+	}
+
+	p.host = host
+	p.discovery = net.InitDhtDiscovery(p.ctx, p.host, p.addrbook.AddrsInfo(), p.chainCfg, p.subCfg)
+	p.connManag = manage.NewConnManager(p.host, p.discovery, bandwidthTracker, p.subCfg)
+	pubsub, err := net.NewPubSub(p.ctx, p.host)
+	if err != nil {
+		return nil
+	}
+	p.pubsub = pubsub
+	p.peerInfoManag = manage.NewPeerInfoManager(p.host, p.client, p.blackCache, p.pruePeers)
+	p.taskGroup = &sync.WaitGroup{}
+	p.db = store.NewDataStore(p.subCfg)
+
+	return p
 }
 
 // StartP2P start p2p
 func (p *P2P) StartP2P() {
 	go func() {
-		p.ctx, p.cancel = context.WithCancel(context.Background())
+		if atomic.LoadInt32(&p.restart) == 1 {
+			initP2P(p) //重新创建host
+		}
 		atomic.StoreInt32(&p.restart, 0)
-		priv := p.addrbook.GetPrivkey()
-
-		if priv == nil { //addrbook存储的peer key 为空
-			if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
-				p.genAirDropKey()
-				priv = p.addrbook.GetPrivkey()
-			} else { //创建随机公私钥对,生成临时pid，待创建钱包之后，提换钱包生成的pid
-				priv = p.addrbook.Randkey()
-				go p.genAirDropKey() //非阻塞模式
-
-			}
-		} else { //非阻塞模式
-			go p.genAirDropKey()
-		}
-
-		bandwidthTracker := metrics.NewBandwidthCounter()
-		maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", p.subCfg.Port))
-		if err != nil {
-			panic(err)
-		}
-		log.Info("NewMulti", "addr", maddr.String())
-		host := newHost(p.subCfg, priv, bandwidthTracker, maddr)
-		p.host = host
-		p.peerInfoManag = manage.NewPeerInfoManager(p.client)
-		p.taskGroup = &sync.WaitGroup{}
-		p.db = store.NewDataStore(p.subCfg)
-
-		pubsub, err := net.NewPubSub(p.ctx, p.host)
-		if err != nil {
-			return
-		}
-		p.pubsub = pubsub
-		p.discovery = net.InitDhtDiscovery(p.ctx, p.host, p.addrbook.AddrsInfo(), p.chainCfg, p.subCfg)
-		p.connManag = manage.NewConnManager(p.host, p.discovery, bandwidthTracker, p.subCfg)
-
 		p.addrbook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
-
 		log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
-
 		//提供给其他插件使用的共享接口
 		env := &prototypes.P2PEnv{
 			ChainCfg:         p.chainCfg,
@@ -155,6 +169,8 @@ func (p *P2P) StartP2P() {
 		protocol.Init(env)
 		protocol.InitAllProtocol(env)
 		p.env = env
+		p.discovery.Start()
+		go p.peerInfoManag.Start()
 		go p.managePeers()
 		go p.handleP2PEvent()
 		go p.findLANPeers()
@@ -165,11 +181,10 @@ func (p *P2P) StartP2P() {
 // CloseP2P close p2p
 func (p *P2P) CloseP2P() {
 	log.Info("p2p closing")
-	//p.mgr.PubSub.Unsub(p.subChan)
 	p.cancel()
 	p.connManag.Close()
 	p.peerInfoManag.Close()
-	p.discovery.CloseDht()
+	p.discovery.Close()
 	p.waitTaskDone()
 	p.db.Close()
 	p.host.Close()
@@ -195,21 +210,15 @@ func (p *P2P) reStart() {
 	p.StartP2P()
 
 }
-
-func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) core.Host {
+func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) []libp2p.Option {
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
 
 	var relayOpt = make([]circuit.RelayOpt, 3)
-	if cfg.RelayActive {
-		relayOpt = append(relayOpt, circuit.OptActive)
-	}
-	if cfg.RelayHop {
+
+	if p.subCfg.RelayHop {
 		relayOpt = append(relayOpt, circuit.OptHop)
-	}
-	if cfg.RelayDiscovery {
-		relayOpt = append(relayOpt, circuit.OptDiscovery)
 	}
 
 	var options []libp2p.Option
@@ -228,18 +237,16 @@ func newHost(cfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker m
 	if bandwidthTracker != nil {
 		options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
 	}
+	if p.subCfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
 
-	if cfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
-		var maxconnect = int(cfg.MaxConnectNum)
-		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect*3/4, maxconnect, 0)))
+		var maxconnect = int(p.subCfg.MaxConnectNum)
+		//5分钟的宽限期,定期清理
+		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect, maxconnect+int(manage.CacheLimit), time.Minute*5)))
+		//ConnectionGater,处理网络连接的策略
+		options = append(options, libp2p.ConnectionGater(manage.NewConnGater(&p.host, p.subCfg, p.blackCache)))
 	}
 
-	host, err := libp2p.New(context.Background(), options...)
-	if err != nil {
-		panic(err)
-	}
-
-	return host
+	return options
 }
 
 func (p *P2P) managePeers() {
@@ -278,7 +285,7 @@ func (p *P2P) findLANPeers() {
 	for {
 		select {
 		case neighbors := <-peerChan:
-			log.Info("^_^! Well,findLANPeers Let's Play ^_^!<<<<<<<<<<<<<<<<<<<", "peerName", neighbors.ID, "addrs:", neighbors.Addrs, "paddr", p.host.Peerstore().Addrs(neighbors.ID))
+			log.Debug("^_^! Well,findLANPeers Let's Play ^_^!<<<<<<<<<<<<<<<<<<<", "peerName", neighbors.ID, "addrs:", neighbors.Addrs, "paddr", p.host.Peerstore().Addrs(neighbors.ID))
 			//发现局域网内的邻居节点
 			err := p.host.Connect(context.Background(), neighbors)
 			if err != nil {
@@ -441,5 +448,14 @@ func (p *P2P) genAirDropKey() {
 
 	p.addrbook.saveKey(walletPrivkey, walletPubkey)
 	p.reStart()
+
+}
+
+func (p *P2P) pruePeers(pid core.PeerID, beBlack bool) {
+
+	p.connManag.Delete(pid)
+	if beBlack {
+		p.blackCache.Add(pid.Pretty(), 0)
+	}
 
 }

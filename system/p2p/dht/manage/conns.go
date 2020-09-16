@@ -4,17 +4,18 @@ package manage
 import (
 	"context"
 	"fmt"
-	"sync"
-	"time"
-
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
+	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
+
+	"sync"
+	"time"
 )
 
 var (
@@ -34,7 +35,8 @@ type ConnManager struct {
 	bandwidthTracker *metrics.BandwidthCounter
 	discovery        *net.Discovery
 	cfg              *p2pty.P2PSubConfig
-	Done             chan struct{}
+
+	Done chan struct{}
 }
 
 // NewConnManager new connection manager
@@ -46,6 +48,7 @@ func NewConnManager(host core.Host, discovery *net.Discovery, tracker *metrics.B
 	connM.bandwidthTracker = tracker
 	connM.cfg = cfg
 	connM.Done = make(chan struct{}, 1)
+
 	return connM
 
 }
@@ -62,9 +65,15 @@ func (s *ConnManager) Close() {
 	close(s.Done)
 }
 
-// RecordLatency record latency
-func (s *ConnManager) RecordLatency(pid peer.ID, ttl time.Duration) {
-	s.pstore.RecordLatency(pid, ttl)
+// RateCaculate means bytes sent / received per second.
+func (s *ConnManager) RateCaculate(ratebytes float64) string {
+	kbytes := ratebytes / 1024
+	rate := fmt.Sprintf("%.3f KB/s", kbytes)
+	if kbytes/1024 > 0.1 {
+		rate = fmt.Sprintf("%.3f MB/s", kbytes/1024)
+	}
+
+	return rate
 }
 
 // GetLatencyByPeer get peer latency by id
@@ -76,6 +85,27 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 	}
 
 	return tds
+}
+
+//BandTrackerByProtocol returan allprotocols bandinfo
+func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
+	bandprotocols := s.bandwidthTracker.GetBandwidthByProtocol()
+	var infos types.NetProtocolInfos
+	for id, stat := range bandprotocols {
+		if id == "" {
+			continue
+		}
+
+		var info types.ProtocolInfo
+		info.Protocol = string(id)
+		info.Ratein = s.RateCaculate(stat.RateIn)
+		info.Rateout = s.RateCaculate(stat.RateOut)
+		info.Ratetotal = s.RateCaculate(stat.RateIn + stat.RateOut)
+		infos.Protoinfo = append(infos.Protoinfo, &info)
+
+	}
+	return &infos
+
 }
 
 // MonitorAllPeers monitory all peers
@@ -106,13 +136,15 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 						stat.TotalIn,
 						stat.TotalOut)
 				}
+				//protocols rate
+				log.Debug(LatencyInfo)
+
+				insize, outsize := s.BoundSize()
+				trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.pstore.Peers()), ",conn num:", insize+outsize, "inbound num", insize, "outbound num", outsize,
+					"dht size", s.discovery.RoutingTableSize())
+				trackerInfo += fmt.Sprintln("-------------------------------------")
+				log.Debug(trackerInfo)
 			}
-			log.Debug(LatencyInfo)
-			insize, outsize := s.BoundSize()
-			trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.pstore.Peers()), ",conn num:", insize+outsize, "inbound num", insize, "outbound num", outsize,
-				"dht size", s.discovery.RoutingTableSize())
-			trackerInfo += fmt.Sprintln("-------------------------------------")
-			log.Debug(trackerInfo)
 
 		case <-ticker2.C:
 
@@ -133,7 +165,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 		//debug
 		case <-ticker3.C:
 			for _, pid := range s.discovery.ListPeers() {
-				log.Info("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
+				log.Debug("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
 			}
 
 		case <-s.Done:
@@ -155,6 +187,7 @@ func (s *ConnManager) IsNeighbors(pid peer.ID) bool {
 
 // Delete delete peer by id
 func (s *ConnManager) Delete(pid peer.ID) {
+	s.host.Network().ClosePeer(pid)
 	s.discovery.Remove(pid)
 }
 
@@ -166,6 +199,9 @@ func (s *ConnManager) Get(pid peer.ID) *peer.AddrInfo {
 
 // FetchNearestPeers fetch nearest peer ids
 func (s *ConnManager) FetchNearestPeers() []peer.ID {
+	if s.discovery == nil {
+		return nil
+	}
 	return s.discovery.FindNearestPeers(s.host.ID(), 50)
 }
 
@@ -177,24 +213,12 @@ func (s *ConnManager) Size() int {
 // FetchConnPeers 获取连接的Peer's ID 这个连接包含被连接的peer以及主动连接的peer.
 func (s *ConnManager) FetchConnPeers() []peer.ID {
 	var peers = make(map[string]peer.ID)
-
-	nearpeers := s.FetchNearestPeers()
-	for _, peer := range nearpeers {
-		if _, ok := peers[peer.Pretty()]; !ok {
-			peers[peer.Pretty()] = peer
-		}
-		if len(peers) >= maxBounds {
-			return s.convertMapToArr(peers)
-		}
-	}
-
 	for _, conn := range s.host.Network().Conns() {
 		peers[conn.RemotePeer().Pretty()] = conn.RemotePeer()
 		//log.Debug("FetchConnPeers", "stream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().Pretty())
 		if len(peers) >= maxBounds {
 			break
 		}
-
 	}
 
 	return s.convertMapToArr(peers)

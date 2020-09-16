@@ -3,6 +3,12 @@ package dht
 import (
 	"context"
 	"encoding/hex"
+	"github.com/libp2p/go-libp2p"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/metrics"
+	"net"
+	"strings"
+	"time"
 
 	"os"
 
@@ -10,8 +16,6 @@ import (
 
 	"crypto/rand"
 	"fmt"
-	"testing"
-
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
@@ -20,9 +24,11 @@ import (
 	"github.com/33cn/chain33/wallet"
 	core "github.com/libp2p/go-libp2p-core"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -153,7 +159,15 @@ func testP2PClose(t *testing.T, p2p p2p2.IP2P) {
 	p2p.CloseP2P()
 
 }
-
+func newHost(subcfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
+	p := &P2P{subCfg: subcfg}
+	options := p.buildHostOptions(priv, bandwidthTracker, maddr)
+	h, err := libp2p.New(context.Background(), options...)
+	if err != nil {
+		return nil
+	}
+	return h
+}
 func testStreamEOFReSet(t *testing.T) {
 	r := rand.Reader
 	prvKey1, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
@@ -286,8 +300,6 @@ func testHost(t *testing.T) {
 	if err != nil {
 		return
 	}
-	mcfg.RelayActive = true
-	mcfg.RelayDiscovery = true
 	mcfg.RelayHop = true
 	mcfg.MaxConnectNum = 10000
 	host := newHost(mcfg, cpriv, nil, maddr)
@@ -302,14 +314,32 @@ func testAddrbook(t *testing.T, cfg *types.P2P) {
 	cfg.DbPath = cfg.DbPath + "test/"
 	addrbook := NewAddrBook(cfg)
 	priv, pub := addrbook.GetPrivPubKey()
-	assert.NotNil(t, priv)
-	assert.NotNil(t, pub)
+	assert.Equal(t, priv, "")
+	assert.Equal(t, pub, "")
 	var paddrinfos []peer.AddrInfo
 	paddrinfos = append(paddrinfos, peer.AddrInfo{})
 	addrbook.SaveAddr(paddrinfos)
-	addrbook.setKey(priv, pub)
-	assert.True(t, addrbook.loadDb())
+	addrbook.Randkey()
+	priv, pub = addrbook.GetPrivPubKey()
+	addrbook.saveKey(priv, pub)
+	ok := addrbook.loadDb()
+	assert.True(t, ok)
 
+}
+
+func Test_LocalAddr(t *testing.T) {
+	seedip := "120.24.92.123:13803"
+	t.Log("seedip", seedip)
+	spliteIp := strings.Split(seedip, ":")
+	conn, err := net.DialTimeout("tcp4", net.JoinHostPort(spliteIp[0], spliteIp[1]), time.Second)
+	if err != nil {
+		t.Log("Could not dial remote peer")
+		return
+	}
+
+	defer conn.Close()
+	localAddr := conn.LocalAddr().String()
+	t.Log("test localAddr", localAddr)
 }
 func Test_Id(t *testing.T) {
 	encodeIDStr := "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"
@@ -318,6 +348,7 @@ func Test_Id(t *testing.T) {
 	assert.Equal(t, pubkey, "02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0")
 
 }
+
 func Test_p2p(t *testing.T) {
 
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))

@@ -5,9 +5,8 @@ package types
 
 import (
 	fmt "fmt"
-	math "math"
-
 	proto "github.com/golang/protobuf/proto"
+	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1737,9 +1736,7 @@ func init() {
 	proto.RegisterType((*ReqPrivkeysFile)(nil), "types.ReqPrivkeysFile")
 }
 
-func init() {
-	proto.RegisterFile("wallet.proto", fileDescriptor_b88fd140af4deb6f)
-}
+func init() { proto.RegisterFile("wallet.proto", fileDescriptor_b88fd140af4deb6f) }
 
 var fileDescriptor_b88fd140af4deb6f = []byte{
 	// 1234 bytes of a gzipped FileDescriptorProto

@@ -1,7 +1,6 @@
 package peer
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/33cn/chain33/queue"
@@ -31,21 +30,12 @@ func (p *peerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 	netinfo.Peerstore = int32(len(p.Host.Peerstore().PeersWithAddrs()))
 	netinfo.Routingtable = int32(p.Discovery.RoutingTableSize())
 	netstat := p.ConnManager.GetNetRate()
-	netinfo.Ratein = rateCaculate(netstat.RateIn)
-	netinfo.Rateout = rateCaculate(netstat.RateOut)
-	netinfo.Ratetotal = rateCaculate(netstat.RateOut + netstat.RateIn)
+
+	netinfo.Ratein = p.ConnManager.RateCaculate(netstat.RateIn)
+	netinfo.Rateout = p.ConnManager.RateCaculate(netstat.RateOut)
+	netinfo.Ratetotal = p.ConnManager.RateCaculate(netstat.RateOut + netstat.RateIn)
 	msg.Reply(p.GetQueueClient().NewMessage("rpc", types.EventReplyNetInfo, &netinfo))
-}
 
-// ratebytes means bytes sent / received per second.
-func rateCaculate(ratebytes float64) string {
-	kbytes := ratebytes / 1024
-	rate := fmt.Sprintf("%.3f KB/s", kbytes)
-	if kbytes/1024 > 0.1 {
-		rate = fmt.Sprintf("%.3f MB/s", kbytes/1024)
-	}
-
-	return rate
 }
 
 /*

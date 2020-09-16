@@ -3,6 +3,7 @@ package net
 import (
 	"context"
 	"fmt"
+	"time"
 
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -47,6 +48,7 @@ func NewPubSub(ctx context.Context, host host.Host) (*PubSub, error) {
 		topics: make(TopicMap),
 	}
 	//选择使用GossipSub
+
 	ps, err := pubsub.NewGossipSub(ctx, host)
 	if err != nil {
 		return nil, err
@@ -109,11 +111,19 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 		return fmt.Errorf("no this topic:%v", topic)
 	}
 
-	err := t.pubtopic.Publish(t.ctx, msg)
-	if err != nil {
-		log.Error("publish", "err", err)
-		return err
+	//等待至少有1个节点满足条件时发送
+	for {
+		if len(t.pubtopic.ListPeers()) > 0 {
+			return t.pubtopic.Publish(t.ctx, msg)
+		}
+		select {
+		case <-p.ctx.Done():
+			return p.ctx.Err()
+		default:
+			time.Sleep(time.Millisecond * 100)
+		}
 	}
+
 	return nil
 }
 

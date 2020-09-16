@@ -57,3 +57,8 @@ func (p *Persistent) Close() error {
 func (p *Persistent) Batch() (datastore.Batch, error) {
 	return datastore.NewBasicBatch(p), nil
 }
+
+//new version
+func (p *Persistent) Sync(prefix datastore.Key) error {
+	return nil
+}
