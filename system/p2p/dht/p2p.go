@@ -9,11 +9,12 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/helpers"
 
 	core "github.com/libp2p/go-libp2p-core"
 
@@ -426,7 +427,6 @@ func (p *P2P) genAirDropKey() {
 	p.reStart()
 
 }
-
 
 func setLibp2pParams() {
 

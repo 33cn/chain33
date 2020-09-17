@@ -16,12 +16,12 @@ import (
 func Test_sendBlock(t *testing.T) {
 
 	proto := newTestProtocol()
-	_, ok := proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPidStr, testAddr)
+	_, ok := proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPidStr)
 	assert.True(t, ok)
-	_, ok = proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPidStr, testAddr)
+	_, ok = proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPidStr)
 	assert.False(t, ok)
 	proto.p2pCfg.MinLtBlockSize = 0
-	data, ok := proto.handleSend(&types.P2PBlock{Block: testBlock}, "newpid", testAddr)
+	data, ok := proto.handleSend(&types.P2PBlock{Block: testBlock}, "newpid")
 	ltBlock := data.Value.(*types.BroadCastData_LtBlock).LtBlock
 	assert.True(t, ok)
 	assert.True(t, ltBlock.MinerTx == minerTx)
@@ -98,17 +98,17 @@ func Test_recvLtBlock(t *testing.T) {
 	<-done
 	block := &types.Block{TxHash: []byte("test"), Txs: txList, Height: 10}
 	remotePid := "16Uiu2HAkudcLD1rRPmLL6PYqT3frNFUhTt764yWx1pfrVW8eWUeY"
-	sendData, _ := proto.handleSend(&types.P2PBlock{Block: block}, remotePid, "tempaddr")
+	sendData, _ := proto.handleSend(&types.P2PBlock{Block: block}, remotePid)
 
 	// block tx hash校验不过
 	err := proto.handleReceive(sendData, testPidStr, testAddr, broadcastV1)
-	assert.Nil(t, err)
+	assert.Equal(t, errSendPeer, err)
 	blockHash := hex.EncodeToString(block.Hash(proto.ChainCfg))
 	assert.True(t, proto.blockSendFilter.Contains(blockHash))
 	//缺失超过1/3的交易数量
 	memTxList = []*types.Transaction{tx, nil, nil}
 	err = proto.handleReceive(sendData, testPidStr, testAddr, broadcastV1)
-	assert.Nil(t, err)
+	assert.Equal(t, errSendPeer, err)
 	//交易组正确流程测试
 	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, proto.ChainCfg.GetMinTxFeeRate())
 	gtx := txGroup.Tx()
@@ -116,7 +116,7 @@ func Test_recvLtBlock(t *testing.T) {
 	block.TxHash = merkle.CalcMerkleRoot(proto.ChainCfg, block.GetHeight(), block.Txs)
 	newCli := q.Client()
 	newCli.Sub("blockchain")
-	sendData, _ = proto.handleSend(&types.P2PBlock{Block: block}, testPidStr, testAddr)
+	sendData, _ = proto.handleSend(&types.P2PBlock{Block: block}, testPidStr)
 	err = proto.handleReceive(sendData, testPidStr, testAddr, broadcastV1)
 	assert.Nil(t, err)
 	msg := <-newCli.Recv()

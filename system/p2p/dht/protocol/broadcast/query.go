@@ -13,14 +13,14 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func (protocol *broadcastProtocol) sendQueryData(query *types.P2PQueryData, p2pData *types.BroadCastData, peerAddr string) bool {
-	log.Debug("P2PSendQueryData", "peerAddr", peerAddr)
+func (protocol *broadcastProtocol) sendQueryData(query *types.P2PQueryData, p2pData *types.BroadCastData, pid string) bool {
+	log.Debug("P2PSendQueryData", "pid", pid)
 	p2pData.Value = &types.BroadCastData_Query{Query: query}
 	return true
 }
 
-func (protocol *broadcastProtocol) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCastData, peerAddr string) bool {
-	log.Debug("P2PSendQueryReply", "peerAddr", peerAddr)
+func (protocol *broadcastProtocol) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCastData, pid string) bool {
+	log.Debug("P2PSendQueryReply", "pid", pid)
 	p2pData.Value = &types.BroadCastData_BlockRep{BlockRep: rep}
 	return true
 }

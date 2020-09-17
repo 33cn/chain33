@@ -10,7 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func (protocol *broadcastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid, peerAddr string) (doSend bool) {
+func (protocol *broadcastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadCastData, pid string) (doSend bool) {
 
 	txHash := hex.EncodeToString(tx.Tx.Hash())
 	ttl := tx.GetRoute().GetTTL()
@@ -41,7 +41,7 @@ func (protocol *broadcastProtocol) sendTx(tx *types.P2PTx, p2pData *types.BroadC
 	return true
 }
 
-func (protocol *broadcastProtocol) recvTx(tx *types.P2PTx, pid, peerAddr string) (err error) {
+func (protocol *broadcastProtocol) recvTx(tx *types.P2PTx, pid string) (err error) {
 	if tx.GetTx() == nil {
 		return
 	}

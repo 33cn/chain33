@@ -147,13 +147,11 @@ func BenchmarkCompress(b *testing.B) {
 	cfg := testnode.GetDefaultConfig()
 	block := util.CreateCoinsBlock(cfg, priv, 100)
 	data := types.Encode(block)
-	sbuf := &bytes.Buffer{}
+	var buf []byte
 	b.Run("snappy", func(b *testing.B) {
-		sw := snappy.NewBufferedWriter(sbuf)
 		for i := 0; i < b.N; i++ {
-			sbuf.Reset()
-			sw.Write(data)
-			sw.Flush()
+			buf = snappy.Encode(nil, data)
+			snappy.Decode(nil, buf)
 		}
 	})
 
@@ -162,9 +160,10 @@ func BenchmarkCompress(b *testing.B) {
 		gzw, _ := gzip.NewWriterLevel(gbuf, gzip.BestSpeed)
 		for i := 0; i < b.N; i++ {
 			gbuf.Reset()
+			gzw.Reset(gbuf)
 			gzw.Write(data)
 			gzw.Flush()
 		}
 	})
-	fmt.Printf("\ndata len, pb=%d, snappy=%d, gzip=%d\n", len(data), sbuf.Len(), gbuf.Len())
+	fmt.Printf("\ndata len, pb=%d, snappy=%d, gzip=%d\n", len(data), len(buf), gbuf.Len())
 }

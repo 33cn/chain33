@@ -53,6 +53,6 @@ type P2PSubConfig struct {
 
 	//是否开启全节点模式
 	IsFullNode bool `protobuf:"varint,17,opt,name=isFullNode" json:"isFullNode,omitempty"`
-	//最大dht广播节点数
-	MaxBroadcastPeers int32 `protobuf:"varint,18,opt,name=maxBroadcastPeers" json:"maxBroadcastPeers,omitempty"`
+	//老版本最大广播节点数
+	MaxBroadcastPeers int `protobuf:"varint,18,opt,name=maxBroadcastPeers" json:"maxBroadcastPeers,omitempty"`
 }

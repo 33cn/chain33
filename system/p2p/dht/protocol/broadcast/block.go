@@ -12,7 +12,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func (protocol *broadcastProtocol) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pid, peerAddr string) (doSend bool) {
+func (protocol *broadcastProtocol) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pid string) (doSend bool) {
 	byteHash := block.Block.Hash(protocol.GetChainCfg())
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送

@@ -6,8 +6,16 @@ package broadcast
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"testing"
+
+	"github.com/33cn/chain33/system/p2p/dht/net"
+	"github.com/libp2p/go-libp2p"
+	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/multiformats/go-multiaddr"
 
 	"github.com/33cn/chain33/client"
 	commlog "github.com/33cn/chain33/common/log"
@@ -42,6 +50,25 @@ var (
 	testPid, _ = peer.Decode("16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U")
 )
 
+func newHost(port int32) core.Host {
+	priv, _, _ := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
+	if err != nil {
+		return nil
+	}
+
+	host, err := libp2p.New(context.Background(),
+		libp2p.ListenAddrs(m),
+		libp2p.Identity(priv),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return host
+}
+
 func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	q.SetConfig(cfg)
@@ -56,14 +83,15 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 	env := &prototypes.P2PEnv{
 		ChainCfg:        cfg,
 		QueueClient:     q.Client(),
-		Host:            nil,
+		Host:            newHost(13902),
 		ConnManager:     nil,
 		PeerInfoManager: nil,
 		Discovery:       nil,
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
-		Ctx: context.Background(),
+		Ctx:             context.Background(),
 	}
+	env.Pubsub, _ = net.NewPubSub(env.Ctx, env.Host)
 	return env
 }
 
@@ -95,7 +123,7 @@ func testHandleEvent(protocol *broadcastProtocol, msg *queue.Message) {
 		}
 	}()
 
-	protocol.handleEvent(msg)
+	protocol.handleBroadCastEvent(msg)
 }
 
 func TestBroadCastEvent(t *testing.T) {
@@ -108,12 +136,10 @@ func TestBroadCastEvent(t *testing.T) {
 	for _, msg := range msgs {
 		testHandleEvent(protocol, msg)
 	}
-	val, ok := protocol.txFilter.Get(hex.EncodeToString((&types.Transaction{}).Hash()))
+	_, ok := protocol.txFilter.Get(hex.EncodeToString((&types.Transaction{}).Hash()))
 	assert.True(t, ok)
-	assert.True(t, val.(bool))
-	val, ok = protocol.blockFilter.Get(hex.EncodeToString((&types.Block{}).Hash(protocol.ChainCfg)))
+	_, ok = protocol.blockFilter.Get(hex.EncodeToString((&types.Block{}).Hash(protocol.ChainCfg)))
 	assert.True(t, ok)
-	assert.True(t, val.(bool))
 }
 
 func Test_util(t *testing.T) {
