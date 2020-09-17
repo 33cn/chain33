@@ -4,6 +4,8 @@ package manage
 import (
 	"context"
 	"fmt"
+	"sort"
+
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
@@ -13,7 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
-	"sort"
 
 	"sync"
 	"time"

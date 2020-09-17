@@ -3,6 +3,9 @@ package manage
 import (
 	"container/list"
 	"context"
+	"runtime"
+	"time"
+
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/kevinms/leakybucket-go"
 	"github.com/libp2p/go-libp2p-core/control"
@@ -11,8 +14,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr-net"
-	"runtime"
-	"time"
 )
 
 const (

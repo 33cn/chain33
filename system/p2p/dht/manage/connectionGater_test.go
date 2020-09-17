@@ -4,6 +4,9 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"testing"
+	"time"
+
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -12,8 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func Test_MaxLimit(t *testing.T) {
