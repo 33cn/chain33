@@ -650,6 +650,10 @@ func (db *TestDB) Close() error {
 	return nil
 }
 
+func (db *TestDB) Sync(prefix datastore.Key) error {
+	return nil
+}
+
 func (db *TestDB) Batch() (datastore.Batch, error) {
 	return nil, nil
 }
