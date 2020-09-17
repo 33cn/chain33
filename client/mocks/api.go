@@ -887,6 +887,29 @@ func (_m *QueueProtocolAPI) LocalSet(param *types.LocalDBSet) error {
 	return r0
 }
 
+// NetProtocols provides a mock function with given fields: _a0
+func (_m *QueueProtocolAPI) NetProtocols(_a0 *types.ReqNil) (*types.NetProtocolInfos, error) {
+	ret := _m.Called(_a0)
+
+	var r0 *types.NetProtocolInfos
+	if rf, ok := ret.Get(0).(func(*types.ReqNil) *types.NetProtocolInfos); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.NetProtocolInfos)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqNil) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // NewMessage provides a mock function with given fields: topic, msgid, data
 func (_m *QueueProtocolAPI) NewMessage(topic string, msgid int64, data interface{}) *queue.Message {
 	ret := _m.Called(topic, msgid, data)

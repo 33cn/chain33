@@ -2,6 +2,7 @@ package peer
 
 import (
 	"encoding/json"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
