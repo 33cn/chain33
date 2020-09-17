@@ -53,6 +53,7 @@ func (p *Persistent) Close() error {
 	return nil
 }
 
+//Sync ...
 func (p *Persistent) Sync(prefix datastore.Key) error {
 	return nil
 }

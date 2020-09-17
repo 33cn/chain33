@@ -96,7 +96,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 				p.republish()
 			case <-ticker3.C:
 				p.updateHealthyRoutingTable()
-				p.AdvertiseFullNode()
+				p.advertiseFullNode()
 			case <-ticker4.C:
 				//debug info
 				p.localChunkInfoMutex.Lock()
@@ -160,13 +160,13 @@ func (p *Protocol) updateChunkWhiteList() {
 	})
 }
 
-func (p *Protocol) AdvertiseFullNode(opts ...discovery.Option) {
+func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
 	if !p.SubConfig.IsFullNode {
 		return
 	}
 	_, err := p.Advertise(p.Ctx, protocol.BroadcastFullNode, opts...)
 	if err != nil {
-		log.Error("AdvertiseFullNode", "error", err)
+		log.Error("advertiseFullNode", "error", err)
 	}
 }
 
