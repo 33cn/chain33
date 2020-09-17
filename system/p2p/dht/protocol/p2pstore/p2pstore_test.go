@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/libp2p/go-libp2p"
@@ -422,8 +423,13 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		RoutingTable:     discovery2.RoutingTable(),
 		DB:               newTestDB(),
 	}
+	LRU, err := lru.New(100)
+	if err != nil {
+		panic("lru initial error")
+	}
 	p2 := &Protocol{
 		P2PEnv:              &env2,
+		blockBodyLRU:        LRU,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env2.Host.ID()), time.Minute, env2.Host.Peerstore()),
 		localChunkInfo:      make(map[string]LocalChunkInfo),
 		notifyingQueue:      make(chan *types.ChunkInfoMsg, 100),
@@ -527,8 +533,13 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		RoutingTable:     discovery3.RoutingTable(),
 		DB:               newTestDB(),
 	}
+	LRU, err := lru.New(100)
+	if err != nil {
+		panic("lru initial error")
+	}
 	p3 := &Protocol{
 		P2PEnv:              &env3,
+		blockBodyLRU:        LRU,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env3.Host.ID()), time.Minute, env3.Host.Peerstore()),
 		localChunkInfo:      make(map[string]LocalChunkInfo),
 		notifyingQueue:      make(chan *types.ChunkInfoMsg, 100),
