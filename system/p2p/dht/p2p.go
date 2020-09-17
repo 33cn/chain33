@@ -90,10 +90,14 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		subChan:  mgr.PubSub.Sub(p2pty.DHTTypeName),
 	}
 
-	p.ctx, p.cancel = context.WithCancel(context.Background())
-	p.blackCache = manage.NewTimeCache(p.ctx, time.Minute*5)
-	priv := p.addrbook.GetPrivkey()
+	return initP2P(p)
 
+}
+
+func initP2P(p *P2P) *P2P {
+	//other init work
+	p.ctx, p.cancel = context.WithCancel(context.Background())
+	priv := p.addrbook.GetPrivkey()
 	if priv == nil { //addrbook存储的peer key 为空
 		if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
 			p.genAirDropKey()
@@ -107,12 +111,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		go p.genAirDropKey()
 	}
 
-	return initP2P(p)
-
-}
-
-func initP2P(p *P2P) *P2P {
-	//other init work
+	p.blackCache = manage.NewTimeCache(p.ctx, time.Minute*5)
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", p.subCfg.Port))
 	if err != nil {
 		panic(err)
@@ -145,12 +144,19 @@ func initP2P(p *P2P) *P2P {
 func (p *P2P) StartP2P() {
 	go func() {
 		if atomic.LoadInt32(&p.restart) == 1 {
+			log.Info("RestartP2P...")
 			initP2P(p) //重新创建host
 		}
 		atomic.StoreInt32(&p.restart, 0)
 		p.addrbook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
 		log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
 		//提供给其他插件使用的共享接口
+		p.discovery.Start()
+		go p.peerInfoManag.Start()
+		go p.managePeers()
+		go p.handleP2PEvent()
+		go p.findLANPeers()
+
 		env := &prototypes.P2PEnv{
 			ChainCfg:         p.chainCfg,
 			QueueClient:      p.client,
@@ -166,14 +172,9 @@ func (p *P2P) StartP2P() {
 			RoutingTable:     p.discovery.RoutingTable(),
 			RoutingDiscovery: p.discovery.RoutingDiscovery,
 		}
+		p.env = env
 		protocol.Init(env)
 		protocol.InitAllProtocol(env)
-		p.env = env
-		p.discovery.Start()
-		go p.peerInfoManag.Start()
-		go p.managePeers()
-		go p.handleP2PEvent()
-		go p.findLANPeers()
 
 	}()
 }
@@ -181,29 +182,32 @@ func (p *P2P) StartP2P() {
 // CloseP2P close p2p
 func (p *P2P) CloseP2P() {
 	log.Info("p2p closing")
-	p.cancel()
+
 	p.connManag.Close()
 	p.peerInfoManag.Close()
 	p.discovery.Close()
 	p.waitTaskDone()
 	p.db.Close()
-	p.host.Close()
+
 	protocol.ClearEventHandler()
 	prototypes.ClearEventHandler()
 	if !p.isRestart() {
 		p.mgr.PubSub.Unsub(p.subChan)
 
 	}
+	p.host.Close()
+	p.cancel()
 	log.Info("p2p closed")
 
 }
 
 func (p *P2P) reStart() {
 	atomic.StoreInt32(&p.restart, 1)
-	log.Info("p2p will restart")
+	log.Info("reStart p2p")
 	if p.host == nil {
 		//说明p2p还没有开始启动，无需重启
-		log.Info("p2p no nee restart...")
+		log.Info("p2p no need restart...")
+		atomic.StoreInt32(&p.restart, 0)
 		return
 	}
 	p.CloseP2P()

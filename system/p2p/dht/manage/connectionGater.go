@@ -33,6 +33,7 @@ type Conngater struct {
 	blackCache *TimeCache
 }
 
+//NewConnGater connect gater
 func NewConnGater(host *host.Host, cfg *p2pty.P2PSubConfig, timecache *TimeCache) *Conngater {
 	gater := &Conngater{}
 	gater.host = host
@@ -128,6 +129,7 @@ func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
 	return cache
 }
 
+//Add add key
 func (tc *TimeCache) Add(s string, lifetime time.Duration) {
 	_, ok := tc.M[s]
 	if ok {
@@ -168,6 +170,7 @@ func (tc *TimeCache) sweep() {
 
 }
 
+//Has check key
 func (tc *TimeCache) Has(s string) bool {
 	_, ok := tc.M[s]
 	return ok

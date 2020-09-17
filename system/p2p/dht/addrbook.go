@@ -119,6 +119,9 @@ func (a *AddrBook) saveKey(priv, pub string) {
 func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
+	if a.privkey == "" {
+		return nil
+	}
 	keybytes, err := hex.DecodeString(a.privkey)
 	if err != nil {
 		log.Error("GetPrivkey", "DecodeString Error", err.Error())

@@ -13,6 +13,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
+	"sort"
 
 	"sync"
 	"time"
@@ -23,8 +24,8 @@ var (
 )
 
 const (
-	maxBounds    = 50 //最大连接数包含连接被连接
-	maxOutBounds = 30 //对外连接的最大节点数量
+	maxBounds    = 30 //最大连接数包含连接被连接
+	maxOutBounds = 15 //对外连接的最大节点数量
 )
 
 // ConnManager p2p connection manager
@@ -213,14 +214,21 @@ func (s *ConnManager) Size() int {
 // FetchConnPeers 获取连接的Peer's ID 这个连接包含被连接的peer以及主动连接的peer.
 func (s *ConnManager) FetchConnPeers() []peer.ID {
 	var peers = make(map[string]peer.ID)
+	var allconns conns
+
 	for _, conn := range s.host.Network().Conns() {
+		allconns = append(allconns, conn)
+	}
+
+	//对当前连接的节点时长进行排序
+	sort.Sort(allconns)
+	//log.Debug("FetchConnPeers", "stream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().Pretty())
+	for _, conn := range allconns {
 		peers[conn.RemotePeer().Pretty()] = conn.RemotePeer()
-		//log.Debug("FetchConnPeers", "stream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().Pretty())
 		if len(peers) >= maxBounds {
 			break
 		}
 	}
-
 	return s.convertMapToArr(peers)
 }
 
@@ -309,4 +317,18 @@ func (s *ConnManager) BoundSize() (insize int, outsize int) {
 func (s *ConnManager) GetNetRate() metrics.Stats {
 
 	return s.bandwidthTracker.GetBandwidthTotals()
+}
+
+//对系统的连接时长按照从大到小的顺序排序
+type conns []network.Conn
+
+//Len
+func (c conns) Len() int { return len(c) }
+
+//Swap
+func (c conns) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
+
+//Less
+func (c conns) Less(i, j int) bool { //从大到小排序，即index=0 ，表示数值最大
+	return c[i].Stat().Opened.After(c[j].Stat().Opened)
 }

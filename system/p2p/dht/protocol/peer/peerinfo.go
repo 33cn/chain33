@@ -111,7 +111,7 @@ func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 	} else {
 		peerinfo.Addr = p.getExternalAddr()
 	}
-	peerinfo.Version = version.GetVersion()
+	peerinfo.Version = version.GetVersion() + "@" + version.GetAppVersion()
 	peerinfo.StoreDBVersion = version.GetStoreDBVersion()
 	peerinfo.LocalDBVersion = version.GetLocalDBVersion()
 	return &peerinfo
@@ -301,22 +301,28 @@ func (p *peerInfoProtol) detectNodeAddr() {
 func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
 	pinfos := p.PeerInfoManager.FetchPeerInfosInMin()
 	var peers []*types.Peer
+	localinfo := p.getLoacalPeerInfo()
+	var checkHeight int64 = 0
+	var lcoalPeer types.Peer
+	if localinfo != nil {
+
+		checkHeight = localinfo.Header.Height - 512
+		p.PeerInfoManager.Copy(&lcoalPeer, localinfo)
+		lcoalPeer.Self = true
+	}
 
 	for _, pinfo := range pinfos {
 		if pinfo == nil {
 			continue
 		}
+		//过滤比自身节点低很多的节点，传送给blockchain或者rpc模块
+		if pinfo.Header.Height >= checkHeight {
+			peers = append(peers, pinfo)
+		}
 
-		peers = append(peers, pinfo)
 	}
 
-	peerinfo := p.getLoacalPeerInfo()
-	if peerinfo != nil {
-		var peer types.Peer
-		p.PeerInfoManager.Copy(&peer, peerinfo)
-		peer.Self = true
-		peers = append(peers, &peer)
-	}
+	peers = append(peers, &lcoalPeer)
 
 	msg.Reply(p.GetQueueClient().NewMessage("blockchain", types.EventPeerList, &types.PeerList{Peers: peers}))
 
