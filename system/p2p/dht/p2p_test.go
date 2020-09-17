@@ -3,10 +3,11 @@ package dht
 import (
 	"context"
 	"encoding/hex"
-	"github.com/33cn/chain33/client"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/33cn/chain33/client"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
