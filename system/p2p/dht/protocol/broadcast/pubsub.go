@@ -57,7 +57,7 @@ func (p *pubSub) broadcast() {
 
 	// 不存在订阅topic的节点时，不开启广播，目前只在初始化时做判定
 	for len(p.Pubsub.FetchTopicPeers(psTxTopic)) == 0 {
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 2)
 		log.Warn("pub sub broadcast", "info", "no peers available")
 	}
 

@@ -64,7 +64,7 @@ func (protocol *broadcastProtocol) handleClassicBroadcast() {
 		select {
 		case pid := <-protocol.peerV1:
 			// 老版本限制广播广播数量
-			if len(protocol.broadcastPeers) >= protocol.SubConfig.MaxBroadcastPeers {
+			if len(protocol.broadcastPeers) >= protocol.p2pCfg.MaxBroadcastPeers {
 				break
 			}
 			_, ok := protocol.broadcastPeers[pid]
