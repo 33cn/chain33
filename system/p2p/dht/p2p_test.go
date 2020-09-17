@@ -373,8 +373,9 @@ func Test_p2p(t *testing.T) {
 
 	p2p := NewP2p(cfg)
 	testP2PEvent(t, q.Client())
-	testP2PClose(t, p2p)
+
 	testStreamEOFReSet(t)
 	testHost(t)
+	testP2PClose(t, p2p)
 
 }

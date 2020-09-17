@@ -65,8 +65,6 @@ func Test_MaxLimit(t *testing.T) {
 
 func Test_InterceptAccept(t *testing.T) {
 	var host1 host.Host
-	//设置0，意味着拒绝所有的连接
-	CacheLimit = 0
 	gater := NewConnGater(&host1, &p2pty.P2PSubConfig{MaxConnectNum: 0}, nil)
 
 	var ip = "47.97.223.101"

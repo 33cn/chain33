@@ -124,7 +124,6 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 		}
 	}
 
-	return nil
 }
 
 func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, callback subCallBack) {

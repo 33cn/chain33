@@ -49,7 +49,7 @@ func TestHandler(t *testing.T) {
 }
 
 func testLastHeader(p *Protocol, id peer.ID) (int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 	stream, err := p.Host.NewStream(ctx, id, protocol.GetLastHeader)
 	if err != nil {
@@ -150,7 +150,7 @@ func initEnv(t *testing.T, q queue.Queue) []*Protocol {
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	t.Log("h1", host1.ID(), "h2", host2.ID())
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	mcfg := &types2.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
