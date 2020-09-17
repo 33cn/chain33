@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"context"
 	"runtime"
+	"sync"
 	"time"
 
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
@@ -113,10 +114,11 @@ func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
 }
 
 type TimeCache struct {
-	Q    *list.List
-	M    map[string]time.Time
-	ctx  context.Context
-	span time.Duration
+	cacheLock sync.Mutex
+	Q         *list.List
+	M         map[string]time.Time
+	ctx       context.Context
+	span      time.Duration
 }
 
 func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
@@ -132,6 +134,8 @@ func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
 
 //Add add key
 func (tc *TimeCache) Add(s string, lifetime time.Duration) {
+	tc.cacheLock.Lock()
+	defer tc.cacheLock.Unlock()
 	_, ok := tc.M[s]
 	if ok {
 		panic("putting the same entry twice not supported")
@@ -148,14 +152,18 @@ func (tc *TimeCache) sweep() {
 	for {
 		select {
 		case <-ticker.C:
+			tc.cacheLock.Lock()
+
 			back := tc.Q.Back()
 			if back == nil {
+				tc.cacheLock.Unlock()
 				return
 			}
 
 			v := back.Value.(string)
 			t, ok := tc.M[v]
 			if !ok {
+				tc.cacheLock.Unlock()
 				panic("inconsistent cache state")
 			}
 
@@ -164,6 +172,7 @@ func (tc *TimeCache) sweep() {
 				tc.Q.Remove(back)
 				delete(tc.M, v)
 			}
+			tc.cacheLock.Unlock()
 		case <-tc.ctx.Done():
 			return
 		}
@@ -173,6 +182,9 @@ func (tc *TimeCache) sweep() {
 
 //Has check key
 func (tc *TimeCache) Has(s string) bool {
+	tc.cacheLock.Lock()
+	defer tc.cacheLock.Unlock()
+
 	_, ok := tc.M[s]
 	return ok
 }

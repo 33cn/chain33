@@ -3,6 +3,7 @@ package dht
 import (
 	"context"
 	"encoding/hex"
+	"github.com/33cn/chain33/client"
 	"net"
 	"strings"
 	"time"
@@ -118,8 +119,9 @@ func processMsg(q queue.Queue) {
 	}()
 }
 
-func NewP2p(cfg *types.Chain33Config) p2p2.IP2P {
+func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	p2pmgr := p2p2.NewP2PMgr(cfg)
+	p2pmgr.SysAPI, _ = client.New(cli, nil)
 	subCfg := p2pmgr.ChainCfg.GetSubConfig().P2P
 	p2p := New(p2pmgr, subCfg[p2pty.DHTTypeName])
 	p2p.StartP2P()
@@ -373,7 +375,7 @@ func Test_p2p(t *testing.T) {
 	tcfg.DbPath = datadir
 	testAddrbook(t, &tcfg)
 
-	p2p := NewP2p(cfg)
+	p2p := NewP2p(cfg, q.Client())
 	testP2PEvent(t, q.Client())
 
 	testStreamEOFReSet(t)

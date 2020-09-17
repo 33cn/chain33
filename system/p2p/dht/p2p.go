@@ -101,12 +101,11 @@ func initP2P(p *P2P) *P2P {
 	if priv == nil { //addrbook存储的peer key 为空
 		if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
 			p.genAirDropKey()
-			priv = p.addrbook.GetPrivkey()
 		} else { //创建随机公私钥对,生成临时pid，待创建钱包之后，提换钱包生成的pid
-			priv = p.addrbook.Randkey()
+			p.addrbook.Randkey()
 			go p.genAirDropKey() //非阻塞模式
-
 		}
+
 	} else { //非阻塞模式
 		go p.genAirDropKey()
 	}
@@ -362,7 +361,6 @@ func (p *P2P) genAirDropKey() {
 			log.Info("genAirDropKey", "p2p closed")
 			return
 		case <-time.After(time.Second):
-
 			resp, err := p.api.ExecWalletFunc("wallet", "GetWalletStatus", &types.ReqNil{})
 			if err != nil {
 				time.Sleep(time.Second)

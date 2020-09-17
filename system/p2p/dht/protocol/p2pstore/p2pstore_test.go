@@ -501,6 +501,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
 	mcfg.DisableFindLANPeers = true
 	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888})
+	discovery1.Start()
 	env1 := prototypes.P2PEnv{
 		ChainCfg:         cfg,
 		QueueClient:      client1,
@@ -509,6 +510,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		RoutingDiscovery: discovery1.RoutingDiscovery,
 		RoutingTable:     discovery1.RoutingTable(),
 		DB:               newTestDB(),
+		Ctx:              context.Background(),
 	}
 	InitProtocol(&env1)
 	host1.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
@@ -530,6 +532,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		RoutingDiscovery: discovery3.RoutingDiscovery,
 		RoutingTable:     discovery3.RoutingTable(),
 		DB:               newTestDB(),
+		Ctx:              context.Background(),
 	}
 	p3 := &Protocol{
 		P2PEnv:              &env3,

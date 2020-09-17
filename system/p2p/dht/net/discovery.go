@@ -66,7 +66,8 @@ func (d *Discovery) Start() {
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
 	if err := d.kademliaDHT.Bootstrap(d.ctx); err != nil {
-		panic(err)
+		//panic(err)
+		log.Error("Bootstrap", "err", err.Error())
 	}
 	d.RoutingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
 }
