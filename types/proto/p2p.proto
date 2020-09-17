@@ -377,6 +377,9 @@ message NodeNetInfo {
     int32  inbounds     = 5;
     int32  routingtable = 6;
     int32  peerstore    = 7;
+    string ratein       = 8;
+    string rateout      = 9;
+    string ratetotal    = 10;
 }
 
 /**

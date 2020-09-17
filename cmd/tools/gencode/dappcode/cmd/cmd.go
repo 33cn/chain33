@@ -32,7 +32,7 @@ func (cmdCodeFile) GetFiles() map[string]string {
 
 var (
 	buildShellName    = "build.sh"
-	buildShellContent = `#!/bin/sh
+	buildShellContent = `#!/bin/bash
 # 官方ci集成脚本
 strpwd=$(pwd)
 strcmd=${strpwd##*dapp/}
@@ -46,7 +46,6 @@ cp ./build/* "${OUT_DIR}"
 `
 	makeFIleName    = "Makefile"
 	makeFileContent = `all:
-	chmod +x ./build.sh
-	./build.sh $(OUT) $(FLAG)
+	bash build.sh $(OUT) $(FLAG)
 `
 )

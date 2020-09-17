@@ -80,33 +80,27 @@ service calculator {
 >使用chain33-tool，工具使用参考[文档](https://github.com/33cn/chain33/blob/master/cmd/tools/doc/gendapp.md)
 ```
 //本例默认将calculator生成至官方plugin项目dapp目录下
-$ chain33-tool gendapp -n calculator -p calculator.proto
-$ cd $GOPATH/src/github.com/33cn/plugin/plugin/dapp/calculator
-//显示生成目录结构
-$ tree -d
-.
-├── cmd //官方ci目录
-├── commands    //命令行模块
-├── executor    //执行模块
-├── proto   //proto脚本模块
-├── rpc     //rpc模块
-└── types   //类型模块
+$ cd $GOPATH/src/github.com/33cn/chain33/cmd/tools && go build -o tool
+$ ./tool gendapp -n calculator -p doc/calculator.proto
+$ cd $GOPATH/src/github.com/33cn/plugin/plugin/dapp/calculator && ls
 ```
 
 ##### 生成pb.go文件
+pb.go文件基于protobuf提供的proto-gen-go插件生成，这里protobuf的版本必须和chain33引用的保持一致，
+具体可以查看chain33项目go.mod文件，github.com/golang/protobuf库的版本
 ```
 //进入生成合约的目录
 $ cd $GOPATH/src/github.com/33cn/plugin/plugin/dapp/calculator
 //执行脚本生成calculator.pb.go
-$ cd proto && chmod +x ./create_protobuf.sh && make
+$ cd proto && make
 ```
 
 ### 后续开发
 以下将以模块为顺序，依次介绍
 #### types类型模块
 此目录统一归纳合约类型相关的代码
-##### 交易的action和log(types/calculator/calculator.go)
-> 每一种交易通常有交易请求(action），交易结果日志(log)，
+##### 交易的action和log(types/calculator.go)
+> 每一种交易通常有交易请求(action），交易执行回执(log)，
 目前框架要求合约开发者自定义aciton和log的id及name，
 已经自动生成了这些常量，可以根据需要修改
 ```go
@@ -132,10 +126,12 @@ const (
 	TyDivLog
 )
 ```
-> 开发者还需要提供name和id的映射结构，其中actionMap已自动生成，logMap需要自定义编写，
-如本例中加减乘除都有对应的log类型，依次按照格式填入即可
+> 开发者还需要提供name和id的映射结构，其中actionMap已自动生成,
+交易log结构由开发者自由定义，这里logMap需要将对应结构按格式填充，
+如本例中加减乘除都有对应的log类型（也可以采用一个通用结构对应多个交易回执），依次按照格式填入即可
 ```go
-//定义action的name和id
+
+    //定义action的name和id
 	actionMap = map[string]int32{
 		NameAddAction: TyAddAction,
 		NameSubAction: TySubAction,
@@ -160,15 +156,15 @@ const (
 ```go
 func (*calculator) CheckTx(tx *types.Transaction, index int) error {
 
-	action := &ptypes.CalculatorAction{}
+    action := &calculatortypes.CalculatorAction{}
 	err := types.Decode(tx.GetPayload(), action)
 	if err != nil {
 		elog.Error("CheckTx", "DecodeActionErr", err)
 		return types.ErrDecode
 	}
 	//这里只做除法除数零值检查
-	if action.Ty == ptypes.TyDivAction {
-		div, ok := action.Value.(*ptypes.CalculatorAction_Div)
+	if action.Ty == calculatortypes.TyDivAction {
+		div, ok := action.Value.(*calculatortypes.CalculatorAction_Div)
 		if !ok {
 			return types.ErrTypeAsset
 		}
@@ -182,7 +178,8 @@ func (*calculator) CheckTx(tx *types.Transaction, index int) error {
 ```
 ##### KV常量(executor/kv.go)
 >目前合约进行存取框架KV数据库(stateDB或localDB)时，
-其Key的前缀必须满足框架要求规范，已经以常量形式自动生成在代码中
+其Key的前缀必须满足框架要求规范，已经以常量形式自动生成在代码中，
+开发者在构造数据key时，需要以此为前缀
 ```
 var (
 	//KeyPrefixStateDB state db key必须前缀
@@ -213,11 +210,11 @@ func (c *calculator) Exec_Add(payload *ptypes.Add, tx *types.Transaction, index 
 ##### 实现ExecLocal类接口(executor/exec_local.go)
 >ExecLocal类接口是交易执行成功后本地执行，
 主要目的是将辅助性数据进行localDB存取,方便前端查询，
-以Add为例，在localDB中存入加法运算的次数，
+以Add为例，在localDB中存入加法运算的次数，在函数最后需要调用addAutoRollBack接口，以适配框架localdb自动回滚功能
 ```go
 func (c *calculator) ExecLocal_Add(payload *ptypes.Add, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var dbSet *types.LocalDBSet
-	var countInfo ptypes.ReplyQueryCalcCount
+	var countInfo calculatortypes.ReplyQueryCalcCount
 	localKey := []byte(fmt.Sprintf("%s-CalcCount-Add", KeyPrefixLocalDB))
 	oldVal, err := c.GetLocalDB().Get(localKey)
 	//此处需要注意，目前db接口，获取key未找到记录，返回空时候也带一个notFound错误，需要特殊处理，而不是直接返回错误
@@ -231,38 +228,20 @@ func (c *calculator) ExecLocal_Add(payload *ptypes.Add, tx *types.Transaction, r
 	}
 	countInfo.Count++
 	dbSet = &types.LocalDBSet{KV: []*types.KeyValue{{Key:localKey, Value:types.Encode(&countInfo)}}}
-	return dbSet, nil
+	//封装kv，适配框架自动回滚，这部分代码已经自动生成
+    return c.addAutoRollBack(tx, dbSet.KV), nil
 }
 ```
+
 ##### 实现ExecDelLocal类接口(executor/exec_del_local.go)
->ExecDelLocal类接口可以理解为ExecLocal的逆过程，在区块回退时候被调用
-```go
-func (c *calculator) ExecDelLocal_Add(payload *ptypes.Add, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	var dbSet *types.LocalDBSet
-	var countInfo ptypes.ReplyQueryCalcCount
-	localKey := []byte(fmt.Sprintf("%s-CalcCount-Add", KeyPrefixLocalDB))
-	oldVal, err := c.GetLocalDB().Get(localKey)
-	if err != nil && err != types.ErrNotFound{
-		return nil, err
-	}
-	err = types.Decode(oldVal, &countInfo)
-	if err != nil {
-		elog.Error("execDelLocalAdd", "DecodeErr", err)
-		return nil, types.ErrDecode
-	}
-	countInfo.Count--
-	if countInfo.Count < 0 {
-		countInfo.Count = 0
-	}
-	dbSet = &types.LocalDBSet{KV: []*types.KeyValue{{Key:localKey, Value:types.Encode(&countInfo)}}}
-	return dbSet, nil
-}
-```
-##### 实现Query类接口(executor/calculator.go)
+>ExecDelLocal类接口可以理解为ExecLocal的逆过程，在区块回退时候被调用，生成代码已支持自动回滚，无需实现
+
+##### 实现Query类接口(executor/query.go)
 > Query类接口主要实现查询相关业务逻辑，如访问合约数据库，
 Query类接口需要满足框架规范(固定格式函数名称和签名)，才能被框架注册和使用，
 具体调用方法将在rpc模块介绍，本例实现查询运算符计算次数的接口
 ```go
+//函数名称，Query_+实际方法名格式，返回值为protobuf Message结构
 func (c *calculator) Query_CalcCount(in *ptypes.ReqQueryCalcCount) (types.Message, error) {
 
 	var countInfo ptypes.ReplyQueryCalcCount
@@ -310,24 +289,12 @@ func (c *channelClient)QueryCalcCount(ctx context.Context, in *ptypes.ReqQueryCa
 }
 ```
 
-##### json rpc相关接口
->json rpc主要给前端相关平台产品调用，本例子涉及创建Add交易和查询计算次数接口。
-其中创建交易通过框架的CallCreateTx接口间接调用之前实现的CreateTx接口
+##### json rpc接口
+>json rpc主要给前端相关平台产品调用，本例为查询计算次数接口
 ```go
-func (j *Jrpc)CreateRawAddTx(in *ptypes.Add, result *interface{}) error {
-
- 	data, err := types.CallCreateTx(ptypes.CalculatorX, ptypes.NameAddAction, in)
- 	if err != nil {
- 		return err
-	}
-	//创建交易通常返回十六进制格式原数据
- 	*result = hex.EncodeToString(data)
- 	return nil
- }
-
 func (j *Jrpc)QueryCalcCount(in *ptypes.ReqQueryCalcCount, result *interface{}) error {
 
-    //这里直接转发至grpc接口
+    //此处直接调用内部的grpc接口
 	reply, err := j.cli.QueryCalcCount(context.Background(), in)
 	if err != nil {
 		return err
@@ -338,10 +305,9 @@ func (j *Jrpc)QueryCalcCount(in *ptypes.ReqQueryCalcCount, result *interface{}) 
 ```
 
 ##### rpc说明
->本例子中涉及的CreateTx和Query类rpc都可以通过框架自有的rpc去调用，
+>对于构造交易和query类接口可以通过chain33框架的rpc去调用，
 分别是Chain33.CreateTransaction和Chain33.Query，上述代码只是示例如何开发rpc接口，
-实际开发中，这两类接口可以不用实现，
-而直接调用框架的rpc，当然也支持进行个性化包装，两种调用方式将在commands模块介绍
+实际使用中，只需要实现query接口，并通过框架rpc调用，也可以根据需求封装rpc接口，在commands模块将会介绍如何调用框架rpc
 
 #### commands命令行模块
 如果需要支持命令行交互式访问区块节点，开发者需要实现具体合约的命令，
@@ -355,7 +321,7 @@ import (
 	"github.com/spf13/cobra"
 
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	ptypes "github.com/33cn/plugin/plugin/dapp/calculator/types/calculator"
+	calculatortypes "github.com/33cn/plugin/plugin/dapp/calculator/types"
 )
 ```
 ##### 创建交易命令(commands/commands.go)
@@ -390,17 +356,15 @@ func createAdd(cmd *cobra.Command, args []string) {
 		Payload:    types.MustPBToJSON(&req),
 	}
 	var res string
-	//通过框架rpc调用
+	//调用框架CreateTransaction接口构建原始交易
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CreateTransaction", chain33Req, &res)
-	//通过合约内部实现rpc调用
-	//ctx := jsonclient.NewRPCCtx(rpcLaddr, "calculator.CreateRawAddTx", req, &res)
 	ctx.RunWithoutMarshal()
 }
 ```
 
 ##### 查询计算次数(commands/commands.go)
 ```go
- func queryCalcCountCmd() *cobra.Command {
+func queryCalcCountCmd() *cobra.Command {
 
  	cmd := &cobra.Command{
  		Use:   "query_count",
@@ -426,10 +390,10 @@ func createAdd(cmd *cobra.Command, args []string) {
  		Payload:  types.MustPBToJSON(&req),
  	}
  	var res interface{}
- 	res = &ptypes.ReplyQueryCalcCount{}
- 	//调用框架Query rpc接口
+ 	res = &calculatortypes.ReplyQueryCalcCount{}
+ 	//调用框架Query rpc接口, 通过框架调用，需要指定query对应的函数名称，具体参数见Query4Jrpc结构
  	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", chain33Req, &res)
- 	//调用合约内部rpc接口
+ 	//调用合约内部rpc接口, 注意合约自定义的rpc接口是以合约名称作为rpc服务，这里为calculator
  	//ctx := jsonclient.NewRPCCtx(rpcLaddr, "calculator.QueryCalcCount", req, &res)
  	ctx.Run()
  }
@@ -451,12 +415,13 @@ func Cmd() *cobra.Command {
 }
 ```
 #### 合约集成
- 开发者可以借助官方pugin项目进行合约调试，但需要显示初始化合约
+新增合约需要显示初始化
 ##### 初始化（dapp/init/init.go)
 >需要在此文件import目录，新增calculator包导入
 ```go
- import (
- 	_ "github.com/33cn/plugin/plugin/dapp/calculator"
+import (
+ 	_ "github.com/33cn/plugin/plugin/dapp/calculator" //init calculator
+)
  ```
 
 ##### 编译
@@ -465,5 +430,30 @@ func Cmd() *cobra.Command {
 $ cd $GOPATH/src/github.com/33cn/plugin && make
 ```
 
-#### 单元测试
+#### 测试
+##### 单元测试
 为合约代码增加必要的单元测试，提高测试覆盖
+##### 集成测试
+编译后可以运行节点，进行钱包相关配置，即可发送合约交易进行功能性测试，本例相关命令行
+```bash
+# 通过curl方式调用rpc接口构建Add原始交易
+curl -kd '{"method":"Chain33.CreateTransaction", "params":[{"execer":"calculator", "actionName":"Add", "payload":{"summand":1,"addend":1}}]}' http://localhost:8801
+# 通过chain33-cli构建Add原始交易
+./chain33-cli calculator add -a 1 -s 1
+
+# queryCount接口类似
+curl -kd '{"method":"calculator.QueryCalcCount", "params":[{"action":"Add"}]}' http://localhost:8801
+./chain33-cli calculator query_count -a Add
+``` 
+
+#### 进阶
+##### 计算器
+基于 [本例代码](https://github.com/bysomeone/plugin/tree/dapp-example-calculator) 实现减法等交易行为
+##### 其他例子
+官方 [plugin项目](https://github.com/33cn/plugin) 提供了丰富的插件，可以参考学习
+
+
+
+
+
+

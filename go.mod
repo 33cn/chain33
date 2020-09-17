@@ -28,7 +28,6 @@ require (
 	github.com/libp2p/go-libp2p-kbucket v0.2.1
 	github.com/libp2p/go-libp2p-pubsub v0.2.6
 	github.com/libp2p/go-libp2p-swarm v0.2.2
-
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mr-tron/base58 v1.1.3
 	github.com/multiformats/go-multiaddr v0.2.0

@@ -23,6 +23,7 @@ import (
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/wallet/bipwallet"
 	wcom "github.com/33cn/chain33/wallet/common"
 )
 
@@ -117,7 +118,7 @@ func New(cfg *types.Chain33Config) *Wallet {
 		rescanwg:         &sync.WaitGroup{},
 		initFlag:         0,
 		SignType:         signType,
-		CoinType:         CoinType(mcfg.CoinType),
+		CoinType:         bipwallet.GetSLIP0044CoinType(mcfg.CoinType),
 		minFee:           mcfg.MinFee,
 		accountdb:        account.NewCoinsAccount(cfg),
 		accTokenMap:      make(map[string]*account.DB),

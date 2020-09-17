@@ -73,12 +73,10 @@ const (
 //ty = 1+offset(1<<8) ->auth_ecdsa
 //ty = 2+offset(1<<8) -> auth_sm2
 const (
-	Invalid     = 0
-	SECP256K1   = 1
-	ED25519     = 2
-	SM2         = 3
-	CoinTypeBty = "bty"
-	CoinTypeYcc = "ycc"
+	Invalid   = 0
+	SECP256K1 = 1
+	ED25519   = 2
+	SM2       = 3
 )
 
 //log type
@@ -157,6 +155,3 @@ var HighAllowPackHeight int64 = 90
 
 //LowAllowPackHeight 允许打包的low区块高度
 var LowAllowPackHeight int64 = 30
-
-//EnableTxGroupParaFork 默认情况下不开启fork
-var EnableTxGroupParaFork = false

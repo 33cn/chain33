@@ -104,25 +104,8 @@ func RegExecInit(cfg *Chain33Config) {
 
 //NewChain33Config ...
 func NewChain33Config(cfgstring string) *Chain33Config {
-	cfg, sub := InitCfgString(cfgstring)
-	chain33Cfg := &Chain33Config{
-		mcfg:            cfg,
-		scfg:            sub,
-		minerExecs:      []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
-		title:           cfg.Title,
-		chainConfig:     make(map[string]interface{}),
-		coinSymbol:      "bty",
-		forks:           &Forks{make(map[string]int64)},
-		enableCheckFork: true,
-	}
-	// 先将每个模块的fork初始化到Chain33Config中，然后如果需要再将toml中的替换
-	chain33Cfg.setDefaultConfig()
-	chain33Cfg.setFlatConfig(cfgstring)
-	chain33Cfg.setMver(cfgstring)
-	// TODO 需要测试是否与NewChain33Config分开
-	RegForkInit(chain33Cfg)
-	RegExecInit(chain33Cfg)
-	chain33Cfg.chain33CfgInit(cfg)
+	chain33Cfg := NewChain33ConfigNoInit(cfgstring)
+	chain33Cfg.chain33CfgInit(chain33Cfg.mcfg)
 	return chain33Cfg
 }
 
@@ -184,7 +167,6 @@ func (c *Chain33Config) setDefaultConfig() {
 	if !c.HasConf("cfg.local") {
 		c.S("cfg.local", "")
 	}
-	c.S("TxHeight", false)
 }
 
 func (c *Chain33Config) setFlatConfig(cfgstring string) {
@@ -256,11 +238,12 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 				c.coinSymbol = DefaultCoinsSymbol
 			}
 		}
+		//TxHeight
+		c.setChainConfig("TxHeight", cfg.TxHeight)
 	}
 	if c.needSetForkZero() { //local 只用于单元测试
 		if c.isLocal() {
 			c.forks.setLocalFork()
-			c.setChainConfig("TxHeight", true)
 			c.setChainConfig("Debug", true)
 		} else {
 			c.forks.setForkForParaZero()

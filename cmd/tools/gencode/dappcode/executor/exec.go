@@ -94,7 +94,7 @@ import (
 
 ${EXECLOCALFILECONTENT}
 
-//设置自动回滚
+//当区块回滚时，框架支持自动回滚localdb kv，需要对exec-local返回的kv进行封装
 func (${EXEC_OBJECT} *${EXECNAME}) addAutoRollBack(tx *types.Transaction, kv []*types.KeyValue) *types.LocalDBSet {
 
 	dbSet := &types.LocalDBSet{}
@@ -114,7 +114,7 @@ import (
  * 实现区块回退时本地执行的数据清除
 */
 
-// ExecDelLocal 回退自动删除，重写基类
+// ExecDelLocal localdb kv数据自动回滚接口
 func (${EXEC_OBJECT} *${EXECNAME}) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	kvs, err := ${EXEC_OBJECT}.DelRollbackKV(tx, tx.Execer)
 	if err != nil {

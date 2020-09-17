@@ -495,6 +495,19 @@ func (c *Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error
 	return nil
 }
 
+//GetAccount getAddress by lable
+func (c *Chain33) GetAccount(in types.ReqGetAccount, result *interface{}) error {
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletGetAccount", &in)
+	if err != nil {
+		return err
+	}
+
+	*result = &rpctypes.WalletAccount{Acc: &rpctypes.Account{Addr: reply.(*types.WalletAccount).GetAcc().Addr, Currency: reply.(*types.WalletAccount).GetAcc().GetCurrency(),
+		Frozen: reply.(*types.WalletAccount).GetAcc().GetFrozen(), Balance: reply.(*types.WalletAccount).GetAcc().GetBalance()}, Label: reply.(*types.WalletAccount).GetLabel()}
+	return nil
+
+}
+
 // MergeBalance merge balance
 func (c *Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
 	reply, err := c.cli.ExecWalletFunc("wallet", "WalletMergeBalance", &in)
@@ -1012,6 +1025,9 @@ func (c *Chain33) GetNetInfo(in types.P2PGetNetInfoReq, result *interface{}) err
 		Inbounds:     resp.GetInbounds(),
 		Peerstore:    resp.GetPeerstore(),
 		Routingtable: resp.GetRoutingtable(),
+		Ratein:       resp.GetRatein(),
+		Rateout:      resp.GetRateout(),
+		Ratetotal:    resp.GetRatetotal(),
 	}
 	return nil
 }

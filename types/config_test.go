@@ -15,7 +15,7 @@ func TestChainConfig(t *testing.T) {
 	cfg.S("a", true)
 	_, err := cfg.G("b")
 	assert.Equal(t, err, ErrNotFound)
-
+	assert.False(t, cfg.IsEnable("TxHeight"))
 	adata, err := cfg.G("a")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, adata.(bool), true)
@@ -36,8 +36,14 @@ func TestSubConfig(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestConfig(t *testing.T) {
+func TestConfInit(t *testing.T) {
+	cfg := NewChain33Config(ReadFile("testdata/chain33.toml"))
+	assert.True(t, cfg.IsEnable("TxHeight"))
+}
+
+func TestConfigNoInit(t *testing.T) {
 	cfg := NewChain33ConfigNoInit(ReadFile("testdata/chain33.toml"))
+	assert.False(t, cfg.IsEnable("TxHeight"))
 	cfg.EnableCheckFork(false)
 	cfg.chain33CfgInit(cfg.GetModuleConfig())
 	mcfg := cfg.GetModuleConfig()
