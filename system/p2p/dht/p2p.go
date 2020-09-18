@@ -14,10 +14,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/33cn/chain33/system/p2p/dht/store"
-	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/helpers"
-
 	"github.com/33cn/chain33/client"
 	logger "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2p"
@@ -26,12 +22,14 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	"github.com/33cn/chain33/system/p2p/dht/store"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
+	core "github.com/libp2p/go-libp2p-core"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/multiformats/go-multiaddr"
@@ -40,7 +38,6 @@ import (
 var log = logger.New("module", p2pty.DHTTypeName)
 
 func init() {
-	setLibp2pParams()
 	p2p.RegisterP2PCreate(p2pty.DHTTypeName, New)
 }
 
@@ -454,11 +451,6 @@ func (p *P2P) genAirDropKey() {
 	p.addrbook.saveKey(walletPrivkey, walletPubkey)
 	p.reStart()
 
-}
-
-func setLibp2pParams() {
-
-	helpers.EOFTimeout = time.Second * 20
 }
 
 func (p *P2P) pruePeers(pid core.PeerID, beBlack bool) {
