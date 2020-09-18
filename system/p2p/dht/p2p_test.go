@@ -174,6 +174,7 @@ func newHost(subcfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracke
 	return h
 }
 func testStreamEOFReSet(t *testing.T) {
+
 	r := rand.Reader
 	prvKey1, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
 	if err != nil {
@@ -193,30 +194,32 @@ func testStreamEOFReSet(t *testing.T) {
 
 	msgID := "/streamTest"
 
-	var subcfg p2pty.P2PSubConfig
-	subcfg.Port = 12345
+	var subcfg, subcfg2, subcfg3 p2pty.P2PSubConfig
+	subcfg.Port = 22345
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg.Port))
 	if err != nil {
 		panic(err)
 	}
 	h1 := newHost(&subcfg, prvKey1, nil, maddr)
+	t.Log("h1", h1.ID())
 	//-------------------------
-	var subcfg2 p2pty.P2PSubConfig
-	subcfg2.Port = 12346
-	maddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg2.Port))
-	if err != nil {
-		panic(err)
-	}
-	h2 := newHost(&subcfg2, prvKey2, nil, maddr)
 
-	//-------------------------------------
-	var subcfg3 p2pty.P2PSubConfig
-	subcfg3.Port = 12347
-	maddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg3.Port))
+	subcfg2.Port = 22346
+	maddr2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg2.Port))
 	if err != nil {
 		panic(err)
 	}
-	h3 := newHost(&subcfg3, prvKey3, nil, maddr)
+	h2 := newHost(&subcfg2, prvKey2, nil, maddr2)
+	t.Log("h2", h2.ID())
+	//-------------------------------------
+
+	subcfg3.Port = 22347
+	maddr3, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg3.Port))
+	if err != nil {
+		panic(err)
+	}
+	h3 := newHost(&subcfg3, prvKey3, nil, maddr3)
+	t.Log("h3", h3.ID())
 	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("Meow! It worked!")
 		var buf []byte
@@ -241,7 +244,20 @@ func testStreamEOFReSet(t *testing.T) {
 		ID:    h2.ID(),
 		Addrs: h2.Addrs(),
 	}
-	err = h1.Connect(context.Background(), h2info)
+	var retrycount int
+	for {
+		err = h1.Connect(context.Background(), h2info)
+		if err != nil {
+			retrycount++
+			if retrycount > 3 {
+				break
+			}
+			continue
+		}
+
+		break
+	}
+
 	assert.NoError(t, err)
 
 	s, err := h1.NewStream(context.Background(), h2.ID(), protocol.ID(msgID))

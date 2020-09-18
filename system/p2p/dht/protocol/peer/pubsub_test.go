@@ -148,7 +148,7 @@ func testPushMsg(t *testing.T, protocol *peerPubSub) {
 	assert.Nil(t, err)
 	rpy := resp.GetData().(*types.Reply)
 	t.Log("bzTest isok", rpy.IsOk, "msg", string(rpy.GetMsg()))
-	assert.True(t, rpy.IsOk)
+	assert.False(t, rpy.IsOk)
 	//换个不存在的topic测试
 	pubTopicMsg = protocol.QueueClient.NewMessage("p2p", types.EventPubTopicMsg, &types.PublishTopicMsg{Topic: "bzTest2", Msg: []byte("one two tree four")})
 	testHandlerPubMsg(protocol, pubTopicMsg)
