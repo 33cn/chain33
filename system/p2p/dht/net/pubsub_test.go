@@ -3,8 +3,9 @@ package net
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func testMsg(msg *SubMsg) {
