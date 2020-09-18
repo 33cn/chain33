@@ -125,13 +125,14 @@ func initP2P(p *P2P) *P2P {
 	}
 
 	p.host = host
-	p.discovery = net.InitDhtDiscovery(p.ctx, p.host, p.addrbook.AddrsInfo(), p.chainCfg, p.subCfg)
-	p.connManag = manage.NewConnManager(p.host, p.discovery, bandwidthTracker, p.subCfg)
 	pubsub, err := net.NewPubSub(p.ctx, p.host)
 	if err != nil {
 		return nil
 	}
 	p.pubsub = pubsub
+	p.discovery = net.InitDhtDiscovery(p.ctx, p.host, p.addrbook.AddrsInfo(), p.chainCfg, p.subCfg)
+	p.connManag = manage.NewConnManager(p.host, p.discovery, bandwidthTracker, p.subCfg)
+
 	p.peerInfoManag = manage.NewPeerInfoManager(p.host, p.client, p.blackCache, p.pruePeers)
 	p.taskGroup = &sync.WaitGroup{}
 	p.db = store.NewDataStore(p.subCfg)

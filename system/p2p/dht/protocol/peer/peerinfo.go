@@ -302,7 +302,7 @@ func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
 	pinfos := p.PeerInfoManager.FetchPeerInfosInMin()
 	var peers []*types.Peer
 	localinfo := p.getLoacalPeerInfo()
-	var checkHeight int64 = 0
+	var checkHeight int64
 	var lcoalPeer types.Peer
 	if localinfo != nil {
 

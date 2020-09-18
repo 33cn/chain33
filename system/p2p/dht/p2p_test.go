@@ -334,8 +334,8 @@ func testAddrbook(t *testing.T, cfg *types.P2P) {
 func Test_LocalAddr(t *testing.T) {
 	seedip := "120.24.92.123:13803"
 	t.Log("seedip", seedip)
-	spliteIp := strings.Split(seedip, ":")
-	conn, err := net.DialTimeout("tcp4", net.JoinHostPort(spliteIp[0], spliteIp[1]), time.Second)
+	spliteIP := strings.Split(seedip, ":")
+	conn, err := net.DialTimeout("tcp4", net.JoinHostPort(spliteIP[0], spliteIP[1]), time.Second)
 	if err != nil {
 		t.Log("Could not dial remote peer")
 		return

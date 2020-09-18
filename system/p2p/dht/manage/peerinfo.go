@@ -151,9 +151,10 @@ func (p *PeerInfoManager) Close() {
 	close(p.done)
 }
 
-// NewPeerInfoManager new peer info manager
+//PruePeers close peer and put it into blacklist is beBlock is true.
 type PruePeers func(pids peer.ID, beBlack bool)
 
+// NewPeerInfoManager new peer info manager
 func NewPeerInfoManager(host host.Host, cli queue.Client, timecache *TimeCache, callFunc PruePeers) *PeerInfoManager {
 	peerInfoManage := &PeerInfoManager{done: make(chan struct{})}
 	peerInfoManage.client = cli

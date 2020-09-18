@@ -1303,7 +1303,7 @@ func fmtTxProofs(txProofs []*types.TxProof) []*rpctypes.TxProof {
 	return result
 }
 
-// GetNetProtocols get net information
+// NetProtocols get net information
 func (c *Chain33) NetProtocols(in types.ReqNil, result *interface{}) error {
 	resp, err := c.cli.NetProtocols(&in)
 	if err != nil {

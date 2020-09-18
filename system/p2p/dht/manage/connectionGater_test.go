@@ -116,3 +116,14 @@ func Test_otherInterface(t *testing.T) {
 	assert.True(t, gater.InterceptSecured(network.DirInbound, "", nil))
 
 }
+
+func Test_timecache(t *testing.T) {
+	cache := NewTimeCache(context.Background(), time.Second)
+	cache.Add("one", 0)
+	cache.Add("two", time.Second*3)
+	time.Sleep(time.Second * 2)
+	assert.False(t, cache.Has("one"))
+	assert.True(t, cache.Has("two"))
+	time.Sleep(time.Second * 2)
+	assert.False(t, cache.Has("two"))
+}

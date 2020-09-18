@@ -26,8 +26,10 @@ const (
 
 )
 
+//CacheLimit cachebuffer
 var CacheLimit int32 = 50
 
+//Conngater gater struct data
 type Conngater struct {
 	host       *host.Host
 	cfg        *p2pty.P2PSubConfig
@@ -50,10 +52,8 @@ func (s *Conngater) InterceptPeerDial(p peer.ID) (allow bool) {
 	//具体的拦截策略
 	//黑名单检查
 	//TODO 引进其他策略
-	if s.blackCache.Has(p.Pretty()) {
-		return false
-	}
-	return true
+	return !s.blackCache.Has(p.Pretty())
+
 }
 
 // InterceptAddrDial tests whether we're permitted to dial the specified
@@ -71,10 +71,8 @@ func (s *Conngater) InterceptAccept(n network.ConnMultiaddrs) (allow bool) {
 		return false
 	}
 
-	if s.isPeerAtLimit(network.DirInbound) {
-		return false
-	}
-	return true
+	return !s.isPeerAtLimit(network.DirInbound)
+
 }
 
 // InterceptSecured tests whether a given connection, now authenticated,
@@ -113,6 +111,7 @@ func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
 	return numOfConns >= maxPeers
 }
 
+//TimeCache data struct
 type TimeCache struct {
 	cacheLock sync.Mutex
 	Q         *list.List
@@ -121,6 +120,7 @@ type TimeCache struct {
 	span      time.Duration
 }
 
+//NewTimeCache new timecache obj.
 func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
 	cache := &TimeCache{
 		Q:    list.New(),
