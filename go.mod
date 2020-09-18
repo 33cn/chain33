@@ -19,7 +19,7 @@ require (
 	github.com/influxdata/influxdb v1.7.9
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/kevinms/leakybucket-go v0.0.0-20200115003610-082473db97ca
-	github.com/libp2p/go-libp2p v0.10.2
+	github.com/libp2p/go-libp2p v0.10.3
 	github.com/libp2p/go-libp2p-blankhost v0.2.0
 	github.com/libp2p/go-libp2p-circuit v0.3.1
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
