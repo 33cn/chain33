@@ -2,6 +2,7 @@ package net
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -110,18 +111,26 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 		log.Error("publish", "no this topic", topic)
 		return fmt.Errorf("no this topic:%v", topic)
 	}
+	//TODO 后期增加可配选项，是否等待topic节点
 
 	//等待至少有1个节点满足条件时发送
+	var waitCount int
 	for {
+		if waitCount > 3 {
+			return errors.New("no topic peers")
+		}
 		if len(t.pubtopic.ListPeers()) > 0 {
 			return t.pubtopic.Publish(t.ctx, msg)
 		}
+
 		select {
 		case <-p.ctx.Done():
 			return p.ctx.Err()
 		default:
-			time.Sleep(time.Millisecond * 100)
+			time.Sleep(time.Second)
+			waitCount++
 		}
+
 	}
 
 }

@@ -3,10 +3,8 @@ package net
 import (
 	"context"
 	"fmt"
-	"testing"
-	"time"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func testMsg(msg *SubMsg) {
@@ -16,16 +14,17 @@ func testMsg(msg *SubMsg) {
 func Test_pubsub(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	hosts := getNetHosts(ctx, 2, t)
 	connect(t, hosts[0], hosts[1])
+
 	psub, err := NewPubSub(ctx, hosts[0])
 	assert.Nil(t, err)
+
 	err = psub.JoinTopicAndSubTopic("bztest", testMsg)
 	assert.Nil(t, err)
-	err = psub.Publish("bztest", []byte("hello,world"))
-	assert.Nil(t, err)
 
+	err = psub.Publish("bztest", []byte("hello,world"))
+	assert.NotNil(t, err)
 	err = psub.Publish("bztest2", []byte("hello,world"))
 	assert.NotNil(t, err)
 	topics := psub.GetTopics()
@@ -37,9 +36,7 @@ func Test_pubsub(t *testing.T) {
 	assert.Equal(t, 0, len(peers))
 	peers = psub.FetchTopicPeers("bztest")
 	t.Log(peers)
-
 	psub.RemoveTopic("bztest")
-	time.Sleep(time.Second * 2)
 	assert.Equal(t, 0, psub.TopicNum())
 
 }
