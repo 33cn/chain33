@@ -152,32 +152,32 @@ func (tc *TimeCache) sweep() {
 	for {
 		select {
 		case <-ticker.C:
-			tc.cacheLock.Lock()
-
-			back := tc.Q.Back()
-			if back == nil {
-				tc.cacheLock.Unlock()
-				return
-			}
-
-			v := back.Value.(string)
-			t, ok := tc.M[v]
-			if !ok {
-				tc.cacheLock.Unlock()
-				panic("inconsistent cache state")
-			}
-
-			//if time.Since(t) > tc.span {
-			if time.Now().After(t) {
-				tc.Q.Remove(back)
-				delete(tc.M, v)
-			}
-			tc.cacheLock.Unlock()
+			tc.checkOvertimekey()
 		case <-tc.ctx.Done():
 			return
 		}
 	}
 
+}
+
+func (tc *TimeCache) checkOvertimekey() {
+	tc.cacheLock.Lock()
+	defer tc.cacheLock.Unlock()
+
+	back := tc.Q.Back()
+	if back == nil {
+		return
+	}
+	v := back.Value.(string)
+	t, ok := tc.M[v]
+	if !ok {
+		return
+	}
+	//if time.Since(t) > tc.span {
+	if time.Now().After(t) {
+		tc.Q.Remove(back)
+		delete(tc.M, v)
+	}
 }
 
 //Has check key
