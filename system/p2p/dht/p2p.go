@@ -14,9 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/33cn/chain33/system/p2p/dht/store"
 	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/helpers"
 
 	"github.com/33cn/chain33/client"
 	logger "github.com/33cn/chain33/common/log/log15"
@@ -460,7 +460,6 @@ func setLibp2pParams() {
 
 	helpers.EOFTimeout = time.Second * 20
 }
-
 
 func (p *P2P) pruePeers(pid core.PeerID, beBlack bool) {
 

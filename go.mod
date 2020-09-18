@@ -25,8 +25,8 @@ require (
 	github.com/libp2p/go-libp2p-connmgr v0.2.4
 	github.com/libp2p/go-libp2p-core v0.6.1
 	github.com/libp2p/go-libp2p-discovery v0.5.0
-	github.com/libp2p/go-libp2p-kad-dht v0.2.1
-	github.com/libp2p/go-libp2p-kbucket v0.2.1
+	github.com/libp2p/go-libp2p-kad-dht v0.5.2
+	github.com/libp2p/go-libp2p-kbucket v0.2.3
 	github.com/libp2p/go-libp2p-pubsub v0.2.6
 	github.com/libp2p/go-libp2p-swarm v0.2.8
 	github.com/mattn/go-colorable v0.1.1
@@ -41,7 +41,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tjfoc/gmsm v1.3.1
-	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a

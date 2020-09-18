@@ -26,7 +26,11 @@ var (
 	log = log15.New("module", "p2p.dht")
 )
 
-const dhtProtoID = "/ipfs/kad/%s/1.0.0/%d"
+const (
+	// Deprecated 老版本的协议，仅做兼容，TODO 后面升级后移除
+	classicDhtProtoID = "/ipfs/kad/%s/1.0.0/%d"
+	dhtProtoID        = "/%s-%d/kad/1.0.0" //title-channel/kad/1.0.0
+)
 
 // Discovery dht discovery
 type Discovery struct {
@@ -45,7 +49,8 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 	// Make the DHT,不同的ID进入不同的网络。
 	//如果不修改DHTProto 则有可能会连入IPFS网络，dhtproto=/ipfs/kad/1.0.0
 	d := new(Discovery)
-	opt := opts.Protocols(protocol.ID(fmt.Sprintf(dhtProtoID, chainCfg.GetTitle(), subCfg.Channel)))
+	opt := opts.Protocols(protocol.ID(fmt.Sprintf(dhtProtoID, chainCfg.GetTitle(), subCfg.Channel)),
+		protocol.ID(fmt.Sprintf(classicDhtProtoID, chainCfg.GetTitle(), subCfg.Channel)))
 	kademliaDHT, err := dht.New(ctx, host, opt)
 	if err != nil {
 		panic(err)
