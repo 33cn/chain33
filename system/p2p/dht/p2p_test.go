@@ -212,7 +212,6 @@ func testStreamEOFReSet(t *testing.T) {
 	//-------------------------------------
 	var subcfg3 p2pty.P2PSubConfig
 	subcfg3.Port = 12347
-
 	maddr, err = multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg3.Port))
 	if err != nil {
 		panic(err)
