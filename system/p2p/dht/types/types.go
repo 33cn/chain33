@@ -28,31 +28,13 @@ type P2PSubConfig struct {
 	LtBlockCacheSize int32 `protobuf:"varint,9,opt,name=ltBlockCacheSize" json:"ltBlockCacheSize,omitempty"`
 
 	//中继传输主动建立连接，中继服务端可以选配
-	/*
-
-		    a config RelayDiscovery
-		    b config RelayHop,RelayActive
-		    c config nothing
-			a->b a connect b
-			a.DialPeer(b,c) will success
-			if b just config RelayHop,a->b a connect b
-			a.DialPeer(b,c) will failed
-		    if  b just config RelayHop,a->b,b->c
-			a.DialPeer(b,c) will success
-	*/
-	RelayActive bool `protobuf:"varint,10,opt,name=relayActive" json:"relayActive,omitempty"`
-	//接受其他节点发过来的中继请求，中继服务端必须配置
-	RelayHop bool `protobuf:"varint,11,opt,name=relayHop" json:"relayHop,omitempty"`
-	//发现新的中继节点，中继客户端端必须配置
-	RelayDiscovery      bool `protobuf:"varint,12,opt,name=relayDiscovery" json:"relayDiscovery,omitempty"`
-	DisableFindLANPeers bool `protobuf:"varint,13,opt,name=disableFindLANPeers" json:"disableFindLANPeers,omitempty"`
-
-	DHTDataDriver string `protobuf:"bytes,14,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
-	DHTDataPath   string `protobuf:"bytes,15,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
-	DHTDataCache  int32  `protobuf:"varint,16,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
-
+	RelayHop            bool   `protobuf:"varint,10,opt,name=relayHop" json:"relayHop,omitempty"`
+	DisableFindLANPeers bool   `protobuf:"varint,11,opt,name=disableFindLANPeers" json:"disableFindLANPeers,omitempty"`
+	DHTDataDriver       string `protobuf:"bytes,12,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
+	DHTDataPath         string `protobuf:"bytes,13,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
+	DHTDataCache        int32  `protobuf:"varint,14,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
 	//是否开启全节点模式
-	IsFullNode bool `protobuf:"varint,17,opt,name=isFullNode" json:"isFullNode,omitempty"`
+	IsFullNode bool `protobuf:"varint,15,opt,name=isFullNode" json:"isFullNode,omitempty"`
 	//老版本最大广播节点数
-	MaxBroadcastPeers int `protobuf:"varint,18,opt,name=maxBroadcastPeers" json:"maxBroadcastPeers,omitempty"`
+	MaxBroadcastPeers int `protobuf:"varint,16,opt,name=maxBroadcastPeers" json:"maxBroadcastPeers,omitempty"`
 }

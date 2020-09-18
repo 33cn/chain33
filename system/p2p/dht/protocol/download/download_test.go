@@ -64,7 +64,7 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		QueueClient:     q.Client(),
 		Host:            host,
 		ConnManager:     nil,
-		PeerInfoManager: manage.NewPeerInfoManager(mgr.Client),
+		PeerInfoManager: manage.NewPeerInfoManager(host, mgr.Client, nil, nil),
 		Discovery:       nil,
 		P2PManager:      mgr,
 		SubConfig:       subCfg,

@@ -179,6 +179,7 @@ const (
 	EventFetchTopics    = 352
 	EventRemoveTopic    = 353
 	EventReceiveSubData = 355
+	EventNetProtocols   = 356
 )
 
 var eventName = map[int]string{
@@ -334,4 +335,5 @@ var eventName = map[int]string{
 	EventFetchTopics:                "EventFetchTopics",
 	EventRemoveTopic:                "EventRemoveTopic",
 	EventReceiveSubData:             "EventReceiveSubData",
+	EventNetProtocols:               "EventNetProtocols",
 }

@@ -93,6 +93,8 @@ type IConnManager interface {
 	IsNeighbors(id peer.ID) bool
 	GetLatencyByPeer(pids []peer.ID) map[string]time.Duration
 	GetNetRate() metrics.Stats
+	BandTrackerByProtocol() *types.NetProtocolInfos
+	RateCaculate(ratebytes float64) string
 }
 
 // IPeerInfoManager peer info manager interface

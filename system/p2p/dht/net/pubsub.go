@@ -2,7 +2,9 @@ package net
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -105,13 +107,28 @@ func (p *PubSub) Publish(topic string, msg []byte) error {
 		log.Error("publish", "no this topic", topic)
 		return fmt.Errorf("no this topic:%v", topic)
 	}
+	//TODO 后期增加可配选项，是否等待topic节点
 
-	err := t.pubtopic.Publish(t.ctx, msg)
-	if err != nil {
-		log.Error("publish", "err", err)
-		return err
+	//等待至少有1个节点满足条件时发送
+	var waitCount int
+	for {
+		if waitCount > 3 {
+			return errors.New("no topic peers")
+		}
+		if len(t.pubtopic.ListPeers()) > 0 {
+			return t.pubtopic.Publish(t.ctx, msg)
+		}
+
+		select {
+		case <-p.ctx.Done():
+			return p.ctx.Err()
+		default:
+			time.Sleep(time.Second)
+			waitCount++
+		}
+
 	}
-	return nil
+
 }
 
 func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, callback SubCallBack) {

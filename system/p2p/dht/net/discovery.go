@@ -34,6 +34,9 @@ type Discovery struct {
 	RoutingDiscovery *discovery.RoutingDiscovery
 	mdnsService      *mdns
 	ctx              context.Context
+	subCfg           *p2pty.P2PSubConfig
+	bootstrapnodes   []peer.AddrInfo
+	host             host.Host
 }
 
 // InitDhtDiscovery init dht discovery
@@ -49,21 +52,32 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 	}
 	d.kademliaDHT = kademliaDHT
 	d.ctx = ctx
-	//连接内置种子，以及addrbook存储的节点
-	initInnerPeers(host, peersInfo, subCfg)
-	// Bootstrap the DHT. In the default configuration, this spawns a Background
-	// thread that will refresh the peer table every five minutes.
-	if err = d.kademliaDHT.Bootstrap(ctx); err != nil {
-		panic(err)
-	}
-	d.RoutingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
+	d.bootstrapnodes = peersInfo
+	d.subCfg = subCfg
+	d.host = host
 	return d
 
 }
 
-//CloseDht close the dht
-func (d *Discovery) CloseDht() error {
-	return d.kademliaDHT.Close()
+//Start  the dht
+func (d *Discovery) Start() {
+	//连接内置种子，以及addrbook存储的节点
+	initInnerPeers(d.host, d.bootstrapnodes, d.subCfg)
+	// Bootstrap the DHT. In the default configuration, this spawns a Background
+	// thread that will refresh the peer table every five minutes.
+	if err := d.kademliaDHT.Bootstrap(d.ctx); err != nil {
+		//panic(err)
+		log.Error("Bootstrap", "err", err.Error())
+	}
+	d.RoutingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
+}
+
+//Close close the dht
+func (d *Discovery) Close() error {
+	if d.kademliaDHT != nil {
+		return d.kademliaDHT.Close()
+	}
+	return nil
 }
 
 // FindPeers find peers
