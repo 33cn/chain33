@@ -83,8 +83,6 @@ func CloseStream(stream core.Stream) {
 	if stream == nil {
 		return
 	}
-	//reset EOFTimeout,default timeout 60seconds
-	helpers.EOFTimeout = time.Second * 20
 	err := helpers.FullClose(stream)
 	if err != nil {
 		//这个错误不影响流程，只做记录
