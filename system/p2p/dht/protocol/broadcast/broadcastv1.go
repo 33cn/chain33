@@ -30,10 +30,8 @@ func (handler *broadcastHandler) Handle(stream core.Stream) {
 		log.Error("Handle", "pid", pid.Pretty(), "addr", peerAddr, "err", err)
 		return
 	}
-
-	protocol.peerV1 <- pid
-
 	_ = protocol.handleReceive(data.Message, sPid, peerAddr, broadcastV1)
+	sendNonBlocking(protocol.peerV1, pid)
 }
 
 // VerifyRequest verify request
@@ -96,12 +94,12 @@ func (protocol *broadcastProtocol) broadcastV1(peerCtx context.Context, pid peer
 	log.Debug("broadcastV1Start", "pid", sPid)
 	defer func() {
 		protocol.ps.Unsub(outgoing)
-		protocol.exitPeer <- pid
+		sendNonBlocking(protocol.exitPeer, pid)
 		if stream != nil {
 			_ = stream.Reset()
 		}
 		if err != nil {
-			protocol.errPeer <- pid
+			sendNonBlocking(protocol.errPeer, pid)
 		}
 		log.Debug("broadcastV1End", "pid", sPid)
 	}()
@@ -139,4 +137,12 @@ func (protocol *broadcastProtocol) broadcastV1(peerCtx context.Context, pid peer
 		}
 	}
 
+}
+
+// 相关协程退出时有顺序依赖，统一使用非阻塞模式
+func sendNonBlocking(ch chan peer.ID, id peer.ID) {
+	select {
+	case ch <- id:
+	default:
+	}
 }
