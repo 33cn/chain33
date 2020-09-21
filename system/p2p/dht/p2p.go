@@ -14,6 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+
 	"github.com/33cn/chain33/client"
 	logger "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2p"
@@ -124,11 +126,16 @@ func initP2P(p *P2P) *P2P {
 	}
 
 	p.host = host
-	pubsub, err := net.NewPubSub(p.ctx, p.host)
+	psOpts := make([]pubsub.Option, 0)
+	// pubsub消息默认会基于节点私钥进行签名和验签，支持关闭
+	if p.subCfg.DisablePubSubMsgSigning {
+		psOpts = append(psOpts, pubsub.WithMessageSigning(false), pubsub.WithStrictSignatureVerification(false))
+	}
+	ps, err := net.NewPubSub(p.ctx, p.host, psOpts...)
 	if err != nil {
 		return nil
 	}
-	p.pubsub = pubsub
+	p.pubsub = ps
 	p.discovery = net.InitDhtDiscovery(p.ctx, p.host, p.addrbook.AddrsInfo(), p.chainCfg, p.subCfg)
 	p.connManag = manage.NewConnManager(p.host, p.discovery, bandwidthTracker, p.subCfg)
 

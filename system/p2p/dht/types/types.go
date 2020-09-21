@@ -37,4 +37,6 @@ type P2PSubConfig struct {
 	IsFullNode bool `protobuf:"varint,15,opt,name=isFullNode" json:"isFullNode,omitempty"`
 	//老版本最大广播节点数
 	MaxBroadcastPeers int `protobuf:"varint,16,opt,name=maxBroadcastPeers" json:"maxBroadcastPeers,omitempty"`
+	//pub sub消息是否需要签名和验签
+	DisablePubSubMsgSigning bool `protobuf:"varint,17,opt,name=disablePubSubMsgSigning" json:"disablePubSubMsgSigning,omitempty"`
 }
