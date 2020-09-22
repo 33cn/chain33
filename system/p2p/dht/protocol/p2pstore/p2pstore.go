@@ -17,6 +17,8 @@ import (
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
+const maxConcurrency = 10
+
 var log = log15.New("module", "protocol.p2pstore")
 
 //Protocol ...
@@ -39,6 +41,8 @@ type Protocol struct {
 	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
 	localChunkInfoMutex sync.RWMutex
+
+	concurrency int64
 }
 
 func init() {

@@ -2,6 +2,7 @@ package p2pstore
 
 import (
 	"encoding/hex"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/queue"
@@ -25,7 +26,7 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 		t := time.Now()
 		writeBodys(bodys, stream)
 		_ = protocol.WriteStream(&res, stream)
-		log.Info("handleStreamFetchChunk", "chunk hash", hex.EncodeToString(param.ChunkHash), "start", param.Start, "time cost", time.Since(t))
+		log.Info("handleStreamFetchChunk", "chunk hash", hex.EncodeToString(param.ChunkHash), "start", param.Start, "remote peer", stream.Conn().RemoteMultiaddr(), "time cost", time.Since(t))
 	}()
 
 	// 全节点模式，只有网络中出现数据丢失时才提供数据
@@ -81,6 +82,11 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 		})
 
 	}
+	if atomic.LoadInt64(&p.concurrency) > maxConcurrency {
+		return
+	}
+	atomic.AddInt64(&p.concurrency, 1)
+	defer atomic.AddInt64(&p.concurrency, -1)
 	//分片节点模式,检查本地是否存在
 	bodys, err = p.getChunkBlock(param)
 	if err != nil {
