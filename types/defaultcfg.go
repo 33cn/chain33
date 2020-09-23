@@ -60,6 +60,8 @@ enableFetchP2pstore=false
 enableIfDelLocalChunk=false
 
 enablePushSubscribe=true
+maxActiveBlockNum=1024
+maxActiveBlockSize=100
 
 
 [p2p]
