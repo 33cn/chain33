@@ -6,6 +6,7 @@ package broadcast
 
 import (
 	"encoding/hex"
+	"runtime"
 	"time"
 
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
@@ -37,10 +38,10 @@ func (p *pubSub) broadcast() {
 
 	//TODO check net is sync
 
-	txIncoming := make(chan net.SubMsg) //交易接收通道, 订阅外部广播消息
-	txOutgoing := p.ps.Sub(psTxTopic)   //交易发送通道, 订阅内部广播消息
+	txIncoming := make(chan net.SubMsg, 1024) //交易接收通道, 订阅外部广播消息
+	txOutgoing := p.ps.Sub(psTxTopic)         //交易发送通道, 订阅内部广播消息
 	//区块
-	blockIncoming := make(chan net.SubMsg)
+	blockIncoming := make(chan net.SubMsg, 128)
 	blockOutgoing := p.ps.Sub(psBlockTopic)
 
 	// pub sub topic注册
@@ -62,9 +63,13 @@ func (p *pubSub) broadcast() {
 	}
 
 	//发送和接收用多个函数并发处理，提高效率
-	//交易广播
-	go p.handlePubMsg(psTxTopic, txOutgoing)
-	go p.handleSubMsg(psTxTopic, txIncoming, p.txFilter)
+	//交易广播, 使用多个协程并发处理，提高效率
+	cpu := runtime.NumCPU()
+	for i := 0; i < cpu; i++ {
+		go p.handlePubMsg(psTxTopic, txOutgoing)
+		go p.handleSubMsg(psTxTopic, txIncoming, p.txFilter)
+	}
+
 	//区块广播
 	go p.handlePubMsg(psBlockTopic, blockOutgoing)
 	go p.handleSubMsg(psBlockTopic, blockIncoming, p.blockFilter)
@@ -78,7 +83,10 @@ func (p *pubSub) handlePubMsg(topic string, out chan interface{}) {
 	var err error
 	for {
 		select {
-		case data := <-out: //发送广播交易
+		case data, ok := <-out: //发送广播交易
+			if !ok {
+				return
+			}
 			msg := data.(types.Message)
 			raw := p.encodeMsg(msg, &buf)
 			if err != nil {
@@ -105,7 +113,10 @@ func (p *pubSub) handleSubMsg(topic string, in chan net.SubMsg, filter *utils.Fi
 	var msg types.Message
 	for {
 		select {
-		case data := <-in: //发送广播交易
+		case data, ok := <-in: //接收广播交易
+			if !ok {
+				return
+			}
 			msg = p.newMsg(topic)
 			err = p.decodeMsg(data.Data, &buf, msg)
 			if err != nil {

@@ -8,6 +8,7 @@ package broadcast
 import (
 	"context"
 	"encoding/hex"
+	"sync/atomic"
 
 	"github.com/33cn/chain33/common/pubsub"
 
@@ -53,7 +54,8 @@ type broadcastProtocol struct {
 	exitPeer        chan peer.ID
 	errPeer         chan peer.ID
 	// 接收V1版本节点
-	peerV1 chan peer.ID
+	peerV1    chan peer.ID
+	peerV1Num int32
 }
 
 // InitProtocol init protocol
@@ -140,7 +142,9 @@ func (protocol *broadcastProtocol) handleBroadCastEvent(msg *queue.Message) {
 	}
 
 	//发布到老版本接收通道
-	protocol.ps.FIFOPub(sendData, bcTopic)
+	if atomic.LoadInt32(&protocol.peerV1Num) > 0 {
+		protocol.ps.FIFOPub(sendData, bcTopic)
+	}
 }
 
 // 发送广播数据到节点, 支持延迟关闭内部stream，主要考虑多个节点并行发送情况，不需要等待关闭

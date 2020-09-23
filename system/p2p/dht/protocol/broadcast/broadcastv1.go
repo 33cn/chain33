@@ -6,6 +6,7 @@ package broadcast
 
 import (
 	"context"
+	"sync/atomic"
 
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	"github.com/33cn/chain33/types"
@@ -44,6 +45,7 @@ func (protocol *broadcastProtocol) addBroadcastPeer(id peer.ID) {
 	// 广播节点加入保护， 避免被连接管理误删除
 	pCtx, pCancel := context.WithCancel(protocol.Ctx)
 	protocol.broadcastPeers[id] = pCancel
+	atomic.AddInt32(&protocol.peerV1Num, 1)
 	protocol.Host.ConnManager().Protect(id, broadcastTag)
 	go protocol.broadcastV1(pCtx, id)
 }
@@ -52,6 +54,7 @@ func (protocol *broadcastProtocol) addBroadcastPeer(id peer.ID) {
 func (protocol *broadcastProtocol) removeBroadcastPeer(id peer.ID) {
 	protocol.Host.ConnManager().Unprotect(id, broadcastTag)
 	delete(protocol.broadcastPeers, id)
+	atomic.AddInt32(&protocol.peerV1Num, -1)
 }
 
 // 兼容处理老版本的广播
