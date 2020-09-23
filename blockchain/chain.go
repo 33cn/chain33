@@ -29,10 +29,16 @@ var (
 	FutureBlockDelayTime int64 = 1
 )
 
-const maxFutureBlocks = 256
-const maxActiveBlocks = 128
+const (
+	maxFutureBlocks = 256
 
-const defaultChunkBlockNum = 1
+	maxActiveBlocks = 1024
+
+	// 默认轻广播组装临时区块缓存， 50M
+	maxActiveBlocksCacheSize = 50
+
+	defaultChunkBlockNum = 1
+)
 
 //BlockChain 区块链结构体
 type BlockChain struct {

@@ -172,6 +172,10 @@ type BlockChain struct {
 	EnableIfDelLocalChunk bool `json:"enableIfDelLocalChunk,omitempty"`
 	// 使能注册推送区块、区块头或交易回执
 	EnablePushSubscribe bool `json:"EnablePushSubscribe,omitempty"`
+	// 当前活跃区块的缓存数量
+	MaxActiveBlockNum int `json:"maxActiveBlockNum,omitempty"`
+	// 当前活跃区块的缓存大小M为单位
+	MaxActiveBlockSize int `json:"maxActiveBlockSize,omitempty"`
 }
 
 // P2P 配置

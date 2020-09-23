@@ -18,11 +18,11 @@ import (
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/difficulty"
+	"github.com/33cn/chain33/common/utils"
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 //var
@@ -173,7 +173,7 @@ type BlockStore struct {
 	batch          dbm.Batch
 
 	//记录当前活跃的block，减少数据库的访问提高效率
-	activeBlocks *lru.Cache
+	activeBlocks *utils.SpaceLimitCache
 }
 
 //NewBlockStore new
@@ -223,11 +223,16 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 	}
 	blockStore.batch = db.NewBatch(true)
 
-	activeBlocks, err := lru.New(maxActiveBlocks)
-	if err != nil {
-		panic("when New activeBlocks lru.New return err")
+	//初始化活跃区块的缓存
+	maxActiveBlockNum := maxActiveBlocks
+	maxActiveBlockSize := maxActiveBlocksCacheSize
+	if cfg.GetModuleConfig().BlockChain.MaxActiveBlockNum > 0 {
+		maxActiveBlockNum = cfg.GetModuleConfig().BlockChain.MaxActiveBlockNum
 	}
-	blockStore.activeBlocks = activeBlocks
+	if cfg.GetModuleConfig().BlockChain.MaxActiveBlockSize > 0 {
+		maxActiveBlockSize = cfg.GetModuleConfig().BlockChain.MaxActiveBlockSize
+	}
+	blockStore.activeBlocks = utils.NewSpaceLimitCache(maxActiveBlockNum, maxActiveBlockSize)
 
 	return blockStore
 }
@@ -1740,19 +1745,20 @@ func (bs *BlockStore) SetMaxSerialChunkNum(chunkNum int64) error {
 
 // GetActiveBlock :从缓存的活跃区块中获取对应高度的区块
 func (bs *BlockStore) GetActiveBlock(height int64) (*types.BlockDetail, bool) {
-	block, exist := bs.activeBlocks.Get(height)
-	if exist {
-		return block.(*types.BlockDetail), exist
+	block := bs.activeBlocks.Get(height)
+	if block != nil {
+		return block.(*types.BlockDetail), true
 	}
-	return nil, exist
+	return nil, false
 }
 
 // AddActiveBlock :将区块缓存到活跃区块中
 func (bs *BlockStore) AddActiveBlock(height int64, block *types.BlockDetail) bool {
-	return bs.activeBlocks.Add(height, block)
+	return bs.activeBlocks.Add(height, block, block.Size())
 }
 
 // RemoveActiveBlock :从缓存的活跃区块中删除对应的区块
 func (bs *BlockStore) RemoveActiveBlock(height int64) bool {
-	return bs.activeBlocks.Remove(height)
+	_, ok := bs.activeBlocks.Remove(height)
+	return ok
 }
