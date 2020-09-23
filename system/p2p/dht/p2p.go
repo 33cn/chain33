@@ -321,7 +321,10 @@ func (p *P2P) handleP2PEvent() {
 		select {
 		case <-p.ctx.Done():
 			return
-		case data := <-p.subChan:
+		case data, ok := <-p.subChan:
+			if !ok {
+				return
+			}
 			msg, ok := data.(*queue.Message)
 			if !ok || data == nil {
 				log.Error("handleP2PEvent", "recv invalid msg, data=", data)

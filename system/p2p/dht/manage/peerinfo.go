@@ -93,7 +93,7 @@ func (p *PeerInfoManager) Start() {
 		case <-time.After(time.Minute):
 			//获取当前高度，过滤掉高度较低的节点
 			//	log.Debug("MonitorPeerInfos", "Num", len(p.FetchPeerInfosInMin()))
-			msg := p.client.NewMessage("blochain", types.EventGetLastHeader, nil)
+			msg := p.client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 			err := p.client.Send(msg, true)
 			if err != nil {
 				continue
