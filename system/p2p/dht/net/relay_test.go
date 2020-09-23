@@ -90,7 +90,8 @@ func TestRelay(t *testing.T) {
 	t.Log("h1", hosts[1].ID())
 	t.Log("h2", hosts[2].ID())
 	disc := InitDhtDiscovery(ctx, hosts[0], []peer.AddrInfo{rinfo, dinfo}, &types.Chain33Config{}, &p2pty.P2PSubConfig{})
-	netRely := NewRelayDiscovery(hosts[0], disc.RoutingDiscovery, circuit.OptDiscovery)
+	disc.Start()
+	netRely := NewRelayDiscovery(hosts[0], disc.RoutingDiscovery)
 	netRely.Advertise(ctx)
 	conn2, err = netRely.DialDestPeer(hosts[0], rinfo, dinfo)
 	if err != nil {

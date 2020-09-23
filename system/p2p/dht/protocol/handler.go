@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	log = log15.New("module", "p2pnext.protocol")
+	log = log15.New("module", "p2p.protocol")
 )
 
 // HandleEvent handle p2p event

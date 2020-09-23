@@ -3,7 +3,9 @@ package peer
 import (
 	"time"
 
-	"github.com/33cn/chain33/system/p2p/dht/net"
+	pubsub_pb "github.com/libp2p/go-libp2p-pubsub/pb"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	l "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/queue"
@@ -187,7 +189,8 @@ func testFetchTopics(t *testing.T, protocol *peerPubSub) []string {
 func testSendTopicData(t *testing.T, protocol *peerPubSub) {
 	//发送收到的订阅消息,预期mempool,blockchain模块都会收到 hello,world 1
 	//protocol.msgChan <- &types.TopicData{Topic: "bzTest", From: "123435555", Data: []byte("hello,world 1")}
-	protocol.subCallBack(&net.SubMsg{Data: []byte("hello,world 1"), From: "123435555", Topic: "bzTest"})
+	msg := &pubsub.Message{Message: &pubsub_pb.Message{Data: []byte("hello,world 1")}, ReceivedFrom: "123435555"}
+	protocol.subCallBack("bzTest", msg)
 
 }
 
@@ -200,7 +203,8 @@ func testRemoveModuleTopic(t *testing.T, protocol *peerPubSub, topic, module str
 	})
 	//预期只有mempool模块收到hello,world 2
 	testHandleRemoveTopicEvent(protocol, removetopic) //删除blockchain的订阅消息
-	protocol.subCallBack(&net.SubMsg{Data: []byte("hello,world 2"), From: "123435555", Topic: "bzTest"})
+	msg := &pubsub.Message{Message: &pubsub_pb.Message{Data: []byte("hello,world 2")}, ReceivedFrom: "123435555"}
+	protocol.subCallBack("bzTest", msg)
 	//protocol.msgChan <- &types.TopicData{Topic: "bzTest", From: "123435555", Data: []byte("hello,world 2")}
 
 	errRemovetopic := protocol.QueueClient.NewMessage("p2p", types.EventRemoveTopic, &types.FetchTopicList{})

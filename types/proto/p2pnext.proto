@@ -316,3 +316,17 @@ message RemoveTopicReply {
     bool   status = 2;
     string msg    = 3;
 }
+
+/**
+ *dht protos 网络带宽信息
+ */
+message NetProtocolInfos {
+    repeated ProtocolInfo protoinfo = 1;
+}
+
+message ProtocolInfo {
+    string protocol  = 1;
+    string ratein    = 2;
+    string rateout   = 3;
+    string ratetotal = 4;
+}
