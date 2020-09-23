@@ -34,8 +34,8 @@ const (
 
 	maxActiveBlocks = 1024
 
-	// 默认轻广播组装临时区块缓存， 50M
-	maxActiveBlocksCacheSize = 50
+	// 默认轻广播组装临时区块缓存， 100M
+	maxActiveBlocksCacheSize = 100
 
 	defaultChunkBlockNum = 1
 )
