@@ -26,7 +26,7 @@ func Test_pubsub(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = psub.Publish("bztest", []byte("hello,world"))
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	err = psub.Publish("bztest2", []byte("hello,world"))
 	assert.NotNil(t, err)
 	topics := psub.GetTopics()
