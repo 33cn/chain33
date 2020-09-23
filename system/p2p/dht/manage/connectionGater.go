@@ -138,7 +138,7 @@ func (tc *TimeCache) Add(s string, lifetime time.Duration) {
 	defer tc.cacheLock.Unlock()
 	_, ok := tc.M[s]
 	if ok {
-		panic("putting the same entry twice not supported")
+		return
 	}
 	if lifetime == 0 {
 		lifetime = tc.span

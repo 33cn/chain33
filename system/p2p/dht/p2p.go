@@ -148,41 +148,38 @@ func initP2P(p *P2P) *P2P {
 
 // StartP2P start p2p
 func (p *P2P) StartP2P() {
-	go func() {
-		if atomic.LoadInt32(&p.restart) == 1 {
-			log.Info("RestartP2P...")
-			initP2P(p) //重新创建host
-		}
-		atomic.StoreInt32(&p.restart, 0)
-		p.addrbook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
-		log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
-		//提供给其他插件使用的共享接口
-		p.discovery.Start()
-		go p.peerInfoManag.Start()
-		go p.managePeers()
-		go p.handleP2PEvent()
-		go p.findLANPeers()
+	if atomic.LoadInt32(&p.restart) == 1 {
+		log.Info("RestartP2P...")
+		initP2P(p) //重新创建host
+	}
+	atomic.StoreInt32(&p.restart, 0)
+	p.addrbook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
+	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
 
-		env := &prototypes.P2PEnv{
-			ChainCfg:         p.chainCfg,
-			QueueClient:      p.client,
-			Host:             p.host,
-			ConnManager:      p.connManag,
-			PeerInfoManager:  p.peerInfoManag,
-			P2PManager:       p.mgr,
-			SubConfig:        p.subCfg,
-			Discovery:        p.discovery,
-			Pubsub:           p.pubsub,
-			Ctx:              p.ctx,
-			DB:               p.db,
-			RoutingTable:     p.discovery.RoutingTable(),
-			RoutingDiscovery: p.discovery.RoutingDiscovery,
-		}
-		p.env = env
-		protocol.Init(env)
-		protocol.InitAllProtocol(env)
+	env := &prototypes.P2PEnv{
+		ChainCfg:         p.chainCfg,
+		QueueClient:      p.client,
+		Host:             p.host,
+		ConnManager:      p.connManag,
+		PeerInfoManager:  p.peerInfoManag,
+		P2PManager:       p.mgr,
+		SubConfig:        p.subCfg,
+		Discovery:        p.discovery,
+		Pubsub:           p.pubsub,
+		Ctx:              p.ctx,
+		DB:               p.db,
+		RoutingTable:     p.discovery.RoutingTable(),
+		RoutingDiscovery: p.discovery.RoutingDiscovery,
+	}
+	p.env = env
+	protocol.Init(env)
+	protocol.InitAllProtocol(env)
 
-	}()
+	p.discovery.Start()
+	go p.peerInfoManag.Start()
+	go p.managePeers()
+	go p.handleP2PEvent()
+	go p.findLANPeers()
 }
 
 // CloseP2P close p2p
