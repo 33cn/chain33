@@ -13,24 +13,26 @@ require (
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.3.4
+	github.com/golang/snappy v0.0.1
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/influxdata/influxdb v1.7.9
 	github.com/ipfs/go-datastore v0.4.4
-	github.com/libp2p/go-libp2p v0.4.0
-	github.com/libp2p/go-libp2p-blankhost v0.1.4
-	github.com/libp2p/go-libp2p-circuit v0.1.3
-	github.com/libp2p/go-libp2p-connmgr v0.2.0
-	github.com/libp2p/go-libp2p-core v0.3.0
-	github.com/libp2p/go-libp2p-discovery v0.2.0
-	github.com/libp2p/go-libp2p-kad-dht v0.2.1
-	github.com/libp2p/go-libp2p-kbucket v0.2.1
+	github.com/kevinms/leakybucket-go v0.0.0-20200115003610-082473db97ca
+	github.com/libp2p/go-libp2p v0.10.3
+	github.com/libp2p/go-libp2p-blankhost v0.2.0
+	github.com/libp2p/go-libp2p-circuit v0.3.1
+	github.com/libp2p/go-libp2p-connmgr v0.2.4
+	github.com/libp2p/go-libp2p-core v0.6.1
+	github.com/libp2p/go-libp2p-discovery v0.5.0
+	github.com/libp2p/go-libp2p-kad-dht v0.5.2
+	github.com/libp2p/go-libp2p-kbucket v0.2.3
 	github.com/libp2p/go-libp2p-pubsub v0.2.6
-	github.com/libp2p/go-libp2p-swarm v0.2.2
-
+	github.com/libp2p/go-libp2p-swarm v0.2.8
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.2.2
+	github.com/multiformats/go-multiaddr-net v0.1.5
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/pkg/errors v0.9.1
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563

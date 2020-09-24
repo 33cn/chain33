@@ -56,6 +56,7 @@ func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
 	p.p2pCfg = env.SubConfig
 	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
 	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
+	prototypes.RegisterEventHandler(types.EventNetProtocols, p.netprotocolsHandleEvent)
 
 	go p.detectNodeAddr()
 	go p.fetchPeersInfo()
@@ -110,7 +111,7 @@ func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
 	} else {
 		peerinfo.Addr = p.getExternalAddr()
 	}
-	peerinfo.Version = version.GetVersion()
+	peerinfo.Version = version.GetVersion() + "@" + version.GetAppVersion()
 	peerinfo.StoreDBVersion = version.GetStoreDBVersion()
 	peerinfo.LocalDBVersion = version.GetLocalDBVersion()
 	return &peerinfo
@@ -184,10 +185,12 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 	} else if len(splites) > 2 {
 		spliteAddr = splites[2]
 	}
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	if spliteAddr != p.externalAddr && isPublicIP(net.ParseIP(spliteAddr)) {
-		p.mutex.Lock()
+
 		p.externalAddr = spliteAddr
-		p.mutex.Unlock()
+
 		//设置外部地址时同时保存到peerstore里
 		addr := fmt.Sprintf("/ip4/%s/tcp/%d", spliteAddr, p.SubConfig.Port)
 		ma, _ := multiaddr.NewMultiaddr(addr)
@@ -259,7 +262,7 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
 				Message: &version}
 
-			s, err := prototypes.NewStream(p.Host, pid, []core.ProtocolID{peerVersionReq})
+			s, err := prototypes.NewStream(p.Host, pid, peerVersionReq)
 			if err != nil {
 				log.Error("NewStream", "err", err, "remoteID", pid)
 				continue
@@ -300,22 +303,28 @@ func (p *peerInfoProtol) detectNodeAddr() {
 func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
 	pinfos := p.PeerInfoManager.FetchPeerInfosInMin()
 	var peers []*types.Peer
+	localinfo := p.getLoacalPeerInfo()
+	var checkHeight int64
+	var lcoalPeer types.Peer
+	if localinfo != nil {
+
+		checkHeight = localinfo.Header.Height - 512
+		p.PeerInfoManager.Copy(&lcoalPeer, localinfo)
+		lcoalPeer.Self = true
+	}
 
 	for _, pinfo := range pinfos {
 		if pinfo == nil {
 			continue
 		}
+		//过滤比自身节点低很多的节点，传送给blockchain或者rpc模块
+		if pinfo.Header.Height >= checkHeight {
+			peers = append(peers, pinfo)
+		}
 
-		peers = append(peers, pinfo)
 	}
 
-	peerinfo := p.getLoacalPeerInfo()
-	if peerinfo != nil {
-		var peer types.Peer
-		p.PeerInfoManager.Copy(&peer, peerinfo)
-		peer.Self = true
-		peers = append(peers, &peer)
-	}
+	peers = append(peers, &lcoalPeer)
 
 	msg.Reply(p.GetQueueClient().NewMessage("blockchain", types.EventPeerList, &types.PeerList{Peers: peers}))
 

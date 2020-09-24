@@ -27,27 +27,24 @@ type topicinfo struct {
 type PubSub struct {
 	ps         *pubsub.PubSub
 	topics     TopicMap
-	topicMutex sync.Mutex
+	topicMutex sync.RWMutex
 	ctx        context.Context
 }
 
 // SubMsg sub message
-type SubMsg struct {
-	Data  []byte
-	Topic string
-	From  string
-}
+type SubMsg *pubsub.Message
 
-type subCallBack func(msg *SubMsg)
+// SubCallBack 订阅消息回调函数
+type SubCallBack func(topic string, msg SubMsg)
 
 // NewPubSub new pub sub
-func NewPubSub(ctx context.Context, host host.Host) (*PubSub, error) {
+func NewPubSub(ctx context.Context, host host.Host, opts ...pubsub.Option) (*PubSub, error) {
 	p := &PubSub{
 		ps:     nil,
 		topics: make(TopicMap),
 	}
 	//选择使用GossipSub
-	ps, err := pubsub.NewGossipSub(ctx, host)
+	ps, err := pubsub.NewGossipSub(ctx, host, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -65,14 +62,14 @@ func (p *PubSub) GetTopics() []string {
 
 // HasTopic check topic exist
 func (p *PubSub) HasTopic(topic string) bool {
-	p.topicMutex.Lock()
-	defer p.topicMutex.Unlock()
+	p.topicMutex.RLock()
+	defer p.topicMutex.RUnlock()
 	_, ok := p.topics[topic]
 	return ok
 }
 
-// JoinTopicAndSubTopic 加入topic&subTopic
-func (p *PubSub) JoinTopicAndSubTopic(topic string, callback subCallBack, opts ...pubsub.TopicOpt) error {
+// JoinAndSubTopic 加入topic&subTopic
+func (p *PubSub) JoinAndSubTopic(topic string, callback SubCallBack, opts ...pubsub.TopicOpt) error {
 
 	Topic, err := p.ps.Join(topic, opts...)
 	if err != nil {
@@ -95,48 +92,39 @@ func (p *PubSub) JoinTopicAndSubTopic(topic string, callback subCallBack, opts .
 		sub:      subscription,
 	}
 	p.topicMutex.Unlock()
-	p.subTopic(ctx, subscription, callback)
+	go p.subTopic(ctx, subscription, callback)
 	return nil
 }
 
 // Publish 发布消息
 func (p *PubSub) Publish(topic string, msg []byte) error {
-	p.topicMutex.Lock()
-	defer p.topicMutex.Unlock()
+	p.topicMutex.RLock()
+	defer p.topicMutex.RUnlock()
 	t, ok := p.topics[topic]
 	if !ok {
-		log.Error("publish", "no this topic", topic)
+		log.Error("pubsub publish", "no this topic", topic)
 		return fmt.Errorf("no this topic:%v", topic)
 	}
-
 	err := t.pubtopic.Publish(t.ctx, msg)
 	if err != nil {
-		log.Error("publish", "err", err)
+		log.Error("pubsub publish", "err", err)
 		return err
 	}
 	return nil
+
 }
 
-func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, callback subCallBack) {
+func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, callback SubCallBack) {
 	topic := sub.Topic()
-	go func() {
-
-		for {
-			got, err := sub.Next(ctx)
-			if err != nil {
-				log.Error("SubMsg", "topic msg err", err, "topic", topic)
-				p.RemoveTopic(topic)
-				return
-			}
-			log.Debug("SubMsg", "readData size", len(got.GetData()), "from", got.GetFrom().String(), "recieveFrom", got.ReceivedFrom.Pretty(), "topic", topic)
-			var data SubMsg
-			data.Data = got.GetData()
-			data.Topic = topic
-			data.From = got.GetFrom().String()
-			callback(&data)
+	for {
+		got, err := sub.Next(ctx)
+		if err != nil {
+			log.Error("SubMsg", "topic", topic, "sub err", err)
+			p.RemoveTopic(topic)
+			return
 		}
-	}()
-
+		callback(topic, got)
+	}
 }
 
 // RemoveTopic remove topic
@@ -147,12 +135,12 @@ func (p *PubSub) RemoveTopic(topic string) {
 
 	info, ok := p.topics[topic]
 	if ok {
-		log.Info("RemoveTopic", topic, "")
+		log.Info("RemoveTopic", "topic", topic)
 		info.cancel()
 		info.sub.Cancel()
 		err := info.pubtopic.Close()
 		if err != nil {
-			log.Error("RemoveTopic", "topic", err)
+			log.Error("RemoveTopic", "topic", topic, "close topic err", err)
 		}
 		delete(p.topics, topic)
 	}
@@ -161,8 +149,8 @@ func (p *PubSub) RemoveTopic(topic string) {
 
 // FetchTopicPeers fetch peers with topic
 func (p *PubSub) FetchTopicPeers(topic string) []peer.ID {
-	p.topicMutex.Lock()
-	defer p.topicMutex.Unlock()
+	p.topicMutex.RLock()
+	defer p.topicMutex.RUnlock()
 	topicobj, ok := p.topics[topic]
 	if ok {
 		return topicobj.pubtopic.ListPeers()

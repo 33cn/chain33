@@ -38,10 +38,7 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 	}
 	dbPath := cfg.DbPath + "/" + p2pty.DHTTypeName
 	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, dbPath, a.cfg.DbCache)
-
-	if !a.loadDb() {
-		a.initKey()
-	}
+	a.loadDb()
 	return a
 
 }
@@ -85,6 +82,11 @@ func (a *AddrBook) loadDb() bool {
 
 }
 
+//Randkey Rand keypair
+func (a *AddrBook) Randkey() p2pcrypto.PrivKey {
+	a.initKey()
+	return a.GetPrivkey()
+}
 func (a *AddrBook) initKey() {
 
 	priv, pub, err := GenPrivPubkey()
@@ -117,6 +119,9 @@ func (a *AddrBook) saveKey(priv, pub string) {
 func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
+	if a.privkey == "" {
+		return nil
+	}
 	keybytes, err := hex.DecodeString(a.privkey)
 	if err != nil {
 		log.Error("GetPrivkey", "DecodeString Error", err.Error())

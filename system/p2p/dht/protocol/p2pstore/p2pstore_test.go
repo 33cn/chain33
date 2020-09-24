@@ -79,6 +79,7 @@ func TestInit(t *testing.T) {
 		Start:     0,
 		End:       99,
 	})
+
 	assert.Equal(t, 100, len(msg.Data.(*types.BlockBodys).Items))
 	//向host2请求BlockBody
 	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
@@ -86,6 +87,7 @@ func TestInit(t *testing.T) {
 		Start:     666,
 		End:       888,
 	})
+
 	assert.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
 
 	//向host1请求数据
@@ -395,6 +397,8 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
 	mcfg.DisableFindLANPeers = true
 	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888})
+	discovery1.Start()
+
 	env1 := protocol.P2PEnv{
 		Ctx:              context.Background(),
 		ChainCfg:         cfg,
@@ -412,6 +416,8 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty())},
 		Channel: 888,
 	})
+	discovery2.Start()
+
 	env2 := protocol.P2PEnv{
 		Ctx:              context.Background(),
 		ChainCfg:         cfg,
@@ -496,6 +502,8 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
 	mcfg.DisableFindLANPeers = true
 	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888})
+	discovery1.Start()
+
 	env1 := protocol.P2PEnv{
 		Ctx:              context.Background(),
 		ChainCfg:         cfg,
@@ -517,6 +525,8 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty())},
 		Channel: 888,
 	})
+
+	discovery3.Start()
 	env3 := protocol.P2PEnv{
 		Ctx:              context.Background(),
 		ChainCfg:         cfg,

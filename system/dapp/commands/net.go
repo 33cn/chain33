@@ -27,6 +27,7 @@ func NetCmd() *cobra.Command {
 		GetNetInfoCmd(),
 		GetFatalFailureCmd(),
 		GetTimeStausCmd(),
+		NetProtocolsCmd(),
 	)
 
 	return cmd
@@ -103,6 +104,24 @@ func netInfo(cmd *cobra.Command, args []string) {
 	req := types.P2PGetNetInfoReq{P2PType: p2pty}
 	var res rpctypes.NodeNetinfo
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetNetInfo", req, &res)
+	ctx.Run()
+}
+
+//NetProtocolsCmd get all prototols netinfo
+func NetProtocolsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "protocols",
+		Short: "Get netprotocols information",
+		Run:   netProtocols,
+	}
+	cmd.Flags().StringP("type", "t", "", "p2p type, gossip or dht")
+	return cmd
+}
+
+func netProtocols(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res types.NetProtocolInfos
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NetProtocols", &types.ReqNil{}, &res)
 	ctx.Run()
 }
 
