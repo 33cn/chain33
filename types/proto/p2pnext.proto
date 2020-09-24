@@ -244,8 +244,8 @@ message ChunkInfoList {
 }
 
 message P2PResponse {
-    P2PMessageHeaders headers = 1;
-    string            error   = 2;
+    P2PMessageHeaders headers     = 1;
+    string            error       = 2;
     repeated PeerInfo closerPeers = 3;
     oneof             response {
         BlockBody    blockBody    = 5;
@@ -255,11 +255,10 @@ message P2PResponse {
         Reply  reply      = 8;
         Header lastHeader = 9;
     }
-
 }
 
 message PeerInfo {
-    bytes ID = 1;
+    bytes    ID              = 1;
     repeated bytes MultiAddr = 2;
 }
 
