@@ -173,8 +173,19 @@ func (p *P2P) StartP2P() {
 	}
 	p.env = env
 	protocol.Init(env)
-	protocol.InitAllProtocol(env)
-
+	//debug new
+	env2 := &protocol.P2PEnv{
+		Ctx:              p.ctx,
+		ChainCfg:         p.chainCfg,
+		QueueClient:      p.client,
+		Host:             p.host,
+		P2PManager:       p.mgr,
+		SubConfig:        p.subCfg,
+		DB:               p.db,
+		RoutingDiscovery: p.discovery.RoutingDiscovery,
+		RoutingTable:     p.discovery.RoutingTable(),
+	}
+	protocol.InitAllProtocol(env2)
 	p.discovery.Start()
 	go p.peerInfoManag.Start()
 	go p.managePeers()
@@ -275,7 +286,6 @@ func (p *P2P) managePeers() {
 		}
 
 	}
-
 }
 
 //查询本局域网内是否有节点

@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
-
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -157,14 +155,15 @@ func initEnv(t *testing.T, q queue.Queue) []*Protocol {
 	mcfg.DisableFindLANPeers = true
 	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888})
 	discovery1.Start()
-	env1 := prototypes.P2PEnv{
+
+	env1 := protocol.P2PEnv{
+		Ctx:              context.Background(),
 		ChainCfg:         cfg,
 		QueueClient:      client1,
 		Host:             host1,
 		SubConfig:        mcfg,
 		RoutingDiscovery: discovery1.RoutingDiscovery,
 		RoutingTable:     discovery1.RoutingTable(),
-		Ctx:              context.Background(),
 	}
 	InitProtocol(&env1)
 	p1 := &Protocol{
@@ -177,7 +176,8 @@ func initEnv(t *testing.T, q queue.Queue) []*Protocol {
 		Channel: 888,
 	})
 	discovery2.Start()
-	env2 := prototypes.P2PEnv{
+
+	env2 := protocol.P2PEnv{
 		ChainCfg:         cfg,
 		QueueClient:      client2,
 		Host:             host2,

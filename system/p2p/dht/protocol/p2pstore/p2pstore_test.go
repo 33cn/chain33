@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
-
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -19,7 +17,6 @@ import (
 	"github.com/ipfs/go-datastore/query"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/network"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kb "github.com/libp2p/go-libp2p-kbucket"
@@ -401,7 +398,9 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	mcfg.DisableFindLANPeers = true
 	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888})
 	discovery1.Start()
-	env1 := prototypes.P2PEnv{
+
+	env1 := protocol.P2PEnv{
+		Ctx:              context.Background(),
 		ChainCfg:         cfg,
 		QueueClient:      client1,
 		Host:             host1,
@@ -409,7 +408,6 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		RoutingDiscovery: discovery1.RoutingDiscovery,
 		RoutingTable:     discovery1.RoutingTable(),
 		DB:               newTestDB(),
-		Ctx:              context.Background(),
 	}
 	InitProtocol(&env1)
 	host1.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
@@ -419,7 +417,9 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		Channel: 888,
 	})
 	discovery2.Start()
-	env2 := prototypes.P2PEnv{
+
+	env2 := protocol.P2PEnv{
+		Ctx:              context.Background(),
 		ChainCfg:         cfg,
 		QueueClient:      client2,
 		Host:             host2,
@@ -427,16 +427,16 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		RoutingDiscovery: discovery2.RoutingDiscovery,
 		RoutingTable:     discovery2.RoutingTable(),
 		DB:               newTestDB(),
-		Ctx:              context.Background(),
 	}
 	p2 := &Protocol{
 		P2PEnv:              &env2,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env2.Host.ID()), time.Minute, env2.Host.Peerstore()),
 		localChunkInfo:      make(map[string]LocalChunkInfo),
+		notifyingQueue:      make(chan *types.ChunkInfoMsg, 100),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	p2.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunk))
-	p2.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p2.handleStreamFetchChunk))
+	p2.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
+	p2.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithClose(p2.handleStreamFetchChunk))
 	p2.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
 	p2.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p2.handleStreamGetChunkRecord))
 	p2.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
@@ -446,6 +446,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 			time.Sleep(time.Second * 1)
 		}
 	}()
+	go p2.syncRoutine()
 	client1.Sub("p2p")
 	client2.Sub("p2p2")
 	go func() {
@@ -502,7 +503,9 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	mcfg.DisableFindLANPeers = true
 	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &types2.P2PSubConfig{Channel: 888})
 	discovery1.Start()
-	env1 := prototypes.P2PEnv{
+
+	env1 := protocol.P2PEnv{
+		Ctx:              context.Background(),
 		ChainCfg:         cfg,
 		QueueClient:      client1,
 		Host:             host1,
@@ -510,7 +513,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		RoutingDiscovery: discovery1.RoutingDiscovery,
 		RoutingTable:     discovery1.RoutingTable(),
 		DB:               newTestDB(),
-		Ctx:              context.Background(),
 	}
 	InitProtocol(&env1)
 	host1.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
@@ -523,8 +525,10 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty())},
 		Channel: 888,
 	})
+
 	discovery3.Start()
-	env3 := prototypes.P2PEnv{
+	env3 := protocol.P2PEnv{
+		Ctx:              context.Background(),
 		ChainCfg:         cfg,
 		QueueClient:      client3,
 		Host:             host3,
@@ -532,25 +536,26 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		RoutingDiscovery: discovery3.RoutingDiscovery,
 		RoutingTable:     discovery3.RoutingTable(),
 		DB:               newTestDB(),
-		Ctx:              context.Background(),
 	}
 	p3 := &Protocol{
 		P2PEnv:              &env3,
 		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env3.Host.ID()), time.Minute, env3.Host.Peerstore()),
 		localChunkInfo:      make(map[string]LocalChunkInfo),
+		notifyingQueue:      make(chan *types.ChunkInfoMsg, 100),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	p3.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunk))
-	p3.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithAuth(p3.handleStreamFetchChunk))
+	p3.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))
+	p3.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithClose(p3.handleStreamFetchChunk))
 	p3.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
 	p3.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
-	p3.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy2))
+	p3.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 	go func() {
 		for i := 0; i < 3; i++ {
 			p3.updateHealthyRoutingTable()
 			time.Sleep(time.Second * 1)
 		}
 	}()
+	go p3.syncRoutine()
 	discovery.Advertise(context.Background(), p3.RoutingDiscovery, protocol.BroadcastFullNode)
 
 	client1.Sub("p2p")
@@ -579,19 +584,10 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	return p3
 }
 
-func handleStreamIsHealthy(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
+func handleStreamIsHealthy(_ *types.P2PRequest, res *types.P2PResponse) error {
 	res.Response = &types.P2PResponse_Reply{
 		Reply: &types.Reply{
 			IsOk: true,
-		},
-	}
-	return nil
-}
-
-func handleStreamIsHealthy2(_ *types.P2PRequest, res *types.P2PResponse, _ network.Stream) error {
-	res.Response = &types.P2PResponse_Reply{
-		Reply: &types.Reply{
-			IsOk: false,
 		},
 	}
 	return nil
@@ -653,9 +649,10 @@ func (db *TestDB) Close() error {
 	return nil
 }
 
-func (db *TestDB) Batch() (datastore.Batch, error) {
-	return nil, nil
-}
 func (db *TestDB) Sync(prefix datastore.Key) error {
 	return nil
+}
+
+func (db *TestDB) Batch() (datastore.Batch, error) {
+	return nil, nil
 }

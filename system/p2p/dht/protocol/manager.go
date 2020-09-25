@@ -3,15 +3,13 @@ package protocol
 import (
 	"fmt"
 
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
-
 	"github.com/33cn/chain33/queue"
 )
 
 //TODO
 
 //Initializer is a initial function which any protocol should have.
-type Initializer func(env *prototypes.P2PEnv)
+type Initializer func(env *P2PEnv)
 
 var (
 	protocolInitializerArray []Initializer
@@ -23,7 +21,7 @@ func RegisterProtocolInitializer(initializer Initializer) {
 }
 
 //InitAllProtocol initials all protocols.
-func InitAllProtocol(env *prototypes.P2PEnv) {
+func InitAllProtocol(env *P2PEnv) {
 	for _, initializer := range protocolInitializerArray {
 		initializer(env)
 	}

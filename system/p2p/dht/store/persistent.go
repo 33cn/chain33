@@ -53,12 +53,12 @@ func (p *Persistent) Close() error {
 	return nil
 }
 
-//Batch ...
-func (p *Persistent) Batch() (datastore.Batch, error) {
-	return datastore.NewBasicBatch(p), nil
-}
-
 //Sync ...
 func (p *Persistent) Sync(prefix datastore.Key) error {
 	return nil
+}
+
+//Batch ...
+func (p *Persistent) Batch() (datastore.Batch, error) {
+	return datastore.NewBasicBatch(p), nil
 }

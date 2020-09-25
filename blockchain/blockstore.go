@@ -1592,35 +1592,35 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 	chainCfg := cfg.GetModuleConfig().BlockChain
 
 	//获取body
-	var blockbody *types.BlockBody
-	if chainCfg.EnableIfDelLocalChunk { // 6.6之后，测试完成之后该分支进行删除
-		chunkNum, _, _ := calcChunkInfo(chainCfg, blockheader.Height)
-		if bs.Height() > blockheader.Height+MaxRollBlockNum+chainCfg.ChunkblockNum+int64(DelRollbackChunkNum) { // 这里模拟删除情况下去网络中查找
-			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
-			if bodys == nil || len(bodys.Items) == 0 || err != nil {
-				if err != dbm.ErrNotFoundInDb {
-					storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
-						"hash", common.ToHex(blockheader.Hash), "err", err)
-				}
-				return nil, types.ErrHashNotExist
-			}
-			blockbody = bodys.Items[0]
-			storeLog.Info("multiGetBody", "chunkNum", chunkNum, "height", blockheader.Height,
-				"hash", common.ToHex(blockheader.Hash))
-			return blockbody, nil
-		}
-
-		storeLog.Info("multiGetBody", "chunkNum", chunkNum, "height", blockheader.Height,
-			"hash", common.ToHex(blockheader.Hash))
-		blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
-		if blockbody == nil || err != nil {
-			if err != dbm.ErrNotFoundInDb {
-				storeLog.Error("multiGetBody:getBodyByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
-			}
-			return nil, types.ErrHashNotExist
-		}
-		return blockbody, nil
-	}
+	//var blockbody *types.BlockBody
+	//if chainCfg.EnableIfDelLocalChunk { // 6.6之后，测试完成之后该分支进行删除
+	//	chunkNum, _, _ := calcChunkInfo(chainCfg, blockheader.Height)
+	//	if chunkNum <= bs.GetMaxSerialChunkNum() { // 这里模拟删除情况下去网络中查找
+	//		bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
+	//		if bodys == nil || len(bodys.Items) == 0 || err != nil {
+	//			if err != dbm.ErrNotFoundInDb {
+	//				storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
+	//					"hash", common.ToHex(blockheader.Hash), "err", err)
+	//			}
+	//			return nil, types.ErrHashNotExist
+	//		}
+	//		blockbody = bodys.Items[0]
+	//		storeLog.Info("multiGetBody", "chunkNum", chunkNum, "height", blockheader.Height,
+	//			"hash", common.ToHex(blockheader.Hash))
+	//		return blockbody, nil
+	//	}
+	//
+	//	storeLog.Info("multiGetBody", "chunkNum", chunkNum, "height", blockheader.Height,
+	//		"hash", common.ToHex(blockheader.Hash))
+	//	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
+	//	if blockbody == nil || err != nil {
+	//		if err != dbm.ErrNotFoundInDb {
+	//			storeLog.Error("multiGetBody:getBodyByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+	//		}
+	//		return nil, types.ErrHashNotExist
+	//	}
+	//	return blockbody, nil
+	//}
 
 	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
 	if blockbody == nil || err != nil {
@@ -1649,7 +1649,7 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 	stime := time.Now()
 	defer func() {
 		etime := time.Now()
-		storeLog.Info("getBodyFromP2Pstore", "cost time is:", etime.Sub(stime))
+		storeLog.Info("getBodyFromP2Pstore", "start", start, "end", end, "cost time", etime.Sub(stime))
 	}()
 	value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
 	if value == nil || err != nil {

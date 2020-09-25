@@ -86,7 +86,6 @@ func AuthenticateMessage(message types.Message, stream network.Stream) bool {
 // Verify incoming p2p message data integrity
 // data: data to verify
 // signature: author signature provided in the message payload
-// id: node id of remote peer
 // pubKey: public key of remote peer
 func verifyData(data []byte, signature []byte, pubKey crypto.PubKey) bool {
 	res, err := pubKey.Verify(data, signature)
@@ -164,20 +163,20 @@ func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 }
 
 // HandlerWithRead wraps handler with reading, closing stream and recovering from panic.
-func HandlerWithRead(f func(request *types.P2PRequest, stream network.Stream)) network.StreamHandler {
+func HandlerWithRead(f func(request *types.P2PRequest)) network.StreamHandler {
 	readFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
 			log.Error("HandlerWithAuthAndSign", "read stream error", err)
 			return
 		}
-		f(&req, stream)
+		f(&req)
 	}
 	return HandlerWithClose(readFunc)
 }
 
 // HandlerWithAuth wraps HandlerWithRead with authenticating.
-func HandlerWithAuth(f func(request *types.P2PRequest, stream network.Stream)) network.StreamHandler {
+func HandlerWithAuth(f func(request *types.P2PRequest)) network.StreamHandler {
 	readFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
@@ -187,13 +186,13 @@ func HandlerWithAuth(f func(request *types.P2PRequest, stream network.Stream)) n
 		if !AuthenticateMessage(&req, stream) {
 			return
 		}
-		f(&req, stream)
+		f(&req)
 	}
 	return HandlerWithClose(readFunc)
 }
 
 // HandlerWithRW wraps handler with reading, writing, closing stream and recovering from panic.
-func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse, stream network.Stream) error) network.StreamHandler {
+func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
 	rwFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
@@ -201,7 +200,7 @@ func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse
 			return
 		}
 		var res types.P2PResponse
-		err := f(&req, &res, stream)
+		err := f(&req, &res)
 		if err != nil {
 			res.Response = nil
 			res.Error = err.Error()
@@ -220,7 +219,7 @@ func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse
 }
 
 // HandlerWithAuthAndSign wraps HandlerWithRW with signing and authenticating.
-func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2PResponse, stream network.Stream) error) network.StreamHandler {
+func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
 	rwFunc := func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
@@ -231,7 +230,7 @@ func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2
 			return
 		}
 		var res types.P2PResponse
-		err := f(&req, &res, stream)
+		err := f(&req, &res)
 		if err != nil {
 			res.Response = nil
 			res.Error = err.Error()

@@ -149,7 +149,6 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			}
 
 		case <-ticker2.C:
-
 			//处理当前连接的节点问题
 			if s.OutboundSize() > maxOutBounds || s.Size() > maxBounds {
 				continue
