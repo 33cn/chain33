@@ -155,6 +155,7 @@ func (p *P2P) StartP2P() {
 	atomic.StoreInt32(&p.restart, 0)
 	p.addrbook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
 	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
+	p.discovery.Start()
 
 	env := &prototypes.P2PEnv{
 		ChainCfg:         p.chainCfg,
@@ -186,7 +187,6 @@ func (p *P2P) StartP2P() {
 		RoutingTable:     p.discovery.RoutingTable(),
 	}
 	protocol.InitAllProtocol(env2)
-	p.discovery.Start()
 	go p.peerInfoManag.Start()
 	go p.managePeers()
 	go p.handleP2PEvent()

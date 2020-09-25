@@ -60,6 +60,7 @@ func (p *PeerInfoManager) GetPeerInfoInMin(key string) *types.Peer {
 		return nil
 	}
 	info := v.(*peerStoreInfo)
+
 	if time.Duration(time.Now().Unix())-info.storeTime > 60 {
 		p.peerInfo.Delete(key)
 		return nil
@@ -89,7 +90,6 @@ func (p *PeerInfoManager) FetchPeerInfosInMin() []*types.Peer {
 func (p *PeerInfoManager) Start() {
 	for {
 		select {
-
 		case <-time.After(time.Minute):
 			//获取当前高度，过滤掉高度较低的节点
 			//	log.Debug("MonitorPeerInfos", "Num", len(p.FetchPeerInfosInMin()))
@@ -119,6 +119,7 @@ func (p *PeerInfoManager) prue(height int64) {
 		info := value.(*peerStoreInfo)
 		if time.Duration(time.Now().Unix())-info.storeTime > 60 {
 			p.peerInfo.Delete(key)
+			return true
 		}
 		//check blockheight,删除落后512高度的节点
 		if info.peer.Header.GetHeight()+diffheightValue < height {
@@ -127,13 +128,12 @@ func (p *PeerInfoManager) prue(height int64) {
 			conns := p.host.Network().ConnsToPeer(id)
 			if len(conns) != 0 && conns[0].Stat().Direction == network.DirOutbound { //outbound
 				//remove
+				log.Debug("prue", "peer", key, "height", info.peer.Header.GetHeight(), "Direction", conns[0].Stat().Direction)
 				p.peerInfo.Delete(key)
 				//断开连接
 				//if beBlack true 短暂加入黑名单，因为高度落后较多
 				p.disConnFunc(id, true)
-
 			}
-
 		}
 
 		return true
