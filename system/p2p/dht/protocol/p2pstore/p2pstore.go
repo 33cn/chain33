@@ -61,15 +61,16 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
-	p.Host.SetStreamHandler(protocol.FetchChunk, protocol.HandlerWithClose(p.handleStreamFetchChunk)) //数据较大，采用特殊写入方式
-	p.Host.SetStreamHandler(protocol.StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
-	p.Host.SetStreamHandler(protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
-	p.Host.SetStreamHandler(protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
+	protocol.RegisterStreamHandler(p.Host, protocol.FetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
+	protocol.RegisterStreamHandler(p.Host, protocol.StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
+	protocol.RegisterStreamHandler(p.Host, protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
+	protocol.RegisterStreamHandler(p.Host, protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
-	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, protocol.EventHandlerWithRecover(p.handleEventNotifyStoreChunk))
-	protocol.RegisterEventHandler(types.EventGetChunkBlock, protocol.EventHandlerWithRecover(p.handleEventGetChunkBlock))
-	protocol.RegisterEventHandler(types.EventGetChunkBlockBody, protocol.EventHandlerWithRecover(p.handleEventGetChunkBlockBody))
-	protocol.RegisterEventHandler(types.EventGetChunkRecord, protocol.EventHandlerWithRecover(p.handleEventGetChunkRecord))
+	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, p.handleEventNotifyStoreChunk)
+	protocol.RegisterEventHandler(types.EventGetChunkBlock, p.handleEventGetChunkBlock)
+	protocol.RegisterEventHandler(types.EventGetChunkBlockBody, p.handleEventGetChunkBlockBody)
+	protocol.RegisterEventHandler(types.EventGetChunkRecord, p.handleEventGetChunkRecord)
+	protocol.RegisterEventHandler(types.EventFetchBlockHeaders, p.handleEventGetHeaders)
 
 	go p.syncRoutine()
 	go func() {

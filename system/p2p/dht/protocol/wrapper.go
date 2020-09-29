@@ -164,7 +164,7 @@ func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 
 // HandlerWithRead wraps handler with reading, closing stream and recovering from panic.
 func HandlerWithRead(f func(request *types.P2PRequest)) network.StreamHandler {
-	readFunc := func(stream network.Stream) {
+	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
 			log.Error("HandlerWithAuthAndSign", "read stream error", err)
@@ -172,12 +172,11 @@ func HandlerWithRead(f func(request *types.P2PRequest)) network.StreamHandler {
 		}
 		f(&req)
 	}
-	return HandlerWithClose(readFunc)
 }
 
 // HandlerWithAuth wraps HandlerWithRead with authenticating.
 func HandlerWithAuth(f func(request *types.P2PRequest)) network.StreamHandler {
-	readFunc := func(stream network.Stream) {
+	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
 			log.Error("HandlerWithAuthAndSign", "read stream error", err)
@@ -188,12 +187,11 @@ func HandlerWithAuth(f func(request *types.P2PRequest)) network.StreamHandler {
 		}
 		f(&req)
 	}
-	return HandlerWithClose(readFunc)
 }
 
 // HandlerWithRW wraps handler with reading, writing, closing stream and recovering from panic.
 func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
-	rwFunc := func(stream network.Stream) {
+	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
 			log.Error("HandlerWithRW", "read stream error", err)
@@ -215,12 +213,11 @@ func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse
 			return
 		}
 	}
-	return HandlerWithClose(rwFunc)
 }
 
 // HandlerWithAuthAndSign wraps HandlerWithRW with signing and authenticating.
 func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
-	rwFunc := func(stream network.Stream) {
+	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
 			log.Error("HandlerWithAuthAndSign", "read stream error", err)
@@ -251,7 +248,6 @@ func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2
 			return
 		}
 	}
-	return HandlerWithClose(rwFunc)
 }
 
 //TODO

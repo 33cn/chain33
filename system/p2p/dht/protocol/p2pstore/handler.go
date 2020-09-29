@@ -26,7 +26,7 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 		t := time.Now()
 		writeBodys(bodys, stream)
 		_ = protocol.WriteStream(&res, stream)
-		log.Info("handleStreamFetchChunk", "chunk hash", hex.EncodeToString(param.ChunkHash), "start", param.Start, "remote peer", stream.Conn().RemoteMultiaddr(), "time cost", time.Since(t))
+		log.Info("handleStreamFetchChunk", "chunk hash", hex.EncodeToString(param.ChunkHash), "start", param.Start, "remote peer", stream.Conn().RemotePeer(), "addrs", stream.Conn().RemoteMultiaddr(), "time cost", time.Since(t))
 	}()
 
 	// 全节点模式，只有网络中出现数据丢失时才提供数据
@@ -193,7 +193,7 @@ func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
 		log.Error("GetChunkBlock", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return
 	}
-	headers := p.getHeaders(&types.ReqBlocks{Start: req.Start, End: req.End})
+	headers, _ := p.getHeaders(&types.ReqBlocks{Start: req.Start, End: req.End})
 	if len(headers.Items) != len(bodys.Items) {
 		log.Error("GetBlockHeader", "error", types2.ErrLength, "header length", len(headers.Items), "body length", len(bodys.Items), "start", req.Start, "end", req.End)
 		return
@@ -248,6 +248,27 @@ func (p *Protocol) handleEventGetChunkRecord(m *queue.Message) {
 	if err != nil {
 		log.Error("handleEventGetChunkRecord", "reply message error", err)
 	}
+}
+
+func (p *Protocol) handleEventGetHeaders(m *queue.Message) {
+	req := m.GetData().(*types.ReqBlocks)
+	if len(req.GetPid()) == 0 { //根据指定的pidlist 获取对应的block header
+		log.Debug("GetHeaders:pid is nil")
+		m.Reply(p.QueueClient.NewMessage("blockchain", types.EventReply, types.Reply{Msg: []byte("no pid")}))
+		return
+	}
+	m.Reply(p.QueueClient.NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
+	headers, pid := p.getHeaders(req)
+	if len(headers.Items) == 0 {
+		return
+	}
+	msg := p.QueueClient.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid.Pretty(), Headers: headers})
+	err := p.QueueClient.Send(msg, true)
+	if err != nil {
+		log.Error("handleEventGetHeaders", "send message error", err)
+		return
+	}
+	_, _ = p.QueueClient.Wait(msg)
 }
 
 func writeBodys(bodys *types.BlockBodys, stream network.Stream) {

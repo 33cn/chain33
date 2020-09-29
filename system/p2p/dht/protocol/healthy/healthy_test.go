@@ -148,7 +148,6 @@ func initEnv(t *testing.T, q queue.Queue) []*Protocol {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("h1", host1.ID(), "h2", host2.ID())
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	mcfg := &types2.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
@@ -191,9 +190,9 @@ func initEnv(t *testing.T, q queue.Queue) []*Protocol {
 		fallBehind: 1 << 30,
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	p2.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(p2.handleStreamIsHealthy))
-	p2.Host.SetStreamHandler(protocol.IsSync, protocol.HandlerWithRW(p2.handleStreamIsSync))
-	p2.Host.SetStreamHandler(protocol.GetLastHeader, protocol.HandlerWithRW(p2.handleStreamLastHeader))
+	protocol.RegisterStreamHandler(p2.Host, protocol.IsHealthy, protocol.HandlerWithRW(p2.handleStreamIsHealthy))
+	protocol.RegisterStreamHandler(p2.Host, protocol.IsSync, protocol.HandlerWithRW(p2.handleStreamIsSync))
+	protocol.RegisterStreamHandler(p2.Host, protocol.GetLastHeader, protocol.HandlerWithRW(p2.handleStreamLastHeader))
 	client1.Sub("p2p")
 	client2.Sub("p2p2")
 

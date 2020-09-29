@@ -33,9 +33,9 @@ func InitProtocol(env *protocol.P2PEnv) {
 		P2PEnv:     env,
 		fallBehind: 1<<63 - 1,
 	}
-	p.Host.SetStreamHandler(protocol.IsSync, protocol.HandlerWithRW(p.handleStreamIsSync))
-	p.Host.SetStreamHandler(protocol.IsHealthy, protocol.HandlerWithRW(p.handleStreamIsHealthy))
-	p.Host.SetStreamHandler(protocol.GetLastHeader, protocol.HandlerWithRW(p.handleStreamLastHeader))
+	protocol.RegisterStreamHandler(p.Host, protocol.IsSync, protocol.HandlerWithRW(p.handleStreamIsSync))
+	protocol.RegisterStreamHandler(p.Host, protocol.IsHealthy, protocol.HandlerWithRW(p.handleStreamIsHealthy))
+	protocol.RegisterStreamHandler(p.Host, protocol.GetLastHeader, protocol.HandlerWithRW(p.handleStreamLastHeader))
 
 	//保存一个全局变量备查，避免频繁到网络中请求。
 	go func() {

@@ -30,18 +30,32 @@ func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID
 	return p.mustFetchChunk(p.Ctx, req, true)
 }
 
-func (p *Protocol) getHeaders(param *types.ReqBlocks) *types.Headers {
-	for _, pid := range p.healthyRoutingTable.ListPeers() {
+func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) {
+	for _, peerID := range param.Pid {
+		pid, err := peer.Decode(peerID)
+		if err != nil {
+			log.Error("getHeaders", "decode pid error", err)
+			continue
+		}
 		headers, err := p.getHeadersFromPeer(param, pid)
 		if err != nil {
 			log.Error("getHeaders", "peer", pid, "error", err)
 			continue
 		}
-		return headers
+		return headers, pid
 	}
 
+	//for _, pid := range p.healthyRoutingTable.ListPeers() {
+	//	headers, err := p.getHeadersFromPeer(param, pid)
+	//	if err != nil {
+	//		log.Error("getHeaders", "peer", pid, "error", err)
+	//		continue
+	//	}
+	//	fmt.Println("get headers from healthy")
+	//	return headers, pid
+	//}
 	log.Error("getHeaders", "error", types2.ErrNotFound)
-	return &types.Headers{}
+	return &types.Headers{}, ""
 }
 
 func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*types.Headers, error) {
