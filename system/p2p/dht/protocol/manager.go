@@ -6,6 +6,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	"strings"
 )
 
 //TODO
@@ -13,7 +14,23 @@ func RegisterStreamHandler(h host.Host, p protocol.ID, handler network.StreamHan
 	if handler == nil {
 		panic(fmt.Sprintf("addEventHandler, handler is nil, protocol=%s", p))
 	}
-	h.SetStreamHandler(p, HandlerWithClose(handler))
+	//协议格式为形如Linux绝对路径的的字符串，最后一个子串为形如 1.0.0 格式的版本号，如：
+	// /chain33/fetch-chunk/1.0.0
+	//仅版本号不同的协议会匹配相同的handler，不同版本具体处理逻辑在handler里采用不同的逻辑分支
+	match := func(protocol string) bool {
+		expected := strings.Split(string(p), "/")
+		actual := strings.Split(protocol, "/")
+		if len(expected) != len(actual) {
+			return false
+		}
+		for i := range expected[:len(expected)-1] {
+			if expected[i] != actual[i] {
+				return false
+			}
+		}
+		return true
+	}
+	h.SetStreamHandlerMatch(p, match, HandlerWithClose(handler))
 }
 
 //Initializer is a initial function which any protocol should have.
