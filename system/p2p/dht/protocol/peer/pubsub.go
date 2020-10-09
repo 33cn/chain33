@@ -16,8 +16,8 @@ import (
 type peerPubSub struct {
 	*prototypes.BaseProtocol
 	p2pCfg      *p2pty.P2PSubConfig
-	mutex       sync.RWMutex
 	pubsubOp    *net.PubSub
+	topicMutex  sync.RWMutex
 	topicMoudle sync.Map
 }
 
@@ -59,8 +59,8 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 	reply.Msg = fmt.Sprintf("subtopic %v success", topic)
 	msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, &types.Reply{IsOk: true, Msg: types.Encode(&reply)}))
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.topicMutex.Lock()
+	defer p.topicMutex.Unlock()
 
 	moudles, ok := p.topicMoudle.Load(topic)
 	if ok {
@@ -78,8 +78,8 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 
 //处理收到的数据
 func (p *peerPubSub) subCallBack(topic string, msg net.SubMsg) {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
+	p.topicMutex.RLock()
+	defer p.topicMutex.RUnlock()
 
 	moudles, ok := p.topicMoudle.Load(topic)
 	if !ok {
@@ -109,8 +109,8 @@ func (p *peerPubSub) handleGetTopics(msg *queue.Message) {
 
 //删除已经订阅的某一个topic
 func (p *peerPubSub) handleRemoveTopc(msg *queue.Message) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.topicMutex.Lock()
+	defer p.topicMutex.Unlock()
 
 	v, ok := msg.GetData().(*types.RemoveTopic)
 	if !ok {

@@ -1,183 +1,154 @@
 package peer
 
 import (
+	"context"
 	"fmt"
-
-	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/multiformats/go-multiaddr"
-
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/version"
-	"github.com/33cn/chain33/queue"
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
-	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
+	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
-	"github.com/google/uuid"
-	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/multiformats/go-multiaddr"
 )
 
 const (
-	protoTypeID = "PeerProtocolType"
 	peerInfoReq = "/chain33/peerinfoReq/1.0.0" //老版本
 	//peerInfoReqV2  = "/chain33/peerinfoReq/1.0.1" //新版本，增加chain33 version 信息反馈
 	peerVersionReq = "/chain33/peerVersion/1.0.0"
-	pubsubTypeID   = "PubSubProtoType"
+)
+
+const (
+	blockchain = "blockchain"
+	mempool    = "mempool"
 )
 
 var log = log15.New("module", "p2p.peer")
 
 func init() {
-	prototypes.RegisterProtocol(protoTypeID, &peerInfoProtol{})
-	prototypes.RegisterStreamHandler(protoTypeID, peerInfoReq, &peerInfoHandler{})
-	//prototypes.RegisterStreamHandler(protoTypeID, peerInfoReqV2, &peerInfoHandler{})
-	prototypes.RegisterStreamHandler(protoTypeID, peerVersionReq, &peerInfoHandler{})
-	prototypes.RegisterProtocol(pubsubTypeID, &peerPubSub{})
-
+	protocol.RegisterProtocolInitializer(InitProtocol)
 }
 
 //type Istream
-type peerInfoProtol struct {
-	*prototypes.BaseProtocol
-	p2pCfg       *p2pty.P2PSubConfig
+type Protocol struct {
+	*protocol.P2PEnv
+
 	externalAddr string
 	mutex        sync.Mutex
 }
 
 // InitProtocol init protocol
-func (p *peerInfoProtol) InitProtocol(env *prototypes.P2PEnv) {
-	p.P2PEnv = env
-	p.p2pCfg = env.SubConfig
-	prototypes.RegisterEventHandler(types.EventPeerInfo, p.handleEvent)
-	prototypes.RegisterEventHandler(types.EventGetNetInfo, p.netinfoHandleEvent)
-	prototypes.RegisterEventHandler(types.EventNetProtocols, p.netprotocolsHandleEvent)
+func InitProtocol(env *protocol.P2PEnv) {
+	p := Protocol{
+		P2PEnv: env,
+	}
+
+	protocol.RegisterStreamHandler(p.Host, peerInfoReq, p.handleStreamPeerInfo)
+	protocol.RegisterStreamHandler(p.Host, peerVersionReq, p.handleStreamVersion)
+	protocol.RegisterEventHandler(types.EventPeerInfo, p.handleEventPeerInfo)
+	protocol.RegisterEventHandler(types.EventGetNetInfo, p.handleEventNetInfo)
+	protocol.RegisterEventHandler(types.EventNetProtocols, p.handleEventNetProtocols)
 
 	go p.detectNodeAddr()
-	go p.fetchPeersInfo()
-
-}
-
-func (p *peerInfoProtol) fetchPeersInfo() {
-	for {
+	go func() {
+		ticker1 := time.NewTicker(time.Second * 10)
 		select {
-		case <-time.After(time.Second * 10):
-			p.getPeerInfo()
 		case <-p.Ctx.Done():
 			return
-		}
-
-	}
-}
-
-func (p *peerInfoProtol) getLoacalPeerInfo() *types.P2PPeerInfo {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Error("getLoacalPeerInfo", "recoverErr", r)
+		case <-ticker1.C:
+			p.refreshPeerInfo()
 		}
 	}()
-	var peerinfo types.P2PPeerInfo
+}
 
-	resp, err := p.QueryMempool(types.EventGetMempoolSize, nil)
+func (p *Protocol) getLocalPeerInfo() *types.Peer {
+	msg := p.QueueClient.NewMessage(mempool, types.EventGetMempoolSize, nil)
+	err := p.QueueClient.Send(msg, true)
 	if err != nil {
-		log.Error("getlocalPeerInfo", "sendToMempool", err)
+		log.Error("getLocalPeerInfo", "sendToMempool", err)
 		return nil
 	}
-
-	meminfo := resp.(*types.MempoolSize)
-	peerinfo.MempoolSize = int32(meminfo.GetSize())
-
-	resp, err = p.QueryBlockChain(types.EventGetLastHeader, nil)
+	resp, err := p.QueueClient.WaitTimeout(msg, time.Second*10)
 	if err != nil {
-		log.Error("getlocalPeerInfo", "sendToBlockChain", err)
 		return nil
 	}
+	var localPeer types.Peer
+	localPeer.MempoolSize = int32(resp.Data.(*types.MempoolSize).GetSize())
 
-	header := resp.(*types.Header)
-	peerinfo.Header = header
-	peerinfo.Name = p.Host.ID().Pretty()
+	msg = p.QueueClient.NewMessage(blockchain, types.EventGetLastHeader, nil)
+	err = p.QueueClient.Send(msg, true)
+	if err != nil {
+		log.Error("getLocalPeerInfo", "sendToBlockChain", err)
+		return nil
+	}
+	resp, err = p.QueueClient.WaitTimeout(msg, time.Second*10)
+	if err != nil {
+		return nil
+	}
+	localPeer.Header = resp.Data.(*types.Header)
+	localPeer.Name = p.Host.ID().Pretty()
+	//if p.Host.Peerstore().
+	//localPeer.Addr, localPeer.Port =
 	splites := strings.Split(p.Host.Addrs()[0].String(), "/")
-	port, _ := strconv.Atoi(splites[len(splites)-1])
-	peerinfo.Port = int32(port)
+	port, err := strconv.Atoi(splites[len(splites)-1])
+	if err != nil {
+		log.Error("getLocalPeerInfo", "Atoi error", err)
+		return nil
+	}
+	localPeer.Port = int32(port)
 	//TODO 需要返回自身的外网地址
 	if p.getExternalAddr() == "" {
-		peerinfo.Addr = splites[2]
+		localPeer.Addr = splites[2]
 
 	} else {
-		peerinfo.Addr = p.getExternalAddr()
+		localPeer.Addr = p.getExternalAddr()
 	}
-	peerinfo.Version = version.GetVersion() + "@" + version.GetAppVersion()
-	peerinfo.StoreDBVersion = version.GetStoreDBVersion()
-	peerinfo.LocalDBVersion = version.GetLocalDBVersion()
-	return &peerinfo
+	localPeer.Version = version.GetVersion() + "@" + version.GetAppVersion()
+	localPeer.StoreDBVersion = version.GetStoreDBVersion()
+	localPeer.LocalDBVersion = version.GetLocalDBVersion()
+	return &localPeer
 }
 
-//p2pserver 端接收处理事件
-func (p *peerInfoProtol) onReq(req *types.MessagePeerInfoReq, s core.Stream) {
-	log.Debug(" OnReq", "localPeer", s.Conn().LocalPeer().String(), "remotePeer", s.Conn().RemotePeer().String(), "peerproto", s.Protocol())
-	peerID := p.GetHost().ID()
-	pubkey, _ := p.GetHost().Peerstore().PubKey(peerID).Bytes()
-	peerinfo := p.getLoacalPeerInfo()
-	resp := &types.MessagePeerInfoResp{MessageData: p.NewMessageCommon(req.MessageData.GetId(), peerID.Pretty(), pubkey, false),
-		Message: peerinfo}
-	err := prototypes.WriteStream(resp, s)
-	if err != nil {
-		log.Error("WriteStream", "err", err)
-		return
-	}
-
-}
-
-// PeerInfo 向对方节点请求peerInfo信息
-func (p *peerInfoProtol) getPeerInfo() {
-
-	pid := p.GetHost().ID()
-	pubkey, _ := p.GetHost().Peerstore().PubKey(pid).Bytes()
+func (p *Protocol) refreshPeerInfo() {
 	var wg sync.WaitGroup
-	for _, remoteID := range p.GetConnsManager().FetchConnPeers() {
+	for _, remoteID := range p.RoutingTable.ListPeers() {
 		if p.checkDone() {
 			log.Warn("getPeerInfo", "process", "done+++++++")
 			return
 		}
-
-		if remoteID.Pretty() == p.GetHost().ID().Pretty() {
+		if remoteID == p.Host.ID() {
 			continue
 		}
 		//修改为并发获取peerinfo信息
 		wg.Add(1)
-		go func(peerid peer.ID) {
+		go func(pid peer.ID) {
 			defer wg.Done()
-			msgReq := &types.MessagePeerInfoReq{MessageData: p.NewMessageCommon(uuid.New().String(), pid.Pretty(), pubkey, false)}
-
-			req := &prototypes.StreamRequest{
-				PeerID: peerid,
-				Data:   msgReq,
-				MsgID:  []core.ProtocolID{peerInfoReq},
-			}
-			var resp types.MessagePeerInfoResp
-			err := p.SendRecvPeer(req, &resp)
+			ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
+			defer cancel()
+			stream, err := p.Host.NewStream(ctx, pid, peerInfoReq)
 			if err != nil {
-				log.Error("handleEvent", "WriteStream", err)
+				log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
 				return
 			}
-			var dest types.Peer
-			if resp.GetMessage() != nil {
-				p.PeerInfoManager.Copy(&dest, resp.GetMessage())
-				p.PeerInfoManager.Add(peerid.Pretty(), &dest)
+			var resp types.MessagePeerInfoResp
+			err = protocol.ReadStream(&resp, stream)
+			if err != nil {
+				log.Error("refreshPeerInfo", "read stream error", err, "peer id", pid)
+				return
 			}
-
+			p.PeerInfoManager.Refresh(resp.GetMessage())
 		}(remoteID)
 
 	}
 	wg.Wait()
 }
 
-func (p *peerInfoProtol) setExternalAddr(addr string) {
+func (p *Protocol) setExternalAddr(addr string) {
 	var spliteAddr string
 	splites := strings.Split(addr, "/")
 	if len(splites) == 1 {
@@ -187,10 +158,8 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 	}
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	if spliteAddr != p.externalAddr && isPublicIP(net.ParseIP(spliteAddr)) {
-
+	if spliteAddr != p.externalAddr && isPublicIP(spliteAddr) {
 		p.externalAddr = spliteAddr
-
 		//设置外部地址时同时保存到peerstore里
 		addr := fmt.Sprintf("/ip4/%s/tcp/%d", spliteAddr, p.SubConfig.Port)
 		ma, _ := multiaddr.NewMultiaddr(addr)
@@ -198,95 +167,122 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 	}
 }
 
-func (p *peerInfoProtol) getExternalAddr() string {
+func (p *Protocol) getExternalAddr() string {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	return p.externalAddr
 }
 
-func (p *peerInfoProtol) checkDone() bool {
+func (p *Protocol) checkDone() bool {
 	select {
 	case <-p.Ctx.Done():
 		return true
 	default:
 		return false
 	}
-
 }
 
-func (p *peerInfoProtol) detectNodeAddr() {
+func (p *Protocol) getNodeAddr(pid peer.ID) {
+	for _, maddr := range p.Host.Peerstore().Addrs(pid) {
+		// 如果已保存公网地址则不需要再持续请求
+		ip, _ := parseIPAndPort(maddr.String())
+		if isPublicIP(ip) {
+			return
+		}
+	}
+	stream, err := p.Host.NewStream(p.Ctx, pid, peerVersionReq)
+	if err != nil {
+		log.Error("NewStream", "err", err, "remoteID", pid)
+		return
+	}
+	defer protocol.CloseStream(stream)
+
+	req := &types.MessageP2PVersionReq{
+		Message: &types.P2PVersion{
+			Version:  p.SubConfig.Channel,
+			AddrFrom: fmt.Sprintf("/ip4/%v/tcp/%d", p.getExternalAddr(), p.SubConfig.Port),
+			AddrRecv: stream.Conn().RemoteMultiaddr().String(),
+		},
+	}
+	err = protocol.WriteStream(req, stream)
+	if err != nil {
+		log.Error("DetectNodeAddr", "WriteStream err", err)
+		return
+	}
+	var resp types.MessageP2PVersionResp
+	err = protocol.ReadStream(&resp, stream)
+	if err != nil {
+		log.Error("DetectNodeAddr", "ReadStream err", err)
+		return
+	}
+	addr := resp.GetMessage().GetAddrRecv()
+	p.setExternalAddr(addr)
+	remoteMAddr, err := multiaddr.NewMultiaddr(resp.GetMessage().GetAddrFrom())
+	if err != nil {
+		return
+	}
+	p.Host.Peerstore().AddAddr(pid, remoteMAddr, time.Minute)
+}
+
+func (p *Protocol) detectNodeAddr() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("detectNodeAddr", "recover", r)
 		}
 	}()
 	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
-	addrs := p.GetHost().Addrs()
+	addrs := p.Host.Addrs()
 	preExternalAddr := strings.Split(addrs[len(addrs)-1].String(), "/")[2]
 	p.mutex.Lock()
 	p.externalAddr = preExternalAddr
 	p.mutex.Unlock()
 
-	netIP := net.ParseIP(preExternalAddr)
-	if isPublicIP(netIP) { //检测是PubIp不用继续通过其他节点获取
+	if isPublicIP(preExternalAddr) { //检测是PubIp不用继续通过其他节点获取
 		log.Debug("detectNodeAddr", "testPubIp", preExternalAddr)
 	}
 	log.Info("detectNodeAddr", "+++++++++++++++", preExternalAddr, "addrs", addrs)
-	localID := p.GetHost().ID()
 	var rangeCount int
 	queryInterval := time.Minute
 	for {
-
 		if p.checkDone() {
 			break
 		}
-
-		if len(p.GetConnsManager().FetchConnPeers()) == 0 {
+		if p.RoutingTable.Size() == 0 {
 			time.Sleep(time.Second)
 			continue
 		}
-
 		//启动后间隔1分钟，以充分获得节点外网地址
 		rangeCount++
 		if rangeCount > 2 {
 			time.Sleep(queryInterval)
 		}
 		log.Info("detectNodeAddr", "conns amount", len(p.Host.Network().Conns()))
-		for _, conn := range p.Host.Network().Conns() {
-			if rangeCount > 2 {
-				time.Sleep(time.Second / 10)
-			}
-			var version types.P2PVersion
-			pid := conn.RemotePeer()
-			pubkey, _ := p.GetHost().Peerstore().PubKey(localID).Bytes()
-			req := &types.MessageP2PVersionReq{MessageData: p.NewMessageCommon(uuid.New().String(), localID.Pretty(), pubkey, false),
-				Message: &version}
-
-			s, err := prototypes.NewStream(p.Host, pid, peerVersionReq)
+		for _, pid := range p.RoutingTable.ListPeers() {
+			stream, err := p.Host.NewStream(p.Ctx, pid, peerVersionReq)
 			if err != nil {
 				log.Error("NewStream", "err", err, "remoteID", pid)
 				continue
 			}
+			defer protocol.CloseStream(stream)
 
-			version.Version = p.p2pCfg.Channel
-
-			//real localport
-			version.AddrFrom = fmt.Sprintf("/ip4/%v/tcp/%d", p.getExternalAddr(), p.p2pCfg.Port)
-			version.AddrRecv = s.Conn().RemoteMultiaddr().String()
-			err = prototypes.WriteStream(req, s)
+			req := &types.MessageP2PVersionReq{
+				Message: &types.P2PVersion{
+					Version:  p.SubConfig.Channel,
+					AddrFrom: fmt.Sprintf("/ip4/%v/tcp/%d", p.getExternalAddr(), p.SubConfig.Port),
+					AddrRecv: stream.Conn().RemoteMultiaddr().String(),
+				},
+			}
+			err = protocol.WriteStream(req, stream)
 			if err != nil {
 				log.Error("DetectNodeAddr", "WriteStream err", err)
-				prototypes.CloseStream(s)
 				continue
 			}
 			var resp types.MessageP2PVersionResp
-			err = prototypes.ReadStream(&resp, s)
+			err = protocol.ReadStream(&resp, stream)
 			if err != nil {
 				log.Error("DetectNodeAddr", "ReadStream err", err)
-				prototypes.CloseStream(s)
 				continue
 			}
-			prototypes.CloseStream(s)
 			addr := resp.GetMessage().GetAddrRecv()
 			p.setExternalAddr(addr)
 			remoteMAddr, err := multiaddr.NewMultiaddr(resp.GetMessage().GetAddrFrom())
@@ -296,60 +292,17 @@ func (p *peerInfoProtol) detectNodeAddr() {
 			p.Host.Peerstore().AddAddr(pid, remoteMAddr, queryInterval*3)
 		}
 	}
-
 }
 
-//接收chain33其他模块发来的请求消息
-func (p *peerInfoProtol) handleEvent(msg *queue.Message) {
-	pinfos := p.PeerInfoManager.FetchPeerInfosInMin()
-	var peers []*types.Peer
-	localinfo := p.getLoacalPeerInfo()
-	var lcoalPeer types.Peer
-	if localinfo != nil {
-		p.PeerInfoManager.Copy(&lcoalPeer, localinfo)
-		lcoalPeer.Self = true
+func parseIPAndPort(multiAddr string) (ip string, port int) {
+	split := strings.Split(multiAddr, "/")
+	if len(split) < 5 {
+		return
 	}
-
-	for _, pinfo := range pinfos {
-		if pinfo == nil {
-			continue
-		}
-		peers = append(peers, pinfo)
+	port, err := strconv.Atoi(split[5])
+	if err != nil {
+		return
 	}
-
-	peers = append(peers, &lcoalPeer)
-	msg.Reply(p.GetQueueClient().NewMessage("blockchain", types.EventPeerList, &types.PeerList{Peers: peers}))
-
-}
-
-type peerInfoHandler struct {
-	*prototypes.BaseStreamHandler
-}
-
-// Handle 处理请求
-func (h *peerInfoHandler) Handle(stream core.Stream) {
-	protocol := h.GetProtocol().(*peerInfoProtol)
-
-	//解析处理
-	log.Debug("PeerInfo Handler", "stream proto", stream.Protocol())
-
-	switch stream.Protocol() {
-	case peerInfoReq:
-		var req types.MessagePeerInfoReq
-		err := prototypes.ReadStream(&req, stream)
-		if err != nil {
-			return
-		}
-		protocol.onReq(&req, stream)
-	case peerVersionReq:
-		var req types.MessageP2PVersionReq
-		err := prototypes.ReadStream(&req, stream)
-		if err != nil {
-			return
-		}
-
-		protocol.onVersionReq(&req, stream)
-
-	}
-
+	ip = split[2]
+	return
 }
