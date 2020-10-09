@@ -55,11 +55,11 @@ func (t tasks) Size() int {
 	return len(t)
 }
 
-func (d *downloadProtol) initJob(pids []string, jobID string) tasks {
+func (p *Protocol) initJob(pids []string, jobID string) tasks {
 	var JobPeerIds tasks
 	var pIDs []peer.ID
 	for _, pid := range pids {
-		pID, err := peer.IDB58Decode(pid)
+		pID, err := peer.Decode(pid)
 		if err != nil {
 			log.Error("initJob", "IDB58Decode", err)
 			continue
@@ -67,25 +67,19 @@ func (d *downloadProtol) initJob(pids []string, jobID string) tasks {
 		pIDs = append(pIDs, pID)
 	}
 	if len(pIDs) == 0 {
-		pIDs = d.ConnManager.FetchConnPeers()
+		pIDs = p.ConnManager.FetchConnPeers()
 
 	}
-	latency := d.GetConnsManager().GetLatencyByPeer(pIDs)
+
 	for _, pID := range pIDs {
-		if pID.Pretty() == d.GetHost().ID().Pretty() {
+		if pID == p.Host.ID() {
 			continue
 		}
 		var job taskInfo
 		job.Pid = pID
 		job.ID = jobID
-		var ok bool
-		latency, ok := latency[job.Pid.Pretty()]
-		if ok {
-			if latency != 0 {
-				job.Latency = latency
-
-			}
-		} else { //如果查询不到节点对应的时延，就设置非常大
+		job.Latency = p.Host.Peerstore().LatencyEWMA(pID)
+		if job.Latency == 0 { //如果查询不到节点对应的时延，就设置非常大
 			job.Latency = time.Second
 		}
 		job.TaskNum = 0
@@ -94,10 +88,10 @@ func (d *downloadProtol) initJob(pids []string, jobID string) tasks {
 	return JobPeerIds
 }
 
-func (d *downloadProtol) checkTask(taskID string, pids []string, faildJobs map[string]interface{}) {
+func (p *Protocol) checkTask(taskID string, pids []string, faildJobs map[string]interface{}) {
 
 	select {
-	case <-d.Ctx.Done():
+	case <-p.Ctx.Done():
 		log.Warn("checkTask", "process", "done+++++++")
 		return
 	default:
@@ -111,14 +105,14 @@ func (d *downloadProtol) checkTask(taskID string, pids []string, faildJobs map[s
 
 	faildJob := v.(map[int64]bool)
 	for blockheight := range faildJob {
-		jobS := d.initJob(pids, taskID)
+		jobS := p.initJob(pids, taskID)
 		log.Warn("checkTask<<<<<<<<<<", "taskID", taskID, "faildJob", blockheight)
-		d.downloadBlock(blockheight, jobS)
+		p.downloadBlock(blockheight, jobS)
 
 	}
 }
 
-func (d *downloadProtol) availbTask(ts tasks, blockheight int64) *taskInfo {
+func (p *Protocol) availbTask(ts tasks, blockheight int64) *taskInfo {
 
 	var limit int
 	if len(ts) > 10 {
@@ -127,14 +121,9 @@ func (d *downloadProtol) availbTask(ts tasks, blockheight int64) *taskInfo {
 		limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
 	}
 	for i, task := range ts {
-		//check blockheight
-		peerInfo := d.GetPeerInfoManager().GetPeerInfoInMin(task.Pid.Pretty())
-		if peerInfo != nil {
-			if peerInfo.GetHeader().GetHeight() < blockheight {
-				continue
-			}
-		} else {
-			//log.Error("CheckAvailbJob", "PeerInfoManager No ths Peer info...", task.Pid.Pretty())
+		//check blockHeight
+		peerHeight := p.PeerInfoManager.PeerHeight(task.Pid)
+		if peerHeight < blockheight {
 			continue
 		}
 		task.mtx.Lock()
@@ -153,7 +142,7 @@ func (d *downloadProtol) availbTask(ts tasks, blockheight int64) *taskInfo {
 
 }
 
-func (d *downloadProtol) releaseJob(js *taskInfo) {
+func (p *Protocol) releaseJob(js *taskInfo) {
 	js.mtx.Lock()
 	defer js.mtx.Unlock()
 	js.TaskNum--
