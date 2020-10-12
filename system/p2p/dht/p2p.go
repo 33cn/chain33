@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	circuit "github.com/libp2p/go-libp2p-circuit"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -29,7 +30,6 @@ import (
 	"github.com/33cn/chain33/types"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	core "github.com/libp2p/go-libp2p-core"
 	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -233,18 +233,17 @@ func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
 
-	var relayOpt = make([]circuit.RelayOpt, 3)
-
-	if p.subCfg.RelayHop {
-		relayOpt = append(relayOpt, circuit.OptHop)
-	}
-
 	var options []libp2p.Option
-	if len(relayOpt) != 0 {
-		options = append(options, libp2p.EnableRelay(relayOpt...))
 
+	//if p.subCfg.RelayNodeAddr != "" {
+	if p.subCfg.RelayEnable { //用内置的节点作为中继节点
+		relays := append(p.subCfg.BootStraps, p.subCfg.RelayNodeAddr)
+		options = append(options, libp2p.AddrsFactory(net.WithRelayAddrs(relays)))
+		options = append(options, libp2p.EnableRelay())
 	}
-
+	if p.subCfg.RelayHop { //启用中继服务端
+		options = append(options, libp2p.EnableRelay(circuit.OptHop))
+	}
 	options = append(options, libp2p.NATPortMap())
 	if maddr != nil {
 		options = append(options, libp2p.ListenAddrs(maddr))
@@ -252,9 +251,9 @@ func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.
 	if priv != nil {
 		options = append(options, libp2p.Identity(priv))
 	}
-	if bandwidthTracker != nil {
-		options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
-	}
+
+	options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
+
 	if p.subCfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
 
 		var maxconnect = int(p.subCfg.MaxConnectNum)
@@ -263,7 +262,8 @@ func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.
 		//ConnectionGater,处理网络连接的策略
 		options = append(options, libp2p.ConnectionGater(manage.NewConnGater(&p.host, p.subCfg, p.blackCache)))
 	}
-
+	//关闭ping
+	options = append(options, libp2p.Ping(false))
 	return options
 }
 
