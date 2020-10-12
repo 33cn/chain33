@@ -27,7 +27,19 @@ type P2PSubConfig struct {
 	//轻广播本地区块缓存大小, 单位M
 	LtBlockCacheSize int32 `protobuf:"varint,9,opt,name=ltBlockCacheSize" json:"ltBlockCacheSize,omitempty"`
 
-	//中继传输主动建立连接，中继服务端可以选配
+	//中继传输主动建立连接，中继服务端可以选配，启动中继服务之后，NAT后面的节点可以通过中继节点广播自己的节点地址信息
+	/*
+					比如 中继服务器R的地址：/ip4/116.63.171.186/tcp/13801/p2p/16Uiu2HAm1Qgogf1vHj7WV7d8YmVNPw6PzRuYEnJbQsMDmDWtLoEM
+					NAT 后面的一个普通节点A是：/ip4/192.168.1.101/tcp/13801/p2p/16Uiu2HAkw6w2YVenbCLAXHv2XVo1kh945GVxQrpm5Y6z2kE3eFSg
+				    第一步：A--->R  A连接到中继节点R
+					第二步：A开始组装自己的中继地址：
+				[/ip4/116.63.171.186/tcp/13801/p2p/16Uiu2HAm1Qgogf1vHj7WV7d8YmVNPw6PzRuYEnJbQsMDmDWtLoEM/p2p-circuit/ip4/192.168.1.101/tcp
+			    /13801/p2p/16Uiu2HAkw6w2YVenbCLAXHv2XVo1kh945GVxQrpm5Y6z2kE3eFSg]
+			        第三步：A广播这个拼接后的带有p2p-circuit的地址
+			        第四步：网络中的节点不论是NAT前面的或者NAT后面的节点，如果想连接节点PID为16Uiu2HAkw6w2YVenbCLAXHv2XVo1kh945GVxQrpm5Y6z2kE3eFSg的A节点，
+		                   只需要通过上述组装的带有p2p-circuit的地址就可以建立到与A的连接
+
+	*/
 	RelayHop            bool   `protobuf:"varint,10,opt,name=relayHop" json:"relayHop,omitempty"`
 	DisableFindLANPeers bool   `protobuf:"varint,11,opt,name=disableFindLANPeers" json:"disableFindLANPeers,omitempty"`
 	DHTDataDriver       string `protobuf:"bytes,12,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
@@ -39,4 +51,8 @@ type P2PSubConfig struct {
 	MaxBroadcastPeers int `protobuf:"varint,16,opt,name=maxBroadcastPeers" json:"maxBroadcastPeers,omitempty"`
 	//pub sub消息是否需要签名和验签
 	DisablePubSubMsgSign bool `protobuf:"varint,17,opt,name=disablePubSubMsgSign" json:"disablePubSubMsgSign,omitempty"`
+	//是否启用中继功能
+	RelayEnable bool `protobuf:"varint,18,opt,name=relayEnable" json:"relayEnable,omitempty"`
+	//指定中继节点作为
+	RelayNodeAddr string `protobuf:"varint,19,opt,name=relayNodeAddr" json:"relayNodeAddr,omitempty"`
 }
