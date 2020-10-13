@@ -2,22 +2,18 @@ package peer
 
 import (
 	"encoding/json"
-	"math/rand"
 	"time"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 )
 
 func (p *Protocol) handleStreamPeerInfo(stream network.Stream) {
-
 	peerInfo := p.getLocalPeerInfo()
-	resp := &types.MessagePeerInfoResp{Message: peerInfo}
-	err := protocol.WriteStream(resp, stream)
+	err := protocol.WriteStream(peerInfo, stream)
 	if err != nil {
 		log.Error("handleStreamPeerInfo", "WriteStream error", err)
 		return
@@ -25,27 +21,26 @@ func (p *Protocol) handleStreamPeerInfo(stream network.Stream) {
 }
 
 func (p *Protocol) handleStreamVersion(stream network.Stream) {
-	var req types.MessageP2PVersionReq
+	var req types.P2PVersion
 	err := protocol.ReadStream(&req, stream)
 	if err != nil {
 		log.Error("handleStreamVersion", "read stream error", err)
 		return
 	}
-	remoteMAddr, err := multiaddr.NewMultiaddr(req.GetMessage().GetAddrFrom())
-	if err != nil {
-		return
-	}
-	p.Host.Peerstore().AddAddr(stream.Conn().RemotePeer(), remoteMAddr, peerstore.TempAddrTTL*2)
 
-	p.setExternalAddr(req.GetMessage().GetAddrRecv())
-	rand.Seed(time.Now().Unix())
-	resp := &types.MessageP2PVersionResp{
-		Message: &types.P2PVersion{
-			AddrFrom:  p.getExternalAddr(),
-			AddrRecv:  remoteMAddr.String(),
-			Nonce:     rand.Int63n(102400),
-			Timestamp: time.Now().Unix(),
-		},
+	if ip, _ := parseIPAndPort(req.GetAddrFrom()); isPublicIP(ip) {
+		remoteMAddr, err := multiaddr.NewMultiaddr(req.GetAddrFrom())
+		if err != nil {
+			return
+		}
+		p.Host.Peerstore().AddAddr(stream.Conn().RemotePeer(), remoteMAddr, time.Hour*24)
+	}
+
+	p.setExternalAddr(req.GetAddrRecv())
+	resp := &types.P2PVersion{
+		AddrFrom:  p.getExternalAddr(),
+		AddrRecv:  stream.Conn().RemoteMultiaddr().String(),
+		Timestamp: time.Now().Unix(),
 	}
 	err = protocol.WriteStream(resp, stream)
 	if err != nil {
@@ -70,7 +65,7 @@ func (p *Protocol) handleEventNetProtocols(msg *queue.Message) {
 	//all protocols net info
 	bandProtocols := p.ConnManager.BandTrackerByProtocol()
 	allProtocolNetInfo, _ := json.MarshalIndent(bandProtocols, "", "\t")
-	log.Debug("handleEventNetInfo", string(allProtocolNetInfo))
+	log.Debug("handleEventNetInfo", "allProtocolNetInfo", string(allProtocolNetInfo))
 	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventNetProtocols, bandProtocols))
 }
 
@@ -78,9 +73,9 @@ func (p *Protocol) handleEventNetInfo(msg *queue.Message) {
 	insize, outsize := p.ConnManager.BoundSize()
 	var netinfo types.NodeNetInfo
 
-	netinfo.Externaladdr = p.getExternalAddr()
-	localips, err := localIPv4s()
-	if err == nil {
+	netinfo.Externaladdr = p.getPublicIP()
+	localips, _ := localIPv4s()
+	if len(localips) != 0 {
 		log.Debug("handleEventNetInfo", "localIps", localips)
 		netinfo.Localaddr = localips[0]
 	} else {
@@ -97,8 +92,8 @@ func (p *Protocol) handleEventNetInfo(msg *queue.Message) {
 	netinfo.Routingtable = int32(p.RoutingTable.Size())
 	netstat := p.ConnManager.GetNetRate()
 
-	netinfo.Ratein = p.ConnManager.RateCaculate(netstat.RateIn)
-	netinfo.Rateout = p.ConnManager.RateCaculate(netstat.RateOut)
-	netinfo.Ratetotal = p.ConnManager.RateCaculate(netstat.RateOut + netstat.RateIn)
+	netinfo.Ratein = p.ConnManager.RateCalculate(netstat.RateIn)
+	netinfo.Rateout = p.ConnManager.RateCalculate(netstat.RateOut)
+	netinfo.Ratetotal = p.ConnManager.RateCalculate(netstat.RateOut + netstat.RateIn)
 	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReplyNetInfo, &netinfo))
 }
