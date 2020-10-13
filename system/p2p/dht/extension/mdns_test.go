@@ -1,4 +1,4 @@
-package net
+package extension
 
 import (
 	"context"
@@ -14,11 +14,11 @@ func Test_mdns(t *testing.T) {
 
 	hosts := getNetHosts(ctx, 3, t)
 	connect(t, hosts[0], hosts[1])
-	_, err := initMDNS(ctx, hosts[0], "33test123")
+	_, err := NewMDNS(ctx, hosts[0], "33test123")
 	assert.Nil(t, err)
-	_, err = initMDNS(ctx, hosts[1], "33test123")
+	_, err = NewMDNS(ctx, hosts[1], "33test123")
 	assert.Nil(t, err)
-	tmdns, err := initMDNS(ctx, hosts[2], "33test123")
+	tmdns, err := NewMDNS(ctx, hosts[2], "33test123")
 	assert.Nil(t, err)
 
 	select {

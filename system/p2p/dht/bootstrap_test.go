@@ -1,4 +1,4 @@
-package net
+package dht
 
 import (
 	"context"
@@ -6,7 +6,22 @@ import (
 	"testing"
 
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
+	blankhost "github.com/libp2p/go-libp2p-blankhost"
+	"github.com/libp2p/go-libp2p-core/host"
+	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 )
+
+func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {
+	var out []host.Host
+
+	for i := 0; i < n; i++ {
+		netw := swarmt.GenSwarm(t, ctx)
+		h := blankhost.NewBlankHost(netw)
+		out = append(out, h)
+	}
+
+	return out
+}
 
 func Test_initInnerPeers(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())

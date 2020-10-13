@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/libp2p/go-libp2p"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -31,7 +30,7 @@ func Test_MaxLimit(t *testing.T) {
 	var host1 host.Host
 	//设置0，意味着拒绝所有的连接
 	CacheLimit = 0
-	gater := NewConnGater(&host1, &p2pty.P2PSubConfig{MaxConnectNum: 0}, nil)
+	gater := NewConnGater(context.Background(), &host1, 0, 0)
 	host1, err = libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m),
 		libp2p.Identity(priv),
@@ -66,7 +65,7 @@ func Test_MaxLimit(t *testing.T) {
 
 func Test_InterceptAccept(t *testing.T) {
 	var host1 host.Host
-	gater := NewConnGater(&host1, &p2pty.P2PSubConfig{MaxConnectNum: 0}, nil)
+	gater := NewConnGater(context.Background(), &host1, 0, 0)
 
 	var ip = "47.97.223.101"
 	multiAddress, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, 3000))
@@ -82,7 +81,7 @@ func Test_InterceptAccept(t *testing.T) {
 
 func Test_InterceptAddrDial(t *testing.T) {
 	var host1 host.Host
-	gater := NewConnGater(&host1, &p2pty.P2PSubConfig{}, nil)
+	gater := NewConnGater(context.Background(), &host1, 0, 0)
 	var ip = "47.97.223.101"
 	multiAddress, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, 3000))
 	assert.NoError(t, err)
@@ -93,10 +92,10 @@ func Test_InterceptPeerDial(t *testing.T) {
 	var host1 host.Host
 	ctx := context.Background()
 	defer ctx.Done()
-	gater := NewConnGater(&host1, &p2pty.P2PSubConfig{MaxConnectNum: 1}, NewTimeCache(ctx, time.Second))
+	gater := NewConnGater(context.Background(), &host1, 1, time.Second)
 	var pid = "16Uiu2HAmCyJhBvE1vn62MQWhhaPph1cxeU9nNZJoZQ1Pe1xASZUg"
 
-	gater.blackCache.Add(pid, 0)
+	gater.blacklist.Add(pid, 0)
 	id, err := peer.Decode(pid)
 	assert.NoError(t, err)
 	ok := gater.InterceptPeerDial(id)
@@ -110,7 +109,7 @@ func Test_otherInterface(t *testing.T) {
 	var host1 host.Host
 	ctx := context.Background()
 	defer ctx.Done()
-	gater := NewConnGater(&host1, &p2pty.P2PSubConfig{MaxConnectNum: 1}, NewTimeCache(ctx, time.Second))
+	gater := NewConnGater(ctx, &host1, 1, time.Second)
 	allow, _ := gater.InterceptUpgraded(nil)
 	assert.True(t, allow)
 	assert.True(t, gater.InterceptSecured(network.DirInbound, "", nil))

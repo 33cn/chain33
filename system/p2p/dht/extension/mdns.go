@@ -1,4 +1,4 @@
-package net
+package extension
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 )
 
-type mdns struct {
+type MDNS struct {
 	Service discovery.Service
 	notifee *discoveryNotifee
 }
@@ -26,7 +26,7 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 }
 
 //Initialize the MDNS service
-func initMDNS(ctx context.Context, peerhost host.Host, serviceTag string) (*mdns, error) {
+func NewMDNS(ctx context.Context, peerhost host.Host, serviceTag string) (*MDNS, error) {
 	ser, err := discovery.NewMdnsService(ctx, peerhost, time.Minute*1, serviceTag)
 	if err != nil {
 		return nil, err
@@ -36,12 +36,12 @@ func initMDNS(ctx context.Context, peerhost host.Host, serviceTag string) (*mdns
 	notifee := &discoveryNotifee{}
 	notifee.PeerChan = make(chan peer.AddrInfo)
 	ser.RegisterNotifee(notifee)
-	mnds := new(mdns)
+	mnds := new(MDNS)
 	mnds.Service = ser
 	mnds.notifee = notifee
 	return mnds, nil
 }
 
-func (m *mdns) PeerChan() chan peer.AddrInfo {
+func (m *MDNS) PeerChan() chan peer.AddrInfo {
 	return m.notifee.PeerChan
 }

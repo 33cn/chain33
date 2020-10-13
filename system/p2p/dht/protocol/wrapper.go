@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -15,6 +16,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
+
+var log = log15.New("module", "p2p.protocol")
 
 func init() {
 	rand.Seed(time.Now().UnixNano())

@@ -1,8 +1,9 @@
-package net
+package extension
 
 import (
 	"bytes"
 	"context"
+	"github.com/33cn/chain33/system/p2p/dht"
 	"io"
 	"net"
 	"testing"
@@ -89,7 +90,7 @@ func TestRelay(t *testing.T) {
 	t.Log("h0", hosts[0].ID())
 	t.Log("h1", hosts[1].ID())
 	t.Log("h2", hosts[2].ID())
-	disc := InitDhtDiscovery(ctx, hosts[0], []peer.AddrInfo{rinfo, dinfo}, &types.Chain33Config{}, &p2pty.P2PSubConfig{})
+	disc := dht.InitDhtDiscovery(ctx, hosts[0], []peer.AddrInfo{rinfo, dinfo}, &types.Chain33Config{}, &p2pty.P2PSubConfig{})
 	disc.Start()
 	netRely := NewRelayDiscovery(hosts[0], disc.RoutingDiscovery)
 	netRely.Advertise(ctx)

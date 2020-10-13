@@ -1,98 +1,88 @@
 package manage
 
 import (
+	"context"
 	"sync"
 	"time"
 
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
-
-	"github.com/33cn/chain33/queue"
-
-	"github.com/33cn/chain33/types"
 )
 
 // manage peer info
-
 const diffheightValue = 512
 
 // PeerInfoManager peer info manager
 type PeerInfoManager struct {
-	peerInfo    sync.Map
-	client      queue.Client
-	host        host.Host
-	blackcache  *TimeCache
-	disConnFunc PruePeers
-	done        chan struct{}
+	ctx       context.Context
+	peerInfo  sync.Map
+	client    queue.Client
+	host      host.Host
+	blacklist *TimeCache
 }
 
 type peerStoreInfo struct {
-	storeTime time.Duration
+	storeTime time.Time
 	peer      *types.Peer
 }
 
-// Add add peer info
-func (p *PeerInfoManager) Add(pid string, info *types.Peer) {
-	var storeInfo peerStoreInfo
-	storeInfo.storeTime = time.Duration(time.Now().Unix())
-	storeInfo.peer = info
-	p.peerInfo.Store(pid, &storeInfo)
-}
-
-// Copy copy peer info
-func (p *PeerInfoManager) Copy(dest *types.Peer, source *types.P2PPeerInfo) {
-	dest.Addr = source.GetAddr()
-	dest.Name = source.GetName()
-	dest.Header = source.GetHeader()
-	dest.Self = false
-	dest.MempoolSize = source.GetMempoolSize()
-	dest.Port = source.GetPort()
-	dest.Version = source.GetVersion()
-	dest.StoreDBVersion = source.GetStoreDBVersion()
-	dest.LocalDBVersion = source.GetLocalDBVersion()
-}
-
-// GetPeerInfoInMin get peer info
-func (p *PeerInfoManager) GetPeerInfoInMin(key string) *types.Peer {
-	v, ok := p.peerInfo.Load(key)
-	if !ok {
-		return nil
+// NewPeerInfoManager new peer info manager
+func NewPeerInfoManager(ctx context.Context, host host.Host, cli queue.Client) *PeerInfoManager {
+	peerInfoManage := &PeerInfoManager{
+		ctx:       ctx,
+		client:    cli,
+		host:      host,
+		blacklist: NewTimeCache(ctx, time.Minute*5),
 	}
-	info := v.(*peerStoreInfo)
-
-	if time.Duration(time.Now().Unix())-info.storeTime > 60 {
-		p.peerInfo.Delete(key)
-		return nil
-	}
-	return info.peer
+	go peerInfoManage.start()
+	return peerInfoManage
 }
 
-// FetchPeerInfosInMin fetch peer info
-func (p *PeerInfoManager) FetchPeerInfosInMin() []*types.Peer {
+func (p *PeerInfoManager) Refresh(peer *types.Peer) {
+	storeInfo := peerStoreInfo{
+		storeTime: time.Now(),
+		peer:      peer,
+	}
+	p.peerInfo.Store(peer.Name, &storeInfo)
+}
 
+func (p *PeerInfoManager) FetchAll() []*types.Peer {
 	var peers []*types.Peer
-	p.peerInfo.Range(func(key interface{}, value interface{}) bool {
+	p.peerInfo.Range(func(key, value interface{}) bool {
 		info := value.(*peerStoreInfo)
-		if time.Duration(time.Now().Unix())-info.storeTime > 60 {
+		if time.Now().Sub(info.storeTime) > time.Minute {
 			p.peerInfo.Delete(key)
 			return true
 		}
-
-		peers = append(peers, info.peer)
+		peers = append(peers, value.(*types.Peer))
 		return true
 	})
-
 	return peers
 }
 
-// Start monitor peer info
-func (p *PeerInfoManager) Start() {
+func (p *PeerInfoManager) PeerHeight(pid peer.ID) int64 {
+	v, ok := p.peerInfo.Load(pid.Pretty())
+	if !ok {
+		return -1
+	}
+	peerInfo, ok := v.(*types.Peer)
+	if !ok {
+		return -1
+	}
+	return peerInfo.Header.Height
+
+}
+
+func (p *PeerInfoManager) start() {
 	for {
 		select {
-		case <-time.After(time.Minute):
+		case <-p.ctx.Done():
+			return
+		case <-time.After(time.Second * 30):
 			//获取当前高度，过滤掉高度较低的节点
-			//	log.Debug("MonitorPeerInfos", "Num", len(p.FetchPeerInfosInMin()))
 			msg := p.client.NewMessage("blockchain", types.EventGetLastHeader, nil)
 			err := p.client.Send(msg, true)
 			if err != nil {
@@ -106,60 +96,28 @@ func (p *PeerInfoManager) Start() {
 			if !ok {
 				continue
 			}
-			p.prue(header.GetHeight())
-
-		case <-p.done:
-			return
-
+			p.prune(header.GetHeight())
 		}
 	}
 }
-func (p *PeerInfoManager) prue(height int64) {
+func (p *PeerInfoManager) prune(height int64) {
 	p.peerInfo.Range(func(key interface{}, value interface{}) bool {
 		info := value.(*peerStoreInfo)
-		if time.Duration(time.Now().Unix())-info.storeTime > 60 {
+		if time.Now().Sub(info.storeTime) > time.Minute {
 			p.peerInfo.Delete(key)
 			return true
 		}
 		//check blockheight,删除落后512高度的节点
 		if info.peer.Header.GetHeight()+diffheightValue < height {
-			//判断是Inbound 还是Outbound
 			id, _ := peer.Decode(key.(string))
-			conns := p.host.Network().ConnsToPeer(id)
-			if len(conns) != 0 && conns[0].Stat().Direction == network.DirOutbound { //outbound
-				//remove
-				log.Debug("prue", "peer", key, "height", info.peer.Header.GetHeight(), "Direction", conns[0].Stat().Direction)
-				p.peerInfo.Delete(key)
-				//断开连接
-				//if beBlack true 短暂加入黑名单，因为高度落后较多
-				p.disConnFunc(id, true)
+			for _, conn := range p.host.Network().ConnsToPeer(id) {
+				//判断是Inbound 还是Outbound
+				if conn.Stat().Direction == network.DirOutbound {
+					//断开连接
+					_ = conn.Close()
+				}
 			}
 		}
-
 		return true
 	})
-}
-
-// Close close peer info manager
-func (p *PeerInfoManager) Close() {
-	defer func() {
-		if recover() != nil {
-			log.Error("channel reclosed")
-		}
-	}()
-
-	close(p.done)
-}
-
-//PruePeers close peer and put it into blacklist is beBlock is true.
-type PruePeers func(pids peer.ID, beBlack bool)
-
-// NewPeerInfoManager new peer info manager
-func NewPeerInfoManager(host host.Host, cli queue.Client, timecache *TimeCache, callFunc PruePeers) *PeerInfoManager {
-	peerInfoManage := &PeerInfoManager{done: make(chan struct{})}
-	peerInfoManage.client = cli
-	peerInfoManage.host = host
-	peerInfoManage.blackcache = timecache
-	peerInfoManage.disConnFunc = callFunc
-	return peerInfoManage
 }
