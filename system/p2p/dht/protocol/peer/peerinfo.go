@@ -2,6 +2,7 @@ package peer
 
 import (
 	"fmt"
+
 	"github.com/libp2p/go-libp2p/p2p/host/relay"
 
 	"net"
