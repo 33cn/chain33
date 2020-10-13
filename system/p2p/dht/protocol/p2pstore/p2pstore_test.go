@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
@@ -399,14 +400,20 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		panic(err)
 	}
+	mockAPI1, err := client.New(client1, nil)
+	if err != nil {
+		panic(err)
+	}
 	env1 := protocol.P2PEnv{
 		Ctx:              context.Background(),
 		ChainCfg:         cfg,
+		API:              mockAPI1,
 		QueueClient:      client1,
 		Host:             host1,
 		SubConfig:        mcfg,
 		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
 		RoutingTable:     kademliaDHT1.RoutingTable(),
+		PeerInfoManager:  &peerInfoManager{},
 		DB:               newTestDB(),
 	}
 	InitProtocol(&env1)
@@ -423,14 +430,20 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		t.Log("connect error", err)
 	}
+	mockAPI2, err := client.New(client2, nil)
+	if err != nil {
+		panic(err)
+	}
 	env2 := protocol.P2PEnv{
 		Ctx:              context.Background(),
 		ChainCfg:         cfg,
+		API:              mockAPI2,
 		QueueClient:      client2,
 		Host:             host2,
 		SubConfig:        mcfg,
 		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT2),
 		RoutingTable:     kademliaDHT2.RoutingTable(),
+		PeerInfoManager:  &peerInfoManager{},
 		DB:               newTestDB(),
 	}
 	p2 := &Protocol{
@@ -510,15 +523,20 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		panic(err)
 	}
-
+	mockAPI1, err := client.New(client1, nil)
+	if err != nil {
+		panic(err)
+	}
 	env1 := protocol.P2PEnv{
 		Ctx:              context.Background(),
 		ChainCfg:         cfg,
+		API:              mockAPI1,
 		QueueClient:      client1,
 		Host:             host1,
 		SubConfig:        mcfg,
 		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
 		RoutingTable:     kademliaDHT1.RoutingTable(),
+		PeerInfoManager:  &peerInfoManager{},
 		DB:               newTestDB(),
 	}
 	InitProtocol(&env1)
@@ -539,14 +557,20 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		t.Log("connect error", err)
 	}
+	mockAPI3, err := client.New(client3, nil)
+	if err != nil {
+		panic(err)
+	}
 	env3 := protocol.P2PEnv{
 		Ctx:              context.Background(),
 		ChainCfg:         cfg,
+		API:              mockAPI3,
 		QueueClient:      client3,
 		Host:             host3,
 		SubConfig:        mcfg3,
 		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT3),
 		RoutingTable:     kademliaDHT3.RoutingTable(),
+		PeerInfoManager:  &peerInfoManager{},
 		DB:               newTestDB(),
 	}
 	p3 := &Protocol{
@@ -667,4 +691,12 @@ func (db *TestDB) Sync(prefix datastore.Key) error {
 
 func (db *TestDB) Batch() (datastore.Batch, error) {
 	return nil, nil
+}
+
+type peerInfoManager struct{}
+
+func (p *peerInfoManager) Refresh(info *types.Peer) {}
+func (p *peerInfoManager) FetchAll() []*types.Peer  { return nil }
+func (p *peerInfoManager) PeerHeight(pid peer.ID) int64 {
+	return 14000
 }

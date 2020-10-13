@@ -3,6 +3,7 @@ package protocol
 
 import (
 	"context"
+	"github.com/33cn/chain33/client"
 
 	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
@@ -37,6 +38,7 @@ type P2PEnv struct {
 	Ctx             context.Context
 	ChainCfg        *types.Chain33Config
 	SubConfig       *types2.P2PSubConfig
+	API             client.QueueProtocolAPI
 	QueueClient     queue.Client
 	Host            host.Host
 	P2PManager      *p2p.Manager
