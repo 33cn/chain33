@@ -234,16 +234,16 @@ func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.
 	}
 
 	var options []libp2p.Option
+	if p.subCfg.RelayEnable {
+		if p.subCfg.RelayHop { //启用中继服务端
+			options = append(options, libp2p.EnableRelay(circuit.OptHop))
+		} else { //用内置的节点作为中继节点,BootStraps 需要打开HOP选项
+			relays := append(p.subCfg.BootStraps, p.subCfg.RelayNodeAddr...)
+			options = append(options, libp2p.AddrsFactory(net.WithRelayAddrs(relays)))
+			options = append(options, libp2p.EnableRelay())
+		}
+	}
 
-	//if p.subCfg.RelayNodeAddr != "" {
-	if p.subCfg.RelayEnable { //用内置的节点作为中继节点
-		relays := append(p.subCfg.BootStraps, p.subCfg.RelayNodeAddr)
-		options = append(options, libp2p.AddrsFactory(net.WithRelayAddrs(relays)))
-		options = append(options, libp2p.EnableRelay())
-	}
-	if p.subCfg.RelayHop { //启用中继服务端
-		options = append(options, libp2p.EnableRelay(circuit.OptHop))
-	}
 	options = append(options, libp2p.NATPortMap())
 	if maddr != nil {
 		options = append(options, libp2p.ListenAddrs(maddr))

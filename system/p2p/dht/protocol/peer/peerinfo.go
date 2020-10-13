@@ -2,6 +2,7 @@ package peer
 
 import (
 	"fmt"
+	"github.com/libp2p/go-libp2p/p2p/host/relay"
 
 	"net"
 	"strconv"
@@ -187,6 +188,7 @@ func (p *peerInfoProtol) setExternalAddr(addr string) {
 	}
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
+
 	if spliteAddr != p.externalAddr && isPublicIP(net.ParseIP(spliteAddr)) {
 
 		p.externalAddr = spliteAddr
@@ -221,13 +223,19 @@ func (p *peerInfoProtol) detectNodeAddr() {
 		}
 	}()
 	//通常libp2p监听的地址列表，第一个为局域网地址，最后一个为外部，先进行外部地址预设置
-	addrs := p.GetHost().Addrs()
+	//过滤掉中继地址
+	addrs := relay.Filter(p.GetHost().Addrs())
 	preExternalAddr := strings.Split(addrs[len(addrs)-1].String(), "/")[2]
+	netIP := net.ParseIP(preExternalAddr)
+	if netIP.IsLoopback() {
+		//切换下一个地址
+		preExternalAddr = strings.Split(addrs[0].String(), "/")[2]
+		netIP = net.ParseIP(preExternalAddr)
+	}
 	p.mutex.Lock()
 	p.externalAddr = preExternalAddr
 	p.mutex.Unlock()
 
-	netIP := net.ParseIP(preExternalAddr)
 	if isPublicIP(netIP) { //检测是PubIp不用继续通过其他节点获取
 		log.Debug("detectNodeAddr", "testPubIp", preExternalAddr)
 	}
