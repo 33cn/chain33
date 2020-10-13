@@ -1,10 +1,11 @@
 package net
 
 import (
+	"testing"
+
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestRelayAddrs_OnlyFactory(t *testing.T) {

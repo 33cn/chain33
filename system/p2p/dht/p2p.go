@@ -9,11 +9,12 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	circuit "github.com/libp2p/go-libp2p-circuit"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
