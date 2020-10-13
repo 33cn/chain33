@@ -115,7 +115,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	bootstraps := net.ConvertPeers(s.cfg.BootStraps)
 	ticker1 := time.NewTicker(time.Minute)
 	ticker2 := time.NewTicker(time.Minute * 2)
-	ticker3 := time.NewTicker(time.Second * 50)
+	ticker3 := time.NewTicker(time.Hour * 1)
 	for {
 		select {
 		case <-ticker1.C:
@@ -169,10 +169,10 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			ids := s.host.Peerstore().PeersWithAddrs()
 			for _, id := range ids {
 				addrs := s.host.Peerstore().Addrs(id)
-				log.Info("Peerstore", "maddr", addrs, "pid", id)
+				log.Debug("Peerstore", "maddr", addrs, "pid", id)
 			}
 			for _, pid := range s.discovery.ListPeers() {
-				log.Info("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
+				log.Debug("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
 			}
 
 		case <-s.Done:
