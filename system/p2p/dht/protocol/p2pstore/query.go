@@ -45,17 +45,21 @@ func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) 
 		return headers, pid
 	}
 
-	//for _, pid := range p.healthyRoutingTable.ListPeers() {
-	//	headers, err := p.getHeadersFromPeer(param, pid)
-	//	if err != nil {
-	//		log.Error("getHeaders", "peer", pid, "error", err)
-	//		continue
-	//	}
-	//	fmt.Println("get headers from healthy")
-	//	return headers, pid
-	//}
+	if len(param.Pid) != 0 {
+		return nil, ""
+	}
+
+	for _, pid := range p.healthyRoutingTable.ListPeers() {
+		headers, err := p.getHeadersFromPeer(param, pid)
+		if err != nil {
+			log.Error("getHeaders", "peer", pid, "error", err)
+			continue
+		}
+		fmt.Println("get headers from healthy")
+		return headers, pid
+	}
 	log.Error("getHeaders", "error", types2.ErrNotFound)
-	return &types.Headers{}, ""
+	return nil, ""
 }
 
 func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*types.Headers, error) {
@@ -88,20 +92,6 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 }
 
 func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
-	//for _, prettyID := range param.Pid {
-	//	pid, err := peer.Decode(prettyID)
-	//	if err != nil {
-	//		log.Error("getChunkRecords", "decode pid error", err)
-	//		continue
-	//	}
-	//	records, err := p.getChunkRecordsFromPeer(param, pid)
-	//	if err != nil {
-	//		log.Error("getChunkRecords", "param peer", pid, "error", err, "start", param.Start, "end", param.End)
-	//		continue
-	//	}
-	//	return records
-	//}
-
 	for _, pid := range p.healthyRoutingTable.ListPeers() {
 		records, err := p.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
@@ -280,7 +270,7 @@ func (p *Protocol) checkChunkInNetwork(req *types.ChunkInfoMsg) (peer.ID, bool) 
 		Start:     random,
 		End:       random,
 	}
-	//query a random block of the chunk, to make sure that the chunk exists in the net.
+	//query a random block of the chunk, to make sure that the chunk exists in the extension.
 	_, pid, err := p.mustFetchChunk(ctx, req2, false)
 	return pid, err == nil
 }

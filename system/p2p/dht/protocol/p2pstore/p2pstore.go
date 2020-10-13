@@ -86,6 +86,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 
 		for {
 			select {
+			case <-p.Ctx.Done():
+				return
 			case <-ticker1.C:
 				p.updateChunkWhiteList()
 			case <-ticker2.C:
@@ -104,8 +106,6 @@ func InitProtocol(env *protocol.P2PEnv) {
 					log.Info("LatencyEWMA", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid), "latency", p.Host.Peerstore().LatencyEWMA(pid))
 				}
 				log.Info("debug length", "notifying msg len", len(p.notifyingQueue))
-			case <-p.Ctx.Done():
-				return
 			}
 		}
 	}()

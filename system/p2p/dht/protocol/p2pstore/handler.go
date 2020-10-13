@@ -194,6 +194,10 @@ func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
 		return
 	}
 	headers, _ := p.getHeaders(&types.ReqBlocks{Start: req.Start, End: req.End})
+	if headers == nil {
+		log.Error("GetBlockHeader", "error", types2.ErrNotFound)
+		return
+	}
 	if len(headers.Items) != len(bodys.Items) {
 		log.Error("GetBlockHeader", "error", types2.ErrLength, "header length", len(headers.Items), "body length", len(bodys.Items), "start", req.Start, "end", req.End)
 		return
@@ -259,7 +263,7 @@ func (p *Protocol) handleEventGetHeaders(m *queue.Message) {
 	}
 	m.Reply(p.QueueClient.NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
 	headers, pid := p.getHeaders(req)
-	if len(headers.Items) == 0 {
+	if headers == nil || len(headers.Items) == 0 {
 		return
 	}
 	msg := p.QueueClient.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid.Pretty(), Headers: headers})
