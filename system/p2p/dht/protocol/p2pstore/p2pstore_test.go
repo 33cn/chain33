@@ -417,7 +417,6 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		DB:               newTestDB(),
 	}
 	InitProtocol(&env1)
-	protocol.RegisterStreamHandler(host1, protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 
 	kademliaDHT2, err := dht.New(context.Background(), host2)
 	if err != nil {
@@ -453,11 +452,10 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		notifyingQueue:      make(chan *types.ChunkInfoMsg, 100),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	protocol.RegisterStreamHandler(p2.Host, protocol.FetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p2.Host, protocol.StoreChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
-	protocol.RegisterStreamHandler(p2.Host, protocol.GetHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
-	protocol.RegisterStreamHandler(p2.Host, protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p2.handleStreamGetChunkRecord))
-	protocol.RegisterStreamHandler(p2.Host, protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
+	protocol.RegisterStreamHandler(p2.Host, FetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
+	protocol.RegisterStreamHandler(p2.Host, StoreChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
+	protocol.RegisterStreamHandler(p2.Host, GetHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
+	protocol.RegisterStreamHandler(p2.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p2.handleStreamGetChunkRecord))
 	go func() {
 		for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
 			p2.updateHealthyRoutingTable()
@@ -540,7 +538,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		DB:               newTestDB(),
 	}
 	InitProtocol(&env1)
-	protocol.RegisterStreamHandler(host1, protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
 
 	mcfg3 := &types2.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg3)
@@ -580,11 +577,10 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		notifyingQueue:      make(chan *types.ChunkInfoMsg, 100),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	protocol.RegisterStreamHandler(p3.Host, protocol.FetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p3.Host, protocol.StoreChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))
-	protocol.RegisterStreamHandler(p3.Host, protocol.GetHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
-	protocol.RegisterStreamHandler(p3.Host, protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
-	protocol.RegisterStreamHandler(p3.Host, protocol.IsHealthy, protocol.HandlerWithRW(handleStreamIsHealthy))
+	protocol.RegisterStreamHandler(p3.Host, FetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
+	protocol.RegisterStreamHandler(p3.Host, StoreChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))
+	protocol.RegisterStreamHandler(p3.Host, GetHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
+	protocol.RegisterStreamHandler(p3.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
 	go func() {
 		for i := 0; i < 3; i++ {
 			p3.updateHealthyRoutingTable()
@@ -592,7 +588,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		}
 	}()
 	go p3.syncRoutine()
-	discovery.Advertise(context.Background(), p3.RoutingDiscovery, protocol.BroadcastFullNode)
+	discovery.Advertise(context.Background(), p3.RoutingDiscovery, BroadcastFullNode)
 
 	client1.Sub("p2p")
 	client3.Sub("p2p3")
@@ -618,15 +614,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	}()
 
 	return p3
-}
-
-func handleStreamIsHealthy(_ *types.P2PRequest, res *types.P2PResponse) error {
-	res.Response = &types.P2PResponse_Reply{
-		Reply: &types.Reply{
-			IsOk: true,
-		},
-	}
-	return nil
 }
 
 type TestDB struct {

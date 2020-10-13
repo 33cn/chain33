@@ -64,7 +64,7 @@ func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
 func (p *Protocol) storeChunksOnPeer(pid peer.ID, reqs ...*types.ChunkInfoMsg) error {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute)
 	defer cancel()
-	stream, err := p.Host.NewStream(ctx, pid, protocol.StoreChunk)
+	stream, err := p.Host.NewStream(ctx, pid, StoreChunk)
 	if err != nil {
 		log.Error("new stream error when store chunk", "peer id", pid, "error", err)
 		return err

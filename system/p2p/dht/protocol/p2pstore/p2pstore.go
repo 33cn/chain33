@@ -16,6 +16,14 @@ import (
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
+const (
+	FetchChunk        = "/chain33/fetch-chunk/1.0.0"
+	StoreChunk        = "/chain33/store-chunk/1.0.0"
+	GetHeader         = "/chain33/headers/1.0.0"
+	GetChunkRecord    = "/chain33/chunk-record/1.0.0"
+	BroadcastFullNode = "/chain33/full-node/1.0.0"
+)
+
 const maxConcurrency = 10
 
 var log = log15.New("module", "protocol.p2pstore")
@@ -61,10 +69,10 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
-	protocol.RegisterStreamHandler(p.Host, protocol.FetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p.Host, protocol.StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
-	protocol.RegisterStreamHandler(p.Host, protocol.GetHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
-	protocol.RegisterStreamHandler(p.Host, protocol.GetChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
+	protocol.RegisterStreamHandler(p.Host, FetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
+	protocol.RegisterStreamHandler(p.Host, StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
+	protocol.RegisterStreamHandler(p.Host, GetHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
+	protocol.RegisterStreamHandler(p.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
 	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, p.handleEventNotifyStoreChunk)
 	protocol.RegisterEventHandler(types.EventGetChunkBlock, p.handleEventGetChunkBlock)
@@ -160,7 +168,7 @@ func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
 	if !p.SubConfig.IsFullNode {
 		return
 	}
-	_, err := p.Advertise(p.Ctx, protocol.BroadcastFullNode, opts...)
+	_, err := p.Advertise(p.Ctx, BroadcastFullNode, opts...)
 	if err != nil {
 		log.Error("advertiseFullNode", "error", err)
 	}
@@ -171,7 +179,7 @@ func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
 func (p *Protocol) debugFullNode() {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
-	peerInfos, err := p.FindPeers(ctx, protocol.BroadcastFullNode)
+	peerInfos, err := p.FindPeers(ctx, BroadcastFullNode)
 	if err != nil {
 		log.Error("debugFullNode", "FindPeers error", err)
 		return

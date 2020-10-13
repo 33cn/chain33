@@ -3,8 +3,8 @@ package protocol
 
 import (
 	"context"
-	"github.com/33cn/chain33/client"
 
+	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/extension"
@@ -16,21 +16,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
-)
-
-// all protocols
-const (
-	//p2pstore protocols
-	FetchChunk        = "/chain33/fetch-chunk/" + types2.Version
-	StoreChunk        = "/chain33/store-chunk/" + types2.Version
-	GetHeader         = "/chain33/headers/" + types2.Version
-	GetChunkRecord    = "/chain33/chunk-record/" + types2.Version
-	BroadcastFullNode = "/chain33/full-node/" + types2.Version
-
-	//sync protocols
-	IsSync        = "/chain33/is-sync/" + types2.Version
-	IsHealthy     = "/chain33/is-healthy/" + types2.Version
-	GetLastHeader = "/chain33/last-header/" + types2.Version
 )
 
 // P2PEnv p2p全局公共变量

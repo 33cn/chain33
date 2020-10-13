@@ -55,7 +55,6 @@ func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) 
 			log.Error("getHeaders", "peer", pid, "error", err)
 			continue
 		}
-		fmt.Println("get headers from healthy")
 		return headers, pid
 	}
 	log.Error("getHeaders", "error", types2.ErrNotFound)
@@ -65,7 +64,7 @@ func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) 
 func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*types.Headers, error) {
 	childCtx, cancel := context.WithTimeout(p.Ctx, 30*time.Second)
 	defer cancel()
-	stream, err := p.Host.NewStream(childCtx, pid, protocol.GetHeader)
+	stream, err := p.Host.NewStream(childCtx, pid, GetHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +107,7 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid peer.ID) (*types.ChunkRecords, error) {
 	childCtx, cancel := context.WithTimeout(p.Ctx, 30*time.Second)
 	defer cancel()
-	stream, err := p.Host.NewStream(childCtx, pid, protocol.GetChunkRecord)
+	stream, err := p.Host.NewStream(childCtx, pid, GetChunkRecord)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +175,7 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
 	ctx2, cancel2 := context.WithTimeout(ctx, time.Second*3)
 	defer cancel2()
-	peerInfos, err := p.FindPeers(ctx2, protocol.BroadcastFullNode)
+	peerInfos, err := p.FindPeers(ctx2, BroadcastFullNode)
 	if err != nil {
 		log.Error("mustFetchChunk", "Find full peers error", err)
 		return nil, "", types2.ErrNotFound
@@ -204,7 +203,7 @@ func (p *Protocol) fetchChunkFromPeer(ctx context.Context, params *types.ChunkIn
 	tag := "p2pstore"
 	p.Host.ConnManager().Protect(pid, tag)
 	defer p.Host.ConnManager().Unprotect(pid, tag)
-	stream, err := p.Host.NewStream(childCtx, pid, protocol.FetchChunk)
+	stream, err := p.Host.NewStream(childCtx, pid, FetchChunk)
 	if err != nil {
 		log.Error("fetchChunkFromPeer", "error", err)
 		return nil, nil, err
