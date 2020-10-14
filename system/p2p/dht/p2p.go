@@ -243,6 +243,8 @@ func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.
 			options = append(options, libp2p.AddrsFactory(net.WithRelayAddrs(relays)))
 			options = append(options, libp2p.EnableRelay())
 		}
+	} else {
+		options = append(options, libp2p.DisableRelay())
 	}
 
 	options = append(options, libp2p.NATPortMap())

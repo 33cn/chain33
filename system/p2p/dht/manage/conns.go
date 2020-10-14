@@ -92,7 +92,7 @@ func (s *ConnManager) GetLatencyByPeer(pids []peer.ID) map[string]time.Duration 
 //BandTrackerByProtocol returan allprotocols bandinfo
 func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 	bandprotocols := s.bandwidthTracker.GetBandwidthByProtocol()
-	var infos types.NetProtocolInfos
+	var infos netprotocols
 	for id, stat := range bandprotocols {
 		if id == "" {
 			continue
@@ -103,10 +103,11 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 		info.Ratein = s.RateCaculate(stat.RateIn)
 		info.Rateout = s.RateCaculate(stat.RateOut)
 		info.Ratetotal = s.RateCaculate(stat.RateIn + stat.RateOut)
-		infos.Protoinfo = append(infos.Protoinfo, &info)
+		infos = append(infos, &info)
 
 	}
-	return &infos
+	sort.Sort(infos)
+	return &types.NetProtocolInfos{Protoinfo: infos}
 
 }
 
@@ -115,7 +116,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	bootstraps := net.ConvertPeers(s.cfg.BootStraps)
 	ticker1 := time.NewTicker(time.Minute)
 	ticker2 := time.NewTicker(time.Minute * 2)
-	ticker3 := time.NewTicker(time.Hour * 1)
+	ticker3 := time.NewTicker(time.Hour * 6)
 	for {
 		select {
 		case <-ticker1.C:
@@ -337,4 +338,17 @@ func (c conns) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
 //Less
 func (c conns) Less(i, j int) bool { //从大到小排序，即index=0 ，表示数值最大
 	return c[i].Stat().Opened.After(c[j].Stat().Opened)
+}
+
+type netprotocols []*types.ProtocolInfo
+
+//Len
+func (n netprotocols) Len() int { return len(n) }
+
+//Swap
+func (n netprotocols) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
+
+//Less
+func (n netprotocols) Less(i, j int) bool { //从大到小排序，即index=0 ，表示数值最大
+	return n[i].Ratetotal > n[j].Ratetotal
 }
