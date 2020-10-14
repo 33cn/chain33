@@ -6,24 +6,19 @@ package peer
 
 import (
 	"context"
-	"github.com/33cn/chain33/system/p2p/dht/extension"
-	"github.com/libp2p/go-libp2p-core/metrics"
-	"time"
-
-	//"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"testing"
-	//"github.com/33cn/chain33/client"
-	//"github.com/33cn/chain33/p2p"
+	"time"
+
 	"github.com/33cn/chain33/queue"
-	//"github.com/33cn/chain33/system/p2p/dht/extension"
-	//"github.com/33cn/chain33/system/p2p/dht/manage"
+	"github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"

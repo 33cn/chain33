@@ -7,16 +7,18 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"testing"
+
 	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/system/p2p/dht/net"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+	discovery "github.com/libp2p/go-libp2p-discovery"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
-	"testing"
 )
 
 func initEnv(t *testing.T, q queue.Queue) *Protocol {
@@ -47,8 +49,10 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	mcfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], mcfg)
-	discovery1 := net.InitDhtDiscovery(context.Background(), host1, nil, cfg, &p2pty.P2PSubConfig{Channel: 888})
-	discovery1.Start()
+	kademliaDHT1, err := dht.New(context.Background(), host1)
+	if err != nil {
+		panic(err)
+	}
 
 	env1 := protocol.P2PEnv{
 		Ctx:              context.Background(),
@@ -56,17 +60,22 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		QueueClient:      client1,
 		Host:             host1,
 		SubConfig:        mcfg,
-		RoutingDiscovery: discovery1.RoutingDiscovery,
-		RoutingTable:     discovery1.RoutingTable(),
+		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
+		RoutingTable:     kademliaDHT1.RoutingTable(),
 		PeerInfoManager:  &peerInfoManager{},
 	}
 	InitProtocol(&env1)
 
-	discovery2 := net.InitDhtDiscovery(context.Background(), host2, nil, cfg, &p2pty.P2PSubConfig{
-		Seeds:   []string{fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty())},
-		Channel: 888,
-	})
-	discovery2.Start()
+	kademliaDHT2, err := dht.New(context.Background(), host2)
+	if err != nil {
+		panic(err)
+	}
+	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
+	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
+	err = host2.Connect(context.Background(), *peerinfo)
+	if err != nil {
+		t.Log("connect error", err)
+	}
 
 	env2 := protocol.P2PEnv{
 		Ctx:              context.Background(),
@@ -74,8 +83,8 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		QueueClient:      client2,
 		Host:             host2,
 		SubConfig:        mcfg,
-		RoutingDiscovery: discovery2.RoutingDiscovery,
-		RoutingTable:     discovery2.RoutingTable(),
+		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT2),
+		RoutingTable:     kademliaDHT2.RoutingTable(),
 		PeerInfoManager:  &peerInfoManager{},
 	}
 	p2 := &Protocol{
@@ -85,7 +94,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	client1.Sub("p2p")
 	go func() {
 		for msg := range client1.Recv() {
-			protocol.HandleEvent(msg)
+			protocol.GetEventHandler(msg.Ty)(msg)
 		}
 	}()
 
