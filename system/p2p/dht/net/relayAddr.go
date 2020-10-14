@@ -1,9 +1,10 @@
 package net
 
 import (
+	"strings"
+
 	"github.com/libp2p/go-libp2p/config"
 	ma "github.com/multiformats/go-multiaddr"
-	"strings"
 )
 
 // WithRelayAddrs 会自动把relay的地址加入到自己的addrs 中，然后进行广播，这样其他节点收到包含有relay地址格式的节点地址时，
