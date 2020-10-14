@@ -41,8 +41,9 @@ type ConnManager struct {
 }
 
 // NewConnManager new connection manager
-func NewConnManager(host core.Host, rt *kb.RoutingTable, tracker *metrics.BandwidthCounter, cfg *p2pty.P2PSubConfig) *ConnManager {
+func NewConnManager(ctx context.Context, host core.Host, rt *kb.RoutingTable, tracker *metrics.BandwidthCounter, cfg *p2pty.P2PSubConfig) *ConnManager {
 	connM := &ConnManager{}
+	connM.ctx = ctx
 	connM.host = host
 	connM.routingTable = rt
 	connM.bandwidthTracker = tracker

@@ -21,7 +21,6 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/33cn/chain33/system/p2p/dht/manage"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
 	"github.com/33cn/chain33/system/p2p/dht/store"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -63,8 +62,7 @@ type P2P struct {
 	ctx     context.Context
 	cancel  context.CancelFunc
 	db      ds.Datastore
-	//env *protocol.P2PEnv
-	env *prototypes.P2PEnv
+	env     *protocol.P2PEnv
 }
 
 // New new dht p2p network
@@ -134,7 +132,7 @@ func initP2P(p *P2P) *P2P {
 	}
 	p.pubsub = ps
 	p.discovery = InitDhtDiscovery(p.ctx, p.host, p.addrBook.AddrsInfo(), p.chainCfg, p.subCfg)
-	p.connManager = manage.NewConnManager(p.host, p.discovery.RoutingTable(), bandwidthTracker, p.subCfg)
+	p.connManager = manage.NewConnManager(p.ctx, p.host, p.discovery.RoutingTable(), bandwidthTracker, p.subCfg)
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
 	p.taskGroup = &sync.WaitGroup{}
 	p.db = store.NewDataStore(p.subCfg)
@@ -152,37 +150,24 @@ func (p *P2P) StartP2P() {
 	p.addrBook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
 	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
 	p.discovery.Start()
-
-	env := &prototypes.P2PEnv{
+	//debug new
+	env := &protocol.P2PEnv{
+		Ctx:              p.ctx,
 		ChainCfg:         p.chainCfg,
 		QueueClient:      p.client,
 		Host:             p.host,
-		ConnManager:      p.connManager,
-		PeerInfoManager:  p.peerInfoManager,
 		P2PManager:       p.mgr,
 		SubConfig:        p.subCfg,
-		Discovery:        p.discovery,
-		Pubsub:           p.pubsub,
-		Ctx:              p.ctx,
 		DB:               p.db,
-		RoutingTable:     p.discovery.RoutingTable(),
 		RoutingDiscovery: p.discovery.RoutingDiscovery,
+		RoutingTable:     p.discovery.RoutingTable(),
+		API:              p.api,
+		Pubsub:           p.pubsub,
+		PeerInfoManager:  p.peerInfoManager,
+		ConnManager:      p.connManager,
 	}
 	p.env = env
-
-	//debug new
-	env2 := &protocol.P2PEnv{
-		Ctx:              p.ctx,
-		ChainCfg:         p.chainCfg,
-		QueueClient:      p.client,
-		Host:             p.host,
-		P2PManager:       p.mgr,
-		SubConfig:        p.subCfg,
-		DB:               p.db,
-		RoutingDiscovery: p.discovery.RoutingDiscovery,
-		RoutingTable:     p.discovery.RoutingTable(),
-	}
-	protocol.InitAllProtocol(env2)
+	protocol.InitAllProtocol(env)
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()
@@ -196,7 +181,6 @@ func (p *P2P) CloseP2P() {
 	p.db.Close()
 
 	protocol.ClearEventHandler()
-	prototypes.ClearEventHandler()
 	if !p.isRestart() {
 		p.mgr.PubSub.Unsub(p.subChan)
 

@@ -42,6 +42,9 @@ func NewPeerInfoManager(ctx context.Context, host host.Host, cli queue.Client) *
 }
 
 func (p *PeerInfoManager) Refresh(peer *types.Peer) {
+	if peer == nil {
+		return
+	}
 	storeInfo := peerStoreInfo{
 		storeTime: time.Now(),
 		peer:      peer,
@@ -57,7 +60,7 @@ func (p *PeerInfoManager) FetchAll() []*types.Peer {
 			p.peerInfo.Delete(key)
 			return true
 		}
-		peers = append(peers, value.(*types.Peer))
+		peers = append(peers, info.peer)
 		return true
 	})
 	return peers
