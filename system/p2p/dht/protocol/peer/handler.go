@@ -50,14 +50,7 @@ func (p *Protocol) handleStreamVersion(stream network.Stream) {
 }
 
 func (p *Protocol) handleEventPeerInfo(msg *queue.Message) {
-	peerInfos := p.PeerInfoManager.FetchAll()
-	var peers []*types.Peer
-	for _, pinfo := range peerInfos {
-		if pinfo == nil {
-			continue
-		}
-		peers = append(peers, pinfo)
-	}
+	peers := p.PeerInfoManager.FetchAll()
 	msg.Reply(p.QueueClient.NewMessage("blockchain", types.EventPeerList, &types.PeerList{Peers: peers}))
 }
 
