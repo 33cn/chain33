@@ -80,11 +80,13 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.detectNodeAddr()
 	go func() {
 		ticker1 := time.NewTicker(time.Second * 10)
-		select {
-		case <-p.Ctx.Done():
-			return
-		case <-ticker1.C:
-			p.refreshPeerInfo()
+		for {
+			select {
+			case <-p.Ctx.Done():
+				return
+			case <-ticker1.C:
+				p.refreshPeerInfo()
+			}
 		}
 	}()
 }

@@ -71,6 +71,7 @@ func (p *Protocol) refreshPeerInfo() {
 				log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
 				return
 			}
+			defer protocol.CloseStream(stream)
 			var resp types.Peer
 			err = protocol.ReadStream(&resp, stream)
 			if err != nil {
@@ -79,8 +80,10 @@ func (p *Protocol) refreshPeerInfo() {
 			}
 			p.PeerInfoManager.Refresh(&resp)
 		}(remoteID)
-
 	}
+	selfPeer := p.getLocalPeerInfo()
+	selfPeer.Self = true
+	p.PeerInfoManager.Refresh(selfPeer)
 	wg.Wait()
 }
 
@@ -182,7 +185,7 @@ func (p *Protocol) queryVersion(pid peer.ID) error {
 		if err != nil {
 			return err
 		}
-		p.Host.Peerstore().AddAddr(pid, remoteMAddr, time.Hour*24)
+		p.Host.Peerstore().AddAddr(pid, remoteMAddr, time.Hour*12)
 	}
 	return nil
 }

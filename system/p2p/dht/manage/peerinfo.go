@@ -52,6 +52,14 @@ func (p *PeerInfoManager) Refresh(peer *types.Peer) {
 	p.peerInfo.Store(peer.Name, &storeInfo)
 }
 
+func (p *PeerInfoManager) Fetch(pid string) *types.Peer {
+	v, ok := p.peerInfo.Load(pid)
+	if !ok {
+		return nil
+	}
+	return v.(*types.Peer)
+}
+
 func (p *PeerInfoManager) FetchAll() []*types.Peer {
 	var peers []*types.Peer
 	p.peerInfo.Range(func(key, value interface{}) bool {
@@ -73,6 +81,9 @@ func (p *PeerInfoManager) PeerHeight(pid peer.ID) int64 {
 	}
 	peerInfo, ok := v.(*types.Peer)
 	if !ok {
+		return -1
+	}
+	if peerInfo.Header == nil {
 		return -1
 	}
 	return peerInfo.Header.Height
