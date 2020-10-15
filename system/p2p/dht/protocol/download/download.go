@@ -20,7 +20,9 @@ func init() {
 }
 
 const (
-	downloadBlockReq = "/chain33/downloadBlockReq/1.0.0"
+	// Deprecated: old version, use downloadBlock instead
+	downloadBlockOld = "/chain33/downloadBlockReq/1.0.0"
+	downloadBlock    = "/chain33/download-block/1.0.0"
 )
 
 //type Istream
@@ -33,7 +35,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 		P2PEnv: env,
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	protocol.RegisterStreamHandler(p.Host, downloadBlockReq, p.handleStreamDownloadBlock)
+	protocol.RegisterStreamHandler(p.Host, downloadBlockOld, p.handleStreamDownloadBlock)
+	protocol.RegisterStreamHandler(p.Host, downloadBlock, p.handleStreamDownloadBlock)
 	//注册事件处理函数
 	protocol.RegisterEventHandler(types.EventFetchBlocks, p.handleEventDownloadBlock)
 
@@ -91,7 +94,7 @@ ReDownload:
 func (p *Protocol) downloadBlockFromPeer(height int64, pid peer.ID) (*types.Block, error) {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*10)
 	defer cancel()
-	stream, err := p.Host.NewStream(ctx, pid, downloadBlockReq)
+	stream, err := p.Host.NewStream(ctx, pid, downloadBlock)
 	if err != nil {
 		return nil, err
 	}
