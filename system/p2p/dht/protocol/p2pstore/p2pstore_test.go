@@ -20,7 +20,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
@@ -405,16 +404,17 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		panic(err)
 	}
 	env1 := protocol.P2PEnv{
-		Ctx:              context.Background(),
-		ChainCfg:         cfg,
-		API:              mockAPI1,
-		QueueClient:      client1,
-		Host:             host1,
-		SubConfig:        mcfg,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
-		RoutingTable:     kademliaDHT1.RoutingTable(),
-		PeerInfoManager:  &peerInfoManager{},
-		DB:               newTestDB(),
+		Ctx:                 context.Background(),
+		ChainCfg:            cfg,
+		API:                 mockAPI1,
+		QueueClient:         client1,
+		Host:                host1,
+		SubConfig:           mcfg,
+		RoutingDiscovery:    discovery.NewRoutingDiscovery(kademliaDHT1),
+		RoutingTable:        kademliaDHT1.RoutingTable(),
+		HealthyRoutingTable: kademliaDHT1.RoutingTable(),
+		PeerInfoManager:     &peerInfoManager{},
+		DB:                  newTestDB(),
 	}
 	InitProtocol(&env1)
 
@@ -434,34 +434,35 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		panic(err)
 	}
 	env2 := protocol.P2PEnv{
-		Ctx:              context.Background(),
-		ChainCfg:         cfg,
-		API:              mockAPI2,
-		QueueClient:      client2,
-		Host:             host2,
-		SubConfig:        mcfg,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT2),
-		RoutingTable:     kademliaDHT2.RoutingTable(),
-		PeerInfoManager:  &peerInfoManager{},
-		DB:               newTestDB(),
+		Ctx:                 context.Background(),
+		ChainCfg:            cfg,
+		API:                 mockAPI2,
+		QueueClient:         client2,
+		Host:                host2,
+		SubConfig:           mcfg,
+		RoutingDiscovery:    discovery.NewRoutingDiscovery(kademliaDHT2),
+		RoutingTable:        kademliaDHT2.RoutingTable(),
+		HealthyRoutingTable: kademliaDHT2.RoutingTable(),
+		PeerInfoManager:     &peerInfoManager{},
+		DB:                  newTestDB(),
 	}
 	p2 := &Protocol{
-		P2PEnv:              &env2,
-		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env2.Host.ID()), time.Minute, env2.Host.Peerstore()),
-		localChunkInfo:      make(map[string]LocalChunkInfo),
-		notifyingQueue:      make(chan *types.ChunkInfoMsg, 100),
+		P2PEnv: &env2,
+		//HealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env2.Host.ID()), time.Minute, env2.Host.Peerstore()),
+		localChunkInfo: make(map[string]LocalChunkInfo),
+		notifyingQueue: make(chan *types.ChunkInfoMsg, 100),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p2.Host, FetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p2.Host, StoreChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p2.Host, GetHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
 	protocol.RegisterStreamHandler(p2.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p2.handleStreamGetChunkRecord))
-	go func() {
-		for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
-			p2.updateHealthyRoutingTable()
-			time.Sleep(time.Second * 1)
-		}
-	}()
+	//go func() {
+	//	for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
+	//		p2.updateHealthyRoutingTable()
+	//		time.Sleep(time.Second * 1)
+	//	}
+	//}()
 	go p2.syncRoutine()
 	client1.Sub("p2p")
 	client2.Sub("p2p2")
@@ -526,16 +527,17 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		panic(err)
 	}
 	env1 := protocol.P2PEnv{
-		Ctx:              context.Background(),
-		ChainCfg:         cfg,
-		API:              mockAPI1,
-		QueueClient:      client1,
-		Host:             host1,
-		SubConfig:        mcfg,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
-		RoutingTable:     kademliaDHT1.RoutingTable(),
-		PeerInfoManager:  &peerInfoManager{},
-		DB:               newTestDB(),
+		Ctx:                 context.Background(),
+		ChainCfg:            cfg,
+		API:                 mockAPI1,
+		QueueClient:         client1,
+		Host:                host1,
+		SubConfig:           mcfg,
+		RoutingDiscovery:    discovery.NewRoutingDiscovery(kademliaDHT1),
+		RoutingTable:        kademliaDHT1.RoutingTable(),
+		HealthyRoutingTable: kademliaDHT1.RoutingTable(),
+		PeerInfoManager:     &peerInfoManager{},
+		DB:                  newTestDB(),
 	}
 	InitProtocol(&env1)
 
@@ -559,34 +561,35 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		panic(err)
 	}
 	env3 := protocol.P2PEnv{
-		Ctx:              context.Background(),
-		ChainCfg:         cfg,
-		API:              mockAPI3,
-		QueueClient:      client3,
-		Host:             host3,
-		SubConfig:        mcfg3,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT3),
-		RoutingTable:     kademliaDHT3.RoutingTable(),
-		PeerInfoManager:  &peerInfoManager{},
-		DB:               newTestDB(),
+		Ctx:                 context.Background(),
+		ChainCfg:            cfg,
+		API:                 mockAPI3,
+		QueueClient:         client3,
+		Host:                host3,
+		SubConfig:           mcfg3,
+		RoutingDiscovery:    discovery.NewRoutingDiscovery(kademliaDHT3),
+		RoutingTable:        kademliaDHT3.RoutingTable(),
+		HealthyRoutingTable: kademliaDHT3.RoutingTable(),
+		PeerInfoManager:     &peerInfoManager{},
+		DB:                  newTestDB(),
 	}
 	p3 := &Protocol{
-		P2PEnv:              &env3,
-		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env3.Host.ID()), time.Minute, env3.Host.Peerstore()),
-		localChunkInfo:      make(map[string]LocalChunkInfo),
-		notifyingQueue:      make(chan *types.ChunkInfoMsg, 100),
+		P2PEnv: &env3,
+		//HealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env3.Host.ID()), time.Minute, env3.Host.Peerstore()),
+		localChunkInfo: make(map[string]LocalChunkInfo),
+		notifyingQueue: make(chan *types.ChunkInfoMsg, 100),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p3.Host, FetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p3.Host, StoreChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p3.Host, GetHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
 	protocol.RegisterStreamHandler(p3.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
-	go func() {
-		for i := 0; i < 3; i++ {
-			p3.updateHealthyRoutingTable()
-			time.Sleep(time.Second * 1)
-		}
-	}()
+	//go func() {
+	//	for i := 0; i < 3; i++ {
+	//		p3.updateHealthyRoutingTable()
+	//		time.Sleep(time.Second * 1)
+	//	}
+	//}()
 	go p3.syncRoutine()
 	discovery.Advertise(context.Background(), p3.RoutingDiscovery, BroadcastFullNode)
 

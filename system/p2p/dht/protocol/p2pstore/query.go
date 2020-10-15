@@ -49,7 +49,7 @@ func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) 
 		return nil, ""
 	}
 
-	for _, pid := range p.healthyRoutingTable.ListPeers() {
+	for _, pid := range p.HealthyRoutingTable.ListPeers() {
 		headers, err := p.getHeadersFromPeer(param, pid)
 		if err != nil {
 			log.Error("getHeaders", "peer", pid, "error", err)
@@ -91,7 +91,7 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 }
 
 func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
-	for _, pid := range p.healthyRoutingTable.ListPeers() {
+	for _, pid := range p.HealthyRoutingTable.ListPeers() {
 		records, err := p.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
 			log.Error("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
@@ -143,8 +143,8 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 	//保存查询过的节点，防止重复查询
 	searchedPeers := make(map[peer.ID]struct{})
 	searchedPeers[p.Host.ID()] = struct{}{}
-	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
-	log.Info("into mustFetchChunk", "healthy peers len", p.healthyRoutingTable.Size())
+	peers := p.HealthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
+	log.Info("into mustFetchChunk", "healthy peers len", p.HealthyRoutingTable.Size())
 	for len(peers) != 0 {
 		var nearerPeers []peer.ID
 		var bodys *types.BlockBodys

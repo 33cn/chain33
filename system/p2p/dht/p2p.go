@@ -9,6 +9,10 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -53,16 +57,17 @@ type P2P struct {
 	addrBook        *AddrBook
 	taskGroup       *sync.WaitGroup
 
-	pubsub  *extension.PubSub
-	restart int32
-	p2pCfg  *types.P2P
-	subCfg  *p2pty.P2PSubConfig
-	mgr     *p2p.Manager
-	subChan chan interface{}
-	ctx     context.Context
-	cancel  context.CancelFunc
-	db      ds.Datastore
-	env     *protocol.P2PEnv
+	pubsub              *extension.PubSub
+	restart             int32
+	p2pCfg              *types.P2P
+	subCfg              *p2pty.P2PSubConfig
+	mgr                 *p2p.Manager
+	subChan             chan interface{}
+	ctx                 context.Context
+	cancel              context.CancelFunc
+	db                  ds.Datastore
+	healthyRoutingTable *kb.RoutingTable
+	env                 *protocol.P2PEnv
 }
 
 // New new dht p2p network
@@ -133,7 +138,7 @@ func initP2P(p *P2P) *P2P {
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
 	p.taskGroup = &sync.WaitGroup{}
 	p.db = store.NewDataStore(p.subCfg)
-
+	p.healthyRoutingTable = newHealthyRoutingTable(host, p.discovery.kademliaDHT.RoutingTable(), p.peerInfoManager)
 	return p
 }
 
@@ -149,19 +154,20 @@ func (p *P2P) StartP2P() {
 	p.discovery.Start()
 	//debug new
 	env := &protocol.P2PEnv{
-		Ctx:              p.ctx,
-		ChainCfg:         p.chainCfg,
-		QueueClient:      p.client,
-		Host:             p.host,
-		P2PManager:       p.mgr,
-		SubConfig:        p.subCfg,
-		DB:               p.db,
-		RoutingDiscovery: p.discovery.RoutingDiscovery,
-		RoutingTable:     p.discovery.RoutingTable(),
-		API:              p.api,
-		Pubsub:           p.pubsub,
-		PeerInfoManager:  p.peerInfoManager,
-		ConnManager:      p.connManager,
+		Ctx:                 p.ctx,
+		ChainCfg:            p.chainCfg,
+		QueueClient:         p.client,
+		Host:                p.host,
+		P2PManager:          p.mgr,
+		SubConfig:           p.subCfg,
+		DB:                  p.db,
+		RoutingDiscovery:    p.discovery.RoutingDiscovery,
+		RoutingTable:        p.discovery.RoutingTable(),
+		API:                 p.api,
+		Pubsub:              p.pubsub,
+		PeerInfoManager:     p.peerInfoManager,
+		ConnManager:         p.connManager,
+		HealthyRoutingTable: p.healthyRoutingTable,
 	}
 	p.env = env
 	protocol.InitAllProtocol(env)
@@ -431,4 +437,17 @@ func (p *P2P) genAirDropKey() {
 
 	p.addrBook.saveKey(walletPrivkey, walletPubkey)
 	p.reStart()
+}
+
+func newHealthyRoutingTable(h host.Host, rt *kb.RoutingTable, pm *manage.PeerInfoManager) *kb.RoutingTable {
+	hrt := kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore())
+	rt.PeerAdded = func(pid peer.ID) {
+		if pm.PeerHeight(pid)+50 >= pm.PeerHeight(h.ID()) {
+			_, _ = hrt.Update(pid)
+		}
+	}
+	rt.PeerRemoved = func(pid peer.ID) {
+		hrt.Remove(pid)
+	}
+	return hrt
 }

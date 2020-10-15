@@ -34,7 +34,7 @@ func (p *Protocol) republish() {
 			continue
 		}
 		log.Info("local chunk", "hash", hash, "start", info.Start)
-		peers := p.healthyRoutingTable.NearestPeers(genDHTID(info.ChunkHash), Backup-1)
+		peers := p.HealthyRoutingTable.NearestPeers(genDHTID(info.ChunkHash), Backup-1)
 		for _, pid := range peers {
 			invertedIndex[pid] = append(invertedIndex[pid], info.ChunkInfoMsg)
 		}
@@ -52,7 +52,7 @@ func (p *Protocol) republish() {
 
 // 通知最近的 *BackUp-1* 个节点备份数据，加上本节点共Backup个
 func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
-	peers := p.healthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup-1)
+	peers := p.HealthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup-1)
 	for _, pid := range peers {
 		err := p.storeChunksOnPeer(pid, req)
 		if err != nil {

@@ -64,9 +64,9 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 		return
 	}
 
-	closerPeers := p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
+	closerPeers := p.HealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
 	if len(closerPeers) != 0 && kb.Closer(p.Host.ID(), closerPeers[0], genChunkNameSpaceKey(param.ChunkHash)) {
-		closerPeers = p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup-1)
+		closerPeers = p.HealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup-1)
 	}
 	for _, pid := range closerPeers {
 		if pid == p.Host.ID() {
@@ -174,7 +174,7 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	}
 
 	//如果本节点是本地路由表中距离该chunk最近的节点，则保存数据；否则不需要保存数据
-	pid := p.healthyRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
+	pid := p.HealthyRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
 	if pid != "" && kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}

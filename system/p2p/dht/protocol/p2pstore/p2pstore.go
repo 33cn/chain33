@@ -11,9 +11,6 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/discovery"
-	"github.com/libp2p/go-libp2p-core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
@@ -40,7 +37,7 @@ type Protocol struct {
 	chunkWhiteList sync.Map
 
 	//普通路由表的一个子表，仅包含接近同步完成的节点
-	healthyRoutingTable *kb.RoutingTable
+	//HealthyRoutingTable *kb.RoutingTable
 
 	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
@@ -56,16 +53,16 @@ func init() {
 //InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
-		P2PEnv:              env,
-		healthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
-		notifyingQueue:      make(chan *types.ChunkInfoMsg, 1024),
+		P2PEnv: env,
+		//HealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
+		notifyingQueue: make(chan *types.ChunkInfoMsg, 1024),
 	}
 	//routing table更新时同时更新healthy routing table
-	rm := p.RoutingTable.PeerRemoved
-	p.RoutingTable.PeerRemoved = func(id peer.ID) {
-		rm(id)
-		p.healthyRoutingTable.Remove(id)
-	}
+	//rm := p.RoutingTable.PeerRemoved
+	//p.RoutingTable.PeerRemoved = func(id peer.ID) {
+	//	rm(id)
+	//	p.HealthyRoutingTable.Remove(id)
+	//}
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
@@ -82,10 +79,10 @@ func InitProtocol(env *protocol.P2PEnv) {
 
 	go p.syncRoutine()
 	go func() {
-		for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
-			p.updateHealthyRoutingTable()
-			time.Sleep(time.Second * 1)
-		}
+		//for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
+		//	p.updateHealthyRoutingTable()
+		//	time.Sleep(time.Second * 1)
+		//}
 
 		ticker1 := time.NewTicker(time.Minute)
 		ticker2 := time.NewTicker(types2.RefreshInterval)
@@ -101,7 +98,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 			case <-ticker2.C:
 				p.republish()
 			case <-ticker3.C:
-				p.updateHealthyRoutingTable()
+				//p.updateHealthyRoutingTable()
 				p.advertiseFullNode()
 			case <-ticker4.C:
 				//debug info
@@ -109,8 +106,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
 				p.localChunkInfoMutex.Unlock()
 				p.debugFullNode()
-				log.Info("debug healthy peers", "======== amount", p.healthyRoutingTable.Size())
-				for _, pid := range p.healthyRoutingTable.ListPeers() {
+				log.Info("debug healthy peers", "======== amount", p.HealthyRoutingTable.Size())
+				for _, pid := range p.HealthyRoutingTable.ListPeers() {
 					log.Info("LatencyEWMA", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid), "latency", p.Host.Peerstore().LatencyEWMA(pid))
 				}
 				log.Info("debug length", "notifying msg len", len(p.notifyingQueue))
