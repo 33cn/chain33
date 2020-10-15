@@ -3,6 +3,7 @@ package protocol
 
 import (
 	"context"
+	"time"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/p2p"
@@ -37,6 +38,7 @@ type P2PEnv struct {
 
 type IPeerInfoManager interface {
 	Refresh(info *types.Peer)
+	Fetch(pid peer.ID) *types.Peer
 	FetchAll() []*types.Peer
 	PeerHeight(pid peer.ID) int64
 }
@@ -47,4 +49,17 @@ type IConnManager interface {
 	GetNetRate() metrics.Stats
 	BandTrackerByProtocol() *types.NetProtocolInfos
 	RateCalculate(ratebytes float64) string
+}
+
+func (p *P2PEnv) QueryModule(topic string, ty int64, data interface{}) (interface{}, error) {
+	msg := p.QueueClient.NewMessage(topic, ty, data)
+	err := p.QueueClient.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := p.QueueClient.WaitTimeout(msg, time.Second*10)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data, nil
 }

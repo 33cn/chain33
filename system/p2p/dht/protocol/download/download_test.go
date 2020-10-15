@@ -144,8 +144,9 @@ func testBlockReq(q queue.Queue) {
 
 type peerInfoManager struct{}
 
-func (p *peerInfoManager) Refresh(info *types.Peer) {}
-func (p *peerInfoManager) FetchAll() []*types.Peer  { return nil }
+func (p *peerInfoManager) Refresh(info *types.Peer)      {}
+func (p *peerInfoManager) Fetch(pid peer.ID) *types.Peer { return nil }
+func (p *peerInfoManager) FetchAll() []*types.Peer       { return nil }
 func (p *peerInfoManager) PeerHeight(pid peer.ID) int64 {
 	return 10000
 }

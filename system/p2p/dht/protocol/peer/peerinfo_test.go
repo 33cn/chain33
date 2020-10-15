@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -200,7 +201,7 @@ func TestPeerInfoHandler(t *testing.T) {
 	t.Log(p.getExternalAddr(), p.getPublicIP())
 
 	p.refreshPeerInfo()
-	assert.Equal(t, p.RoutingTable.ListPeers()[0].Pretty(), p.PeerInfoManager.(*peerInfoManager).Name)
+	assert.Equal(t, 2, len(p.PeerInfoManager.FetchAll()))
 }
 
 func Test_isPublicIP(t *testing.T) {
@@ -221,13 +222,22 @@ func Test_isPublicIP(t *testing.T) {
 }
 
 type peerInfoManager struct {
-	*types.Peer
+	peers sync.Map
 }
 
 func (p *peerInfoManager) Refresh(info *types.Peer) {
-	p.Peer = info
+	p.peers.Store(info.Name, info)
 }
-func (p *peerInfoManager) FetchAll() []*types.Peer { return nil }
+
+func (p *peerInfoManager) Fetch(pid peer.ID) *types.Peer { return nil }
+func (p *peerInfoManager) FetchAll() []*types.Peer {
+	var peers []*types.Peer
+	p.peers.Range(func(k, v interface{}) bool {
+		peers = append(peers, v.(*types.Peer))
+		return true
+	})
+	return peers
+}
 func (p *peerInfoManager) PeerHeight(pid peer.ID) int64 {
 	return 10000
 }
