@@ -75,9 +75,8 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	if mcfg.Port == 0 {
 		mcfg.Port = p2pty.DefaultP2PPort
 	}
-	client := mgr.Client
 	p := &P2P{
-		client:   client,
+		client:   mgr.Client,
 		chainCfg: chainCfg,
 		subCfg:   mcfg,
 		p2pCfg:   p2pCfg,
@@ -88,7 +87,6 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	}
 
 	return initP2P(p)
-
 }
 
 func initP2P(p *P2P) *P2P {
@@ -102,7 +100,6 @@ func initP2P(p *P2P) *P2P {
 			p.addrBook.Randkey()
 			go p.genAirDropKey() //非阻塞模式
 		}
-
 	} else { //非阻塞模式
 		go p.genAirDropKey()
 	}
@@ -188,7 +185,6 @@ func (p *P2P) CloseP2P() {
 	p.host.Close()
 	p.cancel()
 	log.Info("p2p closed")
-
 }
 
 func (p *P2P) reStart() {
@@ -202,8 +198,8 @@ func (p *P2P) reStart() {
 	}
 	p.CloseP2P()
 	p.StartP2P()
-
 }
+
 func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) []libp2p.Option {
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
@@ -232,7 +228,6 @@ func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.
 		options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
 	}
 	if p.subCfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
-
 		var maxconnect = int(p.subCfg.MaxConnectNum)
 		//5分钟的宽限期,定期清理
 		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect, maxconnect+int(manage.CacheLimit), time.Minute*5)))
@@ -258,9 +253,7 @@ func (p *P2P) managePeers() {
 			if len(peersInfo) != 0 {
 				p.addrBook.SaveAddr(peersInfo)
 			}
-
 		}
-
 	}
 }
 
@@ -294,11 +287,9 @@ func (p *P2P) findLANPeers() {
 			return
 		}
 	}
-
 }
 
 func (p *P2P) handleP2PEvent() {
-
 	//TODO, control goroutine num
 	for {
 		select {
@@ -322,12 +313,9 @@ func (p *P2P) handleP2PEvent() {
 				} else {
 					log.Error("handleP2PEvent", "unknown message type", m.Ty)
 				}
-
 			}(msg)
 		}
-
 	}
-
 }
 
 func (p *P2P) isRestart() bool {
@@ -335,7 +323,6 @@ func (p *P2P) isRestart() bool {
 }
 
 func (p *P2P) waitTaskDone() {
-
 	waitDone := make(chan struct{})
 	go func() {
 		defer close(waitDone)
@@ -369,7 +356,6 @@ func (p *P2P) genAirDropKey() {
 			if resp.(*types.WalletStatus).GetIsWalletLock() { //上锁状态，无法用助记词创建空投地址,等待...
 				continue
 			}
-
 		}
 		break
 	}
@@ -422,7 +408,6 @@ func (p *P2P) genAirDropKey() {
 				savePrivkey = hex.EncodeToString(compkey)
 			}
 		}
-
 	}
 
 	if savePrivkey != "" && !p.p2pCfg.WaitPid { //如果是waitpid 则不生成dht node award,保证之后一个空投地址，即钱包创建的airdropaddr
@@ -446,5 +431,4 @@ func (p *P2P) genAirDropKey() {
 
 	p.addrBook.saveKey(walletPrivkey, walletPubkey)
 	p.reStart()
-
 }

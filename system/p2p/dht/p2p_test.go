@@ -2,38 +2,31 @@ package dht
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"net"
+	"os"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/33cn/chain33/client"
-
-	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/metrics"
-
-	"os"
-
-	"github.com/33cn/chain33/util"
-
-	"crypto/rand"
-	"fmt"
-	"testing"
-
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
+	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -98,13 +91,9 @@ func processMsg(q queue.Queue) {
 			case types.EventGetLastHeader:
 				msg.Reply(client.NewMessage("p2p", types.EventHeader, &types.Header{Height: 2019}))
 			case types.EventGetBlockHeight:
-
 				msg.Reply(client.NewMessage("p2p", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 2019}))
-
 			}
-
 		}
-
 	}()
 
 	go func() {
@@ -164,7 +153,7 @@ func testP2PClose(t *testing.T, p2p p2p2.IP2P) {
 	p2p.CloseP2P()
 
 }
-func newHost(subcfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
+func newHost(subcfg *p2pty.P2PSubConfig, priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
 	p := &P2P{subCfg: subcfg}
 	options := p.buildHostOptions(priv, bandwidthTracker, maddr)
 	h, err := libp2p.New(context.Background(), options...)

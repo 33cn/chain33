@@ -13,7 +13,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	net "github.com/multiformats/go-multiaddr-net"
 )
 
 const (
@@ -87,7 +87,7 @@ func (s *Conngater) InterceptUpgraded(n network.Conn) (allow bool, reason contro
 }
 
 func (s *Conngater) validateDial(addr multiaddr.Multiaddr) bool {
-	ip, err := manet.ToIP(addr)
+	ip, err := net.ToIP(addr)
 	if err != nil {
 		return false
 	}

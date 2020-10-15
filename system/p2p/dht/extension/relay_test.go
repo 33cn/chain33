@@ -3,11 +3,11 @@ package extension
 import (
 	"bytes"
 	"context"
-	"github.com/33cn/chain33/system/p2p/dht"
 	"io"
 	"net"
 	"testing"
 
+	"github.com/33cn/chain33/system/p2p/dht"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	bhost "github.com/libp2p/go-libp2p-blankhost"

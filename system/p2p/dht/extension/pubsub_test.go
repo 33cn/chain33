@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	core "github.com/libp2p/go-libp2p-core"
-
 	"github.com/stretchr/testify/assert"
 )
 

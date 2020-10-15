@@ -4,8 +4,6 @@ package manage
 import (
 	"context"
 	"fmt"
-	kb "github.com/libp2p/go-libp2p-kbucket"
-	"github.com/multiformats/go-multiaddr"
 	"sort"
 	"sync"
 	"time"
@@ -17,6 +15,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	kb "github.com/libp2p/go-libp2p-kbucket"
+	"github.com/multiformats/go-multiaddr"
 )
 
 var (
