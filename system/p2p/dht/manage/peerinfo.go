@@ -52,8 +52,8 @@ func (p *PeerInfoManager) Refresh(peer *types.Peer) {
 	p.peerInfo.Store(peer.Name, &storeInfo)
 }
 
-func (p *PeerInfoManager) Fetch(pid string) *types.Peer {
-	v, ok := p.peerInfo.Load(pid)
+func (p *PeerInfoManager) Fetch(pid peer.ID) *types.Peer {
+	v, ok := p.peerInfo.Load(pid.Pretty())
 	if !ok {
 		return nil
 	}
