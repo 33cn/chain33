@@ -114,9 +114,11 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 // MonitorAllPeers monitory all peers
 func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 	bootstraps := net.ConvertPeers(s.cfg.BootStraps)
+	relays := net.ConvertPeers(s.cfg.RelayNodeAddr)
 	ticker1 := time.NewTicker(time.Minute)
 	ticker2 := time.NewTicker(time.Minute * 2)
 	ticker3 := time.NewTicker(time.Hour * 6)
+	relayTicker := time.NewTicker(time.Minute * 3)
 	for {
 		select {
 		case <-ticker1.C:
@@ -174,6 +176,17 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 			}
 			for _, pid := range s.discovery.ListPeers() {
 				log.Debug("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
+			}
+		case <-relayTicker.C:
+			if !s.cfg.RelayEnable{
+				continue
+			}
+			//对relay中中继服务器要长期保持连接
+			for _, rpeer := range relays {
+				if len(s.host.Network().ConnsToPeer(rpeer.ID)) == 0 {
+					s.host.Connect(context.Background(), *rpeer)
+				}
+
 			}
 
 		case <-s.Done:

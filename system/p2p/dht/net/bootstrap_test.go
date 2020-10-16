@@ -52,7 +52,8 @@ func Test_initInnerPeers(t *testing.T) {
 	subcfg := &p2pty.P2PSubConfig{}
 	subcfg.BootStraps = []string{h1str, h2str, h3str, h4str}
 	subcfg.Seeds = []string{h0str, h7str}
-
+	subcfg.RelayEnable = true
+	subcfg.RelayNodeAddr = []string{h0str}
 	initInnerPeers(hosts[5], nil, subcfg)
 	hosts[5].Close()
 

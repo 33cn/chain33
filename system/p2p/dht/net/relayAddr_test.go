@@ -46,3 +46,18 @@ func TestRelayAddrs_UseNonRelayAddrs(t *testing.T) {
 	assert.Equal(t, 2, len(result))
 
 }
+
+func Test_WithRelayAddrs(t *testing.T) {
+	addrF := WithRelayAddrs([]string{"/ip4/127.0.0.1/tcp/6660/p2p/QmQ7zhY7nGY66yK1n8hLGevfVyjbtvHSgtZuXkCH9oTrgi"})
+	assert.NotNil(t, addrF)
+	var testAddr = "/ip4/127.0.0.1/tcp/33201/p2p/QmaXZhW44pwQxBSeLkE5FNeLz8tGTTEsRciFg1DNWXXrWG"
+	a, err := ma.NewMultiaddr(testAddr)
+	require.NoError(t, err)
+	maddrs := addrF([]ma.Multiaddr{a})
+	assert.Equal(t, len(maddrs), 2)
+
+	addrF = WithRelayAddrs([]string{})
+	maddrs = addrF([]ma.Multiaddr{a})
+	assert.Equal(t, len(maddrs), 1)
+
+}

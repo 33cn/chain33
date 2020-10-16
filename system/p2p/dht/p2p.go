@@ -238,8 +238,9 @@ func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.
 	if p.subCfg.RelayEnable {
 		if p.subCfg.RelayHop { //启用中继服务端
 			options = append(options, libp2p.EnableRelay(circuit.OptHop))
-		} else { //用内置的节点作为中继节点,BootStraps 需要打开HOP选项
-			relays := append(p.subCfg.BootStraps, p.subCfg.RelayNodeAddr...)
+		} else { //用配置的节点作为中继节点,需要打开HOP选项
+			//relays := append(p.subCfg.BootStraps, p.subCfg.RelayNodeAddr...)
+			relays := p.subCfg.RelayNodeAddr
 			options = append(options, libp2p.AddrsFactory(net.WithRelayAddrs(relays)))
 			options = append(options, libp2p.EnableRelay())
 		}
