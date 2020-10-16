@@ -178,7 +178,7 @@ func (s *ConnManager) MonitorAllPeers(seeds []string, host core.Host) {
 				log.Debug("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
 			}
 		case <-relayTicker.C:
-			if !s.cfg.RelayEnable{
+			if !s.cfg.RelayEnable {
 				continue
 			}
 			//对relay中中继服务器要长期保持连接
