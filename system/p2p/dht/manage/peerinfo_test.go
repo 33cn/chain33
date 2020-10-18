@@ -16,8 +16,6 @@ import (
 
 func prue(pid core.PeerID, beBlack bool) {
 
-	return
-
 }
 func Test_peerinfo(t *testing.T) {
 

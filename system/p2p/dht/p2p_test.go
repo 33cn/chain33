@@ -3,6 +3,9 @@ package dht
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
+	bhost "github.com/libp2p/go-libp2p-blankhost"
+	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"net"
 	"strings"
 	"time"
@@ -124,7 +127,12 @@ func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	p2pmgr := p2p2.NewP2PMgr(cfg)
 	p2pmgr.SysAPI, _ = client.New(cli, nil)
 	subCfg := p2pmgr.ChainCfg.GetSubConfig().P2P
-	p2p := New(p2pmgr, subCfg[p2pty.DHTTypeName])
+	mcfg := &p2pty.P2PSubConfig{}
+	types.MustDecode(subCfg[p2pty.DHTTypeName], mcfg)
+	mcfg.RelayEnable = true
+
+	dhtcfg, _ := json.Marshal(mcfg)
+	p2p := New(p2pmgr, dhtcfg)
 	p2p.StartP2P()
 	return p2p
 }
@@ -390,9 +398,7 @@ func Test_p2p(t *testing.T) {
 	tcfg.DbCache = 4
 	tcfg.DbPath = datadir
 	testAddrbook(t, &tcfg)
-	mcfg := &p2pty.P2PSubConfig{}
-	types.MustDecode(cfg.GetSubConfig().P2P["dht"], mcfg)
-	mcfg.RelayEnable = true
+
 	p2p := NewP2p(cfg, q.Client())
 	dhtp2p := p2p.(*P2P)
 	t.Log("listpeer", dhtp2p.discovery.ListPeers())
@@ -401,7 +407,9 @@ func Test_p2p(t *testing.T) {
 	t.Log("discovery update", err)
 	pinfo := dhtp2p.discovery.FindLocalPeers([]peer.ID{dhtp2p.host.ID()})
 	t.Log("findlocalPeers", pinfo)
-
+	netw := swarmt.GenSwarm(t, context.Background())
+	h2 := bhost.NewBlankHost(netw)
+	dhtp2p.pruePeers(h2.ID(), true)
 	dhtp2p.discovery.Remove(dhtp2p.host.ID())
 	testP2PEvent(t, q.Client())
 
