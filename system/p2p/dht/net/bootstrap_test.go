@@ -3,6 +3,7 @@ package net
 import (
 	"context"
 	"fmt"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"testing"
 
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
@@ -54,7 +55,8 @@ func Test_initInnerPeers(t *testing.T) {
 	subcfg.Seeds = []string{h0str, h7str}
 	subcfg.RelayEnable = true
 	subcfg.RelayNodeAddr = []string{h0str}
-	initInnerPeers(hosts[5], nil, subcfg)
+	peerinfo := []peer.AddrInfo{peer.AddrInfo{ID: h7.ID, Addrs: h7.Addrs}}
+	initInnerPeers(hosts[5], peerinfo, subcfg)
 	hosts[5].Close()
 
 }

@@ -2,10 +2,7 @@ package net
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"time"
-
 	"github.com/33cn/chain33/types"
 
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
@@ -15,7 +12,6 @@ import (
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 
 	"github.com/33cn/chain33/common/log/log15"
-	coredis "github.com/libp2p/go-libp2p-core/discovery"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
@@ -86,26 +82,6 @@ func (d *Discovery) Close() error {
 	return nil
 }
 
-// FindPeers find peers
-func (d *Discovery) FindPeers(RendezvousString string, gossip bool) ([]peer.AddrInfo, error) {
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if gossip {
-		discovery.Advertise(ctx, d.RoutingDiscovery, RendezvousString)
-	}
-
-	addrinfos, err := discovery.FindPeers(ctx, d.RoutingDiscovery, RendezvousString, coredis.Limit(100))
-	//peerChan, err := d.routingDiscovery.FindPeers(context.Background(), RendezvousString)
-	if err != nil {
-		//panic(err)
-		log.Error("FindPeers", "err", err.Error())
-		return nil, err
-	}
-
-	return addrinfos, nil
-}
-
 // FindLANPeers 查找局域网内的其他节点
 func (d *Discovery) FindLANPeers(host host.Host, serviceTag string) (<-chan peer.AddrInfo, error) {
 	mdns, err := initMDNS(d.ctx, host, serviceTag)
@@ -139,23 +115,6 @@ func (d *Discovery) RoutingTableSize() int {
 	return d.kademliaDHT.RoutingTable().Size()
 }
 
-// FindSpecialPeer 根据指定的peerID ,查找指定的peer,
-func (d *Discovery) FindSpecialPeer(pid peer.ID) (*peer.AddrInfo, error) {
-	if d.kademliaDHT == nil {
-		return nil, errors.New("empty ptr")
-	}
-	ctx := context.Background()
-	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	peerInfo, err := d.kademliaDHT.FindPeer(pctx, pid)
-	if err != nil {
-		return nil, err
-	}
-	return &peerInfo, nil
-
-}
-
 // FindLocalPeer 根据pid 查找当前DHT内部的peer信息
 func (d *Discovery) FindLocalPeer(pid peer.ID) peer.AddrInfo {
 	if d.kademliaDHT == nil {
@@ -171,20 +130,6 @@ func (d *Discovery) FindLocalPeers(pids []peer.ID) []peer.AddrInfo {
 		addrinfos = append(addrinfos, d.FindLocalPeer(pid))
 	}
 	return addrinfos
-}
-
-// FindPeersConnectedToPeer 获取连接指定的peerId的peers信息,查找连接PID=A的所有节点
-func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo, error) {
-	if d.kademliaDHT == nil {
-		return nil, errors.New("empty ptr")
-
-	}
-
-	ctx := context.Background()
-	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	return d.kademliaDHT.FindPeersConnectedToPeer(pctx, pid)
-
 }
 
 // Update update peer
