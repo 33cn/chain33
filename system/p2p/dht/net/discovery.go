@@ -3,6 +3,7 @@ package net
 import (
 	"context"
 	"fmt"
+
 	"github.com/33cn/chain33/types"
 
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
