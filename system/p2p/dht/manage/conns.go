@@ -212,12 +212,6 @@ func (s *ConnManager) Delete(pid peer.ID) {
 	s.discovery.Remove(pid)
 }
 
-// Get get peer add info by id
-func (s *ConnManager) Get(pid peer.ID) *peer.AddrInfo {
-	peerinfo := s.discovery.FindLocalPeer(pid)
-	return &peerinfo
-}
-
 // FetchNearestPeers fetch nearest peer ids
 func (s *ConnManager) FetchNearestPeers() []peer.ID {
 	if s.discovery == nil {
