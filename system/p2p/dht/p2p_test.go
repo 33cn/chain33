@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	bhost "github.com/libp2p/go-libp2p-blankhost"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"net"
 	"strings"
 	"time"
+
+	bhost "github.com/libp2p/go-libp2p-blankhost"
+	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 
 	"github.com/33cn/chain33/client"
 
