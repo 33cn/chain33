@@ -2,6 +2,9 @@ package manage
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/33cn/chain33/queue"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -10,8 +13,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func prue(pid core.PeerID, beBlack bool) {

@@ -2,12 +2,13 @@ package net
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func Test_Discovery(t *testing.T) {
