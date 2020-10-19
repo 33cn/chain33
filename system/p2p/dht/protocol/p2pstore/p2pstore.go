@@ -3,6 +3,9 @@ package p2pstore
 import (
 	"context"
 	"encoding/hex"
+	"github.com/libp2p/go-libp2p-core/peer"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 	"sync"
 	"time"
 
@@ -14,11 +17,11 @@ import (
 )
 
 const (
-	FetchChunk        = "/chain33/fetch-chunk/1.0.0"
-	StoreChunk        = "/chain33/store-chunk/1.0.0"
-	GetHeader         = "/chain33/headers/1.0.0"
-	GetChunkRecord    = "/chain33/chunk-record/1.0.0"
-	BroadcastFullNode = "/chain33/full-node/1.0.0"
+	FetchChunk     = "/chain33/fetch-chunk/1.0.0"
+	StoreChunk     = "/chain33/store-chunk/1.0.0"
+	GetHeader      = "/chain33/headers/1.0.0"
+	GetChunkRecord = "/chain33/chunk-record/1.0.0"
+	FullNode       = "/chain33/full-node/1.0.0"
 )
 
 const maxConcurrency = 10
@@ -36,8 +39,8 @@ type Protocol struct {
 	//chunks that full node can provide without checking.
 	chunkWhiteList sync.Map
 
-	//普通路由表的一个子表，仅包含接近同步完成的节点
-	//HealthyRoutingTable *kb.RoutingTable
+	//a child table of healthy routing table without full nodes
+	ShardHealthyRoutingTable *kb.RoutingTable
 
 	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
@@ -53,19 +56,15 @@ func init() {
 //InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
-		P2PEnv: env,
-		//HealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
-		notifyingQueue: make(chan *types.ChunkInfoMsg, 1024),
+		P2PEnv:                   env,
+		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
+		notifyingQueue:           make(chan *types.ChunkInfoMsg, 1024),
 	}
-	//routing table更新时同时更新healthy routing table
-	//rm := p.RoutingTable.PeerRemoved
-	//p.RoutingTable.PeerRemoved = func(id peer.ID) {
-	//	rm(id)
-	//	p.HealthyRoutingTable.Remove(id)
-	//}
+	p.bindRoutingTableUpdateFunc()
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p.Host, FullNode, protocol.HandlerWithRW(p.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p.Host, FetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p.Host, StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p.Host, GetHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
@@ -79,11 +78,6 @@ func InitProtocol(env *protocol.P2PEnv) {
 
 	go p.syncRoutine()
 	go func() {
-		//for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
-		//	p.updateHealthyRoutingTable()
-		//	time.Sleep(time.Second * 1)
-		//}
-
 		ticker1 := time.NewTicker(time.Minute)
 		ticker2 := time.NewTicker(types2.RefreshInterval)
 		ticker3 := time.NewTicker(types2.CheckHealthyInterval)
@@ -106,8 +100,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
 				p.localChunkInfoMutex.Unlock()
 				p.debugFullNode()
-				log.Info("debug healthy peers", "======== amount", p.HealthyRoutingTable.Size())
-				for _, pid := range p.HealthyRoutingTable.ListPeers() {
+				log.Info("debug healthy peers", "======== amount", p.ShardHealthyRoutingTable.Size())
+				for _, pid := range p.ShardHealthyRoutingTable.ListPeers() {
 					log.Info("LatencyEWMA", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid), "latency", p.Host.Peerstore().LatencyEWMA(pid))
 				}
 				log.Info("debug length", "notifying msg len", len(p.notifyingQueue))
@@ -165,7 +159,7 @@ func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
 	if !p.SubConfig.IsFullNode {
 		return
 	}
-	_, err := p.Advertise(p.Ctx, BroadcastFullNode, opts...)
+	_, err := p.Advertise(p.Ctx, FullNode, opts...)
 	if err != nil {
 		log.Error("advertiseFullNode", "error", err)
 	}
@@ -176,7 +170,7 @@ func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
 func (p *Protocol) debugFullNode() {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
-	peerInfos, err := p.FindPeers(ctx, BroadcastFullNode)
+	peerInfos, err := p.FindPeers(ctx, FullNode)
 	if err != nil {
 		log.Error("debugFullNode", "FindPeers error", err)
 		return
@@ -187,4 +181,32 @@ func (p *Protocol) debugFullNode() {
 		log.Info("debugFullNode", "ID", peerInfo.ID, "maddrs", peerInfo.Addrs)
 	}
 	log.Info("debugFullNode", "total count", count)
+}
+
+func (p *Protocol) bindRoutingTableUpdateFunc() {
+	// HealthyRoutingTable更新时同时更新ShardHealthyRoutingTable
+	p.HealthyRoutingTable.PeerRemoved = func(id peer.ID) {
+		p.ShardHealthyRoutingTable.Remove(id)
+	}
+	p.HealthyRoutingTable.PeerAdded = func(id peer.ID) {
+		stream, err := p.Host.NewStream(p.Ctx, id, FullNode)
+		if err != nil {
+			return
+		}
+		defer protocol.CloseStream(stream)
+		err = protocol.WriteStream(&types.P2PRequest{}, stream)
+		if err != nil {
+			return
+		}
+		var resp types.P2PResponse
+		err = protocol.ReadStream(&resp, stream)
+		if err != nil {
+			return
+		}
+		if reply, ok := resp.Response.(*types.P2PResponse_Reply); ok {
+			if !reply.Reply.IsOk {
+				_, _ = p.ShardHealthyRoutingTable.Update(id)
+			}
+		}
+	}
 }

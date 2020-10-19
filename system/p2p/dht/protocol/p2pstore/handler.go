@@ -2,6 +2,7 @@ package p2pstore
 
 import (
 	"encoding/hex"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -12,6 +13,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
+
+func (p *Protocol) handleStreamIsFullNode(_ *types.P2PRequest, resp *types.P2PResponse) error {
+	resp.Response = &types.P2PResponse_Reply{
+		Reply: &types.Reply{
+			IsOk: p.SubConfig.IsFullNode,
+		},
+	}
+	return nil
+}
 
 func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 	var req types.P2PRequest
@@ -64,9 +74,9 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 		return
 	}
 
-	closerPeers := p.HealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
+	closerPeers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
 	if len(closerPeers) != 0 && kb.Closer(p.Host.ID(), closerPeers[0], genChunkNameSpaceKey(param.ChunkHash)) {
-		closerPeers = p.HealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup-1)
+		closerPeers = p.ShardHealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup-1)
 	}
 	for _, pid := range closerPeers {
 		if pid == p.Host.ID() {
@@ -146,6 +156,7 @@ func (p *Protocol) handleStreamGetHeader(req *types.P2PRequest, res *types.P2PRe
 }
 
 func (p *Protocol) handleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse) error {
+	fmt.Println("into handleStreamGetChunkRecord")
 	param := req.Request.(*types.P2PRequest_ReqChunkRecords).ReqChunkRecords
 	records, err := p.getChunkRecordFromBlockchain(param)
 	if err != nil {
@@ -174,7 +185,7 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	}
 
 	//如果本节点是本地路由表中距离该chunk最近的节点，则保存数据；否则不需要保存数据
-	pid := p.HealthyRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
+	pid := p.ShardHealthyRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
 	if pid != "" && kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}
@@ -226,7 +237,9 @@ func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
 	err = p.QueueClient.Send(msg, false)
 	if err != nil {
 		log.Error("EventGetChunkBlock", "reply message error", err)
+		return
 	}
+	log.Info("GetChunkBlock", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End)
 }
 
 func (p *Protocol) handleEventGetChunkBlockBody(m *queue.Message) {

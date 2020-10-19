@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 	"sync"
 	"testing"
 	"time"
@@ -423,12 +424,6 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		panic(err)
 	}
 
-	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
-	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
-	err = host2.Connect(context.Background(), *peerinfo)
-	if err != nil {
-		t.Log("connect error", err)
-	}
 	mockAPI2, err := client.New(client2, nil)
 	if err != nil {
 		panic(err)
@@ -447,23 +442,26 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		DB:                  newTestDB(),
 	}
 	p2 := &Protocol{
-		P2PEnv: &env2,
-		//HealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env2.Host.ID()), time.Minute, env2.Host.Peerstore()),
-		localChunkInfo: make(map[string]LocalChunkInfo),
-		notifyingQueue: make(chan *types.ChunkInfoMsg, 100),
+		P2PEnv:                   &env2,
+		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env2.Host.ID()), time.Minute, env2.Host.Peerstore()),
+		localChunkInfo:           make(map[string]LocalChunkInfo),
+		notifyingQueue:           make(chan *types.ChunkInfoMsg, 100),
 	}
+	p2.bindRoutingTableUpdateFunc()
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p2.Host, FullNode, protocol.HandlerWithRW(p2.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p2.Host, FetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p2.Host, StoreChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p2.Host, GetHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
 	protocol.RegisterStreamHandler(p2.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p2.handleStreamGetChunkRecord))
-	//go func() {
-	//	for i := 0; i < 3; i++ { //节点启动后充分初始化 healthy routing table
-	//		p2.updateHealthyRoutingTable()
-	//		time.Sleep(time.Second * 1)
-	//	}
-	//}()
+
 	go p2.syncRoutine()
+	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
+	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
+	err = host2.Connect(context.Background(), *peerinfo)
+	if err != nil {
+		t.Log("connect error", err)
+	}
 	client1.Sub("p2p")
 	client2.Sub("p2p2")
 	go func() {
@@ -550,12 +548,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		panic(err)
 	}
-	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty()))
-	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
-	err = host3.Connect(context.Background(), *peerinfo)
-	if err != nil {
-		t.Log("connect error", err)
-	}
 	mockAPI3, err := client.New(client3, nil)
 	if err != nil {
 		panic(err)
@@ -574,25 +566,27 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		DB:                  newTestDB(),
 	}
 	p3 := &Protocol{
-		P2PEnv: &env3,
-		//HealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env3.Host.ID()), time.Minute, env3.Host.Peerstore()),
-		localChunkInfo: make(map[string]LocalChunkInfo),
-		notifyingQueue: make(chan *types.ChunkInfoMsg, 100),
+		P2PEnv:                   &env3,
+		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env3.Host.ID()), time.Minute, env3.Host.Peerstore()),
+		localChunkInfo:           make(map[string]LocalChunkInfo),
+		notifyingQueue:           make(chan *types.ChunkInfoMsg, 100),
 	}
+	p3.bindRoutingTableUpdateFunc()
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p3.Host, FullNode, protocol.HandlerWithRW(p3.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p3.Host, FetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p3.Host, StoreChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p3.Host, GetHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
 	protocol.RegisterStreamHandler(p3.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
-	//go func() {
-	//	for i := 0; i < 3; i++ {
-	//		p3.updateHealthyRoutingTable()
-	//		time.Sleep(time.Second * 1)
-	//	}
-	//}()
 	go p3.syncRoutine()
-	discovery.Advertise(context.Background(), p3.RoutingDiscovery, BroadcastFullNode)
+	discovery.Advertise(context.Background(), p3.RoutingDiscovery, FullNode)
 
+	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty()))
+	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
+	err = host3.Connect(context.Background(), *peerinfo)
+	if err != nil {
+		t.Log("connect error", err)
+	}
 	client1.Sub("p2p")
 	client3.Sub("p2p3")
 	go func() {

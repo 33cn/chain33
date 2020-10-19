@@ -2,6 +2,7 @@ package p2pstore
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -34,7 +35,8 @@ func (p *Protocol) republish() {
 			continue
 		}
 		log.Info("local chunk", "hash", hash, "start", info.Start)
-		peers := p.HealthyRoutingTable.NearestPeers(genDHTID(info.ChunkHash), Backup-1)
+		peers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(info.ChunkHash), Backup-1)
+		fmt.Println("healthy size:", p.HealthyRoutingTable.Size(), "shard size:", p.ShardHealthyRoutingTable.Size())
 		for _, pid := range peers {
 			invertedIndex[pid] = append(invertedIndex[pid], info.ChunkInfoMsg)
 		}
@@ -52,7 +54,7 @@ func (p *Protocol) republish() {
 
 // 通知最近的 *BackUp-1* 个节点备份数据，加上本节点共Backup个
 func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
-	peers := p.HealthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup-1)
+	peers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup-1)
 	for _, pid := range peers {
 		err := p.storeChunksOnPeer(pid, req)
 		if err != nil {
@@ -61,7 +63,7 @@ func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
 	}
 }
 
-func (p *Protocol) storeChunksOnPeer(pid peer.ID, reqs ...*types.ChunkInfoMsg) error {
+func (p *Protocol) storeChunksOnPeer(pid peer.ID, req ...*types.ChunkInfoMsg) error {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute)
 	defer cancel()
 	stream, err := p.Host.NewStream(ctx, pid, StoreChunk)
@@ -73,7 +75,7 @@ func (p *Protocol) storeChunksOnPeer(pid peer.ID, reqs ...*types.ChunkInfoMsg) e
 	msg := types.P2PRequest{}
 	msg.Request = &types.P2PRequest_ChunkInfoList{
 		ChunkInfoList: &types.ChunkInfoList{
-			Items: reqs,
+			Items: req,
 		}}
 	return protocol.SignAndWriteStream(&msg, stream)
 }

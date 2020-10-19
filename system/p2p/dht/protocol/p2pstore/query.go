@@ -143,8 +143,8 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 	//保存查询过的节点，防止重复查询
 	searchedPeers := make(map[peer.ID]struct{})
 	searchedPeers[p.Host.ID()] = struct{}{}
-	peers := p.HealthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
-	log.Info("into mustFetchChunk", "healthy peers len", p.HealthyRoutingTable.Size())
+	peers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
+	log.Info("into mustFetchChunk", "shard healthy peers len", p.ShardHealthyRoutingTable.Size(), "start", req.Start, "end", req.End)
 	for len(peers) != 0 {
 		var nearerPeers []peer.ID
 		var bodys *types.BlockBodys
@@ -175,7 +175,7 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
 	ctx2, cancel2 := context.WithTimeout(ctx, time.Second*3)
 	defer cancel2()
-	peerInfos, err := p.FindPeers(ctx2, BroadcastFullNode)
+	peerInfos, err := p.FindPeers(ctx2, FullNode)
 	if err != nil {
 		log.Error("mustFetchChunk", "Find full peers error", err)
 		return nil, "", types2.ErrNotFound
