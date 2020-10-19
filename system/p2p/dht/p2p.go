@@ -138,7 +138,7 @@ func initP2P(p *P2P) *P2P {
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
 	p.taskGroup = &sync.WaitGroup{}
 	p.db = store.NewDataStore(p.subCfg)
-	p.healthyRoutingTable = newHealthyRoutingTable(host, p.discovery.kademliaDHT.RoutingTable(), p.peerInfoManager)
+	p.healthyRoutingTable = newHealthyRoutingTable(p.ctx, host, p.discovery.kademliaDHT.RoutingTable(), p.peerInfoManager)
 	return p
 }
 
@@ -439,7 +439,7 @@ func (p *P2P) genAirDropKey() {
 	p.reStart()
 }
 
-func newHealthyRoutingTable(h host.Host, rt *kb.RoutingTable, pm *manage.PeerInfoManager) *kb.RoutingTable {
+func newHealthyRoutingTable(ctx context.Context, h host.Host, rt *kb.RoutingTable, pm *manage.PeerInfoManager) *kb.RoutingTable {
 	hrt := kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore())
 	rt.PeerAdded = func(pid peer.ID) {
 		if pm.PeerHeight(pid)+50 >= pm.PeerHeight(h.ID()) {
@@ -449,5 +449,21 @@ func newHealthyRoutingTable(h host.Host, rt *kb.RoutingTable, pm *manage.PeerInf
 	rt.PeerRemoved = func(pid peer.ID) {
 		hrt.Remove(pid)
 	}
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				for _, pid := range rt.ListPeers() {
+					if pm.PeerHeight(pid)+50 >= pm.PeerHeight(h.ID()) {
+						_, _ = hrt.Update(pid)
+					}
+				}
+			}
+
+		}
+	}()
 	return hrt
 }

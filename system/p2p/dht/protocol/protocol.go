@@ -21,18 +21,19 @@ import (
 
 // P2PEnv p2p全局公共变量
 type P2PEnv struct {
-	Ctx                 context.Context
-	ChainCfg            *types.Chain33Config
-	SubConfig           *types2.P2PSubConfig
-	API                 client.QueueProtocolAPI
-	QueueClient         queue.Client
-	Host                host.Host
-	P2PManager          *p2p.Manager
-	DB                  ds.Datastore
-	PeerInfoManager     IPeerInfoManager
-	ConnManager         IConnManager
-	Pubsub              *extension.PubSub
-	RoutingTable        *kbt.RoutingTable
+	Ctx             context.Context
+	ChainCfg        *types.Chain33Config
+	SubConfig       *types2.P2PSubConfig
+	API             client.QueueProtocolAPI
+	QueueClient     queue.Client
+	Host            host.Host
+	P2PManager      *p2p.Manager
+	DB              ds.Datastore
+	PeerInfoManager IPeerInfoManager
+	ConnManager     IConnManager
+	Pubsub          *extension.PubSub
+	RoutingTable    *kbt.RoutingTable
+	//普通路由表的一个子表，仅包含接近同步完成的节点
 	HealthyRoutingTable *kbt.RoutingTable
 	*discovery.RoutingDiscovery
 }

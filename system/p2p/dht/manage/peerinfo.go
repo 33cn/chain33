@@ -62,15 +62,21 @@ func (p *PeerInfoManager) Fetch(pid peer.ID) *types.Peer {
 
 func (p *PeerInfoManager) FetchAll() []*types.Peer {
 	var peers []*types.Peer
+	var self *types.Peer
 	p.peerInfo.Range(func(key, value interface{}) bool {
 		info := value.(*peerStoreInfo)
 		if time.Now().Sub(info.storeTime) > time.Minute {
 			p.peerInfo.Delete(key)
 			return true
 		}
+		if key.(string) == p.host.ID().Pretty() {
+			self = info.peer
+			return true
+		}
 		peers = append(peers, info.peer)
 		return true
 	})
+	peers = append(peers, self)
 	return peers
 }
 
