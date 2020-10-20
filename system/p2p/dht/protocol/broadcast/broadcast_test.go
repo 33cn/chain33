@@ -107,8 +107,8 @@ func newTestProtocol() *Protocol {
 func TestBroadCastEvent(t *testing.T) {
 	p := newTestProtocol()
 	var msgs []*queue.Message
-	msgs = append(msgs, p.QueueClient.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{}))
-	msgs = append(msgs, p.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{}))
+	msgs = append(msgs, p.QueueClient.NewMessage("p2p", types.EventTxBroadcast, tx))
+	msgs = append(msgs, p.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, testBlock))
 	//msgs = append(msgs, p.QueueClient.NewMessage("p2p", types.EventTx, &types.LightTx{}))
 
 	for _, msg := range msgs {
