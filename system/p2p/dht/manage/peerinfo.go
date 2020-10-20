@@ -57,7 +57,10 @@ func (p *PeerInfoManager) Fetch(pid peer.ID) *types.Peer {
 	if !ok {
 		return nil
 	}
-	return v.(*types.Peer)
+	if info, ok := v.(*peerStoreInfo); ok {
+		return info.peer
+	}
+	return nil
 }
 
 func (p *PeerInfoManager) FetchAll() []*types.Peer {
@@ -76,7 +79,9 @@ func (p *PeerInfoManager) FetchAll() []*types.Peer {
 		peers = append(peers, info.peer)
 		return true
 	})
-	peers = append(peers, self)
+	if self != nil {
+		peers = append(peers, self)
+	}
 	return peers
 }
 
@@ -85,14 +90,14 @@ func (p *PeerInfoManager) PeerHeight(pid peer.ID) int64 {
 	if !ok {
 		return -1
 	}
-	peerInfo, ok := v.(*types.Peer)
+	info, ok := v.(*peerStoreInfo)
 	if !ok {
 		return -1
 	}
-	if peerInfo.Header == nil {
+	if info.peer == nil || info.peer.Header == nil {
 		return -1
 	}
-	return peerInfo.Header.Height
+	return info.peer.Header.Height
 
 }
 
