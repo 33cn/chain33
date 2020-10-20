@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 	"sync"
 	"testing"
 	"time"
@@ -21,6 +20,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
