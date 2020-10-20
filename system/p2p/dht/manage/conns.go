@@ -103,7 +103,7 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 		info.Protocol = string(id)
 		info.Ratein = s.RateCaculate(stat.RateIn)
 		info.Rateout = s.RateCaculate(stat.RateOut)
-		info.Ratetotal = float64(stat.RateIn + stat.RateOut)
+		info.Ratetotal = stat.RateIn + stat.RateOut
 		infos = append(infos, &info)
 	}
 
