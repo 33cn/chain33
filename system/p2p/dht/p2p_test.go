@@ -112,6 +112,7 @@ func processMsg(q queue.Queue) {
 func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	p2pmgr := p2p2.NewP2PMgr(cfg)
 	p2pmgr.SysAPI, _ = client.New(cli, nil)
+	p2pmgr.Client = cli
 	subCfg := p2pmgr.ChainCfg.GetSubConfig().P2P
 	p2p := New(p2pmgr, subCfg[p2pty.DHTTypeName])
 	p2p.StartP2P()
@@ -149,12 +150,8 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 
 }
 
-func testP2PClose(t *testing.T, p2p p2p2.IP2P) {
-	p2p.CloseP2P()
-
-}
 func newHost(subcfg *p2pty.P2PSubConfig, priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
-	p := &P2P{subCfg: subcfg}
+	p := &P2P{ctx: context.Background(), subCfg: subcfg}
 	options := p.buildHostOptions(priv, bandwidthTracker, maddr)
 	h, err := libp2p.New(context.Background(), options...)
 	if err != nil {
@@ -385,6 +382,6 @@ func Test_p2p(t *testing.T) {
 
 	testStreamEOFReSet(t)
 	testHost(t)
-	testP2PClose(t, p2p)
-
+	p2p.CloseP2P()
+	time.Sleep(time.Second)
 }

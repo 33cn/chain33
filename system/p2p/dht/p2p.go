@@ -9,17 +9,13 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/client"
-	logger "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/extension"
@@ -33,13 +29,17 @@ import (
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	core "github.com/libp2p/go-libp2p-core"
-	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/peer"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
 )
 
-var log = logger.New("module", p2pty.DHTTypeName)
+var log = log15.New("module", p2pty.DHTTypeName)
 
 func init() {
 	p2p.RegisterP2PCreate(p2pty.DHTTypeName, New)
@@ -206,7 +206,7 @@ func (p *P2P) reStart() {
 	p.StartP2P()
 }
 
-func (p *P2P) buildHostOptions(priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) []libp2p.Option {
+func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) []libp2p.Option {
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}

@@ -117,12 +117,20 @@ func Test_otherInterface(t *testing.T) {
 }
 
 func Test_timecache(t *testing.T) {
-	cache := NewTimeCache(context.Background(), time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
+	cache := NewTimeCache(ctx, time.Second/10)
 	cache.Add("one", 0)
-	cache.Add("two", time.Second*3)
-	time.Sleep(time.Second * 2)
+	cache.Add("two", time.Second*3/10)
+	cache.Add("three", time.Second/2)
+	time.Sleep(time.Second * 2 / 10)
 	assert.False(t, cache.Has("one"))
 	assert.True(t, cache.Has("two"))
-	time.Sleep(time.Second * 2)
+	assert.True(t, cache.Has("three"))
+	time.Sleep(time.Second * 2 / 10)
 	assert.False(t, cache.Has("two"))
+	assert.True(t, cache.Has("three"))
+	cancel()
+	time.Sleep(time.Second * 2 / 10)
+	assert.True(t, cache.Has("three"))
+
 }
