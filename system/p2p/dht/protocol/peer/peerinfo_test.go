@@ -111,6 +111,8 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	}
 	protocol.RegisterStreamHandler(host2, peerInfo, p2.handleStreamPeerInfo)
 	protocol.RegisterStreamHandler(host2, peerVersion, p2.handleStreamVersion)
+	protocol.RegisterStreamHandler(host2, peerInfoOld, p2.handleStreamPeerInfoOld)
+	protocol.RegisterStreamHandler(host2, peerVersionOld, p2.handleStreamVersionOld)
 
 	client1.Sub("p2p")
 	go func() {
@@ -201,6 +203,7 @@ func TestPeerInfoHandler(t *testing.T) {
 	t.Log(p.getExternalAddr(), p.getPublicIP())
 
 	p.refreshPeerInfo()
+	time.Sleep(time.Second)
 	assert.Equal(t, 2, len(p.PeerInfoManager.FetchAll()))
 }
 

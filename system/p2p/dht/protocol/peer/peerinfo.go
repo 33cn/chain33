@@ -63,6 +63,7 @@ func (p *Protocol) refreshPeerInfo() {
 			pInfo, err := p.queryPeerInfoOld(pid)
 			if err != nil {
 				log.Error("refreshPeerInfo", "error", err, "pid", pid)
+				return
 			}
 			p.PeerInfoManager.Refresh(pInfo)
 		}(remoteID)

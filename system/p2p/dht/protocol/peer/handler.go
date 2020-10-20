@@ -128,7 +128,7 @@ func (p *Protocol) handleEventNetInfo(msg *queue.Message) {
 	netinfo.Externaladdr = p.getPublicIP()
 	localips, _ := localIPv4s()
 	if len(localips) != 0 {
-		log.Error("handleEventNetInfo", "localIps", localips)
+		log.Info("handleEventNetInfo", "localIps", localips)
 		netinfo.Localaddr = localips[0]
 	} else {
 		netinfo.Localaddr = netinfo.Externaladdr
