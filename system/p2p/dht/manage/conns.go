@@ -54,7 +54,7 @@ func NewConnManager(ctx context.Context, host core.Host, rt *kb.RoutingTable, tr
 
 }
 
-// RateCaculate means bytes sent / received per second.
+// RateCalculate means bytes sent / received per second.
 func (s *ConnManager) RateCalculate(ratebytes float64) string {
 	kbytes := ratebytes / 1024
 	rate := fmt.Sprintf("%.3f KB/s", kbytes)
@@ -65,7 +65,7 @@ func (s *ConnManager) RateCalculate(ratebytes float64) string {
 	return rate
 }
 
-//BandTrackerByProtocol returan allprotocols bandinfo
+// BandTrackerByProtocol returns all protocols band info
 func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 	bandprotocols := s.bandwidthTracker.GetBandwidthByProtocol()
 	var infos types.NetProtocolInfos
@@ -150,7 +150,7 @@ func (s *ConnManager) MonitorAllPeers() {
 	}
 }
 
-// ConvertPeers conver peers to addr info
+// ConvertPeers convert peers to addr info
 func ConvertPeers(peers []string) map[string]*peer.AddrInfo {
 	pinfos := make(map[string]*peer.AddrInfo, len(peers))
 	for _, addr := range peers {

@@ -27,10 +27,9 @@ const (
 	broadcastV1          = "/chain33/p2p/broadcast/1.0.0"
 	broadcastTransaction = "/chain33/broadcast/transaction/1.0.0"
 	broadcastBlock       = "/chain33/broadcast/block/1.0.0"
-	queryTransaction     = "/chain33/query-transaction/1.0.0"
-	broadcastPubSub      = "/chain33/broadcast/pubsub/1.0.0"
 )
 
+// Protocol ...
 type Protocol struct {
 	*protocol.P2PEnv
 
@@ -272,16 +271,4 @@ func addIgnoreSendPeerAtomic(filter *utils.Filterdata, key string, pid peer.ID) 
 	_, exist = info.ignoreSendPeers[pid]
 	info.ignoreSendPeers[pid] = true
 	return exist
-}
-
-// 删除发送过滤器记录
-func removeIgnoreSendPeerAtomic(filter *utils.Filterdata, key string, pid peer.ID) {
-
-	filter.GetAtomicLock()
-	defer filter.ReleaseAtomicLock()
-	if filter.Contains(key) {
-		data, _ := filter.Get(key)
-		info := data.(*sendFilterInfo)
-		delete(info.ignoreSendPeers, pid)
-	}
 }

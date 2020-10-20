@@ -38,6 +38,7 @@ type P2PEnv struct {
 	*discovery.RoutingDiscovery
 }
 
+// IPeerInfoManager is interface of PeerInfoManager
 type IPeerInfoManager interface {
 	Refresh(info *types.Peer)
 	Fetch(pid peer.ID) *types.Peer
@@ -45,6 +46,7 @@ type IPeerInfoManager interface {
 	PeerHeight(pid peer.ID) int64
 }
 
+// IConnManager is interface of ConnManager
 type IConnManager interface {
 	FetchConnPeers() []peer.ID
 	BoundSize() (in int, out int)
@@ -53,6 +55,7 @@ type IConnManager interface {
 	RateCalculate(ratebytes float64) string
 }
 
+// QueryModule sends message to other module and waits response
 func (p *P2PEnv) QueryModule(topic string, ty int64, data interface{}) (interface{}, error) {
 	msg := p.QueueClient.NewMessage(topic, ty, data)
 	err := p.QueueClient.Send(msg, true)

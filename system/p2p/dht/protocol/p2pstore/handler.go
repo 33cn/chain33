@@ -222,10 +222,10 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	}
 	err = p.checkNetworkAndStoreChunk(req)
 	if err != nil {
-		log.Error("StoreChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
+		log.Error("storeChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return
 	}
-	log.Info("StoreChunk", "local pid", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
+	log.Info("storeChunk", "local pid", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
 }
 
 func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {

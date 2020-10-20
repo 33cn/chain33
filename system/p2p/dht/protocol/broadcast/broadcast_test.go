@@ -24,7 +24,6 @@ import (
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,9 +45,6 @@ var (
 		Height: 10,
 		Txs:    txList,
 	}
-	testAddr   = "testPeerAddr"
-	testPidStr = "16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U"
-	testPid, _ = peer.Decode("16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U")
 )
 
 func newHost(port int32) core.Host {
@@ -87,15 +83,13 @@ func newTestEnv(q queue.Queue) *protocol.P2PEnv {
 		panic(err)
 	}
 	env := &protocol.P2PEnv{
-		Ctx:             context.Background(),
-		ChainCfg:        cfg,
-		QueueClient:     q.Client(),
-		Host:            h,
-		ConnManager:     nil,
-		PeerInfoManager: nil,
-		P2PManager:      mgr,
-		SubConfig:       subCfg,
-		RoutingTable:    kademliaDHT.RoutingTable(),
+		Ctx:          context.Background(),
+		ChainCfg:     cfg,
+		QueueClient:  q.Client(),
+		Host:         h,
+		P2PManager:   mgr,
+		SubConfig:    subCfg,
+		RoutingTable: kademliaDHT.RoutingTable(),
 	}
 	env.Pubsub, _ = extension.NewPubSub(env.Ctx, env.Host)
 	return env
@@ -120,9 +114,9 @@ func TestBroadCastEvent(t *testing.T) {
 	for _, msg := range msgs {
 		protocol.GetEventHandler(msg.Ty)(msg)
 	}
-	_, ok := p.txFilter.Get(hex.EncodeToString((&types.Transaction{}).Hash()))
+	_, ok := p.txFilter.Get(hex.EncodeToString(tx.Hash()))
 	assert.True(t, ok)
-	_, ok = p.blockFilter.Get(hex.EncodeToString((&types.Block{}).Hash(p.ChainCfg)))
+	_, ok = p.blockFilter.Get(hex.EncodeToString(testBlock.Hash(p.ChainCfg)))
 	assert.True(t, ok)
 }
 

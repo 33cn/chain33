@@ -41,6 +41,7 @@ func NewPeerInfoManager(ctx context.Context, host host.Host, cli queue.Client) *
 	return peerInfoManage
 }
 
+// Refresh refreshes peer info
 func (p *PeerInfoManager) Refresh(peer *types.Peer) {
 	if peer == nil {
 		return
@@ -52,6 +53,7 @@ func (p *PeerInfoManager) Refresh(peer *types.Peer) {
 	p.peerInfo.Store(peer.Name, &storeInfo)
 }
 
+// Fetch returns info of given peer
 func (p *PeerInfoManager) Fetch(pid peer.ID) *types.Peer {
 	key := pid.Pretty()
 	v, ok := p.peerInfo.Load(key)
@@ -59,7 +61,7 @@ func (p *PeerInfoManager) Fetch(pid peer.ID) *types.Peer {
 		return nil
 	}
 	if info, ok := v.(*peerStoreInfo); ok {
-		if time.Now().Sub(info.storeTime) > time.Minute {
+		if time.Since(info.storeTime) > time.Minute {
 			p.peerInfo.Delete(key)
 			return nil
 		}
@@ -68,12 +70,13 @@ func (p *PeerInfoManager) Fetch(pid peer.ID) *types.Peer {
 	return nil
 }
 
+// FetchAll returns all peers info
 func (p *PeerInfoManager) FetchAll() []*types.Peer {
 	var peers []*types.Peer
 	var self *types.Peer
 	p.peerInfo.Range(func(key, value interface{}) bool {
 		info := value.(*peerStoreInfo)
-		if time.Now().Sub(info.storeTime) > time.Minute {
+		if time.Since(info.storeTime) > time.Minute {
 			p.peerInfo.Delete(key)
 			return true
 		}
@@ -90,6 +93,7 @@ func (p *PeerInfoManager) FetchAll() []*types.Peer {
 	return peers
 }
 
+// PeerHeight returns block height of given peer
 func (p *PeerInfoManager) PeerHeight(pid peer.ID) int64 {
 	v, ok := p.peerInfo.Load(pid.Pretty())
 	if !ok {
@@ -133,7 +137,7 @@ func (p *PeerInfoManager) start() {
 func (p *PeerInfoManager) prune(height int64) {
 	p.peerInfo.Range(func(key interface{}, value interface{}) bool {
 		info := value.(*peerStoreInfo)
-		if time.Now().Sub(info.storeTime) > time.Minute {
+		if time.Since(info.storeTime) > time.Minute {
 			p.peerInfo.Delete(key)
 			return true
 		}

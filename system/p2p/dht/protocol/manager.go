@@ -10,7 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
-//TODO
+// RegisterStreamHandler registers stream handler
 func RegisterStreamHandler(h host.Host, p protocol.ID, handler network.StreamHandler) {
 	if handler == nil {
 		panic(fmt.Sprintf("addEventHandler, handler is nil, protocol=%s", p))

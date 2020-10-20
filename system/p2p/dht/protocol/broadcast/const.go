@@ -29,25 +29,6 @@ const (
 	ltBlockCacheNum         = 1000
 )
 
-// 内部自定义错误
-var (
-	errQueryMempool     = errors.New("errQueryMempool")
-	errQueryBlockChain  = errors.New("errQueryBlockChain")
-	errRecvBlockChain   = errors.New("errRecvBlockChain")
-	errRecvMempool      = errors.New("errRecvMempool")
-	errSendPeer         = errors.New("errSendPeer")
-	errSendBlockChain   = errors.New("errSendBlockChain")
-	errBuildBlockFailed = errors.New("errBuildBlockFailed")
-	errLtBlockNotExist  = errors.New("errLtBlockNotExist")
-)
-
-// 常量字符串
-
-const (
-	bcTopic      = "broadcast"
-	broadcastTag = "broadcast-tag"
-)
-
 // pubsub error
 var (
 	errSnappyDecode = errors.New("errSnappyDecode")

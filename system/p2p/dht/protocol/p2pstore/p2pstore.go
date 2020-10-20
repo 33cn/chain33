@@ -17,13 +17,13 @@ import (
 )
 
 const (
-	FetchChunk     = "/chain33/fetch-chunk/1.0.0"
-	StoreChunk     = "/chain33/store-chunk/1.0.0"
-	GetHeader      = "/chain33/headers/1.0.0"
-	GetChunkRecord = "/chain33/chunk-record/1.0.0"
-	FullNode       = "/chain33/full-node/1.0.0"
-	// Deprecated: old version, use GetHeader instead
-	GetHeaderOld = "/chain33/headerinfoReq/1.0.0"
+	fetchChunk     = "/chain33/fetch-chunk/1.0.0"
+	storeChunk     = "/chain33/store-chunk/1.0.0"
+	getHeader      = "/chain33/headers/1.0.0"
+	getChunkRecord = "/chain33/chunk-record/1.0.0"
+	fullNode       = "/chain33/full-node/1.0.0"
+	// Deprecated: old version, use getHeader instead
+	getHeaderOld = "/chain33/headerinfoReq/1.0.0"
 )
 
 const maxConcurrency = 10
@@ -66,12 +66,12 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
-	protocol.RegisterStreamHandler(p.Host, GetHeaderOld, p.handleStreamGetHeaderOld)
-	protocol.RegisterStreamHandler(p.Host, FullNode, protocol.HandlerWithRW(p.handleStreamIsFullNode))
-	protocol.RegisterStreamHandler(p.Host, FetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p.Host, StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
-	protocol.RegisterStreamHandler(p.Host, GetHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
-	protocol.RegisterStreamHandler(p.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
+	protocol.RegisterStreamHandler(p.Host, getHeaderOld, p.handleStreamGetHeaderOld)
+	protocol.RegisterStreamHandler(p.Host, fullNode, protocol.HandlerWithRW(p.handleStreamIsFullNode))
+	protocol.RegisterStreamHandler(p.Host, fetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
+	protocol.RegisterStreamHandler(p.Host, storeChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
+	protocol.RegisterStreamHandler(p.Host, getHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
+	protocol.RegisterStreamHandler(p.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
 	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, p.handleEventNotifyStoreChunk)
 	protocol.RegisterEventHandler(types.EventGetChunkBlock, p.handleEventGetChunkBlock)
@@ -83,7 +83,6 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go func() {
 		ticker1 := time.NewTicker(time.Minute)
 		ticker2 := time.NewTicker(types2.RefreshInterval)
-		ticker3 := time.NewTicker(types2.CheckHealthyInterval)
 		ticker4 := time.NewTicker(time.Hour)
 
 		for {
@@ -92,11 +91,9 @@ func InitProtocol(env *protocol.P2PEnv) {
 				return
 			case <-ticker1.C:
 				p.updateChunkWhiteList()
+				p.advertiseFullNode()
 			case <-ticker2.C:
 				p.republish()
-			case <-ticker3.C:
-				//p.updateHealthyRoutingTable()
-				p.advertiseFullNode()
 			case <-ticker4.C:
 				//debug info
 				p.localChunkInfoMutex.Lock()
@@ -162,7 +159,7 @@ func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
 	if !p.SubConfig.IsFullNode {
 		return
 	}
-	_, err := p.Advertise(p.Ctx, FullNode, opts...)
+	_, err := p.Advertise(p.Ctx, fullNode, opts...)
 	if err != nil {
 		log.Error("advertiseFullNode", "error", err)
 	}
@@ -173,7 +170,7 @@ func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
 func (p *Protocol) debugFullNode() {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
-	peerInfos, err := p.FindPeers(ctx, FullNode)
+	peerInfos, err := p.FindPeers(ctx, fullNode)
 	if err != nil {
 		log.Error("debugFullNode", "FindPeers error", err)
 		return
@@ -192,7 +189,7 @@ func (p *Protocol) bindRoutingTableUpdateFunc() {
 		p.ShardHealthyRoutingTable.Remove(id)
 	}
 	p.HealthyRoutingTable.PeerAdded = func(id peer.ID) {
-		stream, err := p.Host.NewStream(p.Ctx, id, FullNode)
+		stream, err := p.Host.NewStream(p.Ctx, id, fullNode)
 		if err != nil {
 			return
 		}

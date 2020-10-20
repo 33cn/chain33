@@ -30,7 +30,7 @@ func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
 
-//type Istream
+// Protocol ...
 type Protocol struct {
 	*protocol.P2PEnv
 

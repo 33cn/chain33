@@ -449,12 +449,12 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	}
 	p2.bindRoutingTableUpdateFunc()
 	//注册p2p通信协议，用于处理节点之间请求
-	protocol.RegisterStreamHandler(p2.Host, GetHeaderOld, p2.handleStreamGetHeaderOld)
-	protocol.RegisterStreamHandler(p2.Host, FullNode, protocol.HandlerWithRW(p2.handleStreamIsFullNode))
-	protocol.RegisterStreamHandler(p2.Host, FetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p2.Host, StoreChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
-	protocol.RegisterStreamHandler(p2.Host, GetHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
-	protocol.RegisterStreamHandler(p2.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p2.handleStreamGetChunkRecord))
+	protocol.RegisterStreamHandler(p2.Host, getHeaderOld, p2.handleStreamGetHeaderOld)
+	protocol.RegisterStreamHandler(p2.Host, fullNode, protocol.HandlerWithRW(p2.handleStreamIsFullNode))
+	protocol.RegisterStreamHandler(p2.Host, fetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
+	protocol.RegisterStreamHandler(p2.Host, storeChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
+	protocol.RegisterStreamHandler(p2.Host, getHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
+	protocol.RegisterStreamHandler(p2.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p2.handleStreamGetChunkRecord))
 
 	go p2.syncRoutine()
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
@@ -574,14 +574,14 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	}
 	p3.bindRoutingTableUpdateFunc()
 	//注册p2p通信协议，用于处理节点之间请求
-	protocol.RegisterStreamHandler(p3.Host, GetHeaderOld, p3.handleStreamGetHeaderOld)
-	protocol.RegisterStreamHandler(p3.Host, FullNode, protocol.HandlerWithRW(p3.handleStreamIsFullNode))
-	protocol.RegisterStreamHandler(p3.Host, FetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p3.Host, StoreChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))
-	protocol.RegisterStreamHandler(p3.Host, GetHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
-	protocol.RegisterStreamHandler(p3.Host, GetChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
+	protocol.RegisterStreamHandler(p3.Host, getHeaderOld, p3.handleStreamGetHeaderOld)
+	protocol.RegisterStreamHandler(p3.Host, fullNode, protocol.HandlerWithRW(p3.handleStreamIsFullNode))
+	protocol.RegisterStreamHandler(p3.Host, fetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
+	protocol.RegisterStreamHandler(p3.Host, storeChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))
+	protocol.RegisterStreamHandler(p3.Host, getHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
+	protocol.RegisterStreamHandler(p3.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
 	go p3.syncRoutine()
-	discovery.Advertise(context.Background(), p3.RoutingDiscovery, FullNode)
+	discovery.Advertise(context.Background(), p3.RoutingDiscovery, fullNode)
 
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty()))
 	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)

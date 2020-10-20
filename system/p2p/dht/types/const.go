@@ -31,13 +31,9 @@ var (
 	ErrInvalidParam = errors.New("invalid parameter")
 	// ErrWrongSignature wrong signature err
 	ErrWrongSignature = errors.New("wrong signature")
-	// ErrUnknown unknown err
-	ErrUnknown = errors.New("unknown error")
 
 	// ExpiredTime expired time
 	ExpiredTime = time.Hour * 3
 	// RefreshInterval refresh interval
 	RefreshInterval = time.Hour
-	// CheckHealthyInterval check healthy interval
-	CheckHealthyInterval = time.Minute * 5
 )

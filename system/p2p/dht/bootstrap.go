@@ -1,4 +1,3 @@
-// Package extension extension utils
 package dht
 
 import (

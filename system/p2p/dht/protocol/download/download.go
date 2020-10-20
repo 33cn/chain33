@@ -25,11 +25,12 @@ const (
 	downloadBlock    = "/chain33/download-block/1.0.0"
 )
 
-//type Istream
+// Protocol ...
 type Protocol struct {
 	*protocol.P2PEnv
 }
 
+// InitProtocol initials protocol
 func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
 		P2PEnv: env,
