@@ -53,11 +53,16 @@ func (p *PeerInfoManager) Refresh(peer *types.Peer) {
 }
 
 func (p *PeerInfoManager) Fetch(pid peer.ID) *types.Peer {
-	v, ok := p.peerInfo.Load(pid.Pretty())
+	key := pid.Pretty()
+	v, ok := p.peerInfo.Load(key)
 	if !ok {
 		return nil
 	}
 	if info, ok := v.(*peerStoreInfo); ok {
+		if time.Now().Sub(info.storeTime) > time.Minute {
+			p.peerInfo.Delete(key)
+			return nil
+		}
 		return info.peer
 	}
 	return nil

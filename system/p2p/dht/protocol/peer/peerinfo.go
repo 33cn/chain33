@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/33cn/chain33/common/version"
@@ -51,7 +50,6 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 }
 
 func (p *Protocol) refreshPeerInfo() {
-	var wg sync.WaitGroup
 	for _, remoteID := range p.RoutingTable.ListPeers() {
 		if p.checkDone() {
 			log.Warn("getPeerInfo", "process", "done+++++++")
@@ -61,24 +59,12 @@ func (p *Protocol) refreshPeerInfo() {
 			continue
 		}
 		//修改为并发获取peerinfo信息
-		wg.Add(1)
 		go func(pid peer.ID) {
-			defer wg.Done()
-			ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
-			defer cancel()
-			stream, err := p.Host.NewStream(ctx, pid, peerInfo)
+			pInfo, err := p.queryPeerInfoOld(pid)
 			if err != nil {
-				log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
-				return
+				log.Error("refreshPeerInfo", "error", err, "pid", pid)
 			}
-			defer protocol.CloseStream(stream)
-			var resp types.Peer
-			err = protocol.ReadStream(&resp, stream)
-			if err != nil {
-				log.Error("refreshPeerInfo", "read stream error", err, "peer id", pid)
-				return
-			}
-			p.PeerInfoManager.Refresh(&resp)
+			p.PeerInfoManager.Refresh(pInfo)
 		}(remoteID)
 	}
 	selfPeer := p.getLocalPeerInfo()
@@ -86,83 +72,6 @@ func (p *Protocol) refreshPeerInfo() {
 		selfPeer.Self = true
 		p.PeerInfoManager.Refresh(selfPeer)
 	}
-	wg.Wait()
-}
-
-func (p *Protocol) refreshPeerInfoOld() {
-	var wg sync.WaitGroup
-	for _, remoteID := range p.RoutingTable.ListPeers() {
-		if p.checkDone() {
-			log.Warn("getPeerInfo", "process", "done+++++++")
-			return
-		}
-		if remoteID == p.Host.ID() {
-			continue
-		}
-		//修改为并发获取peerinfo信息
-		wg.Add(1)
-		go func(pid peer.ID) {
-			defer wg.Done()
-			ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
-			defer cancel()
-			stream, err := p.Host.NewStream(ctx, pid, peerInfoOld)
-			if err != nil {
-				log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
-				return
-			}
-			defer protocol.CloseStream(stream)
-			err = protocol.WriteStream(&types.MessagePeerInfoReq{}, stream)
-			if err != nil {
-				log.Error("refreshPeerInfo", "write stream error", err)
-				return
-			}
-			var resp types.MessagePeerInfoResp
-			err = protocol.ReadStream(&resp, stream)
-			if err != nil {
-				log.Error("refreshPeerInfo", "read stream error", err, "peer id", pid)
-				return
-			}
-			pInfo := types.Peer{
-				Addr:           resp.Message.Addr,
-				Port:           resp.Message.Port,
-				Name:           resp.Message.Name,
-				MempoolSize:    resp.Message.MempoolSize,
-				Header:         resp.Message.Header,
-				Version:        resp.Message.Version,
-				LocalDBVersion: resp.Message.LocalDBVersion,
-				StoreDBVersion: resp.Message.StoreDBVersion,
-			}
-			p.PeerInfoManager.Refresh(&pInfo)
-		}(remoteID)
-	}
-	selfPeer := p.getLocalPeerInfo()
-	if selfPeer != nil {
-		selfPeer.Self = true
-		p.PeerInfoManager.Refresh(selfPeer)
-	}
-	wg.Wait()
-}
-
-func (p *Protocol) setExternalAddr(addr string) {
-	ip, _ := parseIPAndPort(addr)
-	if isPublicIP(ip) {
-		p.mutex.Lock()
-		p.externalAddr = addr
-		p.mutex.Unlock()
-		ma, _ := multiaddr.NewMultiaddr(addr)
-		p.Host.Peerstore().AddAddr(p.Host.ID(), ma, time.Hour*24)
-	}
-}
-
-func (p *Protocol) getExternalAddr() string {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-	return p.externalAddr
-}
-
-func (p *Protocol) getPublicIP() string {
-	ip, _ := parseIPAndPort(p.getExternalAddr())
-	return ip
 }
 
 func (p *Protocol) detectNodeAddr() {
@@ -207,6 +116,54 @@ func (p *Protocol) detectNodeAddr() {
 			}
 		}
 	}
+}
+
+func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
+	defer cancel()
+	stream, err := p.Host.NewStream(ctx, pid, peerInfoOld)
+	if err != nil {
+		log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
+		return nil, err
+	}
+	defer protocol.CloseStream(stream)
+	err = protocol.WriteStream(&types.MessagePeerInfoReq{}, stream)
+	if err != nil {
+		return nil, err
+	}
+	var resp types.MessagePeerInfoResp
+	err = protocol.ReadStream(&resp, stream)
+	if err != nil {
+		return nil, err
+	}
+	pInfo := types.Peer{
+		Addr:           resp.Message.Addr,
+		Port:           resp.Message.Port,
+		Name:           resp.Message.Name,
+		MempoolSize:    resp.Message.MempoolSize,
+		Header:         resp.Message.Header,
+		Version:        resp.Message.Version,
+		LocalDBVersion: resp.Message.LocalDBVersion,
+		StoreDBVersion: resp.Message.StoreDBVersion,
+	}
+	return &pInfo, nil
+}
+
+func (p *Protocol) queryPeerInfo(pid peer.ID) (*types.Peer, error) {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
+	defer cancel()
+	stream, err := p.Host.NewStream(ctx, pid, peerInfo)
+	if err != nil {
+		log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
+		return nil, err
+	}
+	defer protocol.CloseStream(stream)
+	var resp types.Peer
+	err = protocol.ReadStream(&resp, stream)
+	if err != nil {
+		return nil, err
+	}
+	return &resp, nil
 }
 
 func (p *Protocol) queryVersionOld(pid peer.ID) error {
@@ -287,6 +244,28 @@ func (p *Protocol) queryVersion(pid peer.ID) error {
 		p.Host.Peerstore().AddAddr(pid, remoteMAddr, time.Hour*12)
 	}
 	return nil
+}
+
+func (p *Protocol) setExternalAddr(addr string) {
+	ip, _ := parseIPAndPort(addr)
+	if isPublicIP(ip) {
+		p.mutex.Lock()
+		p.externalAddr = addr
+		p.mutex.Unlock()
+		ma, _ := multiaddr.NewMultiaddr(addr)
+		p.Host.Peerstore().AddAddr(p.Host.ID(), ma, time.Hour*24)
+	}
+}
+
+func (p *Protocol) getExternalAddr() string {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.externalAddr
+}
+
+func (p *Protocol) getPublicIP() string {
+	ip, _ := parseIPAndPort(p.getExternalAddr())
+	return ip
 }
 
 func (p *Protocol) containsPublicIP(pid peer.ID) bool {

@@ -88,7 +88,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 			case <-p.Ctx.Done():
 				return
 			case <-ticker1.C:
-				p.refreshPeerInfoOld()
+				p.refreshPeerInfo()
 			}
 		}
 	}()
