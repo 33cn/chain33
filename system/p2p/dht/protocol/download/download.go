@@ -35,7 +35,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 		P2PEnv: env,
 	}
 	//注册p2p通信协议，用于处理节点之间请求
-	protocol.RegisterStreamHandler(p.Host, downloadBlockOld, p.handleStreamDownloadBlock)
+	protocol.RegisterStreamHandler(p.Host, downloadBlockOld, p.handleStreamDownloadBlockOld)
 	protocol.RegisterStreamHandler(p.Host, downloadBlock, p.handleStreamDownloadBlock)
 	//注册事件处理函数
 	protocol.RegisterEventHandler(types.EventFetchBlocks, p.handleEventDownloadBlock)
@@ -71,7 +71,7 @@ ReDownload:
 	}
 
 	var downloadStart = time.Now().UnixNano()
-	block, err := p.downloadBlockFromPeer(height, task.Pid)
+	block, err := p.downloadBlockFromPeerOld(height, task.Pid)
 	if err != nil {
 		log.Error("handleEventDownloadBlock", "SendRecvPeer", err, "pid", task.Pid)
 		p.releaseJob(task)
@@ -110,4 +110,31 @@ func (p *Protocol) downloadBlockFromPeer(height int64, pid peer.ID) (*types.Bloc
 		return nil, err
 	}
 	return &block, nil
+}
+
+func (p *Protocol) downloadBlockFromPeerOld(height int64, pid peer.ID) (*types.Block, error) {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*10)
+	defer cancel()
+	stream, err := p.Host.NewStream(ctx, pid, downloadBlockOld)
+	if err != nil {
+		return nil, err
+	}
+	defer protocol.CloseStream(stream)
+	blockReq := types.MessageGetBlocksReq{
+		Message: &types.P2PGetBlocks{
+			StartHeight: height,
+			EndHeight:   height,
+		},
+	}
+	err = protocol.WriteStream(&blockReq, stream)
+	if err != nil {
+		return nil, err
+	}
+	var resp types.MessageGetBlocksResp
+	err = protocol.ReadStream(&resp, stream)
+	if err != nil {
+		return nil, err
+	}
+	block := resp.Message.Items[0].Value.(*types.InvData_Block).Block
+	return block, nil
 }

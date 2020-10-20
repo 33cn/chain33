@@ -26,7 +26,7 @@ func (p *Protocol) handleStreamDownloadBlock(stream network.Stream) {
 		return
 	}
 
-	msg := p.QueueClient.NewMessage("blockchain", types.EventGetBlocks, req)
+	msg := p.QueueClient.NewMessage("blockchain", types.EventGetBlocks, &req)
 	err = p.QueueClient.Send(msg, true)
 	if err != nil {
 		return
@@ -46,6 +46,57 @@ func (p *Protocol) handleStreamDownloadBlock(stream network.Stream) {
 		return
 	}
 	log.Debug("handleStreamDownloadBlock", "block height", block.GetHeight(), "remote peer", stream.Conn().RemotePeer().String())
+}
+
+func (p *Protocol) handleStreamDownloadBlockOld(stream network.Stream) {
+	var data types.MessageGetBlocksReq
+	err := protocol.ReadStream(&data, stream)
+	if err != nil {
+		log.Error("Handle", "err", err)
+		return
+	}
+	req := types.ReqBlocks{
+		Start: data.Message.StartHeight,
+		End:   data.Message.EndHeight,
+	}
+	//允许下载的最大高度区间为256
+	if req.End-req.Start > 256 || req.End < req.Start {
+		log.Error("handleStreamDownloadBlock", "error", "wrong parameter")
+		return
+	}
+
+	msg := p.QueueClient.NewMessage("blockchain", types.EventGetBlocks, &req)
+	err = p.QueueClient.Send(msg, true)
+	if err != nil {
+		return
+	}
+	reply, err := p.QueueClient.WaitTimeout(msg, time.Second*3)
+	if err != nil {
+		return
+	}
+	blocks := reply.Data.(*types.BlockDetails)
+	if len(blocks.Items) == 0 {
+		log.Error("handleStreamDownloadBlockOld", "error", "block not found")
+		return
+	}
+	var resp types.MessageGetBlocksResp
+	var list []*types.InvData
+	for _, blockDetail := range blocks.Items {
+		list = append(list, &types.InvData{
+			Ty: 2,
+			Value: &types.InvData_Block{
+				Block: blockDetail.Block,
+			},
+		})
+	}
+	resp.Message = &types.InvDatas{
+		Items: list,
+	}
+	err = protocol.WriteStream(&resp, stream)
+	if err != nil {
+		log.Error("WriteStream", "error", err, "remote pid", stream.Conn().RemotePeer().String())
+		return
+	}
 }
 
 func (p *Protocol) handleEventDownloadBlock(msg *queue.Message) {
