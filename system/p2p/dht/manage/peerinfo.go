@@ -94,10 +94,10 @@ func (p *PeerInfoManager) PeerHeight(pid peer.ID) int64 {
 	if !ok {
 		return -1
 	}
-	if info.peer == nil || info.peer.Header == nil {
+	if info.peer.GetHeader() == nil {
 		return -1
 	}
-	return info.peer.Header.Height
+	return info.peer.GetHeader().Height
 
 }
 
