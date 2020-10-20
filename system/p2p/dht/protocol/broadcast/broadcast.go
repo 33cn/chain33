@@ -50,6 +50,8 @@ type Protocol struct {
 	peerMutex  sync.RWMutex
 }
 
+var defaultProtocol *Protocol
+
 func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
@@ -66,6 +68,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 		txQueue:         make(chan *types.Transaction, 10000),
 		blockQueue:      make(chan *types.Block, 100),
 	}
+	defaultProtocol = p
 	// 单独复制一份， 避免data race
 	subCfg := *(env.SubConfig)
 	//ttl至少设为2
@@ -235,7 +238,7 @@ func (p *Protocol) handleEventBroadcastBlockOld(m *queue.Message) {
 	// pub sub只需要转发本节点产生的交易或区块
 	hash := hex.EncodeToString(block.Hash(p.ChainCfg))
 	if !p.blockFilter.Contains(hash) {
-		p.txFilter.Add(hash, struct{}{})
+		p.blockFilter.Add(hash, struct{}{})
 		p.ps.FIFOPub(block, psBlockTopic)
 	}
 }
