@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/net"
@@ -71,6 +72,7 @@ func (s *ConnManager) Close() {
 func (s *ConnManager) RateCaculate(ratebytes float64) string {
 	kbytes := ratebytes / 1024
 	rate := fmt.Sprintf("%.3f KB/s", kbytes)
+
 	if kbytes/1024 > 0.1 {
 		rate = fmt.Sprintf("%.3f MB/s", kbytes/1024)
 	}
@@ -94,20 +96,32 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 	bandprotocols := s.bandwidthTracker.GetBandwidthByProtocol()
 	var infos netprotocols
 	for id, stat := range bandprotocols {
-		if id == "" {
+		if id == "" || stat.RateIn+stat.RateOut == 0 {
 			continue
 		}
-
-		var info types.ProtocolInfo
+		var info sortNetProtocols
 		info.Protocol = string(id)
 		info.Ratein = s.RateCaculate(stat.RateIn)
 		info.Rateout = s.RateCaculate(stat.RateOut)
-		info.Ratetotal = s.RateCaculate(stat.RateIn + stat.RateOut)
+		info.Ratetotal = float64(stat.RateIn + stat.RateOut)
 		infos = append(infos, &info)
-
 	}
-	sort.Sort(infos)
-	return &types.NetProtocolInfos{Protoinfo: infos}
+
+	sort.Sort(infos) //对Ratetotal 进行排序
+	var netinfoArr []*types.ProtocolInfo
+	for _, info := range infos {
+		var protoinfo types.ProtocolInfo
+		protoinfo.Ratetotal = s.RateCaculate(info.Ratetotal)
+		protoinfo.Rateout = info.Rateout
+		protoinfo.Ratein = info.Ratein
+		protoinfo.Protocol = info.Protocol
+		if strings.Contains(protoinfo.Ratetotal, "0.000") {
+			continue
+		}
+		netinfoArr = append(netinfoArr, &protoinfo)
+	}
+
+	return &types.NetProtocolInfos{Protoinfo: netinfoArr}
 
 }
 
@@ -347,7 +361,13 @@ func (c conns) Less(i, j int) bool { //从大到小排序，即index=0 ，表示
 	return c[i].Stat().Opened.After(c[j].Stat().Opened)
 }
 
-type netprotocols []*types.ProtocolInfo
+type sortNetProtocols struct {
+	Protocol  string
+	Ratetotal float64
+	Ratein    string
+	Rateout   string
+}
+type netprotocols []*sortNetProtocols
 
 //Len
 func (n netprotocols) Len() int { return len(n) }
@@ -356,6 +376,7 @@ func (n netprotocols) Len() int { return len(n) }
 func (n netprotocols) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 
 //Less
-func (n netprotocols) Less(i, j int) bool { //从大到小排序，即index=0 ，表示数值最大
-	return n[i].Ratetotal > n[j].Ratetotal
+func (n netprotocols) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最小
+
+	return n[i].Ratetotal < n[j].Ratetotal
 }
