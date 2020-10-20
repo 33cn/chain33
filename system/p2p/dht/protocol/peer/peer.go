@@ -59,10 +59,10 @@ func InitProtocol(env *protocol.P2PEnv) {
 	}
 
 	// Deprecated: old version, use peerInfo instead
-	protocol.RegisterStreamHandler(p.Host, peerInfoOld, p.handleStreamPeerInfo)
+	protocol.RegisterStreamHandler(p.Host, peerInfoOld, p.handleStreamPeerInfoOld)
 	protocol.RegisterStreamHandler(p.Host, peerInfo, p.handleStreamPeerInfo)
 	// Deprecated: old version, use peerVersion instead
-	protocol.RegisterStreamHandler(p.Host, peerVersionOld, p.handleStreamVersion)
+	protocol.RegisterStreamHandler(p.Host, peerVersionOld, p.handleStreamVersionOld)
 	protocol.RegisterStreamHandler(p.Host, peerVersion, p.handleStreamVersion)
 	protocol.RegisterEventHandler(types.EventPeerInfo, p.handleEventPeerInfo)
 	protocol.RegisterEventHandler(types.EventGetNetInfo, p.handleEventNetInfo)
@@ -79,13 +79,16 @@ func InitProtocol(env *protocol.P2PEnv) {
 
 	go p.detectNodeAddr()
 	go func() {
-		ticker1 := time.NewTicker(time.Second * 10)
+		ticker1 := time.NewTicker(time.Second * 5)
+		if p.ChainCfg.IsTestNet() {
+			ticker1 = time.NewTicker(time.Second)
+		}
 		for {
 			select {
 			case <-p.Ctx.Done():
 				return
 			case <-ticker1.C:
-				p.refreshPeerInfo()
+				p.refreshPeerInfoOld()
 			}
 		}
 	}()

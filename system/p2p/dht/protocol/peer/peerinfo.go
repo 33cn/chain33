@@ -89,6 +89,60 @@ func (p *Protocol) refreshPeerInfo() {
 	wg.Wait()
 }
 
+func (p *Protocol) refreshPeerInfoOld() {
+	var wg sync.WaitGroup
+	for _, remoteID := range p.RoutingTable.ListPeers() {
+		if p.checkDone() {
+			log.Warn("getPeerInfo", "process", "done+++++++")
+			return
+		}
+		if remoteID == p.Host.ID() {
+			continue
+		}
+		//修改为并发获取peerinfo信息
+		wg.Add(1)
+		go func(pid peer.ID) {
+			defer wg.Done()
+			ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
+			defer cancel()
+			stream, err := p.Host.NewStream(ctx, pid, peerInfoOld)
+			if err != nil {
+				log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
+				return
+			}
+			defer protocol.CloseStream(stream)
+			err = protocol.WriteStream(&types.MessagePeerInfoReq{}, stream)
+			if err != nil {
+				log.Error("refreshPeerInfo", "write stream error", err)
+				return
+			}
+			var resp types.MessagePeerInfoResp
+			err = protocol.ReadStream(&resp, stream)
+			if err != nil {
+				log.Error("refreshPeerInfo", "read stream error", err, "peer id", pid)
+				return
+			}
+			pInfo := types.Peer{
+				Addr:           resp.Message.Addr,
+				Port:           resp.Message.Port,
+				Name:           resp.Message.Name,
+				MempoolSize:    resp.Message.MempoolSize,
+				Header:         resp.Message.Header,
+				Version:        resp.Message.Version,
+				LocalDBVersion: resp.Message.LocalDBVersion,
+				StoreDBVersion: resp.Message.StoreDBVersion,
+			}
+			p.PeerInfoManager.Refresh(&pInfo)
+		}(remoteID)
+	}
+	selfPeer := p.getLocalPeerInfo()
+	if selfPeer != nil {
+		selfPeer.Self = true
+		p.PeerInfoManager.Refresh(selfPeer)
+	}
+	wg.Wait()
+}
+
 func (p *Protocol) setExternalAddr(addr string) {
 	ip, _ := parseIPAndPort(addr)
 	if isPublicIP(ip) {
@@ -123,7 +177,7 @@ func (p *Protocol) detectNodeAddr() {
 		if err != nil {
 			continue
 		}
-		err = p.queryVersion(peerInfo.ID)
+		err = p.queryVersionOld(peerInfo.ID)
 		if err != nil {
 			continue
 		}
@@ -146,13 +200,56 @@ func (p *Protocol) detectNodeAddr() {
 			if p.containsPublicIP(pid) {
 				continue
 			}
-			err := p.queryVersion(pid)
+			err := p.queryVersionOld(pid)
 			if err != nil {
 				log.Error("detectNodeAddr", "queryVersion error", err, "pid", pid)
 				continue
 			}
 		}
 	}
+}
+
+func (p *Protocol) queryVersionOld(pid peer.ID) error {
+	stream, err := p.Host.NewStream(p.Ctx, pid, peerVersionOld)
+	if err != nil {
+		log.Error("NewStream", "err", err, "remoteID", pid)
+		return err
+	}
+	defer protocol.CloseStream(stream)
+
+	req := types.MessageP2PVersionReq{
+		Message: &types.P2PVersion{
+			Version:  p.SubConfig.Channel,
+			AddrFrom: fmt.Sprintf("/ip4/%v/tcp/%d", p.getExternalAddr(), p.SubConfig.Port),
+			AddrRecv: stream.Conn().RemoteMultiaddr().String(),
+		},
+	}
+	err = protocol.WriteStream(&req, stream)
+	if err != nil {
+		log.Error("queryVersion", "WriteStream err", err)
+		return err
+	}
+	var res types.MessageP2PVersionResp
+	err = protocol.ReadStream(&res, stream)
+	if err != nil {
+		log.Error("queryVersion", "ReadStream err", err)
+		return err
+	}
+	msg := res.Message
+	addr := msg.GetAddrRecv()
+	p.setExternalAddr(addr)
+	if !strings.Contains(msg.AddrFrom, "/ip4") {
+		_, port := parseIPAndPort(stream.Conn().RemoteMultiaddr().String())
+		msg.AddrFrom = fmt.Sprintf("/ip4/%s/tcp/%d", msg.AddrFrom, port)
+	}
+	if ip, _ := parseIPAndPort(msg.GetAddrFrom()); isPublicIP(ip) {
+		remoteMAddr, err := multiaddr.NewMultiaddr(msg.GetAddrFrom())
+		if err != nil {
+			return err
+		}
+		p.Host.Peerstore().AddAddr(pid, remoteMAddr, time.Hour*12)
+	}
+	return nil
 }
 
 func (p *Protocol) queryVersion(pid peer.ID) error {

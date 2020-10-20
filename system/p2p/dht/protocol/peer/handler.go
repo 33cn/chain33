@@ -49,6 +49,65 @@ func (p *Protocol) handleStreamVersion(stream network.Stream) {
 	}
 }
 
+func (p *Protocol) handleStreamPeerInfoOld(stream network.Stream) {
+	var req types.MessagePeerInfoReq
+	err := protocol.ReadStream(&req, stream)
+	if err != nil {
+		log.Error("handleStreamPeerInfoOld", "read stream error", err)
+		return
+	}
+
+	peerInfo := p.getLocalPeerInfo()
+	pInfo := &types.P2PPeerInfo{
+		Addr:           peerInfo.Addr,
+		Port:           peerInfo.Port,
+		Name:           peerInfo.Name,
+		MempoolSize:    peerInfo.MempoolSize,
+		Header:         peerInfo.Header,
+		Version:        peerInfo.Version,
+		LocalDBVersion: peerInfo.LocalDBVersion,
+		StoreDBVersion: peerInfo.StoreDBVersion,
+	}
+	err = protocol.WriteStream(&types.MessagePeerInfoResp{
+		Message: pInfo,
+	}, stream)
+	if err != nil {
+		log.Error("handleStreamPeerInfo", "WriteStream error", err)
+		return
+	}
+}
+
+func (p *Protocol) handleStreamVersionOld(stream network.Stream) {
+	var req types.MessageP2PVersionReq
+	err := protocol.ReadStream(&req, stream)
+	if err != nil {
+		log.Error("handleStreamVersion", "read stream error", err)
+		return
+	}
+	msg := req.Message
+	if ip, _ := parseIPAndPort(msg.GetAddrFrom()); isPublicIP(ip) {
+		remoteMAddr, err := multiaddr.NewMultiaddr(msg.GetAddrFrom())
+		if err != nil {
+			return
+		}
+		p.Host.Peerstore().AddAddr(stream.Conn().RemotePeer(), remoteMAddr, time.Hour*24)
+	}
+
+	p.setExternalAddr(msg.GetAddrRecv())
+	resp := &types.MessageP2PVersionResp{
+		Message: &types.P2PVersion{
+			AddrFrom:  p.getExternalAddr(),
+			AddrRecv:  stream.Conn().RemoteMultiaddr().String(),
+			Timestamp: time.Now().Unix(),
+		},
+	}
+	err = protocol.WriteStream(resp, stream)
+	if err != nil {
+		log.Error("handleStreamVersion", "WriteStream error", err)
+		return
+	}
+}
+
 func (p *Protocol) handleEventPeerInfo(msg *queue.Message) {
 	peers := p.PeerInfoManager.FetchAll()
 	msg.Reply(p.QueueClient.NewMessage("blockchain", types.EventPeerList, &types.PeerList{Peers: peers}))
