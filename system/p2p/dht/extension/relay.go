@@ -53,7 +53,7 @@ func (r *Relay) FindOpPeers() ([]peer.AddrInfo, error) {
 }
 
 // DialDestPeer 通过hop中继节点连接dst节点
-func (r *Relay) DialDestPeer(host host.Host, hop, dst peer.AddrInfo) (*circuit.Conn, error) {
+func (r *Relay) DialDestPeer(hop, dst peer.AddrInfo) (*circuit.Conn, error) {
 
 	rctx, rcancel := context.WithTimeout(context.Background(), time.Second)
 	defer rcancel()
@@ -64,7 +64,7 @@ func (r *Relay) DialDestPeer(host host.Host, hop, dst peer.AddrInfo) (*circuit.C
 }
 
 // CheckHOp 检查请求的节点是否支持relay中继
-func (r *Relay) CheckHOp(host host.Host, isop peer.ID) (bool, error) {
+func (r *Relay) CheckHOp(isop peer.ID) (bool, error) {
 
 	rctx, rcancel := context.WithTimeout(context.Background(), time.Second)
 	defer rcancel()

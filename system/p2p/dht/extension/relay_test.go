@@ -3,17 +3,15 @@ package extension
 import (
 	"bytes"
 	"context"
+	discovery "github.com/libp2p/go-libp2p-discovery"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"io"
 	"net"
 	"testing"
 
-	"github.com/33cn/chain33/system/p2p/dht"
-	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
-	"github.com/33cn/chain33/types"
 	bhost "github.com/libp2p/go-libp2p-blankhost"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/stretchr/testify/assert"
 )
@@ -90,11 +88,15 @@ func TestRelay(t *testing.T) {
 	t.Log("h0", hosts[0].ID())
 	t.Log("h1", hosts[1].ID())
 	t.Log("h2", hosts[2].ID())
-	disc := dht.InitDhtDiscovery(ctx, hosts[0], []peer.AddrInfo{rinfo, dinfo}, &types.Chain33Config{}, &p2pty.P2PSubConfig{})
-	disc.Start()
-	netRely := NewRelayDiscovery(hosts[0], disc.RoutingDiscovery)
+	//disc := dht.InitDhtDiscovery(ctx, hosts[0], []peer.AddrInfo{rinfo, dinfo}, &types.Chain33Config{}, &p2pty.P2PSubConfig{})
+	//disc.Start()
+	kademliaDHT, err := dht.New(context.Background(), hosts[0])
+	if err != nil {
+		panic(err)
+	}
+	netRely := NewRelayDiscovery(hosts[0], discovery.NewRoutingDiscovery(kademliaDHT))
 	netRely.Advertise(ctx)
-	conn2, err = netRely.DialDestPeer(hosts[0], rinfo, dinfo)
+	conn2, err = netRely.DialDestPeer(rinfo, dinfo)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,23 +111,16 @@ func TestRelay(t *testing.T) {
 		t.Fatal("message was incorrect:", string(result))
 	}
 
-	testCheckOp(t, netRely, hosts)
+	testCheckOp(t, netRely, hosts[1])
 	testFindOpPeers(ctx, netRely, hosts, t)
 
 }
 
-func testCheckOp(t *testing.T, netRely *Relay, hosts []host.Host) {
+func testCheckOp(t *testing.T, netRely *Relay, h host.Host) {
 	//check op
-
-	ok, err := netRely.CheckHOp(hosts[0], hosts[1].ID())
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, true, ok)
-
-	ok, err = netRely.CheckHOp(hosts[0], hosts[2].ID())
+	ok, err := netRely.CheckHOp(h.ID())
 	assert.Nil(t, err)
-	assert.Equal(t, false, ok)
+	assert.True(t, ok)
 }
 
 func testFindOpPeers(ctx context.Context, netRely *Relay, hosts []host.Host, t *testing.T) {
