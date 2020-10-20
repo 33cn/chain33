@@ -7,7 +7,7 @@ package broadcast
 import (
 	"testing"
 
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
@@ -25,8 +25,8 @@ func testRecvMsg(p *pubSub, topic string, data []byte, buf *[]byte) (types.Messa
 }
 
 func newTestPubSub() *pubSub {
-	p := &pubSub{&broadcastProtocol{BaseProtocol: &prototypes.BaseProtocol{}}}
-	p.P2PEnv = &prototypes.P2PEnv{}
+	p := &pubSub{&Protocol{}}
+	p.P2PEnv = &protocol.P2PEnv{}
 	p.ChainCfg = testnode.GetDefaultConfig()
 
 	return p
