@@ -22,6 +22,8 @@ const (
 	GetHeader      = "/chain33/headers/1.0.0"
 	GetChunkRecord = "/chain33/chunk-record/1.0.0"
 	FullNode       = "/chain33/full-node/1.0.0"
+	// Deprecated: old version, use GetHeader instead
+	GetHeaderOld = "/chain33/headerinfoReq/1.0.0"
 )
 
 const maxConcurrency = 10
@@ -64,6 +66,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p.Host, GetHeaderOld, p.handleStreamGetHeaderOld)
 	protocol.RegisterStreamHandler(p.Host, FullNode, protocol.HandlerWithRW(p.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p.Host, FetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p.Host, StoreChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))

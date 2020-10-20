@@ -449,6 +449,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	}
 	p2.bindRoutingTableUpdateFunc()
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p2.Host, GetHeaderOld, p2.handleStreamGetHeaderOld)
 	protocol.RegisterStreamHandler(p2.Host, FullNode, protocol.HandlerWithRW(p2.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p2.Host, FetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p2.Host, StoreChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
@@ -573,6 +574,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	}
 	p3.bindRoutingTableUpdateFunc()
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p3.Host, GetHeaderOld, p3.handleStreamGetHeaderOld)
 	protocol.RegisterStreamHandler(p3.Host, FullNode, protocol.HandlerWithRW(p3.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p3.Host, FetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p3.Host, StoreChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))

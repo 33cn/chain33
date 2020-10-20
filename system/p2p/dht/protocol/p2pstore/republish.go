@@ -2,7 +2,6 @@ package p2pstore
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -36,7 +35,6 @@ func (p *Protocol) republish() {
 		}
 		log.Info("local chunk", "hash", hash, "start", info.Start)
 		peers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(info.ChunkHash), Backup-1)
-		fmt.Println("healthy size:", p.HealthyRoutingTable.Size(), "shard size:", p.ShardHealthyRoutingTable.Size())
 		for _, pid := range peers {
 			invertedIndex[pid] = append(invertedIndex[pid], info.ChunkInfoMsg)
 		}

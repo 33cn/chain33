@@ -30,6 +30,48 @@ func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID
 	return p.mustFetchChunk(p.Ctx, req, true)
 }
 
+func (p *Protocol) getHeadersOld(param *types.ReqBlocks) (*types.Headers, peer.ID) {
+	req := types.P2PGetHeaders{
+		StartHeight: param.Start,
+		EndHeight:   param.End,
+	}
+	for _, peerID := range param.Pid {
+		pid, err := peer.Decode(peerID)
+		if err != nil {
+			log.Error("getHeaders", "decode pid error", err)
+			continue
+		}
+		headers, err := p.getHeadersFromPeerOld(&req, pid)
+		if err != nil {
+			continue
+		}
+		return headers, pid
+	}
+	return nil, ""
+}
+
+func (p *Protocol) getHeadersFromPeerOld(req *types.P2PGetHeaders, pid peer.ID) (*types.Headers, error) {
+	stream, err := p.Host.NewStream(p.Ctx, pid, GetHeaderOld)
+	if err != nil {
+		return nil, err
+	}
+	defer protocol.CloseStream(stream)
+	err = protocol.WriteStream(&types.MessageHeaderReq{
+		Message: req,
+	}, stream)
+	if err != nil {
+		return nil, err
+	}
+	var resp types.MessageHeaderResp
+	err = protocol.ReadStream(&resp, stream)
+	if err != nil {
+		return nil, err
+	}
+	return &types.Headers{
+		Items: resp.Message.Headers,
+	}, nil
+}
+
 func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) {
 	for _, peerID := range param.Pid {
 		pid, err := peer.Decode(peerID)

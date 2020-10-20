@@ -2,7 +2,6 @@ package p2pstore
 
 import (
 	"encoding/hex"
-	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -155,8 +154,40 @@ func (p *Protocol) handleStreamGetHeader(req *types.P2PRequest, res *types.P2PRe
 	return types.ErrNotFound
 }
 
+func (p *Protocol) handleStreamGetHeaderOld(stream network.Stream) {
+	var req types.MessageHeaderReq
+	err := protocol.ReadStream(&req, stream)
+	if err != nil {
+		return
+	}
+	param := &types.ReqBlocks{
+		Start: req.Message.StartHeight,
+		End:   req.Message.EndHeight,
+	}
+	msg := p.QueueClient.NewMessage("blockchain", types.EventGetHeaders, param)
+	err = p.QueueClient.Send(msg, true)
+	if err != nil {
+		return
+	}
+	resp, err := p.QueueClient.Wait(msg)
+	if err != nil {
+		return
+	}
+
+	if headers, ok := resp.GetData().(*types.Headers); ok {
+		err = protocol.WriteStream(&types.MessageHeaderResp{
+			Message: &types.P2PHeaders{
+				Headers: headers.Items,
+			},
+		}, stream)
+		if err != nil {
+			return
+		}
+	}
+
+}
+
 func (p *Protocol) handleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse) error {
-	fmt.Println("into handleStreamGetChunkRecord")
 	param := req.Request.(*types.P2PRequest_ReqChunkRecords).ReqChunkRecords
 	records, err := p.getChunkRecordFromBlockchain(param)
 	if err != nil {
@@ -275,7 +306,7 @@ func (p *Protocol) handleEventGetHeaders(m *queue.Message) {
 		return
 	}
 	m.Reply(p.QueueClient.NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	headers, pid := p.getHeaders(req)
+	headers, pid := p.getHeadersOld(req)
 	if headers == nil || len(headers.Items) == 0 {
 		return
 	}
