@@ -74,6 +74,7 @@ func (d *Discovery) Close() error {
 	if d.kademliaDHT != nil {
 		return d.kademliaDHT.Close()
 	}
+	d.CloseFindLANPeers()
 	return nil
 }
 

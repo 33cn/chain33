@@ -289,7 +289,6 @@ func (p *P2P) findLANPeers() {
 
 		case <-p.ctx.Done():
 			log.Info("findLANPeers", "process", "done")
-			p.discovery.CloseFindLANPeers()
 			return
 		}
 	}
