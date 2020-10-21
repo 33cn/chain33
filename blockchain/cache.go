@@ -121,7 +121,7 @@ type cacheTx struct {
 	txHashes []string
 }
 
-//BlockCache 区块缓存
+//TxCache 交易hash缓存
 type TxCache struct {
 	capacity int
 	cacheTxs map[string]bool
