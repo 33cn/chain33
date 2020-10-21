@@ -114,7 +114,7 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 
 //HasTx 是否包含该交易
 func (chain *BlockChain) HasTx(txhash []byte, onlyquerycache bool) (has bool, err error) {
-	has = chain.cache.HasCacheTx(txhash)
+	has = chain.txCache.HasCacheTx(txhash)
 	if has {
 		return true, nil
 	}

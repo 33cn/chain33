@@ -333,8 +333,9 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	//cache new add block
 	beg = types.Now()
 	b.cache.CacheBlock(blockdetail)
-
+	b.txCache.Add(blockdetail.Block)
 	cacheCost := types.Since(beg)
+
 	//保存block的总难度到db中
 	difficulty := difficulty.CalcWork(block.Difficulty)
 	var blocktd *big.Int
