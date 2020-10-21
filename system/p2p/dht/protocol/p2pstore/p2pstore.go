@@ -3,9 +3,6 @@ package p2pstore
 import (
 	"context"
 	"encoding/hex"
-	"github.com/libp2p/go-libp2p-core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 	"sync"
 	"time"
 
@@ -14,6 +11,9 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/discovery"
+	"github.com/libp2p/go-libp2p-core/peer"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (

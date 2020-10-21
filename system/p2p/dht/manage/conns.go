@@ -36,8 +36,6 @@ type ConnManager struct {
 	bandwidthTracker *metrics.BandwidthCounter
 	routingTable     *kb.RoutingTable
 	cfg              *p2pty.P2PSubConfig
-
-	Done chan struct{}
 }
 
 // NewConnManager new connection manager
@@ -48,7 +46,6 @@ func NewConnManager(ctx context.Context, host core.Host, rt *kb.RoutingTable, tr
 	connM.routingTable = rt
 	connM.bandwidthTracker = tracker
 	connM.cfg = cfg
-	connM.Done = make(chan struct{}, 1)
 
 	return connM
 
@@ -90,79 +87,72 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 func (s *ConnManager) MonitorAllPeers() {
 	ticker1 := time.NewTicker(time.Minute)
 	ticker2 := time.NewTicker(time.Minute * 2)
-	ticker3 := time.NewTicker(time.Hour * 6)
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
 		case <-ticker1.C:
-			var LatencyInfo = fmt.Sprintln("--------------时延--------------------")
-			peers := s.FetchConnPeers()
-			bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
-			var trackerInfo = fmt.Sprintln("------------BandTracker--------------")
-			for _, pid := range peers {
-				//统计每个节点的时延,统计最多MaxBounds个
-				tduration := s.host.Peerstore().LatencyEWMA(pid)
-				if tduration == 0 {
-					continue
-				}
-				LatencyInfo += fmt.Sprintln("PeerID:", pid.Pretty(), "LatencyEWMA:", tduration)
-				if stat, ok := bandByPeer[pid]; ok {
-					trackerInfo += fmt.Sprintf("PeerID:%s,RateIn:%f bytes/s,RateOut:%f bytes/s,totalIn:%d bytes,totalOut:%d\n",
-						pid,
-						stat.RateIn,
-						stat.RateOut,
-						stat.TotalIn,
-						stat.TotalOut)
-				}
-				//protocols rate
-				log.Debug(LatencyInfo)
-
-				insize, outsize := s.BoundSize()
-				trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.host.Peerstore().Peers()), ",conn num:", insize+outsize, "inbound num", insize, "outbound num", outsize,
-					"dht size", s.routingTable.Size())
-				trackerInfo += fmt.Sprintln("-------------------------------------")
-				log.Debug(trackerInfo)
-			}
-
+			s.printMonitorInfo()
 		case <-ticker2.C:
-			//处理当前连接的节点问题
-			_, outBoundSize := s.BoundSize()
-			if outBoundSize > maxOutBounds || s.Size() > maxBounds {
-				continue
-			}
-			//如果连接的节点数较少，尝试连接内置的和配置的种子节点
-			//无须担心重新连接的问题，底层会自己判断是否已经连接了此节点，如果已经连接了就会忽略
-			for _, seed := range ConvertPeers(s.cfg.Seeds) {
-				_ = s.host.Connect(context.Background(), *seed)
-			}
-
-			for _, node := range ConvertPeers(s.cfg.BootStraps) {
-				_ = s.host.Connect(context.Background(), *node)
-			}
-
-		//debug
-		case <-ticker3.C:
-			for _, pid := range s.routingTable.ListPeers() {
-				log.Debug("debug routing table", "pid", pid, "maddrs", s.host.Peerstore().Addrs(pid))
-			}
+			s.procConnections()
 		}
 	}
 }
 
-// ConvertPeers convert peers to addr info
-func ConvertPeers(peers []string) map[string]*peer.AddrInfo {
-	pinfos := make(map[string]*peer.AddrInfo, len(peers))
-	for _, addr := range peers {
-		addr, _ := multiaddr.NewMultiaddr(addr)
-		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			log.Error("ConvertPeers", "err", err)
+func (s *ConnManager) printMonitorInfo() {
+	var LatencyInfo = fmt.Sprintln("--------------时延--------------------")
+	peers := s.FetchConnPeers()
+	bandByPeer := s.bandwidthTracker.GetBandwidthByPeer()
+	var trackerInfo = fmt.Sprintln("------------BandTracker--------------")
+	for _, pid := range peers {
+		//统计每个节点的时延,统计最多MaxBounds个
+		tduration := s.host.Peerstore().LatencyEWMA(pid)
+		if tduration == 0 {
 			continue
 		}
-		pinfos[peerinfo.ID.Pretty()] = peerinfo
+		LatencyInfo += fmt.Sprintln("PeerID:", pid.Pretty(), "LatencyEWMA:", tduration)
+		if stat, ok := bandByPeer[pid]; ok {
+			trackerInfo += fmt.Sprintf("PeerID:%s,RateIn:%f bytes/s,RateOut:%f bytes/s,totalIn:%d bytes,totalOut:%d\n",
+				pid,
+				stat.RateIn,
+				stat.RateOut,
+				stat.TotalIn,
+				stat.TotalOut)
+		}
+		//protocols rate
+		log.Debug(LatencyInfo)
+
+		insize, outsize := s.BoundSize()
+		trackerInfo += fmt.Sprintln("peerstoreNum:", len(s.host.Peerstore().Peers()), ",conn num:", insize+outsize, "inbound num", insize, "outbound num", outsize,
+			"dht size", s.routingTable.Size())
+		trackerInfo += fmt.Sprintln("-------------------------------------")
+		log.Debug(trackerInfo)
 	}
-	return pinfos
+}
+
+func (s *ConnManager) procConnections() {
+	//处理当前连接的节点问题
+	_, outBoundSize := s.BoundSize()
+	if outBoundSize > maxOutBounds || s.Size() > maxBounds {
+		return
+	}
+	//如果连接的节点数较少，尝试连接内置的和配置的种子节点
+	//无须担心重新连接的问题，底层会自己判断是否已经连接了此节点，如果已经连接了就会忽略
+	for _, seed := range s.cfg.Seeds {
+		info := genAddrInfo(seed)
+		_ = s.host.Connect(context.Background(), *info)
+	}
+
+	for _, node := range s.cfg.BootStraps {
+		info := genAddrInfo(node)
+		_ = s.host.Connect(context.Background(), *info)
+	}
+}
+
+func genAddrInfo(addr string) *peer.AddrInfo {
+	mAddr, _ := multiaddr.NewMultiaddr(addr)
+	peerInfo, _ := peer.AddrInfoFromP2pAddr(mAddr)
+	return peerInfo
 }
 
 // AddNeighbors add neighbors by peer info
