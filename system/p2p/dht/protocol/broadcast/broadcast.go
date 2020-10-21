@@ -22,9 +22,9 @@ import (
 var log = log15.New("module", "p2p.broadcast")
 
 const (
-	broadcastV1          = "/chain33/p2p/broadcast/1.0.0"
-	broadcastTransaction = "/chain33/broadcast/transaction/1.0.0"
-	broadcastBlock       = "/chain33/broadcast/block/1.0.0"
+	broadcastV1 = "/chain33/p2p/broadcast/1.0.0"
+	//broadcastTransaction = "/chain33/broadcast/transaction/1.0.0"
+	//broadcastBlock       = "/chain33/broadcast/block/1.0.0"
 )
 
 // Protocol ...

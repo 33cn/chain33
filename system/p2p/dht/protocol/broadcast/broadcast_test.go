@@ -9,10 +9,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"testing"
-	"time"
-
 	"github.com/33cn/chain33/client"
 	commlog "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/common/pubsub"
@@ -26,9 +22,11 @@ import (
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func init() {
@@ -155,8 +153,6 @@ func TestBroadCastEventNew(t *testing.T) {
 	mempoolCLI.Sub("mempool")
 	<-blockchainCLI.Recv()
 	<-mempoolCLI.Recv()
-	time.Sleep(time.Second * 10)
-
 }
 
 func TestFilter(t *testing.T) {
