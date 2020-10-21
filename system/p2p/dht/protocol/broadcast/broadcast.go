@@ -6,8 +6,6 @@
 package broadcast
 
 import (
-	"encoding/hex"
-	"github.com/33cn/chain33/queue"
 	"math/rand"
 	"sync"
 	"time"
@@ -94,50 +92,34 @@ func InitProtocol(env *protocol.P2PEnv) {
 
 	// old是为兼容老版本的临时版本
 	protocol.RegisterStreamHandler(p.Host, broadcastV1, p.handleStreamOld)
-	protocol.RegisterStreamHandler(p.Host, broadcastTransaction, p.handleStreamBroadcastTx)
-	protocol.RegisterStreamHandler(p.Host, broadcastBlock, p.handleStreamBroadcastBlock)
+	//protocol.RegisterStreamHandler(p.Host, broadcastTransaction, p.handleStreamBroadcastTx)
+	//protocol.RegisterStreamHandler(p.Host, broadcastBlock, p.handleStreamBroadcastBlock)
 	////注册事件处理函数
-	protocol.RegisterEventHandler(types.EventTxBroadcast, p.handleEventBroadcastTxOld)
-	protocol.RegisterEventHandler(types.EventBlockBroadcast, p.handleEventBroadcastBlockOld)
+	protocol.RegisterEventHandler(types.EventTxBroadcast, p.handleEventBroadcastTx)
+	protocol.RegisterEventHandler(types.EventBlockBroadcast, p.handleEventBroadcastBlock)
+	go p.broadcastRoutine()
 	// pub sub broadcast
 	go newPubSub(p).broadcast()
-	go func() {
-		for p.RoutingTable.Size() == 0 {
-			time.Sleep(time.Second / 10)
+}
+
+func (p *Protocol) broadcastRoutine() {
+	for p.RoutingTable.Size() == 0 {
+		time.Sleep(time.Second / 10)
+	}
+	p.refreshPeers()
+	ticker1 := time.NewTicker(time.Minute)
+	for {
+		select {
+		case <-p.Ctx.Done():
+			return
+		case <-ticker1.C:
+			p.refreshPeers()
+		case tx := <-p.txQueue:
+			p.broadcastOld(tx)
+		case block := <-p.blockQueue:
+			p.broadcastOld(block)
 		}
-		p.refreshPeers()
-		ticker1 := time.NewTicker(time.Minute)
-		for {
-			select {
-			case <-p.Ctx.Done():
-				return
-			case <-ticker1.C:
-				p.refreshPeers()
-			case tx := <-p.txQueue:
-				data := types.MessageBroadCast{
-					Message: &types.BroadCastData{
-						Value: &types.BroadCastData_Tx{
-							Tx: &types.P2PTx{
-								Tx: tx,
-							},
-						},
-					},
-				}
-				p.broadcastOld(&data)
-			case block := <-p.blockQueue:
-				data := types.MessageBroadCast{
-					Message: &types.BroadCastData{
-						Value: &types.BroadCastData_Block{
-							Block: &types.P2PBlock{
-								Block: block,
-							},
-						},
-					},
-				}
-				p.broadcastOld(&data)
-			}
-		}
-	}()
+	}
 }
 
 func (p *Protocol) refreshPeers() {
@@ -160,20 +142,35 @@ func (p *Protocol) getBroadcastPeers() []peer.ID {
 	p.peerMutex.RLock()
 	defer p.peerMutex.RUnlock()
 	var peers []peer.ID
-	copy(peers, p.peers)
+	peers = append(peers, p.peers...)
 	return peers
 }
 
-func (p *Protocol) broadcastRoutine() {
-	rand.Seed(time.Now().UnixNano())
-	for {
-
+func (p *Protocol) broadcastOld(in interface{}) {
+	var data types.MessageBroadCast
+	switch v := in.(type) {
+	case *types.Transaction:
+		data.Message = &types.BroadCastData{
+			Value: &types.BroadCastData_Tx{
+				Tx: &types.P2PTx{
+					Tx: v,
+				},
+			},
+		}
+	case *types.Block:
+		data.Message = &types.BroadCastData{
+			Value: &types.BroadCastData_Block{
+				Block: &types.P2PBlock{
+					Block: v,
+				},
+			},
+		}
+	default:
+		return
 	}
-}
 
-func (p *Protocol) broadcastOld(data *types.MessageBroadCast) {
 	for _, pid := range p.getBroadcastPeers() {
-		err := p.sendDataToPeer(data, pid)
+		err := p.sendDataToPeer(&data, pid)
 		if err != nil {
 			log.Error("broadcastTxOld", "pid", pid, "error", err)
 		}
@@ -189,58 +186,58 @@ func (p *Protocol) sendDataToPeer(data *types.MessageBroadCast, pid peer.ID) err
 	return protocol.WriteStream(data, stream)
 }
 
-func (p *Protocol) broadcastTransaction() {
-	txs := loadTransaction(p.txQueue, 100)
-	for _, pid := range p.getBroadcastPeers() {
-		stream, err := p.Host.NewStream(p.Ctx, pid, broadcastTransaction)
-		if err != nil {
-			continue
-		}
-		defer protocol.CloseStream(stream)
-		err = protocol.WriteStream(txs, stream)
-		if err != nil {
-
-		}
-
-	}
-}
-
-func loadTransaction(q chan *types.Transaction, count int) *types.Transactions {
-	var txs types.Transactions
-	for {
-		select {
-		case tx := <-q:
-			txs.Txs = append(txs.Txs, tx)
-			if len(txs.Txs) >= count {
-				return &txs
-			}
-		default:
-			return &txs
-		}
-	}
-}
-
-func (p *Protocol) handleEventBroadcastTxOld(m *queue.Message) {
-	tx := m.GetData().(*types.Transaction)
-	p.txQueue <- tx
-	// pub sub只需要转发本节点产生的交易或区块
-	hash := hex.EncodeToString(tx.Hash())
-	if !p.txFilter.Contains(hash) {
-		p.txFilter.Add(hash, struct{}{})
-		p.ps.FIFOPub(tx, psTxTopic)
-	}
-}
-
-func (p *Protocol) handleEventBroadcastBlockOld(m *queue.Message) {
-	block := m.GetData().(*types.Block)
-	p.blockQueue <- block
-	// pub sub只需要转发本节点产生的交易或区块
-	hash := hex.EncodeToString(block.Hash(p.ChainCfg))
-	if !p.blockFilter.Contains(hash) {
-		p.blockFilter.Add(hash, struct{}{})
-		p.ps.FIFOPub(block, psBlockTopic)
-	}
-}
+//func (p *Protocol) broadcastBlock() {
+//	block := <-p.blockQueue
+//	for _, pid := range p.getBroadcastPeers() {
+//		err := p.sendBlockToPeer(block, pid)
+//		if err != nil {
+//			log.Error("broadcastTransaction", "error", err, "pid", pid)
+//		}
+//	}
+//}
+//
+//func (p *Protocol) sendBlockToPeer(block *types.Block, pid peer.ID) error {
+//	stream, err := p.Host.NewStream(p.Ctx, pid, broadcastBlock)
+//	if err != nil {
+//		return err
+//	}
+//	defer protocol.CloseStream(stream)
+//	return protocol.WriteStream(block, stream)
+//}
+//
+//func (p *Protocol) broadcastTransaction() {
+//	txs := loadTransaction(p.txQueue, 100)
+//	for _, pid := range p.getBroadcastPeers() {
+//		err := p.sendTransactionToPeer(txs, pid)
+//		if err != nil {
+//			log.Error("broadcastTransaction", "error", err, "pid", pid)
+//		}
+//	}
+//}
+//
+//func (p *Protocol) sendTransactionToPeer(txs *types.Transactions, pid peer.ID) error {
+//	stream, err := p.Host.NewStream(p.Ctx, pid, broadcastTransaction)
+//	if err != nil {
+//		return err
+//	}
+//	defer protocol.CloseStream(stream)
+//	return protocol.WriteStream(txs, stream)
+//}
+//
+//func loadTransaction(q chan *types.Transaction, count int) *types.Transactions {
+//	var txs types.Transactions
+//	for {
+//		select {
+//		case tx := <-q:
+//			txs.Txs = append(txs.Txs, tx)
+//			if len(txs.Txs) >= count {
+//				return &txs
+//			}
+//		default:
+//			return &txs
+//		}
+//	}
+//}
 
 func (p *Protocol) postBlockChain(blockHash, pid string, block *types.Block) error {
 	return p.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
