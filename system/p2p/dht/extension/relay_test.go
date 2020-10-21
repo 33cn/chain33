@@ -3,15 +3,16 @@ package extension
 import (
 	"bytes"
 	"context"
-	discovery "github.com/libp2p/go-libp2p-discovery"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"io"
 	"net"
 	"testing"
+	"time"
 
 	bhost "github.com/libp2p/go-libp2p-blankhost"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
+	discovery "github.com/libp2p/go-libp2p-discovery"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/stretchr/testify/assert"
 )
@@ -84,16 +85,13 @@ func TestRelay(t *testing.T) {
 	}()
 
 	rinfo := hosts[1].Peerstore().PeerInfo(hosts[1].ID()) //中继节点的peerinfo
+	assert.NotNil(t, rinfo.Addrs)
 	dinfo := hosts[2].Peerstore().PeerInfo(hosts[2].ID()) //目的节点
-	t.Log("h0", hosts[0].ID())
-	t.Log("h1", hosts[1].ID())
-	t.Log("h2", hosts[2].ID())
-	//disc := dht.InitDhtDiscovery(ctx, hosts[0], []peer.AddrInfo{rinfo, dinfo}, &types.Chain33Config{}, &p2pty.P2PSubConfig{})
-	//disc.Start()
+	assert.NotNil(t, dinfo.Addrs)
 	kademliaDHT, err := dht.New(context.Background(), hosts[0])
-	if err != nil {
-		panic(err)
-	}
+	assert.Nil(t, err)
+	_, err = kademliaDHT.RoutingTable().Update(hosts[1].ID())
+	assert.Nil(t, err)
 	netRely := NewRelayDiscovery(hosts[0], discovery.NewRoutingDiscovery(kademliaDHT))
 	netRely.Advertise(ctx)
 	conn2, err = netRely.DialDestPeer(rinfo, dinfo)
@@ -101,6 +99,8 @@ func TestRelay(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	err = conn2.SetReadDeadline(time.Now().Add(time.Second))
+	assert.Nil(t, err)
 	result := make([]byte, len(msg))
 	_, err = io.ReadFull(conn2, result)
 	if err != nil {
@@ -112,7 +112,7 @@ func TestRelay(t *testing.T) {
 	}
 
 	testCheckOp(t, netRely, hosts[1])
-	testFindOpPeers(ctx, netRely, hosts, t)
+	testFindOpPeers(t, netRely)
 
 }
 
@@ -123,7 +123,7 @@ func testCheckOp(t *testing.T, netRely *Relay, h host.Host) {
 	assert.True(t, ok)
 }
 
-func testFindOpPeers(ctx context.Context, netRely *Relay, hosts []host.Host, t *testing.T) {
+func testFindOpPeers(t *testing.T, netRely *Relay) {
 	peers, err := netRely.FindOpPeers()
 	if err != nil {
 		t.Fatal(err)

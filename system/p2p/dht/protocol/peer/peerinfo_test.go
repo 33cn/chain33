@@ -89,6 +89,8 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		t.Fatal("connect error", err)
 	}
+	_, err = kademliaDHT2.RoutingTable().Update(host1.ID())
+	assert.Nil(t, err)
 	ps2, err := extension.NewPubSub(context.Background(), host2)
 	if err != nil {
 		t.Fatal(err)

@@ -460,9 +460,10 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
 	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
 	err = host2.Connect(context.Background(), *peerinfo)
-	if err != nil {
-		t.Log("connect error", err)
-	}
+	assert.Nil(t, err)
+	_, err = p2.RoutingTable.Update(host1.ID())
+	assert.Nil(t, err)
+
 	client1.Sub("p2p")
 	client2.Sub("p2p2")
 	go func() {
@@ -584,11 +585,12 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	discovery.Advertise(context.Background(), p3.RoutingDiscovery, fullNode)
 
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty()))
-	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
-	err = host3.Connect(context.Background(), *peerinfo)
-	if err != nil {
-		t.Log("connect error", err)
-	}
+	peerInfo, _ := peer.AddrInfoFromP2pAddr(addr)
+	err = host3.Connect(context.Background(), *peerInfo)
+	assert.Nil(t, err)
+	_, err = p3.RoutingTable.Update(host1.ID())
+	assert.Nil(t, err)
+
 	client1.Sub("p2p")
 	client3.Sub("p2p3")
 	go func() {
