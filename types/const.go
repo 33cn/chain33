@@ -155,3 +155,6 @@ var HighAllowPackHeight int64 = 90
 
 //LowAllowPackHeight 允许打包的low区块高度
 var LowAllowPackHeight int64 = 30
+
+//MaxAllowPackInterval 允许打包的最大区间值
+var MaxAllowPackInterval int64 = 5000
