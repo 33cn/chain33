@@ -3,6 +3,11 @@ package manage
 import (
 	"context"
 	"fmt"
+	"io"
+	"sort"
+	"testing"
+	"time"
+
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/metrics"
@@ -10,10 +15,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
-	"io"
-	"sort"
-	"testing"
-	"time"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/stretchr/testify/require"
