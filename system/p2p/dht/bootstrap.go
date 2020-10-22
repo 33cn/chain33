@@ -12,27 +12,32 @@ import (
 
 func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig) {
 
-	for _, peer := range ConvertPeers(cfg.BootStraps) {
-		host.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
-		err := host.Connect(context.Background(), *peer)
+	for _, node := range cfg.BootStraps {
+		info := genAddrInfo(node)
+		if info == nil || info.ID == host.ID() {
+			continue
+		}
+		host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+		err := host.Connect(context.Background(), *info)
 		if err != nil {
 			log.Error("Host Connect", "err", err)
 			continue
 		}
 	}
 
-	for _, seed := range ConvertPeers(cfg.Seeds) {
-		if seed.ID == host.ID() {
+	for _, node := range cfg.Seeds {
+		info := genAddrInfo(node)
+		if info == nil || info.ID == host.ID() {
 			continue
 		}
-		host.Peerstore().AddAddrs(seed.ID, seed.Addrs, peerstore.PermanentAddrTTL)
-		err := host.Connect(context.Background(), *seed)
+		host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+		err := host.Connect(context.Background(), *info)
 		if err != nil {
-			log.Error("Host Connect", "err", err, "peer", seed.ID)
+			log.Error("Host Connect", "err", err, "peer", info.ID)
 			continue
 		}
 		//加保护
-		host.ConnManager().Protect(seed.ID, "seed")
+		host.ConnManager().Protect(info.ID, "seed")
 	}
 
 	for _, peerinfo := range peersInfo {
@@ -45,17 +50,14 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 	}
 }
 
-// ConvertPeers conver peers to addr info
-func ConvertPeers(peers []string) map[string]*peer.AddrInfo {
-	pinfos := make(map[string]*peer.AddrInfo, len(peers))
-	for _, addr := range peers {
-		addr, _ := multiaddr.NewMultiaddr(addr)
-		peerinfo, err := peer.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			log.Error("ConvertPeers", "err", err)
-			continue
-		}
-		pinfos[peerinfo.ID.Pretty()] = peerinfo
+func genAddrInfo(addr string) *peer.AddrInfo {
+	mAddr, err := multiaddr.NewMultiaddr(addr)
+	if err != nil {
+		return nil
 	}
-	return pinfos
+	peerInfo, err := peer.AddrInfoFromP2pAddr(mAddr)
+	if err != nil {
+		return nil
+	}
+	return peerInfo
 }

@@ -22,7 +22,7 @@ import (
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdateChunkWhiteList(t *testing.T) {
@@ -32,9 +32,9 @@ func TestUpdateChunkWhiteList(t *testing.T) {
 	p.chunkWhiteList.Store("test2", time.Now().Add(-time.Minute*11))
 	p.updateChunkWhiteList()
 	_, ok := p.chunkWhiteList.Load("test1")
-	assert.True(t, ok)
+	require.True(t, ok)
 	_, ok = p.chunkWhiteList.Load("test2")
-	assert.False(t, ok)
+	require.False(t, ok)
 }
 
 //HOST1 ID: Qma91H212PWtAFcioW7h9eKiosJtwHsb9x3RmjqRWTwciZ
@@ -45,7 +45,6 @@ func TestInit(t *testing.T) {
 	q := queue.New("test")
 	p2 := initEnv(t, q)
 	time.Sleep(time.Second * 1)
-	_ = p2
 	msgCh := initMockBlockchain(q)
 	client := q.Client()
 	//client用来模拟blockchain模块向p2p模块发消息，host1接收topic为p2p的消息，host2接收topic为p2p2的消息
@@ -55,14 +54,14 @@ func TestInit(t *testing.T) {
 		Start:     0,
 		End:       999,
 	})
-	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
+	require.False(t, msg.Data.(*types.Reply).IsOk, msg)
 	//向host2请求数据
 	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
 		Start:     500,
 		End:       999,
 	})
-	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
+	require.False(t, msg.Data.(*types.Reply).IsOk, msg)
 
 	// 通知host2保存数据
 	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
@@ -81,7 +80,7 @@ func TestInit(t *testing.T) {
 		End:       99,
 	})
 
-	assert.Equal(t, 100, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 100, len(msg.Data.(*types.BlockBodys).Items))
 	//向host2请求BlockBody
 	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
@@ -89,7 +88,7 @@ func TestInit(t *testing.T) {
 		End:       888,
 	})
 
-	assert.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
 
 	//向host1请求数据
 	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
@@ -97,14 +96,14 @@ func TestInit(t *testing.T) {
 		Start:     1000,
 		End:       1999,
 	})
-	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
+	require.False(t, msg.Data.(*types.Reply).IsOk, msg)
 	//向host2请求数据
 	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test1"),
 		Start:     1500,
 		End:       1999,
 	})
-	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
+	require.False(t, msg.Data.(*types.Reply).IsOk, msg)
 
 	//向host1请求Block
 	testGetBlock(t, client, "p2p", &types.ChunkInfoMsg{
@@ -113,7 +112,7 @@ func TestInit(t *testing.T) {
 		End:       499,
 	})
 	msg = <-msgCh
-	assert.Equal(t, 500, len(msg.Data.(*types.Blocks).Items))
+	require.Equal(t, 500, len(msg.Data.(*types.Blocks).Items))
 
 	//向host2请求Block
 	testGetBlock(t, client, "p2p2", &types.ChunkInfoMsg{
@@ -122,14 +121,14 @@ func TestInit(t *testing.T) {
 		End:       666,
 	})
 	msg = <-msgCh
-	assert.Equal(t, 556, len(msg.Data.(*types.Blocks).Items))
+	require.Equal(t, 556, len(msg.Data.(*types.Blocks).Items))
 	//向host1请求Records
 	testGetRecord(t, client, "p2p", &types.ReqChunkRecords{
 		Start: 1,
 		End:   100,
 	})
 	msg = <-msgCh
-	assert.Equal(t, 100, len(msg.Data.(*types.ChunkRecords).Infos))
+	require.Equal(t, 100, len(msg.Data.(*types.ChunkRecords).Infos))
 
 	//向host2请求Records
 	testGetRecord(t, client, "p2p", &types.ReqChunkRecords{
@@ -137,7 +136,7 @@ func TestInit(t *testing.T) {
 		End:   60,
 	})
 	msg = <-msgCh
-	assert.Equal(t, 11, len(msg.Data.(*types.ChunkRecords).Infos))
+	require.Equal(t, 11, len(msg.Data.(*types.ChunkRecords).Infos))
 
 	//保存4000~4999的block,会检查0~3999的blockchunk是否能查到
 	// 通知host1保存数据
@@ -155,38 +154,38 @@ func TestInit(t *testing.T) {
 		Start:     2000,
 		End:       2999,
 	})
-	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test1"),
 		Start:     1000,
 		End:       1999,
 	})
-	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test2"),
 		Start:     2000,
 		End:       2999,
 	})
-	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test3"),
 		Start:     3000,
 		End:       3999,
 	})
-	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test4"),
 		Start:     4000,
 		End:       4999,
 	})
-	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 	//向host2请求BlockBody
 	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test1"),
 		Start:     1666,
 		End:       1888,
 	})
-	assert.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
 
 	err = p2.deleteChunkBlock([]byte("test1"))
 	if err != nil {
@@ -198,7 +197,7 @@ func TestInit(t *testing.T) {
 		Start:     1000,
 		End:       1999,
 	})
-	assert.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
 }
 
 func TestFullNode(t *testing.T) {
@@ -216,14 +215,14 @@ func TestFullNode(t *testing.T) {
 		Start:     0,
 		End:       999,
 	})
-	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
+	require.False(t, msg.Data.(*types.Reply).IsOk, msg)
 	//向host2请求数据
 	msg = testGetBody(t, client, "p2p3", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
 		Start:     500,
 		End:       999,
 	})
-	assert.False(t, msg.Data.(*types.Reply).IsOk, msg)
+	require.False(t, msg.Data.(*types.Reply).IsOk, msg)
 
 	// 通知host3保存数据
 	testStoreChunk(t, client, "p2p3", &types.ChunkInfoMsg{
@@ -248,14 +247,14 @@ func TestFullNode(t *testing.T) {
 		Start:     0,
 		End:       99,
 	})
-	assert.Equal(t, 100, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 100, len(msg.Data.(*types.BlockBodys).Items))
 	//向host2请求BlockBody
 	msg = testGetBody(t, client, "p2p3", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
 		Start:     666,
 		End:       888,
 	})
-	assert.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
+	require.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
 
 	//向host1请求Block
 	testGetBlock(t, client, "p2p", &types.ChunkInfoMsg{
@@ -264,7 +263,7 @@ func TestFullNode(t *testing.T) {
 		End:       499,
 	})
 	msg = <-msgCh
-	assert.Equal(t, 500, len(msg.Data.(*types.Blocks).Items))
+	require.Equal(t, 500, len(msg.Data.(*types.Blocks).Items))
 
 	//向host2请求Block
 	testGetBlock(t, client, "p2p3", &types.ChunkInfoMsg{
@@ -273,7 +272,7 @@ func TestFullNode(t *testing.T) {
 		End:       666,
 	})
 	msg = <-msgCh
-	assert.Equal(t, 556, len(msg.Data.(*types.Blocks).Items))
+	require.Equal(t, 556, len(msg.Data.(*types.Blocks).Items))
 }
 
 func testStoreChunk(t *testing.T, client queue.Client, topic string, req *types.ChunkInfoMsg) *queue.Message {
@@ -460,9 +459,9 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
 	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
 	err = host2.Connect(context.Background(), *peerinfo)
-	assert.Nil(t, err)
-	_, err = p2.RoutingTable.Update(host1.ID())
-	assert.Nil(t, err)
+	require.Nil(t, err)
+	err = kademliaDHT2.Bootstrap(context.Background())
+	require.Nil(t, err)
 
 	client1.Sub("p2p")
 	client2.Sub("p2p2")
@@ -550,6 +549,11 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		panic(err)
 	}
+	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty()))
+	peerInfo, _ := peer.AddrInfoFromP2pAddr(addr)
+	err = host3.Connect(context.Background(), *peerInfo)
+	require.Nil(t, err)
+
 	mockAPI3, err := client.New(client3, nil)
 	if err != nil {
 		panic(err)
@@ -583,13 +587,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	protocol.RegisterStreamHandler(p3.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
 	go p3.syncRoutine()
 	discovery.Advertise(context.Background(), p3.RoutingDiscovery, fullNode)
-
-	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13808/p2p/%s", host1.ID().Pretty()))
-	peerInfo, _ := peer.AddrInfoFromP2pAddr(addr)
-	err = host3.Connect(context.Background(), *peerInfo)
-	assert.Nil(t, err)
-	_, err = p3.RoutingTable.Update(host1.ID())
-	assert.Nil(t, err)
 
 	client1.Sub("p2p")
 	client3.Sub("p2p3")

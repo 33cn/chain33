@@ -14,7 +14,7 @@ import (
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {
@@ -48,7 +48,7 @@ func TestRelay(t *testing.T) {
 	//第二个节点作为中继节点
 	newRelay(ctx, hosts[1], circuit.OptHop)
 	r2, err := newRelay(ctx, hosts[2])
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	var (
 		conn1, conn2 net.Conn
@@ -85,13 +85,13 @@ func TestRelay(t *testing.T) {
 	}()
 
 	rinfo := hosts[1].Peerstore().PeerInfo(hosts[1].ID()) //中继节点的peerinfo
-	assert.NotNil(t, rinfo.Addrs)
+	require.NotNil(t, rinfo.Addrs)
 	dinfo := hosts[2].Peerstore().PeerInfo(hosts[2].ID()) //目的节点
-	assert.NotNil(t, dinfo.Addrs)
+	require.NotNil(t, dinfo.Addrs)
 	kademliaDHT, err := dht.New(context.Background(), hosts[0])
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	_, err = kademliaDHT.RoutingTable().Update(hosts[1].ID())
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	netRely := NewRelayDiscovery(hosts[0], discovery.NewRoutingDiscovery(kademliaDHT))
 	netRely.Advertise(ctx)
 	conn2, err = netRely.DialDestPeer(rinfo, dinfo)
@@ -100,7 +100,7 @@ func TestRelay(t *testing.T) {
 	}
 
 	err = conn2.SetReadDeadline(time.Now().Add(time.Second))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	result := make([]byte, len(msg))
 	_, err = io.ReadFull(conn2, result)
 	if err != nil {
@@ -119,8 +119,8 @@ func TestRelay(t *testing.T) {
 func testCheckOp(t *testing.T, netRely *Relay, h host.Host) {
 	//check op
 	ok, err := netRely.CheckHOp(h.ID())
-	assert.Nil(t, err)
-	assert.True(t, ok)
+	require.Nil(t, err)
+	require.True(t, ok)
 }
 
 func testFindOpPeers(t *testing.T, netRely *Relay) {

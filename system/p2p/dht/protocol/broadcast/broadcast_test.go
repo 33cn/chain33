@@ -6,7 +6,6 @@ package broadcast
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"testing"
@@ -24,11 +23,10 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -51,15 +49,12 @@ var (
 )
 
 func newHost(port int32) core.Host {
-	priv, _, _ := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
-	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
 	if err != nil {
-		return nil
+		panic(err)
 	}
-
 	host, err := libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m),
-		libp2p.Identity(priv),
 	)
 
 	if err != nil {
@@ -106,7 +101,7 @@ func newTestProtocol(q queue.Queue, port int32) (*Protocol, context.CancelFunc) 
 
 func TestBroadCastEvent(t *testing.T) {
 	q := queue.New("test")
-	p, cancel := newTestProtocol(q, 13902)
+	p, cancel := newTestProtocol(q, 13901)
 	var msgs []*queue.Message
 	msgs = append(msgs, p.QueueClient.NewMessage("p2p", types.EventTxBroadcast, tx))
 	msgs = append(msgs, p.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, testBlock))
@@ -115,12 +110,12 @@ func TestBroadCastEvent(t *testing.T) {
 		protocol.GetEventHandler(msg.Ty)(msg)
 	}
 	_, ok := p.txFilter.Get(hex.EncodeToString(tx.Hash()))
-	assert.True(t, ok)
+	require.True(t, ok)
 	_, ok = p.blockFilter.Get(hex.EncodeToString(testBlock.Hash(p.ChainCfg)))
-	assert.True(t, ok)
-	time.Sleep(time.Second * 2)
-	cancel()
+	require.True(t, ok)
 	time.Sleep(time.Second)
+	cancel()
+	//time.Sleep(time.Second)
 }
 
 func TestBroadCastEventNew(t *testing.T) {
@@ -142,11 +137,12 @@ func TestBroadCastEventNew(t *testing.T) {
 
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13902/p2p/%s", p1.Host.ID().Pretty()))
 	peerInfo, _ := peer.AddrInfoFromP2pAddr(addr)
+	require.NotNil(t, peerInfo)
+	require.Equal(t, 1, len(peerInfo.Addrs))
 	err := p2.Host.Connect(context.Background(), *peerInfo)
-	assert.Nil(t, err)
-	_, err = p2.RoutingTable.Update(p1.Host.ID())
-	assert.Equal(t, 1, p2.RoutingTable.Size())
-	assert.Nil(t, err)
+	require.Nil(t, err)
+
+	require.Equal(t, 1, p2.RoutingTable.Size())
 	p2.refreshPeers()
 
 	msg1 := p1.QueueClient.NewMessage("p2p", types.EventTxBroadcast, tx)
@@ -162,7 +158,7 @@ func TestBroadCastEventNew(t *testing.T) {
 	mempoolCLI.Sub("mempool")
 	<-blockchainCLI.Recv()
 	<-mempoolCLI.Recv()
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second)
 	cancel1()
 	cancel2()
 }
@@ -170,9 +166,9 @@ func TestBroadCastEventNew(t *testing.T) {
 func TestFilter(t *testing.T) {
 	filter := utils.NewFilter(100)
 	exist := addIgnoreSendPeerAtomic(filter, "hash", "pid1")
-	assert.False(t, exist)
+	require.False(t, exist)
 	exist = addIgnoreSendPeerAtomic(filter, "hash", "pid2")
-	assert.False(t, exist)
+	require.False(t, exist)
 	exist = addIgnoreSendPeerAtomic(filter, "hash", "pid1")
-	assert.True(t, exist)
+	require.True(t, exist)
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_MaxLimit(t *testing.T) {
@@ -59,7 +59,7 @@ func Test_MaxLimit(t *testing.T) {
 		Addrs: host1.Addrs(),
 	}
 	err = host2.Connect(context.Background(), h1info)
-	assert.NotNil(t, err)
+	require.NotNil(t, err)
 
 }
 
@@ -69,13 +69,13 @@ func Test_InterceptAccept(t *testing.T) {
 
 	var ip = "47.97.223.101"
 	multiAddress, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, 3000))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	for i := 0; i < ipBurst; i++ {
 		valid := gater.validateDial(multiAddress)
-		assert.True(t, valid)
+		require.True(t, valid)
 	}
 	valid := gater.validateDial(multiAddress)
-	assert.False(t, valid)
+	require.False(t, valid)
 
 }
 
@@ -84,8 +84,8 @@ func Test_InterceptAddrDial(t *testing.T) {
 	gater := NewConnGater(context.Background(), &host1, 0, 0)
 	var ip = "47.97.223.101"
 	multiAddress, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, 3000))
-	assert.NoError(t, err)
-	assert.True(t, gater.InterceptAddrDial("", multiAddress))
+	require.NoError(t, err)
+	require.True(t, gater.InterceptAddrDial("", multiAddress))
 }
 
 func Test_InterceptPeerDial(t *testing.T) {
@@ -97,12 +97,12 @@ func Test_InterceptPeerDial(t *testing.T) {
 
 	gater.blacklist.Add(pid, 0)
 	id, err := peer.Decode(pid)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	ok := gater.InterceptPeerDial(id)
-	assert.False(t, ok)
+	require.False(t, ok)
 	time.Sleep(time.Second * 2)
 	ok = gater.InterceptPeerDial(id)
-	assert.True(t, ok)
+	require.True(t, ok)
 }
 
 func Test_otherInterface(t *testing.T) {
@@ -111,8 +111,8 @@ func Test_otherInterface(t *testing.T) {
 	defer ctx.Done()
 	gater := NewConnGater(ctx, &host1, 1, time.Second)
 	allow, _ := gater.InterceptUpgraded(nil)
-	assert.True(t, allow)
-	assert.True(t, gater.InterceptSecured(network.DirInbound, "", nil))
+	require.True(t, allow)
+	require.True(t, gater.InterceptSecured(network.DirInbound, "", nil))
 
 }
 
@@ -123,14 +123,14 @@ func Test_timecache(t *testing.T) {
 	cache.Add("two", time.Second*3)
 	cache.Add("three", time.Second*5)
 	time.Sleep(time.Second * 2)
-	assert.False(t, cache.Has("one"))
-	assert.True(t, cache.Has("two"))
-	assert.True(t, cache.Has("three"))
+	require.False(t, cache.Has("one"))
+	require.True(t, cache.Has("two"))
+	require.True(t, cache.Has("three"))
 	time.Sleep(time.Second * 2)
-	assert.False(t, cache.Has("two"))
-	assert.True(t, cache.Has("three"))
+	require.False(t, cache.Has("two"))
+	require.True(t, cache.Has("three"))
 	cancel()
 	time.Sleep(time.Second * 2)
-	assert.True(t, cache.Has("three"))
+	require.True(t, cache.Has("three"))
 
 }

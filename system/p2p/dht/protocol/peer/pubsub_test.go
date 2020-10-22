@@ -9,7 +9,7 @@ import (
 	"github.com/33cn/chain33/types"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsub_pb "github.com/libp2p/go-libp2p-pubsub/pb"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -68,7 +68,7 @@ func testSubTopic(t *testing.T, p *Protocol) {
 	for _, msg := range msgs {
 		testHandleSubTopicEvent(p, msg)
 		replyMsg, err := p.QueueClient.WaitTimeout(msg, time.Second*10)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		subReply, ok := replyMsg.GetData().(*types.Reply)
 		if ok {
@@ -76,7 +76,7 @@ func testSubTopic(t *testing.T, p *Protocol) {
 			if subReply.IsOk {
 				var reply types.SubTopicReply
 				types.Decode(subReply.GetMsg(), &reply)
-				assert.NotNil(t, reply)
+				require.NotNil(t, reply)
 				t.Log("reply", reply.GetMsg())
 			} else {
 				//订阅失败
@@ -90,18 +90,18 @@ func testPushMsg(t *testing.T, protocol *Protocol) {
 	pubTopicMsg := protocol.QueueClient.NewMessage("p2p", types.EventPubTopicMsg, &types.PublishTopicMsg{Topic: "bzTest", Msg: []byte("one two tree four")})
 	testHandlerPubMsg(protocol, pubTopicMsg)
 	resp, err := protocol.QueueClient.WaitTimeout(pubTopicMsg, time.Second*10)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	rpy := resp.GetData().(*types.Reply)
 	t.Log("bzTest isok", rpy.IsOk, "msg", string(rpy.GetMsg()))
-	assert.True(t, rpy.IsOk)
+	require.True(t, rpy.IsOk)
 	//换个不存在的topic测试
 	pubTopicMsg = protocol.QueueClient.NewMessage("p2p", types.EventPubTopicMsg, &types.PublishTopicMsg{Topic: "bzTest2", Msg: []byte("one two tree four")})
 	testHandlerPubMsg(protocol, pubTopicMsg)
 	resp, err = protocol.QueueClient.WaitTimeout(pubTopicMsg, time.Second*10)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	rpy = resp.GetData().(*types.Reply)
 	t.Log("bzTest2 isok", rpy.IsOk, "msg", string(rpy.GetMsg()))
-	assert.False(t, rpy.IsOk)
+	require.False(t, rpy.IsOk)
 	errPubTopicMsg := protocol.QueueClient.NewMessage("p2p", types.EventPubTopicMsg, &types.FetchTopicList{})
 	testHandlerPubMsg(protocol, errPubTopicMsg)
 
@@ -113,12 +113,12 @@ func testFetchTopics(t *testing.T, protocol *Protocol) []string {
 	fetchTopicMsg := protocol.QueueClient.NewMessage("p2p", types.EventFetchTopics, &types.FetchTopicList{})
 	testHandleGetTopicsEvent(protocol, fetchTopicMsg)
 	resp, err := protocol.QueueClient.WaitTimeout(fetchTopicMsg, time.Second*10)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	//获取topicList
-	assert.True(t, resp.GetData().(*types.Reply).GetIsOk())
+	require.True(t, resp.GetData().(*types.Reply).GetIsOk())
 	var topiclist types.TopicList
 	err = types.Decode(resp.GetData().(*types.Reply).GetMsg(), &topiclist)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	t.Log("topicList", topiclist.GetTopics())
 
@@ -199,22 +199,22 @@ func TestPubSub(t *testing.T) {
 	testSubTopic(t, protocol) //订阅topic
 
 	topics := testFetchTopics(t, protocol) //获取topic list
-	assert.Equal(t, len(topics), 2)
+	require.Equal(t, len(topics), 2)
 	testSendTopicData(t, protocol) //通过chan推送接收到的消息
 
 	testPushMsg(t, protocol)                                   //发布消息
 	testRemoveModuleTopic(t, protocol, "bzTest", "blockchain") //删除某一个模块的topic
 	topics = testFetchTopics(t, protocol)                      //获取topic list
-	assert.Equal(t, len(topics), 2)
+	require.Equal(t, len(topics), 2)
 	//--------
 	testRemoveModuleTopic(t, protocol, "rtopic", "rpc") //删除某一个模块的topic
 	topics = testFetchTopics(t, protocol)
 	//t.Log("after Remove rtopic", topics)
-	assert.Equal(t, 1, len(topics))
+	require.Equal(t, 1, len(topics))
 	testRemoveModuleTopic(t, protocol, "bzTest", "mempool") //删除某一个模块的topic
 	topics = testFetchTopics(t, protocol)
 	//t.Log("after Remove bzTest", topics)
-	assert.Equal(t, 0, len(topics))
+	require.Equal(t, 0, len(topics))
 
 	time.Sleep(time.Second)
 }

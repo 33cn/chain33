@@ -24,7 +24,7 @@ import (
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func initEnv(t *testing.T, q queue.Queue) *Protocol {
@@ -90,7 +90,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		t.Fatal("connect error", err)
 	}
 	_, err = kademliaDHT2.RoutingTable().Update(host1.ID())
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	ps2, err := extension.NewPubSub(context.Background(), host2)
 	if err != nil {
 		t.Fatal(err)
@@ -157,56 +157,56 @@ func testMempoolReq(q queue.Queue) {
 func TestPeerInfoHandler(t *testing.T) {
 	q := queue.New("test")
 	p := initEnv(t, q)
-	assert.Equal(t, false, p.checkDone())
+	require.Equal(t, false, p.checkDone())
 
 	msg1 := p.QueueClient.NewMessage("p2p", types.EventPeerInfo, &types.P2PGetPeerReq{P2PType: "DHT"})
 	protocol.GetEventHandler(msg1.Ty)(msg1)
 	reply, err := p.QueueClient.Wait(msg1)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	_, ok := reply.Data.(*types.PeerList)
-	assert.True(t, ok)
+	require.True(t, ok)
 	msg2 := p.QueueClient.NewMessage("p2p", types.EventGetNetInfo, nil)
 	protocol.GetEventHandler(msg2.Ty)(msg2)
 	reply, err = p.QueueClient.Wait(msg2)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	_, ok = reply.Data.(*types.NodeNetInfo)
-	assert.True(t, ok)
+	require.True(t, ok)
 
 	msg3 := p.QueueClient.NewMessage("p2p", types.EventNetProtocols, nil)
 	protocol.GetEventHandler(msg3.Ty)(msg3)
 	reply, err = p.QueueClient.Wait(msg3)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	_, ok = reply.Data.(*types.NetProtocolInfos)
-	assert.True(t, ok)
+	require.True(t, ok)
 
 	testMempoolReq(q)
 	testBlockReq(q)
 	stream, err := p.Host.NewStream(p.Ctx, p.RoutingTable.ListPeers()[0], peerInfo)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer protocol.CloseStream(stream)
 	var resp types.Peer
 	err = protocol.ReadStream(&resp, stream)
-	assert.Nil(t, err)
-	assert.Equal(t, int32(10), resp.MempoolSize)
+	require.Nil(t, err)
+	require.Equal(t, int32(10), resp.MempoolSize)
 
 	stream, err = p.Host.NewStream(p.Ctx, p.RoutingTable.ListPeers()[0], peerVersion)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer protocol.CloseStream(stream)
 	var version types.P2PVersion
 	err = protocol.WriteStream(&version, stream)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	err = protocol.ReadStream(&version, stream)
-	assert.Nil(t, err)
-	assert.Equal(t, stream.Conn().LocalMultiaddr().String(), version.AddrRecv)
+	require.Nil(t, err)
+	require.Equal(t, stream.Conn().LocalMultiaddr().String(), version.AddrRecv)
 
 	err = p.queryVersion(p.RoutingTable.ListPeers()[0])
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	t.Log(p.getExternalAddr(), p.getPublicIP())
 
 	p.refreshPeerInfo()
 	time.Sleep(time.Second)
-	assert.Equal(t, 2, len(p.PeerInfoManager.FetchAll()))
+	require.Equal(t, 2, len(p.PeerInfoManager.FetchAll()))
 }
 
 func Test_isPublicIP(t *testing.T) {
@@ -222,7 +222,7 @@ func Test_isPublicIP(t *testing.T) {
 		{"192.169.0.0", true},
 	}
 	for _, c := range cases {
-		assert.Equal(t, c.output, isPublicIP(c.input))
+		require.Equal(t, c.output, isPublicIP(c.input))
 	}
 }
 

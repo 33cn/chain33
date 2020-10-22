@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testConn struct {
@@ -58,27 +58,27 @@ func Test_SortConn(t *testing.T) {
 
 	testconn = append(testconn, c1, c2, c3)
 	sort.Sort(testconn)
-	assert.Equal(t, testconn[0], c3)
-	assert.Equal(t, testconn[2], c1)
+	require.Equal(t, testconn[0], c3)
+	require.Equal(t, testconn[2], c1)
 }
 
 func TestConnManager(t *testing.T) {
 	m1, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 13666))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	h1, err := libp2p.New(context.Background(), libp2p.ListenAddrs(m1))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	m2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 13777))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	h2, err := libp2p.New(context.Background(), libp2p.ListenAddrs(m2))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13666/p2p/%s", h1.ID().Pretty()))
 	peerInfo, _ := peer.AddrInfoFromP2pAddr(addr)
 	err = h2.Connect(context.Background(), *peerInfo)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	kademliaDHT, err := dht.New(context.Background(), h1)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	bandwidthTracker := metrics.NewBandwidthCounter()
 	protocolID := protocol.ID("test")
 	bandwidthTracker.LogSentMessageStream(1024, protocolID, h2.ID())
@@ -86,20 +86,20 @@ func TestConnManager(t *testing.T) {
 	subCfg := &p2pty.P2PSubConfig{}
 	mgr := NewConnManager(context.Background(), h1, kademliaDHT.RoutingTable(), bandwidthTracker, subCfg)
 	info := mgr.BandTrackerByProtocol()
-	assert.NotNil(t, info)
+	require.NotNil(t, info)
 	h1.Peerstore().RecordLatency(h2.ID(), time.Second/100)
 	mgr.printMonitorInfo()
 	mgr.procConnections()
 	kademliaDHT.RoutingTable().Update(h2.ID())
 	peers := mgr.FetchNearestPeers(1)
-	assert.NotNil(t, peers)
-	assert.Equal(t, h2.ID(), peers[0])
+	require.NotNil(t, peers)
+	require.Equal(t, h2.ID(), peers[0])
 
-	assert.Equal(t, 1, int(mgr.CheckDirection(h2.ID())))
-	assert.Equal(t, 1, len(mgr.InBounds()))
-	assert.Equal(t, 0, len(mgr.OutBounds()))
+	require.Equal(t, 1, int(mgr.CheckDirection(h2.ID())))
+	require.Equal(t, 1, len(mgr.InBounds()))
+	require.Equal(t, 0, len(mgr.OutBounds()))
 
-	assert.False(t, mgr.IsNeighbors(h2.ID()))
+	require.False(t, mgr.IsNeighbors(h2.ID()))
 	mgr.AddNeighbors(&peer.AddrInfo{ID: h2.ID()})
-	assert.True(t, mgr.IsNeighbors(h2.ID()))
+	require.True(t, mgr.IsNeighbors(h2.ID()))
 }
