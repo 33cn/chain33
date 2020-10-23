@@ -3,10 +3,11 @@ package peer
 import (
 	"context"
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/network"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"

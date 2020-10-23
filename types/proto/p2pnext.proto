@@ -255,7 +255,7 @@ message P2PResponse {
         Headers      blockHeaders = 6;
         ChunkRecords chunkRecords = 7;
         //新的协议可以继续添加response类型
-        Reply        reply = 8;
+        Reply reply = 8;
     }
 }
 
