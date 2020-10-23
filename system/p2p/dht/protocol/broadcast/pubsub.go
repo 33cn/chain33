@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/p2p/utils"
-	"github.com/33cn/chain33/system/p2p/dht/extension"
+	net "github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/snappy"
 )
@@ -22,23 +22,23 @@ const (
 
 // 基于libp2p pubsub插件广播
 type pubSub struct {
-	*Protocol
+	*broadcastProtocol
 }
 
 // new pub sub
-func newPubSub(b *Protocol) *pubSub {
+func newPubSub(b *broadcastProtocol) *pubSub {
 	return &pubSub{b}
 }
 
 // 广播入口函数，处理相关初始化
 func (p *pubSub) broadcast() {
 
-	//TODO check extension is sync
+	//TODO check net is sync
 
-	txIncoming := make(chan extension.SubMsg, 1024) //交易接收通道, 订阅外部广播消息
-	txOutgoing := p.ps.Sub(psTxTopic)               //交易发送通道, 订阅内部广播消息
+	txIncoming := make(chan net.SubMsg, 1024) //交易接收通道, 订阅外部广播消息
+	txOutgoing := p.ps.Sub(psTxTopic)         //交易发送通道, 订阅内部广播消息
 	//区块
-	blockIncoming := make(chan extension.SubMsg, 128)
+	blockIncoming := make(chan net.SubMsg, 128)
 	blockOutgoing := p.ps.Sub(psBlockTopic)
 
 	// pub sub topic注册
@@ -55,7 +55,7 @@ func (p *pubSub) broadcast() {
 
 	// 不存在订阅topic的节点时，不开启广播，目前只在初始化时做判定
 	for len(p.Pubsub.FetchTopicPeers(psTxTopic)) == 0 {
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 2)
 		log.Warn("pub sub broadcast", "info", "no peers available")
 	}
 
@@ -93,7 +93,7 @@ func (p *pubSub) handlePubMsg(topic string, out chan interface{}) {
 
 			err = p.Pubsub.Publish(topic, raw)
 			if err != nil {
-				log.Error("handlePubMsg", "publish err", err)
+				log.Error("handlePubMsg", "topic", topic, "publish err", err)
 			}
 
 		case <-p.Ctx.Done():
@@ -103,7 +103,7 @@ func (p *pubSub) handlePubMsg(topic string, out chan interface{}) {
 }
 
 // 处理广播消息订阅
-func (p *pubSub) handleSubMsg(topic string, in chan extension.SubMsg, filter *utils.Filterdata) {
+func (p *pubSub) handleSubMsg(topic string, in chan net.SubMsg, filter *utils.Filterdata) {
 
 	buf := make([]byte, 0)
 	var err error
@@ -164,8 +164,8 @@ func (p *pubSub) newMsg(topic string) types.Message {
 }
 
 // 生成订阅消息回调
-func (p *pubSub) callback(out chan<- extension.SubMsg) extension.SubCallBack {
-	return func(topic string, msg extension.SubMsg) {
+func (p *pubSub) callback(out chan<- net.SubMsg) net.SubCallBack {
+	return func(topic string, msg net.SubMsg) {
 		out <- msg
 	}
 }
@@ -208,12 +208,3 @@ func (p *pubSub) decodeMsg(raw []byte, pbuf *[]byte, msg types.Message) error {
 
 	return nil
 }
-
-//// broadcast pub sub
-//type pubsubHandler struct {
-//	prototypes.BaseStreamHandler
-//}
-//
-//// Handle, 做一个版本标记，方便后续可能的协议变更
-//func (b *pubsubHandler) Handle(stream core.Stream) {
-//}

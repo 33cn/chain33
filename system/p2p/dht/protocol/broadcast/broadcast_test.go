@@ -6,27 +6,26 @@ package broadcast
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"testing"
-	"time"
+
+	net "github.com/33cn/chain33/system/p2p/dht/extension"
+	"github.com/libp2p/go-libp2p"
+	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/multiformats/go-multiaddr"
 
 	"github.com/33cn/chain33/client"
 	commlog "github.com/33cn/chain33/common/log"
-	"github.com/33cn/chain33/common/pubsub"
 	"github.com/33cn/chain33/p2p"
-	"github.com/33cn/chain33/p2p/utils"
 	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/system/p2p/dht/extension"
-	"github.com/33cn/chain33/system/p2p/dht/protocol"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
@@ -46,15 +45,21 @@ var (
 		Height: 10,
 		Txs:    txList,
 	}
+	testAddr   = "testPeerAddr"
+	testPidStr = "16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U"
+	testPid, _ = peer.Decode("16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U")
 )
 
 func newHost(port int32) core.Host {
-	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
+	priv, _, _ := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
 	if err != nil {
-		panic(err)
+		return nil
 	}
+
 	host, err := libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m),
+		libp2p.Identity(priv),
 	)
 
 	if err != nil {
@@ -64,8 +69,10 @@ func newHost(port int32) core.Host {
 	return host
 }
 
-func newTestEnv(q queue.Queue, port int32) (*protocol.P2PEnv, context.CancelFunc) {
+func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
+	q.SetConfig(cfg)
+	go q.Start()
 
 	mgr := p2p.NewP2PMgr(cfg)
 	mgr.Client = q.Client()
@@ -73,102 +80,73 @@ func newTestEnv(q queue.Queue, port int32) (*protocol.P2PEnv, context.CancelFunc
 
 	subCfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], subCfg)
-	h := newHost(port)
-	kademliaDHT, err := dht.New(context.Background(), h)
-	if err != nil {
-		panic(err)
+	env := &prototypes.P2PEnv{
+		ChainCfg:        cfg,
+		QueueClient:     q.Client(),
+		Host:            newHost(13902),
+		ConnManager:     nil,
+		PeerInfoManager: nil,
+		P2PManager:      mgr,
+		SubConfig:       subCfg,
+		Ctx:             context.Background(),
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	env := &protocol.P2PEnv{
-		Ctx:          ctx,
-		ChainCfg:     cfg,
-		QueueClient:  q.Client(),
-		Host:         h,
-		P2PManager:   mgr,
-		SubConfig:    subCfg,
-		RoutingTable: kademliaDHT.RoutingTable(),
-	}
-	env.Pubsub, _ = extension.NewPubSub(env.Ctx, env.Host)
-	return env, cancel
+	env.Pubsub, _ = net.NewPubSub(env.Ctx, env.Host)
+	return env
 }
 
-func newTestProtocol(q queue.Queue, port int32) (*Protocol, context.CancelFunc) {
-	protocol.ClearEventHandler()
-	env, cancel := newTestEnv(q, port)
-	InitProtocol(env)
-	return defaultProtocol, cancel
+func newTestProtocolWithQueue(q queue.Queue) *broadcastProtocol {
+	env := newTestEnv(q)
+	prototypes.ClearEventHandler()
+	p := &broadcastProtocol{}
+	p.init(env)
+	return p
+}
+
+func newTestProtocol() *broadcastProtocol {
+
+	q := queue.New("test")
+	return newTestProtocolWithQueue(q)
+}
+
+func TestBroadCastProtocol_InitProtocol(t *testing.T) {
+
+	protocol := newTestProtocol()
+	assert.Equal(t, defaultMinLtBlockSize, int(protocol.p2pCfg.MinLtBlockSize))
+	assert.Equal(t, defaultLtTxBroadCastTTL, int(protocol.p2pCfg.LightTxTTL))
+}
+
+func testHandleEvent(protocol *broadcastProtocol, msg *queue.Message) {
+
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
+
+	protocol.handleBroadCastEvent(msg)
 }
 
 func TestBroadCastEvent(t *testing.T) {
-	q := queue.New("test")
-	p, cancel := newTestProtocol(q, 13901)
-	var msgs []*queue.Message
-	msgs = append(msgs, p.QueueClient.NewMessage("p2p", types.EventTxBroadcast, tx))
-	msgs = append(msgs, p.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, testBlock))
+	protocol := newTestProtocol()
+	msgs := make([]*queue.Message, 0)
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{}))
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{}))
+	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventTx, &types.LightTx{}))
 
 	for _, msg := range msgs {
-		protocol.GetEventHandler(msg.Ty)(msg)
+		testHandleEvent(protocol, msg)
 	}
-	_, ok := p.txFilter.Get(hex.EncodeToString(tx.Hash()))
-	require.True(t, ok)
-	_, ok = p.blockFilter.Get(hex.EncodeToString(testBlock.Hash(p.ChainCfg)))
-	require.True(t, ok)
-	time.Sleep(time.Second)
-	cancel()
-	//time.Sleep(time.Second)
+	_, ok := protocol.txFilter.Get(hex.EncodeToString((&types.Transaction{}).Hash()))
+	assert.True(t, ok)
+	_, ok = protocol.blockFilter.Get(hex.EncodeToString((&types.Block{}).Hash(protocol.ChainCfg)))
+	assert.True(t, ok)
 }
 
-func TestBroadCastEventNew(t *testing.T) {
-
-	protocol.ClearEventHandler()
-	q := queue.New("test")
-	p1, cancel1 := newTestProtocol(q, 13902)
-	env, cancel2 := newTestEnv(q, 13903)
-	p2 := &Protocol{
-		P2PEnv:          env,
-		txFilter:        utils.NewFilter(txRecvFilterCacheNum),
-		blockFilter:     utils.NewFilter(blockRecvFilterCacheNum),
-		txSendFilter:    utils.NewFilter(txSendFilterCacheNum),
-		blockSendFilter: utils.NewFilter(blockSendFilterCacheNum),
-		ps:              pubsub.NewPubSub(10000),
-		txQueue:         make(chan *types.Transaction, 10000),
-		blockQueue:      make(chan *types.Block, 100),
-	}
-
-	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13902/p2p/%s", p1.Host.ID().Pretty()))
-	peerInfo, _ := peer.AddrInfoFromP2pAddr(addr)
-	require.NotNil(t, peerInfo)
-	require.Equal(t, 1, len(peerInfo.Addrs))
-	err := p2.Host.Connect(context.Background(), *peerInfo)
-	require.Nil(t, err)
-
-	require.Equal(t, 1, p2.RoutingTable.Size())
-	p2.refreshPeers()
-
-	msg1 := p1.QueueClient.NewMessage("p2p", types.EventTxBroadcast, tx)
-	msg2 := p1.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, testBlock)
-	go p2.broadcastRoutine()
-	go newPubSub(p2).broadcast()
-	p2.handleEventBroadcastTx(msg1)
-	p2.handleEventBroadcastBlock(msg2)
-
-	blockchainCLI := q.Client()
-	blockchainCLI.Sub("blockchain")
-	mempoolCLI := q.Client()
-	mempoolCLI.Sub("mempool")
-	<-blockchainCLI.Recv()
-	<-mempoolCLI.Recv()
-	time.Sleep(time.Second)
-	cancel1()
-	cancel2()
-}
-
-func TestFilter(t *testing.T) {
-	filter := utils.NewFilter(100)
-	exist := addIgnoreSendPeerAtomic(filter, "hash", "pid1")
-	require.False(t, exist)
-	exist = addIgnoreSendPeerAtomic(filter, "hash", "pid2")
-	require.False(t, exist)
-	exist = addIgnoreSendPeerAtomic(filter, "hash", "pid1")
-	require.True(t, exist)
+func Test_util(t *testing.T) {
+	proto := newTestProtocol()
+	exist := addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid1")
+	assert.False(t, exist)
+	exist = addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid2")
+	assert.False(t, exist)
+	exist = addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid1")
+	assert.True(t, exist)
 }

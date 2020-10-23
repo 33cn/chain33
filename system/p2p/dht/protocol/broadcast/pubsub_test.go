@@ -5,11 +5,9 @@
 package broadcast
 
 import (
-	"context"
 	"testing"
-	"time"
 
-	"github.com/33cn/chain33/system/p2p/dht/protocol"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
@@ -27,8 +25,8 @@ func testRecvMsg(p *pubSub, topic string, data []byte, buf *[]byte) (types.Messa
 }
 
 func newTestPubSub() *pubSub {
-	p := &pubSub{&Protocol{}}
-	p.P2PEnv = &protocol.P2PEnv{}
+	p := &pubSub{&broadcastProtocol{}}
+	p.P2PEnv = &prototypes.P2PEnv{}
 	p.ChainCfg = testnode.GetDefaultConfig()
 
 	return p
@@ -37,11 +35,10 @@ func newTestPubSub() *pubSub {
 func TestPubSub(t *testing.T) {
 
 	ps := newTestPubSub()
-	ctx, cancel := context.WithCancel(context.Background())
-	ps.Ctx = ctx
 	addr, priv := util.Genaddress()
 	tx := util.CreateCoinsTx(ps.ChainCfg, priv, addr, 1)
-	block := util.CreateCoinsBlock(ps.ChainCfg, priv, 10)
+	block := util.CreateCoinsBlock(ps.ChainCfg, priv, 10000)
+
 	txHash := ps.getMsgHash(psTxTopic, tx)
 	blockHash := ps.getMsgHash(psBlockTopic, block)
 
@@ -62,6 +59,4 @@ func TestPubSub(t *testing.T) {
 	msg, err = testRecvMsg(ps, psBlockTopic, blockData, &recvBuf)
 	require.Nil(t, err)
 	require.Equal(t, blockHash, ps.getMsgHash(psBlockTopic, msg))
-	cancel()
-	time.Sleep(time.Second)
 }
