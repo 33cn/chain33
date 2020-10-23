@@ -3,6 +3,7 @@ package peer
 import (
 	"context"
 	"fmt"
+	"github.com/libp2p/go-libp2p-core/network"
 	"strconv"
 	"strings"
 	"time"
@@ -72,6 +73,23 @@ func (p *Protocol) refreshPeerInfo() {
 	if selfPeer != nil {
 		selfPeer.Self = true
 		p.PeerInfoManager.Refresh(selfPeer)
+		for _, pinfo := range p.PeerInfoManager.FetchAll() {
+			if pinfo.GetHeader().GetHeight()+512 < selfPeer.GetHeader().GetHeight() {
+				// 拉入连接黑名单
+				p.ConnBlackList.Add(pinfo.GetName(), 0)
+				pid, err := peer.Decode(pinfo.GetName())
+				if err != nil {
+					continue
+				}
+				// 断开向外的主动连接
+				for _, conn := range p.Host.Network().ConnsToPeer(pid) {
+					//判断是Inbound 还是Outbound
+					if conn.Stat().Direction == network.DirOutbound {
+						_ = conn.Close()
+					}
+				}
+			}
+		}
 	}
 }
 

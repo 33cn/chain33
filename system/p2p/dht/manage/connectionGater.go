@@ -36,12 +36,13 @@ type Conngater struct {
 }
 
 //NewConnGater connect gater
-func NewConnGater(ctx context.Context, host *host.Host, limit int32, cacheTime time.Duration) *Conngater {
+func NewConnGater(h *host.Host, limit int32, cache *TimeCache) *Conngater {
 	gater := &Conngater{}
-	gater.host = host
+	gater.host = h
 	gater.maxConnectNum = limit
-	if cacheTime != 0 {
-		gater.blacklist = NewTimeCache(ctx, cacheTime)
+	gater.blacklist = cache
+	if gater.blacklist == nil {
+		gater.blacklist = NewTimeCache(context.Background(), time.Minute*5)
 	}
 	gater.ipLimiter = leakybucket.NewCollector(ipLimit, ipBurst, true)
 	return gater

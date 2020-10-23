@@ -52,6 +52,7 @@ type P2P struct {
 	discovery       *Discovery
 	connManager     *manage.ConnManager
 	peerInfoManager *manage.PeerInfoManager
+	blackCache      *manage.TimeCache
 	api             client.QueueProtocolAPI
 	client          queue.Client
 	addrBook        *AddrBook
@@ -116,7 +117,8 @@ func initP2P(p *P2P) *P2P {
 	log.Info("NewMulti", "addr", maddr.String())
 
 	bandwidthTracker := metrics.NewBandwidthCounter()
-	options := p.buildHostOptions(p.addrBook.GetPrivkey(), bandwidthTracker, maddr)
+	p.blackCache = manage.NewTimeCache(p.ctx, time.Minute*5)
+	options := p.buildHostOptions(p.addrBook.GetPrivkey(), bandwidthTracker, maddr, p.blackCache)
 	host, err := libp2p.New(p.ctx, options...)
 	if err != nil {
 		panic(err)
@@ -167,6 +169,7 @@ func (p *P2P) StartP2P() {
 		Pubsub:              p.pubsub,
 		PeerInfoManager:     p.peerInfoManager,
 		ConnManager:         p.connManager,
+		ConnBlackList:       p.blackCache,
 		HealthyRoutingTable: p.healthyRoutingTable,
 	}
 	p.env = env
@@ -206,7 +209,7 @@ func (p *P2P) reStart() {
 	p.StartP2P()
 }
 
-func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) []libp2p.Option {
+func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr, timeCache *manage.TimeCache) []libp2p.Option {
 	if bandwidthTracker == nil {
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
@@ -238,7 +241,7 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 		//5分钟的宽限期,定期清理
 		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect, maxconnect+int(manage.CacheLimit), time.Minute*5)))
 		//ConnectionGater,处理网络连接的策略
-		options = append(options, libp2p.ConnectionGater(manage.NewConnGater(p.ctx, &p.host, p.subCfg.MaxConnectNum, time.Minute*5)))
+		options = append(options, libp2p.ConnectionGater(manage.NewConnGater(&p.host, p.subCfg.MaxConnectNum, timeCache)))
 	}
 	//关闭ping
 	options = append(options, libp2p.Ping(false))
@@ -466,13 +469,4 @@ func newHealthyRoutingTable(ctx context.Context, h host.Host, rt *kb.RoutingTabl
 		}
 	}()
 	return hrt
-}
-
-func (p *P2P) pruePeers(pid core.PeerID, beBlack bool) {
-
-	p.connManager.Delete(pid)
-	if beBlack {
-		//p.blackCache.Add(pid.Pretty(), 0)
-	}
-
 }
