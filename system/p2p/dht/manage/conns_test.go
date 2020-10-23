@@ -3,19 +3,23 @@ package manage
 import (
 	"context"
 	"fmt"
-	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
-	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/metrics"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/multiformats/go-multiaddr"
 	"io"
 	"sort"
 	"testing"
 	"time"
 
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
+	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p"
+	bhost "github.com/libp2p/go-libp2p-blankhost"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -102,4 +106,41 @@ func TestConnManager(t *testing.T) {
 	require.False(t, mgr.IsNeighbors(h2.ID()))
 	mgr.AddNeighbors(&peer.AddrInfo{ID: h2.ID()})
 	require.True(t, mgr.IsNeighbors(h2.ID()))
+}
+
+func Test_ConnManager(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	netw := swarmt.GenSwarm(t, ctx)
+	h := bhost.NewBlankHost(netw)
+	cfg := types.NewChain33Config(types.ReadFile("../../../../cmd/chain33/chain33.test.toml"))
+	mcfg := &p2pty.P2PSubConfig{}
+	types.MustDecode(cfg.GetSubConfig().P2P["dht"], mcfg)
+	bandwidthTracker := metrics.NewBandwidthCounter()
+	cmm := NewConnManager(ctx, h, nil, bandwidthTracker, mcfg)
+	assert.NotNil(t, cmm)
+
+	ratestr := cmm.RateCalculate(1024)
+	t.Log("rate", ratestr)
+	netw2 := swarmt.GenSwarm(t, ctx)
+	h2 := bhost.NewBlankHost(netw2)
+	h2info := peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()}
+	cmm.AddNeighbors(&h2info)
+	assert.False(t, cmm.IsNeighbors(h.ID()))
+	assert.True(t, cmm.IsNeighbors(h2.ID()))
+	in, out := cmm.BoundSize()
+	assert.Equal(t, 0, in+out)
+	h.Connect(ctx, h2info)
+	_, outSize := cmm.BoundSize()
+	assert.Equal(t, 1, outSize)
+	assert.Equal(t, 1, len(cmm.FetchConnPeers()))
+
+	direction := cmm.CheckDirection(h2info.ID)
+	assert.Equal(t, network.DirOutbound, direction)
+	inSize, outSize := cmm.BoundSize()
+	assert.Equal(t, 0, inSize)
+	assert.Equal(t, len(cmm.InBounds()), inSize)
+	assert.Equal(t, len(cmm.OutBounds()), outSize)
+	cmm.GetNetRate()
+	cmm.BandTrackerByProtocol()
 }

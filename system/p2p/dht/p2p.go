@@ -211,16 +211,16 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 		bandwidthTracker = metrics.NewBandwidthCounter()
 	}
 
-	var relayOpt = make([]circuit.RelayOpt, 3)
-
-	if p.subCfg.RelayHop {
-		relayOpt = append(relayOpt, circuit.OptHop)
-	}
-
 	var options []libp2p.Option
-	if len(relayOpt) != 0 {
-		options = append(options, libp2p.EnableRelay(relayOpt...))
-
+	if p.subCfg.RelayEnable {
+		if p.subCfg.RelayHop { //启用中继服务端
+			options = append(options, libp2p.EnableRelay(circuit.OptHop))
+		} else { //用配置的节点作为中继节点,需要打开HOP选项
+			//relays := append(p.subCfg.BootStraps, p.subCfg.RelayNodeAddr...)
+			relays := p.subCfg.RelayNodeAddr
+			options = append(options, libp2p.AddrsFactory(extension.WithRelayAddrs(relays)))
+			options = append(options, libp2p.EnableRelay())
+		}
 	}
 
 	options = append(options, libp2p.NATPortMap())
@@ -230,9 +230,9 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	if priv != nil {
 		options = append(options, libp2p.Identity(priv))
 	}
-	if bandwidthTracker != nil {
-		options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
-	}
+
+	options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
+
 	if p.subCfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
 		var maxconnect = int(p.subCfg.MaxConnectNum)
 		//5分钟的宽限期,定期清理
@@ -240,7 +240,8 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 		//ConnectionGater,处理网络连接的策略
 		options = append(options, libp2p.ConnectionGater(manage.NewConnGater(p.ctx, &p.host, p.subCfg.MaxConnectNum, time.Minute*5)))
 	}
-
+	//关闭ping
+	options = append(options, libp2p.Ping(false))
 	return options
 }
 
@@ -465,4 +466,13 @@ func newHealthyRoutingTable(ctx context.Context, h host.Host, rt *kb.RoutingTabl
 		}
 	}()
 	return hrt
+}
+
+func (p *P2P) pruePeers(pid core.PeerID, beBlack bool) {
+
+	p.connManager.Delete(pid)
+	if beBlack {
+		//p.blackCache.Add(pid.Pretty(), 0)
+	}
+
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -55,6 +56,7 @@ func NewConnManager(ctx context.Context, host core.Host, rt *kb.RoutingTable, tr
 func (s *ConnManager) RateCalculate(ratebytes float64) string {
 	kbytes := ratebytes / 1024
 	rate := fmt.Sprintf("%.3f KB/s", kbytes)
+
 	if kbytes/1024 > 0.1 {
 		rate = fmt.Sprintf("%.3f MB/s", kbytes/1024)
 	}
@@ -65,21 +67,34 @@ func (s *ConnManager) RateCalculate(ratebytes float64) string {
 // BandTrackerByProtocol returns all protocols band info
 func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 	bandprotocols := s.bandwidthTracker.GetBandwidthByProtocol()
-	var infos types.NetProtocolInfos
+	var infos netprotocols
 	for id, stat := range bandprotocols {
-		if id == "" {
+		if id == "" || stat.RateIn+stat.RateOut == 0 {
 			continue
 		}
-
-		var info types.ProtocolInfo
+		var info sortNetProtocols
 		info.Protocol = string(id)
 		info.Ratein = s.RateCalculate(stat.RateIn)
 		info.Rateout = s.RateCalculate(stat.RateOut)
 		info.Ratetotal = s.RateCalculate(stat.RateIn + stat.RateOut)
-		infos.Protoinfo = append(infos.Protoinfo, &info)
-
+		infos = append(infos, &info)
 	}
-	return &infos
+
+	sort.Sort(infos) //对Ratetotal 进行排序
+	var netinfoArr []*types.ProtocolInfo
+	for _, info := range infos {
+		var protoinfo types.ProtocolInfo
+		protoinfo.Ratetotal = info.Ratetotal
+		protoinfo.Rateout = info.Rateout
+		protoinfo.Ratein = info.Ratein
+		protoinfo.Protocol = info.Protocol
+		if strings.Contains(protoinfo.Ratetotal, "0.000") {
+			continue
+		}
+		netinfoArr = append(netinfoArr, &protoinfo)
+	}
+
+	return &types.NetProtocolInfos{Protoinfo: netinfoArr}
 
 }
 
@@ -147,6 +162,16 @@ func (s *ConnManager) procConnections() {
 		info := genAddrInfo(node)
 		_ = s.host.Connect(context.Background(), *info)
 	}
+	if s.cfg.RelayEnable {
+		//对relay中中继服务器要长期保持连接
+		for _, node := range s.cfg.RelayNodeAddr {
+			info := genAddrInfo(node)
+			if len(s.host.Network().ConnsToPeer(info.ID)) == 0 {
+				s.host.Connect(context.Background(), *info)
+			}
+		}
+	}
+
 }
 
 func genAddrInfo(addr string) *peer.AddrInfo {
@@ -164,6 +189,12 @@ func (s *ConnManager) AddNeighbors(pr *peer.AddrInfo) {
 func (s *ConnManager) IsNeighbors(pid peer.ID) bool {
 	_, ok := s.neighborStore.Load(pid.Pretty())
 	return ok
+}
+
+// Delete delete peer by id
+func (s *ConnManager) Delete(pid peer.ID) {
+	_ = s.host.Network().ClosePeer(pid)
+	s.routingTable.Remove(pid)
 }
 
 // FetchNearestPeers fetch nearest peer ids
@@ -197,10 +228,10 @@ func (s *ConnManager) FetchConnPeers() []peer.ID {
 			break
 		}
 	}
-	return s.convertMapToArr(peers)
+	return convertMapToArr(peers)
 }
 
-func (s *ConnManager) convertMapToArr(in map[string]peer.ID) []peer.ID {
+func convertMapToArr(in map[string]peer.ID) []peer.ID {
 	var pids []peer.ID
 	for _, id := range in {
 		pids = append(pids, id)
@@ -240,7 +271,6 @@ func (s *ConnManager) InBounds() []peer.ID {
 
 // BoundSize get in out conn bound size
 func (s *ConnManager) BoundSize() (insize int, outsize int) {
-
 	for _, con := range s.host.Network().Conns() {
 		if con.Stat().Direction == network.DirOutbound {
 			outsize++
@@ -249,9 +279,7 @@ func (s *ConnManager) BoundSize() (insize int, outsize int) {
 			insize++
 		}
 	}
-
 	return insize, outsize
-
 }
 
 // GetNetRate get rateinfo
@@ -271,4 +299,24 @@ func (c conns) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
 //Less
 func (c conns) Less(i, j int) bool { //从大到小排序，即index=0 ，表示数值最大
 	return c[i].Stat().Opened.After(c[j].Stat().Opened)
+}
+
+type sortNetProtocols struct {
+	Protocol  string
+	Ratetotal string
+	Ratein    string
+	Rateout   string
+}
+
+type netprotocols []*sortNetProtocols
+
+//Len
+func (n netprotocols) Len() int { return len(n) }
+
+//Swap
+func (n netprotocols) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
+
+//Less
+func (n netprotocols) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最小
+	return n[i].Ratetotal < n[j].Ratetotal
 }
