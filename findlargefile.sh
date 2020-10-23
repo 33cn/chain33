@@ -27,7 +27,6 @@ echo "All sizes are in kB's. The pack column is the size of the object, compress
 # 1161   879    1b1b8179e167f5e2d1d5d2c189b9bfec70c387a4  vendor/github.com/btcsuite/btcd/btcec/secp256k1.go
 # 1105   234    99c4926d451e549bc1be6a78946f1ad0988358be  vendor/golang.org/x/text/unicode/runenames/tables.go
 
-
 history="2c8c0fa0a853bfa135f03f1bd30c905336425caa 240191b5561e737e50283045972befb4a13275d4 33064554018a49d4f0ff9db680241efaa67e5b7f \
          0c300a7b61218271e666f3246f36e8f1915b0d57 9ec4f3d49403e8b9dd46885031a92e23af3828b9 eb297e33f34b7ba69cdbf1fd720a97a74fa8aed9  \
          6493357efae3b213d709cfb5f50a7e037e5972ca 3b28d8f0e670f425f3248e315e23984942b100f6 4079adb3cb96475e4499ab150abbc3fe193ee0ef \
