@@ -8,7 +8,6 @@ import (
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -117,24 +116,24 @@ func (p *PeerInfoManager) start() {
 			return
 		case <-time.After(time.Second * 30):
 			//获取当前高度，过滤掉高度较低的节点
-			msg := p.client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-			err := p.client.Send(msg, true)
-			if err != nil {
-				continue
-			}
-			resp, err := p.client.WaitTimeout(msg, time.Second*10)
-			if err != nil {
-				continue
-			}
-			header, ok := resp.GetData().(*types.Header)
-			if !ok {
-				continue
-			}
-			p.prune(header.GetHeight())
+			//msg := p.client.NewMessage("blockchain", types.EventGetLastHeader, nil)
+			//err := p.client.Send(msg, true)
+			//if err != nil {
+			//	continue
+			//}
+			//resp, err := p.client.WaitTimeout(msg, time.Second*10)
+			//if err != nil {
+			//	continue
+			//}
+			//header, ok := resp.GetData().(*types.Header)
+			//if !ok {
+			//	continue
+			//}
+			p.prune()
 		}
 	}
 }
-func (p *PeerInfoManager) prune(height int64) {
+func (p *PeerInfoManager) prune() {
 	p.peerInfo.Range(func(key interface{}, value interface{}) bool {
 		info := value.(*peerStoreInfo)
 		if time.Since(info.storeTime) > time.Minute {
@@ -142,16 +141,16 @@ func (p *PeerInfoManager) prune(height int64) {
 			return true
 		}
 		//check blockheight,删除落后512高度的节点
-		if info.peer.Header.GetHeight()+diffheightValue < height {
-			id, _ := peer.Decode(key.(string))
-			for _, conn := range p.host.Network().ConnsToPeer(id) {
-				//判断是Inbound 还是Outbound
-				if conn.Stat().Direction == network.DirOutbound {
-					//断开连接
-					_ = conn.Close()
-				}
-			}
-		}
+		//if info.peer.Header.GetHeight()+diffheightValue < height {
+		//	id, _ := peer.Decode(key.(string))
+		//	for _, conn := range p.host.Network().ConnsToPeer(id) {
+		//		//判断是Inbound 还是Outbound
+		//		if conn.Stat().Direction == network.DirOutbound {
+		//			//断开连接
+		//			_ = conn.Close()
+		//		}
+		//	}
+		//}
 		return true
 	})
 }

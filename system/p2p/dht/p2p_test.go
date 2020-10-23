@@ -21,14 +21,12 @@ import (
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
 	"github.com/libp2p/go-libp2p"
-	bhost "github.com/libp2p/go-libp2p-blankhost"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -160,13 +158,14 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 
 func newHost(subcfg *p2pty.P2PSubConfig, priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
 	p := &P2P{ctx: context.Background(), subCfg: subcfg}
-	options := p.buildHostOptions(priv, bandwidthTracker, maddr)
+	options := p.buildHostOptions(priv, bandwidthTracker, maddr, nil)
 	h, err := libp2p.New(context.Background(), options...)
 	if err != nil {
 		return nil
 	}
 	return h
 }
+
 func testStreamEOFReSet(t *testing.T) {
 
 	r := rand.Reader
@@ -399,9 +398,9 @@ func Test_p2p(t *testing.T) {
 	t.Log("discovery update", err)
 	pinfo := dhtp2p.discovery.FindLocalPeers([]peer.ID{dhtp2p.host.ID()})
 	t.Log("findlocalPeers", pinfo)
-	netw := swarmt.GenSwarm(t, context.Background())
-	h2 := bhost.NewBlankHost(netw)
-	dhtp2p.pruePeers(h2.ID(), true)
+	//netw := swarmt.GenSwarm(t, context.Background())
+	//h2 := bhost.NewBlankHost(netw)
+	//dhtp2p.pruePeers(h2.ID(), true)
 	dhtp2p.discovery.Remove(dhtp2p.host.ID())
 	testP2PEvent(t, q.Client())
 

@@ -24,14 +24,6 @@ func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {
 	return out
 }
 
-func connect(t *testing.T, a, b host.Host) {
-	pinfo := a.Peerstore().PeerInfo(a.ID())
-	err := b.Connect(context.Background(), pinfo)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func Test_initInnerPeers(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

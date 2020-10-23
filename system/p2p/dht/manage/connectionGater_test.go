@@ -2,13 +2,11 @@ package manage
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -18,42 +16,24 @@ import (
 
 func Test_MaxLimit(t *testing.T) {
 	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
-	if err != nil {
-		return
-	}
+	require.Nil(t, err)
 
-	r := rand.Reader
-	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
 	var host1 host.Host
 	//设置0，意味着拒绝所有的连接
 	CacheLimit = 0
-	gater := NewConnGater(context.Background(), &host1, 0, 0)
+	gater := NewConnGater(&host1, 0, nil)
 	host1, err = libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m),
-		libp2p.Identity(priv),
 		libp2p.ConnectionGater(gater),
 	)
-	if err != nil {
-		return
-	}
+	require.Nil(t, err)
 	m2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12346))
-	if err != nil {
-		return
-	}
-	priv2, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
+	require.Nil(t, err)
+
 	host2, err := libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m2),
-		libp2p.Identity(priv2),
 	)
-	if err != nil {
-		return
-	}
+	require.Nil(t, err)
 	h1info := peer.AddrInfo{
 		ID:    host1.ID(),
 		Addrs: host1.Addrs(),
@@ -65,7 +45,7 @@ func Test_MaxLimit(t *testing.T) {
 
 func Test_InterceptAccept(t *testing.T) {
 	var host1 host.Host
-	gater := NewConnGater(context.Background(), &host1, 0, 0)
+	gater := NewConnGater(&host1, 0, nil)
 
 	var ip = "47.97.223.101"
 	multiAddress, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, 3000))
@@ -81,7 +61,7 @@ func Test_InterceptAccept(t *testing.T) {
 
 func Test_InterceptAddrDial(t *testing.T) {
 	var host1 host.Host
-	gater := NewConnGater(context.Background(), &host1, 0, 0)
+	gater := NewConnGater(&host1, 0, nil)
 	var ip = "47.97.223.101"
 	multiAddress, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, 3000))
 	require.NoError(t, err)
@@ -92,7 +72,7 @@ func Test_InterceptPeerDial(t *testing.T) {
 	var host1 host.Host
 	ctx := context.Background()
 	defer ctx.Done()
-	gater := NewConnGater(context.Background(), &host1, 1, time.Second)
+	gater := NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second))
 	var pid = "16Uiu2HAmCyJhBvE1vn62MQWhhaPph1cxeU9nNZJoZQ1Pe1xASZUg"
 
 	gater.blacklist.Add(pid, 0)
@@ -109,7 +89,7 @@ func Test_otherInterface(t *testing.T) {
 	var host1 host.Host
 	ctx := context.Background()
 	defer ctx.Done()
-	gater := NewConnGater(ctx, &host1, 1, time.Second)
+	gater := NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second))
 	allow, _ := gater.InterceptUpgraded(nil)
 	require.True(t, allow)
 	require.True(t, gater.InterceptSecured(network.DirInbound, "", nil))

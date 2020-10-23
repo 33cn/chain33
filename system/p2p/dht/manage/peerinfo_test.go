@@ -27,7 +27,7 @@ func TestPeerInfoManager(t *testing.T) {
 	require.NotNil(t, mgr.Fetch(h1.ID()))
 	require.Equal(t, 1, len(mgr.FetchAll()))
 	require.Equal(t, int64(888), mgr.PeerHeight(h1.ID()))
-	mgr.prune(10000)
+	mgr.prune()
 	require.Equal(t, int64(888), mgr.PeerHeight(h1.ID()))
 }
 
