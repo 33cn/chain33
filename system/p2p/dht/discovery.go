@@ -9,7 +9,6 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	coredis "github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -78,26 +77,6 @@ func (d *Discovery) Close() error {
 	return nil
 }
 
-// FindPeers find peers
-func (d *Discovery) FindPeers(RendezvousString string, gossip bool) ([]peer.AddrInfo, error) {
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if gossip {
-		discovery.Advertise(ctx, d.RoutingDiscovery, RendezvousString)
-	}
-
-	addrinfos, err := discovery.FindPeers(ctx, d.RoutingDiscovery, RendezvousString, coredis.Limit(100))
-	//peerChan, err := d.routingDiscovery.FindPeers(context.Background(), RendezvousString)
-	if err != nil {
-		//panic(err)
-		log.Error("FindPeers", "err", err.Error())
-		return nil, err
-	}
-
-	return addrinfos, nil
-}
-
 // FindLANPeers 查找局域网内的其他节点
 func (d *Discovery) FindLANPeers(host host.Host, serviceTag string) (<-chan peer.AddrInfo, error) {
 	mdns, err := extension.NewMDNS(d.ctx, host, serviceTag)
@@ -129,7 +108,6 @@ func (d *Discovery) FindSpecialPeer(pid peer.ID) (*peer.AddrInfo, error) {
 		return nil, err
 	}
 	return &peerInfo, nil
-
 }
 
 // FindLocalPeer 根据pid 查找当前DHT内部的peer信息
@@ -155,12 +133,9 @@ func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo
 		return nil, errors.New("empty ptr")
 
 	}
-
-	ctx := context.Background()
-	pctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	pctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	return d.kademliaDHT.FindPeersConnectedToPeer(pctx, pid)
-
 }
 
 // FindNearestPeers find nearest peers
@@ -175,4 +150,27 @@ func (d *Discovery) FindNearestPeers(pid peer.ID, count int) []peer.ID {
 // RoutingTable get routing table
 func (d *Discovery) RoutingTable() *kbt.RoutingTable {
 	return d.kademliaDHT.RoutingTable()
+}
+
+// ListPeers routingTable 路由表的节点信息
+func (d *Discovery) ListPeers() []peer.ID {
+	if d.kademliaDHT == nil {
+		return nil
+	}
+	return d.kademliaDHT.RoutingTable().ListPeers()
+}
+
+// Update update peer
+func (d *Discovery) Update(pid peer.ID) error {
+	_, err := d.kademliaDHT.RoutingTable().Update(pid)
+	return err
+}
+
+// Remove remove peer
+func (d *Discovery) Remove(pid peer.ID) {
+	if d.kademliaDHT == nil {
+		return
+	}
+	d.kademliaDHT.RoutingTable().Remove(pid)
+
 }

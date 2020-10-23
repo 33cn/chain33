@@ -21,12 +21,14 @@ import (
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
 	"github.com/libp2p/go-libp2p"
+	bhost "github.com/libp2p/go-libp2p-blankhost"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -115,7 +117,12 @@ func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	p2pmgr.SysAPI, _ = client.New(cli, nil)
 	p2pmgr.Client = cli
 	subCfg := p2pmgr.ChainCfg.GetSubConfig().P2P
-	p2p := New(p2pmgr, subCfg[p2pty.DHTTypeName])
+	mcfg := &p2pty.P2PSubConfig{}
+	types.MustDecode(subCfg[p2pty.DHTTypeName], mcfg)
+	mcfg.RelayEnable = true
+
+	dhtcfg, _ := json.Marshal(mcfg)
+	p2p := New(p2pmgr, dhtcfg)
 	p2p.StartP2P()
 	return p2p
 }
@@ -385,6 +392,17 @@ func Test_p2p(t *testing.T) {
 	require.Nil(t, err)
 	cfg.GetSubConfig().P2P[p2pty.DHTTypeName] = jcfg
 	p2p := NewP2p(cfg, q.Client())
+	dhtp2p := p2p.(*P2P)
+	t.Log("listpeer", dhtp2p.discovery.ListPeers())
+
+	err = dhtp2p.discovery.Update(dhtp2p.host.ID())
+	t.Log("discovery update", err)
+	pinfo := dhtp2p.discovery.FindLocalPeers([]peer.ID{dhtp2p.host.ID()})
+	t.Log("findlocalPeers", pinfo)
+	netw := swarmt.GenSwarm(t, context.Background())
+	h2 := bhost.NewBlankHost(netw)
+	dhtp2p.pruePeers(h2.ID(), true)
+	dhtp2p.discovery.Remove(dhtp2p.host.ID())
 	testP2PEvent(t, q.Client())
 
 	testStreamEOFReSet(t)

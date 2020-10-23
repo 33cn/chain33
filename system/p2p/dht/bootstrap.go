@@ -39,6 +39,23 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 		//加保护
 		host.ConnManager().Protect(info.ID, "seed")
 	}
+	//连接配置的relay中继服务器
+	if cfg.RelayEnable {
+		for _, relay := range cfg.RelayNodeAddr {
+			info := genAddrInfo(relay)
+			if info == nil || info.ID == host.ID() {
+				continue
+			}
+			host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
+			err := host.Connect(context.Background(), *info)
+			if err != nil {
+				log.Error("Host Connect", "err", err, "peer", info.ID)
+				continue
+			}
+			//加保护
+			host.ConnManager().Protect(info.ID, "relayNode")
+		}
+	}
 
 	for _, peerinfo := range peersInfo {
 		host.Peerstore().AddAddrs(peerinfo.ID, peerinfo.Addrs, peerstore.TempAddrTTL)

@@ -18,6 +18,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/influxdata/influxdb v1.7.9
 	github.com/ipfs/go-datastore v0.4.4
+	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/kevinms/leakybucket-go v0.0.0-20200115003610-082473db97ca
 	github.com/libp2p/go-libp2p v0.10.3
 	github.com/libp2p/go-libp2p-blankhost v0.2.0
@@ -41,6 +42,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tjfoc/gmsm v1.3.1
+	go.opencensus.io v0.22.4
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a

@@ -176,6 +176,12 @@ type BlockChain struct {
 	MaxActiveBlockNum int `json:"maxActiveBlockNum,omitempty"`
 	// 当前活跃区块的缓存大小M为单位
 	MaxActiveBlockSize int `json:"maxActiveBlockSize,omitempty"`
+
+	//HighAllowPackHeight 允许打包的High区块高度
+	HighAllowPackHeight int64 `json:"highAllowPackHeight,omitempty"`
+
+	//LowAllowPackHeight 允许打包的low区块高度
+	LowAllowPackHeight int64 `json:"lowAllowPackHeight,omitempty"`
 }
 
 // P2P 配置
