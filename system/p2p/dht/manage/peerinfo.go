@@ -11,9 +11,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// manage peer info
-const diffheightValue = 512
-
 // PeerInfoManager peer info manager
 type PeerInfoManager struct {
 	ctx       context.Context

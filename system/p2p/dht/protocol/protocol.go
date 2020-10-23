@@ -31,7 +31,7 @@ type P2PEnv struct {
 	DB              ds.Datastore
 	PeerInfoManager IPeerInfoManager
 	ConnManager     IConnManager
-	ConnBlackList   LRU
+	ConnBlackList   iLRU
 	Pubsub          *extension.PubSub
 	RoutingTable    *kbt.RoutingTable
 	//普通路由表的一个子表，仅包含接近同步完成的节点
@@ -39,7 +39,7 @@ type P2PEnv struct {
 	*discovery.RoutingDiscovery
 }
 
-type LRU interface {
+type iLRU interface {
 	Add(s string, t time.Duration)
 	Has(s string) bool
 }

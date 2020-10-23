@@ -16,6 +16,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+const diffHeightValue = 512
+
 func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	msg := p.QueueClient.NewMessage(mempool, types.EventGetMempoolSize, nil)
 	err := p.QueueClient.Send(msg, true)
@@ -75,7 +77,7 @@ func (p *Protocol) refreshPeerInfo() {
 		selfPeer.Self = true
 		p.PeerInfoManager.Refresh(selfPeer)
 		for _, pinfo := range p.PeerInfoManager.FetchAll() {
-			if pinfo.GetHeader().GetHeight()+512 < selfPeer.GetHeader().GetHeight() {
+			if pinfo.GetHeader().GetHeight()+diffHeightValue < selfPeer.GetHeader().GetHeight() {
 				// 拉入连接黑名单
 				p.ConnBlackList.Add(pinfo.GetName(), 0)
 				pid, err := peer.Decode(pinfo.GetName())
