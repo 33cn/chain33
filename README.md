@@ -8,6 +8,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 
 # Chain33 区块链开发框架(为了适合go module 的版本号标准 最新版本号改为: 1.64.0)
 
+large file check
 高度模块化, 遵循 KISS原则的区块链开发框架
 
 官方网站 和 文档: https://chain.33.cn
