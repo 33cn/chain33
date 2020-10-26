@@ -198,6 +198,15 @@ func TestInit(t *testing.T) {
 		End:       1999,
 	})
 	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+
+	testGetHeaders(t, client, "p2p", &types.ReqBlocks{
+		Start: 100,
+		End:   199,
+		Pid:   []string{p2.Host.ID().Pretty()},
+	})
+	msg = <-msgCh
+	require.Equal(t, p2.Host.ID().Pretty(), msg.Data.(*types.HeadersPid).GetPid())
+	require.Equal(t, 100, len(msg.Data.(*types.HeadersPid).GetHeaders().Items))
 }
 
 func TestFullNode(t *testing.T) {
@@ -309,6 +318,19 @@ func testGetBlock(t *testing.T, client queue.Client, topic string, req *types.Ch
 func testGetRecord(t *testing.T, client queue.Client, topic string, req *types.ReqChunkRecords) *queue.Message {
 	msg := client.NewMessage(topic, types.EventGetChunkRecord, req)
 	err := client.Send(msg, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return msg
+}
+
+func testGetHeaders(t *testing.T, client queue.Client, topic string, req *types.ReqBlocks) *queue.Message {
+	msg := client.NewMessage(topic, types.EventFetchBlockHeaders, req)
+	err := client.Send(msg, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	msg, err = client.Wait(msg)
 	if err != nil {
 		t.Fatal(err)
 	}

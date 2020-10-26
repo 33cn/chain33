@@ -13,11 +13,10 @@ import (
 
 // PeerInfoManager peer info manager
 type PeerInfoManager struct {
-	ctx       context.Context
-	peerInfo  sync.Map
-	client    queue.Client
-	host      host.Host
-	blacklist *TimeCache
+	ctx      context.Context
+	peerInfo sync.Map
+	client   queue.Client
+	host     host.Host
 }
 
 type peerStoreInfo struct {
@@ -28,10 +27,9 @@ type peerStoreInfo struct {
 // NewPeerInfoManager new peer info manager
 func NewPeerInfoManager(ctx context.Context, host host.Host, cli queue.Client) *PeerInfoManager {
 	peerInfoManage := &PeerInfoManager{
-		ctx:       ctx,
-		client:    cli,
-		host:      host,
-		blacklist: NewTimeCache(ctx, time.Minute*5),
+		ctx:    ctx,
+		client: cli,
+		host:   host,
 	}
 	go peerInfoManage.start()
 	return peerInfoManage

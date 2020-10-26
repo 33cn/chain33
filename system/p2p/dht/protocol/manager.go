@@ -12,6 +12,7 @@ import (
 var title string
 var once sync.Once
 
+// SetTitle ...
 func SetTitle(s string) {
 	once.Do(func() {
 		title = s
