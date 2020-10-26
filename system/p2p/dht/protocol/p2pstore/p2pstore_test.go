@@ -577,7 +577,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		localChunkInfo:           make(map[string]LocalChunkInfo),
 		notifyingQueue:           make(chan *types.ChunkInfoMsg, 100),
 	}
-	p3.bindRoutingTableUpdateFunc()
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p3.Host, getHeaderOld, p3.handleStreamGetHeaderOld)
 	protocol.RegisterStreamHandler(p3.Host, fullNode, protocol.HandlerWithRW(p3.handleStreamIsFullNode))

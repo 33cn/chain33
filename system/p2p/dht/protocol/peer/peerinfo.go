@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/network"
@@ -54,6 +55,7 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 }
 
 func (p *Protocol) refreshPeerInfo() {
+	var wg sync.WaitGroup
 	for _, remoteID := range p.RoutingTable.ListPeers() {
 		if p.checkDone() {
 			log.Warn("getPeerInfo", "process", "done+++++++")
@@ -63,7 +65,9 @@ func (p *Protocol) refreshPeerInfo() {
 			continue
 		}
 		//修改为并发获取peerinfo信息
+		wg.Add(1)
 		go func(pid peer.ID) {
+			defer wg.Done()
 			pInfo, err := p.queryPeerInfoOld(pid)
 			if err != nil {
 				log.Error("refreshPeerInfo", "error", err, "pid", pid)
@@ -94,6 +98,7 @@ func (p *Protocol) refreshPeerInfo() {
 			}
 		}
 	}
+	wg.Wait()
 }
 
 func (p *Protocol) detectNodeAddr() {

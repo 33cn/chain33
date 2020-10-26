@@ -154,7 +154,7 @@ func (p *P2P) StartP2P() {
 	p.addrBook.StoreHostID(p.host.ID(), p.p2pCfg.DbPath)
 	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
 	p.discovery.Start()
-	//debug new
+
 	env := &protocol.P2PEnv{
 		Ctx:                 p.ctx,
 		ChainCfg:            p.chainCfg,
@@ -174,6 +174,7 @@ func (p *P2P) StartP2P() {
 	}
 	p.env = env
 	protocol.InitAllProtocol(env)
+	protocol.SetTitle(p.chainCfg.GetTitle())
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()
@@ -445,7 +446,7 @@ func (p *P2P) genAirDropKey() {
 func newHealthyRoutingTable(ctx context.Context, h host.Host, rt *kb.RoutingTable, pm *manage.PeerInfoManager) *kb.RoutingTable {
 	hrt := kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore())
 	rt.PeerAdded = func(pid peer.ID) {
-		if pm.PeerHeight(pid)+50 >= pm.PeerHeight(h.ID()) {
+		if pm.PeerHeight(pid)+512 >= pm.PeerHeight(h.ID()) {
 			_, _ = hrt.Update(pid)
 		}
 	}
