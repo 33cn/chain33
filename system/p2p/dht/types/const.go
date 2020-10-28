@@ -31,6 +31,8 @@ var (
 	ErrInvalidParam = errors.New("invalid parameter")
 	// ErrWrongSignature wrong signature err
 	ErrWrongSignature = errors.New("wrong signature")
+	// ErrInvalidResponse invalid response error
+	ErrInvalidResponse = errors.New("invalid response")
 
 	// ExpiredTime expired time
 	ExpiredTime = time.Hour * 3

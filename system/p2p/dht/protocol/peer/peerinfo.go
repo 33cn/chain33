@@ -3,6 +3,7 @@ package peer
 import (
 	"context"
 	"fmt"
+	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/libp2p/go-libp2p-core/network"
 	"strconv"
 	"strings"
@@ -165,6 +166,9 @@ func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
 	err = protocol.ReadStream(&resp, stream)
 	if err != nil {
 		return nil, err
+	}
+	if resp.Message == nil {
+		return nil, types2.ErrInvalidResponse
 	}
 	pInfo := types.Peer{
 		Addr:           resp.Message.Addr,
