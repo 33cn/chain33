@@ -81,6 +81,17 @@ func NewWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *C
 	return newWithConfig(cfg, mockapi)
 }
 
+// NewWithRPC 创建测试节点 并开放rpc服务
+func NewWithRPC(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
+	mock := newWithConfigNoLock(cfg, mockapi)
+	mock.rpc.Close()
+	server := rpc.New(cfg)
+	server.SetAPI(mock.api)
+	server.SetQueueClient(mock.q.Client())
+	mock.rpc = server
+	return mock
+}
+
 func newWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	return newWithConfigNoLock(cfg, mockapi)
 }

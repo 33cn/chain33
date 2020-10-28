@@ -549,7 +549,12 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 		txSize += 300
 	}
 	// hash cache 不作为fee大小计算, byte数组经过proto编码会有2个字节的标志长度
-	txSize -= len(tx.HashCache) + len(tx.FullHashCache) + 4
+	if tx.HashCache != nil {
+		txSize -= len(tx.HashCache) + 2
+	}
+	if tx.FullHashCache != nil {
+		txSize -= len(tx.FullHashCache) + 2
+	}
 	if txSize > int(MaxTxSize) {
 		return 0, ErrTxMsgSizeTooBig
 	}
@@ -620,6 +625,9 @@ func (tx *Transaction) isExpire(cfg *Chain33Config, height, blocktime int64) boo
 
 //GetTxHeight 获取交易高度
 func GetTxHeight(cfg *Chain33Config, valid int64, height int64) int64 {
+	if cfg.IsPara() {
+		return -1
+	}
 	if cfg.IsEnableFork(height, "ForkTxHeight", cfg.IsEnable("TxHeight")) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
@@ -767,7 +775,7 @@ func CalcTxShortHash(hash []byte) string {
 	return ""
 }
 
-//TransactionSort:对主链以及平行链交易分类
+//TransactionSort 对主链以及平行链交易分类
 //构造一个map用于临时存储各个子链的交易, 按照title分类，主链交易的title设置成main
 //并对map按照title进行排序，不然每次遍历map顺序会不一致
 func TransactionSort(rawtxs []*Transaction) []*Transaction {

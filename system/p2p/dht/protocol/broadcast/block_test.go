@@ -7,8 +7,6 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -18,12 +16,12 @@ import (
 func Test_sendBlock(t *testing.T) {
 
 	proto := newTestProtocol()
-	_, ok := proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPid, testAddr)
+	_, ok := proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPidStr)
 	assert.True(t, ok)
-	_, ok = proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPid, testAddr)
+	_, ok = proto.handleSend(&types.P2PBlock{Block: &types.Block{}}, testPidStr)
 	assert.False(t, ok)
 	proto.p2pCfg.MinLtBlockSize = 0
-	data, ok := proto.handleSend(&types.P2PBlock{Block: testBlock}, "newpid", testAddr)
+	data, ok := proto.handleSend(&types.P2PBlock{Block: testBlock}, "newpid")
 	ltBlock := data.Value.(*types.BroadCastData_LtBlock).LtBlock
 	assert.True(t, ok)
 	assert.True(t, ltBlock.MinerTx == minerTx)
@@ -38,15 +36,15 @@ func Test_recvBlock(t *testing.T) {
 	recvData := &types.BroadCastData{}
 	block := &types.BroadCastData_Block{Block: &types.P2PBlock{}}
 	recvData.Value = block
-	err := proto.handleReceive(recvData, testPid, testAddr)
+	err := proto.handleReceive(recvData, testPidStr, testAddr, broadcastV1)
 	assert.Equal(t, types.ErrInvalidParam, err)
 	block.Block = &types.P2PBlock{Block: testBlock}
 
 	newCli := q.Client()
 	newCli.Sub("blockchain")
-	err = proto.handleReceive(recvData, testPid, testAddr)
+	err = proto.handleReceive(recvData, testPidStr, testAddr, broadcastV1)
 	assert.Nil(t, err)
-	err = proto.handleReceive(recvData, testPid, testAddr)
+	err = proto.handleReceive(recvData, testPidStr, testAddr, broadcastV1)
 	assert.Nil(t, err)
 	blockHash := hex.EncodeToString(testBlock.Hash(proto.ChainCfg))
 	assert.True(t, proto.blockSendFilter.Contains(blockHash))
@@ -99,18 +97,18 @@ func Test_recvLtBlock(t *testing.T) {
 	done := startHandleMempool(q, &memTxList)
 	<-done
 	block := &types.Block{TxHash: []byte("test"), Txs: txList, Height: 10}
-	temppid, _ := peer.Decode("16Uiu2HAkudcLD1rRPmLL6PYqT3frNFUhTt764yWx1pfrVW8eWUeY")
-	sendData, _ := proto.handleSend(&types.P2PBlock{Block: block}, temppid, "tempaddr")
+	remotePid := "16Uiu2HAkudcLD1rRPmLL6PYqT3frNFUhTt764yWx1pfrVW8eWUeY"
+	sendData, _ := proto.handleSend(&types.P2PBlock{Block: block}, remotePid)
 
 	// block tx hash校验不过
-	err := proto.handleReceive(sendData, testPid, testAddr)
-	assert.Nil(t, err)
+	err := proto.handleReceive(sendData, testPidStr, testAddr, broadcastV1)
+	assert.Equal(t, errSendPeer, err)
 	blockHash := hex.EncodeToString(block.Hash(proto.ChainCfg))
 	assert.True(t, proto.blockSendFilter.Contains(blockHash))
 	//缺失超过1/3的交易数量
 	memTxList = []*types.Transaction{tx, nil, nil}
-	err = proto.handleReceive(sendData, testPid, testAddr)
-	assert.Nil(t, err)
+	err = proto.handleReceive(sendData, testPidStr, testAddr, broadcastV1)
+	assert.Equal(t, errSendPeer, err)
 	//交易组正确流程测试
 	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, proto.ChainCfg.GetMinTxFeeRate())
 	gtx := txGroup.Tx()
@@ -118,8 +116,8 @@ func Test_recvLtBlock(t *testing.T) {
 	block.TxHash = merkle.CalcMerkleRoot(proto.ChainCfg, block.GetHeight(), block.Txs)
 	newCli := q.Client()
 	newCli.Sub("blockchain")
-	sendData, _ = proto.handleSend(&types.P2PBlock{Block: block}, testPid, testAddr)
-	err = proto.handleReceive(sendData, testPid, testAddr)
+	sendData, _ = proto.handleSend(&types.P2PBlock{Block: block}, testPidStr)
+	err = proto.handleReceive(sendData, testPidStr, testAddr, broadcastV1)
 	assert.Nil(t, err)
 	msg := <-newCli.Recv()
 	assert.Equal(t, types.EventBroadcastAddBlock, int(msg.Ty))

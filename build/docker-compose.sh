@@ -99,6 +99,8 @@ function base_init() {
     sed -i $sedfix 's/^enablePushSubscribe=.*/enablePushSubscribe=true/g' ${testtoml}
     sed -i $sedfix 's/^enableReduceLocaldb=.*/enableReduceLocaldb=false/g' ${testtoml}
 
+    sed -i $sedfix 's/^enableTLS=.*/enableTLS=true/g' ${testtoml}
+
     cp ${testtoml} ${testtomlsolo}
     #consens
     consens_init "solo"
@@ -404,6 +406,11 @@ function main() {
 
     ### test cases ###
     ip=$(${CLI} net info | jq -r ".externalAddr[0:10]")
+    ip=$(echo "$ip" | cut -d':' -f 1)
+    if [ "$ip" == "127.0.0.1" ]; then
+        ip=$(${CLI} net info | jq -r ".localAddr")
+        ip=$(echo "$ip" | cut -d':' -f 1)
+    fi
     base_test "${ip}"
     dapp_run test "${ip}"
 

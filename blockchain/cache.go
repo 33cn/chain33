@@ -9,13 +9,13 @@ import (
 	"sync"
 
 	"github.com/33cn/chain33/types"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 //BlockCache 区块缓存
 type BlockCache struct {
 	cache      map[int64]*list.Element
 	cacheHash  map[string]*list.Element
-	cacheTxs   map[string]bool
 	cacheSize  int64
 	cachelock  sync.Mutex
 	cacheQueue *list.List
@@ -28,7 +28,6 @@ func NewBlockCache(param *types.Chain33Config, defCacheSize int64) *BlockCache {
 	return &BlockCache{
 		cache:      make(map[int64]*list.Element),
 		cacheHash:  make(map[string]*list.Element),
-		cacheTxs:   make(map[string]bool),
 		cacheSize:  defCacheSize,
 		cacheQueue: list.New(),
 		maxHeight:  0,
@@ -61,16 +60,8 @@ func (chain *BlockCache) GetCacheBlock(hash []byte) (block *types.BlockDetail) {
 	return nil
 }
 
-//HasCacheTx 缓存中是否包含该交易
-func (chain *BlockCache) HasCacheTx(hash []byte) bool {
-	chain.cachelock.Lock()
-	defer chain.cachelock.Unlock()
-	_, ok := chain.cacheTxs[string(hash)]
-	return ok
-}
-
-//添加block到cache中，方便快速查询
-func (chain *BlockCache) cacheBlock(blockdetail *types.BlockDetail) {
+//CacheBlock 添加block到cache中，方便快速查询
+func (chain *BlockCache) CacheBlock(blockdetail *types.BlockDetail) {
 	chain.cachelock.Lock()
 	defer chain.cachelock.Unlock()
 	if chain.maxHeight > 0 && blockdetail.Block.Height != chain.maxHeight+1 {
@@ -92,8 +83,8 @@ func (chain *BlockCache) cacheBlock(blockdetail *types.BlockDetail) {
 	}
 }
 
-//添加block到cache中，方便快速查询
-func (chain *BlockCache) delBlockFromCache(height int64) {
+//DelBlockFromCache 添加block到cache中，方便快速查询
+func (chain *BlockCache) DelBlockFromCache(height int64) {
 	chain.cachelock.Lock()
 	defer chain.cachelock.Unlock()
 	if chain.maxHeight > 0 && height != chain.maxHeight {
@@ -115,15 +106,100 @@ func (chain *BlockCache) addCacheBlock(blockdetail *types.BlockDetail) {
 	elem := chain.cacheQueue.PushBack(blockdetail)
 	chain.cache[blockdetail.Block.Height] = elem
 	chain.cacheHash[string(blockdetail.Block.Hash(chain.sysPm))] = elem
-	for _, tx := range blockdetail.Block.Txs {
-		chain.cacheTxs[string(tx.Hash())] = true
-	}
 }
 
 func (chain *BlockCache) delCacheBlock(blockdetail *types.BlockDetail) {
 	delete(chain.cache, blockdetail.Block.Height)
 	delete(chain.cacheHash, string(blockdetail.Block.Hash(chain.sysPm)))
-	for _, tx := range blockdetail.Block.Txs {
-		delete(chain.cacheTxs, string(tx.Hash()))
+}
+
+// cache tx
+
+// 存储指定高度的所有交易的hash值
+type cacheTx struct {
+	height   int64 //用来辅助判断cache 是否正确
+	txHashes []string
+}
+
+//TxCache 交易hash缓存
+type TxCache struct {
+	capacity int
+	cacheTxs map[string]bool
+	data     *lru.Cache
+	lock     *sync.RWMutex
+}
+
+//NewTxCache new
+func NewTxCache(defCacheSize int) *TxCache {
+	cache := &TxCache{cacheTxs: make(map[string]bool), capacity: defCacheSize, lock: &sync.RWMutex{}}
+	var err error
+	cache.data, err = lru.New(defCacheSize)
+	if err != nil {
+		panic(err)
 	}
+	return cache
+
+}
+
+// Add :缓存指定高度区块的所有交易的hash值
+func (c *TxCache) Add(block *types.Block) bool {
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	//如果存在先删除再添加
+	if txcache, exist := c.data.Peek(block.GetHeight()); exist {
+		for _, tx := range txcache.(cacheTx).txHashes {
+			delete(c.cacheTxs, tx)
+		}
+		c.data.Remove(block.GetHeight())
+	}
+
+	//超过最大大小, 移除最早的值
+	if c.data.Len() >= c.capacity {
+		_, v, ok := c.data.RemoveOldest()
+		if !ok {
+			chainlog.Error("TxCache.Add RemoveOldest fail ...", "len", c.data.Len(), "capacity", c.capacity)
+			return false
+		}
+		for _, tx := range v.(cacheTx).txHashes {
+			delete(c.cacheTxs, tx)
+		}
+	}
+
+	//添加新区块的交易hash列表
+	var txs cacheTx
+	txs.height = block.GetHeight()
+	for _, tx := range block.Txs {
+		txhash := string(tx.Hash())
+		txs.txHashes = append(txs.txHashes, txhash)
+		c.cacheTxs[txhash] = true
+	}
+	c.data.Add(block.GetHeight(), txs)
+	return true
+}
+
+// Del :删除指定高度区块的所有交易hash
+func (c *TxCache) Del(height int64) bool {
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	//如果存在就删除
+	if txcache, exist := c.data.Peek(height); exist {
+		for _, tx := range txcache.(cacheTx).txHashes {
+			delete(c.cacheTxs, tx)
+		}
+		return c.data.Remove(height)
+	}
+	return true
+}
+
+//HasCacheTx 缓存中是否包含该交易
+func (c *TxCache) HasCacheTx(hash []byte) bool {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	_, ok := c.cacheTxs[string(hash)]
+	return ok
 }

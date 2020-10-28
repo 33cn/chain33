@@ -1195,6 +1195,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s14 -= s23 * 997805
 	s15 += s23 * 136657
 	s16 -= s23 * 683901
+	//nolint:ineffassign
 	s23 = 0
 
 	s10 += s22 * 666643
@@ -1203,6 +1204,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s13 -= s22 * 997805
 	s14 += s22 * 136657
 	s15 -= s22 * 683901
+	//nolint:ineffassign
 	s22 = 0
 
 	s9 += s21 * 666643
@@ -1211,6 +1213,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s12 -= s21 * 997805
 	s13 += s21 * 136657
 	s14 -= s21 * 683901
+	//nolint:ineffassign
 	s21 = 0
 
 	s8 += s20 * 666643
@@ -1219,6 +1222,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s11 -= s20 * 997805
 	s12 += s20 * 136657
 	s13 -= s20 * 683901
+	//nolint:ineffassign
 	s20 = 0
 
 	s7 += s19 * 666643
@@ -1227,6 +1231,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s10 -= s19 * 997805
 	s11 += s19 * 136657
 	s12 -= s19 * 683901
+	//nolint:ineffassign
 	s19 = 0
 
 	s6 += s18 * 666643
@@ -1235,6 +1240,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s9 -= s18 * 997805
 	s10 += s18 * 136657
 	s11 -= s18 * 683901
+	//nolint:ineffassign
 	s18 = 0
 
 	carry[6] = (s6 + (1 << 20)) >> 21
@@ -1278,6 +1284,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s8 -= s17 * 997805
 	s9 += s17 * 136657
 	s10 -= s17 * 683901
+	//nolint:ineffassign
 	s17 = 0
 
 	s4 += s16 * 666643
@@ -1286,6 +1293,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s7 -= s16 * 997805
 	s8 += s16 * 136657
 	s9 -= s16 * 683901
+	//nolint:ineffassign
 	s16 = 0
 
 	s3 += s15 * 666643
@@ -1294,6 +1302,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s6 -= s15 * 997805
 	s7 += s15 * 136657
 	s8 -= s15 * 683901
+	//nolint:ineffassign
 	s15 = 0
 
 	s2 += s14 * 666643
@@ -1302,6 +1311,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s5 -= s14 * 997805
 	s6 += s14 * 136657
 	s7 -= s14 * 683901
+	//nolint:ineffassign
 	s14 = 0
 
 	s1 += s13 * 666643
@@ -1310,6 +1320,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s4 -= s13 * 997805
 	s5 += s13 * 136657
 	s6 -= s13 * 683901
+	//nolint:ineffassign
 	s13 = 0
 
 	s0 += s12 * 666643
@@ -1409,6 +1420,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 	s3 -= s12 * 997805
 	s4 += s12 * 136657
 	s5 -= s12 * 683901
+	//nolint:ineffassign
 	s12 = 0
 
 	carry[0] = s0 >> 21
@@ -1628,6 +1640,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s14 -= s23 * 997805
 	s15 += s23 * 136657
 	s16 -= s23 * 683901
+	//nolint:ineffassign
 	s23 = 0
 
 	s10 += s22 * 666643
@@ -1636,6 +1649,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s13 -= s22 * 997805
 	s14 += s22 * 136657
 	s15 -= s22 * 683901
+	//nolint:ineffassign
 	s22 = 0
 
 	s9 += s21 * 666643
@@ -1644,6 +1658,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s12 -= s21 * 997805
 	s13 += s21 * 136657
 	s14 -= s21 * 683901
+	//nolint:ineffassign
 	s21 = 0
 
 	s8 += s20 * 666643
@@ -1652,6 +1667,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s11 -= s20 * 997805
 	s12 += s20 * 136657
 	s13 -= s20 * 683901
+	//nolint:ineffassign
 	s20 = 0
 
 	s7 += s19 * 666643
@@ -1660,6 +1676,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s10 -= s19 * 997805
 	s11 += s19 * 136657
 	s12 -= s19 * 683901
+	//nolint:ineffassign
 	s19 = 0
 
 	s6 += s18 * 666643
@@ -1668,6 +1685,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s9 -= s18 * 997805
 	s10 += s18 * 136657
 	s11 -= s18 * 683901
+	//nolint:ineffassign
 	s18 = 0
 
 	carry[6] = (s6 + (1 << 20)) >> 21
@@ -1711,6 +1729,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s8 -= s17 * 997805
 	s9 += s17 * 136657
 	s10 -= s17 * 683901
+	//nolint:ineffassign
 	s17 = 0
 
 	s4 += s16 * 666643
@@ -1719,6 +1738,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s7 -= s16 * 997805
 	s8 += s16 * 136657
 	s9 -= s16 * 683901
+	//nolint:ineffassign
 	s16 = 0
 
 	s3 += s15 * 666643
@@ -1727,6 +1747,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s6 -= s15 * 997805
 	s7 += s15 * 136657
 	s8 -= s15 * 683901
+	//nolint:ineffassign
 	s15 = 0
 
 	s2 += s14 * 666643
@@ -1735,6 +1756,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s5 -= s14 * 997805
 	s6 += s14 * 136657
 	s7 -= s14 * 683901
+	//nolint:ineffassign
 	s14 = 0
 
 	s1 += s13 * 666643
@@ -1743,6 +1765,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s4 -= s13 * 997805
 	s5 += s13 * 136657
 	s6 -= s13 * 683901
+	//nolint:ineffassign
 	s13 = 0
 
 	s0 += s12 * 666643
@@ -1842,6 +1865,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 	s3 -= s12 * 997805
 	s4 += s12 * 136657
 	s5 -= s12 * 683901
+	//nolint:ineffassign
 	s12 = 0
 
 	carry[0] = s0 >> 21
@@ -1949,6 +1973,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s14 -= s23 * 997805
 	s15 += s23 * 136657
 	s16 -= s23 * 683901
+	//nolint:ineffassign
 	s23 = 0
 
 	s10 += s22 * 666643
@@ -1957,6 +1982,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s13 -= s22 * 997805
 	s14 += s22 * 136657
 	s15 -= s22 * 683901
+	//nolint:ineffassign
 	s22 = 0
 
 	s9 += s21 * 666643
@@ -1965,6 +1991,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s12 -= s21 * 997805
 	s13 += s21 * 136657
 	s14 -= s21 * 683901
+	//nolint:ineffassign
 	s21 = 0
 
 	s8 += s20 * 666643
@@ -1973,6 +2000,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s11 -= s20 * 997805
 	s12 += s20 * 136657
 	s13 -= s20 * 683901
+	//nolint:ineffassign
 	s20 = 0
 
 	s7 += s19 * 666643
@@ -1981,6 +2009,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s10 -= s19 * 997805
 	s11 += s19 * 136657
 	s12 -= s19 * 683901
+	//nolint:ineffassign
 	s19 = 0
 
 	s6 += s18 * 666643
@@ -1989,6 +2018,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s9 -= s18 * 997805
 	s10 += s18 * 136657
 	s11 -= s18 * 683901
+	//nolint:ineffassign
 	s18 = 0
 
 	var carry [17]int64
@@ -2034,6 +2064,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s8 -= s17 * 997805
 	s9 += s17 * 136657
 	s10 -= s17 * 683901
+	//nolint:ineffassign
 	s17 = 0
 
 	s4 += s16 * 666643
@@ -2042,6 +2073,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s7 -= s16 * 997805
 	s8 += s16 * 136657
 	s9 -= s16 * 683901
+	//nolint:ineffassign
 	s16 = 0
 
 	s3 += s15 * 666643
@@ -2050,6 +2082,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s6 -= s15 * 997805
 	s7 += s15 * 136657
 	s8 -= s15 * 683901
+	//nolint:ineffassign
 	s15 = 0
 
 	s2 += s14 * 666643
@@ -2058,6 +2091,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s5 -= s14 * 997805
 	s6 += s14 * 136657
 	s7 -= s14 * 683901
+	//nolint:ineffassign
 	s14 = 0
 
 	s1 += s13 * 666643
@@ -2066,6 +2100,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s4 -= s13 * 997805
 	s5 += s13 * 136657
 	s6 -= s13 * 683901
+	//nolint:ineffassign
 	s13 = 0
 
 	s0 += s12 * 666643
@@ -2165,6 +2200,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 	s3 -= s12 * 997805
 	s4 += s12 * 136657
 	s5 -= s12 * 683901
+	//nolint:ineffassign
 	s12 = 0
 
 	carry[0] = s0 >> 21

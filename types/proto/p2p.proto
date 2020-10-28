@@ -74,7 +74,10 @@ message P2PPeerInfo {
     /// mempool 的大小
     int32 mempoolSize = 4;
     ///节点当前高度头部数据
-    Header header = 5;
+    Header header         = 5;
+    string version        = 6;
+    string localDBVersion = 7;
+    string storeDBVersion = 8;
 }
 
 /**
@@ -331,12 +334,15 @@ message InvDatas {
  * peer 信息
  */
 message Peer {
-    string addr        = 1;
-    int32  port        = 2;
-    string name        = 3;
-    bool   self        = 4;
-    int32  mempoolSize = 5;
-    Header header      = 6;
+    string addr           = 1;
+    int32  port           = 2;
+    string name           = 3;
+    bool   self           = 4;
+    int32  mempoolSize    = 5;
+    Header header         = 6;
+    string version        = 7;
+    string localDBVersion = 8;
+    string storeDBVersion = 9;
 }
 
 /**
@@ -369,6 +375,11 @@ message NodeNetInfo {
     bool   service      = 3;
     int32  outbounds    = 4;
     int32  inbounds     = 5;
+    int32  routingtable = 6;
+    int32  peerstore    = 7;
+    string ratein       = 8;
+    string rateout      = 9;
+    string ratetotal    = 10;
 }
 
 /**

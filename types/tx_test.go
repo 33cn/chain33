@@ -62,19 +62,29 @@ type=string  length   data
 func TestGetRealFee(t *testing.T) {
 	cfg := NewChain33Config(GetDefaultCfgstring())
 	tx := &Transaction{
-		Payload: []byte(strings.Repeat("a", 633)),
+		Payload: []byte(strings.Repeat("a", 641)),
 	}
 	tx, err := FormatTx(cfg, "user.p.none", tx)
+	// nonce值大小会影响proto内部编码的最终大小, 这里直接采用固定值
+	tx.Nonce = 1
 	assert.Equal(t, err, nil)
-	assert.Equal(t, tx.Size(), 699)
+	assert.Equal(t, 699, tx.Size())
 	fee1, err := tx.GetRealFee(cfg.GetMinTxFeeRate())
 	assert.Equal(t, err, nil)
 	assert.Equal(t, fee1, cfg.GetMinTxFeeRate())
 	tx.ReCalcCacheHash()
-	assert.Equal(t, tx.Size()-699, 68)
+	assert.Equal(t, 68, tx.Size()-699)
 	fee2, err := tx.GetRealFee(cfg.GetMinTxFeeRate())
 	assert.Equal(t, err, nil)
 	assert.Equal(t, fee2, cfg.GetMinTxFeeRate())
+}
+
+func TestCheckSign(t *testing.T) {
+	tx1 := "0x0a14757365722e702e63616c6f7269652e636f696e73122e18010a2a10808c8d9e022222313259516639736e5854537875593274314254715967563758696b583650653274361a6d0801122103f199f3873e86c31e0287af6dd1e5b54268ea2767698ac7e082529575912582701a46304402203ae267243985cc963e73431f48448904f026d59b50ab023db8973b784b4bd4e802200a9240554e745baee5b6f7a8f4956d33480754d0ee41d10e0cb1ec5ced9cdc9520a08d0628ea85fbf70530d3d3d2cef097a1fc1d3a2231345a45614a62586f4e37676e4a4c5a4e5636417a71664a594179447368566d69585a20487054c89bfa793e6d48a1e689dae8dd16d20ca0bf986f0ce0658c7bff47b13e62206ce831717a0671ee385de12388c38c748e95bb22789ebbfd9bf8116a4d970a13"
+	tx11, _ := common.FromHex(tx1)
+	var tx12 Transaction
+	Decode(tx11, &tx12)
+	assert.True(t, tx12.checkSign())
 }
 
 func TestCreateParaGroupTx(t *testing.T) {

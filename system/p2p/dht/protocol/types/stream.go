@@ -1,6 +1,7 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
 package types
 
 import (
@@ -53,6 +54,8 @@ type StreamHandler interface {
 	SignProtoMessage(message types.Message, host core.Host) ([]byte, error)
 	// Handle 处理请求
 	Handle(stream core.Stream)
+	// ReuseStream 复用stream，处理后不进行关闭
+	ReuseStream() bool
 }
 
 // BaseStreamHandler base stream handler
@@ -70,12 +73,12 @@ func (s *BaseStreamHandler) SetProtocol(protocol IProtocol) {
 func (s *BaseStreamHandler) Handle(core.Stream) {
 }
 
-//SignProtoMessage sign data
+// SignProtoMessage sign data
 func (s *BaseStreamHandler) SignProtoMessage(message types.Message, host core.Host) ([]byte, error) {
 	return SignProtoMessage(message, host)
 }
 
-//VerifyRequest verify data
+// VerifyRequest verify data
 func (s *BaseStreamHandler) VerifyRequest(message types.Message, messageComm *types.MessageComm) bool {
 	//基类统一验证数据, 不需要验证,重写该方法直接返回true
 
@@ -88,11 +91,20 @@ func (s *BaseStreamHandler) GetProtocol() IProtocol {
 	return s.Protocol
 }
 
+// ReuseStream 复用stream
+func (s *BaseStreamHandler) ReuseStream() bool {
+	return false
+}
+
 // HandleStream stream事件预处理函数
 func (s *BaseStreamHandler) HandleStream(stream core.Stream) {
 	//log.Debug("BaseStreamHandler", "HandlerStream", stream.Conn().RemoteMultiaddr().String(), "proto", stream.Protocol())
 	//TODO verify校验放在这里
 	s.child.Handle(stream)
+	// 业务端设置了复用stream，将不进行关闭，由业务端进行stream维护管理
+	if s.child.ReuseStream() {
+		return
+	}
 	CloseStream(stream)
 }
 

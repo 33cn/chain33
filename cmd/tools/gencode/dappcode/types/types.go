@@ -46,9 +46,9 @@ var (
 	typesContent = `package types
 
 import (
-"encoding/json"
 log "github.com/33cn/chain33/common/log/log15"
 "github.com/33cn/chain33/types"
+"reflect"
 )
 
 /* 

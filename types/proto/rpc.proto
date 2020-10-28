@@ -38,6 +38,9 @@ service chain33 {
     //获取钱包账户信息
     rpc GetAccounts(ReqNil) returns (WalletAccounts) {}
 
+    //根据账户lable信息获取账户地址
+    rpc GetAccount(ReqGetAccount) returns (WalletAccount) {}
+
     //创建钱包账户
     rpc NewAccount(ReqNewAccount) returns (WalletAccount) {}
 

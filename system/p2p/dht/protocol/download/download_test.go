@@ -64,14 +64,13 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		QueueClient:     q.Client(),
 		Host:            host,
 		ConnManager:     nil,
-		PeerInfoManager: manage.NewPeerInfoManager(mgr.Client),
+		PeerInfoManager: manage.NewPeerInfoManager(host, mgr.Client, nil, nil),
 		Discovery:       nil,
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 	env.Ctx = ctx
-	env.Cancel = cancel
 	env.Discovery = net.InitDhtDiscovery(ctx, host, nil, cfg, subCfg)
 	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil, subCfg)
 	return env

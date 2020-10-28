@@ -246,7 +246,7 @@ func TestChannelClient_GetAddrOverview(t *testing.T) {
 	testChannelClientGetAddrOverviewErr(t)
 }
 
-func testChannelClient_GetBalanceCoin(t *testing.T) {
+func testChannelClientGetBalanceCoin(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
@@ -280,7 +280,7 @@ func testChannelClient_GetBalanceCoin(t *testing.T) {
 
 }
 
-func testChannelClient_GetBalanceOther(t *testing.T) {
+func testChannelClientGetBalanceOther(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
@@ -315,8 +315,8 @@ func testChannelClient_GetBalanceOther(t *testing.T) {
 }
 
 func TestChannelClient_GetBalance(t *testing.T) {
-	testChannelClient_GetBalanceCoin(t)
-	testChannelClient_GetBalanceOther(t)
+	testChannelClientGetBalanceCoin(t)
+	testChannelClientGetBalanceOther(t)
 }
 
 func TestChannelClient_GetTotalCoins(t *testing.T) {

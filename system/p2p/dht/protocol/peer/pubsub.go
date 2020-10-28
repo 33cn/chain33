@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	core "github.com/libp2p/go-libp2p-core"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/net"
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
@@ -19,6 +21,7 @@ type peerPubSub struct {
 	topicMoudle sync.Map
 }
 
+// InitProtocol init protocol
 func (p *peerPubSub) InitProtocol(env *prototypes.P2PEnv) {
 	p.P2PEnv = env
 	p.p2pCfg = env.SubConfig
@@ -43,7 +46,7 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 	moduleName := subtopic.GetModule()
 	//模块名，用来收到订阅的消息后转发给对应的模块名
 	if !p.pubsubOp.HasTopic(topic) {
-		err := p.pubsubOp.JoinTopicAndSubTopic(topic, p.subCallBack) //订阅topic
+		err := p.pubsubOp.JoinAndSubTopic(topic, p.subCallBack) //订阅topic
 		if err != nil {
 			log.Error("peerPubSub", "err", err)
 			msg.Reply(p.GetQueueClient().NewMessage("", types.EventSubTopic, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
@@ -74,18 +77,18 @@ func (p *peerPubSub) handleSubTopic(msg *queue.Message) {
 }
 
 //处理收到的数据
-func (p *peerPubSub) subCallBack(msg *net.SubMsg) {
+func (p *peerPubSub) subCallBack(topic string, msg net.SubMsg) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
-	moudles, ok := p.topicMoudle.Load(msg.Topic)
+	moudles, ok := p.topicMoudle.Load(topic)
 	if !ok {
 		return
 	}
 
 	for moudleName := range moudles.(map[string]bool) {
 		client := p.GetQueueClient()
-		newmsg := client.NewMessage(moudleName, types.EventReceiveSubData, &types.TopicData{Topic: msg.Topic, From: msg.From, Data: msg.Data}) //加入到输出通道)
+		newmsg := client.NewMessage(moudleName, types.EventReceiveSubData, &types.TopicData{Topic: topic, From: core.PeerID(msg.From).String(), Data: msg.Data}) //加入到输出通道)
 		client.Send(newmsg, false)
 	}
 }

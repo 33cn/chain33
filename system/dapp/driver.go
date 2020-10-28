@@ -474,6 +474,7 @@ func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 	return true
 }
 
+// SetCoinsAccount sets coins account.
 func (d *DriverBase) SetCoinsAccount(acc *account.DB) {
 	d.coinsaccount = acc
 }

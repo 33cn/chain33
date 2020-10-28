@@ -495,6 +495,19 @@ func (c *Chain33) SetLabl(in types.ReqWalletSetLabel, result *interface{}) error
 	return nil
 }
 
+//GetAccount getAddress by lable
+func (c *Chain33) GetAccount(in types.ReqGetAccount, result *interface{}) error {
+	reply, err := c.cli.ExecWalletFunc("wallet", "WalletGetAccount", &in)
+	if err != nil {
+		return err
+	}
+
+	*result = &rpctypes.WalletAccount{Acc: &rpctypes.Account{Addr: reply.(*types.WalletAccount).GetAcc().Addr, Currency: reply.(*types.WalletAccount).GetAcc().GetCurrency(),
+		Frozen: reply.(*types.WalletAccount).GetAcc().GetFrozen(), Balance: reply.(*types.WalletAccount).GetAcc().GetBalance()}, Label: reply.(*types.WalletAccount).GetLabel()}
+	return nil
+
+}
+
 // MergeBalance merge balance
 func (c *Chain33) MergeBalance(in types.ReqWalletMergeBalance, result *interface{}) error {
 	reply, err := c.cli.ExecWalletFunc("wallet", "WalletMergeBalance", &in)
@@ -578,7 +591,12 @@ func (c *Chain33) GetPeerInfo(in types.P2PGetPeerReq, result *interface{}) error
 				Hash:       common.ToHex(peer.GetHeader().GetHash()),
 				TxCount:    peer.GetHeader().GetTxCount(),
 			}
+
+			pr.Version = peer.GetVersion()
+			pr.LocalDBVersion = peer.GetLocalDBVersion()
+			pr.StoreDBVersion = peer.GetStoreDBVersion()
 			peerlist.Peers = append(peerlist.Peers, &pr)
+
 		}
 		*result = &peerlist
 	}
@@ -881,6 +899,7 @@ func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 	return nil
 }
 
+// DumpPrivkeysFile dumps private key to file.
 func (c *Chain33) DumpPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}) error {
 	reply, err := c.cli.ExecWalletFunc("wallet", "DumpPrivkeysFile", &in)
 	if err != nil {
@@ -894,6 +913,7 @@ func (c *Chain33) DumpPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}
 	return nil
 }
 
+// ImportPrivkeysFile imports private key from file.
 func (c *Chain33) ImportPrivkeysFile(in types.ReqPrivkeysFile, result *interface{}) error {
 	reply, err := c.cli.ExecWalletFunc("wallet", "ImportPrivkeysFile", &in)
 	if err != nil {
@@ -1003,6 +1023,11 @@ func (c *Chain33) GetNetInfo(in types.P2PGetNetInfoReq, result *interface{}) err
 		Service:      resp.GetService(),
 		Outbounds:    resp.GetOutbounds(),
 		Inbounds:     resp.GetInbounds(),
+		Peerstore:    resp.GetPeerstore(),
+		Routingtable: resp.GetRoutingtable(),
+		Ratein:       resp.GetRatein(),
+		Rateout:      resp.GetRateout(),
+		Ratetotal:    resp.GetRatetotal(),
 	}
 	return nil
 }
@@ -1276,4 +1301,15 @@ func fmtTxProofs(txProofs []*types.TxProof) []*rpctypes.TxProof {
 		result = append(result, rpctxproof)
 	}
 	return result
+}
+
+// NetProtocols get net information
+func (c *Chain33) NetProtocols(in types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.NetProtocols(&in)
+	if err != nil {
+		return err
+	}
+
+	*result = resp
+	return nil
 }

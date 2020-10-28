@@ -12,13 +12,15 @@ import (
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
+// prefix key and const parameters
 const (
 	LocalChunkInfoKey = "local-chunk-info"
 	ChunkNameSpace    = "chunk"
 	AlphaValue        = 3
-	Backup            = 20
+	Backup            = 10
 )
 
+//LocalChunkInfo wraps local chunk key with time.
 type LocalChunkInfo struct {
 	*types.ChunkInfoMsg
 	Time time.Time
@@ -30,7 +32,7 @@ func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys types.Message) 
 	if err != nil {
 		return err
 	}
-	return p.DB.Put(genChunkKey(info.ChunkHash), types.Encode(bodys))
+	return p.DB.Put(genChunkDBKey(info.ChunkHash), types.Encode(bodys))
 }
 
 // 更新本地chunk保存时间，只更新索引即可
@@ -52,7 +54,7 @@ func (p *Protocol) deleteChunkBlock(hash []byte) error {
 	if err != nil {
 		return err
 	}
-	return p.DB.Delete(genChunkKey(hash))
+	return p.DB.Delete(genChunkDBKey(hash))
 }
 
 // 获取本地chunk数据
@@ -60,14 +62,13 @@ func (p *Protocol) deleteChunkBlock(hash []byte) error {
 //  本地存在：
 //		数据未过期：返回数据
 //		数据已过期：返回数据,然后从数据库删除该数据
-func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
+func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
 
-	info, ok := p.getChunkInfoByHash(hash)
-	if !ok {
+	if _, ok := p.getChunkInfoByHash(req.ChunkHash); !ok {
 		return nil, types2.ErrNotFound
 	}
 
-	b, err := p.DB.Get(genChunkKey(hash))
+	b, err := p.DB.Get(genChunkDBKey(req.ChunkHash))
 	if err != nil {
 		return nil, err
 	}
@@ -76,12 +77,9 @@ func (p *Protocol) getChunkBlock(hash []byte) (*types.BlockBodys, error) {
 	if err != nil {
 		return nil, err
 	}
-	if time.Since(info.Time) > types2.ExpiredTime {
-		err = p.deleteChunkBlock(hash)
-		if err != nil {
-			log.Error("getChunkBlock", "deleteChunkBlock error", err, "hash", hex.EncodeToString(hash))
-		}
-	}
+	l := int64(len(bodys.Items))
+	start, end := req.Start%l, req.End%l+1
+	bodys.Items = bodys.Items[start:end]
 
 	return &bodys, nil
 }
@@ -109,6 +107,7 @@ func (p *Protocol) initLocalChunkInfoMap() {
 	p.localChunkInfo = make(map[string]LocalChunkInfo)
 	value, err := p.DB.Get(datastore.NewKey(LocalChunkInfoKey))
 	if err != nil {
+		log.Error("initLocalChunkInfoMap", "error", err)
 		return
 	}
 
@@ -140,14 +139,14 @@ func (p *Protocol) getChunkInfoByHash(hash []byte) (LocalChunkInfo, bool) {
 }
 
 // 适配libp2p，按路径格式生成数据的key值，便于区分多种数据类型的命名空间，以及key值合法性校验
-func genChunkPath(hash []byte) string {
+func genChunkNameSpaceKey(hash []byte) string {
 	return fmt.Sprintf("/%s/%s", ChunkNameSpace, hex.EncodeToString(hash))
 }
 
-func genChunkKey(hash []byte) datastore.Key {
-	return datastore.NewKey(genChunkPath(hash))
+func genChunkDBKey(hash []byte) datastore.Key {
+	return datastore.NewKey(genChunkNameSpaceKey(hash))
 }
 
 func genDHTID(chunkHash []byte) kb.ID {
-	return kb.ConvertKey(genChunkPath(chunkHash))
+	return kb.ConvertKey(genChunkNameSpaceKey(chunkHash))
 }

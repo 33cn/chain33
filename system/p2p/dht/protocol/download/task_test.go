@@ -13,21 +13,21 @@ func testJobs(t *testing.T) {
 	pid2, _ := peer.Decode("16Uiu2HAmTdgKpRmE6sXj512HodxBPMZmjh6vHG1m4ftnXY3wLSpg")
 	pid3, _ := peer.Decode("16Uiu2HAm45QtjUVYxnc3eqfHoE4eSFovSh99SgsoF6Qm1eRXTd5W")
 
-	t1 := &TaskInfo{
+	t1 := &taskInfo{
 		ID:      "123456",
 		TaskNum: 10,
 		Pid:     pid1,
 		Index:   0,
 		Latency: time.Second * 10,
 	}
-	t2 := &TaskInfo{
+	t2 := &taskInfo{
 		ID:      "123456",
 		TaskNum: 11,
 		Pid:     pid2,
 		Index:   1,
 		Latency: time.Second * 5,
 	}
-	t3 := &TaskInfo{
+	t3 := &taskInfo{
 		ID:      "123456",
 		TaskNum: 14,
 		Pid:     pid3,
@@ -35,7 +35,7 @@ func testJobs(t *testing.T) {
 		Latency: time.Second * 20,
 	}
 
-	var myjobs Tasks
+	var myjobs tasks
 	assert.Equal(t, myjobs.Len(), 0)
 	myjobs = append(myjobs, t1, t2, t3)
 	assert.Equal(t, myjobs.Len(), 3)
@@ -53,9 +53,9 @@ func testJobs(t *testing.T) {
 	assert.Equal(t, myjobs[2].Pid, pid3)
 
 	//test delete
-	myjobs = myjobs.Remove(&TaskInfo{Index: 4})
+	myjobs = myjobs.Remove(&taskInfo{Index: 4})
 	assert.Equal(t, 3, myjobs.Len())
-	myjobs = myjobs.Remove(&TaskInfo{Index: 0})
+	myjobs = myjobs.Remove(&taskInfo{Index: 0})
 	assert.Equal(t, 2, myjobs.Len())
 
 }

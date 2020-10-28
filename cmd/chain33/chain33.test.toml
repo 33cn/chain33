@@ -1,6 +1,7 @@
 Title="chain33"
 TestNet=true
 CoinSymbol="bty"
+TxHeight=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit

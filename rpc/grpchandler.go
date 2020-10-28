@@ -383,6 +383,7 @@ func (g *Grpc) DumpPrivkey(ctx context.Context, in *pb.ReqString) (*pb.ReplyStri
 	return reply.(*pb.ReplyString), nil
 }
 
+// DumpPrivkeysFile dumps private key to file.
 func (g *Grpc) DumpPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*pb.Reply, error) {
 	reply, err := g.cli.ExecWalletFunc("wallet", "DumpPrivkeysFile", in)
 	if err != nil {
@@ -391,6 +392,7 @@ func (g *Grpc) DumpPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*p
 	return reply.(*pb.Reply), nil
 }
 
+// ImportPrivkeysFile imports private key from file.
 func (g *Grpc) ImportPrivkeysFile(ctx context.Context, in *pb.ReqPrivkeysFile) (*pb.Reply, error) {
 	reply, err := g.cli.ExecWalletFunc("wallet", "ImportPrivkeysFile", in)
 	if err != nil {
@@ -507,4 +509,14 @@ func (g *Grpc) LoadParaTxByTitle(ctx context.Context, in *pb.ReqHeightByTitle) (
 // GetParaTxByHeight //通过区块高度列表+title获取平行链交易
 func (g *Grpc) GetParaTxByHeight(ctx context.Context, in *pb.ReqParaTxByHeight) (*pb.ParaTxDetails, error) {
 	return g.cli.GetParaTxByHeight(in)
+}
+
+//GetAccount 通过地址标签获取账户地址以及账户余额信息
+func (g *Grpc) GetAccount(ctx context.Context, in *pb.ReqGetAccount) (*pb.WalletAccount, error) {
+	acc, err := g.cli.ExecWalletFunc("wallet", "WalletGetAccount", in)
+	if err != nil {
+		return nil, err
+	}
+
+	return acc.(*pb.WalletAccount), nil
 }

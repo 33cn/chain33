@@ -77,15 +77,12 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		SubConfig:       subCfg,
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 	pubsub, err := net.NewPubSub(ctx, env.Host)
 	if err != nil {
-		cancel()
 		return nil
 	}
 	env.Ctx = ctx
-	env.Cancel = cancel
-
 	env.Pubsub = pubsub
 	env.Discovery = net.InitDhtDiscovery(env.Ctx, host, nil, cfg, subCfg)
 	env.ConnManager = manage.NewConnManager(host, env.Discovery, nil, subCfg)
@@ -160,7 +157,6 @@ func testNetInfoHandleEvent(protocol *peerInfoProtol, msg *queue.Message) {
 func TestPeerInfoEvent(t *testing.T) {
 	q := queue.New("test")
 	protocol := newTestProtocol(q)
-	defer protocol.Cancel()
 	assert.Equal(t, false, protocol.checkDone())
 
 	time.Sleep(time.Second * 11)
@@ -183,7 +179,6 @@ func TestPeerInfoEvent(t *testing.T) {
 func Test_util(t *testing.T) {
 	q := queue.New("test")
 	proto := newTestProtocol(q)
-	defer proto.Cancel()
 	handler := &peerInfoHandler{}
 	handler.BaseStreamHandler = new(prototypes.BaseStreamHandler)
 	handler.SetProtocol(proto)
@@ -202,10 +197,10 @@ func Test_util(t *testing.T) {
 
 	//-----------------
 	proto.getPeerInfo()
-	proto.setExternalAddr("192.168.1.1")
+	proto.setExternalAddr("150.109.6.160")
 	assert.NotEmpty(t, proto.getExternalAddr())
-	proto.setExternalAddr("/ip4/192.168.1.1/tcp/13802")
-	assert.Equal(t, "192.168.1.1", proto.getExternalAddr())
+	proto.setExternalAddr("/ip4/150.109.6.160/tcp/13802")
+	assert.Equal(t, "150.109.6.160", proto.getExternalAddr())
 	assert.True(t, !isPublicIP(snet.ParseIP("127.0.0.1")))
 	ips, err := localIPv4s()
 	assert.Nil(t, err)

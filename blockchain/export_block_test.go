@@ -98,6 +98,7 @@ func testImportBlockProc(t *testing.T) {
 	err = blockchain.ImportBlock(title, dbPath)
 	require.NoError(t, err)
 	curHeader, err := blockchain.ProcGetLastHeaderMsg()
+	require.NoError(t, err)
 	assert.Equal(t, curHeader.Height, endBlock.GetHeight())
 	assert.Equal(t, curHeader.GetHash(), endBlock.GetHash())
 	file := title + ".db"

@@ -253,6 +253,7 @@ func (db *GoLevelDB) BeginTx() (TxKV, error) {
 	return &goLevelDBTx{tx: tx}, nil
 }
 
+// CompactRange ...
 func (db *GoLevelDB) CompactRange(start, limit []byte) error {
 	r := util.Range{Start: start, Limit: limit}
 	return db.db.CompactRange(r)

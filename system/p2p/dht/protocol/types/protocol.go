@@ -2,13 +2,19 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package types protocol and stream register	`
+// Package types protocol and stream register	`
 package types
 
 import (
 	"context"
 	"reflect"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/metrics"
+
+	ds "github.com/ipfs/go-datastore"
+	discovery "github.com/libp2p/go-libp2p-discovery"
+	kbt "github.com/libp2p/go-libp2p-kbucket"
 
 	"github.com/33cn/chain33/system/p2p/dht/net"
 
@@ -25,6 +31,7 @@ var (
 	protocolTypeMap = make(map[string]reflect.Type)
 )
 
+// IProtocol protocol interface
 type IProtocol interface {
 	InitProtocol(*P2PEnv)
 	GetP2PEnv() *P2PEnv
@@ -69,16 +76,28 @@ type P2PEnv struct {
 	SubConfig       *p2pty.P2PSubConfig
 	Pubsub          *net.PubSub
 	Ctx             context.Context
-	Cancel          context.CancelFunc
+	DB              ds.Datastore
+	RoutingTable    *kbt.RoutingTable
+	*discovery.RoutingDiscovery
 }
 
+// RoutingTabler routing table interface
+type RoutingTabler interface {
+	RoutingTable() *kbt.RoutingTable
+}
+
+// IConnManager connection manager interface
 type IConnManager interface {
 	FetchConnPeers() []peer.ID
 	BoundSize() (in int, out int)
 	IsNeighbors(id peer.ID) bool
 	GetLatencyByPeer(pids []peer.ID) map[string]time.Duration
+	GetNetRate() metrics.Stats
+	BandTrackerByProtocol() *types.NetProtocolInfos
+	RateCaculate(ratebytes float64) string
 }
 
+// IPeerInfoManager peer info manager interface
 type IPeerInfoManager interface {
 	Copy(dest *types.Peer, source *types.P2PPeerInfo)
 	Add(pid string, info *types.Peer)

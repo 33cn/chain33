@@ -85,9 +85,11 @@ type BestPeerInfo struct {
 	IsBestChain bool
 }
 
+//BlockOnChain ...
 //记录最新区块上链的时间，长时间没有更新需要做对应的超时处理
 //主要是处理联盟链区块高度相差一个区块
 //整个网络长时间不出块时需要主动去获取最新的区块
+//BlockOnChain struct
 type BlockOnChain struct {
 	sync.RWMutex
 	Height      int64
@@ -103,7 +105,7 @@ func (chain *BlockChain) initOnChainTimeout() {
 	chain.blockOnChain.OnChainTime = types.Now().Unix()
 }
 
-//onChainTimeout 最新区块长时间没有更新并超过设置的超时时间
+//OnChainTimeout 最新区块长时间没有更新并超过设置的超时时间
 func (chain *BlockChain) OnChainTimeout(height int64) bool {
 	chain.blockOnChain.Lock()
 	defer chain.blockOnChain.Unlock()
@@ -151,8 +153,8 @@ func (chain *BlockChain) SynRoutine() {
 	//2分钟尝试检测一次最优链，确保本节点在最优链
 	checkBestChainTicker := time.NewTicker(120 * time.Second)
 
-	//60s尝试从peer节点请求ChunkRecord
-	chunkRecordSynTicker := time.NewTicker(60 * time.Second)
+	//30s尝试从peer节点请求ChunkRecord
+	chunkRecordSynTicker := time.NewTicker(30 * time.Second)
 
 	//节点下载模式
 	go chain.DownLoadBlocks()
@@ -326,9 +328,9 @@ func (chain *BlockChain) fetchPeerList() error {
 	var peerInfoList PeerInfoList
 	for _, peer := range peerlist.Peers {
 		//chainlog.Info("fetchPeerList", "peername:", peer.Name, "peerHeight:", peer.Header.Height)
-
 		//过滤掉自己和小于自己5个高度的节点
-		if peer.Self || curheigt > peer.Header.Height+5 {
+
+		if peer == nil || peer.Self || curheigt > peer.Header.Height+5 {
 			continue
 		}
 		var peerInfo PeerInfo
@@ -630,7 +632,7 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		pids := chain.GetBestChainPids()
 		if pids != nil {
 			recvChunk := chain.GetCurRecvChunkNum()
-			curShouldChunk, _, _ := chain.CaclChunkInfo(curheight + 1)
+			curShouldChunk, _, _ := chain.CalcChunkInfo(curheight + 1)
 			// TODO 后期可修改为同步节点不使用FetchChunkBlock，即让对端节点去查找具体的chunk，这里不做区分
 			if !chain.cfg.DisableShard && chain.cfg.EnableFetchP2pstore &&
 				curheight+MaxRollBlockNum < peerMaxBlkHeight && recvChunk >= curShouldChunk {
@@ -1099,8 +1101,8 @@ func (chain *BlockChain) ChunkRecordSync() {
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 	recvChunk := chain.GetCurRecvChunkNum()
 
-	curShouldChunk, _, _ := chain.CaclChunkInfo(curheight)
-	targetChunk, _, _ := chain.CaclSafetyChunkInfo(peerMaxBlkHeight)
+	curShouldChunk, _, _ := chain.CalcChunkInfo(curheight)
+	targetChunk, _, _ := chain.CalcSafetyChunkInfo(peerMaxBlkHeight)
 	if targetChunk < 0 ||
 		curShouldChunk >= targetChunk || //说明已同步上来了不需要再进行chunk请求
 		recvChunk >= targetChunk {
@@ -1147,31 +1149,23 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 		Pid:      pid,
 	}
 	var cb func()
-	var timeoutcb func(chunkNum int64)
 	if count >= int64(MaxReqChunkRecord) { // 每次请求最大MaxReqChunkRecord个chunk的record
 		reqRec.End = reqRec.Start + int64(MaxReqChunkRecord) - 1
 		cb = func() {
 			chain.ChunkRecordSync()
 		}
-	} else {
-		reqRec.End = end
 	}
 	// 目前数据量小可在一个节点下载多个chunk记录
 	// TODO 后续可以多个节点并发下载
-	err = chain.chunkRecordTask.Start(reqRec.Start, reqRec.End, cb, timeoutcb)
+	err = chain.chunkRecordTask.Start(reqRec.Start, reqRec.End, cb, nil)
 	if err != nil {
 		return err
 	}
 
 	msg := chain.client.NewMessage("p2p", types.EventGetChunkRecord, reqRec)
-	err = chain.client.Send(msg, true)
+	err = chain.client.Send(msg, false)
 	if err != nil {
 		synlog.Error("FetchChunkRecords", "client.Send err:", err)
-		return err
-	}
-	_, err = chain.client.Wait(msg)
-	if err != nil {
-		synlog.Error("FetchChunkRecords", "client.Wait err:", err)
 		return err
 	}
 	return err
@@ -1197,7 +1191,7 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 	if blockcount < 0 {
 		return types.ErrStartBigThanEnd
 	}
-	chunkNum, _, end := chain.CaclChunkInfo(startHeight)
+	chunkNum, _, end := chain.CalcChunkInfo(startHeight)
 
 	var chunkhash []byte
 	for i := 0; i < waitTimeDownLoad; i++ {
@@ -1257,14 +1251,9 @@ func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []str
 	}
 	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End, "isDownLoad", isDownLoad, "chunkhash", common.ToHex(chunkhash))
 	msg := chain.client.NewMessage("p2p", types.EventGetChunkBlock, &requestblock)
-	err = chain.client.Send(msg, true)
+	err = chain.client.Send(msg, false)
 	if err != nil {
 		synlog.Error("FetchChunkBlock", "client.Send err:", err)
-		return err
-	}
-	_, err = chain.client.Wait(msg)
-	if err != nil {
-		synlog.Error("FetchChunkBlock", "client.Wait err:", err)
 		return err
 	}
 	return err

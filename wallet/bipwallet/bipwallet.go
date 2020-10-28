@@ -7,16 +7,17 @@ package bipwallet
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
+	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	bip32 "github.com/33cn/chain33/wallet/bipwallet/go-bip32"
 	bip39 "github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 	bip44 "github.com/33cn/chain33/wallet/bipwallet/go-bip44"
 	"github.com/33cn/chain33/wallet/bipwallet/transformer"
-	_ "github.com/33cn/chain33/wallet/bipwallet/transformer/btcbase" //register btcbase package
-	//"github.com/NebulousLabs/Sia/crypto"
+	_ "github.com/33cn/chain33/wallet/bipwallet/transformer/btcbase" //register
 )
 
 // https://github.com/satoshilabs/slips/blob/master/slip-0044.md
@@ -41,6 +42,27 @@ var CoinName = map[uint32]string{
 	TypeZcash:        "ZEC",
 	TypeBty:          "BTY",
 	TypeYcc:          "YCC",
+}
+
+// coinNameType 映射关系
+var coinNameType = map[string]uint32{
+	"ETH": TypeEther,
+	"ETC": TypeEtherClassic,
+	"BTC": TypeBitcoin,
+	"LTC": TypeLitecoin,
+	"ZEC": TypeZcash,
+	"BTY": TypeBty,
+	"YCC": TypeYcc,
+}
+
+//GetSLIP0044CoinType 获取货币的 CoinType 值
+func GetSLIP0044CoinType(name string) uint32 {
+	name = strings.ToUpper(name)
+	if ty, ok := coinNameType[name]; ok {
+		return ty
+	}
+	log.Error("GetSLIP0044CoinType: " + name + " not exist.")
+	return TypeBty
 }
 
 // HDWallet 支持BIP-44标准的HD钱包

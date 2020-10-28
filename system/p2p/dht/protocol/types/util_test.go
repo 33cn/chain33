@@ -4,10 +4,16 @@
 package types
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"crypto/rand"
 	"fmt"
 	"testing"
+
+	"github.com/33cn/chain33/util"
+	"github.com/33cn/chain33/util/testnode"
+	"github.com/golang/snappy"
 
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
@@ -91,15 +97,15 @@ func TestStream(t *testing.T) {
 	proto.P2PEnv = &P2PEnv{Host: h1}
 	req := &StreamRequest{
 		PeerID: h2.ID(),
-		MsgID:  msgID,
+		MsgID:  []core.ProtocolID{core.ProtocolID(msgID)},
 		Data:   &types.Transaction{},
 	}
 	err = proto.SendPeer(req)
 	assert.Nil(t, err)
-	req.MsgID = msgID2
+	req.MsgID = []core.ProtocolID{core.ProtocolID(msgID2)}
 	err = proto.SendRecvPeer(req, &types.Transaction{})
 	assert.Nil(t, err)
-	stream, err := NewStream(h1, h2.ID(), msgID2)
+	stream, err := NewStream(h1, h2.ID(), core.ProtocolID(msgID2))
 	assert.Equal(t, msgID2, string(stream.Protocol()))
 	assert.Nil(t, err)
 	err = WriteStream(&types.Transaction{}, stream)
@@ -127,7 +133,37 @@ func BenchmarkNewStream(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			NewStream(h1, h2.ID(), msgID)
+			NewStream(h1, h2.ID(), core.ProtocolID(msgID))
 		}
 	})
+}
+
+func BenchmarkCompress(b *testing.B) {
+
+	if testing.Short() {
+		b.Skip("skip in short mode")
+	}
+	_, priv := util.Genaddress()
+	cfg := testnode.GetDefaultConfig()
+	block := util.CreateCoinsBlock(cfg, priv, 100)
+	data := types.Encode(block)
+	var buf []byte
+	b.Run("snappy", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			buf = snappy.Encode(nil, data)
+			snappy.Decode(nil, buf)
+		}
+	})
+
+	gbuf := &bytes.Buffer{}
+	b.Run("gzip", func(b *testing.B) {
+		gzw, _ := gzip.NewWriterLevel(gbuf, gzip.BestSpeed)
+		for i := 0; i < b.N; i++ {
+			gbuf.Reset()
+			gzw.Reset(gbuf)
+			gzw.Write(data)
+			gzw.Flush()
+		}
+	})
+	fmt.Printf("\ndata len, pb=%d, snappy=%d, gzip=%d\n", len(data), len(buf), gbuf.Len())
 }

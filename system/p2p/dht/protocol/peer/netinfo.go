@@ -27,7 +27,15 @@ func (p *peerInfoProtol) netinfoHandleEvent(msg *queue.Message) {
 	if netinfo.Inbounds != 0 {
 		netinfo.Service = true
 	}
+	netinfo.Peerstore = int32(len(p.Host.Peerstore().PeersWithAddrs()))
+	netinfo.Routingtable = int32(p.Discovery.RoutingTableSize())
+	netstat := p.ConnManager.GetNetRate()
+
+	netinfo.Ratein = p.ConnManager.RateCaculate(netstat.RateIn)
+	netinfo.Rateout = p.ConnManager.RateCaculate(netstat.RateOut)
+	netinfo.Ratetotal = p.ConnManager.RateCaculate(netstat.RateOut + netstat.RateIn)
 	msg.Reply(p.GetQueueClient().NewMessage("rpc", types.EventReplyNetInfo, &netinfo))
+
 }
 
 /*
@@ -37,7 +45,7 @@ tcp/ip协议中，专门保留了三个IP地址区域作为私有地址，其地
 192.168.0.0/16：192.168.0.0～192.168.255.255
 */
 func isPublicIP(IP net.IP) bool {
-	if IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
+	if IP == nil || IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
 		return false
 	}
 	if ip4 := IP.To4(); ip4 != nil {

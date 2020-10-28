@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package calculator;
+package types;
 // calculator 合约交易行为总类型
 message CalculatorAction {
     oneof value {

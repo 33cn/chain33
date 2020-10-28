@@ -1,6 +1,7 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
 package broadcast
 
 import (
@@ -9,10 +10,9 @@ import (
 
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pid peer.ID, peerAddr string) (doSend bool) {
+func (protocol *broadcastProtocol) sendBlock(block *types.P2PBlock, p2pData *types.BroadCastData, pid string) (doSend bool) {
 	byteHash := block.Block.Hash(protocol.GetChainCfg())
 	blockHash := hex.EncodeToString(byteHash)
 	//检测冗余发送
@@ -42,7 +42,7 @@ func (protocol *broadCastProtocol) sendBlock(block *types.P2PBlock, p2pData *typ
 	return true
 }
 
-func (protocol *broadCastProtocol) recvBlock(block *types.P2PBlock, pid peer.ID, peerAddr string) error {
+func (protocol *broadcastProtocol) recvBlock(block *types.P2PBlock, pid, peerAddr string) error {
 
 	if block.GetBlock() == nil {
 		return types.ErrInvalidParam
@@ -63,7 +63,7 @@ func (protocol *broadCastProtocol) recvBlock(block *types.P2PBlock, pid peer.ID,
 	return nil
 }
 
-func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid peer.ID, peerAddr string) error {
+func (protocol *broadcastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr, version string) error {
 
 	blockHash := hex.EncodeToString(ltBlock.Header.Hash)
 	//将节点id添加到发送过滤, 避免冗余发送
@@ -161,13 +161,12 @@ func (protocol *broadCastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid pe
 
 	//需要将不完整的block预存
 	protocol.ltBlockCache.Add(blockHash, block, block.Size())
-	//pub to specified peer
-	_, err := protocol.sendPeer(pid, query, false)
-	if err != nil {
+	//query peer
+	if err := protocol.sendPeer(query, pid, version); err != nil {
 		log.Error("recvLtBlock", "pid", pid, "addr", peerAddr, "err", err)
 		protocol.blockFilter.Remove(blockHash)
 		protocol.ltBlockCache.Remove(blockHash)
-		return errSendStream
+		return errSendPeer
 	}
 	return nil
 }
