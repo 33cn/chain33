@@ -216,6 +216,9 @@ superManager=[
 [exec.sub.autonomy]
 total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 useBalance=false
+
+[exec.sub.jvm]
+jdkPath="../../../../build/j2sdk-image"
 `
 
 //GetDefaultCfgstring ...
