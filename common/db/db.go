@@ -182,6 +182,7 @@ const (
 	goBadgerDBBackendStr  = "gobadgerdb"
 	ssDBBackendStr        = "ssdb"
 	goPegasusDbBackendStr = "pegasus"
+	pebbleDBBackendStr    = "pebble"
 )
 
 type dbCreator func(name string, dir string, cache int) (DB, error)
