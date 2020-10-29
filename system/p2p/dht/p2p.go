@@ -174,7 +174,6 @@ func (p *P2P) StartP2P() {
 	}
 	p.env = env
 	protocol.InitAllProtocol(env)
-	protocol.SetTitle(p.chainCfg.GetTitle())
 	go p.managePeers()
 	go p.handleP2PEvent()
 	go p.findLANPeers()

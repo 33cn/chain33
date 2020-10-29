@@ -2,23 +2,12 @@ package protocol
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
-
-var title string
-var once sync.Once
-
-// SetTitle ...
-func SetTitle(s string) {
-	once.Do(func() {
-		title = s
-	})
-}
 
 // RegisterStreamHandler registers stream handler
 func RegisterStreamHandler(h host.Host, p protocol.ID, handler network.StreamHandler) {
