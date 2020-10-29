@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	fetchShardPeer = "/chain33/fetch-shard-peer/1.0.0"
 	fetchChunk     = "/chain33/fetch-chunk/1.0.0"
 	storeChunk     = "/chain33/store-chunk/1.0.0"
 	getHeader      = "/chain33/headers/1.0.0"
@@ -66,6 +67,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p.Host, fetchShardPeer, protocol.HandlerWithRW(p.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p.Host, getHeaderOld, p.handleStreamGetHeaderOld)
 	protocol.RegisterStreamHandler(p.Host, fullNode, protocol.HandlerWithRW(p.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p.Host, fetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式

@@ -16,6 +16,35 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+func (p *Protocol) fetchCloserPeers(key []byte, count int, pid peer.ID) ([]peer.ID, error) {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
+	defer cancel()
+	p.Host.ConnManager().Protect(pid, fetchShardPeer)
+	defer p.Host.ConnManager().Unprotect(pid, fetchShardPeer)
+	stream, err := p.Host.NewStream(ctx, pid, fetchShardPeer)
+	if err != nil {
+		return nil, err
+	}
+	defer protocol.CloseStream(stream)
+	req := types.P2PRequest{
+		Request: &types.P2PRequest_ReqPeers{
+			ReqPeers: &types.ReqPeers{
+				ReferKey: key,
+				Count:    int32(count),
+			},
+		},
+	}
+	if err = protocol.WriteStream(&req, stream); err != nil {
+		return nil, err
+	}
+	var resp types.P2PResponse
+	if err = protocol.ReadStream(&resp, stream); err != nil {
+		return nil, err
+	}
+	closerPeers := saveCloserPeers(resp.CloserPeers, p.Host.Peerstore())
+	return closerPeers, nil
+}
+
 //getChunk gets chunk data from p2pStore or other peers.
 func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID, error) {
 	if req == nil {
@@ -51,6 +80,8 @@ func (p *Protocol) getHeadersOld(param *types.ReqBlocks) (*types.Headers, peer.I
 }
 
 func (p *Protocol) getHeadersFromPeerOld(req *types.P2PGetHeaders, pid peer.ID) (*types.Headers, error) {
+	p.Host.ConnManager().Protect(pid, getHeaderOld)
+	defer p.Host.ConnManager().Unprotect(pid, getHeaderOld)
 	stream, err := p.Host.NewStream(p.Ctx, pid, getHeaderOld)
 	if err != nil {
 		return nil, err
@@ -106,6 +137,8 @@ func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) 
 func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*types.Headers, error) {
 	childCtx, cancel := context.WithTimeout(p.Ctx, 30*time.Second)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, getHeader)
+	defer p.Host.ConnManager().Unprotect(pid, getHeader)
 	stream, err := p.Host.NewStream(childCtx, pid, getHeader)
 	if err != nil {
 		return nil, err
@@ -149,6 +182,8 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid peer.ID) (*types.ChunkRecords, error) {
 	childCtx, cancel := context.WithTimeout(p.Ctx, 30*time.Second)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, getChunkRecord)
+	defer p.Host.ConnManager().Unprotect(pid, getChunkRecord)
 	stream, err := p.Host.NewStream(childCtx, pid, getChunkRecord)
 	if err != nil {
 		return nil, err
@@ -242,9 +277,8 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 func (p *Protocol) fetchChunkFromPeer(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
 	childCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
-	tag := "p2pstore"
-	p.Host.ConnManager().Protect(pid, tag)
-	defer p.Host.ConnManager().Unprotect(pid, tag)
+	p.Host.ConnManager().Protect(pid, fetchChunk)
+	defer p.Host.ConnManager().Unprotect(pid, fetchChunk)
 	stream, err := p.Host.NewStream(childCtx, pid, fetchChunk)
 	if err != nil {
 		log.Error("fetchChunkFromPeer", "error", err)
@@ -440,7 +474,7 @@ func saveCloserPeers(peerInfos []*types.PeerInfo, store peerstore.Peerstore) []p
 			maddrs = append(maddrs, maddr)
 		}
 		pid := peer.ID(peerInfo.ID)
-		store.AddAddrs(pid, maddrs, peerstore.TempAddrTTL)
+		store.AddAddrs(pid, maddrs, time.Minute*30)
 		peers = append(peers, pid)
 	}
 	return peers

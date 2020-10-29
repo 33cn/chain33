@@ -22,6 +22,26 @@ func (p *Protocol) handleStreamIsFullNode(_ *types.P2PRequest, resp *types.P2PRe
 	return nil
 }
 
+func (p *Protocol) handleStreamFetchShardPeers(req *types.P2PRequest, res *types.P2PResponse) error {
+	reqPeers := req.GetRequest().(*types.P2PRequest_ReqPeers).ReqPeers
+	count := reqPeers.Count
+	if count <= 0 {
+		count = Backup
+	}
+	closerPeers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(reqPeers.ReferKey), int(count))
+	for _, pid := range closerPeers {
+		var addrs [][]byte
+		for _, addr := range p.Host.Peerstore().Addrs(pid) {
+			addrs = append(addrs, addr.Bytes())
+		}
+		res.CloserPeers = append(res.CloserPeers, &types.PeerInfo{
+			ID:        []byte(pid),
+			MultiAddr: addrs,
+		})
+	}
+	return nil
+}
+
 func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 	var req types.P2PRequest
 	if err := protocol.ReadStreamAndAuthenticate(&req, stream); err != nil {
