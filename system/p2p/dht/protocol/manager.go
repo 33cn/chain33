@@ -2,11 +2,12 @@ package protocol
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	"sync"
 )
 
 var title string
@@ -23,12 +24,6 @@ func SetTitle(s string) {
 func RegisterStreamHandler(h host.Host, p protocol.ID, handler network.StreamHandler) {
 	if handler == nil {
 		panic(fmt.Sprintf("addEventHandler, handler is nil, protocol=%s", p))
-	}
-	// 兼容老版本
-	h.SetStreamHandler(p, HandlerWithClose(handler))
-	// 新版本，增加title前缀，不同链之间实现协议隔离
-	if title != "" {
-		p = protocol.ID("/" + title + string(p))
 	}
 	h.SetStreamHandler(p, HandlerWithClose(handler))
 }

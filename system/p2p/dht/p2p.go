@@ -159,7 +159,7 @@ func (p *P2P) StartP2P() {
 		Ctx:                 p.ctx,
 		ChainCfg:            p.chainCfg,
 		QueueClient:         p.client,
-		Host:                p.host,
+		Host:                protocol.NewHost(p.host, p.chainCfg.GetTitle()),
 		P2PManager:          p.mgr,
 		SubConfig:           p.subCfg,
 		DB:                  p.db,

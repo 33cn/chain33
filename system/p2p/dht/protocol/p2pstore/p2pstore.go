@@ -100,7 +100,9 @@ func InitProtocol(env *protocol.P2PEnv) {
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
 				p.localChunkInfoMutex.Unlock()
 				p.debugFullNode()
-				log.Info("debug healthy peers", "======== amount", p.ShardHealthyRoutingTable.Size())
+				log.Info("debug rt peers", "======== amount", p.RoutingTable.Size())
+				log.Info("debug healthy peers", "======== amount", p.HealthyRoutingTable.Size())
+				log.Info("debug shard healthy peers", "======== amount", p.ShardHealthyRoutingTable.Size())
 				for _, pid := range p.ShardHealthyRoutingTable.ListPeers() {
 					log.Info("LatencyEWMA", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid), "latency", p.Host.Peerstore().LatencyEWMA(pid))
 				}
