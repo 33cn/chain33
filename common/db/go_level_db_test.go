@@ -99,11 +99,11 @@ func TestGoLevelDBBoundary(t *testing.T) {
 func BenchmarkBatchWrites(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
-	defer os.RemoveAll(dir + ".db")
-	os.RemoveAll(dir + ".db")
-	db, err := NewGoLevelDB(dir, "", 100)
+	defer os.RemoveAll(dir)
+	db, err := NewGoLevelDB("goleveldb", dir, 100)
 	assert.Nil(b, err)
 	batch := db.NewBatch(true)
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		key := string(common.GetRandBytes(20, 64))
@@ -118,6 +118,7 @@ func BenchmarkBatchWrites(b *testing.B) {
 	}
 	err = batch.Write()
 	assert.Nil(b, err)
+	b.StopTimer()
 }
 
 func BenchmarkBatchWrites1M(b *testing.B) {
@@ -135,11 +136,11 @@ func BenchmarkBatchWrites16k(b *testing.B) {
 func benchmarkBatchWrites(b *testing.B, size int) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
-	defer os.RemoveAll(dir + ".db")
-	os.RemoveAll(dir + ".db")
-	db, err := NewGoLevelDB(dir, "", 100)
+	defer os.RemoveAll(dir)
+	db, err := NewGoLevelDB("goleveldb", dir, 100)
 	assert.Nil(b, err)
 	batch := db.NewBatch(true)
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		key := common.GetRandBytes(20, 64)
@@ -154,6 +155,7 @@ func benchmarkBatchWrites(b *testing.B, size int) {
 	}
 	err = batch.Write()
 	assert.Nil(b, err)
+	b.StopTimer()
 }
 
 func BenchmarkBatchWrites32k(b *testing.B) {
@@ -175,13 +177,12 @@ func BenchmarkRandomReadsWrites32K(b *testing.B) {
 func benchmarkRandomReadsWrites(b *testing.B, size int) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
-	defer os.RemoveAll(dir + ".db")
-	os.RemoveAll(dir + ".db")
-	db, err := NewGoLevelDB(dir, "", 100)
+	defer os.RemoveAll(dir)
+	db, err := NewGoLevelDB("goleveldb", dir, 100)
 	assert.Nil(b, err)
 	batch := db.NewBatch(true)
 	var keys [][]byte
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < b.N; i++ {
 		key := common.GetRandBytes(20, 64)
 		value := common.GetRandBytes(size*1024, size*1024)
 		batch.Set(key, value)
@@ -196,32 +197,31 @@ func benchmarkRandomReadsWrites(b *testing.B, size int) {
 	assert.Nil(b, err)
 	//开始rand 读取
 	db.Close()
-	db, err = NewGoLevelDB(dir, "", 1)
+	db, err = NewGoLevelDB("goleveldb", dir, 1)
 	assert.Nil(b, err)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		key := keys[RandInt()%len(keys)]
+		index := RandInt() % len(keys)
+		key := keys[index]
 		_, err := db.Get(key)
 		assert.Nil(b, err)
 	}
+	b.StopTimer()
 }
 func BenchmarkRandomReadsWrites(b *testing.B) {
-	b.StopTimer()
 	numItems := int64(1000000)
 	internal := map[int64]int64{}
 	for i := 0; i < int(numItems); i++ {
 		internal[int64(i)] = int64(0)
 	}
 	dir := fmt.Sprintf("test_%x", RandStr(12))
-	defer os.RemoveAll(dir + ".db")
-	os.RemoveAll(dir + ".db")
-	db, err := NewGoLevelDB(dir, "", 1000)
+	defer os.RemoveAll(dir)
+	db, err := NewGoLevelDB("goleveldb", dir, 1000)
 	if err != nil {
 		b.Fatal(err.Error())
 		return
 	}
-	fmt.Println("ok, starting")
-	b.StartTimer()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Write something
 		{
@@ -236,6 +236,10 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 				valBytes,
 			)
 		}
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
 		// Read something
 		{
 			idx := (int64(RandInt()) % numItems)
@@ -264,7 +268,7 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 			}
 		}
 	}
-
+	b.StopTimer()
 	db.Close()
 }
 
