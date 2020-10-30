@@ -236,7 +236,8 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	}
 
 	//如果本节点是本地路由表中距离该chunk最近的节点，则保存数据；否则不需要保存数据
-	pid := p.ShardHealthyRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
+	tmpRoutingTable := p.genTempRoutingTable(req.ChunkHash, 100)
+	pid := tmpRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
 	if pid != "" && kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}

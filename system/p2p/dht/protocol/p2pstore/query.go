@@ -250,7 +250,7 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 		return nil, "", types2.ErrNotFound
 	}
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
-	ctx2, cancel2 := context.WithTimeout(ctx, time.Second*3)
+	ctx2, cancel2 := context.WithTimeout(ctx, time.Second*10)
 	defer cancel2()
 	peerInfos, err := p.FindPeers(ctx2, fullNode)
 	if err != nil {
@@ -262,6 +262,7 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 		if addrInfo.ID == p.Host.ID() {
 			continue
 		}
+		log.Info("mustFetchChunk", "pid", addrInfo.ID, "addrs", addrInfo.Addrs)
 		bodys, pid := p.fetchChunkFromFullPeer(ctx, req, addrInfo.ID)
 		if bodys == nil {
 			log.Error("mustFetchChunk from full node failed", "pid", addrInfo.ID, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
@@ -322,14 +323,22 @@ func (p *Protocol) fetchChunkFromPeer(ctx context.Context, params *types.ChunkIn
 }
 
 func (p *Protocol) fetchChunkFromFullPeer(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, peer.ID) {
-	bodys, peers, _ := p.fetchChunkFromPeer(ctx, params, pid)
+	bodys, peers, err := p.fetchChunkFromPeer(ctx, params, pid)
+	if err != nil {
+		log.Error("fetchChunkFromFullPeer", "error", err)
+		return nil, ""
+	}
 	if bodys != nil {
 		return bodys, pid
 	}
-	if len(peers) != 0 {
-		bodys, _, _ = p.fetchChunkFromPeer(ctx, params, peers[0])
+	for _, pid := range peers {
+		bodys, _, err = p.fetchChunkFromPeer(ctx, params, pid)
+		if err != nil {
+			log.Error("fetchChunkFromFullPeer 2", "error", err, "pid", pid)
+			continue
+		}
 		if bodys != nil {
-			return bodys, peers[0]
+			return bodys, pid
 		}
 	}
 	return nil, ""
