@@ -178,7 +178,11 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 				}
 				chain.DefaultDownLoadInfo()
 			}
+
+			//清除快速下载的标识并从缓存中删除此执行失败的区块，
 			chain.cancelDownLoadFlag(isNewStart)
+			chain.blockStore.db.Delete(calcHeightToTempBlockKey(block.Height))
+
 			synlog.Error("ReadBlockToExec:ProcessBlock:err!", "height", block.Height, "hash", common.ToHex(block.Hash(cfg)), "isNewStart", isNewStart, "err", err)
 			break
 		}

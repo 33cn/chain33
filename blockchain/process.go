@@ -289,14 +289,17 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync)
 	if err != nil {
 		//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
-		if IsRecordFaultErr(err) {
-			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
-		} else if node.pid == "self" {
+		//快速下载时执行失败的区块不需要记录错误信息，并删除index中此区块的信息尝试通过普通模式再次下载执行
+		ok := IsRecordFaultErr(err)
+
+		if node.pid == "download" || (!ok && node.pid == "self") {
 			// 本节点产生的block由于api或者queue导致执行失败需要删除block在index中的记录，
 			// 返回错误信息给共识模块，由共识模块尝试再次发起block的执行
-			// 同步或者广播过来的情况会再下了一个区块过来后重新触发此block的执行
+			// 同步或者广播过来的情况会在下一个区块过来后重新触发此block的执行
 			chainlog.Debug("connectBlock DelNode!", "height", block.Height, "node.hash", common.ToHex(node.hash), "err", err)
 			b.index.DelNode(node.hash)
+		} else {
+			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
 		}
 		chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 		return nil, err
