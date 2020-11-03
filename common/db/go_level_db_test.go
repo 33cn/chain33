@@ -96,7 +96,7 @@ func TestGoLevelDBBoundary(t *testing.T) {
 	testDBBoundary(t, leveldb)
 }
 
-func BenchmarkBatchWrites(b *testing.B) {
+func BenchmarkLevelDBBatchWrites(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir)
@@ -121,16 +121,24 @@ func BenchmarkBatchWrites(b *testing.B) {
 	b.StopTimer()
 }
 
-func BenchmarkBatchWrites1M(b *testing.B) {
-	benchmarkBatchWrites(b, 1024)
-}
-
-func BenchmarkBatchWrites1k(b *testing.B) {
+func BenchmarkLevelDBBatchWrites1k(b *testing.B) {
 	benchmarkBatchWrites(b, 1)
 }
 
-func BenchmarkBatchWrites16k(b *testing.B) {
+func BenchmarkLevelDBBatchWrites16k(b *testing.B) {
 	benchmarkBatchWrites(b, 16)
+}
+
+func BenchmarkLevelDBBatchWrites256k(b *testing.B) {
+	benchmarkBatchWrites(b, 256)
+}
+
+func BenchmarkLevelDBBatchWrites1M(b *testing.B) {
+	benchmarkBatchWrites(b, 1024)
+}
+
+func BenchmarkLevelDBBatchWrites4M(b *testing.B) {
+	benchmarkBatchWrites(b, 1024*4)
 }
 
 func benchmarkBatchWrites(b *testing.B, size int) {
@@ -158,23 +166,23 @@ func benchmarkBatchWrites(b *testing.B, size int) {
 	b.StopTimer()
 }
 
-func BenchmarkBatchWrites32k(b *testing.B) {
-	benchmarkBatchWrites(b, 32)
+func BenchmarkLevelDBRandomReads1K(b *testing.B) {
+	benchmarkLevelDBRandomReads(b, 1)
 }
 
-func BenchmarkRandomReadsWrites1K(b *testing.B) {
-	benchmarkRandomReadsWrites(b, 1)
+func BenchmarkLevelDBRandomReads16K(b *testing.B) {
+	benchmarkLevelDBRandomReads(b, 16)
 }
 
-func BenchmarkRandomReadsWrites16K(b *testing.B) {
-	benchmarkRandomReadsWrites(b, 16)
+func BenchmarkLevelDBRandomReads256K(b *testing.B) {
+	benchmarkLevelDBRandomReads(b, 256)
 }
 
-func BenchmarkRandomReadsWrites32K(b *testing.B) {
-	benchmarkRandomReadsWrites(b, 32)
+func BenchmarkLevelDBRandomReads1M(b *testing.B) {
+	benchmarkLevelDBRandomReads(b, 1024)
 }
 
-func benchmarkRandomReadsWrites(b *testing.B, size int) {
+func benchmarkLevelDBRandomReads(b *testing.B, size int) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir)
@@ -208,7 +216,8 @@ func benchmarkRandomReadsWrites(b *testing.B, size int) {
 	}
 	b.StopTimer()
 }
-func BenchmarkRandomReadsWrites(b *testing.B) {
+
+func BenchmarkLevelDBRandomReadsWrites(b *testing.B) {
 	numItems := int64(1000000)
 	internal := map[int64]int64{}
 	for i := 0; i < int(numItems); i++ {
@@ -221,7 +230,6 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 		b.Fatal(err.Error())
 		return
 	}
-	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Write something
 		{
