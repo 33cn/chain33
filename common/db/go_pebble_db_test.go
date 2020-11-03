@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/33cn/chain33/common"
 	"github.com/stretchr/testify/require"
@@ -109,18 +108,6 @@ func BenchmarkPebbleBatchWrites(b *testing.B) {
 	b.StopTimer()
 }
 
-func BenchmarkPebbleBatchWrites1M(b *testing.B) {
-	benchmarkPebbleBatchWrites(b, 1024)
-}
-
-func BenchmarkPebbleBatchWrites2M(b *testing.B) {
-	benchmarkPebbleBatchWrites(b, 1024*2)
-}
-
-func BenchmarkPebbleBatchWrites4M(b *testing.B) {
-	benchmarkPebbleBatchWrites(b, 1024*4)
-}
-
 func BenchmarkPebbleBatchWrites1k(b *testing.B) {
 	benchmarkPebbleBatchWrites(b, 1)
 }
@@ -131,6 +118,14 @@ func BenchmarkPebbleBatchWrites16k(b *testing.B) {
 
 func BenchmarkPebbleBatchWrites256k(b *testing.B) {
 	benchmarkPebbleBatchWrites(b, 256)
+}
+
+func BenchmarkPebbleBatchWrites1M(b *testing.B) {
+	benchmarkPebbleBatchWrites(b, 1024)
+}
+
+func BenchmarkPebbleBatchWrites4M(b *testing.B) {
+	benchmarkPebbleBatchWrites(b, 1024*4)
 }
 
 func benchmarkPebbleBatchWrites(b *testing.B, size int) {
@@ -159,23 +154,23 @@ func benchmarkPebbleBatchWrites(b *testing.B, size int) {
 	b.StopTimer()
 }
 
-func BenchmarkPebbleBatchWrites32k(b *testing.B) {
-	benchmarkPebbleBatchWrites(b, 32)
+func BenchmarkPebbleRandomReads1K(b *testing.B) {
+	benchmarkPebbleRandomReads(b, 1)
 }
 
-func BenchmarkPebbleRandomReadsWrites1K(b *testing.B) {
-	benchmarkPebbleRandomReadsWrites(b, 1)
+func BenchmarkPebbleRandomReads16K(b *testing.B) {
+	benchmarkPebbleRandomReads(b, 16)
 }
 
-func BenchmarkPebbleRandomReadsWrites16K(b *testing.B) {
-	benchmarkPebbleRandomReadsWrites(b, 16)
+func BenchmarkPebbleRandomReads256K(b *testing.B) {
+	benchmarkPebbleRandomReads(b, 256)
 }
 
-func BenchmarkPebbleRandomReadsWrites32K(b *testing.B) {
-	benchmarkPebbleRandomReadsWrites(b, 32)
+func BenchmarkPebbleRandomReads1M(b *testing.B) {
+	benchmarkPebbleRandomReads(b, 1024)
 }
 
-func benchmarkPebbleRandomReadsWrites(b *testing.B, size int) {
+func benchmarkPebbleRandomReads(b *testing.B, size int) {
 	dir, err := ioutil.TempDir("", "example")
 	require.Nil(b, err)
 	defer os.RemoveAll(dir)
@@ -224,7 +219,6 @@ func BenchmarkPebbleRandomReadsWrites(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Write someing
-		start := time.Now()
 		{
 			idx := (int64(RandInt()) % numItems)
 			internal[idx]++
@@ -237,7 +231,6 @@ func BenchmarkPebbleRandomReadsWrites(b *testing.B) {
 				valBytes,
 			)
 		}
-		fmt.Println("cost:", time.Since(start))
 		// Read something
 		{
 			idx := (int64(RandInt()) % numItems)

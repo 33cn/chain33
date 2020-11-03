@@ -2,12 +2,12 @@ package db
 
 import (
 	"bytes"
-	"github.com/cockroachdb/pebble/bloom"
 	"path"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	"github.com/cockroachdb/pebble"
+	"github.com/cockroachdb/pebble/bloom"
 )
 
 var pebbleLog = log15.New("module", "db.pebble")
@@ -126,7 +126,7 @@ func (db *PebbleDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 		UpperBound: end,
 	})
 
-	return &pebbleIt{it, itBase{start, end, reverse}}
+	return &pebbleIt{it, itBase{start, end, reverse}, true}
 }
 
 // CompactRange ...
@@ -137,9 +137,17 @@ func (db *PebbleDB) CompactRange(start, limit []byte) error {
 type pebbleIt struct {
 	*pebble.Iterator
 	itBase
+	first bool
 }
 
 // Seek seek
+/*
+TODO：
+	关于seek, seek方法将iterator定位到大于等于key的一个位置，如果存在这样一个key则返true，否则返回false。
+	在leveldb中，seek返回false时，可以继续调用Prev()方法向前遍历。
+	pebble中seek方法分为SeekGE(key)和SeekLT(key)，且当这两个方法返回false时，无法再进一步调用Next()或者Prev()方法向后或者向前遍历。
+	因此在封装 *pebbleIt.Next() 方法时作了特殊处理。
+*/
 func (it *pebbleIt) Seek(key []byte) bool {
 	return it.Iterator.SeekGE(key)
 }
@@ -152,6 +160,14 @@ func (it *pebbleIt) Close() {
 //Next next
 func (it *pebbleIt) Next() bool {
 	if it.reverse {
+		//TODO：
+		//为兼容leveldb和系统接口作的特殊处理
+		if it.first {
+			it.first = false
+			if !it.Valid() {
+				return it.Iterator.Last() && it.Valid()
+			}
+		}
 		return it.Iterator.Prev() && it.Valid()
 	}
 	return it.Iterator.Next() && it.Valid()
