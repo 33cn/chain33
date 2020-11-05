@@ -468,10 +468,10 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		localChunkInfo:           make(map[string]LocalChunkInfo),
 		notifyingQueue:           make(chan *types.ChunkInfoMsg, 100),
 	}
-	p2.bindRoutingTableUpdateFunc()
+	go p2.updateShardHealthyRoutingTableRountine()
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p2.Host, getHeaderOld, p2.handleStreamGetHeaderOld)
-	protocol.RegisterStreamHandler(p2.Host, fullNode, protocol.HandlerWithRW(p2.handleStreamIsFullNode))
+	protocol.RegisterStreamHandler(p2.Host, fullNode, protocol.HandlerWithWrite(p2.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p2.Host, fetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p2.Host, storeChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p2.Host, getHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
@@ -601,7 +601,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	}
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p3.Host, getHeaderOld, p3.handleStreamGetHeaderOld)
-	protocol.RegisterStreamHandler(p3.Host, fullNode, protocol.HandlerWithRW(p3.handleStreamIsFullNode))
+	protocol.RegisterStreamHandler(p3.Host, fullNode, protocol.HandlerWithWrite(p3.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p3.Host, fetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p3.Host, storeChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p3.Host, getHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))

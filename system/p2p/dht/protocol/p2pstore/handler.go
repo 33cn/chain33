@@ -13,7 +13,7 @@ import (
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
-func (p *Protocol) handleStreamIsFullNode(_ *types.P2PRequest, resp *types.P2PResponse) error {
+func (p *Protocol) handleStreamIsFullNode(resp *types.P2PResponse) error {
 	resp.Response = &types.P2PResponse_Reply{
 		Reply: &types.Reply{
 			IsOk: p.SubConfig.IsFullNode,
