@@ -444,8 +444,9 @@ func (p *P2P) genAirDropKey() {
 
 func newHealthyRoutingTable(ctx context.Context, h host.Host, rt *kb.RoutingTable, pm *manage.PeerInfoManager) *kb.RoutingTable {
 	hrt := kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore())
+	const diffHeight = 512
 	rt.PeerAdded = func(pid peer.ID) {
-		if pm.PeerHeight(pid)+512 >= pm.PeerHeight(h.ID()) {
+		if pm.PeerHeight(pid)+diffHeight >= pm.PeerHeight(h.ID()) {
 			_, _ = hrt.Update(pid)
 		}
 	}
@@ -460,7 +461,7 @@ func newHealthyRoutingTable(ctx context.Context, h host.Host, rt *kb.RoutingTabl
 				return
 			case <-ticker.C:
 				for _, pid := range rt.ListPeers() {
-					if pm.PeerHeight(pid)+50 >= pm.PeerHeight(h.ID()) {
+					if pm.PeerHeight(pid)+diffHeight >= pm.PeerHeight(h.ID()) {
 						_, _ = hrt.Update(pid)
 					}
 				}

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/common/version"
@@ -55,6 +56,8 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 }
 
 func (p *Protocol) refreshPeerInfo() {
+	atomic.AddInt32(&p.refreshing, 1)
+	defer atomic.StoreInt32(&p.refreshing, 0)
 	var wg sync.WaitGroup
 	for _, remoteID := range p.RoutingTable.ListPeers() {
 		if p.checkDone() {

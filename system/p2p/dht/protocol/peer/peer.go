@@ -3,6 +3,7 @@ package peer
 import (
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -33,6 +34,7 @@ func init() {
 // Protocol ...
 type Protocol struct {
 	*protocol.P2PEnv
+	refreshing int32
 
 	// "/ip4/{ip}/tcp/{port}"
 	externalAddr string
@@ -88,6 +90,9 @@ func InitProtocol(env *protocol.P2PEnv) {
 			case <-p.Ctx.Done():
 				return
 			case <-ticker1.C:
+				if atomic.LoadInt32(&p.refreshing) != 0 {
+					return
+				}
 				p.refreshPeerInfo()
 			}
 		}

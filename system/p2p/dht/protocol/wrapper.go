@@ -165,12 +165,33 @@ func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 	}
 }
 
+// HandlerWithWrite wraps handler with writing, closing stream and recovering from panic.
+func HandlerWithWrite(f func(resp *types.P2PResponse) error) network.StreamHandler {
+	return func(stream network.Stream) {
+		var res types.P2PResponse
+		err := f(&res)
+		if err != nil {
+			res.Response = nil
+			res.Error = err.Error()
+		}
+		res.Headers = &types.P2PMessageHeaders{
+			Version:   types2.Version,
+			Timestamp: time.Now().Unix(),
+			Id:        rand.Int63(),
+		}
+		if err := WriteStream(&res, stream); err != nil {
+			log.Error("HandlerWithWrite", "write stream error", err)
+			return
+		}
+	}
+}
+
 // HandlerWithRead wraps handler with reading, closing stream and recovering from panic.
 func HandlerWithRead(f func(request *types.P2PRequest)) network.StreamHandler {
 	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
-			log.Error("HandlerWithAuthAndSign", "read stream error", err)
+			log.Error("HandlerWithRead", "read stream error", err)
 			return
 		}
 		f(&req)

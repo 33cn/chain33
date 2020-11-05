@@ -2,6 +2,8 @@ package p2pstore
 
 import (
 	"context"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 	"time"
 
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -22,6 +24,8 @@ func (p *Protocol) republish() {
 	}
 	p.localChunkInfoMutex.RUnlock()
 	invertedIndex := make(map[peer.ID][]*types.ChunkInfoMsg)
+	tmpRoutingTable := p.genTempRoutingTable(nil, 100)
+
 	for hash, info := range m {
 		if time.Since(info.Time) > types2.ExpiredTime {
 			log.Info("republish deleteChunkBlock", "hash", hash, "start", info.Start)
@@ -34,7 +38,7 @@ func (p *Protocol) republish() {
 			continue
 		}
 		log.Info("local chunk", "hash", hash, "start", info.Start)
-		peers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(info.ChunkHash), Backup-1)
+		peers := tmpRoutingTable.NearestPeers(genDHTID(info.ChunkHash), Backup-1)
 		for _, pid := range peers {
 			invertedIndex[pid] = append(invertedIndex[pid], info.ChunkInfoMsg)
 		}
@@ -52,8 +56,8 @@ func (p *Protocol) republish() {
 
 // 通知最近的 *BackUp-1* 个节点备份数据，加上本节点共Backup个
 func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
-	peers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup-1)
-	for _, pid := range peers {
+	tmpRoutingTable := p.genTempRoutingTable(req.ChunkHash, 100)
+	for _, pid := range tmpRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup-1) {
 		err := p.storeChunksOnPeer(pid, req)
 		if err != nil {
 			log.Error("notifyStoreChunk", "peer id", pid, "error", err)
@@ -64,6 +68,8 @@ func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
 func (p *Protocol) storeChunksOnPeer(pid peer.ID, req ...*types.ChunkInfoMsg) error {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, storeChunk)
+	defer p.Host.ConnManager().Unprotect(pid, storeChunk)
 	stream, err := p.Host.NewStream(ctx, pid, storeChunk)
 	if err != nil {
 		log.Error("new stream error when store chunk", "peer id", pid, "error", err)
@@ -76,4 +82,36 @@ func (p *Protocol) storeChunksOnPeer(pid peer.ID, req ...*types.ChunkInfoMsg) er
 			Items: req,
 		}}
 	return protocol.SignAndWriteStream(&msg, stream)
+}
+
+func (p *Protocol) genTempRoutingTable(key []byte, count int) *kb.RoutingTable {
+	tmpRoutingTable := kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(p.Host.ID()), time.Minute, p.Host.Peerstore())
+	peers := p.ShardHealthyRoutingTable.ListPeers()
+	for _, pid := range peers {
+		_, _ = tmpRoutingTable.Update(pid)
+	}
+	if key != nil {
+		peers = p.ShardHealthyRoutingTable.NearestPeers(genDHTID(key), Backup-1)
+	}
+
+	for i, pid := range peers {
+		// 最多查5个节点
+		if i+1 > 5 {
+			break
+		}
+		closerPeers, err := p.fetchCloserPeers(key, count, pid)
+		if err != nil {
+			log.Error("genTempRoutingTable", "fetchCloserPeers error", err, "peer id", pid)
+			continue
+		}
+		for _, cPid := range closerPeers {
+			if cPid == p.Host.ID() {
+				continue
+			}
+			_, _ = tmpRoutingTable.Update(cPid)
+		}
+	}
+	log.Info("genTempRoutingTable", "tmpRoutingTable peer count", tmpRoutingTable.Size())
+
+	return tmpRoutingTable
 }

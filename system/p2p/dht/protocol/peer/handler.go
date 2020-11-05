@@ -85,6 +85,12 @@ func (p *Protocol) handleStreamVersionOld(stream network.Stream) {
 		return
 	}
 	msg := req.Message
+	if msg.GetVersion() != p.SubConfig.Channel {
+		// 不是同一条链，拉黑且断开连接
+		p.ConnBlackList.Add(stream.Conn().RemotePeer().Pretty(), time.Hour*24)
+		_ = stream.Conn().Close()
+		return
+	}
 	if ip, _ := parseIPAndPort(msg.GetAddrFrom()); isPublicIP(ip) {
 		remoteMAddr, err := multiaddr.NewMultiaddr(msg.GetAddrFrom())
 		if err != nil {

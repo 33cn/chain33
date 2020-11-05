@@ -235,7 +235,13 @@ message P2PRequest {
         ChunkInfoList   chunkInfoList   = 4;
         ReqBlocks       reqBlocks       = 5;
         //新的协议可以继续添加request类型
+       ReqPeers reqPeers = 6;
     }
+}
+
+message ReqPeers {
+    bytes referKey = 1;
+    int32 count = 2;
 }
 
 message HashList {

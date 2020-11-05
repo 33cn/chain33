@@ -17,6 +17,7 @@ import (
 )
 
 const (
+	fetchShardPeer = "/chain33/fetch-shard-peer/1.0.0"
 	fetchChunk     = "/chain33/fetch-chunk/1.0.0"
 	storeChunk     = "/chain33/store-chunk/1.0.0"
 	getHeader      = "/chain33/headers/1.0.0"
@@ -62,12 +63,13 @@ func InitProtocol(env *protocol.P2PEnv) {
 		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 		notifyingQueue:           make(chan *types.ChunkInfoMsg, 1024),
 	}
-	p.bindRoutingTableUpdateFunc()
+	go p.updateShardHealthyRoutingTableRountine()
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p.Host, fetchShardPeer, protocol.HandlerWithRW(p.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p.Host, getHeaderOld, p.handleStreamGetHeaderOld)
-	protocol.RegisterStreamHandler(p.Host, fullNode, protocol.HandlerWithRW(p.handleStreamIsFullNode))
+	protocol.RegisterStreamHandler(p.Host, fullNode, protocol.HandlerWithWrite(p.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p.Host, fetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p.Host, storeChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p.Host, getHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
@@ -83,7 +85,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go func() {
 		ticker1 := time.NewTicker(time.Minute)
 		ticker2 := time.NewTicker(types2.RefreshInterval)
-		ticker4 := time.NewTicker(time.Hour)
+		ticker4 := time.NewTicker(time.Minute * 5)
 
 		for {
 			select {
@@ -185,30 +187,42 @@ func (p *Protocol) debugFullNode() {
 	log.Info("debugFullNode", "total count", count)
 }
 
-func (p *Protocol) bindRoutingTableUpdateFunc() {
+func (p *Protocol) updateShardHealthyRoutingTableRountine() {
 	// HealthyRoutingTable更新时同时更新ShardHealthyRoutingTable
 	p.HealthyRoutingTable.PeerRemoved = func(id peer.ID) {
 		p.ShardHealthyRoutingTable.Remove(id)
 	}
-	p.HealthyRoutingTable.PeerAdded = func(id peer.ID) {
-		stream, err := p.Host.NewStream(p.Ctx, id, fullNode)
-		if err != nil {
-			return
-		}
-		defer protocol.CloseStream(stream)
-		err = protocol.WriteStream(&types.P2PRequest{}, stream)
-		if err != nil {
-			return
-		}
-		var resp types.P2PResponse
-		err = protocol.ReadStream(&resp, stream)
-		if err != nil {
-			return
-		}
-		if reply, ok := resp.Response.(*types.P2PResponse_Reply); ok {
-			if !reply.Reply.IsOk {
-				_, _ = p.ShardHealthyRoutingTable.Update(id)
+	for p.HealthyRoutingTable.Size() == 0 {
+		time.Sleep(time.Second / 2)
+	}
+	for {
+		for _, pid := range p.HealthyRoutingTable.ListPeers() {
+			ok, err := p.queryFull(pid)
+			if err != nil {
+				continue
+			}
+			if !ok {
+				_, _ = p.ShardHealthyRoutingTable.Update(pid)
 			}
 		}
+		time.Sleep(time.Minute * 5)
 	}
+}
+
+func (p *Protocol) queryFull(pid peer.ID) (bool, error) {
+	stream, err := p.Host.NewStream(p.Ctx, pid, fullNode)
+	if err != nil {
+		return false, err
+	}
+	defer protocol.CloseStream(stream)
+	var resp types.P2PResponse
+	err = protocol.ReadStream(&resp, stream)
+	if err != nil {
+		return false, err
+	}
+	if reply, ok := resp.Response.(*types.P2PResponse_Reply); ok {
+		return reply.Reply.IsOk, nil
+	}
+
+	return false, types2.ErrInvalidResponse
 }

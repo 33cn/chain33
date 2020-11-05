@@ -35,7 +35,7 @@ var (
 	ErrInvalidResponse = errors.New("invalid response")
 
 	// ExpiredTime expired time
-	ExpiredTime = time.Hour * 3
+	ExpiredTime = time.Hour * 12
 	// RefreshInterval refresh interval
-	RefreshInterval = time.Hour
+	RefreshInterval = time.Hour * 3
 )

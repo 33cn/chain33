@@ -13,11 +13,31 @@ import (
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
-func (p *Protocol) handleStreamIsFullNode(_ *types.P2PRequest, resp *types.P2PResponse) error {
+func (p *Protocol) handleStreamIsFullNode(resp *types.P2PResponse) error {
 	resp.Response = &types.P2PResponse_Reply{
 		Reply: &types.Reply{
 			IsOk: p.SubConfig.IsFullNode,
 		},
+	}
+	return nil
+}
+
+func (p *Protocol) handleStreamFetchShardPeers(req *types.P2PRequest, res *types.P2PResponse) error {
+	reqPeers := req.GetRequest().(*types.P2PRequest_ReqPeers).ReqPeers
+	count := reqPeers.Count
+	if count <= 0 {
+		count = Backup
+	}
+	closerPeers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(reqPeers.ReferKey), int(count))
+	for _, pid := range closerPeers {
+		var addrs [][]byte
+		for _, addr := range p.Host.Peerstore().Addrs(pid) {
+			addrs = append(addrs, addr.Bytes())
+		}
+		res.CloserPeers = append(res.CloserPeers, &types.PeerInfo{
+			ID:        []byte(pid),
+			MultiAddr: addrs,
+		})
 	}
 	return nil
 }
@@ -216,7 +236,8 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	}
 
 	//如果本节点是本地路由表中距离该chunk最近的节点，则保存数据；否则不需要保存数据
-	pid := p.ShardHealthyRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
+	tmpRoutingTable := p.genTempRoutingTable(req.ChunkHash, 100)
+	pid := tmpRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
 	if pid != "" && kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}
