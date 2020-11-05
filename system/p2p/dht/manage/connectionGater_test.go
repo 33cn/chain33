@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	core "github.com/libp2p/go-libp2p-core"
 	"testing"
 	"time"
 
@@ -17,8 +18,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func newTestHost(port int) (core.Host, error) {
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
+	if err != nil {
+		return nil, err
+	}
+
+	r := rand.Reader
+	priv, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	if err != nil {
+		panic(err)
+	}
+
+	return libp2p.New(context.Background(),
+		libp2p.ListenAddrs(m),
+		libp2p.Identity(priv),
+	)
+
+}
 func Test_MaxLimit(t *testing.T) {
-	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 12345))
 	if err != nil {
 		return
 	}
@@ -29,29 +48,18 @@ func Test_MaxLimit(t *testing.T) {
 		panic(err)
 	}
 	var host1 host.Host
-	//设置0，意味着拒绝所有的连接
 	CacheLimit = 0
-	gater := NewConnGater(&host1, &p2pty.P2PSubConfig{MaxConnectNum: 0}, nil)
+	gater := NewConnGater(&host1, &p2pty.P2PSubConfig{MaxConnectNum: 1}, nil)
 	host1, err = libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m),
 		libp2p.Identity(priv),
 		libp2p.ConnectionGater(gater),
 	)
+
 	if err != nil {
 		return
 	}
-	m2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12346))
-	if err != nil {
-		return
-	}
-	priv2, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-	host2, err := libp2p.New(context.Background(),
-		libp2p.ListenAddrs(m2),
-		libp2p.Identity(priv2),
-	)
+	host2, err := newTestHost(12346)
 	if err != nil {
 		return
 	}
@@ -60,8 +68,15 @@ func Test_MaxLimit(t *testing.T) {
 		Addrs: host1.Addrs(),
 	}
 	err = host2.Connect(context.Background(), h1info)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 
+	host3, err := newTestHost(12347)
+	if err != nil {
+		return
+	}
+	//超过上限，会拒绝连接，所以host3连接host1会被拒绝，连接失败
+	err = host3.Connect(context.Background(), h1info)
+	assert.NotNil(t, err)
 }
 
 func Test_InterceptAccept(t *testing.T) {
