@@ -4,9 +4,10 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
-	core "github.com/libp2p/go-libp2p-core"
 	"testing"
 	"time"
+
+	core "github.com/libp2p/go-libp2p-core"
 
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/libp2p/go-libp2p"
