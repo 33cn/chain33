@@ -110,7 +110,6 @@ func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
 	} else {
 		maxPeers = int(s.cfg.MaxConnectNum + CacheLimit)
 	}
-
 	return numOfConns >= maxPeers
 }
 
