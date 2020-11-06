@@ -56,7 +56,7 @@ func (db *PebbleDB) Get(key []byte) ([]byte, error) {
 
 //Set set
 func (db *PebbleDB) Set(key []byte, value []byte) error {
-	err := db.db.Set(key, value, nil)
+	err := db.db.Set(key, value, &pebble.WriteOptions{Sync: false})
 	if err != nil {
 		pebbleLog.Error("Set", "error", err)
 		return err
@@ -76,7 +76,7 @@ func (db *PebbleDB) SetSync(key []byte, value []byte) error {
 
 //Delete 删除
 func (db *PebbleDB) Delete(key []byte) error {
-	err := db.db.Delete(key, nil)
+	err := db.db.Delete(key, &pebble.WriteOptions{Sync: false})
 	if err != nil {
 		pebbleLog.Error("Delete", "error", err)
 		return err
