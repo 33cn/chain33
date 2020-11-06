@@ -40,7 +40,7 @@ func NewPebbleDB(name string, dir string, cache int) (*PebbleDB, error) {
 
 //Get get
 func (db *PebbleDB) Get(key []byte) ([]byte, error) {
-	res, closer, err := db.db.Get(key)
+	value, closer, err := db.db.Get(key)
 	if err != nil {
 		if err == pebble.ErrNotFound {
 			return nil, ErrNotFoundInDb
@@ -48,6 +48,8 @@ func (db *PebbleDB) Get(key []byte) ([]byte, error) {
 		pebbleLog.Error("Get", "error", err)
 		return nil, err
 	}
+	res := make([]byte, len(value))
+	copy(res, value)
 	if err = closer.Close(); err != nil {
 		return nil, err
 	}
