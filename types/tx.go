@@ -463,7 +463,6 @@ func (tx *Transaction) Size() int {
 //Sign 交易签名
 func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	tx.Signature = nil
-	tx.UnsetCacheHash()
 	data := Encode(tx)
 	pub := priv.PubKey()
 	sign := priv.Sign(data)
@@ -483,7 +482,6 @@ func (tx *Transaction) CheckSign() bool {
 func (tx *Transaction) checkSign() bool {
 	copytx := *tx
 	copytx.Signature = nil
-	copytx.UnsetCacheHash()
 	data := Encode(&copytx)
 	if tx.GetSignature() == nil {
 		return false
@@ -548,14 +546,7 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	if tx.Signature == nil {
 		txSize += 300
 	}
-	// hash cache 不作为fee大小计算, byte数组经过proto编码会有2个字节的标志长度
-	if tx.HashCache != nil {
-		txSize -= len(tx.HashCache) + 2
-	}
-	if tx.FullHashCache != nil {
-		txSize -= len(tx.FullHashCache) + 2
-	}
-	if txSize > int(MaxTxSize) {
+	if txSize > MaxTxSize {
 		return 0, ErrTxMsgSizeTooBig
 	}
 	// 检查交易费是否小于最低值
@@ -811,39 +802,16 @@ func TransactionSort(rawtxs []*Transaction) []*Transaction {
 
 //Hash 交易的hash不包含header的值，引入tx group的概念后，做了修改
 func (tx *Transaction) Hash() []byte {
-	if tx.HashCache != nil {
-		return tx.HashCache
-	}
 	copytx := cloneTx(tx)
 	copytx.Signature = nil
 	copytx.Header = nil
-	copytx.FullHashCache = nil
 	data := Encode(copytx)
 	return common.Sha256(data)
 }
 
-//FullHash 交易的fullhash包含交易的签名信息，
-//这里做了clone 主要是因为 Encode 可能会修改 tx 的 Size 字段，可能会引起data race
+//FullHash 交易的fullhash包含交易的签名信息
 func (tx *Transaction) FullHash() []byte {
-
-	if tx.FullHashCache != nil {
-		return tx.FullHashCache
-	}
 	copytx := tx.Clone()
-	copytx.HashCache = nil
 	data := Encode(copytx)
 	return common.Sha256(data)
-}
-
-// UnsetCacheHash 清空hash缓存，交易向外部系统发送时调用
-func (tx *Transaction) UnsetCacheHash() {
-	tx.HashCache = nil
-	tx.FullHashCache = nil
-}
-
-// ReCalcCacheHash 重新计算 hash缓存， 通常交易首次进入系统时调用
-func (tx *Transaction) ReCalcCacheHash() {
-	tx.UnsetCacheHash()
-	tx.HashCache = tx.Hash()
-	tx.FullHashCache = tx.FullHash()
 }
