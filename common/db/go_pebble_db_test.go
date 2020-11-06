@@ -124,9 +124,9 @@ func BenchmarkPebbleBatchWrites1M(b *testing.B) {
 	benchmarkPebbleBatchWrites(b, 1024)
 }
 
-func BenchmarkPebbleBatchWrites4M(b *testing.B) {
-	benchmarkPebbleBatchWrites(b, 1024*4)
-}
+//func BenchmarkPebbleBatchWrites4M(b *testing.B) {
+//	benchmarkPebbleBatchWrites(b, 1024*4)
+//}
 
 func benchmarkPebbleBatchWrites(b *testing.B, size int) {
 	dir, err := ioutil.TempDir("", "example")
@@ -143,14 +143,16 @@ func benchmarkPebbleBatchWrites(b *testing.B, size int) {
 		value := common.GetRandBytes(size*1024, size*1024)
 		b.StartTimer()
 		batch.Set(key, value)
-		if i > 0 && i%1000 == 0 {
+		if i > 0 && i%100 == 0 {
 			err := batch.Write()
 			require.Nil(b, err)
 			batch = db.NewBatch(true)
 		}
 	}
-	err = batch.Write()
-	require.Nil(b, err)
+	if batch.ValueSize() > 0 {
+		err = batch.Write()
+		require.Nil(b, err)
+	}
 	b.StopTimer()
 }
 
@@ -179,19 +181,21 @@ func benchmarkPebbleRandomReads(b *testing.B, size int) {
 	defer db.Close()
 	batch := db.NewBatch(true)
 	var keys [][]byte
-	for i := 0; i < b.N; i++ {
+	for i := 0; i < 32*1024/size; i++ {
 		key := common.GetRandBytes(20, 64)
 		value := common.GetRandBytes(size*1024, size*1024)
 		batch.Set(key, value)
 		keys = append(keys, key)
-		if i > 0 && i%1000 == 0 {
+		if batch.ValueSize() > 1<<20 {
 			err := batch.Write()
 			require.Nil(b, err)
 			batch = db.NewBatch(true)
 		}
 	}
-	err = batch.Write()
-	require.Nil(b, err)
+	if batch.ValueSize() > 0 {
+		err = batch.Write()
+		require.Nil(b, err)
+	}
 	//开始rand 读取
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
