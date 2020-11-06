@@ -58,6 +58,7 @@ func (db *PebbleDB) Get(key []byte) ([]byte, error) {
 
 //Set set
 func (db *PebbleDB) Set(key []byte, value []byte) error {
+	// WriteOptions的Sync字段必须显式设置为false, 否则默认为true
 	err := db.db.Set(key, value, &pebble.WriteOptions{Sync: false})
 	if err != nil {
 		pebbleLog.Error("Set", "error", err)
