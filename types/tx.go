@@ -483,6 +483,8 @@ func (tx *Transaction) CheckSign() bool {
 func (tx *Transaction) checkSign() bool {
 	copytx := *tx
 	copytx.Signature = nil
+	//如果新版本扩展了字段，使用旧的数据结构解析，新字段将放在未识别字段中，导致验签失败，需要置空
+	copytx.XXX_unrecognized = nil
 	copytx.UnsetCacheHash()
 	data := Encode(&copytx)
 	if tx.GetSignature() == nil {

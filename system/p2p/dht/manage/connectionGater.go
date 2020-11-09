@@ -101,6 +101,9 @@ func (s *Conngater) validateDial(addr multiaddr.Multiaddr) bool {
 }
 
 func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
+	if s.maxConnectNum == 0 { //不对连接节点数量进行限制
+		return false
+	}
 	numOfConns := len((*s.host).Network().Peers())
 	var maxPeers int
 	if direction == network.DirInbound { //inbound connect
@@ -108,7 +111,6 @@ func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
 	} else {
 		maxPeers = int(s.maxConnectNum + CacheLimit)
 	}
-
 	return numOfConns >= maxPeers
 }
 

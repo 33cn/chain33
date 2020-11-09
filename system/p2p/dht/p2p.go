@@ -238,8 +238,12 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 
 	if p.subCfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
 		var maxconnect = int(p.subCfg.MaxConnectNum)
-		//5分钟的宽限期,定期清理
-		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(maxconnect, maxconnect+int(manage.CacheLimit), time.Minute*5)))
+		minconnect := maxconnect - int(manage.CacheLimit) //调整为不超过配置的上限
+		if minconnect < 0 {
+			minconnect = maxconnect / 2
+		}
+		//2分钟的宽限期,定期清理
+		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(minconnect, maxconnect, time.Minute*2)))
 		//ConnectionGater,处理网络连接的策略
 		options = append(options, libp2p.ConnectionGater(manage.NewConnGater(&p.host, p.subCfg.MaxConnectNum, timeCache)))
 	}

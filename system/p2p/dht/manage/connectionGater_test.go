@@ -3,10 +3,12 @@ package manage
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
+	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -14,33 +16,44 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func newTestHost(port int) (core.Host, error) {
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
+	if err != nil {
+		return nil, err
+	}
+
+	return libp2p.New(context.Background(),
+		libp2p.ListenAddrs(m),
+	)
+
+}
 func Test_MaxLimit(t *testing.T) {
-	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12345))
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 12345))
 	require.Nil(t, err)
 
 	var host1 host.Host
-	//设置0，意味着拒绝所有的连接
 	CacheLimit = 0
-	gater := NewConnGater(&host1, 0, nil)
+	gater := NewConnGater(&host1, 1, nil)
 	host1, err = libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m),
 		libp2p.ConnectionGater(gater),
 	)
 	require.Nil(t, err)
-	m2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 12346))
-	require.Nil(t, err)
 
-	host2, err := libp2p.New(context.Background(),
-		libp2p.ListenAddrs(m2),
-	)
+	host2, err := newTestHost(12346)
 	require.Nil(t, err)
 	h1info := peer.AddrInfo{
 		ID:    host1.ID(),
 		Addrs: host1.Addrs(),
 	}
 	err = host2.Connect(context.Background(), h1info)
-	require.NotNil(t, err)
+	require.Nil(t, err)
 
+	host3, err := newTestHost(12347)
+	require.Nil(t, err)
+	//超过上限，会拒绝连接，所以host3连接host1会被拒绝，连接失败
+	err = host3.Connect(context.Background(), h1info)
+	assert.NotNil(t, err)
 }
 
 func Test_InterceptAccept(t *testing.T) {
