@@ -145,6 +145,7 @@ func (chain *BlockChain) walkOverDeleteChunk(maxHeight int64) {
 
 // DeleteBlockBody del chunk body
 func (chain *BlockChain) DeleteBlockBody(chunkNum int64) []*types.KeyValue {
+	chainlog.Info("DeleteBlockBody", "chunkNum", chunkNum)
 	value, err := chain.blockStore.GetKey(calcChunkNumToHash(chunkNum))
 	if err != nil {
 		return nil
