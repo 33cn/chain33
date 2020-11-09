@@ -139,7 +139,7 @@ func TestMaxSerialChunkNum(t *testing.T) {
 	chain.blockStore = blockStore
 	// test noerror
 	for i := 0; i < 100; i++ {
-		err = chain.updateMaxSerialChunkNum()
+		err = chain.updateMaxSerialChunkNum(int64(i))
 		assert.NoError(t, err)
 		chunkNum := chain.getMaxSerialChunkNum()
 		assert.Equal(t, int64(i), chunkNum)
