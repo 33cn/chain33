@@ -109,6 +109,19 @@ func InitProtocol(env *protocol.P2PEnv) {
 					log.Info("LatencyEWMA", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid), "latency", p.Host.Peerstore().LatencyEWMA(pid))
 				}
 				log.Info("debug length", "notifying msg len", len(p.notifyingQueue))
+				log.Info("debug peers and conns", "peers len", len(p.Host.Network().Peers()), "conns len", len(p.Host.Network().Conns()))
+				for _, conn := range p.Host.Network().Conns() {
+					streams := conn.GetStreams()
+					log.Info("debug new conn", "remote peer", conn.RemotePeer(), "len streams", len(streams))
+					for _, s := range streams {
+						log.Info("debug new stream", "protocol id", s.Protocol())
+					}
+				}
+				p.localChunkInfoMutex.RLock()
+				for hash, info := range p.localChunkInfo {
+					log.Info("localChunkInfo", "hash", hash, "start", info.Start, "end", info.End)
+				}
+				p.localChunkInfoMutex.RUnlock()
 			}
 		}
 	}()

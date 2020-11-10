@@ -3,6 +3,7 @@ package protocol
 import (
 	"bytes"
 	"fmt"
+	"github.com/libp2p/go-libp2p-core/helpers"
 	"math/rand"
 	"runtime"
 	"time"
@@ -12,7 +13,6 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
@@ -50,11 +50,13 @@ func CloseStream(stream network.Stream) {
 	if stream == nil {
 		return
 	}
-	err := helpers.FullClose(stream)
-	if err != nil {
-		//just log it because it dose not matter
-		log.Debug("CloseStream", "err", err)
-	}
+	go func() {
+		err := helpers.FullClose(stream)
+		if err != nil {
+			//just log it because it dose not matter
+			log.Debug("CloseStream", "err", err)
+		}
+	}()
 }
 
 // AuthenticateMessage authenticates p2p message.

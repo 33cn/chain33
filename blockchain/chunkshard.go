@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	log "github.com/33cn/chain33/common/log/log15"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -26,7 +27,7 @@ var (
 
 const (
 	// OnceMaxChunkNum 每次检测最大生成chunk数
-	OnceMaxChunkNum int32 = 30
+	OnceMaxChunkNum int32 = 10
 	// DelRollbackChunkNum 删除小于当前chunk为DelRollbackChunkNum
 	DelRollbackChunkNum int32 = 10
 	// MaxReqChunkRecord 每次请求最大MaxReqChunkRecord个chunk的record
@@ -37,19 +38,19 @@ func (chain *BlockChain) chunkProcessRoutine() {
 	defer chain.tickerwg.Done()
 
 	// 1.60s检测一次是否可以删除本地的body数据
-	// 2.60s检测一次是否可以触发归档操作
+	// 2.10s检测一次是否可以触发归档操作
 
-	checkDelTicker := time.NewTicker(60 * time.Second)
-	checkGenChunkTicker := time.NewTicker(30 * time.Second) //主动查询当前未归档，然后进行触发
+	checkDelTicker := time.NewTicker(60 * time.Minute)
+	checkGenChunkTicker := time.NewTicker(10 * time.Second)
 	for {
 		select {
 		case <-chain.quit:
 			return
 		case <-checkDelTicker.C:
-			// 6.5版本先不做删除
-			chain.CheckDeleteBlockBody()
+			go chain.CheckDeleteBlockBody()
 		case <-checkGenChunkTicker.C:
-			chain.CheckGenChunkNum()
+			//主动查询当前未归档，然后进行触发
+			go chain.CheckGenChunkNum()
 		}
 	}
 }
@@ -65,7 +66,7 @@ func (chain *BlockChain) CheckGenChunkNum() {
 		if err := chain.chunkShardHandle(chunkNum); err != nil {
 			break
 		}
-		if err := chain.updateMaxSerialChunkNum(); err != nil {
+		if err := chain.updateMaxSerialChunkNum(chunkNum); err != nil {
 			break
 		}
 	}
@@ -90,7 +91,7 @@ func (chain *BlockChain) walkOverDeleteChunk(maxHeight int64) {
 	it := db.Iterator(ToDeleteChunkSign, nil, false)
 	defer it.Close()
 	// 每次walkOverDeleteChunk的最大删除chunk个数
-	const onceDelChunkNum = 100
+	const onceDelChunkNum = 1000
 	batch := db.NewBatch(true)
 	count := 0
 	for it.Rewind(); it.Valid(); it.Next() {
@@ -141,10 +142,18 @@ func (chain *BlockChain) walkOverDeleteChunk(maxHeight int64) {
 			break
 		}
 	}
+	start := time.Now()
+	err := chain.blockStore.db.CompactRange(nil, nil)
+	if err != nil {
+		log.Error("walkOverDeleteChunk", "CompactRange error", err)
+		return
+	}
+	log.Info("walkOverDeleteChunk", "CompactRange time cost", time.Since(start))
 }
 
 // DeleteBlockBody del chunk body
 func (chain *BlockChain) DeleteBlockBody(chunkNum int64) []*types.KeyValue {
+	chainlog.Info("DeleteBlockBody", "chunkNum", chunkNum)
 	value, err := chain.blockStore.GetKey(calcChunkNumToHash(chunkNum))
 	if err != nil {
 		return nil
@@ -224,12 +233,12 @@ func (chain *BlockChain) getMaxSerialChunkNum() int64 {
 	return atomic.LoadInt64(&chain.maxSerialChunkNum)
 }
 
-func (chain *BlockChain) updateMaxSerialChunkNum() error {
-	err := chain.blockStore.SetMaxSerialChunkNum(atomic.LoadInt64(&chain.maxSerialChunkNum) + 1)
+func (chain *BlockChain) updateMaxSerialChunkNum(chunkNum int64) error {
+	err := chain.blockStore.SetMaxSerialChunkNum(chunkNum)
 	if err != nil {
 		return err
 	}
-	atomic.AddInt64(&chain.maxSerialChunkNum, 1)
+	atomic.StoreInt64(&chain.maxSerialChunkNum, chunkNum)
 	return nil
 }
 
