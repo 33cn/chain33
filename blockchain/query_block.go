@@ -243,7 +243,8 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail, pid string) (*types.BlockDetail, error) {
 	beg := types.Now()
 	defer func() {
-		chainlog.Debug("ProcAddBlockMsg", "cost", types.Since(beg))
+		chainlog.Debug("ProcAddBlockMsg", "height", blockdetail.GetBlock().GetHeight(),
+			"txCount", blockdetail.GetBlock().GetHeight(), "recvFrom", pid, "cost", types.Since(beg))
 	}()
 
 	block := blockdetail.Block
