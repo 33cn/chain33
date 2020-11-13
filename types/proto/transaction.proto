@@ -268,3 +268,12 @@ message TxProof {
     uint32         index    = 2;
     bytes          rootHash = 3;
 }
+
+// 指定交易哈希，查找是否存在
+message ReqCheckTxsExist {
+    repeated bytes txHashes = 1;
+}
+
+message ReplyCheckTxsExist {
+    repeated uint32 notExistIndices = 1;
+}
