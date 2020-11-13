@@ -105,7 +105,7 @@ func Genaddress() (string, crypto.PrivKey) {
 
 // CreateNoneTx : Create None Tx
 func CreateNoneTx(cfg *types.Chain33Config, priv crypto.PrivKey) *types.Transaction {
-	return CreateTxWithExecer(cfg, priv, "user.write")
+	return CreateTxWithExecer(cfg, priv, "none")
 }
 
 func updateExpireWithTxHeight(tx *types.Transaction, priv crypto.PrivKey, currHeight int64) {
