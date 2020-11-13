@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"math"
+	"math/rand"
 	"time"
 
 	"github.com/33cn/chain33/types"
@@ -17,7 +17,7 @@ import (
 
 func main() {
 
-	db, err := leveldb.OpenFile("demo", &opt.Options{
+	db, err := leveldb.OpenFile("/home/yann/test/leveldb", &opt.Options{
 		OpenFilesCacheCapacity: 16,
 		BlockCacheCapacity:     2 * opt.MiB,
 		WriteBuffer:            4 * opt.MiB, // Two of these are used internally
@@ -35,20 +35,16 @@ func main() {
 	}
 	_ = tx
 
-	_ = math.MaxInt64
 	start := time.Now()
-	for i := 0; i < 1e6; i++ {
+	for i := 0; i < 1e8; i++ {
 		fmt.Println(i)
-		sum := sha256.Sum256(IntToBytes(i + 1e10))
+		sum := sha256.Sum256(IntToBytes(i))
 		key := sum[:]
-		//tx.Fee = rand.Int63()
-		//tx.Expire = rand.Int63()
-		//tx.Nonce = rand.Int63()
-		//tx.GroupCount = rand.Int31()
-		//if err := db.Put(key, types.Encode(tx), &opt.WriteOptions{}); err != nil {
-		//	log.Fatal(err)
-		//}
-		if _, err := db.Get(key, nil); err != nil && err != leveldb.ErrNotFound {
+		tx.Fee = rand.Int63()
+		tx.Expire = rand.Int63()
+		tx.Nonce = rand.Int63()
+		tx.GroupCount = rand.Int31()
+		if err := db.Put(key, types.Encode(tx), &opt.WriteOptions{}); err != nil {
 			log.Fatal(err)
 		}
 	}

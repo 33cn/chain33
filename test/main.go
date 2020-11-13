@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"log"
-	"math"
+	"math/rand"
 	"time"
 
 	"github.com/33cn/chain33/types"
@@ -19,7 +19,7 @@ func main() {
 	level.EnsureDefaults()
 	level.FilterPolicy = bloom.FilterPolicy(10)
 
-	db, err := pebble.Open("demo", &pebble.Options{
+	db, err := pebble.Open("/home/yann/test/pebble", &pebble.Options{
 		BytesPerSync: 4 << 20,
 		Levels:       []pebble.LevelOptions{{FilterPolicy: bloom.FilterPolicy(10)}},
 	})
@@ -35,27 +35,18 @@ func main() {
 	}
 	_ = tx
 
-	_ = math.MaxInt64
 	start := time.Now()
-	for i := 0; i < 1e6; i++ {
+	for i := 0; i < 1e8; i++ {
 		fmt.Println(i)
-		sum := sha256.Sum256(IntToBytes(i + 1e10))
+		sum := sha256.Sum256(IntToBytes(i))
 		key := sum[:]
-		//tx.Fee = rand.Int63()
-		//tx.Expire = rand.Int63()
-		//tx.Nonce = rand.Int63()
-		//tx.GroupCount = rand.Int31()
-		//if err := db.Set(key, types.Encode(tx), pebble.NoSync); err != nil {
-		//	log.Fatal(err)
-		//}
-		_, closer, err := db.Get(key)
-		if err == pebble.ErrNotFound {
-			continue
-		}
-		if err != nil {
+		tx.Fee = rand.Int63()
+		tx.Expire = rand.Int63()
+		tx.Nonce = rand.Int63()
+		tx.GroupCount = rand.Int31()
+		if err := db.Set(key, types.Encode(tx), pebble.NoSync); err != nil {
 			log.Fatal(err)
 		}
-		_ = closer.Close()
 	}
 	fmt.Println("time cost:", time.Since(start))
 
