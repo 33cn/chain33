@@ -237,6 +237,7 @@ func (pb *pebbleBatch) Delete(key []byte) {
 
 // Write batch write
 func (pb *pebbleBatch) Write() error {
+	defer pb.batch.Close()
 	err := pb.batch.Commit(pb.wop)
 	if err != nil {
 		pebbleLog.Error("Write", "error", err)
