@@ -100,7 +100,9 @@ func (client *Client) CreateBlock() {
 	issleep := true
 	types.AssertConfig(client.GetAPI())
 	cfg := client.GetAPI().GetConfig()
+	beg := types.Now()
 	for {
+
 		if client.IsClosed() {
 			break
 		}
@@ -140,6 +142,8 @@ func (client *Client) CreateBlock() {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
+		log.Info("SoloNewBlock", "height", newblock.Height, "txs", len(newblock.Txs), "cost", types.Since(beg))
+		beg = types.Now()
 		//判断有没有交易是被删除的，这类交易要从mempool 中删除
 		if err != nil {
 			issleep = true
