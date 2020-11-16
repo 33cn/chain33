@@ -395,7 +395,7 @@ func (p *Protocol) checkNetworkAndStoreChunk(req *types.ChunkInfoMsg) error {
 			continue
 		}
 		//本地存储之后立即到其他节点做一次备份
-		p.notifyStoreChunk(req)
+		go p.notifyStoreChunk(req)
 	}
 	return err
 }
