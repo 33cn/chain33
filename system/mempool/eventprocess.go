@@ -232,11 +232,9 @@ func (mem *Mempool) eventCheckTxsExist(msg *queue.Message) {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	hashes := msg.GetData().(*types.ReqCheckTxsExist).TxHashes
-	reply := &types.ReplyCheckTxsExist{}
-	for index, hash := range hashes {
-		if !mem.cache.Exist(types.Bytes2Str(hash)) {
-			reply.NotExistIndices = append(reply.NotExistIndices, uint32(index))
-		}
+	reply := &types.ReplyCheckTxsExist{ExistFlags: make([]bool, len(hashes))}
+	for i, hash := range hashes {
+		reply.ExistFlags[i] = mem.cache.Exist(types.Bytes2Str(hash))
 	}
 	msg.Reply(mem.client.NewMessage("", types.EventReply, reply))
 }
