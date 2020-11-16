@@ -90,42 +90,6 @@ func TestDeleteBlockBody(t *testing.T) {
 	}
 }
 
-func TestGenDeleteChunkSign(t *testing.T) {
-	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir) // clean up
-	os.RemoveAll(dir)       //删除已存在目录
-
-	chain := InitEnv()
-	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
-	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
-	chain.blockStore = blockStore
-
-	blockStore.UpdateHeight2(10)
-	kv := chain.genDeleteChunkSign(1)
-	fn := func(value []byte) int64 {
-		data := &types.Int64{}
-		err = types.Decode(value, data)
-		assert.NoError(t, err)
-		return data.Data
-	}
-	// test for no GetPeerMaxBlkHeight
-	assert.Equal(t, int64(-1), fn(kv.Value))
-	// test 可以获取到最大peer节点，但是比本地高度低的情况
-	chain.peerList = PeerInfoList{
-		&PeerInfo{
-			Height: 9,
-		},
-	}
-	kv = chain.genDeleteChunkSign(1)
-	assert.Equal(t, int64(10), fn(kv.Value))
-	// test 可以获取到最大peer节点，但是比本地高度高的情况
-	chain.peerList[0].Height = 15
-	kv = chain.genDeleteChunkSign(1)
-	assert.Equal(t, int64(15), fn(kv.Value))
-}
-
 func TestMaxSerialChunkNum(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)

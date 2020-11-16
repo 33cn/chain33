@@ -5,16 +5,13 @@
 package blockchain
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	log "github.com/33cn/chain33/common/log/log15"
-	"strconv"
+	dbm "github.com/33cn/chain33/common/db"
 	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/common"
-	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
 
@@ -27,7 +24,7 @@ var (
 
 const (
 	// OnceMaxChunkNum 每次检测最大生成chunk数
-	OnceMaxChunkNum int32 = 10
+	OnceMaxChunkNum int32 = 30
 	// DelRollbackChunkNum 删除小于当前chunk为DelRollbackChunkNum
 	DelRollbackChunkNum int32 = 10
 	// MaxReqChunkRecord 每次请求最大MaxReqChunkRecord个chunk的record
@@ -40,7 +37,7 @@ func (chain *BlockChain) chunkProcessRoutine() {
 	// 1.60s检测一次是否可以删除本地的body数据
 	// 2.10s检测一次是否可以触发归档操作
 
-	checkDelTicker := time.NewTicker(60 * time.Minute)
+	checkDelTicker := time.NewTicker(time.Minute)
 	checkGenChunkTicker := time.NewTicker(10 * time.Second)
 	for {
 		select {
@@ -57,6 +54,12 @@ func (chain *BlockChain) chunkProcessRoutine() {
 
 // CheckGenChunkNum 检测是否需要生成chunkNum
 func (chain *BlockChain) CheckGenChunkNum() {
+	if atomic.LoadInt32(&chain.processingGenChunk) == 1 {
+		// 保证同一时刻只存在一个该协程
+		return
+	}
+	atomic.StoreInt32(&chain.processingGenChunk, 1)
+	defer atomic.StoreInt32(&chain.processingGenChunk, 0)
 	safetyChunkNum, _, _ := chain.CalcSafetyChunkInfo(chain.GetBlockHeight())
 	for i := int32(0); i < OnceMaxChunkNum; i++ {
 		chunkNum := chain.getMaxSerialChunkNum() + 1
@@ -74,86 +77,56 @@ func (chain *BlockChain) CheckGenChunkNum() {
 
 // CheckDeleteBlockBody 检测是否需要删除已经归档BlockBody
 func (chain *BlockChain) CheckDeleteBlockBody() {
-	height := chain.GetBlockHeight()
-	maxHeight := chain.GetPeerMaxBlkHeight()
-	if maxHeight == -1 {
+	if atomic.LoadInt32(&chain.processingDeleteChunk) == 1 {
+		// 保证同一时刻只存在一个该协程
 		return
 	}
-	if height > maxHeight {
-		maxHeight = height
-	}
-	chain.walkOverDeleteChunk(maxHeight)
-}
-
-// 通过遍历ToDeleteChunkSign 去删除归档body
-func (chain *BlockChain) walkOverDeleteChunk(maxHeight int64) {
-	db := chain.GetDB()
-	it := db.Iterator(ToDeleteChunkSign, nil, false)
-	defer it.Close()
-	// 每次walkOverDeleteChunk的最大删除chunk个数
-	const onceDelChunkNum = 1000
-	batch := db.NewBatch(true)
-	count := 0
-	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.Value()
-		data := &types.Int64{}
-		err := types.Decode(value, data)
-		if err != nil {
-			continue
-		}
-		chunkNum, err := strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), ToDeleteChunkSign)), 10, 64)
-		if err != nil {
-			continue
-		}
-		if chunkNum > atomic.LoadInt64(&chain.maxSerialChunkNum) {
-			break
-		}
-		key := make([]byte, len(it.Key()))
-		copy(key, it.Key())
-		var kvs []*types.KeyValue
-		if data.Data < 0 {
-			data.Data = maxHeight
-			kvs = append(kvs, &types.KeyValue{Key: key, Value: types.Encode(data)})
-		} else {
-			delChunkNum, _, _ := chain.CalcChunkInfo(data.Data)
-			maxChunkNum, _, _ := chain.CalcSafetyChunkInfo(maxHeight)
-			if maxChunkNum > delChunkNum+int64(DelRollbackChunkNum) {
-				kvs = append(kvs, &types.KeyValue{Key: key, Value: nil}) // 将相应的ToDeleteChunkSign进行删除
-				kv := chain.DeleteBlockBody(chunkNum)
-				if len(kv) > 0 {
-					kvs = append(kvs, kv...)
-				}
-			}
-		}
-		// 批量写入数据库
-		if len(kvs) > 0 {
-			batch.Reset()
-			for _, kv := range kvs {
-				if kv.GetValue() == nil {
-					batch.Delete(kv.GetKey())
-				} else {
-					batch.Set(kv.GetKey(), kv.GetValue())
-				}
-			}
-			dbm.MustWrite(batch)
-		}
+	atomic.StoreInt32(&chain.processingDeleteChunk, 1)
+	defer atomic.StoreInt32(&chain.processingDeleteChunk, 0)
+	const onceDelChunkNum = 100 // 每次walkOverDeleteChunk的最大删除chunk个数
+	var count int64
+	var kvs []*types.KeyValue
+	toDelete := chain.blockStore.GetMaxDeletedChunkNum() + 1
+	chainlog.Info("CheckDeleteBlockBody start", "start", toDelete)
+	for toDelete+int64(DelRollbackChunkNum) < atomic.LoadInt64(&chain.maxSerialChunkNum) && count < onceDelChunkNum {
+		chainlog.Info("CheckDeleteBlockBody toDelete", "toDelete", toDelete)
+		kv := chain.DeleteBlockBody(toDelete)
+		kvs = append(kvs, kv...)
+		toDelete++
 		count++
-		if count > onceDelChunkNum {
-			break
+	}
+	atomic.AddInt64(&chain.deleteChunkCount, count)
+	batch := chain.GetDB().NewBatch(true)
+	batch.Reset()
+	for _, kv := range kvs {
+		batch.Delete(kv.GetKey())
+	}
+	if count != 0 {
+		dbm.MustWrite(batch)
+		if err := chain.blockStore.SetMaxDeletedChunkNum(toDelete - 1); err != nil {
+			chainlog.Error("CheckDeleteBlockBody", "SetMaxDeletedChunkNum error", err)
 		}
 	}
-	start := time.Now()
-	err := chain.blockStore.db.CompactRange(nil, nil)
-	if err != nil {
-		log.Error("walkOverDeleteChunk", "CompactRange error", err)
-		return
+
+	//删除超过10个chunk则进行数据库压缩
+	if atomic.LoadInt64(&chain.deleteChunkCount) >= 10 {
+		now := time.Now()
+		start := []byte("CHAIN-body-body-")
+		limit := make([]byte, len(start))
+		copy(limit, start)
+		limit[len(limit)-1]++
+		if err := chain.blockStore.db.CompactRange(start, limit); err != nil {
+			chainlog.Error("walkOverDeleteChunk", "CompactRange error", err)
+			return
+		}
+		chainlog.Info("walkOverDeleteChunk", "CompactRange time cost", time.Since(now))
+		atomic.StoreInt64(&chain.deleteChunkCount, 0)
 	}
-	log.Info("walkOverDeleteChunk", "CompactRange time cost", time.Since(start))
+
 }
 
 // DeleteBlockBody del chunk body
 func (chain *BlockChain) DeleteBlockBody(chunkNum int64) []*types.KeyValue {
-	chainlog.Info("DeleteBlockBody", "chunkNum", chunkNum)
 	value, err := chain.blockStore.GetKey(calcChunkNumToHash(chunkNum))
 	if err != nil {
 		return nil
@@ -208,7 +181,6 @@ func (chain *BlockChain) chunkShardHandle(chunkNum int64) error {
 		End:       end,
 	}
 	kvs := genChunkRecord(chunk, bodys)
-	kvs = append(kvs, chain.genDeleteChunkSign(chunk.ChunkNum))
 	chain.saveChunkRecord(kvs)
 	if err := chain.notifyStoreChunkToP2P(chunk); err != nil {
 		return err
@@ -216,19 +188,6 @@ func (chain *BlockChain) chunkShardHandle(chunkNum int64) error {
 	chainlog.Info("chunkShardHandle", "chunkNum", chunk.ChunkNum, "start", start, "end", end, "chunkHash", common.ToHex(chunkHash))
 	return nil
 }
-
-func (chain *BlockChain) genDeleteChunkSign(chunkNum int64) *types.KeyValue {
-	maxHeight := chain.GetPeerMaxBlkHeight()
-	if maxHeight != -1 && chain.GetBlockHeight() > maxHeight {
-		maxHeight = chain.GetBlockHeight()
-	}
-	kv := &types.KeyValue{
-		Key:   calcToDeleteChunkSign(chunkNum),
-		Value: types.Encode(&types.Int64{Data: maxHeight}),
-	}
-	return kv
-}
-
 func (chain *BlockChain) getMaxSerialChunkNum() int64 {
 	return atomic.LoadInt64(&chain.maxSerialChunkNum)
 }
