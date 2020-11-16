@@ -275,5 +275,5 @@ message ReqCheckTxsExist {
 }
 
 message ReplyCheckTxsExist {
-    repeated uint32 notExistIndices = 1;
+    repeated bool existFlags = 1;
 }

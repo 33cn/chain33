@@ -289,28 +289,32 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	if errReturn && block.Height > 0 {
 
 		//首先向mempool模块查询是否存在该交易，避免重复验签
-		var checkHashList types.ReqCheckTxsExist
-		for _, tx := range cacheTxs {
-			checkHashList.TxHashes = append(checkHashList.TxHashes, tx.Hash())
+		checkReq := &types.ReqCheckTxsExist{TxHashes: make([][]byte, len(block.Txs))}
+		for i, tx := range cacheTxs {
+			checkReq.TxHashes[i] = tx.Hash()
 		}
-		hashList := client.NewMessage("mempool", types.EventCheckTxsExist, &checkHashList)
-		err := client.Send(hashList, true)
+		checkReqMsg := client.NewMessage("mempool", types.EventCheckTxsExist, &checkReq)
+		err := client.Send(checkReqMsg, true)
 		if err != nil {
 			ulog.Error("PreExecBlock", "send mempool check txs exist err", err)
 			return nil, nil, err
 		}
-		reply, err := client.Wait(hashList)
+		reply, err := client.Wait(checkReqMsg)
 		if err != nil {
+			ulog.Error("PreExecBlock", "wait mempool check txs exist reply err", err)
 			return nil, nil, err
 		}
-		//mempool不存在的交易，需要验签
-		needCheckIndices := reply.GetData().(*types.ReplyCheckTxsExist).NotExistIndices
-		ulog.Debug("PreExecBlock", "height", block.GetHeight(), "checkSignCount", len(needCheckIndices), "CheckSign", types.Since(beg))
-		var txs []*types.Transaction
-		for _, index := range needCheckIndices {
-			txs = append(txs, block.Txs[index])
+		existArr := reply.GetData().(*types.ReplyCheckTxsExist).ExistFlags
+		unverifiedTxs := make([]*types.Transaction, 0, len(block.Txs))
+		for index, exist := range existArr {
+			//只需要对mempool中不存在的交易验签
+			if !exist {
+				unverifiedTxs = append(unverifiedTxs, block.Txs[index])
+			}
 		}
-		if !types.VerifySignature(config, block, txs) {
+		signOK := types.VerifySignature(config, block, unverifiedTxs)
+		ulog.Debug("PreExecBlock", "height", block.GetHeight(), "checkCount", len(unverifiedTxs), "CheckSign", types.Since(beg))
+		if !signOK {
 			return nil, nil, types.ErrSign
 		}
 	}
@@ -360,8 +364,8 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	}
 
 	beg = types.Now()
-	var kvset []*types.KeyValue
-	var rdata []*types.ReceiptData //save to db receipt log
+	kvset := make([]*types.KeyValue, 0, len(receipts.GetReceipts()))
+	rdata := make([]*types.ReceiptData, 0, len(receipts.GetReceipts())) //save to db receipt log
 	//删除无效的交易
 	var deltxs []*types.Transaction
 	index := 0
