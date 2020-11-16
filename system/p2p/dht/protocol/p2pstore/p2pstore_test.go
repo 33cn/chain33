@@ -344,6 +344,8 @@ func initMockBlockchain(q queue.Queue) <-chan *queue.Message {
 	go func() {
 		for msg := range client.Recv() {
 			switch msg.Ty {
+			case types.EventIsSync:
+				msg.Reply(queue.NewMessage(0, "", 0, &types.IsCaughtUp{Iscaughtup: true}))
 			case types.EventGetLastHeader:
 				msg.Reply(queue.NewMessage(0, "", 0, &types.Header{Height: 14000}))
 			case types.EventGetChunkBlockBody:
