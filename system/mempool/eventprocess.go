@@ -231,10 +231,17 @@ func (mem *Mempool) eventTxListByHash(msg *queue.Message) {
 func (mem *Mempool) eventCheckTxsExist(msg *queue.Message) {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	hashes := msg.GetData().(*types.ReqCheckTxsExist).TxHashes
-	reply := &types.ReplyCheckTxsExist{ExistFlags: make([]bool, len(hashes))}
-	for i, hash := range hashes {
-		reply.ExistFlags[i] = mem.cache.Exist(types.Bytes2Str(hash))
+	reply := &types.ReplyCheckTxsExist{}
+	//非同步状态时mempool通常不存在交易，直接返回不做比对
+	if mem.sync {
+		hashes := msg.GetData().(*types.ReqCheckTxsExist).TxHashes
+		reply.ExistFlags = make([]bool, len(hashes))
+		for i, hash := range hashes {
+			reply.ExistFlags[i] = mem.cache.Exist(types.Bytes2Str(hash))
+			if reply.ExistFlags[i] {
+				reply.ExistCount++
+			}
+		}
 	}
 	msg.Reply(mem.client.NewMessage("", types.EventReply, reply))
 }

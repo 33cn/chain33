@@ -1288,10 +1288,19 @@ func TestCheckTxsExist(t *testing.T) {
 	mem.eventCheckTxsExist(checkReqMsg)
 	reply, err := mem.client.Wait(checkReqMsg)
 	assert.Nil(t, err)
-	existArr := reply.GetData().(*types.ReplyCheckTxsExist).ExistFlags
-	assert.Equal(t, 20, len(existArr))
-	for i, exist := range existArr {
+	replyData := reply.GetData().(*types.ReplyCheckTxsExist)
+
+	assert.Equal(t, 20, len(replyData.ExistFlags))
+	assert.Equal(t, 10, int(replyData.ExistCount))
+	for i, exist := range replyData.ExistFlags {
 		//根据请求数据，结果应该是存在（true）、不存在（false）交替序列，即奇偶交错
 		assert.Equal(t, i%2 == 0, exist)
 	}
+	mem.setSync(false)
+	mem.eventCheckTxsExist(checkReqMsg)
+	reply, err = mem.client.Wait(checkReqMsg)
+	assert.Nil(t, err)
+	replyData = reply.GetData().(*types.ReplyCheckTxsExist)
+	assert.Equal(t, 0, len(replyData.ExistFlags))
+	assert.Equal(t, 0, int(replyData.ExistCount))
 }

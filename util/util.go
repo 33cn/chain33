@@ -288,12 +288,12 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	//区块验签，只验证非本节点打包的区块
 	if errReturn && block.Height > 0 {
 
-		//首先向mempool模块查询是否存在该交易，避免重复验签
+		//首先向mempool模块查询是否存在该交易，避免重复验签，同步历史区块时方案无效
 		checkReq := &types.ReqCheckTxsExist{TxHashes: make([][]byte, len(block.Txs))}
 		for i, tx := range cacheTxs {
 			checkReq.TxHashes[i] = tx.Hash()
 		}
-		checkReqMsg := client.NewMessage("mempool", types.EventCheckTxsExist, &checkReq)
+		checkReqMsg := client.NewMessage("mempool", types.EventCheckTxsExist, checkReq)
 		err := client.Send(checkReqMsg, true)
 		if err != nil {
 			ulog.Error("PreExecBlock", "send mempool check txs exist err", err)
@@ -304,12 +304,16 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 			ulog.Error("PreExecBlock", "wait mempool check txs exist reply err", err)
 			return nil, nil, err
 		}
-		existArr := reply.GetData().(*types.ReplyCheckTxsExist).ExistFlags
-		unverifiedTxs := make([]*types.Transaction, 0, len(block.Txs))
-		for index, exist := range existArr {
-			//只需要对mempool中不存在的交易验签
-			if !exist {
-				unverifiedTxs = append(unverifiedTxs, block.Txs[index])
+		replyData := reply.GetData().(*types.ReplyCheckTxsExist)
+		unverifiedTxs := block.Txs
+		//区块中交易在mempool中已有存在情况，重新构造需要验签的交易列表
+		if replyData.ExistCount > 0 {
+			unverifiedTxs = make([]*types.Transaction, 0, len(block.Txs)-int(replyData.ExistCount))
+			for index, exist := range replyData.ExistFlags {
+				//只需要对mempool中不存在的交易验签
+				if !exist {
+					unverifiedTxs = append(unverifiedTxs, block.Txs[index])
+				}
 			}
 		}
 		signOK := types.VerifySignature(config, block, unverifiedTxs)
