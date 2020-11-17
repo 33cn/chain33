@@ -275,5 +275,8 @@ message ReqCheckTxsExist {
 }
 
 message ReplyCheckTxsExist {
+    //对应请求序列存在标识数组，存在则true，否则false
     repeated bool existFlags = 1;
+    //存在情况的总个数
+    uint32 existCount = 2;
 }
