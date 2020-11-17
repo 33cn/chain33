@@ -17,6 +17,11 @@ func (p *Protocol) republish() {
 	if p.SubConfig.IsFullNode {
 		return
 	}
+	reply, err := p.API.IsSync()
+	if err != nil || !reply.IsOk {
+		// 没有同步完，不进行republish操作
+		return
+	}
 	m := make(map[string]LocalChunkInfo)
 	p.localChunkInfoMutex.RLock()
 	for k, v := range p.localChunkInfo {
