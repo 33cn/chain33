@@ -245,7 +245,7 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 		peers = nearerPeers
 	}
 
-	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
+	log.Error("mustFetchChunk not found", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
 	if !queryFull {
 		return nil, "", types2.ErrNotFound
 	}
@@ -390,6 +390,7 @@ func (p *Protocol) checkNetworkAndStoreChunk(req *types.ChunkInfoMsg) error {
 	}
 	var err error
 	for _, info := range infos {
+		log.Info("checkNetworkAndStoreChunk storing", "chunk hash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 		if err = p.storeChunk(info); err != nil {
 			log.Error("checkNetworkAndStoreChunk", "store chunk error", err, "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 			continue

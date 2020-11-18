@@ -241,12 +241,12 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	if pid != "" && kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}
+	log.Info("handleEventNotifyStoreChunk", "local nearest peer", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
 	err = p.checkNetworkAndStoreChunk(req)
 	if err != nil {
 		log.Error("storeChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return
 	}
-	log.Info("storeChunk", "local pid", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
 }
 
 func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {

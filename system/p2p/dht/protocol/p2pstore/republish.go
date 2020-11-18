@@ -100,8 +100,8 @@ func (p *Protocol) genTempRoutingTable(key []byte, count int) *kb.RoutingTable {
 	}
 
 	for i, pid := range peers {
-		// 最多查5个节点
-		if i+1 > 5 {
+		// 至少从 3 个节点上获取新节点，保证 tmpRoutingTable 至少有 3*Backup 个节点，但至多从 10 个节点上获取新节点
+		if i+1 > 3 && (tmpRoutingTable.Size() > 3*Backup || i+1 > 10) {
 			break
 		}
 		closerPeers, err := p.fetchCloserPeers(key, count, pid)
