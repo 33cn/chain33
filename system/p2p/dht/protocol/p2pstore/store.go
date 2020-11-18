@@ -28,11 +28,11 @@ type LocalChunkInfo struct {
 
 // 保存chunk到本地p2pStore，同时更新本地chunk列表
 func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys types.Message) error {
-	err := p.addLocalChunkInfo(info)
+	err := p.DB.Put(genChunkDBKey(info.ChunkHash), types.Encode(bodys))
 	if err != nil {
 		return err
 	}
-	return p.DB.Put(genChunkDBKey(info.ChunkHash), types.Encode(bodys))
+	return p.addLocalChunkInfo(info)
 }
 
 // 更新本地chunk保存时间，只更新索引即可
