@@ -3,10 +3,11 @@ package protocol
 import (
 	"bytes"
 	"fmt"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"math/rand"
 	"runtime"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/helpers"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"

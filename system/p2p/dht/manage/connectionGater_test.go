@@ -3,9 +3,10 @@ package manage
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"

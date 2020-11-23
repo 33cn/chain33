@@ -3,13 +3,14 @@ package peer
 import (
 	"context"
 	"fmt"
-	types2 "github.com/33cn/chain33/system/p2p/dht/types"
-	"github.com/libp2p/go-libp2p-core/network"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	types2 "github.com/33cn/chain33/system/p2p/dht/types"
+	"github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
