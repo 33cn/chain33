@@ -95,10 +95,10 @@ func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, er
 		return nil, types2.ErrNotFound
 	}
 	var bodys []*types.BlockBody
-	var body types.BlockBody
 	it := p.DB.Iterator(genKey(req.ChunkHash, req.Start), genKey(req.ChunkHash, req.End+1), false)
 	defer it.Close()
 	for it.Next(); it.Valid(); it.Next() {
+		var body types.BlockBody
 		if err := types.Decode(it.Value(), &body); err != nil {
 			return nil, err
 		}

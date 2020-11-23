@@ -94,8 +94,10 @@ func TestInit(t *testing.T) {
 		Start:     666,
 		End:       888,
 	})
-
-	require.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
+	bodys := msg.Data.(*types.BlockBodys).Items
+	require.Equal(t, 223, len(bodys))
+	require.Equal(t, int64(666), bodys[0].Height)
+	require.Equal(t, int64(888), bodys[222].Height)
 
 	//向host1请求数据
 	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
