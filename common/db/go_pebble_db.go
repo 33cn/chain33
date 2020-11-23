@@ -28,8 +28,11 @@ func init() {
 // NewPebbleDB new
 func NewPebbleDB(name string, dir string, cache int) (*PebbleDB, error) {
 	dbPath := path.Join(dir, name+".db")
+	if cache < 16 {
+		cache = 16
+	}
 	db, err := pebble.Open(dbPath, &pebble.Options{
-		BytesPerSync: 4 << 20,
+		BytesPerSync: cache / 32 * (1 << 20),
 		Levels:       []pebble.LevelOptions{{FilterPolicy: bloom.FilterPolicy(10)}},
 	})
 	if err != nil {
