@@ -380,7 +380,6 @@ func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
 func (p *Protocol) checkNetworkAndStoreChunk(req *types.ChunkInfoMsg) error {
 	//先检查之前的chunk是否以在网络中查到
 	infos := p.getHistoryChunkInfos(req, 3)
-	infos = append(infos, req)
 	for i := len(infos) - 1; i >= 0; i-- {
 		info := infos[i]
 		if _, ok := p.checkChunkInNetwork(info); ok {
@@ -388,6 +387,7 @@ func (p *Protocol) checkNetworkAndStoreChunk(req *types.ChunkInfoMsg) error {
 			break
 		}
 	}
+	infos = append(infos, req)
 	var err error
 	for _, info := range infos {
 		log.Info("checkNetworkAndStoreChunk storing", "chunk hash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
