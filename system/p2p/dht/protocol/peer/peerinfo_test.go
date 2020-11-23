@@ -244,6 +244,10 @@ func (p *peerInfoManager) FetchAll() []*types.Peer {
 	return peers
 }
 func (p *peerInfoManager) PeerHeight(pid peer.ID) int64 {
+	return p.PeerMaxHeight()
+}
+
+func (p *peerInfoManager) PeerMaxHeight() int64 {
 	return 10000
 }
 
