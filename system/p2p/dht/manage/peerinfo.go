@@ -3,6 +3,7 @@ package manage
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/queue"
@@ -13,10 +14,11 @@ import (
 
 // PeerInfoManager peer info manager
 type PeerInfoManager struct {
-	ctx      context.Context
-	peerInfo sync.Map
-	client   queue.Client
-	host     host.Host
+	ctx       context.Context
+	peerInfo  sync.Map
+	client    queue.Client
+	host      host.Host
+	maxHeight int64
 }
 
 type peerStoreInfo struct {
@@ -45,6 +47,9 @@ func (p *PeerInfoManager) Refresh(peer *types.Peer) {
 		peer:      peer,
 	}
 	p.peerInfo.Store(peer.Name, &storeInfo)
+	if peer.GetHeader().GetHeight() > atomic.LoadInt64(&p.maxHeight) {
+		atomic.StoreInt64(&p.maxHeight, peer.GetHeader().GetHeight())
+	}
 }
 
 // Fetch returns info of given peer
@@ -101,7 +106,10 @@ func (p *PeerInfoManager) PeerHeight(pid peer.ID) int64 {
 		return -1
 	}
 	return info.peer.GetHeader().Height
+}
 
+func (p *PeerInfoManager) PeerMaxHeight() int64 {
+	return atomic.LoadInt64(&p.maxHeight)
 }
 
 func (p *PeerInfoManager) start() {
@@ -110,20 +118,6 @@ func (p *PeerInfoManager) start() {
 		case <-p.ctx.Done():
 			return
 		case <-time.After(time.Second * 30):
-			//获取当前高度，过滤掉高度较低的节点
-			//msg := p.client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-			//err := p.client.Send(msg, true)
-			//if err != nil {
-			//	continue
-			//}
-			//resp, err := p.client.WaitTimeout(msg, time.Second*10)
-			//if err != nil {
-			//	continue
-			//}
-			//header, ok := resp.GetData().(*types.Header)
-			//if !ok {
-			//	continue
-			//}
 			p.prune()
 		}
 	}
@@ -135,17 +129,6 @@ func (p *PeerInfoManager) prune() {
 			p.peerInfo.Delete(key)
 			return true
 		}
-		//check blockheight,删除落后512高度的节点
-		//if info.peer.Header.GetHeight()+diffheightValue < height {
-		//	id, _ := peer.Decode(key.(string))
-		//	for _, conn := range p.host.Network().ConnsToPeer(id) {
-		//		//判断是Inbound 还是Outbound
-		//		if conn.Stat().Direction == network.DirOutbound {
-		//			//断开连接
-		//			_ = conn.Close()
-		//		}
-		//	}
-		//}
 		return true
 	})
 }

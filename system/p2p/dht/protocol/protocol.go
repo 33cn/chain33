@@ -50,6 +50,7 @@ type IPeerInfoManager interface {
 	Fetch(pid peer.ID) *types.Peer
 	FetchAll() []*types.Peer
 	PeerHeight(pid peer.ID) int64
+	PeerMaxHeight() int64
 }
 
 // IConnManager is interface of ConnManager
