@@ -166,7 +166,7 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 }
 
 func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
-	for _, pid := range p.HealthyRoutingTable.ListPeers() {
+	for _, pid := range p.ShardHealthyRoutingTable.ListPeers() {
 		records, err := p.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
 			log.Error("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
@@ -245,7 +245,7 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 		peers = nearerPeers
 	}
 
-	log.Error("mustFetchChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
+	log.Error("mustFetchChunk not found", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
 	if !queryFull {
 		return nil, "", types2.ErrNotFound
 	}
@@ -380,7 +380,6 @@ func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
 func (p *Protocol) checkNetworkAndStoreChunk(req *types.ChunkInfoMsg) error {
 	//先检查之前的chunk是否以在网络中查到
 	infos := p.getHistoryChunkInfos(req, 3)
-	infos = append(infos, req)
 	for i := len(infos) - 1; i >= 0; i-- {
 		info := infos[i]
 		if _, ok := p.checkChunkInNetwork(info); ok {
@@ -388,8 +387,10 @@ func (p *Protocol) checkNetworkAndStoreChunk(req *types.ChunkInfoMsg) error {
 			break
 		}
 	}
+	infos = append(infos, req)
 	var err error
 	for _, info := range infos {
+		log.Info("checkNetworkAndStoreChunk storing", "chunk hash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 		if err = p.storeChunk(info); err != nil {
 			log.Error("checkNetworkAndStoreChunk", "store chunk error", err, "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 			continue

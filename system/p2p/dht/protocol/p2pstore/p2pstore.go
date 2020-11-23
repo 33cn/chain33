@@ -176,7 +176,12 @@ func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
 	if !p.SubConfig.IsFullNode {
 		return
 	}
-	_, err := p.Advertise(p.Ctx, fullNode, opts...)
+	reply, err := p.API.IsSync()
+	if err != nil || !reply.IsOk {
+		// 没有同步完，不进行Advertise操作
+		return
+	}
+	_, err = p.Advertise(p.Ctx, fullNode, opts...)
 	if err != nil {
 		log.Error("advertiseFullNode", "error", err)
 	}
