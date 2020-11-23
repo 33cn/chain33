@@ -15,16 +15,15 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client"
+	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/33cn/chain33/system/p2p/dht/manage"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
-	"github.com/33cn/chain33/system/p2p/dht/store"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	ds "github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
@@ -66,7 +65,7 @@ type P2P struct {
 	subChan             chan interface{}
 	ctx                 context.Context
 	cancel              context.CancelFunc
-	db                  ds.Datastore
+	db                  dbm.DB
 	healthyRoutingTable *kb.RoutingTable
 	env                 *protocol.P2PEnv
 }
@@ -139,7 +138,7 @@ func initP2P(p *P2P) *P2P {
 	p.connManager = manage.NewConnManager(p.ctx, p.host, p.discovery.RoutingTable(), bandwidthTracker, p.subCfg)
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
 	p.taskGroup = &sync.WaitGroup{}
-	p.db = store.NewDataStore(p.subCfg)
+	p.db = newDB("", p.subCfg.DHTDataDriver, p.subCfg.DHTDataPath, p.subCfg.DHTDataCache)
 	p.healthyRoutingTable = newHealthyRoutingTable(p.ctx, host, p.discovery.kademliaDHT.RoutingTable(), p.peerInfoManager)
 	return p
 }
@@ -444,6 +443,22 @@ func (p *P2P) genAirDropKey() {
 
 	p.addrBook.saveKey(walletPrivkey, walletPubkey)
 	p.reStart()
+}
+
+func newDB(name, backend, dir string, cache int32) dbm.DB {
+	if name == "" {
+		name = "p2pstore"
+	}
+	if backend == "" {
+		backend = "leveldb"
+	}
+	if dir == "" {
+		dir = "datadir"
+	}
+	if cache <= 0 {
+		cache = 128
+	}
+	return dbm.NewDB(name, backend, dir, cache)
 }
 
 func newHealthyRoutingTable(ctx context.Context, h host.Host, rt *kb.RoutingTable, pm *manage.PeerInfoManager) *kb.RoutingTable {

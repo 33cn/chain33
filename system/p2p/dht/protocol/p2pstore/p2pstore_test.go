@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/33cn/chain33/client"
+	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
@@ -25,6 +27,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const dataDir = "./datadir"
+
 func TestUpdateChunkWhiteList(t *testing.T) {
 	p := &Protocol{}
 
@@ -40,6 +44,8 @@ func TestUpdateChunkWhiteList(t *testing.T) {
 //HOST1 ID: Qma91H212PWtAFcioW7h9eKiosJtwHsb9x3RmjqRWTwciZ
 //HOST2 ID: QmbazrBU4HthhnQWcUTiJLnj5ihbFHXsAkGAG6QfmrqJDs
 func TestInit(t *testing.T) {
+	os.RemoveAll(dataDir)
+	defer os.RemoveAll(dataDir)
 	protocol.ClearEventHandler()
 	var err error
 	q := queue.New("test")
@@ -72,9 +78,10 @@ func TestInit(t *testing.T) {
 	time.Sleep(time.Second / 2)
 	p2.republish()
 	//数据保存之后应该可以查到数据了
+	time.Sleep(time.Second / 2)
 
 	//向host1请求BlockBody
-	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
+	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
 		Start:     0,
 		End:       99,
@@ -82,7 +89,7 @@ func TestInit(t *testing.T) {
 
 	require.Equal(t, 100, len(msg.Data.(*types.BlockBodys).Items))
 	//向host2请求BlockBody
-	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
+	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
 		Start:     666,
 		End:       888,
@@ -210,6 +217,8 @@ func TestInit(t *testing.T) {
 }
 
 func TestFullNode(t *testing.T) {
+	os.RemoveAll(dataDir)
+	defer os.RemoveAll(dataDir)
 	protocol.ClearEventHandler()
 	q := queue.New("test")
 	p2 := initFullNode(t, q)
@@ -438,7 +447,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		RoutingTable:        kademliaDHT1.RoutingTable(),
 		HealthyRoutingTable: kademliaDHT1.RoutingTable(),
 		PeerInfoManager:     &peerInfoManager{},
-		DB:                  newTestDB(),
+		DB:                  dbm.NewDB("p2pstore1", "leveldb", dataDir, 128),
 	}
 	InitProtocol(&env1)
 
@@ -462,7 +471,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		RoutingTable:        kademliaDHT2.RoutingTable(),
 		HealthyRoutingTable: kademliaDHT2.RoutingTable(),
 		PeerInfoManager:     &peerInfoManager{},
-		DB:                  newTestDB(),
+		DB:                  dbm.NewDB("p2pstore2", "leveldb", dataDir, 128),
 	}
 	p2 := &Protocol{
 		P2PEnv:                   &env2,
@@ -473,6 +482,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	go p2.updateShardHealthyRoutingTableRountine()
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p2.Host, getHeaderOld, p2.handleStreamGetHeaderOld)
+	protocol.RegisterStreamHandler(p2.Host, fetchShardPeer, protocol.HandlerWithRW(p2.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p2.Host, fullNode, protocol.HandlerWithWrite(p2.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p2.Host, fetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p2.Host, storeChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
@@ -560,7 +570,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		RoutingTable:        kademliaDHT1.RoutingTable(),
 		HealthyRoutingTable: kademliaDHT1.RoutingTable(),
 		PeerInfoManager:     &peerInfoManager{},
-		DB:                  newTestDB(),
+		DB:                  dbm.NewDB("p2pstore1", "leveldb", dataDir, 128),
 	}
 	InitProtocol(&env1)
 
@@ -593,7 +603,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		RoutingTable:        kademliaDHT3.RoutingTable(),
 		HealthyRoutingTable: kademliaDHT3.RoutingTable(),
 		PeerInfoManager:     &peerInfoManager{},
-		DB:                  newTestDB(),
+		DB:                  dbm.NewDB("p2pstore3", "leveldb", dataDir, 128),
 	}
 	p3 := &Protocol{
 		P2PEnv:                   &env3,
@@ -603,6 +613,7 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	}
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p3.Host, getHeaderOld, p3.handleStreamGetHeaderOld)
+	protocol.RegisterStreamHandler(p3.Host, fetchShardPeer, protocol.HandlerWithRW(p3.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p3.Host, fullNode, protocol.HandlerWithWrite(p3.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p3.Host, fetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
 	protocol.RegisterStreamHandler(p3.Host, storeChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))

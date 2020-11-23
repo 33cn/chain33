@@ -8,7 +8,6 @@ import (
 
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/ipfs/go-datastore"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -26,11 +25,33 @@ type LocalChunkInfo struct {
 	Time time.Time
 }
 
+func formatHeight(height int64) string {
+	return fmt.Sprintf("%012d", height)
+}
+
+func genKey(chunkHash []byte, height int64) []byte {
+	key := make([]byte, len(chunkHash)+13)
+	copy(key, chunkHash)
+	key[len(chunkHash)] = ':'
+	copy(key[len(chunkHash)+1:], formatHeight(height))
+	return key
+}
+
+func updateKeyByHeight(oldKey []byte, height int64) {
+	copy(oldKey[len(oldKey)-12:], formatHeight(height))
+}
+
 // 保存chunk到本地p2pStore，同时更新本地chunk列表
-func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys types.Message) error {
-	err := p.DB.Put(genChunkDBKey(info.ChunkHash), types.Encode(bodys))
-	if err != nil {
-		return err
+func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBodys) error {
+	if int64(len(bodys.Items)) != info.End-info.Start+1 {
+		return types2.ErrLength
+	}
+	key := genKey(info.ChunkHash, info.Start)
+	for i := info.Start; i <= info.End; i++ {
+		updateKeyByHeight(key, i)
+		if err := p.DB.Set(key, types.Encode(bodys.Items[i-info.Start])); err != nil {
+			return err
+		}
 	}
 	return p.addLocalChunkInfo(info)
 }
@@ -54,7 +75,13 @@ func (p *Protocol) deleteChunkBlock(hash []byte) error {
 	if err != nil {
 		return err
 	}
-	return p.DB.Delete(genChunkDBKey(hash))
+	batch := p.DB.NewBatch(false)
+	it := p.DB.Iterator(hash, append(hash, ':'+1), false)
+	defer it.Close()
+	for it.Next(); it.Valid(); it.Next() {
+		batch.Delete(it.Key())
+	}
+	return batch.Write()
 }
 
 // 获取本地chunk数据
@@ -67,21 +94,21 @@ func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, er
 	if _, ok := p.getChunkInfoByHash(req.ChunkHash); !ok {
 		return nil, types2.ErrNotFound
 	}
-
-	b, err := p.DB.Get(genChunkDBKey(req.ChunkHash))
-	if err != nil {
-		return nil, err
+	var bodys []*types.BlockBody
+	var body types.BlockBody
+	it := p.DB.Iterator(genKey(req.ChunkHash, req.Start), genKey(req.ChunkHash, req.End+1), false)
+	defer it.Close()
+	for it.Next(); it.Valid(); it.Next() {
+		if err := types.Decode(it.Value(), &body); err != nil {
+			return nil, err
+		}
+		bodys = append(bodys, &body)
 	}
-	var bodys types.BlockBodys
-	err = types.Decode(b, &bodys)
-	if err != nil {
-		return nil, err
+	if int64(len(bodys)) != req.End-req.Start+1 {
+		return nil, types2.ErrLength
 	}
-	l := int64(len(bodys.Items))
-	start, end := req.Start%l, req.End%l+1
-	bodys.Items = bodys.Items[start:end]
 
-	return &bodys, nil
+	return &types.BlockBodys{Items: bodys}, nil
 }
 
 // 保存一个本地chunk hash列表，用于遍历本地数据
@@ -104,8 +131,10 @@ func (p *Protocol) deleteLocalChunkInfo(hash []byte) error {
 }
 
 func (p *Protocol) initLocalChunkInfoMap() {
+	p.localChunkInfoMutex.Lock()
+	defer p.localChunkInfoMutex.Unlock()
 	p.localChunkInfo = make(map[string]LocalChunkInfo)
-	value, err := p.DB.Get(datastore.NewKey(LocalChunkInfoKey))
+	value, err := p.DB.Get([]byte(LocalChunkInfoKey))
 	if err != nil {
 		log.Error("initLocalChunkInfoMap", "error", err)
 		return
@@ -128,7 +157,7 @@ func (p *Protocol) saveLocalChunkInfoMap(m map[string]LocalChunkInfo) error {
 		return err
 	}
 
-	return p.DB.Put(datastore.NewKey(LocalChunkInfoKey), value)
+	return p.DB.Set([]byte(LocalChunkInfoKey), value)
 }
 
 func (p *Protocol) getChunkInfoByHash(hash []byte) (LocalChunkInfo, bool) {
@@ -141,10 +170,6 @@ func (p *Protocol) getChunkInfoByHash(hash []byte) (LocalChunkInfo, bool) {
 // 适配libp2p，按路径格式生成数据的key值，便于区分多种数据类型的命名空间，以及key值合法性校验
 func genChunkNameSpaceKey(hash []byte) string {
 	return fmt.Sprintf("/%s/%s", ChunkNameSpace, hex.EncodeToString(hash))
-}
-
-func genChunkDBKey(hash []byte) datastore.Key {
-	return datastore.NewKey(genChunkNameSpaceKey(hash))
 }
 
 func genDHTID(chunkHash []byte) kb.ID {

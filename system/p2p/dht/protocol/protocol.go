@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client"
+	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	ds "github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -28,7 +28,7 @@ type P2PEnv struct {
 	QueueClient     queue.Client
 	Host            host.Host
 	P2PManager      *p2p.Manager
-	DB              ds.Datastore
+	DB              dbm.DB
 	PeerInfoManager IPeerInfoManager
 	ConnManager     IConnManager
 	ConnBlackList   iLRU

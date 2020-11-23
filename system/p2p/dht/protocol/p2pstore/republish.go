@@ -2,14 +2,14 @@ package p2pstore
 
 import (
 	"context"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 	"time"
 
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
 func (p *Protocol) republish() {
