@@ -216,8 +216,8 @@ message MessageBroadCast {
 }
 
 /**
-* p2p 分布式存储
-*/
+ * p2p 分布式存储
+ */
 
 message P2PMessageHeaders {
     // shared between all requests

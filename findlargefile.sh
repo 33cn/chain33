@@ -53,7 +53,7 @@ for y in $objects; do
     # find the objects location in the repository tree
     other=$(echo "${allObjects}" | grep "$sha")
     #lineBreak=`echo -e "\n"`
-    output="${output}\n${size},${compressedSize},${other}"
+    output="${output}\\n${size},${compressedSize},${other}"
 done
 
 echo -e "$output" | column -t -s ', '

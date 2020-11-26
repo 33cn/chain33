@@ -31,6 +31,8 @@ func TestBlock(t *testing.T) {
 	b.Txs = append(b.Txs, &Transaction{})
 	b.Txs = append(b.Txs, &Transaction{})
 	assert.Equal(t, false, b.CheckSign(cfg))
+	assert.False(t, VerifySignature(cfg, b, b.Txs[:2]))
+	assert.True(t, VerifySignature(cfg, b, b.Txs[:0]))
 }
 
 func TestFilterParaTxsByTitle(t *testing.T) {

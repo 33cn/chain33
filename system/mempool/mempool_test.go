@@ -1265,3 +1265,42 @@ func BenchmarkGetTxList(b *testing.B) {
 		mem.getTxList(&types.TxHashList{Hashes: nil, Count: int64(txNum)})
 	}
 }
+
+func TestCheckTxsExist(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	txs := util.GenCoinsTxs(q.GetConfig(), privKey, 10)
+	for _, tx := range txs {
+		err := mem.PushTx(tx)
+		assert.Nil(t, err)
+	}
+	_, priv := util.Genaddress()
+	txs1 := append(util.GenCoinsTxs(q.GetConfig(), priv, 10))
+
+	checkReq := &types.ReqCheckTxsExist{}
+	// 构造请求数据，存在不存在交替
+	for i, tx := range txs {
+		checkReq.TxHashes = append(checkReq.TxHashes, tx.Hash(), txs1[i].Hash())
+	}
+	checkReqMsg := mem.client.NewMessage("mempool", types.EventCheckTxsExist, checkReq)
+	mem.eventCheckTxsExist(checkReqMsg)
+	reply, err := mem.client.Wait(checkReqMsg)
+	assert.Nil(t, err)
+	replyData := reply.GetData().(*types.ReplyCheckTxsExist)
+
+	assert.Equal(t, 20, len(replyData.ExistFlags))
+	assert.Equal(t, 10, int(replyData.ExistCount))
+	for i, exist := range replyData.ExistFlags {
+		//根据请求数据，结果应该是存在（true）、不存在（false）交替序列，即奇偶交错
+		assert.Equal(t, i%2 == 0, exist)
+	}
+	mem.setSync(false)
+	mem.eventCheckTxsExist(checkReqMsg)
+	reply, err = mem.client.Wait(checkReqMsg)
+	assert.Nil(t, err)
+	replyData = reply.GetData().(*types.ReplyCheckTxsExist)
+	assert.Equal(t, 0, len(replyData.ExistFlags))
+	assert.Equal(t, 0, int(replyData.ExistCount))
+}
