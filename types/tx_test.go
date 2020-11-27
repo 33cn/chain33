@@ -52,41 +52,6 @@ func TestCreateGroupTx(t *testing.T) {
 	t.Log(grouptx)
 }
 
-/*
-type=string  length   data
-  +--------+--------+~~+--------+
-  |xxxxxxxx|xxxxxxxx|  |xxxxxxxx|
-  +--------+--------+~~+--------+
-  在bytes hash 的情况下，应该是一个字节类型，一个是一个字节的长度
-*/
-func TestGetRealFee(t *testing.T) {
-	cfg := NewChain33Config(GetDefaultCfgstring())
-	tx := &Transaction{
-		Payload: []byte(strings.Repeat("a", 641)),
-	}
-	tx, err := FormatTx(cfg, "user.p.none", tx)
-	// nonce值大小会影响proto内部编码的最终大小, 这里直接采用固定值
-	tx.Nonce = 1
-	assert.Equal(t, err, nil)
-	assert.Equal(t, 699, tx.Size())
-	fee1, err := tx.GetRealFee(cfg.GetMinTxFeeRate())
-	assert.Equal(t, err, nil)
-	assert.Equal(t, fee1, cfg.GetMinTxFeeRate())
-	tx.ReCalcCacheHash()
-	assert.Equal(t, 68, tx.Size()-699)
-	fee2, err := tx.GetRealFee(cfg.GetMinTxFeeRate())
-	assert.Equal(t, err, nil)
-	assert.Equal(t, fee2, cfg.GetMinTxFeeRate())
-}
-
-func TestCheckSign(t *testing.T) {
-	tx1 := "0x0a14757365722e702e63616c6f7269652e636f696e73122e18010a2a10808c8d9e022222313259516639736e5854537875593274314254715967563758696b583650653274361a6d0801122103f199f3873e86c31e0287af6dd1e5b54268ea2767698ac7e082529575912582701a46304402203ae267243985cc963e73431f48448904f026d59b50ab023db8973b784b4bd4e802200a9240554e745baee5b6f7a8f4956d33480754d0ee41d10e0cb1ec5ced9cdc9520a08d0628ea85fbf70530d3d3d2cef097a1fc1d3a2231345a45614a62586f4e37676e4a4c5a4e5636417a71664a594179447368566d69585a20487054c89bfa793e6d48a1e689dae8dd16d20ca0bf986f0ce0658c7bff47b13e62206ce831717a0671ee385de12388c38c748e95bb22789ebbfd9bf8116a4d970a13"
-	tx11, _ := common.FromHex(tx1)
-	var tx12 Transaction
-	Decode(tx11, &tx12)
-	assert.True(t, tx12.checkSign())
-}
-
 func TestCreateParaGroupTx(t *testing.T) {
 	str := GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
@@ -531,32 +496,4 @@ func modifyTxExec(tx1, tx2, tx3 Transaction, tx1exec, tx2exec, tx3exec string) (
 	tx13.Execer = []byte(tx3exec)
 
 	return tx11, tx12, tx13
-}
-
-func TestCacheHash(t *testing.T) {
-	//proto不存在cachehash字段的编码
-	tx1 := "0a05636f696e73122a18010a261002222231427a4358366b6d515a4d66796b686e7632365876653771515559717171757851391a6d0801122103ca368a454947e03d08532bc9154db91bcbf3b3250130770e92e8c630f36021de1a4630440220614368c193b06a67e19de40e94600e22ec30fbdc1262feb062344040167f99e40220028f11a07969eb20633552bd660420670b5296dac86be8a45c97b099f00287eb20a08d0630a081a4fd9d94c3d36b3a2231427a4358366b6d515a4d66796b686e763236587665377151555971717175785139"
-	tx11, _ := hex.DecodeString(tx1)
-	var tx Transaction
-	Decode(tx11, &tx)
-	hash := tx.Hash()
-	fullHash := tx.FullHash()
-
-	tx.ReCalcCacheHash()
-	assert.Equal(t, hash, tx.HashCache)
-	assert.Equal(t, fullHash, tx.FullHashCache)
-	tx.Nonce++
-	tx.UnsetCacheHash()
-	hashNew := tx.Hash()
-	fullHashNew := tx.FullHash()
-	tx.ReCalcCacheHash()
-	assert.NotEqual(t, hash, tx.HashCache)
-	assert.NotEqual(t, fullHash, tx.FullHashCache)
-	assert.Equal(t, hashNew, tx.HashCache)
-	assert.Equal(t, fullHashNew, tx.FullHashCache)
-	tx.UnsetCacheHash()
-	tx.Nonce--
-	data := Encode(&tx)
-	//扩展字段置空时不影响proto编码
-	assert.Equal(t, tx11, data)
 }

@@ -172,6 +172,7 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 			log.Error("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
 			continue
 		}
+		log.Info("getChunkRecords", "peer", pid, "start", param.Start, "end", param.End)
 		return records
 	}
 
@@ -396,7 +397,7 @@ func (p *Protocol) checkNetworkAndStoreChunk(req *types.ChunkInfoMsg) error {
 			continue
 		}
 		//本地存储之后立即到其他节点做一次备份
-		go p.notifyStoreChunk(req)
+		p.notifyStoreChunk(req)
 	}
 	return err
 }

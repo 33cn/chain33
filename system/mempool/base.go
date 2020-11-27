@@ -410,7 +410,7 @@ func (mem *Mempool) sendTxToP2P(tx *types.Transaction) {
 		mlog.Error("tx sent to p2p", "tx.Hash", common.ToHex(tx.Hash()))
 		return
 	}
-	mlog.Debug("tx sent to p2p", "tx.Hash", common.ToHex(tx.Hash()))
+	//mlog.Debug("tx sent to p2p", "tx.Hash", common.ToHex(tx.Hash()))
 }
 
 // Mempool.checkSync检查并获取mempool同步状态

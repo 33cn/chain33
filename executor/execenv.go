@@ -611,13 +611,14 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	feelog, err = e.execTxOne(feelog, tx, index)
 	if err != nil {
 		e.rollback()
+		elog.Error("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
 	} else {
 		err := e.commit()
 		if err != nil {
 			return nil, err
 		}
 	}
-	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
+
 	if api.IsAPIEnvError(err) {
 		return nil, err
 	}
