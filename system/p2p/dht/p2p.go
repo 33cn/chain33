@@ -465,7 +465,7 @@ func newHealthyRoutingTable(ctx context.Context, h host.Host, rt *kb.RoutingTabl
 	hrt := kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore())
 	const diffHeight = 512
 	rt.PeerAdded = func(pid peer.ID) {
-		if pm.PeerHeight(pid)+diffHeight >= pm.PeerHeight(h.ID()) {
+		if pm.PeerHeight(pid)+diffHeight >= pm.PeerMaxHeight() {
 			_, _ = hrt.Update(pid)
 		}
 	}

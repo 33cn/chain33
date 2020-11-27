@@ -94,8 +94,10 @@ func TestInit(t *testing.T) {
 		Start:     666,
 		End:       888,
 	})
-
-	require.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
+	bodys := msg.Data.(*types.BlockBodys).Items
+	require.Equal(t, 223, len(bodys))
+	require.Equal(t, int64(666), bodys[0].Height)
+	require.Equal(t, int64(888), bodys[222].Height)
 
 	//向host1请求数据
 	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
@@ -718,5 +720,9 @@ func (p *peerInfoManager) Refresh(info *types.Peer)      {}
 func (p *peerInfoManager) Fetch(pid peer.ID) *types.Peer { return nil }
 func (p *peerInfoManager) FetchAll() []*types.Peer       { return nil }
 func (p *peerInfoManager) PeerHeight(pid peer.ID) int64 {
+	return p.PeerMaxHeight()
+}
+
+func (p *peerInfoManager) PeerMaxHeight() int64 {
 	return 14000
 }
