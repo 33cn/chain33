@@ -27,11 +27,10 @@ func main() {
 		log.Fatal(err)
 	}
 	tx := &types.Transaction{
-		Execer:    []byte("dajfilwejwpohgg3"),
-		Payload:   []byte("fhieuwkytoehgoegowhgo324goi3oi34rehgothei4goh34itvndeoigl3hpgh p43thtoi3hto38t3g4oigeoitheirbfjksdhflj4lkgg43ig ehgoihewioghow;eg ihgewgo h eigerh go;"),
-		To:        "hfi23uytowhfskhfuiegfskfhskjfgwu",
-		Header:    []byte("gf2i3ur23u9urhoihfishfoehwf  fsoi hs go3 3 wo fyosfh owi fhs hifos hosf  "),
-		HashCache: []byte("hfui23yfweoihfifgiogfiwegowlf "),
+		Execer:  []byte("dajfilwejwpohgg3"),
+		Payload: []byte("fhieuwkytoehgoegowhgo324goi3oi34rehgothei4goh34itvndeoigl3hpgh p43thtoi3hto38t3g4oigeoitheirbfjksdhflj4lkgg43ig ehgoihewioghow;eg ihgewgo h eigerh go;"),
+		To:      "hfi23uytowhfskhfuiegfskfhskjfgwu",
+		Header:  []byte("gf2i3ur23u9urhoihfishfoehwf  fsoi hs go3 3 wo fyosfh owi fhs hifos hosf  "),
 	}
 	_ = tx
 
