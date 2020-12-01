@@ -108,8 +108,8 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 		}
 	}
 
-	//删除超过10个chunk则进行数据库压缩
-	if atomic.LoadInt64(&chain.deleteChunkCount) >= 10 {
+	//删除超过100个chunk则进行数据库压缩
+	if atomic.LoadInt64(&chain.deleteChunkCount) >= 100 {
 		now := time.Now()
 		start := []byte("CHAIN-body-body-")
 		limit := make([]byte, len(start))
