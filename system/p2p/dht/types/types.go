@@ -31,7 +31,6 @@ type P2PSubConfig struct {
 
 	RelayHop            bool   `protobuf:"varint,10,opt,name=relayHop" json:"relayHop,omitempty"`
 	DisableFindLANPeers bool   `protobuf:"varint,11,opt,name=disableFindLANPeers" json:"disableFindLANPeers,omitempty"`
-	DHTDataDriver       string `protobuf:"bytes,12,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
 	DHTDataPath         string `protobuf:"bytes,13,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
 	DHTDataCache        int32  `protobuf:"varint,14,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
 	//是否开启全节点模式

@@ -138,7 +138,7 @@ func initP2P(p *P2P) *P2P {
 	p.connManager = manage.NewConnManager(p.ctx, p.host, p.discovery.RoutingTable(), bandwidthTracker, p.subCfg)
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
 	p.taskGroup = &sync.WaitGroup{}
-	p.db = newDB("", p.subCfg.DHTDataDriver, p.subCfg.DHTDataPath, p.subCfg.DHTDataCache)
+	p.db = newDB("", p.p2pCfg.Driver, p.subCfg.DHTDataPath, p.subCfg.DHTDataCache)
 	p.healthyRoutingTable = newHealthyRoutingTable(p.ctx, host, p.discovery.kademliaDHT.RoutingTable(), p.peerInfoManager)
 	return p
 }
