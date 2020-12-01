@@ -33,7 +33,7 @@ func NewPebbleDB(name string, dir string, cache int) (*PebbleDB, error) {
 	}
 	opts := &pebble.Options{
 		L0CompactionThreshold:       2,
-		L0StopWritesThreshold:       1000,
+		L0StopWritesThreshold:       512,
 		Levels:                      make([]pebble.LevelOptions, 7),
 		MaxOpenFiles:                16384,
 		MemTableSize:                64 << 20,
@@ -241,6 +241,7 @@ func (db *PebbleDB) NewBatch(sync bool) Batch {
 		size:  0,
 		len:   0,
 	}
+	batch.batch.Reset()
 	return batch
 }
 
@@ -261,7 +262,6 @@ func (pb *pebbleBatch) Delete(key []byte) {
 
 // Write batch write
 func (pb *pebbleBatch) Write() error {
-	defer pb.batch.Close()
 	err := pb.batch.Commit(pb.wop)
 	if err != nil {
 		pebbleLog.Error("Write", "error", err)
@@ -282,6 +282,7 @@ func (pb *pebbleBatch) ValueLen() int {
 
 // Reset resets the batch
 func (pb *pebbleBatch) Reset() {
+
 	pb.batch.Reset()
 	pb.len = 0
 	pb.size = 0
