@@ -232,7 +232,7 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 	if cfg.GetModuleConfig().BlockChain.MaxActiveBlockSize > 0 {
 		maxActiveBlockSize = cfg.GetModuleConfig().BlockChain.MaxActiveBlockSize
 	}
-	blockStore.activeBlocks = utils.NewSpaceLimitCache(maxActiveBlockNum, maxActiveBlockSize)
+	blockStore.activeBlocks = utils.NewSpaceLimitCache(maxActiveBlockNum, maxActiveBlockSize*1024*1024)
 
 	return blockStore
 }
