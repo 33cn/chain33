@@ -451,7 +451,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	newtipnode := b.bestChain.Tip()
 
 	//删除缓存中的block信息
-	b.DelCacheBlock(blockdetail.Block.Height)
+	b.DelCacheBlock(blockdetail.Block.Height, node.hash)
 
 	if newtipnode != node.parent {
 		chainlog.Error("disconnectBlock newtipnode err:", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
@@ -494,9 +494,28 @@ func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List
 
 //LoadBlockByHash 根据hash值从缓存中查询区块
 func (b *BlockChain) LoadBlockByHash(hash []byte) (block *types.BlockDetail, err error) {
+
+	//从缓存的最新区块中获取
 	block = b.cache.GetCacheBlock(hash)
-	if block == nil {
-		block, err = b.blockStore.LoadBlockByHash(hash)
+	if block != nil {
+		return block, err
+	}
+
+	//从缓存的活跃区块中获取
+	block, _ = b.blockStore.GetActiveBlock(string(hash))
+	if block != nil {
+		return block, err
+	}
+
+	//从数据库中获取
+	block, err = b.blockStore.LoadBlockByHash(hash)
+
+	//如果是主链区块需要添加到活跃区块的缓存中
+	if block != nil {
+		mainHash, _ := b.blockStore.GetBlockHashByHeight(block.Block.GetHeight())
+		if mainHash != nil && bytes.Equal(mainHash, hash) {
+			b.blockStore.AddActiveBlock(string(hash), block)
+		}
 	}
 	return block, err
 }

@@ -424,6 +424,8 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 //GetBlock 用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
 func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err error) {
 
+	cfg := chain.client.GetConfig()
+
 	//从缓存的最新区块中尝试获取，最新区块的add是在执行block流程中处理
 	blockdetail := chain.cache.CheckcacheBlock(height)
 	if blockdetail != nil {
@@ -434,7 +436,12 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 	}
 
 	//从缓存的活跃区块中尝试获取
-	block, exist := chain.blockStore.GetActiveBlock(height)
+	hash, err := chain.blockStore.GetBlockHashByHeight(height)
+	if err != nil {
+		chainlog.Error("GetBlock GetBlockHashByHeight", "height", height, "error", err)
+		return nil, err
+	}
+	block, exist := chain.blockStore.GetActiveBlock(string(hash))
 	if exist {
 		return block, nil
 	}
@@ -447,7 +454,7 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 		}
 
 		//缓存到活跃区块中
-		chain.blockStore.AddActiveBlock(height, blockinfo)
+		chain.blockStore.AddActiveBlock(string(blockinfo.Block.Hash(cfg)), blockinfo)
 		return blockinfo, nil
 	}
 	return nil, err
@@ -602,11 +609,11 @@ func (chain *BlockChain) GetValueByKey(keys *types.LocalDBGet) *types.LocalReply
 }
 
 //DelCacheBlock 删除缓存的中对应的区块
-func (chain *BlockChain) DelCacheBlock(height int64) {
+func (chain *BlockChain) DelCacheBlock(height int64, hash []byte) {
 
 	chain.cache.DelBlockFromCache(height)
 	chain.txCache.Del(height)
-	chain.blockStore.RemoveActiveBlock(height)
+	chain.blockStore.RemoveActiveBlock(string(hash))
 }
 
 //InitAllowPackHeight 根据配置修改LowAllowPackHeight和值HighAllowPackHeight
