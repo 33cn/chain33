@@ -18,7 +18,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 
 chain33背后故事: [chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR_NFxfeuAA)
 
-视频教程: [视频教程](https://chain.33.cn/document/90)
+视频教程: [视频教程](https://chain.33.cn/document/289)
 
 # 感谢
 
