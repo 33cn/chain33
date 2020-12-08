@@ -227,7 +227,7 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 	if cfg.GetModuleConfig().BlockChain.MaxActiveBlockSize > 0 {
 		maxActiveBlockSize = cfg.GetModuleConfig().BlockChain.MaxActiveBlockSize
 	}
-	blockStore.activeBlocks = utils.NewSpaceLimitCache(maxActiveBlockNum, maxActiveBlockSize)
+	blockStore.activeBlocks = utils.NewSpaceLimitCache(maxActiveBlockNum, maxActiveBlockSize*1024*1024)
 
 	return blockStore
 }
@@ -673,17 +673,23 @@ func (bs *BlockStore) getRealTxResult(txr *types.TxResult) *types.TxResult {
 	var exist bool
 
 	//首先从缓存的活跃区块中获取，不存在时再从数据库获取并保存到活跃区块中供下次使用
-	blockinfo, exist = bs.GetActiveBlock(txr.Height)
+	hash, err := bs.GetBlockHashByHeight(txr.Height)
+	if err != nil {
+		chainlog.Error("getRealTxResult GetBlockHashByHeight", "height", txr.Height, "error", err)
+		return txr
+	}
+
+	blockinfo, exist = bs.GetActiveBlock(string(hash))
 	if !exist {
 		// 如果是精简版的localdb 则需要从block中获取tx交易内容以及receipt
-		blockinfo, err = bs.LoadBlockByHeight(txr.Height)
+		blockinfo, err = bs.LoadBlockByHash(hash)
 		if err != nil {
-			chainlog.Error("getRealTxResult LoadBlockByHeight", "height", txr.Height, "error", err)
+			chainlog.Error("getRealTxResult LoadBlockByHash", "height", txr.Height, "hash", common.ToHex(hash), "error", err)
 			return txr
 		}
 
 		//添加到活跃区块的缓存中
-		bs.AddActiveBlock(txr.Height, blockinfo)
+		bs.AddActiveBlock(string(hash), blockinfo)
 	}
 
 	if int(txr.Index) < len(blockinfo.Block.Txs) {
@@ -1726,8 +1732,8 @@ func (bs *BlockStore) SetMaxDeletedChunkNum(chunkNum int64) error {
 }
 
 // GetActiveBlock :从缓存的活跃区块中获取对应高度的区块
-func (bs *BlockStore) GetActiveBlock(height int64) (*types.BlockDetail, bool) {
-	block := bs.activeBlocks.Get(height)
+func (bs *BlockStore) GetActiveBlock(hash string) (*types.BlockDetail, bool) {
+	block := bs.activeBlocks.Get(hash)
 	if block != nil {
 		return block.(*types.BlockDetail), true
 	}
@@ -1735,12 +1741,12 @@ func (bs *BlockStore) GetActiveBlock(height int64) (*types.BlockDetail, bool) {
 }
 
 // AddActiveBlock :将区块缓存到活跃区块中
-func (bs *BlockStore) AddActiveBlock(height int64, block *types.BlockDetail) bool {
-	return bs.activeBlocks.Add(height, block, block.Size())
+func (bs *BlockStore) AddActiveBlock(hash string, block *types.BlockDetail) bool {
+	return bs.activeBlocks.Add(hash, block, block.Size())
 }
 
 // RemoveActiveBlock :从缓存的活跃区块中删除对应的区块
-func (bs *BlockStore) RemoveActiveBlock(height int64) bool {
-	_, ok := bs.activeBlocks.Remove(height)
+func (bs *BlockStore) RemoveActiveBlock(hash string) bool {
+	_, ok := bs.activeBlocks.Remove(hash)
 	return ok
 }
