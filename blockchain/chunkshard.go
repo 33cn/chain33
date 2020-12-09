@@ -7,11 +7,11 @@ package blockchain
 import (
 	"errors"
 	"fmt"
-	dbm "github.com/33cn/chain33/common/db"
 	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/common"
+	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
 
@@ -88,6 +88,10 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 	var kvs []*types.KeyValue
 	toDelete := chain.blockStore.GetMaxDeletedChunkNum() + 1
 	chainlog.Info("CheckDeleteBlockBody start", "start", toDelete)
+	//TODO
+	if toDelete > 8000 && !chain.IsCaughtUp() {
+		return
+	}
 	for toDelete+int64(DelRollbackChunkNum) < atomic.LoadInt64(&chain.maxSerialChunkNum) && count < onceDelChunkNum {
 		chainlog.Info("CheckDeleteBlockBody toDelete", "toDelete", toDelete)
 		kv := chain.DeleteBlockBody(toDelete)
@@ -109,7 +113,7 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 	}
 
 	//删除超过100个chunk则进行数据库压缩
-	if atomic.LoadInt64(&chain.deleteChunkCount) >= 100 {
+	if atomic.LoadInt64(&chain.deleteChunkCount) >= 1000 {
 		now := time.Now()
 		start := []byte("CHAIN-body-body-")
 		limit := make([]byte, len(start))
