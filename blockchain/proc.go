@@ -670,7 +670,7 @@ func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
 func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
 	req := (msg.Data).(*types.ChunkInfoMsg)
 	if req.End < (atomic.LoadInt64(&chain.maxSerialChunkNum)-int64(DelRollbackChunkNum)+1)*chain.cfg.ChunkblockNum {
-		msg.ReplyErr("", types.ErrNotFound)
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, types.ErrNotFound))
 		return
 	}
 	reply, err := chain.GetChunkBlockBody(req)
