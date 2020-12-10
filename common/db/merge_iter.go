@@ -24,7 +24,7 @@ var (
 )
 
 type mergedIterator struct {
-	itBase
+	ItBase
 	cmp     comparer.Comparer
 	iters   []Iterator
 	strict  bool

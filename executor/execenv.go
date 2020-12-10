@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
+	mvccdb "github.com/33cn/chain33/common/db/mvcc"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
@@ -89,7 +90,7 @@ func (e *executor) enableMVCC(hash []byte) {
 func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	kvs := detail.KV
 	hash := detail.Block.StateHash
-	mvcc := dbm.NewSimpleMVCC(db)
+	mvcc := mvccdb.NewSimpleMVCC(db)
 	//检查版本号是否是连续的
 	kvlist, err := mvcc.AddMVCC(kvs, hash, detail.PrevStatusHash, detail.Block.Height)
 	if err != nil {
@@ -101,7 +102,7 @@ func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) 
 // DelMVCC convert key value to mvcc kv data
 func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	hash := detail.Block.StateHash
-	mvcc := dbm.NewSimpleMVCC(db)
+	mvcc := mvccdb.NewSimpleMVCC(db)
 	kvlist, err := mvcc.DelMVCC(hash, detail.Block.Height, true)
 	if err != nil {
 		panic(err)

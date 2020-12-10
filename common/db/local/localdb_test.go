@@ -1,11 +1,24 @@
-package db
+package local
 
 import (
+	"io/ioutil"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
+	comdb "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/db/mem"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 )
+
+func newGoMemDB(t *testing.T) comdb.DB {
+	dir, err := ioutil.TempDir("", "gomemdb")
+	require.NoError(t, err)
+	memdb, err := mem.NewGoMemDB("gomemdb", dir, 128)
+	require.NoError(t, err)
+	return memdb
+}
 
 //localdb 不会往 maindb 写数据，他都是临时的数据，在内存中临时计算的一个数据库
 func TestLocalDB(t *testing.T) {

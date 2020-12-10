@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package mvcc
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/db/level"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,7 +39,7 @@ func getMVCC() *MVCCHelper {
 	if err != nil {
 		panic(err)
 	}
-	leveldb, err := NewGoLevelDB("goleveldb", dir, 128)
+	leveldb, err := level.NewGoLevelDB("goleveldb", dir, 128)
 	if err != nil {
 		panic(err)
 	}

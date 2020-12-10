@@ -127,33 +127,33 @@ type Iterator interface {
 	Close()
 }
 
-type itBase struct {
-	start   []byte
-	end     []byte
-	reverse bool
+type ItBase struct {
+	Start   []byte
+	End     []byte
+	Reverse bool
 }
 
-func (it *itBase) checkKey(key []byte) bool {
+func (it *ItBase) CheckKey(key []byte) bool {
 	//key must in start and end
 	var startok = true
 	var endok = true
-	if it.start != nil {
-		startok = bytes.Compare(key, it.start) >= 0
+	if it.Start != nil {
+		startok = bytes.Compare(key, it.Start) >= 0
 	}
-	if it.end != nil {
-		endok = bytes.Compare(key, it.end) <= 0
+	if it.End != nil {
+		endok = bytes.Compare(key, it.End) <= 0
 	}
 	ok := startok && endok
 	return ok
 }
 
 //Prefix 前缀
-func (it *itBase) Prefix() []byte {
+func (it *ItBase) Prefix() []byte {
 	return nil
 }
 
-func (it *itBase) IsReverse() bool {
-	return it.reverse
+func (it *ItBase) IsReverse() bool {
+	return it.Reverse
 }
 
 //IteratorDB 迭代
@@ -161,7 +161,7 @@ type IteratorDB interface {
 	Iterator(start []byte, end []byte, reserver bool) Iterator
 }
 
-func bytesPrefix(prefix []byte) []byte {
+func BytesPrefix(prefix []byte) []byte {
 	var limit []byte
 	for i := len(prefix) - 1; i >= 0; i-- {
 		c := prefix[i]
@@ -175,20 +175,11 @@ func bytesPrefix(prefix []byte) []byte {
 	return limit
 }
 
-const (
-	levelDBBackendStr     = "leveldb" // legacy, defaults to goleveldb.
-	goLevelDBBackendStr   = "goleveldb"
-	memDBBackendStr       = "memdb"
-	goBadgerDBBackendStr  = "gobadgerdb"
-	ssDBBackendStr        = "ssdb"
-	goPegasusDbBackendStr = "pegasus"
-)
-
 type dbCreator func(name string, dir string, cache int) (DB, error)
 
 var backends = map[string]dbCreator{}
 
-func registerDBCreator(backend string, creator dbCreator, force bool) {
+func RegisterDBCreator(backend string, creator dbCreator, force bool) {
 	_, ok := backends[backend]
 	if !force && ok {
 		return
@@ -256,4 +247,10 @@ func (db *BaseDB) BeginTx() (TxKV, error) {
 //CompactRange call panic when CompactRange not rewrite
 func (db *BaseDB) CompactRange(start, limit []byte) error {
 	panic("CompactRange not impl")
+}
+
+func CloneByte(v []byte) []byte {
+	value := make([]byte, len(v))
+	copy(value, v)
+	return value
 }

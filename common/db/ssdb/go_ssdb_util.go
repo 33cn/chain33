@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package ssdb
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	comdb "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
 
@@ -442,7 +443,7 @@ func makeError(resp []string, errKey ...interface{}) error {
 	}
 	//正常返回的不存在不报错，如果要捕捉这个问题请使用exists
 	if resp[0] == NotFound {
-		return ErrNotFoundInDb
+		return comdb.ErrNotFoundInDb
 	}
 	if len(errKey) > 0 {
 		return newError("access ssdb error, code is %v, parameter is %v", resp, errKey)

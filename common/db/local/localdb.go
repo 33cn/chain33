@@ -1,21 +1,24 @@
-package db
+package local
 
 import (
 	"sync"
+
+	comdb "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/db/mem"
 )
 
 // LocalDB local db for store key value in local
 type LocalDB struct {
-	txcache  DB
-	cache    DB
-	maindb   DB
+	txcache  comdb.DB
+	cache    comdb.DB
+	maindb   comdb.DB
 	intx     bool
 	mu       sync.RWMutex
 	readOnly bool
 }
 
-func newMemDB() DB {
-	memdb, err := NewGoMemDB("", "", 0)
+func newMemDB() comdb.DB {
+	memdb, err := mem.NewGoMemDB("", "", 0)
 	if err != nil {
 		panic(err)
 	}
@@ -23,7 +26,7 @@ func newMemDB() DB {
 }
 
 // NewLocalDB new local db
-func NewLocalDB(maindb DB, readOnly bool) KVDB {
+func NewLocalDB(maindb comdb.DB, readOnly bool) comdb.KVDB {
 	if readOnly {
 		//只读模式不需要memdb，比如交易检查，可以使用该localdb，减少memdb内存开销
 		return &LocalDB{
@@ -44,8 +47,9 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	defer l.mu.RUnlock()
 	value, err := l.get(key)
 	if isdeleted(value) {
+
 		//表示已经删除了(空值要用内部定义的 emptyvalue)
-		return nil, ErrNotFoundInDb
+		return nil, comdb.ErrNotFoundInDb
 	}
 	return value, err
 }
@@ -96,7 +100,7 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	dblist := make([]IteratorDB, 0)
+	dblist := make([]comdb.IteratorDB, 0)
 	if l.txcache != nil {
 		dblist = append(dblist, l.txcache)
 	}
@@ -106,8 +110,8 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 	if l.maindb != nil {
 		dblist = append(dblist, l.maindb)
 	}
-	mergedb := NewMergedIteratorDB(dblist)
-	it := NewListHelper(mergedb)
+	mergedb := comdb.NewMergedIteratorDB(dblist)
+	it := comdb.NewListHelper(mergedb)
 	return it.List(prefix, key, count, direction), nil
 }
 
@@ -115,7 +119,7 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	dblist := make([]IteratorDB, 0)
+	dblist := make([]comdb.IteratorDB, 0)
 	if l.txcache != nil {
 		dblist = append(dblist, l.txcache)
 	}
@@ -125,8 +129,8 @@ func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
 	if l.maindb != nil {
 		dblist = append(dblist, l.maindb)
 	}
-	mergedb := NewMergedIteratorDB(dblist)
-	it := NewListHelper(mergedb)
+	mergedb := comdb.NewMergedIteratorDB(dblist)
+	it := comdb.NewListHelper(mergedb)
 	return it.PrefixCount(prefix)
 }
 
@@ -169,10 +173,14 @@ func (l *LocalDB) resetTx() {
 	l.txcache = nil
 }
 
-func setdb2(d DB, key []byte, value []byte) {
+func setdb2(d comdb.DB, key []byte, value []byte) {
 	//value == nil 特殊标记key，代表key已经删除了
 	err := d.Set(key, value)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func isdeleted(d []byte) bool {
+	return len(d) == 0
 }

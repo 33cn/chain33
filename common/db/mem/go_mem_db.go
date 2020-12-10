@@ -2,11 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package mem
 
 import (
 	"bytes"
 
+	comdb "github.com/33cn/chain33/common/db"
+	leveldb "github.com/33cn/chain33/common/db/level"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	"github.com/syndtr/goleveldb/leveldb/comparer"
@@ -16,18 +18,22 @@ import (
 
 var mlog = log.New("module", "db.memdb")
 
+const (
+	memDBBackendStr = "memdb"
+)
+
 // memdb 应该无需区分同步与异步操作
 
 func init() {
-	dbCreator := func(name string, dir string, cache int) (DB, error) {
+	dbCreator := func(name string, dir string, cache int) (comdb.DB, error) {
 		return NewGoMemDB(name, dir, cache)
 	}
-	registerDBCreator(memDBBackendStr, dbCreator, false)
+	comdb.RegisterDBCreator(memDBBackendStr, dbCreator, false)
 }
 
 //GoMemDB db
 type GoMemDB struct {
-	BaseDB
+	comdb.BaseDB
 	db *memdb.DB
 }
 
@@ -42,16 +48,16 @@ func NewGoMemDB(name string, dir string, cache int) (*GoMemDB, error) {
 func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	v, err := db.db.Get(key)
 	if err != nil {
-		return nil, ErrNotFoundInDb
+		return nil, comdb.ErrNotFoundInDb
 	}
-	return cloneByte(v), nil
+	return comdb.CloneByte(v), nil
 }
 
 //Set set
 func (db *GoMemDB) Set(key []byte, value []byte) error {
 	err := db.db.Put(key, value)
 	if err != nil {
-		llog.Error("Set", "error", err)
+		mlog.Error("Set", "error", err)
 		return err
 	}
 	return nil
@@ -61,7 +67,7 @@ func (db *GoMemDB) Set(key []byte, value []byte) error {
 func (db *GoMemDB) SetSync(key []byte, value []byte) error {
 	err := db.db.Put(key, value)
 	if err != nil {
-		llog.Error("SetSync", "error", err)
+		mlog.Error("SetSync", "error", err)
 		return err
 	}
 	return nil
@@ -71,7 +77,7 @@ func (db *GoMemDB) SetSync(key []byte, value []byte) error {
 func (db *GoMemDB) Delete(key []byte) error {
 	err := db.db.Delete(key)
 	if err != nil {
-		llog.Error("Delete", "error", err)
+		mlog.Error("Delete", "error", err)
 		return err
 	}
 	return nil
@@ -81,7 +87,7 @@ func (db *GoMemDB) Delete(key []byte) error {
 func (db *GoMemDB) DeleteSync(key []byte) error {
 	err := db.db.Delete(key)
 	if err != nil {
-		llog.Error("DeleteSync", "error", err)
+		mlog.Error("DeleteSync", "error", err)
 		return err
 	}
 	return nil
@@ -111,17 +117,17 @@ func (db *GoMemDB) Stats() map[string]string {
 }
 
 //Iterator 迭代器
-func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
+func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) comdb.Iterator {
 	if end == nil {
-		end = bytesPrefix(start)
+		end = comdb.BytesPrefix(start)
 	}
 	if bytes.Equal(end, types.EmptyValue) {
 		end = nil
 	}
 	r := &util.Range{Start: start, Limit: end}
 	it := db.db.NewIterator(r)
-	base := itBase{start, end, reverse}
-	return &goLevelDBIt{it, base}
+	base := comdb.ItBase{start, end, reverse}
+	return &leveldb.GoLevelDBIt{it, base}
 }
 
 type kv struct{ k, v []byte }
@@ -133,19 +139,19 @@ type memBatch struct {
 }
 
 //NewBatch new
-func (db *GoMemDB) NewBatch(sync bool) Batch {
+func (db *GoMemDB) NewBatch(sync bool) comdb.Batch {
 	return &memBatch{db: db}
 }
 
 func (b *memBatch) Set(key, value []byte) {
-	b.writes = append(b.writes, kv{cloneByte(key), cloneByte(value)})
+	b.writes = append(b.writes, kv{comdb.CloneByte(key), comdb.CloneByte(value)})
 	b.size += len(value)
 	b.size += len(key)
 	b.len += len(value)
 }
 
 func (b *memBatch) Delete(key []byte) {
-	b.writes = append(b.writes, kv{cloneByte(key), nil})
+	b.writes = append(b.writes, kv{comdb.CloneByte(key), nil})
 	b.size += len(key)
 	b.len++
 }

@@ -2,13 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package mvcc
 
 import (
 	"bytes"
 	"fmt"
 	"strconv"
 
+	"github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 )
@@ -50,19 +51,19 @@ type MVCCKV interface {
 //MVCCHelper impl MVCC interface
 type MVCCHelper struct {
 	*SimpleMVCC
-	db DB
+	db db.DB
 }
 
 //SimpleMVCC kvdb
 type SimpleMVCC struct {
-	kvdb KVDB
+	kvdb db.KVDB
 }
 
 var mvcclog = log.New("module", "db.mvcc")
 
 //NewMVCC create MVCC object use db DB
-func NewMVCC(db DB) *MVCCHelper {
-	return &MVCCHelper{SimpleMVCC: NewSimpleMVCC(NewKVDB(db)), db: db}
+func NewMVCC(tdb db.DB) *MVCCHelper {
+	return &MVCCHelper{SimpleMVCC: NewSimpleMVCC(db.NewKVDB(tdb)), db: tdb}
 }
 
 //PrintAll 打印全部
@@ -174,7 +175,7 @@ func (m *MVCCHelper) DelV(key []byte, version int64) error {
 }
 
 //NewSimpleMVCC new
-func NewSimpleMVCC(db KVDB) *SimpleMVCC {
+func NewSimpleMVCC(db db.KVDB) *SimpleMVCC {
 	return &SimpleMVCC{db}
 }
 
@@ -183,7 +184,7 @@ func (m *SimpleMVCC) GetVersion(hash []byte) (int64, error) {
 	key := getVersionHashKey(hash)
 	value, err := m.kvdb.Get(key)
 	if err != nil {
-		if err == ErrNotFoundInDb {
+		if err == db.ErrNotFoundInDb {
 			return 0, types.ErrNotFound
 		}
 		return 0, err
@@ -204,7 +205,7 @@ func (m *SimpleMVCC) GetVersionHash(version int64) ([]byte, error) {
 	key := getVersionKey(version)
 	value, err := m.kvdb.Get(key)
 	if err != nil {
-		if err == ErrNotFoundInDb {
+		if err == db.ErrNotFoundInDb {
 			return nil, types.ErrNotFound
 		}
 		return nil, err
@@ -214,7 +215,7 @@ func (m *SimpleMVCC) GetVersionHash(version int64) ([]byte, error) {
 
 //GetMaxVersion 获取最高版本
 func (m *SimpleMVCC) GetMaxVersion() (int64, error) {
-	vals, err := m.kvdb.List(mvccMetaVersion, nil, 1, ListDESC)
+	vals, err := m.kvdb.List(mvccMetaVersion, nil, 1, db.ListDESC)
 	if err != nil {
 		return 0, err
 	}
@@ -297,7 +298,7 @@ func (m *SimpleMVCC) GetV(key []byte, version int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	vals, err := m.kvdb.List(prefix, search, 1, ListSeek)
+	vals, err := m.kvdb.List(prefix, search, 1, db.ListSeek)
 	if err != nil {
 		return nil, err
 	}

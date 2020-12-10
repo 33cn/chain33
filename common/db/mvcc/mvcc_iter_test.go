@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package mvcc
 
 import (
 	"io/ioutil"
@@ -11,6 +11,9 @@ import (
 	"fmt"
 	"os"
 
+	comdb "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/db/level"
+	"github.com/33cn/chain33/common/db/local"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +23,7 @@ func getMVCCIter() *MVCCIter {
 	if err != nil {
 		panic(err)
 	}
-	leveldb, err := NewGoLevelDB("goleveldb", dir, 128)
+	leveldb, err := level.NewGoLevelDB("goleveldb", dir, 128)
 	if err != nil {
 		panic(err)
 	}
@@ -34,7 +37,7 @@ func KeyValueList(kvlist ...[2]string) (kvs []*types.KeyValue) {
 	return kvs
 }
 
-func saveKVList(db DB, kvlist []*types.KeyValue) {
+func saveKVList(db comdb.DB, kvlist []*types.KeyValue) {
 	for _, v := range kvlist {
 		if v.Value == nil {
 			db.Delete(v.Key)
@@ -64,7 +67,7 @@ func TestAddDelMVCCIter(t *testing.T) {
 	assert.Nil(t, err)
 	saveKVList(m.db, kvlist)
 
-	listhelper := NewListHelper(m)
+	listhelper := comdb.NewListHelper(m)
 	values := listhelper.List(nil, nil, 100, 1)
 	assert.Equal(t, "0/2", string(values[0]))
 	assert.Equal(t, "0/1", string(values[1]))
@@ -102,7 +105,7 @@ func TestGetAllCoinsMVCCIter(t *testing.T) {
 	assert.Nil(t, err)
 	saveKVList(m.db, kvlist)
 
-	listhelper := NewListHelper(m)
+	listhelper := comdb.NewListHelper(m)
 	fmt.Println("---case 1-1----")
 
 	values := listhelper.List([]byte("mavl-coins-bty-"), nil, 100, 1)
@@ -187,7 +190,7 @@ func TestSimpleMVCCLocalDB(t *testing.T) {
 	//use localdb
 	db3, dir := newGoLevelDB(t)
 	defer os.RemoveAll(dir) // clean up
-	kvdb := NewLocalDB(db3, false)
+	kvdb := local.NewLocalDB(db3, false)
 	m := NewSimpleMVCC(kvdb)
 
 	kvlist, err := m.AddMVCC(KeyValueList([2]string{"mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp", "1"}, [2]string{"mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTq", "2"}), hashN(0), nil, 0)
@@ -230,8 +233,16 @@ func TestSimpleMVCCLocalDB(t *testing.T) {
 
 }
 
-func setKVList(db KVDB, kvlist []*types.KeyValue) {
+func setKVList(db comdb.KVDB, kvlist []*types.KeyValue) {
 	for _, v := range kvlist {
 		db.Set(v.Key, v.Value)
 	}
+}
+
+func newGoLevelDB(t *testing.T) (comdb.DB, string) {
+	dir, err := ioutil.TempDir("", "goleveldb")
+	assert.Nil(t, err)
+	db, err := level.NewGoLevelDB("test", dir, 16)
+	assert.Nil(t, err)
+	return db, dir
 }

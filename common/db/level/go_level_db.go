@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package level
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	comdb "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	metrics "github.com/rcrowley/go-metrics"
@@ -33,19 +34,21 @@ const (
 	// metricsGatheringInterval specifies the interval to retrieve leveldb database
 	// compaction, io and pause stats to report to the user.
 	metricsGatheringInterval = 3 * time.Second
+	levelDBBackendStr        = "leveldb" // legacy, defaults to goleveldb.
+	goLevelDBBackendStr      = "goleveldb"
 )
 
 func init() {
-	dbCreator := func(name string, dir string, cache int) (DB, error) {
+	dbCreator := func(name string, dir string, cache int) (comdb.DB, error) {
 		return NewGoLevelDB(name, dir, cache)
 	}
-	registerDBCreator(levelDBBackendStr, dbCreator, false)
-	registerDBCreator(goLevelDBBackendStr, dbCreator, false)
+	comdb.RegisterDBCreator(levelDBBackendStr, dbCreator, false)
+	comdb.RegisterDBCreator(goLevelDBBackendStr, dbCreator, false)
 }
 
 //GoLevelDB db
 type GoLevelDB struct {
-	BaseDB
+	comdb.BaseDB
 	db *leveldb.DB
 
 	compTimeMeter      metrics.Meter // Meter for measuring the total time spent in database compaction
@@ -120,7 +123,7 @@ func (db *GoLevelDB) Get(key []byte) ([]byte, error) {
 	res, err := db.db.Get(key, nil)
 	if err != nil {
 		if err == errors.ErrNotFound {
-			return nil, ErrNotFoundInDb
+			return nil, comdb.ErrNotFoundInDb
 		}
 		llog.Error("Get", "error", err)
 		return nil, err
@@ -232,20 +235,20 @@ func (db *GoLevelDB) Stats() map[string]string {
 }
 
 //Iterator 迭代器
-func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
+func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) comdb.Iterator {
 	if end == nil {
-		end = bytesPrefix(start)
+		end = comdb.BytesPrefix(start)
 	}
 	if bytes.Equal(end, types.EmptyValue) {
 		end = nil
 	}
 	r := &util.Range{Start: start, Limit: end}
 	it := db.db.NewIterator(r, nil)
-	return &goLevelDBIt{it, itBase{start, end, reverse}}
+	return &GoLevelDBIt{it, comdb.ItBase{start, end, reverse}}
 }
 
 //BeginTx call panic when BeginTx not rewrite
-func (db *GoLevelDB) BeginTx() (TxKV, error) {
+func (db *GoLevelDB) BeginTx() (comdb.TxKV, error) {
 	tx, err := db.db.OpenTransaction()
 	if err != nil {
 		return nil, err
@@ -461,33 +464,33 @@ func (db *GoLevelDB) meter(refresh time.Duration) {
 	errc <- merr
 }
 
-type goLevelDBIt struct {
+type GoLevelDBIt struct {
 	iterator.Iterator
-	itBase
+	comdb.ItBase
 }
 
 //Close 关闭
-func (dbit *goLevelDBIt) Close() {
+func (dbit *GoLevelDBIt) Close() {
 	dbit.Iterator.Release()
 }
 
 //Next next
-func (dbit *goLevelDBIt) Next() bool {
-	if dbit.reverse {
+func (dbit *GoLevelDBIt) Next() bool {
+	if dbit.Reverse {
 		return dbit.Iterator.Prev() && dbit.Valid()
 	}
 	return dbit.Iterator.Next() && dbit.Valid()
 }
 
 //Rewind ...
-func (dbit *goLevelDBIt) Rewind() bool {
-	if dbit.reverse {
+func (dbit *GoLevelDBIt) Rewind() bool {
+	if dbit.Reverse {
 		return dbit.Iterator.Last() && dbit.Valid()
 	}
 	return dbit.Iterator.First() && dbit.Valid()
 }
 
-func (dbit *goLevelDBIt) Value() []byte {
+func (dbit *GoLevelDBIt) Value() []byte {
 	return dbit.Iterator.Value()
 }
 
@@ -497,13 +500,13 @@ func cloneByte(v []byte) []byte {
 	return value
 }
 
-func (dbit *goLevelDBIt) ValueCopy() []byte {
+func (dbit *GoLevelDBIt) ValueCopy() []byte {
 	v := dbit.Iterator.Value()
 	return cloneByte(v)
 }
 
-func (dbit *goLevelDBIt) Valid() bool {
-	return dbit.Iterator.Valid() && dbit.checkKey(dbit.Key())
+func (dbit *GoLevelDBIt) Valid() bool {
+	return dbit.Iterator.Valid() && dbit.CheckKey(dbit.Key())
 }
 
 type goLevelDBBatch struct {
@@ -515,7 +518,7 @@ type goLevelDBBatch struct {
 }
 
 //NewBatch new
-func (db *GoLevelDB) NewBatch(sync bool) Batch {
+func (db *GoLevelDB) NewBatch(sync bool) comdb.Batch {
 	batch := new(leveldb.Batch)
 	wop := &opt.WriteOptions{Sync: sync}
 	return &goLevelDBBatch{db, batch, wop, 0, 0}
@@ -579,7 +582,7 @@ func (db *goLevelDBTx) Get(key []byte) ([]byte, error) {
 	res, err := db.tx.Get(key, nil)
 	if err != nil {
 		if err == errors.ErrNotFound {
-			return nil, ErrNotFoundInDb
+			return nil, comdb.ErrNotFoundInDb
 		}
 		llog.Error("tx Get", "error", err)
 		return nil, err
@@ -598,16 +601,16 @@ func (db *goLevelDBTx) Set(key []byte, value []byte) error {
 }
 
 //Iterator 迭代器 in transaction
-func (db *goLevelDBTx) Iterator(start []byte, end []byte, reverse bool) Iterator {
+func (db *goLevelDBTx) Iterator(start []byte, end []byte, reverse bool) comdb.Iterator {
 	if end == nil {
-		end = bytesPrefix(start)
+		end = comdb.BytesPrefix(start)
 	}
 	if bytes.Equal(end, types.EmptyValue) {
 		end = nil
 	}
 	r := &util.Range{Start: start, Limit: end}
 	it := db.tx.NewIterator(r, nil)
-	return &goLevelDBIt{it, itBase{start, end, reverse}}
+	return &GoLevelDBIt{it, comdb.ItBase{start, end, reverse}}
 }
 
 //Begin call panic when Begin not rewrite

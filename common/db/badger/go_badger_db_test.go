@@ -2,11 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package badger
 
 import (
 	"io/ioutil"
 	"testing"
+
+	"github.com/33cn/chain33/common/db/util"
 
 	"github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/require"
@@ -22,7 +24,7 @@ func TestGoBadgerDBIterator(t *testing.T) {
 	require.NoError(t, err)
 	defer badgerdb.Close()
 
-	testDBIterator(t, badgerdb)
+	util.ComTestDBIterator(t, badgerdb)
 }
 
 func TestGoBadgerDBIteratorDel(t *testing.T) {
@@ -34,7 +36,7 @@ func TestGoBadgerDBIteratorDel(t *testing.T) {
 	require.NoError(t, err)
 	defer badgerdb.Close()
 
-	testDBIteratorDel(t, badgerdb)
+	util.ComTestDBIteratorDel(t, badgerdb)
 }
 
 // badgerdb边界测试
@@ -47,7 +49,7 @@ func TestGoBadgerDBBoundary(t *testing.T) {
 	require.NoError(t, err)
 	defer badgerdb.Close()
 
-	testDBBoundary(t, badgerdb)
+	util.ComTestDBBoundary(t, badgerdb)
 }
 
 func TestBadgerDB(t *testing.T) {
@@ -117,5 +119,5 @@ func TestBadgerBatch(t *testing.T) {
 	db, err := NewGoBadgerDB("gobadgerdb", dir, 128)
 	require.NoError(t, err)
 	defer db.Close()
-	testBatch(t, db)
+	util.ComTestBatch(t, db)
 }

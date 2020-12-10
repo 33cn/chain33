@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	comdb "github.com/33cn/chain33/common/db"
 	"github.com/XiaoMi/pegasus-go-client/pegasus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -31,7 +32,7 @@ func TestPegasusDB_Get(t *testing.T) {
 
 	data, err = db.Get(key1)
 	assert.Nil(t, data)
-	assert.EqualError(t, err, ErrNotFoundInDb.Error())
+	assert.EqualError(t, err, comdb.ErrNotFoundInDb.Error())
 	tbl.AssertExpectations(t)
 }
 

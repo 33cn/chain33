@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	comdb "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/db/ssdb"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	"github.com/XiaoMi/pegasus-go-client/pegasus"
@@ -17,21 +19,25 @@ import (
 )
 
 var slog = log.New("module", "db.pegasus")
-var pdbBench = &SsdbBench{}
+var pdbBench = &ssdb.SsdbBench{}
+
+const (
+	goPegasusDbBackendStr = "pegasus"
+)
 
 //HashKeyLen hash长度
 var HashKeyLen = 24
 
 func init() {
-	dbCreator := func(name string, dir string, cache int) (DB, error) {
+	dbCreator := func(name string, dir string, cache int) (comdb.DB, error) {
 		return NewPegasusDB(name, dir, cache)
 	}
-	registerDBCreator(goPegasusDbBackendStr, dbCreator, false)
+	comdb.RegisterDBCreator(goPegasusDbBackendStr, dbCreator, false)
 }
 
 //PegasusDB db
 type PegasusDB struct {
-	BaseDB
+	comdb.BaseDB
 	cfg    *pegasus.Config
 	name   string
 	client pegasus.Client
@@ -94,10 +100,10 @@ func (db *PegasusDB) Get(key []byte) ([]byte, error) {
 		return nil, err
 	}
 	if value == nil {
-		return nil, ErrNotFoundInDb
+		return nil, comdb.ErrNotFoundInDb
 	}
 
-	pdbBench.read(1, time.Since(start))
+	pdbBench.Read(1, time.Since(start))
 	return value, nil
 }
 
@@ -110,7 +116,7 @@ func (db *PegasusDB) Set(key []byte, value []byte) error {
 		slog.Error("Set", "error", err)
 		return err
 	}
-	pdbBench.write(1, time.Since(start))
+	pdbBench.Write(1, time.Since(start))
 	return nil
 }
 
@@ -122,7 +128,7 @@ func (db *PegasusDB) SetSync(key []byte, value []byte) error {
 //Delete 删除
 func (db *PegasusDB) Delete(key []byte) error {
 	start := time.Now()
-	defer pdbBench.write(1, time.Since(start))
+	defer pdbBench.Write(1, time.Since(start))
 	hashKey := getHashKey(key)
 	err := db.table.Del(context.Background(), hashKey, key)
 	if err != nil {
@@ -141,11 +147,11 @@ func (db *PegasusDB) DeleteSync(key []byte) error {
 func (db *PegasusDB) Close() {
 	err := db.table.Close()
 	if err != nil {
-		llog.Error("Close", "db table error", err)
+		slog.Error("Close", "db table error", err)
 	}
 	err = db.client.Close()
 	if err != nil {
-		llog.Error("Close", "client error", err)
+		slog.Error("Close", "client error", err)
 	}
 }
 
@@ -159,7 +165,7 @@ func (db *PegasusDB) Stats() map[string]string {
 }
 
 //Iterator 迭代器
-func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
+func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) comdb.Iterator {
 	var (
 		err   error
 		vals  []*pegasus.KeyValue
@@ -167,7 +173,7 @@ func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
 		over  []byte
 	)
 	if end == nil {
-		end = bytesPrefix(begin)
+		end = comdb.BytesPrefix(begin)
 	}
 	if bytes.Equal(end, types.EmptyValue) {
 		end = nil
@@ -182,8 +188,8 @@ func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
 		start = limit.Limit
 		over = begin
 	}
-	dbit := &PegasusIt{itBase: itBase{begin, end, reverse}, index: -1, table: db.table, itbegin: start, itend: over}
-	opts := &pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: IteratorPageSize, Reverse: dbit.reverse}
+	dbit := &PegasusIt{ItBase: comdb.ItBase{begin, end, reverse}, index: -1, table: db.table, itbegin: start, itend: over}
+	opts := &pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: ssdb.IteratorPageSize, Reverse: dbit.Reverse}
 	vals, _, err = db.table.MultiGetRangeOpt(context.Background(), hashKey, begin, limit.Limit, opts)
 	if err != nil {
 		slog.Error("create iterator error!")
@@ -192,10 +198,10 @@ func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
 	if len(vals) > 0 {
 		dbit.vals = vals
 		// 如果返回的数据大小刚好满足分页，则假设下一页还有数据
-		if len(dbit.vals) == IteratorPageSize {
+		if len(dbit.vals) == ssdb.IteratorPageSize {
 			dbit.nextPage = true
 			// 下一页数据的开始，等于本页数据的结束，不过在下次查询时需要设置StartInclusiv=false，因为本条数据已经包含
-			dbit.tmpEnd = dbit.vals[IteratorPageSize-1].SortKey
+			dbit.tmpEnd = dbit.vals[ssdb.IteratorPageSize-1].SortKey
 		}
 	}
 	return dbit
@@ -203,7 +209,7 @@ func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) Iterator {
 
 //PegasusIt ...
 type PegasusIt struct {
-	itBase
+	comdb.ItBase
 	table    pegasus.TableConnector
 	vals     []*pegasus.KeyValue
 	index    int
@@ -242,12 +248,12 @@ func (dbit *PegasusIt) initPage(begin, end []byte) bool {
 		vals []*pegasus.KeyValue
 		err  error
 	)
-	opts := &pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: IteratorPageSize, Reverse: dbit.reverse}
+	opts := &pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: ssdb.IteratorPageSize, Reverse: dbit.Reverse}
 	hashKey := getHashKey(begin)
 	vals, _, err = dbit.table.MultiGetRangeOpt(context.Background(), hashKey, begin, end, opts)
 
 	if err != nil {
-		slog.Error("get iterator next page error", "error", err, "begin", begin, "end", dbit.itend, "reverse", dbit.reverse)
+		slog.Error("get iterator next page error", "error", err, "begin", begin, "end", dbit.itend, "reverse", dbit.Reverse)
 		return false
 	}
 
@@ -256,9 +262,9 @@ func (dbit *PegasusIt) initPage(begin, end []byte) bool {
 		dbit.vals = vals
 
 		// 如果返回的数据大小刚好满足分页，则假设下一页还有数据
-		if len(vals) == IteratorPageSize {
+		if len(vals) == ssdb.IteratorPageSize {
 			dbit.nextPage = true
-			dbit.tmpEnd = dbit.vals[IteratorPageSize-1].SortKey
+			dbit.tmpEnd = dbit.vals[ssdb.IteratorPageSize-1].SortKey
 		} else {
 			dbit.nextPage = false
 		}
@@ -274,7 +280,7 @@ func (dbit *PegasusIt) cacheNextPage(flag []byte) bool {
 		over []byte
 	)
 	// 如果是逆序，则取从开始到flag的数据
-	if dbit.reverse {
+	if dbit.Reverse {
 		over = dbit.itbegin
 	} else {
 		over = dbit.itend
@@ -302,7 +308,7 @@ func (dbit *PegasusIt) findInPage(key []byte) int {
 		if i < dbit.index {
 			continue
 		}
-		if dbit.checkKeyCmp(key, v.SortKey, dbit.reverse) {
+		if dbit.checkKeyCmp(key, v.SortKey, dbit.Reverse) {
 			continue
 		} else {
 			pos = i
@@ -389,8 +395,8 @@ func (dbit *PegasusIt) Valid() bool {
 		return false
 	}
 	key := dbit.vals[dbit.index].SortKey
-	pdbBench.read(1, time.Since(start))
-	return dbit.checkKey(key)
+	pdbBench.Read(1, time.Since(start))
+	return dbit.CheckKey(key)
 }
 
 //PegasusBatch batch
@@ -402,7 +408,7 @@ type PegasusBatch struct {
 }
 
 //NewBatch new
-func (db *PegasusDB) NewBatch(sync bool) Batch {
+func (db *PegasusDB) NewBatch(sync bool) comdb.Batch {
 	return &PegasusBatch{table: db.table, batchset: make(map[string][]byte), batchdel: make(map[string][]byte)}
 }
 
@@ -496,7 +502,7 @@ func (db *PegasusBatch) Write() error {
 		}
 	}
 
-	pdbBench.write(len(db.batchset)+len(db.batchdel), time.Since(start))
+	pdbBench.Write(len(db.batchset)+len(db.batchdel), time.Since(start))
 	return nil
 }
 

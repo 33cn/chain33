@@ -1,18 +1,22 @@
-package db
+package db_test
 
 import (
 	"io/ioutil"
 	"os"
 	"testing"
 
+	comdb "github.com/33cn/chain33/common/db"
+	leveldb "github.com/33cn/chain33/common/db/level"
+	memdb "github.com/33cn/chain33/common/db/mem"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func newGoMemDB(t *testing.T) DB {
+func newGoMemDB(t *testing.T) comdb.DB {
 	dir, err := ioutil.TempDir("", "gomemdb")
 	require.NoError(t, err)
-	memdb, err := NewGoMemDB("gomemdb", dir, 128)
+	memdb, err := memdb.NewGoMemDB("gomemdb", dir, 128)
 	require.NoError(t, err)
 	return memdb
 }
@@ -24,8 +28,8 @@ func TestMergeIter(t *testing.T) {
 	db2.Set([]byte("2"), []byte("2"))
 
 	//合并以后:
-	db := NewMergedIteratorDB([]IteratorDB{db1, db2})
-	it0 := NewListHelper(db)
+	db := comdb.NewMergedIteratorDB([]comdb.IteratorDB{db1, db2})
+	it0 := comdb.NewListHelper(db)
 	list0 := it0.List(nil, nil, 100, 0)
 	assert.Equal(t, 2, len(list0))
 	assert.Equal(t, "2", string(list0[0]))
@@ -38,10 +42,10 @@ func TestMergeIter(t *testing.T) {
 	*/
 }
 
-func newGoLevelDB(t *testing.T) (DB, string) {
+func newGoLevelDB(t *testing.T) (comdb.DB, string) {
 	dir, err := ioutil.TempDir("", "goleveldb")
 	assert.Nil(t, err)
-	db, err := NewGoLevelDB("test", dir, 16)
+	db, err := leveldb.NewGoLevelDB("test", dir, 16)
 	assert.Nil(t, err)
 	return db, dir
 }
@@ -50,8 +54,8 @@ func TestMergeIterSeek1(t *testing.T) {
 	db1 := newGoMemDB(t)
 	db1.Set([]byte("1"), []byte("1"))
 
-	it0 := NewListHelper(db1)
-	list0 := it0.List(nil, []byte("2"), 1, ListSeek)
+	it0 := comdb.NewListHelper(db1)
+	list0 := it0.List(nil, []byte("2"), 1, comdb.ListSeek)
 	assert.Equal(t, 2, len(list0))
 	assert.Equal(t, "1", string(list0[0]))
 }
@@ -66,13 +70,13 @@ func TestMergeIterSeek(t *testing.T) {
 	db2.Set([]byte("3"), []byte("3"))
 	db3.Set([]byte("5"), []byte("5"))
 	//合并以后:
-	db := NewMergedIteratorDB([]IteratorDB{db1, db2, db3})
-	it0 := NewListHelper(db)
-	list0 := it0.List(nil, []byte("2"), 1, ListSeek)
+	db := comdb.NewMergedIteratorDB([]comdb.IteratorDB{db1, db2, db3})
+	it0 := comdb.NewListHelper(db)
+	list0 := it0.List(nil, []byte("2"), 1, comdb.ListSeek)
 	assert.Equal(t, 2, len(list0))
 	assert.Equal(t, "1", string(list0[1]))
 
-	list0 = it0.List(nil, []byte("3"), 1, ListSeek)
+	list0 = it0.List(nil, []byte("3"), 1, comdb.ListSeek)
 	assert.Equal(t, 2, len(list0))
 	assert.Equal(t, "3", string(list0[1]))
 }
@@ -87,17 +91,17 @@ func TestMergeIterSeekPrefix(t *testing.T) {
 	db2.Set([]byte("key3"), []byte("3"))
 	db3.Set([]byte("key5"), []byte("5"))
 	//合并以后:
-	db := NewMergedIteratorDB([]IteratorDB{db1, db2, db3})
-	it0 := NewListHelper(db)
-	list0 := it0.List([]byte("key"), []byte("key2"), 1, ListSeek)
+	db := comdb.NewMergedIteratorDB([]comdb.IteratorDB{db1, db2, db3})
+	it0 := comdb.NewListHelper(db)
+	list0 := it0.List([]byte("key"), []byte("key2"), 1, comdb.ListSeek)
 	assert.Equal(t, 2, len(list0))
 	assert.Equal(t, "1", string(list0[1]))
 
-	list0 = it0.List([]byte("key"), []byte("key3"), 1, ListSeek)
+	list0 = it0.List([]byte("key"), []byte("key3"), 1, comdb.ListSeek)
 	assert.Equal(t, 2, len(list0))
 	assert.Equal(t, "3", string(list0[1]))
 
-	list0 = it0.List([]byte("key"), []byte("key6"), 1, ListSeek)
+	list0 = it0.List([]byte("key"), []byte("key6"), 1, comdb.ListSeek)
 	assert.Equal(t, 2, len(list0))
 	assert.Equal(t, "5", string(list0[1]))
 }
@@ -109,8 +113,8 @@ func TestMergeIterDup1(t *testing.T) {
 	db2.Set([]byte("2"), []byte("2"))
 
 	//合并以后:
-	db := NewMergedIteratorDB([]IteratorDB{db1, db2})
-	it0 := NewListHelper(db)
+	db := comdb.NewMergedIteratorDB([]comdb.IteratorDB{db1, db2})
+	it0 := comdb.NewListHelper(db)
 	//测试修改
 	db1.Set([]byte("2"), []byte("12"))
 	list0 := it0.List(nil, nil, 100, 0)
@@ -130,8 +134,8 @@ func TestMergeIterDup2(t *testing.T) {
 	db2.Set([]byte("key-2"), []byte("db2-key-2"))
 
 	//合并以后:
-	db := NewMergedIteratorDB([]IteratorDB{db1, db2})
-	it0 := NewListHelper(db)
+	db := comdb.NewMergedIteratorDB([]comdb.IteratorDB{db1, db2})
+	it0 := comdb.NewListHelper(db)
 	//测试修改
 	db2.Set([]byte("key-3"), []byte("db2-key-3"))
 	list0 := it0.List(nil, nil, 100, 0)
@@ -161,8 +165,8 @@ func TestMergeIterDup3(t *testing.T) {
 	db2.Set([]byte("key-2"), []byte("db2-key-2"))
 
 	//合并以后:
-	db := NewMergedIteratorDB([]IteratorDB{db1, db2})
-	it0 := NewListHelper(db)
+	db := comdb.NewMergedIteratorDB([]comdb.IteratorDB{db1, db2})
+	it0 := comdb.NewListHelper(db)
 	//测试修改
 	db1.Set([]byte("key-2"), []byte("db1-key-2"))
 	list0 := it0.List(nil, nil, 100, 0)
@@ -193,8 +197,8 @@ func TestMergeIter3(t *testing.T) {
 	db3.Set([]byte("key-3"), []byte("db3-key-3"))
 
 	//合并以后:
-	db := NewMergedIteratorDB([]IteratorDB{db1, db2, db3})
-	it0 := NewListHelper(db)
+	db := comdb.NewMergedIteratorDB([]comdb.IteratorDB{db1, db2, db3})
+	it0 := comdb.NewListHelper(db)
 	list0 := it0.List([]byte("key-"), nil, 0, 0)
 	for k, v := range list0 {
 		println(k, string(v))
@@ -214,8 +218,8 @@ func TestMergeIter1(t *testing.T) {
 	db1.Set([]byte("key-3"), []byte("db1-key-3"))
 
 	//合并以后:
-	db := NewMergedIteratorDB([]IteratorDB{db1, db2, db3})
-	it0 := NewListHelper(db)
+	db := comdb.NewMergedIteratorDB([]comdb.IteratorDB{db1, db2, db3})
+	it0 := comdb.NewListHelper(db)
 	list0 := it0.List(nil, nil, 100, 0)
 	for k, v := range list0 {
 		println(k, string(v))
@@ -236,8 +240,8 @@ func TestMergeIterSearch(t *testing.T) {
 	db2.Set([]byte("key-4"), []byte("db2-key-4"))
 
 	//合并以后:
-	db := NewMergedIteratorDB([]IteratorDB{db1, db2})
-	it0 := NewListHelper(db)
+	db := comdb.NewMergedIteratorDB([]comdb.IteratorDB{db1, db2})
+	it0 := comdb.NewListHelper(db)
 	list0 := it0.List([]byte("key-"), []byte("key-2"), 100, 0)
 	for k, v := range list0 {
 		println(k, string(v))
@@ -263,7 +267,7 @@ func TestIterSearch(t *testing.T) {
 	db1.Set([]byte("key-3"), []byte("db2-key-3"))
 	db1.Set([]byte("key-4"), []byte("db2-key-4"))
 
-	it0 := NewListHelper(db1)
+	it0 := comdb.NewListHelper(db1)
 	list0 := it0.List([]byte("key-"), []byte("key-2"), 100, 0)
 	for k, v := range list0 {
 		println(k, string(v))

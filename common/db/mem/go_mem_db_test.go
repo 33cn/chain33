@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package mem
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	util "github.com/33cn/chain33/common/db/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +24,7 @@ func TestGoMemDBIterator(t *testing.T) {
 	require.NoError(t, err)
 	defer memdb.Close()
 
-	testDBIterator(t, memdb)
+	util.ComTestDBIterator(t, memdb)
 }
 
 func TestGoMemDBIteratorDel(t *testing.T) {
@@ -35,7 +36,7 @@ func TestGoMemDBIteratorDel(t *testing.T) {
 	require.NoError(t, err)
 	defer memdb.Close()
 
-	testDBIteratorDel(t, memdb)
+	util.ComTestDBIteratorDel(t, memdb)
 }
 
 func TestGoMemDBBatch(t *testing.T) {
@@ -46,7 +47,7 @@ func TestGoMemDBBatch(t *testing.T) {
 	leveldb, err := NewGoMemDB("gomemdb", dir, 128)
 	require.NoError(t, err)
 	defer leveldb.Close()
-	testBatch(t, leveldb)
+	util.ComTestBatch(t, leveldb)
 }
 
 // memdb边界测试
@@ -59,7 +60,7 @@ func TestGoMemDBBoundary(t *testing.T) {
 	require.NoError(t, err)
 	defer memdb.Close()
 
-	testDBBoundary(t, memdb)
+	util.ComTestDBBoundary(t, memdb)
 }
 
 func BenchmarkRandomGoMemDBReadsWrites(b *testing.B) {
@@ -70,7 +71,7 @@ func BenchmarkRandomGoMemDBReadsWrites(b *testing.B) {
 	for i := 0; i < int(numItems); i++ {
 		internal[int64(i)] = int64(0)
 	}
-	db, err := NewGoMemDB(fmt.Sprintf("test_%x", RandStr(12)), "", 1000)
+	db, err := NewGoMemDB(fmt.Sprintf("test_%x", util.RandStr(12)), "", 1000)
 	if err != nil {
 		b.Fatal(err.Error())
 		return
@@ -82,11 +83,11 @@ func BenchmarkRandomGoMemDBReadsWrites(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		// Write something
 		{
-			idx := (int64(RandInt()) % numItems)
+			idx := (int64(util.RandInt()) % numItems)
 			internal[idx]++
 			val := internal[idx]
-			idxBytes := int642Bytes(idx)
-			valBytes := int642Bytes(val)
+			idxBytes := util.Int642Bytes(idx)
+			valBytes := util.Int642Bytes(val)
 			//fmt.Printf("Set %X -> %X\n", idxBytes, valBytes)
 			db.Set(
 				idxBytes,
@@ -95,9 +96,9 @@ func BenchmarkRandomGoMemDBReadsWrites(b *testing.B) {
 		}
 		// Read something
 		{
-			idx := (int64(RandInt()) % numItems)
+			idx := (int64(util.RandInt()) % numItems)
 			val := internal[idx]
-			idxBytes := int642Bytes(idx)
+			idxBytes := util.Int642Bytes(idx)
 			valBytes, _ := db.Get(idxBytes)
 			//fmt.Printf("Get %X -> %X\n", idxBytes, valBytes)
 			if val == 0 {
@@ -112,7 +113,7 @@ func BenchmarkRandomGoMemDBReadsWrites(b *testing.B) {
 						idx, valBytes)
 					break
 				}
-				valGot := bytes2Int64(valBytes)
+				valGot := util.Bytes2Int64(valBytes)
 				if val != valGot {
 					b.Errorf("Expected %v for %v, got %v",
 						val, idx, valGot)

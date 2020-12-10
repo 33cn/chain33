@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package mvcc
 
 import (
 	"bytes"
 
+	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
 
@@ -18,7 +19,7 @@ type MVCCIter struct {
 }
 
 //NewMVCCIter new
-func NewMVCCIter(db DB) *MVCCIter {
+func NewMVCCIter(db db.DB) *MVCCIter {
 	return &MVCCIter{MVCCHelper: NewMVCC(db)}
 }
 
@@ -65,7 +66,7 @@ func (m *MVCCIter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.Ke
 }
 
 //Iterator 迭代
-func (m *MVCCIter) Iterator(start, end []byte, reserver bool) Iterator {
+func (m *MVCCIter) Iterator(start, end []byte, reserver bool) db.Iterator {
 	if start == nil {
 		start = mvccLast
 	} else {
@@ -74,13 +75,13 @@ func (m *MVCCIter) Iterator(start, end []byte, reserver bool) Iterator {
 	if end != nil {
 		end = getLastKey(end)
 	} else {
-		end = bytesPrefix(start)
+		end = db.BytesPrefix(start)
 	}
 	return &mvccIt{m.db.Iterator(start, end, reserver)}
 }
 
 type mvccIt struct {
-	Iterator
+	db.Iterator
 }
 
 //Prefix 前缀

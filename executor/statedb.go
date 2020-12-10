@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 
 	"github.com/33cn/chain33/common/db"
+	mvccdb "github.com/33cn/chain33/common/db/mvcc"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
@@ -22,7 +23,7 @@ type StateDB struct {
 	stateHash []byte
 	version   int64
 	height    int64
-	local     *db.SimpleMVCC
+	local     *mvccdb.SimpleMVCC
 	opt       *StateDBOption
 }
 
@@ -46,7 +47,7 @@ func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *Sta
 		stateHash: stateHash,
 		height:    opt.Height,
 		version:   -1,
-		local:     db.NewSimpleMVCC(localdb),
+		local:     mvccdb.NewSimpleMVCC(localdb),
 		opt:       opt,
 	}
 	return db

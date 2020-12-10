@@ -261,3 +261,8 @@ func (c *collector) result() [][]byte {
 	}
 	return c.results
 }
+func cloneByte(v []byte) []byte {
+	value := make([]byte, len(v))
+	copy(value, v)
+	return value
+}

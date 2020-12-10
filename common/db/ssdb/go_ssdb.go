@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package ssdb
 
 import (
 	"bytes"
@@ -15,17 +15,22 @@ import (
 	"strings"
 	"time"
 
+	comdb "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 )
 
 var dlog = log.New("module", "db.ssdb")
 var sdbBench = &SsdbBench{}
 
+const (
+	ssDBBackendStr = "ssdb"
+)
+
 func init() {
-	dbCreator := func(name string, dir string, cache int) (DB, error) {
+	dbCreator := func(name string, dir string, cache int) (comdb.DB, error) {
 		return NewGoSSDB(name, dir, cache)
 	}
-	registerDBCreator(ssDBBackendStr, dbCreator, false)
+	comdb.RegisterDBCreator(ssDBBackendStr, dbCreator, false)
 }
 
 //SsdbBench ...
@@ -49,18 +54,18 @@ type SsdbNode struct {
 
 //GoSSDB db
 type GoSSDB struct {
-	BaseDB
+	comdb.BaseDB
 	pool  *SDBPool
 	nodes []*SsdbNode
 }
 
-func (bench *SsdbBench) write(num int, cost time.Duration) {
+func (bench *SsdbBench) Write(num int, cost time.Duration) {
 	bench.writeCount++
 	bench.writeNum += num
 	bench.writeTime += cost
 }
 
-func (bench *SsdbBench) read(num int, cost time.Duration) {
+func (bench *SsdbBench) Read(num int, cost time.Duration) {
 	bench.readCount++
 	bench.readNum += num
 	bench.readTime += cost
@@ -134,10 +139,10 @@ func (db *GoSSDB) Get(key []byte) ([]byte, error) {
 		return nil, err
 	}
 	if value == nil {
-		return nil, ErrNotFoundInDb
+		return nil, comdb.ErrNotFoundInDb
 	}
 
-	sdbBench.read(1, time.Since(start))
+	sdbBench.Read(1, time.Since(start))
 	return value.Bytes(), nil
 }
 
@@ -150,7 +155,7 @@ func (db *GoSSDB) Set(key []byte, value []byte) error {
 		dlog.Error("Set", "error", err)
 		return err
 	}
-	sdbBench.write(1, time.Since(start))
+	sdbBench.Write(1, time.Since(start))
 	return nil
 }
 
@@ -168,7 +173,7 @@ func (db *GoSSDB) Delete(key []byte) error {
 		dlog.Error("Delete", "error", err)
 		return err
 	}
-	sdbBench.write(1, time.Since(start))
+	sdbBench.Write(1, time.Since(start))
 	return nil
 }
 
@@ -192,7 +197,7 @@ func (db *GoSSDB) Stats() map[string]string {
 }
 
 //Iterator 迭代器
-func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) Iterator {
+func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) comdb.Iterator {
 	start := time.Now()
 
 	var (
@@ -202,7 +207,7 @@ func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) Iterator {
 		end   string
 	)
 	if itend == nil {
-		itend = bytesPrefix(itbeg)
+		itend = comdb.BytesPrefix(itbeg)
 	}
 	if bytes.Equal(itend, types.EmptyValue) {
 		itend = nil
@@ -233,7 +238,7 @@ func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) Iterator {
 		}
 	}
 
-	sdbBench.read(len(keys), time.Since(start))
+	sdbBench.Read(len(keys), time.Since(start))
 	return it
 }
 
@@ -241,7 +246,7 @@ func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) Iterator {
 // 为了防止匹配的KEY范围过大，这里需要进行分页，每次只取1024条KEY；
 // Next方法自动进行跨页取数据
 type ssDBIt struct {
-	itBase
+	comdb.ItBase
 	db      *GoSSDB
 	keys    []string
 	index   int
@@ -262,7 +267,7 @@ type ssDBIt struct {
 
 func newSSDBIt(begin, end string, prefix, itend []byte, keys []string, reverse bool, db *GoSSDB) *ssDBIt {
 	return &ssDBIt{
-		itBase:  itBase{prefix, itend, reverse},
+		ItBase:  comdb.ItBase{prefix, itend, reverse},
 		index:   -1,
 		keys:    keys,
 		reverse: reverse,
@@ -426,8 +431,8 @@ func (dbit *ssDBIt) Valid() bool {
 		return false
 	}
 	key := dbit.keys[dbit.index]
-	sdbBench.read(1, time.Since(start))
-	return dbit.checkKey([]byte(key))
+	sdbBench.Read(1, time.Since(start))
+	return dbit.CheckKey([]byte(key))
 }
 
 type ssDBBatch struct {
@@ -438,7 +443,7 @@ type ssDBBatch struct {
 }
 
 //NewBatch new
-func (db *GoSSDB) NewBatch(sync bool) Batch {
+func (db *GoSSDB) NewBatch(sync bool) comdb.Batch {
 	return &ssDBBatch{db: db, batchset: make(map[string][]byte), batchdel: make(map[string]bool)}
 }
 
@@ -483,7 +488,7 @@ func (db *ssDBBatch) Write() error {
 		}
 	}
 
-	sdbBench.write(len(db.batchset)+len(db.batchdel), time.Since(start))
+	sdbBench.Write(len(db.batchset)+len(db.batchdel), time.Since(start))
 	return nil
 }
 

@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package db
+package badger
 
 import (
 	"bytes"
 
+	comdb "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	"github.com/dgraph-io/badger"
@@ -15,17 +16,21 @@ import (
 
 var blog = log.New("module", "db.gobadgerdb")
 
+const (
+	goBadgerDBBackendStr = "gobadgerdb"
+)
+
 //GoBadgerDB db
 type GoBadgerDB struct {
-	BaseDB
+	comdb.BaseDB
 	db *badger.DB
 }
 
 func init() {
-	dbCreator := func(name string, dir string, cache int) (DB, error) {
+	dbCreator := func(name string, dir string, cache int) (comdb.DB, error) {
 		return NewGoBadgerDB(name, dir, cache)
 	}
-	registerDBCreator(goBadgerDBBackendStr, dbCreator, false)
+	comdb.RegisterDBCreator(goBadgerDBBackendStr, dbCreator, false)
 }
 
 //NewGoBadgerDB new
@@ -58,7 +63,7 @@ func (db *GoBadgerDB) Get(key []byte) ([]byte, error) {
 		item, err := txn.Get(key)
 		if err != nil {
 			if err == badger.ErrKeyNotFound {
-				return ErrNotFoundInDb
+				return comdb.ErrNotFoundInDb
 			}
 			blog.Error("Get", "txn.Get.error", err)
 			return err
@@ -186,13 +191,13 @@ func (db *GoBadgerDB) Stats() map[string]string {
 }
 
 //Iterator 迭代器
-func (db *GoBadgerDB) Iterator(start, end []byte, reverse bool) Iterator {
+func (db *GoBadgerDB) Iterator(start, end []byte, reverse bool) comdb.Iterator {
 	txn := db.db.NewTransaction(false)
 	opts := badger.DefaultIteratorOptions
 	opts.Reverse = reverse
 	it := txn.NewIterator(opts)
 	if end == nil {
-		end = bytesPrefix(start)
+		end = comdb.BytesPrefix(start)
 	}
 	if bytes.Equal(end, types.EmptyValue) {
 		end = nil
@@ -202,12 +207,12 @@ func (db *GoBadgerDB) Iterator(start, end []byte, reverse bool) Iterator {
 	} else {
 		it.Seek(start)
 	}
-	return &goBadgerDBIt{it, itBase{start, end, reverse}, txn, nil}
+	return &goBadgerDBIt{it, comdb.ItBase{start, end, reverse}, txn, nil}
 }
 
 type goBadgerDBIt struct {
 	*badger.Iterator
-	itBase
+	comdb.ItBase
 	txn *badger.Txn
 	err error
 }
@@ -220,10 +225,10 @@ func (it *goBadgerDBIt) Next() bool {
 
 //Rewind ...
 func (it *goBadgerDBIt) Rewind() bool {
-	if it.reverse {
-		it.Seek(it.end)
+	if it.Reverse {
+		it.Seek(it.End)
 	} else {
-		it.Seek(it.start)
+		it.Seek(it.Start)
 	}
 	return it.Valid()
 }
@@ -242,7 +247,7 @@ func (it *goBadgerDBIt) Close() {
 
 //Valid 是否合法
 func (it *goBadgerDBIt) Valid() bool {
-	return it.Iterator.Valid() && it.checkKey(it.Key())
+	return it.Iterator.Valid() && it.CheckKey(it.Key())
 }
 
 func (it *goBadgerDBIt) Key() []byte {
@@ -279,7 +284,7 @@ type GoBadgerDBBatch struct {
 }
 
 //NewBatch new
-func (db *GoBadgerDB) NewBatch(sync bool) Batch {
+func (db *GoBadgerDB) NewBatch(sync bool) comdb.Batch {
 	batch := db.db.NewTransaction(true)
 	return &GoBadgerDBBatch{db, batch, 0, 0}
 }

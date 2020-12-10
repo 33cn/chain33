@@ -21,6 +21,7 @@ import (
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/db"
+	leveldb "github.com/33cn/chain33/common/db/level"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
@@ -590,7 +591,7 @@ func CreateTestDB() (string, db.DB, db.KVDB) {
 	if err != nil {
 		panic(err)
 	}
-	leveldb, err := db.NewGoLevelDB("goleveldb", dir, 128)
+	leveldb, err := leveldb.NewGoLevelDB("goleveldb", dir, 128)
 	if err != nil {
 		panic(err)
 	}

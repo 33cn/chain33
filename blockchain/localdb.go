@@ -3,6 +3,7 @@ package blockchain
 import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/db/local"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
@@ -81,7 +82,7 @@ func (chain *BlockChain) localSet(msg *queue.Message) {
 
 //创建 localdb transaction
 func (chain *BlockChain) localNew(msg *queue.Message) {
-	tx := db.NewLocalDB(chain.blockStore.db, msg.GetData().(bool))
+	tx := local.NewLocalDB(chain.blockStore.db, msg.GetData().(bool))
 	id := common.StorePointer(tx)
 	msg.Reply(chain.client.NewMessage("", types.EventLocalNew, &types.Int64{Data: id}))
 }
