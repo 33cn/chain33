@@ -188,7 +188,7 @@ func (db *PegasusDB) Iterator(begin []byte, end []byte, reverse bool) comdb.Iter
 		start = limit.Limit
 		over = begin
 	}
-	dbit := &PegasusIt{ItBase: comdb.ItBase{begin, end, reverse}, index: -1, table: db.table, itbegin: start, itend: over}
+	dbit := &PegasusIt{ItBase: comdb.ItBase{Start: begin, End: end, Reverse: reverse}, index: -1, table: db.table, itbegin: start, itend: over}
 	opts := &pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: ssdb.IteratorPageSize, Reverse: dbit.Reverse}
 	vals, _, err = db.table.MultiGetRangeOpt(context.Background(), hashKey, begin, limit.Limit, opts)
 	if err != nil {

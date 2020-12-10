@@ -19,6 +19,8 @@ import (
 
 	. "github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/db"
+	_ "github.com/33cn/chain33/common/db/init"
+	mvccDB "github.com/33cn/chain33/common/db/mvcc"
 	"github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
@@ -299,7 +301,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	enableMvcc := false
-	mvccdb := db.NewMVCC(dbm)
+	mvccdb := mvccDB.NewMVCC(dbm)
 
 	t1 := NewTree(dbm, true, nil)
 
@@ -385,7 +387,7 @@ func TestPersistence(t *testing.T) {
 	dbm.Close()
 }
 
-func kindsGet(t *Tree, mvccdb *db.MVCCHelper, key []byte, version int64, enableMvcc bool) (index int32, value []byte, exists bool) {
+func kindsGet(t *Tree, mvccdb *mvccDB.MVCCHelper, key []byte, version int64, enableMvcc bool) (index int32, value []byte, exists bool) {
 	if enableMvcc {
 		if mvccdb != nil {
 			value, err := mvccdb.GetV(key, version)
@@ -402,7 +404,7 @@ func kindsGet(t *Tree, mvccdb *db.MVCCHelper, key []byte, version int64, enableM
 	return 0, nil, false
 }
 
-func kindsSet(t *Tree, mvccdb *db.MVCCHelper, key []byte, value []byte, version int64, enableMvcc bool) (updated bool) {
+func kindsSet(t *Tree, mvccdb *mvccDB.MVCCHelper, key []byte, value []byte, version int64, enableMvcc bool) (updated bool) {
 	if enableMvcc {
 		if mvccdb != nil {
 			err := mvccdb.SetV(key, value, version)
@@ -1933,7 +1935,7 @@ func BenchmarkDBGetMVCC(b *testing.B) {
 		}
 	}
 	b.ResetTimer()
-	mvccdb := db.NewMVCC(ldb)
+	mvccdb := mvccDB.NewMVCC(ldb)
 	for i := 0; i < b.N*1000; i++ {
 		key := i2b(int32(i))
 		value := Sha256(key)
@@ -1972,7 +1974,7 @@ func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool, treeC
 	}
 	newHash = t.Save()
 	if mvcc {
-		mvccdb := db.NewMVCC(dbm)
+		mvccdb := mvccDB.NewMVCC(dbm)
 		newkvs, err := mvccdb.AddMVCC(kvs, newHash, hash, height)
 		if err != nil {
 			return nil, err

@@ -267,7 +267,7 @@ type ssDBIt struct {
 
 func newSSDBIt(begin, end string, prefix, itend []byte, keys []string, reverse bool, db *GoSSDB) *ssDBIt {
 	return &ssDBIt{
-		ItBase:  comdb.ItBase{prefix, itend, reverse},
+		ItBase:  comdb.ItBase{Start: prefix, End: itend, Reverse: reverse},
 		index:   -1,
 		keys:    keys,
 		reverse: reverse,

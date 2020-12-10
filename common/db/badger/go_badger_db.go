@@ -207,7 +207,7 @@ func (db *GoBadgerDB) Iterator(start, end []byte, reverse bool) comdb.Iterator {
 	} else {
 		it.Seek(start)
 	}
-	return &goBadgerDBIt{it, comdb.ItBase{start, end, reverse}, txn, nil}
+	return &goBadgerDBIt{it, comdb.ItBase{Start: start, End: end, Reverse: reverse}, txn, nil}
 }
 
 type goBadgerDBIt struct {

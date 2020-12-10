@@ -14,7 +14,7 @@ import (
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
-	"github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/common/db/mem"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -33,11 +33,11 @@ func GenerAccDb() (*DB, *DB) {
 	//构造账户数据库
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	accCoin := NewCoinsAccount(cfg)
-	stroedb, _ := db.NewGoMemDB("gomemdb", "test", 128)
+	stroedb, _ := mem.NewGoMemDB("gomemdb", "test", 128)
 	accCoin.SetDB(stroedb)
 
 	accToken, _ := NewAccountDB(cfg, "token", "test", nil)
-	stroedb2, _ := db.NewGoMemDB("gomemdb", "test", 128)
+	stroedb2, _ := mem.NewGoMemDB("gomemdb", "test", 128)
 	accToken.SetDB(stroedb2)
 
 	return accCoin, accToken
@@ -206,7 +206,7 @@ func TestGetTotalCoins(t *testing.T) {
 }
 
 func TestAccountName(t *testing.T) {
-	stroedb, _ := db.NewGoMemDB("gomemdb", "test", 128)
+	stroedb, _ := mem.NewGoMemDB("gomemdb", "test", 128)
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	accCoin := NewCoinsAccount(cfg)
 	accCoin.SetDB(stroedb)
