@@ -127,7 +127,7 @@ func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) comdb.Iterat
 	r := &util.Range{Start: start, Limit: end}
 	it := db.db.NewIterator(r)
 	base := comdb.ItBase{Start: start, End: end, Reverse: reverse}
-	return &leveldb.GoLevelDBIt{it, base}
+	return &leveldb.GoLevelDBIt{Iterator: it, ItBase: base}
 }
 
 type kv struct{ k, v []byte }

@@ -610,7 +610,7 @@ func (db *goLevelDBTx) Iterator(start []byte, end []byte, reverse bool) comdb.It
 	}
 	r := &util.Range{Start: start, Limit: end}
 	it := db.tx.NewIterator(r, nil)
-	return &GoLevelDBIt{it, comdb.ItBase{start, end, reverse}}
+	return &GoLevelDBIt{it, comdb.ItBase{Start: start, End: end, Reverse: reverse}}
 }
 
 //Begin call panic when Begin not rewrite

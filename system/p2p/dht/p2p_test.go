@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"testing"
 
+	_ "github.com/33cn/chain33/common/db/init"
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
