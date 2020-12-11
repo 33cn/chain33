@@ -2,10 +2,10 @@ module github.com/33cn/chain33
 
 go 1.13
 
+
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/XiaoMi/pegasus-go-client v0.0.0-20181029071519-9400942c5d1c
-	github.com/apache/thrift v0.0.0-20171203172758-327ebb6c2b6d // indirect
+	github.com/XiaoMi/pegasus-go-client v0.0.0-20201126025238-4de07b3981d6
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/decred/base58 v1.0.2
 	github.com/dgraph-io/badger v1.6.1
@@ -52,7 +52,7 @@ require (
 	google.golang.org/grpc v1.28.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/go-playground/webhooks.v5 v5.2.0
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
 
 )
