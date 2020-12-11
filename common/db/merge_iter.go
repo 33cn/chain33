@@ -276,6 +276,7 @@ func NewMergedIteratorDB(iters []IteratorDB) IteratorDB {
 	return &mergedIteratorDB{iters: iters}
 }
 
+// Iterator 迭代
 func (merge *mergedIteratorDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	iters := make([]Iterator, len(merge.iters))
 	for i := 0; i < len(merge.iters); i++ {

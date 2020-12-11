@@ -127,12 +127,14 @@ type Iterator interface {
 	Close()
 }
 
+//ItBase :ItBase
 type ItBase struct {
 	Start   []byte
 	End     []byte
 	Reverse bool
 }
 
+//CheckKey :CheckKey
 func (it *ItBase) CheckKey(key []byte) bool {
 	//key must in start and end
 	var startok = true
@@ -152,6 +154,7 @@ func (it *ItBase) Prefix() []byte {
 	return nil
 }
 
+//IsReverse :IsReverse
 func (it *ItBase) IsReverse() bool {
 	return it.Reverse
 }
@@ -161,6 +164,7 @@ type IteratorDB interface {
 	Iterator(start []byte, end []byte, reserver bool) Iterator
 }
 
+//BytesPrefix 前缀
 func BytesPrefix(prefix []byte) []byte {
 	var limit []byte
 	for i := len(prefix) - 1; i >= 0; i-- {
@@ -179,6 +183,7 @@ type dbCreator func(name string, dir string, cache int) (DB, error)
 
 var backends = map[string]dbCreator{}
 
+//RegisterDBCreator 注册数据库驱动
 func RegisterDBCreator(backend string, creator dbCreator, force bool) {
 	_, ok := backends[backend]
 	if !force && ok {
@@ -249,6 +254,7 @@ func (db *BaseDB) CompactRange(start, limit []byte) error {
 	panic("CompactRange not impl")
 }
 
+// CloneByte :CloneByte
 func CloneByte(v []byte) []byte {
 	value := make([]byte, len(v))
 	copy(value, v)
