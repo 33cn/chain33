@@ -20,7 +20,7 @@ import (
 )
 
 var dlog = log.New("module", "db.ssdb")
-var sdbBench = &SsdbBench{}
+var sdbBench = &Bench{}
 
 const (
 	ssDBBackendStr = "ssdb"
@@ -33,8 +33,8 @@ func init() {
 	comdb.RegisterDBCreator(ssDBBackendStr, dbCreator, false)
 }
 
-//SsdbBench ...
-type SsdbBench struct {
+//Bench ...
+type Bench struct {
 	// 写次数
 	writeCount int
 	// 写条数
@@ -46,8 +46,8 @@ type SsdbBench struct {
 	readTime  time.Duration
 }
 
-//SsdbNode 节点
-type SsdbNode struct {
+//Node 节点
+type Node struct {
 	ip   string
 	port int
 }
@@ -56,22 +56,22 @@ type SsdbNode struct {
 type GoSSDB struct {
 	comdb.BaseDB
 	pool  *SDBPool
-	nodes []*SsdbNode
+	nodes []*Node
 }
 
-func (bench *SsdbBench) Write(num int, cost time.Duration) {
+func (bench *Bench) Write(num int, cost time.Duration) {
 	bench.writeCount++
 	bench.writeNum += num
 	bench.writeTime += cost
 }
 
-func (bench *SsdbBench) Read(num int, cost time.Duration) {
+func (bench *Bench) Read(num int, cost time.Duration) {
 	bench.readCount++
 	bench.readNum += num
 	bench.readTime += cost
 }
 
-func (bench *SsdbBench) String() string {
+func (bench *Bench) String() string {
 	return fmt.Sprintf("SSDBBenchmark[(ReadTimes=%v, ReadRecordNum=%v, ReadCostTime=%v;) (WriteTimes=%v, WriteRecordNum=%v, WriteCostTime=%v)",
 		bench.readCount, bench.readNum, bench.readTime, bench.writeCount, bench.writeNum, bench.writeTime)
 }
@@ -85,7 +85,7 @@ func printSsdbBenchmark() {
 }
 
 // url pattern: ip:port,ip:port
-func parseSsdbNode(url string) (nodes []*SsdbNode) {
+func parseSsdbNode(url string) (nodes []*Node) {
 	hosts := strings.Split(url, ",")
 	if hosts == nil {
 		dlog.Error("invalid ssdb url")
@@ -103,7 +103,7 @@ func parseSsdbNode(url string) (nodes []*SsdbNode) {
 			dlog.Error("invalid ssd url host port", "port", parts[1])
 			continue
 		}
-		nodes = append(nodes, &SsdbNode{ip, port})
+		nodes = append(nodes, &Node{ip, port})
 	}
 	return nodes
 }

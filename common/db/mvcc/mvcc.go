@@ -23,7 +23,7 @@ var mvccMetaVersionKeyList = append(mvccMeta, []byte("versionkl.")...)
 
 //MVCC mvcc interface
 type MVCC interface {
-	MVCCKV
+	KV
 	SetVersion(hash []byte, version int64) error
 	DelVersion(hash []byte) error
 	GetVersion(hash []byte) (int64, error)
@@ -40,16 +40,16 @@ type MVCC interface {
 	Trash(version int64) error
 }
 
-//MVCCKV only return kv when change database
-type MVCCKV interface {
+//KV only return kv when change database
+type KV interface {
 	GetSaveKV(key []byte, value []byte, version int64) (*types.KeyValue, error)
 	GetDelKV(key []byte, version int64) (*types.KeyValue, error)
 	SetVersionKV(hash []byte, version int64) ([]*types.KeyValue, error)
 	DelVersionKV([]byte, int64) ([]*types.KeyValue, error)
 }
 
-//MVCCHelper impl MVCC interface
-type MVCCHelper struct {
+//Helper impl MVCC interface
+type Helper struct {
 	*SimpleMVCC
 	db db.DB
 }
@@ -62,12 +62,12 @@ type SimpleMVCC struct {
 var mvcclog = log.New("module", "db.mvcc")
 
 //NewMVCC create MVCC object use db DB
-func NewMVCC(tdb db.DB) *MVCCHelper {
-	return &MVCCHelper{SimpleMVCC: NewSimpleMVCC(db.NewKVDB(tdb)), db: tdb}
+func NewMVCC(tdb db.DB) *Helper {
+	return &Helper{SimpleMVCC: NewSimpleMVCC(db.NewKVDB(tdb)), db: tdb}
 }
 
 //PrintAll 打印全部
-func (m *MVCCHelper) PrintAll() {
+func (m *Helper) PrintAll() {
 	println("--meta--")
 	it := m.db.Iterator(mvccMeta, nil, true)
 	defer it.Close()
@@ -102,7 +102,7 @@ func (m *MVCCHelper) PrintAll() {
 }
 
 //Trash del some old kv
-func (m *MVCCHelper) Trash(version int64) error {
+func (m *Helper) Trash(version int64) error {
 	it := m.db.Iterator(mvccData, nil, true)
 	defer it.Close()
 	perfixkey := []byte("--.xxx.--")
@@ -136,7 +136,7 @@ func (m *MVCCHelper) Trash(version int64) error {
 }
 
 //DelVersion del stateHash version map
-func (m *MVCCHelper) DelVersion(hash []byte) error {
+func (m *Helper) DelVersion(hash []byte) error {
 	version, err := m.GetVersion(hash)
 	if err != nil {
 		return err
@@ -153,7 +153,7 @@ func (m *MVCCHelper) DelVersion(hash []byte) error {
 }
 
 //SetVersion set stateHash -> version map
-func (m *MVCCHelper) SetVersion(hash []byte, version int64) error {
+func (m *Helper) SetVersion(hash []byte, version int64) error {
 	kvlist, err := m.SetVersionKV(hash, version)
 	if err != nil {
 		return err
@@ -166,7 +166,7 @@ func (m *MVCCHelper) SetVersion(hash []byte, version int64) error {
 }
 
 //DelV del key with version
-func (m *MVCCHelper) DelV(key []byte, version int64) error {
+func (m *Helper) DelV(key []byte, version int64) error {
 	kv, err := m.GetDelKV(key, version)
 	if err != nil {
 		return err

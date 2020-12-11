@@ -7,8 +7,8 @@ import (
 	"github.com/33cn/chain33/common/db/mem"
 )
 
-// LocalDB local db for store key value in local
-type LocalDB struct {
+// DB local db for store key value in local
+type DB struct {
 	txcache  comdb.DB
 	cache    comdb.DB
 	maindb   comdb.DB
@@ -29,12 +29,12 @@ func newMemDB() comdb.DB {
 func NewLocalDB(maindb comdb.DB, readOnly bool) comdb.KVDB {
 	if readOnly {
 		//只读模式不需要memdb，比如交易检查，可以使用该localdb，减少memdb内存开销
-		return &LocalDB{
+		return &DB{
 			maindb:   maindb,
 			readOnly: true,
 		}
 	}
-	return &LocalDB{
+	return &DB{
 		cache:   newMemDB(),
 		txcache: newMemDB(),
 		maindb:  maindb,
@@ -42,7 +42,7 @@ func NewLocalDB(maindb comdb.DB, readOnly bool) comdb.KVDB {
 }
 
 // Get get value from local db
-func (l *LocalDB) Get(key []byte) ([]byte, error) {
+func (l *DB) Get(key []byte) ([]byte, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	value, err := l.get(key)
@@ -54,7 +54,7 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	return value, err
 }
 
-func (l *LocalDB) get(key []byte) ([]byte, error) {
+func (l *DB) get(key []byte) ([]byte, error) {
 	if l.intx && l.txcache != nil {
 		if value, err := l.txcache.Get(key); err == nil {
 			return value, nil
@@ -79,7 +79,7 @@ func (l *LocalDB) get(key []byte) ([]byte, error) {
 }
 
 // Set set key value to local db
-func (l *LocalDB) Set(key []byte, value []byte) error {
+func (l *DB) Set(key []byte, value []byte) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.readOnly {
@@ -97,7 +97,7 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 }
 
 // List 从数据库中查询数据列表，set 中的cache 更新不会影响这个list
-func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
+func (l *DB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	dblist := make([]comdb.IteratorDB, 0)
@@ -116,7 +116,7 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 }
 
 // PrefixCount 从数据库中查询指定前缀的key的数量
-func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
+func (l *DB) PrefixCount(prefix []byte) (count int64) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 	dblist := make([]comdb.IteratorDB, 0)
@@ -135,7 +135,7 @@ func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
 }
 
 //Begin 开启内存事务处理
-func (l *LocalDB) Begin() {
+func (l *DB) Begin() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.intx = true
@@ -143,14 +143,14 @@ func (l *LocalDB) Begin() {
 }
 
 // Rollback reset tx
-func (l *LocalDB) Rollback() {
+func (l *DB) Rollback() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.resetTx()
 }
 
 // Commit canche tx
-func (l *LocalDB) Commit() error {
+func (l *DB) Commit() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.txcache == nil {
@@ -168,7 +168,7 @@ func (l *LocalDB) Commit() error {
 	return nil
 }
 
-func (l *LocalDB) resetTx() {
+func (l *DB) resetTx() {
 	l.intx = false
 	l.txcache = nil
 }

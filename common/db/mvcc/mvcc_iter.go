@@ -11,21 +11,21 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//MVCCIter mvcc迭代器版本
+//Iter mvcc迭代器版本
 //支持db 原生迭代器接口
 //为了支持快速迭代，我这里采用了复制数据的做法
-type MVCCIter struct {
-	*MVCCHelper
+type Iter struct {
+	*Helper
 }
 
 //NewMVCCIter new
-func NewMVCCIter(db db.DB) *MVCCIter {
-	return &MVCCIter{MVCCHelper: NewMVCC(db)}
+func NewMVCCIter(db db.DB) *Iter {
+	return &Iter{Helper: NewMVCC(db)}
 }
 
 //AddMVCC add
-func (m *MVCCIter) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte, version int64) ([]*types.KeyValue, error) {
-	kvlist, err := m.MVCCHelper.AddMVCC(kvs, hash, prevHash, version)
+func (m *Iter) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte, version int64) ([]*types.KeyValue, error) {
+	kvlist, err := m.Helper.AddMVCC(kvs, hash, prevHash, version)
 	if err != nil {
 		return nil, err
 	}
@@ -39,12 +39,12 @@ func (m *MVCCIter) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte, 
 }
 
 //DelMVCC del
-func (m *MVCCIter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.KeyValue, error) {
+func (m *Iter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.KeyValue, error) {
 	kvs, err := m.GetDelKVList(version)
 	if err != nil {
 		return nil, err
 	}
-	kvlist, err := m.MVCCHelper.delMVCC(kvs, hash, version, strict)
+	kvlist, err := m.Helper.delMVCC(kvs, hash, version, strict)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (m *MVCCIter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.Ke
 }
 
 //Iterator 迭代
-func (m *MVCCIter) Iterator(start, end []byte, reserver bool) db.Iterator {
+func (m *Iter) Iterator(start, end []byte, reserver bool) db.Iterator {
 	if start == nil {
 		start = mvccLast
 	} else {

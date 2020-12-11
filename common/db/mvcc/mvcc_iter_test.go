@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getMVCCIter() *MVCCIter {
+func getMVCCIter() *Iter {
 	dir, err := ioutil.TempDir("", "goleveldb")
 	if err != nil {
 		panic(err)

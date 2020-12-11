@@ -464,6 +464,7 @@ func (db *GoLevelDB) meter(refresh time.Duration) {
 	errc <- merr
 }
 
+// GoLevelDBIt GoLevelDBIt
 type GoLevelDBIt struct {
 	iterator.Iterator
 	comdb.ItBase
@@ -490,6 +491,7 @@ func (dbit *GoLevelDBIt) Rewind() bool {
 	return dbit.Iterator.First() && dbit.Valid()
 }
 
+// Value ...
 func (dbit *GoLevelDBIt) Value() []byte {
 	return dbit.Iterator.Value()
 }
@@ -500,11 +502,13 @@ func cloneByte(v []byte) []byte {
 	return value
 }
 
+// ValueCopy ...
 func (dbit *GoLevelDBIt) ValueCopy() []byte {
 	v := dbit.Iterator.Value()
 	return cloneByte(v)
 }
 
+//Valid ...
 func (dbit *GoLevelDBIt) Valid() bool {
 	return dbit.Iterator.Valid() && dbit.CheckKey(dbit.Key())
 }
@@ -524,6 +528,7 @@ func (db *GoLevelDB) NewBatch(sync bool) comdb.Batch {
 	return &goLevelDBBatch{db, batch, wop, 0, 0}
 }
 
+//Set ...
 func (mBatch *goLevelDBBatch) Set(key, value []byte) {
 	mBatch.batch.Put(key, value)
 	mBatch.size += len(key)
@@ -531,12 +536,14 @@ func (mBatch *goLevelDBBatch) Set(key, value []byte) {
 	mBatch.len += len(value)
 }
 
+//Delete ...
 func (mBatch *goLevelDBBatch) Delete(key []byte) {
 	mBatch.batch.Delete(key)
 	mBatch.size += len(key)
 	mBatch.len++
 }
 
+//Write ...
 func (mBatch *goLevelDBBatch) Write() error {
 	err := mBatch.db.db.Write(mBatch.batch, mBatch.wop)
 	if err != nil {
@@ -546,6 +553,7 @@ func (mBatch *goLevelDBBatch) Write() error {
 	return nil
 }
 
+//ValueSize ...
 func (mBatch *goLevelDBBatch) ValueSize() int {
 	return mBatch.size
 }
@@ -555,12 +563,14 @@ func (mBatch *goLevelDBBatch) ValueLen() int {
 	return mBatch.len
 }
 
+//Reset ...
 func (mBatch *goLevelDBBatch) Reset() {
 	mBatch.batch.Reset()
 	mBatch.len = 0
 	mBatch.size = 0
 }
 
+//UpdateWriteSync ...
 func (mBatch *goLevelDBBatch) UpdateWriteSync(sync bool) {
 	mBatch.wop.Sync = sync
 }
@@ -569,10 +579,12 @@ type goLevelDBTx struct {
 	tx *leveldb.Transaction
 }
 
+// Commit ...
 func (db *goLevelDBTx) Commit() error {
 	return db.tx.Commit()
 }
 
+//Rollback ...
 func (db *goLevelDBTx) Rollback() {
 	db.tx.Discard()
 }

@@ -34,7 +34,7 @@ func getMVCC2() MVCC {
 	return getMVCC()
 }
 
-func getMVCC() *MVCCHelper {
+func getMVCC() *Helper {
 	dir, err := ioutil.TempDir("", "goleveldb")
 	if err != nil {
 		panic(err)
@@ -46,7 +46,7 @@ func getMVCC() *MVCCHelper {
 	return NewMVCC(leveldb)
 }
 
-func closeMVCC(m *MVCCHelper) {
+func closeMVCC(m *Helper) {
 	m.db.Close()
 }
 

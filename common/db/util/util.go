@@ -60,7 +60,7 @@ func Int642Bytes(i int64) []byte {
 	return buf
 }
 
-// Int642Bytes :Int642Bytes
+// Bytes2Int64 :Bytes2Int64
 func Bytes2Int64(buf []byte) int64 {
 	return int64(binary.BigEndian.Uint64(buf))
 }

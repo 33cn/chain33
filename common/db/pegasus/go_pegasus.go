@@ -19,7 +19,7 @@ import (
 )
 
 var slog = log.New("module", "db.pegasus")
-var pdbBench = &ssdb.SsdbBench{}
+var pdbBench = &ssdb.Bench{}
 
 const (
 	goPegasusDbBackendStr = "pegasus"

@@ -73,7 +73,7 @@ func (pool *SDBPool) close() {
 }
 
 //NewSDBPool new
-func NewSDBPool(nodes []*SsdbNode) (pool *SDBPool, err error) {
+func NewSDBPool(nodes []*Node) (pool *SDBPool, err error) {
 	dbpool := &SDBPool{}
 	for i := 0; i < PooledSize; i++ {
 		for _, v := range nodes {

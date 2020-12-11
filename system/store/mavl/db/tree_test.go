@@ -387,7 +387,7 @@ func TestPersistence(t *testing.T) {
 	dbm.Close()
 }
 
-func kindsGet(t *Tree, mvccdb *mvccDB.MVCCHelper, key []byte, version int64, enableMvcc bool) (index int32, value []byte, exists bool) {
+func kindsGet(t *Tree, mvccdb *mvccDB.Helper, key []byte, version int64, enableMvcc bool) (index int32, value []byte, exists bool) {
 	if enableMvcc {
 		if mvccdb != nil {
 			value, err := mvccdb.GetV(key, version)
@@ -404,7 +404,7 @@ func kindsGet(t *Tree, mvccdb *mvccDB.MVCCHelper, key []byte, version int64, ena
 	return 0, nil, false
 }
 
-func kindsSet(t *Tree, mvccdb *mvccDB.MVCCHelper, key []byte, value []byte, version int64, enableMvcc bool) (updated bool) {
+func kindsSet(t *Tree, mvccdb *mvccDB.Helper, key []byte, value []byte, version int64, enableMvcc bool) (updated bool) {
 	if enableMvcc {
 		if mvccdb != nil {
 			err := mvccdb.SetV(key, value, version)
