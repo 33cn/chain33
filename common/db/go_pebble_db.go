@@ -36,7 +36,7 @@ func NewPebbleDB(name string, dir string, cache int) (*PebbleDB, error) {
 		L0StopWritesThreshold:       64,
 		MaxConcurrentCompactions:    3,
 		Levels:                      make([]pebble.LevelOptions, 7),
-		MemTableSize:                (cache / 4) << 20,
+		MemTableSize:                64 << 20,
 		MemTableStopWritesThreshold: 4,
 	}
 
