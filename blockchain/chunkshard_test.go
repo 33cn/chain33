@@ -277,16 +277,16 @@ func TestGenChunkRecord(t *testing.T) {
 		},
 	}
 	kvs := genChunkRecord(chunk, bodys)
-	assert.Equal(t, 4, len(kvs))
-	assert.Equal(t, kvs[0].Key, calcBlockHashToChunkHash([]byte("123")))
-	assert.Equal(t, kvs[0].Value, chunk.ChunkHash)
-	assert.Equal(t, kvs[1].Key, calcBlockHashToChunkHash([]byte("456")))
-	assert.Equal(t, kvs[1].Value, chunk.ChunkHash)
+	assert.Equal(t, 2, len(kvs))
+	//assert.Equal(t, kvs[0].Key, calcBlockHashToChunkHash([]byte("123")))
+	//assert.Equal(t, kvs[0].Value, chunk.ChunkHash)
+	//assert.Equal(t, kvs[1].Key, calcBlockHashToChunkHash([]byte("456")))
+	//assert.Equal(t, kvs[1].Value, chunk.ChunkHash)
 
-	assert.Equal(t, kvs[2].Key, calcChunkNumToHash(1))
-	assert.Equal(t, kvs[2].Value, types.Encode(chunk))
-	assert.Equal(t, kvs[3].Key, calcChunkHashToNum(chunk.ChunkHash))
-	assert.Equal(t, kvs[3].Value, types.Encode(chunk))
+	assert.Equal(t, kvs[0].Key, calcChunkNumToHash(1))
+	assert.Equal(t, kvs[0].Value, types.Encode(chunk))
+	assert.Equal(t, kvs[1].Key, calcChunkHashToNum(chunk.ChunkHash))
+	assert.Equal(t, kvs[1].Value, types.Encode(chunk))
 }
 
 func TestFetchChunkBlock(t *testing.T) {

@@ -338,9 +338,9 @@ func calcChunkInfo(cfg *types.BlockChain, height int64) (chunkNum, start, end in
 // genChunkRecord 生成归档索引 1:blockhash--->chunkhash 2:blockHeight--->chunkhash
 func genChunkRecord(chunk *types.ChunkInfo, bodys *types.BlockBodys) []*types.KeyValue {
 	var kvs []*types.KeyValue
-	for _, body := range bodys.Items {
-		kvs = append(kvs, &types.KeyValue{Key: calcBlockHashToChunkHash(body.Hash), Value: chunk.ChunkHash})
-	}
+	//for _, body := range bodys.Items {
+	//	kvs = append(kvs, &types.KeyValue{Key: calcBlockHashToChunkHash(body.Hash), Value: chunk.ChunkHash})
+	//}
 	kvs = append(kvs, &types.KeyValue{Key: calcChunkNumToHash(chunk.ChunkNum), Value: types.Encode(chunk)})
 	kvs = append(kvs, &types.KeyValue{Key: calcChunkHashToNum(chunk.ChunkHash), Value: types.Encode(chunk)})
 	return kvs
