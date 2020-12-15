@@ -136,10 +136,10 @@ func calcMainSequenceToHashKey(sequence int64) []byte {
 	return append(seqToHashKey, []byte(fmt.Sprintf("%v", sequence))...)
 }
 
-// 存储归档索引 blockhash--->chunkhash
-func calcBlockHashToChunkHash(hash []byte) []byte {
-	return append(BodyHashToChunk, hash...)
-}
+//// 存储归档索引 blockhash--->chunkhash
+//func calcBlockHashToChunkHash(hash []byte) []byte {
+//	return append(BodyHashToChunk, hash...)
+//}
 
 // 存储归档索引 chunkNum--->chunkhash
 func calcChunkNumToHash(chunkNum int64) []byte {
@@ -1594,6 +1594,9 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 
 	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
 	if blockbody == nil || err != nil {
+		if blockheader.GetHeight() < bs.Height()-MaxRollBlockNum-chainCfg.ChunkblockNum {
+			return nil, types.ErrHashNotExist
+		}
 		if !chainCfg.DisableShard && chainCfg.EnableFetchP2pstore {
 			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
 			if bodys == nil || len(bodys.Items) == 0 || err != nil {
@@ -1621,11 +1624,18 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 		etime := time.Now()
 		storeLog.Info("getBodyFromP2Pstore", "start", start, "end", end, "cost time", etime.Sub(stime))
 	}()
-	value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
-	if value == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("getBodyFromP2Pstore:calcBlockHashToChunkHash", "hash", common.ToHex(hash), "chunkhash", common.ToHex(value), "err", err)
-		}
+	//value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
+	//if value == nil || err != nil {
+	//	if err != dbm.ErrNotFoundInDb {
+	//		storeLog.Error("getBodyFromP2Pstore:calcBlockHashToChunkHash", "hash", common.ToHex(hash), "chunkhash", common.ToHex(value), "err", err)
+	//	}
+	//	return nil, types.ErrHashNotExist
+	//}
+	cfg := bs.client.GetConfig()
+	chainCfg := cfg.GetModuleConfig().BlockChain
+	chunkNum := start / chainCfg.ChunkblockNum
+	value, err := bs.db.Get(calcChunkNumToHash(chunkNum))
+	if err != nil {
 		return nil, types.ErrHashNotExist
 	}
 	if bs.client == nil {

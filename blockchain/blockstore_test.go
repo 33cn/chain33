@@ -421,7 +421,7 @@ func TestGetBodyFromP2Pstore(t *testing.T) {
 
 	blcokHash := []byte("111111111111111")
 	chunkHash := []byte("222222222222222")
-	blockStoreDB.Set(calcBlockHashToChunkHash(blcokHash), chunkHash)
+	blockStoreDB.Set(calcChunkNumToHash(0), chunkHash)
 	bodys, err := blockStore.getBodyFromP2Pstore(blcokHash, 1, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, len(bodys.Items), 2)
