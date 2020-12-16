@@ -15,6 +15,7 @@ import (
 const (
 	LocalChunkInfoKey = "local-chunk-info"
 	ChunkNameSpace    = "chunk"
+	ChunkPrefix       = "chunk-"
 	AlphaValue        = 3
 	Backup            = 100
 )
@@ -25,30 +26,13 @@ type LocalChunkInfo struct {
 	Time time.Time
 }
 
-func formatHeight(height int64) string {
-	return fmt.Sprintf("%012d", height)
-}
-
-func genKey(chunkHash []byte, height int64) []byte {
-	key := make([]byte, len(chunkHash)+13)
-	copy(key, chunkHash)
-	key[len(chunkHash)] = ':'
-	copy(key[len(chunkHash)+1:], formatHeight(height))
-	return key
-}
-
-func updateKeyByHeight(oldKey []byte, height int64) {
-	copy(oldKey[len(oldKey)-12:], formatHeight(height))
-}
-
 // 保存chunk到本地p2pStore，同时更新本地chunk列表
 func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBodys) error {
 	if int64(len(bodys.Items)) != info.End-info.Start+1 {
 		return types2.ErrLength
 	}
-	key := genKey(info.ChunkHash, info.Start)
 	for i := info.Start; i <= info.End; i++ {
-		updateKeyByHeight(key, i)
+		key := genChunkDBKey(i)
 		if err := p.DB.Set(key, types.Encode(bodys.Items[i-info.Start])); err != nil {
 			return err
 		}
@@ -95,7 +79,7 @@ func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, er
 		return nil, types2.ErrNotFound
 	}
 	var bodys []*types.BlockBody
-	it := p.DB.Iterator(genKey(req.ChunkHash, req.Start), genKey(req.ChunkHash, req.End+1), false)
+	it := p.DB.Iterator(genChunkDBKey(req.Start), genChunkDBKey(req.End+1), false)
 	defer it.Close()
 	for it.Next(); it.Valid(); it.Next() {
 		var body types.BlockBody
@@ -174,4 +158,15 @@ func genChunkNameSpaceKey(hash []byte) string {
 
 func genDHTID(chunkHash []byte) kb.ID {
 	return kb.ConvertKey(genChunkNameSpaceKey(chunkHash))
+}
+
+func formatHeight(height int64) string {
+	return fmt.Sprintf("%012d", height)
+}
+
+func genChunkDBKey(height int64) []byte {
+	var key []byte
+	key = append(key, ChunkPrefix...)
+	key = append(key, formatHeight(height)...)
+	return key
 }
