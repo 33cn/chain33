@@ -85,7 +85,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go func() {
 		ticker1 := time.NewTicker(time.Minute)
 		ticker2 := time.NewTicker(types2.RefreshInterval)
-		ticker4 := time.NewTicker(time.Minute * 5)
+		ticker4 := time.NewTicker(time.Hour)
 
 		for {
 			select {
@@ -105,18 +105,15 @@ func InitProtocol(env *protocol.P2PEnv) {
 				log.Info("debug rt peers", "======== amount", p.RoutingTable.Size())
 				log.Info("debug healthy peers", "======== amount", p.HealthyRoutingTable.Size())
 				log.Info("debug shard healthy peers", "======== amount", p.ShardHealthyRoutingTable.Size())
-				for _, pid := range p.ShardHealthyRoutingTable.ListPeers() {
-					log.Info("LatencyEWMA", "pid", pid, "maddr", p.Host.Peerstore().Addrs(pid), "latency", p.Host.Peerstore().LatencyEWMA(pid))
-				}
 				log.Info("debug length", "notifying msg len", len(p.notifyingQueue))
 				log.Info("debug peers and conns", "peers len", len(p.Host.Network().Peers()), "conns len", len(p.Host.Network().Conns()))
-				for _, conn := range p.Host.Network().Conns() {
-					streams := conn.GetStreams()
-					log.Info("debug new conn", "remote peer", conn.RemotePeer(), "len streams", len(streams))
-					for _, s := range streams {
-						log.Info("debug new stream", "protocol id", s.Protocol())
-					}
-				}
+				//for _, conn := range p.Host.Network().Conns() {
+				//	streams := conn.GetStreams()
+				//	log.Info("debug new conn", "remote peer", conn.RemotePeer(), "len streams", len(streams))
+				//	for _, s := range streams {
+				//		log.Info("debug new stream", "protocol id", s.Protocol())
+				//	}
+				//}
 				p.localChunkInfoMutex.RLock()
 				for hash, info := range p.localChunkInfo {
 					log.Info("localChunkInfo", "hash", hash, "start", info.Start, "end", info.End)
