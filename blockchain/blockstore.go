@@ -1594,7 +1594,8 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 
 	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
 	if blockbody == nil || err != nil {
-		if blockheader.GetHeight() < bs.Height()-MaxRollBlockNum-chainCfg.ChunkblockNum {
+		if blockheader.GetHeight() > bs.Height()-MaxRollBlockNum-(chainCfg.ChunkblockNum)*int64(DelRollbackChunkNum) {
+			// 该高度范围应该保存在本地
 			return nil, types.ErrHashNotExist
 		}
 		if !chainCfg.DisableShard && chainCfg.EnableFetchP2pstore {
@@ -1638,12 +1639,17 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 	if err != nil {
 		return nil, types.ErrHashNotExist
 	}
+	var chunkInfo types.ChunkInfo
+	if err := types.Decode(value, &chunkInfo); err != nil {
+		return nil, types.ErrDecode
+	}
+
 	if bs.client == nil {
 		storeLog.Error("getBodyFromP2Pstore: chain client not bind message queue.")
 		return nil, types.ErrClientNotBindQueue
 	}
 	req := &types.ChunkInfoMsg{
-		ChunkHash: value,
+		ChunkHash: chunkInfo.ChunkHash,
 		Start:     start,
 		End:       end,
 	}
