@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -15,8 +14,6 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -648,70 +645,6 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 	}()
 
 	return p3
-}
-
-type TestDB struct {
-	lock sync.Mutex
-	m    map[string][]byte
-}
-
-func newTestDB() *TestDB {
-	m := make(map[string][]byte, 100)
-	return &TestDB{m: m}
-}
-
-func (db *TestDB) Get(key datastore.Key) (value []byte, err error) {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-	v, ok := db.m[key.String()]
-	if !ok {
-		return nil, datastore.ErrNotFound
-	}
-	return v, nil
-}
-
-func (db *TestDB) Has(key datastore.Key) (exists bool, err error) {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-	_, ok := db.m[key.String()]
-	return ok, nil
-}
-
-func (db *TestDB) GetSize(key datastore.Key) (size int, err error) {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-	v := db.m[key.String()]
-	return len(v), nil
-}
-
-func (db *TestDB) Query(q query.Query) (query.Results, error) {
-	return nil, nil
-}
-
-func (db *TestDB) Put(key datastore.Key, value []byte) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-	db.m[key.String()] = value
-	return nil
-}
-
-func (db *TestDB) Delete(key datastore.Key) error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-	delete(db.m, key.String())
-	return nil
-}
-
-func (db *TestDB) Close() error {
-	return nil
-}
-
-func (db *TestDB) Sync(prefix datastore.Key) error {
-	return nil
-}
-
-func (db *TestDB) Batch() (datastore.Batch, error) {
-	return nil, nil
 }
 
 type peerInfoManager struct{}
