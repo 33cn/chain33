@@ -398,3 +398,50 @@ type ReWriteRawTx struct {
 	Expire string `json:"expire"`
 	Index  int32  `json:"index"`
 }
+
+//BlockSeq
+type BlockSeq struct {
+	Num    int64          `json:"Num,omitempty"`
+	Seq    *BlockSequence `json:"seq"`
+	Detail *BlockDetail   `json:"detail"`
+}
+
+//BlockSequence
+type BlockSequence struct {
+	Hash string `json:"hash,omitempty"`
+	Type int64  `json:"type,omitempty "`
+}
+
+//ParaTxDetails
+type ParaTxDetails struct {
+	Items []*ParaTxDetail `json:"paraTxDetail"`
+}
+
+//ParaTxDetail
+type ParaTxDetail struct {
+	Type      int64       `json:"type,omitempty"`
+	Header    *Header     `json:"header,omitempty"`
+	TxDetails []*TxDetail `json:"txDetail,omitempty"`
+	ChildHash string      `json:"childHash,omitempty"`
+	Index     uint32      `json:"index,omitempty"`
+	Proofs    []string    `json:"proofs,omitempty"`
+}
+
+//TxDetail
+type TxDetail struct {
+	Index   uint32       `json:"index,omitempty"`
+	Tx      *Transaction `json:"tx,omitempty"`
+	Receipt *ReceiptData `json:"receipt,omitempty"`
+	Proofs  []string     `json:"proofs,omitempty"`
+}
+
+//ReplyHeightByTitle
+type ReplyHeightByTitle struct {
+	Title string       `json:"title,omitempty"`
+	Items []*BlockInfo `json:"items,omitempty"`
+}
+
+type BlockInfo struct {
+	Height int64  `json:"height,omitempty"`
+	Hash   string `json:"hash,omitempty"`
+}

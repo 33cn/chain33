@@ -1313,3 +1313,128 @@ func (c *Chain33) NetProtocols(in types.ReqNil, result *interface{}) error {
 	*result = resp
 	return nil
 }
+
+//GetSequenceByHash
+func (c *Chain33) GetSequenceByHash(in types.ReqHash, result *interface{}) error {
+	seq, err := c.cli.GetSequenceByHash(&in)
+	if err != nil {
+		return err
+	}
+	*result = seq
+	return nil
+}
+
+//GetBlockBySeq
+func (c *Chain33) GetBlockBySeq(in types.Int64, result *interface{}) error {
+
+	blockseq, err := c.cli.GetBlockBySeq(&in)
+	if err != nil {
+		return err
+	}
+	var bseq rpctypes.BlockSeq
+	var retDetail rpctypes.BlockDetails
+	bseq.Num = blockseq.Num
+	convertBlockDetails([]*types.BlockDetail{blockseq.Detail}, &retDetail, false)
+	bseq.Detail = retDetail.Items[0]
+	bseq.Seq.Hash = common.ToHex(blockseq.Seq.Hash)
+	bseq.Seq.Type = blockseq.Seq.Type
+	*result = bseq
+	return nil
+
+}
+
+//GetParaTxByTitle
+func (c *Chain33) GetParaTxByTitle(req types.ReqParaTxByTitle, result *interface{}) error {
+	paraTxDetail, err := c.cli.GetParaTxByTitle(&req)
+	if err != nil {
+		return err
+	}
+	var txDetails rpctypes.ParaTxDetails
+	for index, item := range paraTxDetail.Items {
+		var header rpctypes.Header
+		header.BlockTime = item.Header.GetBlockTime()
+		header.Height = item.Header.Height
+		header.ParentHash = common.ToHex(item.Header.GetParentHash())
+		header.StateHash = common.ToHex(item.Header.GetStateHash())
+		header.TxHash = common.ToHex(item.Header.GetTxHash())
+		header.Version = item.Header.GetVersion()
+		header.Hash = common.ToHex(item.Header.GetHash())
+		header.TxCount = item.Header.TxCount
+		header.Difficulty = item.Header.GetDifficulty()
+		txDetails.Items[index].Header = &header
+	}
+
+	*result = txDetails
+	return nil
+}
+
+//LoadParaTxByTitle
+func (c *Chain33) LoadParaTxByTitle(req types.ReqHeightByTitle, result *interface{}) error {
+
+	reply, err := c.cli.LoadParaTxByTitle(&req)
+	if err != nil {
+		return err
+	}
+	var replyHeight rpctypes.ReplyHeightByTitle
+	replyHeight.Title = reply.Title
+	for index, item := range reply.Items {
+		replyHeight.Items[index] = &rpctypes.BlockInfo{Height: item.Height, Hash: common.ToHex(item.Hash)}
+	}
+
+	*result = replyHeight
+	return nil
+}
+
+//GetParaTxByHeight
+func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interface{}) error {
+	paraTxDetails, err := c.cli.GetParaTxByHeight(&req)
+	if err != nil {
+		return err
+	}
+
+	var ptxDetails rpctypes.ParaTxDetails
+
+	for index, item := range paraTxDetails.Items {
+
+		var header rpctypes.Header
+		header.BlockTime = item.Header.GetBlockTime()
+		header.Height = item.Header.Height
+		header.ParentHash = common.ToHex(item.Header.GetParentHash())
+		header.StateHash = common.ToHex(item.Header.GetStateHash())
+		header.TxHash = common.ToHex(item.Header.GetTxHash())
+		header.Version = item.Header.GetVersion()
+		header.Hash = common.ToHex(item.Header.GetHash())
+		header.TxCount = item.Header.TxCount
+		header.Difficulty = item.Header.GetDifficulty()
+		ptxDetails.Items[index].Header = &header
+		ptxDetails.Items[index].Type = item.Type
+		ptxDetails.Items[index].Index = item.Index
+		ptxDetails.Items[index].ChildHash = common.ToHex(item.ChildHash)
+		for _, detail := range item.TxDetails {
+			var txdetail rpctypes.TxDetail
+			txdetail.Index = detail.Index
+			var proofs []string
+			for _, proof := range detail.Proofs {
+				proofs = append(proofs, common.ToHex(proof))
+			}
+			txdetail.Proofs = proofs
+
+			txdetail.Receipt.Ty = detail.Receipt.Ty
+			var logs []*rpctypes.ReceiptLog
+			for _, log := range detail.Receipt.Logs {
+				logs = append(logs, &rpctypes.ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.Log)})
+			}
+			txdetail.Receipt.Logs = logs
+			tranTx, err := rpctypes.DecodeTx(detail.Tx)
+			if err != nil {
+				continue
+			}
+			txdetail.Tx = tranTx
+			ptxDetails.Items[index].TxDetails = append(ptxDetails.Items[index].TxDetails, &txdetail)
+		}
+
+	}
+	*result = ptxDetails
+	return nil
+
+}
