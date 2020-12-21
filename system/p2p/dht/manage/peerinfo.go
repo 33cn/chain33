@@ -108,6 +108,7 @@ func (p *PeerInfoManager) PeerHeight(pid peer.ID) int64 {
 	return info.peer.GetHeader().Height
 }
 
+// PeerMaxHeight returns max block height of all connected peers.
 func (p *PeerInfoManager) PeerMaxHeight() int64 {
 	return atomic.LoadInt64(&p.maxHeight)
 }
