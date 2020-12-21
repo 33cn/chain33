@@ -402,9 +402,9 @@ type ReWriteRawTx struct {
 
 //BlockSeq
 type BlockSeq struct {
-	Num    int64          `json:"Num,omitempty"`
-	Seq    *BlockSequence `json:"seq"`
-	Detail *BlockDetail   `json:"detail"`
+	Num    int64          `json:"num,omitempty"`
+	Seq    *BlockSequence `json:"seq,omitempty"`
+	Detail *BlockDetail   `json:"detail,omitempty"`
 }
 
 //BlockSequence

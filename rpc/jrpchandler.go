@@ -1315,8 +1315,11 @@ func (c *Chain33) NetProtocols(in types.ReqNil, result *interface{}) error {
 }
 
 //GetSequenceByHash
-func (c *Chain33) GetSequenceByHash(in types.ReqHash, result *interface{}) error {
-	seq, err := c.cli.GetSequenceByHash(&in)
+func (c *Chain33) GetSequenceByHash(in rpctypes.ReqHashes, result *interface{}) error {
+	var req types.ReqHash
+	req.Upgrade = in.DisableDetail
+	req.Hash = common.HexToHash(in.Hashes[0]).Bytes()
+	seq, err := c.cli.GetSequenceByHash(&req)
 	if err != nil {
 		return err
 	}
@@ -1336,8 +1339,10 @@ func (c *Chain33) GetBlockBySeq(in types.Int64, result *interface{}) error {
 	bseq.Num = blockseq.Num
 	convertBlockDetails([]*types.BlockDetail{blockseq.Detail}, &retDetail, false)
 	bseq.Detail = retDetail.Items[0]
-	bseq.Seq.Hash = common.ToHex(blockseq.Seq.Hash)
-	bseq.Seq.Type = blockseq.Seq.Type
+	var seq rpctypes.BlockSequence
+	seq.Hash = common.ToHex(blockseq.Seq.Hash)
+	seq.Type = blockseq.Seq.Type
+	bseq.Seq = &seq
 	*result = bseq
 	return nil
 
@@ -1418,13 +1423,15 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 				proofs = append(proofs, common.ToHex(proof))
 			}
 			txdetail.Proofs = proofs
-
-			txdetail.Receipt.Ty = detail.Receipt.Ty
+			var receipt rpctypes.ReceiptData
+			receipt.Ty = detail.Receipt.Ty
+			//txdetail.Receipt.Ty = detail.Receipt.Ty
 			var logs []*rpctypes.ReceiptLog
 			for _, log := range detail.Receipt.Logs {
 				logs = append(logs, &rpctypes.ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.Log)})
 			}
-			txdetail.Receipt.Logs = logs
+			receipt.Logs = logs
+			txdetail.Receipt = &receipt
 			tranTx, err := rpctypes.DecodeTx(detail.Tx)
 			if err != nil {
 				continue
