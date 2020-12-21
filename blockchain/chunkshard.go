@@ -10,8 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	dbm "github.com/33cn/chain33/common/db"
-
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
@@ -115,7 +113,7 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 	}
 
 	//删除超过100个chunk则进行数据库压缩
-	if atomic.LoadInt64(&chain.deleteChunkCount) >= 1000 {
+	if atomic.LoadInt64(&chain.deleteChunkCount) >= 100 {
 		now := time.Now()
 		start := []byte("CHAIN-body-body-")
 		limit := make([]byte, len(start))
