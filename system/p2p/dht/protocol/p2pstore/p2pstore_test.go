@@ -478,7 +478,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		localChunkInfo:           make(map[string]LocalChunkInfo),
 		notifyingQueue:           make(chan *types.ChunkInfoMsg, 100),
 	}
-	go p2.updateShardHealthyRoutingTableRountine()
+	go p2.updateShardHealthyRoutingTableRoutine()
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p2.Host, getHeaderOld, p2.handleStreamGetHeaderOld)
 	protocol.RegisterStreamHandler(p2.Host, fetchShardPeer, protocol.HandlerWithRW(p2.handleStreamFetchShardPeers))

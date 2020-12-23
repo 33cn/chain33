@@ -63,7 +63,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 		notifyingQueue:           make(chan *types.ChunkInfoMsg, 1024),
 	}
-	go p.updateShardHealthyRoutingTableRountine()
+	go p.updateShardHealthyRoutingTableRoutine()
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
@@ -202,7 +202,7 @@ func (p *Protocol) debugFullNode() {
 	log.Info("debugFullNode", "total count", count)
 }
 
-func (p *Protocol) updateShardHealthyRoutingTableRountine() {
+func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
 	// HealthyRoutingTable更新时同时更新ShardHealthyRoutingTable
 	p.HealthyRoutingTable.PeerRemoved = func(id peer.ID) {
 		p.ShardHealthyRoutingTable.Remove(id)
@@ -210,7 +210,7 @@ func (p *Protocol) updateShardHealthyRoutingTableRountine() {
 	for p.HealthyRoutingTable.Size() == 0 {
 		time.Sleep(time.Second / 2)
 	}
-	for {
+	updateFunc := func() {
 		for _, pid := range p.HealthyRoutingTable.ListPeers() {
 			ok, err := p.queryFull(pid)
 			if err != nil {
@@ -220,7 +220,14 @@ func (p *Protocol) updateShardHealthyRoutingTableRountine() {
 				_, _ = p.ShardHealthyRoutingTable.Update(pid)
 			}
 		}
-		time.Sleep(time.Minute * 5)
+	}
+	updateFunc()
+	ticker := time.NewTicker(time.Minute * 5)
+	select {
+	case <-p.Ctx.Done():
+		return
+	case <-ticker.C:
+		updateFunc()
 	}
 }
 
