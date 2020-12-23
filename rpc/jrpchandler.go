@@ -1336,13 +1336,11 @@ func (c *Chain33) GetBlockBySeq(in types.Int64, result *interface{}) error {
 	}
 	var bseq rpctypes.BlockSeq
 	var retDetail rpctypes.BlockDetails
+
 	bseq.Num = blockseq.Num
 	convertBlockDetails([]*types.BlockDetail{blockseq.Detail}, &retDetail, false)
 	bseq.Detail = retDetail.Items[0]
-	var seq rpctypes.BlockSequence
-	seq.Hash = common.ToHex(blockseq.Seq.Hash)
-	seq.Type = blockseq.Seq.Type
-	bseq.Seq = &seq
+	bseq.Seq = &rpctypes.BlockSequence{Hash: common.ToHex(blockseq.Seq.Hash), Type: blockseq.Seq.Type}
 	*result = bseq
 	return nil
 
@@ -1354,8 +1352,8 @@ func (c *Chain33) GetParaTxByTitle(req types.ReqParaTxByTitle, result *interface
 	if err != nil {
 		return err
 	}
+
 	var txDetails rpctypes.ParaTxDetails
-	//var paratxdetails []*types.ParaTxDetail
 	for _, item := range paraTxDetail.Items {
 		var detail rpctypes.ParaTxDetail
 		detail.Type = item.Type
@@ -1397,8 +1395,8 @@ func (c *Chain33) LoadParaTxByTitle(req types.ReqHeightByTitle, result *interfac
 	}
 	var replyHeight rpctypes.ReplyHeightByTitle
 	replyHeight.Title = reply.Title
-	for index, item := range reply.Items {
-		replyHeight.Items[index] = &rpctypes.BlockInfo{Height: item.Height, Hash: common.ToHex(item.Hash)}
+	for _, item := range reply.Items {
+		replyHeight.Items = append(replyHeight.Items, &rpctypes.BlockInfo{Height: item.Height, Hash: common.ToHex(item.Hash)})
 	}
 
 	*result = replyHeight
@@ -1415,7 +1413,7 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 	var ptxDetails rpctypes.ParaTxDetails
 
 	for index, item := range paraTxDetails.Items {
-
+		var ptxDetail rpctypes.ParaTxDetail
 		var header rpctypes.Header
 		header.BlockTime = item.Header.GetBlockTime()
 		header.Height = item.Header.Height
@@ -1426,10 +1424,11 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 		header.Hash = common.ToHex(item.Header.GetHash())
 		header.TxCount = item.Header.TxCount
 		header.Difficulty = item.Header.GetDifficulty()
-		ptxDetails.Items[index].Header = &header
-		ptxDetails.Items[index].Type = item.Type
-		ptxDetails.Items[index].Index = item.Index
-		ptxDetails.Items[index].ChildHash = common.ToHex(item.ChildHash)
+		ptxDetail.Header = &header
+		ptxDetail.Type = item.Type
+		ptxDetail.Index = item.Index
+		ptxDetail.ChildHash = common.ToHex(item.ChildHash)
+
 		for _, detail := range item.TxDetails {
 			var txdetail rpctypes.TxDetail
 			txdetail.Index = detail.Index
@@ -1440,7 +1439,6 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 			txdetail.Proofs = proofs
 			var receipt rpctypes.ReceiptData
 			receipt.Ty = detail.Receipt.Ty
-			//txdetail.Receipt.Ty = detail.Receipt.Ty
 			var logs []*rpctypes.ReceiptLog
 			for _, log := range detail.Receipt.Logs {
 				logs = append(logs, &rpctypes.ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.Log)})
@@ -1452,8 +1450,9 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 				continue
 			}
 			txdetail.Tx = tranTx
-			ptxDetails.Items[index].TxDetails = append(ptxDetails.Items[index].TxDetails, &txdetail)
+			ptxDetail.TxDetails = append(ptxDetail.TxDetails, &txdetail)
 		}
+		ptxDetails.Items = append(ptxDetails.Items, &ptxDetail)
 
 	}
 	*result = ptxDetails
