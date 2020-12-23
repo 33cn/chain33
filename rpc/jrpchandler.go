@@ -1355,7 +1355,15 @@ func (c *Chain33) GetParaTxByTitle(req types.ReqParaTxByTitle, result *interface
 		return err
 	}
 	var txDetails rpctypes.ParaTxDetails
-	for index, item := range paraTxDetail.Items {
+	//var paratxdetails []*types.ParaTxDetail
+	for _, item := range paraTxDetail.Items {
+		var detail rpctypes.ParaTxDetail
+		detail.Type = item.Type
+		detail.Index = item.Index
+		detail.ChildHash = common.ToHex(item.ChildHash)
+		for _, proof := range item.Proofs {
+			detail.Proofs = append(detail.Proofs, common.ToHex(proof))
+		}
 		var header rpctypes.Header
 		header.BlockTime = item.Header.GetBlockTime()
 		header.Height = item.Header.Height
@@ -1366,7 +1374,14 @@ func (c *Chain33) GetParaTxByTitle(req types.ReqParaTxByTitle, result *interface
 		header.Hash = common.ToHex(item.Header.GetHash())
 		header.TxCount = item.Header.TxCount
 		header.Difficulty = item.Header.GetDifficulty()
-		txDetails.Items[index].Header = &header
+		if item.Header.Signature != nil {
+			header.Signature = &rpctypes.Signature{Ty: item.Header.Signature.Ty, Pubkey: common.ToHex(item.Header.Signature.Pubkey),
+				Signature: common.ToHex(item.Header.Signature.Signature)}
+		}
+
+		detail.Header = &header
+		txDetails.Items = append(txDetails.Items, &detail)
+
 	}
 
 	*result = txDetails
@@ -1444,4 +1459,27 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 	*result = ptxDetails
 	return nil
 
+}
+
+func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) error {
+	var qin = new(types.ChainExecutor)
+	qin.StateHash = common.HexToHash(in.StateHash).Bytes()
+	qin.Driver = in.Driver
+	qin.FuncName = in.FuncName
+	param, err := wcom.QueryData.DecodeJSON(in.Driver, in.FuncName, in.Payload)
+	if err != nil {
+		return err
+	}
+	qin.Param = types.Encode(param)
+	msg, err := c.cli.QueryChain(qin)
+	if err != nil {
+		return err
+	}
+
+	var jsonmsg json.RawMessage
+	jsonmsg, err = types.PBToJSON(msg)
+
+	*result = jsonmsg
+
+	return err
 }
