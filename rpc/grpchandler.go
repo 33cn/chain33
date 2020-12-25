@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"time"
 
 	"strings"
@@ -352,6 +353,7 @@ func (g *Grpc) QueryConsensus(ctx context.Context, in *pb.ChainExecutor) (*pb.Re
 
 // QueryChain query chain
 func (g *Grpc) QueryChain(ctx context.Context, in *pb.ChainExecutor) (*pb.Reply, error) {
+	log.Info("QueryChain", "para", hex.EncodeToString(in.Param))
 	msg, err := g.cli.QueryChain(in)
 	if err != nil {
 		return nil, err

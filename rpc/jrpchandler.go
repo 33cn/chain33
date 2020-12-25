@@ -9,15 +9,14 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"strconv"
-	"time"
-
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
+	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	wcom "github.com/33cn/chain33/wallet/common"
-
-	rpctypes "github.com/33cn/chain33/rpc/types"
+	"strconv"
+	"time"
 )
 
 // CreateRawTransaction create rawtransaction by jrpc
@@ -1412,7 +1411,7 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 
 	var ptxDetails rpctypes.ParaTxDetails
 
-	for index, item := range paraTxDetails.Items {
+	for _, item := range paraTxDetails.Items {
 		var ptxDetail rpctypes.ParaTxDetail
 		var header rpctypes.Header
 		header.BlockTime = item.Header.GetBlockTime()
@@ -1462,23 +1461,32 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 
 func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) error {
 	var qin = new(types.ChainExecutor)
-	qin.StateHash = common.HexToHash(in.StateHash).Bytes()
+
+	msg, err := dapp.QueryData.DecodeJSON(in.Driver, in.FuncName, in.Payload)
+	if err != nil {
+		log.Info("QueryChain", "DecodeJSON err", err, "driver", in.Driver, "payload size", len(in.Payload))
+		return err
+	}
+
 	qin.Driver = in.Driver
 	qin.FuncName = in.FuncName
-	param, err := wcom.QueryData.DecodeJSON(in.Driver, in.FuncName, in.Payload)
-	if err != nil {
-		return err
+	qin.Param = types.Encode(msg)
+	if in.StateHash != "" {
+		qin.StateHash = common.HexToHash(in.StateHash).Bytes()
 	}
-	qin.Param = types.Encode(param)
-	msg, err := c.cli.QueryChain(qin)
+	log.Info("QueryChain", "funcname", qin.FuncName, "Param", hex.EncodeToString(qin.Param), "drive", qin.Driver, "funcName", qin.FuncName)
+	msg, err = c.cli.QueryChain(qin)
 	if err != nil {
+		log.Info("QueryChain", "err", err)
 		return err
 	}
 
+	log.Info("QueryChain", "jsonMsg", msg.String())
 	var jsonmsg json.RawMessage
 	jsonmsg, err = types.PBToJSON(msg)
-
+	if err != nil {
+		return err
+	}
 	*result = jsonmsg
-
 	return err
 }
