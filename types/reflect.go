@@ -242,6 +242,7 @@ func (q *QueryData) Register(key string, obj interface{}) {
 		panic(fmt.Sprintf("QueryData Register dup for key=%s", key))
 	}
 	q.funcMap[key], q.typeMap[key] = BuildQueryType(q.prefix, ListMethod(obj))
+	tlog.Info("Register", "key", key, "typeMap", q.typeMap[key], "funcmap", q.funcMap)
 }
 
 // SetThis 设置
@@ -274,11 +275,14 @@ func (q *QueryData) GetFunc(driver, name string) (reflect.Method, error) {
 func (q *QueryData) GetType(driver, name string) (reflect.Type, error) {
 	typelist, ok := q.typeMap[driver]
 	if !ok {
+		tlog.Error("xxxxxxxxxxxxxxxxxxxxxxGetType", "drive", driver, "name", name, "map", q.typeMap)
 		return nil, ErrActionNotSupport
 	}
 	if t, ok := typelist[name]; ok {
+		tlog.Error("xxxxxxxxxxxxxxxxxxxxxxtypelist", "drive", driver, "name", name)
 		return t, nil
 	}
+	tlog.Error("xxxxxxxxxxxxxxxxxxxxxxtypelist ErrActionNotSupport", "drive", driver, "name", name, "map", typelist, "map", q.typeMap)
 	return nil, ErrActionNotSupport
 }
 
@@ -301,6 +305,7 @@ func (q *QueryData) Decode(driver, name string, in []byte) (reply Message, err e
 func (q *QueryData) DecodeJSON(driver, name string, in json.Marshaler) (reply Message, err error) {
 	ty, err := q.GetType(driver, name)
 	if err != nil {
+		tlog.Error("xxxxxxxxxxxxxxxxxxxxxx1", "drive", driver, "name", name)
 		return nil, err
 	}
 	p := reflect.New(ty.In(1).Elem())
@@ -311,8 +316,10 @@ func (q *QueryData) DecodeJSON(driver, name string, in json.Marshaler) (reply Me
 			return nil, err
 		}
 		err = JSONToPB(data, paramIn)
+		tlog.Error("xxxxxxxxxxxxxxxxxxxxxx2")
 		return paramIn, err
 	}
+	tlog.Error("xxxxxxxxxxxxxxxxxxxxxx3")
 	return nil, ErrActionNotSupport
 }
 
