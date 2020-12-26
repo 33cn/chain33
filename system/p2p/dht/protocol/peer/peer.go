@@ -52,11 +52,17 @@ func InitProtocol(env *protocol.P2PEnv) {
 	//先进行外部地址预设置
 	for _, multiAddr := range p.Host.Addrs() {
 		addr := multiAddr.String()
-		if !strings.Contains(addr, "127.0.0.1") && !strings.Contains(addr, "localhost") {
+		// 如果找到公网ip直接break，否则预设置一个内网ip
+		if isPublicIP(strings.Split(addr, "/")[2]) {
 			p.mutex.Lock()
 			p.externalAddr = addr
 			p.mutex.Unlock()
 			break
+		}
+		if !strings.Contains(addr, "127.0.0.1") && !strings.Contains(addr, "localhost") {
+			p.mutex.Lock()
+			p.externalAddr = addr
+			p.mutex.Unlock()
 		}
 	}
 
