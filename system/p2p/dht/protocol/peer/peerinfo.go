@@ -9,12 +9,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	types2 "github.com/33cn/chain33/system/p2p/dht/types"
-	"github.com/libp2p/go-libp2p-core/network"
-
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
+	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -57,10 +56,12 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 }
 
 func (p *Protocol) refreshPeerInfo() {
-	atomic.AddInt32(&p.refreshing, 1)
+	if !atomic.CompareAndSwapInt32(&p.refreshing, 0, 1) {
+		return
+	}
 	defer atomic.StoreInt32(&p.refreshing, 0)
 	var wg sync.WaitGroup
-	for _, remoteID := range p.RoutingTable.ListPeers() {
+	for _, remoteID := range p.ConnManager.FetchConnPeers() {
 		if p.checkDone() {
 			log.Warn("getPeerInfo", "process", "done+++++++")
 			return
@@ -215,7 +216,7 @@ func (p *Protocol) queryVersionOld(pid peer.ID) error {
 	req := types.MessageP2PVersionReq{
 		Message: &types.P2PVersion{
 			Version:  p.SubConfig.Channel,
-			AddrFrom: fmt.Sprintf("/ip4/%v/tcp/%d", p.getExternalAddr(), p.SubConfig.Port),
+			AddrFrom: fmt.Sprintf("/ip4/%v/tcp/%d", p.getPublicIP(), p.SubConfig.Port),
 			AddrRecv: stream.Conn().RemoteMultiaddr().String(),
 		},
 	}
@@ -257,7 +258,7 @@ func (p *Protocol) queryVersion(pid peer.ID) error {
 
 	req := &types.P2PVersion{
 		Version:  p.SubConfig.Channel,
-		AddrFrom: fmt.Sprintf("/ip4/%v/tcp/%d", p.getExternalAddr(), p.SubConfig.Port),
+		AddrFrom: fmt.Sprintf("/ip4/%v/tcp/%d", p.getPublicIP(), p.SubConfig.Port),
 		AddrRecv: stream.Conn().RemoteMultiaddr().String(),
 	}
 	err = protocol.WriteStream(req, stream)

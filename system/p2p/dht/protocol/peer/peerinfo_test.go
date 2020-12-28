@@ -206,6 +206,8 @@ func TestPeerInfoHandler(t *testing.T) {
 
 	p.refreshPeerInfo()
 	time.Sleep(time.Second)
+	fmt.Println(p.PeerInfoManager.FetchAll())
+	fmt.Println(p.Host.ID())
 	require.Equal(t, 2, len(p.PeerInfoManager.FetchAll()))
 }
 
@@ -253,7 +255,10 @@ func (p *peerInfoManager) PeerMaxHeight() int64 {
 
 type connManager struct{}
 
-func (c *connManager) FetchConnPeers() []peer.ID    { return nil }
+func (c *connManager) FetchConnPeers() []peer.ID {
+	id, _ := peer.Decode("Qma91H212PWtAFcioW7h9eKiosJtwHsb9x3RmjqRWTwciZ")
+	return []peer.ID{id}
+}
 func (c *connManager) BoundSize() (in int, out int) { return 0, 0 }
 func (c *connManager) GetNetRate() metrics.Stats    { return metrics.Stats{} }
 func (c *connManager) BandTrackerByProtocol() *types.NetProtocolInfos {

@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "p2p.proto";
-import "common.proto";
 import "blockchain.proto";
 
 package types;
@@ -261,8 +260,14 @@ message P2PResponse {
         Headers      blockHeaders = 6;
         ChunkRecords chunkRecords = 7;
         //新的协议可以继续添加response类型
-        Reply reply = 8;
+        NodeInfo     nodeInfo = 8;
+        //Reply reply = 8;
     }
+}
+
+message NodeInfo {
+    bool answer = 1;
+    int64 height = 2;
 }
 
 message PeerInfo {

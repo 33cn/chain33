@@ -122,7 +122,7 @@ func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) 
 		return nil, ""
 	}
 
-	for _, pid := range p.HealthyRoutingTable.ListPeers() {
+	for _, pid := range p.RoutingTable.ListPeers() {
 		headers, err := p.getHeadersFromPeer(param, pid)
 		if err != nil {
 			log.Error("getHeaders", "peer", pid, "error", err)

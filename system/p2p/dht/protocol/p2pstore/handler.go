@@ -14,9 +14,10 @@ import (
 )
 
 func (p *Protocol) handleStreamIsFullNode(resp *types.P2PResponse) error {
-	resp.Response = &types.P2PResponse_Reply{
-		Reply: &types.Reply{
-			IsOk: p.SubConfig.IsFullNode,
+	resp.Response = &types.P2PResponse_NodeInfo{
+		NodeInfo: &types.NodeInfo{
+			Answer: p.SubConfig.IsFullNode,
+			Height: p.PeerInfoManager.PeerHeight(p.Host.ID()),
 		},
 	}
 	return nil
@@ -131,9 +132,7 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 	2）若未保存则从网络中请求chunk数据
 */
 func (p *Protocol) handleStreamStoreChunks(req *types.P2PRequest) {
-	log.Info("into handleStreamStoreChunks......")
 	param := req.Request.(*types.P2PRequest_ChunkInfoList).ChunkInfoList.Items
-	log.Info("handleStreamStoreChunks", "items len", len(param))
 	for _, info := range param {
 		chunkHash := hex.EncodeToString(info.ChunkHash)
 		//已有其他节点通知该节点保存该chunk，避免接收到多个节点的通知后重复查询数据

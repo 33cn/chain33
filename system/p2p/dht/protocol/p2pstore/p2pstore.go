@@ -103,7 +103,6 @@ func InitProtocol(env *protocol.P2PEnv) {
 				p.localChunkInfoMutex.Unlock()
 				p.debugFullNode()
 				log.Info("debug rt peers", "======== amount", p.RoutingTable.Size())
-				log.Info("debug healthy peers", "======== amount", p.HealthyRoutingTable.Size())
 				log.Info("debug shard healthy peers", "======== amount", p.ShardHealthyRoutingTable.Size())
 				log.Info("debug length", "notifying msg len", len(p.notifyingQueue))
 				log.Info("debug peers and conns", "peers len", len(p.Host.Network().Peers()), "conns len", len(p.Host.Network().Conns()))
@@ -203,20 +202,20 @@ func (p *Protocol) debugFullNode() {
 }
 
 func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
-	// HealthyRoutingTable更新时同时更新ShardHealthyRoutingTable
-	p.HealthyRoutingTable.PeerRemoved = func(id peer.ID) {
+	// RoutingTable更新时同时更新ShardHealthyRoutingTable
+	p.RoutingTable.PeerRemoved = func(id peer.ID) {
 		p.ShardHealthyRoutingTable.Remove(id)
 	}
-	for p.HealthyRoutingTable.Size() == 0 {
+	for p.RoutingTable.Size() == 0 {
 		time.Sleep(time.Second / 2)
 	}
 	updateFunc := func() {
-		for _, pid := range p.HealthyRoutingTable.ListPeers() {
-			ok, err := p.queryFull(pid)
+		for _, pid := range p.RoutingTable.ListPeers() {
+			ok, height, err := p.queryFull(pid)
 			if err != nil {
 				continue
 			}
-			if !ok {
+			if !ok && height > p.PeerInfoManager.PeerMaxHeight()-512 {
 				_, _ = p.ShardHealthyRoutingTable.Update(pid)
 			}
 		}
@@ -231,20 +230,20 @@ func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
 	}
 }
 
-func (p *Protocol) queryFull(pid peer.ID) (bool, error) {
+func (p *Protocol) queryFull(pid peer.ID) (bool, int64, error) {
 	stream, err := p.Host.NewStream(p.Ctx, pid, fullNode)
 	if err != nil {
-		return false, err
+		return false, -1, err
 	}
 	defer protocol.CloseStream(stream)
 	var resp types.P2PResponse
 	err = protocol.ReadStream(&resp, stream)
 	if err != nil {
-		return false, err
+		return false, -1, err
 	}
-	if reply, ok := resp.Response.(*types.P2PResponse_Reply); ok {
-		return reply.Reply.IsOk, nil
+	if reply, ok := resp.Response.(*types.P2PResponse_NodeInfo); ok {
+		return reply.NodeInfo.Answer, reply.NodeInfo.Height, nil
 	}
 
-	return false, types2.ErrInvalidResponse
+	return false, -1, types2.ErrInvalidResponse
 }

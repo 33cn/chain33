@@ -436,17 +436,16 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		panic(err)
 	}
 	env1 := protocol.P2PEnv{
-		Ctx:                 context.Background(),
-		ChainCfg:            cfg,
-		API:                 mockAPI1,
-		QueueClient:         client1,
-		Host:                host1,
-		SubConfig:           mcfg,
-		RoutingDiscovery:    discovery.NewRoutingDiscovery(kademliaDHT1),
-		RoutingTable:        kademliaDHT1.RoutingTable(),
-		HealthyRoutingTable: kademliaDHT1.RoutingTable(),
-		PeerInfoManager:     &peerInfoManager{},
-		DB:                  dbm.NewDB("p2pstore1", "leveldb", dataDir, 128),
+		Ctx:              context.Background(),
+		ChainCfg:         cfg,
+		API:              mockAPI1,
+		QueueClient:      client1,
+		Host:             host1,
+		SubConfig:        mcfg,
+		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
+		RoutingTable:     kademliaDHT1.RoutingTable(),
+		PeerInfoManager:  &peerInfoManager{},
+		DB:               dbm.NewDB("p2pstore1", "leveldb", dataDir, 128),
 	}
 	InitProtocol(&env1)
 
@@ -460,17 +459,16 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		panic(err)
 	}
 	env2 := protocol.P2PEnv{
-		Ctx:                 context.Background(),
-		ChainCfg:            cfg,
-		API:                 mockAPI2,
-		QueueClient:         client2,
-		Host:                host2,
-		SubConfig:           mcfg,
-		RoutingDiscovery:    discovery.NewRoutingDiscovery(kademliaDHT2),
-		RoutingTable:        kademliaDHT2.RoutingTable(),
-		HealthyRoutingTable: kademliaDHT2.RoutingTable(),
-		PeerInfoManager:     &peerInfoManager{},
-		DB:                  dbm.NewDB("p2pstore2", "leveldb", dataDir, 128),
+		Ctx:              context.Background(),
+		ChainCfg:         cfg,
+		API:              mockAPI2,
+		QueueClient:      client2,
+		Host:             host2,
+		SubConfig:        mcfg,
+		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT2),
+		RoutingTable:     kademliaDHT2.RoutingTable(),
+		PeerInfoManager:  &peerInfoManager{},
+		DB:               dbm.NewDB("p2pstore2", "leveldb", dataDir, 128),
 	}
 	p2 := &Protocol{
 		P2PEnv:                   &env2,
@@ -559,17 +557,16 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		panic(err)
 	}
 	env1 := protocol.P2PEnv{
-		Ctx:                 context.Background(),
-		ChainCfg:            cfg,
-		API:                 mockAPI1,
-		QueueClient:         client1,
-		Host:                host1,
-		SubConfig:           mcfg,
-		RoutingDiscovery:    discovery.NewRoutingDiscovery(kademliaDHT1),
-		RoutingTable:        kademliaDHT1.RoutingTable(),
-		HealthyRoutingTable: kademliaDHT1.RoutingTable(),
-		PeerInfoManager:     &peerInfoManager{},
-		DB:                  dbm.NewDB("p2pstore1", "leveldb", dataDir, 128),
+		Ctx:              context.Background(),
+		ChainCfg:         cfg,
+		API:              mockAPI1,
+		QueueClient:      client1,
+		Host:             host1,
+		SubConfig:        mcfg,
+		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
+		RoutingTable:     kademliaDHT1.RoutingTable(),
+		PeerInfoManager:  &peerInfoManager{},
+		DB:               dbm.NewDB("p2pstore1", "leveldb", dataDir, 128),
 	}
 	InitProtocol(&env1)
 
@@ -592,17 +589,16 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		panic(err)
 	}
 	env3 := protocol.P2PEnv{
-		Ctx:                 context.Background(),
-		ChainCfg:            cfg,
-		API:                 mockAPI3,
-		QueueClient:         client3,
-		Host:                host3,
-		SubConfig:           mcfg3,
-		RoutingDiscovery:    discovery.NewRoutingDiscovery(kademliaDHT3),
-		RoutingTable:        kademliaDHT3.RoutingTable(),
-		HealthyRoutingTable: kademliaDHT3.RoutingTable(),
-		PeerInfoManager:     &peerInfoManager{},
-		DB:                  dbm.NewDB("p2pstore3", "leveldb", dataDir, 128),
+		Ctx:              context.Background(),
+		ChainCfg:         cfg,
+		API:              mockAPI3,
+		QueueClient:      client3,
+		Host:             host3,
+		SubConfig:        mcfg3,
+		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT3),
+		RoutingTable:     kademliaDHT3.RoutingTable(),
+		PeerInfoManager:  &peerInfoManager{},
+		DB:               dbm.NewDB("p2pstore3", "leveldb", dataDir, 128),
 	}
 	p3 := &Protocol{
 		P2PEnv:                   &env3,

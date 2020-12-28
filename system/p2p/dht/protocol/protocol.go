@@ -34,8 +34,6 @@ type P2PEnv struct {
 	ConnBlackList   iLRU
 	Pubsub          *extension.PubSub
 	RoutingTable    *kbt.RoutingTable
-	//普通路由表的一个子表，仅包含接近同步完成的节点
-	HealthyRoutingTable *kbt.RoutingTable
 	*discovery.RoutingDiscovery
 }
 

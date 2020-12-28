@@ -29,11 +29,7 @@ import (
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
-	"github.com/libp2p/go-libp2p-core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -57,17 +53,17 @@ type P2P struct {
 	addrBook        *AddrBook
 	taskGroup       *sync.WaitGroup
 
-	pubsub              *extension.PubSub
-	restart             int32
-	p2pCfg              *types.P2P
-	subCfg              *p2pty.P2PSubConfig
-	mgr                 *p2p.Manager
-	subChan             chan interface{}
-	ctx                 context.Context
-	cancel              context.CancelFunc
-	db                  dbm.DB
-	healthyRoutingTable *kb.RoutingTable
-	env                 *protocol.P2PEnv
+	pubsub  *extension.PubSub
+	restart int32
+	p2pCfg  *types.P2P
+	subCfg  *p2pty.P2PSubConfig
+	mgr     *p2p.Manager
+	subChan chan interface{}
+	ctx     context.Context
+	cancel  context.CancelFunc
+	db      dbm.DB
+
+	env *protocol.P2PEnv
 }
 
 // New new dht p2p network
@@ -139,7 +135,6 @@ func initP2P(p *P2P) *P2P {
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
 	p.taskGroup = &sync.WaitGroup{}
 	p.db = newDB("", p.p2pCfg.Driver, p.subCfg.DHTDataPath, p.subCfg.DHTDataCache)
-	p.healthyRoutingTable = newHealthyRoutingTable(p.ctx, host, p.discovery.kademliaDHT.RoutingTable(), p.peerInfoManager)
 	return p
 }
 
@@ -155,21 +150,20 @@ func (p *P2P) StartP2P() {
 	p.discovery.Start()
 
 	env := &protocol.P2PEnv{
-		Ctx:                 p.ctx,
-		ChainCfg:            p.chainCfg,
-		QueueClient:         p.client,
-		Host:                p.host,
-		P2PManager:          p.mgr,
-		SubConfig:           p.subCfg,
-		DB:                  p.db,
-		RoutingDiscovery:    p.discovery.RoutingDiscovery,
-		RoutingTable:        p.discovery.RoutingTable(),
-		API:                 p.api,
-		Pubsub:              p.pubsub,
-		PeerInfoManager:     p.peerInfoManager,
-		ConnManager:         p.connManager,
-		ConnBlackList:       p.blackCache,
-		HealthyRoutingTable: p.healthyRoutingTable,
+		Ctx:              p.ctx,
+		ChainCfg:         p.chainCfg,
+		QueueClient:      p.client,
+		Host:             p.host,
+		P2PManager:       p.mgr,
+		SubConfig:        p.subCfg,
+		DB:               p.db,
+		RoutingDiscovery: p.discovery.RoutingDiscovery,
+		RoutingTable:     p.discovery.RoutingTable(),
+		API:              p.api,
+		Pubsub:           p.pubsub,
+		PeerInfoManager:  p.peerInfoManager,
+		ConnManager:      p.connManager,
+		ConnBlackList:    p.blackCache,
 	}
 	p.env = env
 	protocol.InitAllProtocol(env)
@@ -459,36 +453,4 @@ func newDB(name, backend, dir string, cache int32) dbm.DB {
 		cache = 128
 	}
 	return dbm.NewDB(name, backend, dir, cache)
-}
-
-func newHealthyRoutingTable(ctx context.Context, h host.Host, rt *kb.RoutingTable, pm *manage.PeerInfoManager) *kb.RoutingTable {
-	hrt := kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(h.ID()), time.Minute, h.Peerstore())
-	const diffHeight = 512
-	//rt.PeerAdded = func(pid peer.ID) {
-	//	if pm.PeerHeight(pid)+diffHeight >= pm.PeerMaxHeight() {
-	//		_, _ = hrt.Update(pid)
-	//	}
-	//}
-	rt.PeerRemoved = func(pid peer.ID) {
-		hrt.Remove(pid)
-	}
-	go func() {
-		ticker := time.NewTicker(time.Minute)
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				for _, pid := range rt.ListPeers() {
-					if pm.PeerHeight(pid)+diffHeight >= pm.PeerMaxHeight() {
-						_, _ = hrt.Update(pid)
-					} else {
-						hrt.Remove(pid)
-					}
-				}
-			}
-
-		}
-	}()
-	return hrt
 }
