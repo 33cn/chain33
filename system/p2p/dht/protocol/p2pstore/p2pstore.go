@@ -63,6 +63,10 @@ func InitProtocol(env *protocol.P2PEnv) {
 		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 		notifyingQueue:           make(chan *types.ChunkInfoMsg, 1024),
 	}
+	// RoutingTable更新时同时更新ShardHealthyRoutingTable
+	p.RoutingTable.PeerRemoved = func(id peer.ID) {
+		p.ShardHealthyRoutingTable.Remove(id)
+	}
 	go p.updateShardHealthyRoutingTableRoutine()
 	p.initLocalChunkInfoMap()
 
@@ -202,10 +206,6 @@ func (p *Protocol) debugFullNode() {
 }
 
 func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
-	// RoutingTable更新时同时更新ShardHealthyRoutingTable
-	p.RoutingTable.PeerRemoved = func(id peer.ID) {
-		p.ShardHealthyRoutingTable.Remove(id)
-	}
 	for p.RoutingTable.Size() == 0 {
 		time.Sleep(time.Second / 2)
 	}
