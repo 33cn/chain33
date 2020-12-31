@@ -38,10 +38,10 @@ var ErrAddressChecksum = errors.New("address checksum error")
 const MaxExecNameLength = 100
 
 //NormalVer 普通地址的版本号
-const NormalVer byte = 0
+var NormalVer byte = 0
 
 //MultiSignVer 多重签名地址的版本号
-const MultiSignVer byte = 5
+var MultiSignVer byte = 5
 
 func init() {
 	var err error

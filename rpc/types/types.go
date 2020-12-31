@@ -82,6 +82,7 @@ type Transaction struct {
 	Header     string          `json:"header,omitempty"`
 	Next       string          `json:"next,omitempty"`
 	Hash       string          `json:"hash,omitempty"`
+	ChannelID  int32           `json:"channelID,omitempty"`
 }
 
 // ReceiptLog defines receipt log command
