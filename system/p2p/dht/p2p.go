@@ -30,6 +30,7 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -156,7 +157,7 @@ func (p *P2P) StartP2P() {
 		P2PManager:       p.mgr,
 		SubConfig:        p.subCfg,
 		DB:               p.db,
-		RoutingDiscovery: p.discovery.RoutingDiscovery,
+		RoutingDiscovery: discovery.NewRoutingDiscovery(p.discovery.kademliaDHT),
 		RoutingTable:     p.discovery.RoutingTable(),
 		API:              p.api,
 		Pubsub:           p.pubsub,
