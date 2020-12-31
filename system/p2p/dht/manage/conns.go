@@ -154,18 +154,27 @@ func (s *ConnManager) procConnections() {
 	//如果连接的节点数较少，尝试连接内置的和配置的种子节点
 	//无须担心重新连接的问题，底层会自己判断是否已经连接了此节点，如果已经连接了就会忽略
 	for _, seed := range s.cfg.Seeds {
-		info := genAddrInfo(seed)
+		info, err := genAddrInfo(seed)
+		if err != nil {
+			panic(`invalid seeds format in config, use format of "/ip4/118.89.190.76/tcp/13803/p2p/16Uiu2HAmRao56AsxpobLBvbNfDttheQxnke9y1uWQRMWW7XaEdk5"`)
+		}
 		_ = s.host.Connect(context.Background(), *info)
 	}
 
 	for _, node := range s.cfg.BootStraps {
-		info := genAddrInfo(node)
+		info, err := genAddrInfo(node)
+		if err != nil {
+			panic(`invalid bootStraps format in config, use format of "/ip4/118.89.190.76/tcp/13803/p2p/16Uiu2HAmRao56AsxpobLBvbNfDttheQxnke9y1uWQRMWW7XaEdk5"`)
+		}
 		_ = s.host.Connect(context.Background(), *info)
 	}
 	if s.cfg.RelayEnable {
 		//对relay中中继服务器要长期保持连接
 		for _, node := range s.cfg.RelayNodeAddr {
-			info := genAddrInfo(node)
+			info, err := genAddrInfo(node)
+			if err != nil {
+				panic(`invalid relayNodeAddr in config, use format of "/ip4/118.89.190.76/tcp/13803/p2p/16Uiu2HAmRao56AsxpobLBvbNfDttheQxnke9y1uWQRMWW7XaEdk5"`)
+			}
 			if len(s.host.Network().ConnsToPeer(info.ID)) == 0 {
 				s.host.Connect(context.Background(), *info)
 			}
@@ -174,14 +183,19 @@ func (s *ConnManager) procConnections() {
 
 }
 
-func genAddrInfo(addr string) *peer.AddrInfo {
-	mAddr, _ := multiaddr.NewMultiaddr(addr)
-	peerInfo, _ := peer.AddrInfoFromP2pAddr(mAddr)
-	return peerInfo
+func genAddrInfo(addr string) (*peer.AddrInfo, error) {
+	mAddr, err := multiaddr.NewMultiaddr(addr)
+	if err != nil {
+		return nil, err
+	}
+	return peer.AddrInfoFromP2pAddr(mAddr)
 }
 
 // AddNeighbors add neighbors by peer info
 func (s *ConnManager) AddNeighbors(pr *peer.AddrInfo) {
+	if pr == nil {
+		return
+	}
 	s.neighborStore.Store(pr.ID.Pretty(), pr)
 }
 
