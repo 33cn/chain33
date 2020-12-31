@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testJobs(t *testing.T) {
@@ -36,27 +36,27 @@ func testJobs(t *testing.T) {
 	}
 
 	var myjobs tasks
-	assert.Equal(t, myjobs.Len(), 0)
+	require.Equal(t, myjobs.Len(), 0)
 	myjobs = append(myjobs, t1, t2, t3)
-	assert.Equal(t, myjobs.Len(), 3)
+	require.Equal(t, myjobs.Len(), 3)
 
-	assert.Equal(t, myjobs[0].Pid, pid1)
+	require.Equal(t, myjobs[0].Pid, pid1)
 
-	assert.Equal(t, myjobs[1].Pid, pid2)
+	require.Equal(t, myjobs[1].Pid, pid2)
 
-	assert.Equal(t, myjobs[2].Pid, pid3)
+	require.Equal(t, myjobs[2].Pid, pid3)
 	//test sort
 	myjobs.Sort()
 
-	assert.Equal(t, myjobs[0].Pid, pid2)
-	assert.Equal(t, myjobs[1].Pid, pid1)
-	assert.Equal(t, myjobs[2].Pid, pid3)
+	require.Equal(t, myjobs[0].Pid, pid2)
+	require.Equal(t, myjobs[1].Pid, pid1)
+	require.Equal(t, myjobs[2].Pid, pid3)
 
 	//test delete
 	myjobs = myjobs.Remove(&taskInfo{Index: 4})
-	assert.Equal(t, 3, myjobs.Len())
+	require.Equal(t, 3, myjobs.Len())
 	myjobs = myjobs.Remove(&taskInfo{Index: 0})
-	assert.Equal(t, 2, myjobs.Len())
+	require.Equal(t, 2, myjobs.Len())
 
 }
 

@@ -18,7 +18,7 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 )
@@ -26,22 +26,16 @@ import (
 var log = log15.New("module", "p2p.broadcast")
 
 const (
-	protoTypeID = "BroadcastProtocolType"
 	broadcastV1 = "/chain33/p2p/broadcast/1.0.0"
-	//broadcastV2     = "/chain33/p2p/broadcast/2.0.0"
-	broadcastPubSub = "/chain33/broadcast/pubsub/1.0.0"
 )
 
 func init() {
-	prototypes.RegisterProtocol(protoTypeID, &broadcastProtocol{})
-	prototypes.RegisterStreamHandler(protoTypeID, broadcastV1, &broadcastHandler{})
-	//prototypes.RegisterStreamHandler(protoTypeID, broadcastV2, &broadcastHandlerV2{})
-	prototypes.RegisterStreamHandler(protoTypeID, broadcastPubSub, &pubsubHandler{})
+	protocol.RegisterProtocolInitializer(InitProtocol)
 }
 
 //
 type broadcastProtocol struct {
-	*prototypes.BaseProtocol
+	*protocol.P2PEnv
 
 	txFilter        *utils.Filterdata
 	blockFilter     *utils.Filterdata
@@ -59,27 +53,26 @@ type broadcastProtocol struct {
 }
 
 // InitProtocol init protocol
-func (protocol *broadcastProtocol) InitProtocol(env *prototypes.P2PEnv) {
-	protocol.BaseProtocol = new(prototypes.BaseProtocol)
+func InitProtocol(env *protocol.P2PEnv) {
+	new(broadcastProtocol).init(env)
+}
 
-	protocol.P2PEnv = env
+func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
+	p.P2PEnv = env
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
-	protocol.txFilter = utils.NewFilter(txRecvFilterCacheNum)
-	protocol.blockFilter = utils.NewFilter(blockRecvFilterCacheNum)
+	p.txFilter = utils.NewFilter(txRecvFilterCacheNum)
+	p.blockFilter = utils.NewFilter(blockRecvFilterCacheNum)
 
 	//发送交易和区块时过滤缓存, 解决冗余广播发送
-	protocol.txSendFilter = utils.NewFilter(txSendFilterCacheNum)
-	protocol.blockSendFilter = utils.NewFilter(blockSendFilterCacheNum)
-	protocol.ps = pubsub.NewPubSub(10000)
-	protocol.exitPeer = make(chan peer.ID)
-	protocol.errPeer = make(chan peer.ID)
-	protocol.peerV1 = make(chan peer.ID, 5)
-	protocol.broadcastPeers = make(map[peer.ID]context.CancelFunc)
+	p.txSendFilter = utils.NewFilter(txSendFilterCacheNum)
+	p.blockSendFilter = utils.NewFilter(blockSendFilterCacheNum)
+	p.ps = pubsub.NewPubSub(10000)
+	p.exitPeer = make(chan peer.ID)
+	p.errPeer = make(chan peer.ID)
+	p.peerV1 = make(chan peer.ID, 5)
+	p.broadcastPeers = make(map[peer.ID]context.CancelFunc)
 	// 单独复制一份， 避免data race
 	subCfg := *(env.SubConfig)
-	//注册事件处理函数
-	prototypes.RegisterEventHandler(types.EventTxBroadcast, protocol.handleBroadCastEvent)
-	prototypes.RegisterEventHandler(types.EventBlockBroadcast, protocol.handleBroadCastEvent)
 
 	//ttl至少设为2
 	if subCfg.LightTxTTL <= 1 {
@@ -102,30 +95,35 @@ func (protocol *broadcastProtocol) InitProtocol(env *prototypes.P2PEnv) {
 
 	//接收到短哈希区块数据,只构建出区块部分交易,需要缓存, 并继续向对端节点请求剩余数据
 	//内部组装成功失败或成功都会进行清理，实际运行并不会长期占用内存，只要限制极端情况最大值
-	protocol.ltBlockCache = utils.NewSpaceLimitCache(ltBlockCacheNum, int(subCfg.LtBlockCacheSize*1024*1024))
-	protocol.p2pCfg = &subCfg
+	p.ltBlockCache = utils.NewSpaceLimitCache(ltBlockCacheNum, int(subCfg.LtBlockCacheSize*1024*1024))
+	p.p2pCfg = &subCfg
+
+	protocol.RegisterStreamHandler(p.Host, broadcastV1, protocol.HandlerWithClose(p.handleStreamBroadcastV1))
+	//注册事件处理函数
+	protocol.RegisterEventHandler(types.EventTxBroadcast, p.handleBroadCastEvent)
+	protocol.RegisterEventHandler(types.EventBlockBroadcast, p.handleBroadCastEvent)
 
 	// pub sub broadcast
-	go newPubSub(protocol).broadcast()
-	go protocol.handleClassicBroadcast()
+	go newPubSub(p).broadcast()
+	go p.manageBroadcastV1Peer()
 }
 
 // 处理系统广播发送事件，交易及区块
-func (protocol *broadcastProtocol) handleBroadCastEvent(msg *queue.Message) {
+func (p *broadcastProtocol) handleBroadCastEvent(msg *queue.Message) {
 
 	var sendData interface{}
 	var topic, hash string
 	var filter *utils.Filterdata
 	if tx, ok := msg.GetData().(*types.Transaction); ok {
 		hash = hex.EncodeToString(tx.Hash())
-		filter = protocol.txFilter
+		filter = p.txFilter
 		topic = psTxTopic
 		//兼容老版本，总是转发全交易
 		route := &types.P2PRoute{TTL: 1}
 		sendData = &types.P2PTx{Tx: tx, Route: route}
 	} else if block, ok := msg.GetData().(*types.Block); ok {
-		hash = hex.EncodeToString(block.Hash(protocol.GetChainCfg()))
-		filter = protocol.blockFilter
+		hash = hex.EncodeToString(block.Hash(p.ChainCfg))
+		filter = p.blockFilter
 		topic = psBlockTopic
 		sendData = &types.P2PBlock{Block: block}
 	} else {
@@ -133,29 +131,29 @@ func (protocol *broadcastProtocol) handleBroadCastEvent(msg *queue.Message) {
 		return
 	}
 	//目前p2p可能存在多个插件并存，dht和gossip，消息回收容易混乱，需要进一步梳理 TODO：p2p模块热点区域消息回收
-	//protocol.QueueClient.FreeMessage(msg)
+	//p.QueueClient.FreeMessage(msg)
 
 	// pub sub只需要转发本节点产生的交易或区块
 	if !filter.Contains(hash) {
 		filter.Add(hash, struct{}{})
-		protocol.ps.FIFOPub(msg.GetData(), topic)
+		p.ps.FIFOPub(msg.GetData(), topic)
 	}
 
 	//发布到老版本接收通道
-	if atomic.LoadInt32(&protocol.peerV1Num) > 0 {
-		protocol.ps.FIFOPub(sendData, bcTopic)
+	if atomic.LoadInt32(&p.peerV1Num) > 0 {
+		p.ps.FIFOPub(sendData, bcTopic)
 	}
 }
 
 // 发送广播数据到节点, 支持延迟关闭内部stream，主要考虑多个节点并行发送情况，不需要等待关闭
-func (protocol *broadcastProtocol) sendPeer(data interface{}, pid, version string) error {
+func (p *broadcastProtocol) sendPeer(data interface{}, pid, version string) error {
 
 	//if version == broadcastV2 {
-	//	protocol.ps.Pub(data, pid)
+	//	p.ps.Pub(data, pid)
 	//	return nil
 	//}
 	// broadcast v1 TODO 版本升级后移除代码
-	sendData, doSend := protocol.handleSend(data, pid)
+	sendData, doSend := p.handleSend(data, pid)
 	if !doSend {
 		return nil
 	}
@@ -168,27 +166,23 @@ func (protocol *broadcastProtocol) sendPeer(data interface{}, pid, version strin
 		log.Error("sendPeer", "id", pid, "decode pid err", err)
 		return err
 	}
-	stream, err := prototypes.NewStream(protocol.Host, rawPid, broadcastV1)
+	stream, err := p.Host.NewStream(p.Ctx, rawPid, broadcastV1)
 	if err != nil {
 		log.Error("sendPeer", "id", pid, "NewStreamErr", err)
 		return err
 	}
 
-	err = prototypes.WriteStream(broadData, stream)
+	err = protocol.WriteStream(broadData, stream)
 	if err != nil {
 		log.Error("sendPeer", "pid", pid, "WriteStream err", err)
 		return err
 	}
-	err = prototypes.CloseStream(stream)
-	if err != nil {
-		log.Error("sendPeer", "pid", pid, "CloseStream err", err)
-		return err
-	}
+	protocol.CloseStream(stream)
 	return nil
 }
 
 // handleSend 对数据进行处理，包装成BroadCast结构
-func (protocol *broadcastProtocol) handleSend(rawData interface{}, pid string) (sendData *types.BroadCastData, doSend bool) {
+func (p *broadcastProtocol) handleSend(rawData interface{}, pid string) (sendData *types.BroadCastData, doSend bool) {
 	//出错处理
 	defer func() {
 		if r := recover(); r != nil {
@@ -200,18 +194,18 @@ func (protocol *broadcastProtocol) handleSend(rawData interface{}, pid string) (
 
 	doSend = false
 	if tx, ok := rawData.(*types.P2PTx); ok {
-		doSend = protocol.sendTx(tx, sendData, pid)
+		doSend = p.sendTx(tx, sendData, pid)
 	} else if blc, ok := rawData.(*types.P2PBlock); ok {
-		doSend = protocol.sendBlock(blc, sendData, pid)
+		doSend = p.sendBlock(blc, sendData, pid)
 	} else if query, ok := rawData.(*types.P2PQueryData); ok {
-		doSend = protocol.sendQueryData(query, sendData, pid)
+		doSend = p.sendQueryData(query, sendData, pid)
 	} else if rep, ok := rawData.(*types.P2PBlockTxReply); ok {
-		doSend = protocol.sendQueryReply(rep, sendData, pid)
+		doSend = p.sendQueryReply(rep, sendData, pid)
 	}
 	return
 }
 
-func (protocol *broadcastProtocol) handleReceive(data *types.BroadCastData, pid, peerAddr, version string) (err error) {
+func (p *broadcastProtocol) handleReceive(data *types.BroadCastData, pid, peerAddr, version string) (err error) {
 
 	//接收网络数据不可靠
 	defer func() {
@@ -220,17 +214,17 @@ func (protocol *broadcastProtocol) handleReceive(data *types.BroadCastData, pid,
 		}
 	}()
 	if tx := data.GetTx(); tx != nil {
-		err = protocol.recvTx(tx, pid)
+		err = p.recvTx(tx, pid)
 	} else if ltTx := data.GetLtTx(); ltTx != nil {
-		err = protocol.recvLtTx(ltTx, pid, peerAddr, version)
+		err = p.recvLtTx(ltTx, pid, peerAddr, version)
 	} else if ltBlc := data.GetLtBlock(); ltBlc != nil {
-		err = protocol.recvLtBlock(ltBlc, pid, peerAddr, version)
+		err = p.recvLtBlock(ltBlc, pid, peerAddr, version)
 	} else if blc := data.GetBlock(); blc != nil {
-		err = protocol.recvBlock(blc, pid, peerAddr)
+		err = p.recvBlock(blc, pid, peerAddr)
 	} else if query := data.GetQuery(); query != nil {
-		err = protocol.recvQueryData(query, pid, peerAddr, version)
+		err = p.recvQueryData(query, pid, peerAddr, version)
 	} else if rep := data.GetBlockRep(); rep != nil {
-		err = protocol.recvQueryReply(rep, pid, peerAddr, version)
+		err = p.recvQueryReply(rep, pid, peerAddr, version)
 	}
 	if err != nil {
 		log.Error("handleReceive", "pid", pid, "addr", peerAddr, "recvData", data.Value, "err", err)
@@ -238,12 +232,12 @@ func (protocol *broadcastProtocol) handleReceive(data *types.BroadCastData, pid,
 	return
 }
 
-func (protocol *broadcastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {
-	return protocol.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
+func (p *broadcastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {
+	return p.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
 }
 
-func (protocol *broadcastProtocol) postMempool(txHash string, tx *types.Transaction) error {
-	return protocol.P2PManager.PubBroadCast(txHash, tx, types.EventTx)
+func (p *broadcastProtocol) postMempool(txHash string, tx *types.Transaction) error {
+	return p.P2PManager.PubBroadCast(txHash, tx, types.EventTx)
 }
 
 type sendFilterInfo struct {

@@ -7,14 +7,18 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/helpers"
+
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
+
+var log = log15.New("module", "p2p.protocol")
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -47,11 +51,13 @@ func CloseStream(stream network.Stream) {
 	if stream == nil {
 		return
 	}
-	err := helpers.FullClose(stream)
-	if err != nil {
-		//just log it because it dose not matter
-		log.Debug("CloseStream", "err", err)
-	}
+	go func() {
+		err := helpers.FullClose(stream)
+		if err != nil {
+			//just log it because it dose not matter
+			log.Debug("CloseStream", "err", err)
+		}
+	}()
 }
 
 // AuthenticateMessage authenticates p2p message.
@@ -162,22 +168,42 @@ func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 	}
 }
 
+// HandlerWithWrite wraps handler with writing, closing stream and recovering from panic.
+func HandlerWithWrite(f func(resp *types.P2PResponse) error) network.StreamHandler {
+	return func(stream network.Stream) {
+		var res types.P2PResponse
+		err := f(&res)
+		if err != nil {
+			res.Response = nil
+			res.Error = err.Error()
+		}
+		res.Headers = &types.P2PMessageHeaders{
+			Version:   types2.Version,
+			Timestamp: time.Now().Unix(),
+			Id:        rand.Int63(),
+		}
+		if err := WriteStream(&res, stream); err != nil {
+			log.Error("HandlerWithWrite", "write stream error", err)
+			return
+		}
+	}
+}
+
 // HandlerWithRead wraps handler with reading, closing stream and recovering from panic.
 func HandlerWithRead(f func(request *types.P2PRequest)) network.StreamHandler {
-	readFunc := func(stream network.Stream) {
+	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
-			log.Error("HandlerWithAuthAndSign", "read stream error", err)
+			log.Error("HandlerWithRead", "read stream error", err)
 			return
 		}
 		f(&req)
 	}
-	return HandlerWithClose(readFunc)
 }
 
 // HandlerWithAuth wraps HandlerWithRead with authenticating.
 func HandlerWithAuth(f func(request *types.P2PRequest)) network.StreamHandler {
-	readFunc := func(stream network.Stream) {
+	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
 			log.Error("HandlerWithAuthAndSign", "read stream error", err)
@@ -188,12 +214,11 @@ func HandlerWithAuth(f func(request *types.P2PRequest)) network.StreamHandler {
 		}
 		f(&req)
 	}
-	return HandlerWithClose(readFunc)
 }
 
 // HandlerWithRW wraps handler with reading, writing, closing stream and recovering from panic.
 func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
-	rwFunc := func(stream network.Stream) {
+	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
 			log.Error("HandlerWithRW", "read stream error", err)
@@ -215,12 +240,11 @@ func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse
 			return
 		}
 	}
-	return HandlerWithClose(rwFunc)
 }
 
 // HandlerWithAuthAndSign wraps HandlerWithRW with signing and authenticating.
 func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
-	rwFunc := func(stream network.Stream) {
+	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
 			log.Error("HandlerWithAuthAndSign", "read stream error", err)
@@ -251,7 +275,6 @@ func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2
 			return
 		}
 	}
-	return HandlerWithClose(rwFunc)
 }
 
 //TODO

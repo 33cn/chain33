@@ -2,43 +2,33 @@ package dht
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net"
+	"os"
 	"strings"
+	"testing"
 	"time"
 
-	bhost "github.com/libp2p/go-libp2p-blankhost"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-
 	"github.com/33cn/chain33/client"
-
-	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/metrics"
-
-	"os"
-
-	"github.com/33cn/chain33/util"
-
-	"crypto/rand"
-	"fmt"
-	"testing"
-
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
+	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -102,13 +92,9 @@ func processMsg(q queue.Queue) {
 			case types.EventGetLastHeader:
 				msg.Reply(client.NewMessage("p2p", types.EventHeader, &types.Header{Height: 2019}))
 			case types.EventGetBlockHeight:
-
 				msg.Reply(client.NewMessage("p2p", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 2019}))
-
 			}
-
 		}
-
 	}()
 
 	go func() {
@@ -127,6 +113,7 @@ func processMsg(q queue.Queue) {
 func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	p2pmgr := p2p2.NewP2PMgr(cfg)
 	p2pmgr.SysAPI, _ = client.New(cli, nil)
+	p2pmgr.Client = cli
 	subCfg := p2pmgr.ChainCfg.GetSubConfig().P2P
 	mcfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(subCfg[p2pty.DHTTypeName], mcfg)
@@ -141,47 +128,44 @@ func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 func testP2PEvent(t *testing.T, qcli queue.Client) {
 
 	msg := qcli.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{})
-	assert.True(t, qcli.Send(msg, false) == nil)
+	require.True(t, qcli.Send(msg, false) == nil)
 
 	msg = qcli.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{})
 	qcli.Send(msg, false)
-	assert.True(t, qcli.Send(msg, false) == nil)
+	require.True(t, qcli.Send(msg, false) == nil)
 
 	msg = qcli.NewMessage("p2p", types.EventFetchBlocks, &types.ReqBlocks{})
 	qcli.Send(msg, false)
-	assert.True(t, qcli.Send(msg, false) == nil)
+	require.True(t, qcli.Send(msg, false) == nil)
 
 	msg = qcli.NewMessage("p2p", types.EventGetMempool, nil)
 	qcli.Send(msg, false)
-	assert.True(t, qcli.Send(msg, false) == nil)
+	require.True(t, qcli.Send(msg, false) == nil)
 
 	msg = qcli.NewMessage("p2p", types.EventPeerInfo, &types.P2PGetPeerReq{P2PType: "DHT"})
 	qcli.Send(msg, false)
-	assert.True(t, qcli.Send(msg, false) == nil)
+	require.True(t, qcli.Send(msg, false) == nil)
 
 	msg = qcli.NewMessage("p2p", types.EventGetNetInfo, nil)
 	qcli.Send(msg, false)
-	assert.True(t, qcli.Send(msg, false) == nil)
+	require.True(t, qcli.Send(msg, false) == nil)
 
 	msg = qcli.NewMessage("p2p", types.EventFetchBlockHeaders, &types.ReqBlocks{})
 	qcli.Send(msg, false)
-	assert.True(t, qcli.Send(msg, false) == nil)
+	require.True(t, qcli.Send(msg, false) == nil)
 
 }
 
-func testP2PClose(t *testing.T, p2p p2p2.IP2P) {
-	p2p.CloseP2P()
-
-}
-func newHost(subcfg *p2pty.P2PSubConfig, priv p2pcrypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
-	p := &P2P{subCfg: subcfg}
-	options := p.buildHostOptions(priv, bandwidthTracker, maddr)
+func newHost(subcfg *p2pty.P2PSubConfig, priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
+	p := &P2P{ctx: context.Background(), subCfg: subcfg}
+	options := p.buildHostOptions(priv, bandwidthTracker, maddr, nil)
 	h, err := libp2p.New(context.Background(), options...)
 	if err != nil {
 		return nil
 	}
 	return h
 }
+
 func testStreamEOFReSet(t *testing.T) {
 
 	r := rand.Reader
@@ -267,19 +251,19 @@ func testStreamEOFReSet(t *testing.T) {
 		break
 	}
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	s, err := h1.NewStream(context.Background(), h2.ID(), protocol.ID(msgID))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	s.Write([]byte("hello"))
 	var buf = make([]byte, 128)
 	_, err = s.Read(buf)
-	assert.True(t, err != nil)
+	require.True(t, err != nil)
 	if err != nil {
 		//在stream关闭的时候返回EOF
 		t.Log("readStream from H2 Err", err)
-		assert.Equal(t, err.Error(), "EOF")
+		require.Equal(t, err.Error(), "EOF")
 	}
 
 	h3info := peer.AddrInfo{
@@ -288,41 +272,41 @@ func testStreamEOFReSet(t *testing.T) {
 	}
 
 	err = h1.Connect(context.Background(), h3info)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	s, err = h1.NewStream(context.Background(), h3.ID(), protocol.ID(msgID))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	s.Write([]byte("hello"))
 	_, err = s.Read(buf)
-	assert.True(t, err != nil)
+	require.True(t, err != nil)
 	if err != nil {
 		//在连接断开的时候，返回 stream reset
 		t.Log("readStream from H3 Err", err)
-		assert.Equal(t, err.Error(), "stream reset")
+		require.Equal(t, err.Error(), "stream reset")
 	}
 
 }
 
 func Test_pubkey(t *testing.T) {
 	priv, pub, err := GenPrivPubkey()
-	assert.Nil(t, err)
-	assert.NotNil(t, priv, pub)
+	require.Nil(t, err)
+	require.NotNil(t, priv, pub)
 	pubstr, err := GenPubkey(hex.EncodeToString(priv))
-	assert.Nil(t, err)
-	assert.Equal(t, pubstr, hex.EncodeToString(pub))
+	require.Nil(t, err)
+	require.Equal(t, pubstr, hex.EncodeToString(pub))
 }
 
 func testHost(t *testing.T) {
 	mcfg := &p2pty.P2PSubConfig{}
 
 	_, err := GenPubkey("123456")
-	assert.NotNil(t, err)
+	require.NotNil(t, err)
 
 	priv, pub, err := GenPrivPubkey()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	t.Log("priv size", len(priv))
 	cpriv, err := crypto.UnmarshalSecp256k1PrivateKey(priv)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 26666))
 
@@ -334,8 +318,8 @@ func testHost(t *testing.T) {
 	host := newHost(mcfg, cpriv, nil, maddr)
 	hpub := host.Peerstore().PubKey(host.ID())
 	hpb, err := hpub.Raw()
-	assert.Nil(t, err)
-	assert.Equal(t, hpb, pub)
+	require.Nil(t, err)
+	require.Equal(t, hpb, pub)
 	host.Close()
 }
 
@@ -343,8 +327,8 @@ func testAddrbook(t *testing.T, cfg *types.P2P) {
 	cfg.DbPath = cfg.DbPath + "test/"
 	addrbook := NewAddrBook(cfg)
 	priv, pub := addrbook.GetPrivPubKey()
-	assert.Equal(t, priv, "")
-	assert.Equal(t, pub, "")
+	require.Equal(t, priv, "")
+	require.Equal(t, pub, "")
 	var paddrinfos []peer.AddrInfo
 	paddrinfos = append(paddrinfos, peer.AddrInfo{})
 	addrbook.SaveAddr(paddrinfos)
@@ -352,7 +336,7 @@ func testAddrbook(t *testing.T, cfg *types.P2P) {
 	priv, pub = addrbook.GetPrivPubKey()
 	addrbook.saveKey(priv, pub)
 	ok := addrbook.loadDb()
-	assert.True(t, ok)
+	require.True(t, ok)
 
 }
 
@@ -373,8 +357,8 @@ func Test_LocalAddr(t *testing.T) {
 func Test_Id(t *testing.T) {
 	encodeIDStr := "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"
 	pubkey, err := PeerIDToPubkey(encodeIDStr)
-	assert.Nil(t, err)
-	assert.Equal(t, pubkey, "02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0")
+	require.Nil(t, err)
+	require.Equal(t, pubkey, "02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0")
 
 }
 
@@ -400,22 +384,28 @@ func Test_p2p(t *testing.T) {
 	tcfg.DbPath = datadir
 	testAddrbook(t, &tcfg)
 
+	var mcfg p2pty.P2PSubConfig
+	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], &mcfg)
+	mcfg.DHTDataPath = datadir
+	jcfg, err := json.Marshal(mcfg)
+	require.Nil(t, err)
+	cfg.GetSubConfig().P2P[p2pty.DHTTypeName] = jcfg
 	p2p := NewP2p(cfg, q.Client())
 	dhtp2p := p2p.(*P2P)
 	t.Log("listpeer", dhtp2p.discovery.ListPeers())
 
-	err := dhtp2p.discovery.Update(dhtp2p.host.ID())
+	err = dhtp2p.discovery.Update(dhtp2p.host.ID())
 	t.Log("discovery update", err)
 	pinfo := dhtp2p.discovery.FindLocalPeers([]peer.ID{dhtp2p.host.ID()})
 	t.Log("findlocalPeers", pinfo)
-	netw := swarmt.GenSwarm(t, context.Background())
-	h2 := bhost.NewBlankHost(netw)
-	dhtp2p.pruePeers(h2.ID(), true)
+	//netw := swarmt.GenSwarm(t, context.Background())
+	//h2 := bhost.NewBlankHost(netw)
+	//dhtp2p.pruePeers(h2.ID(), true)
 	dhtp2p.discovery.Remove(dhtp2p.host.ID())
 	testP2PEvent(t, q.Client())
 
 	testStreamEOFReSet(t)
 	testHost(t)
-	testP2PClose(t, p2p)
-
+	p2p.CloseP2P()
+	time.Sleep(time.Second)
 }

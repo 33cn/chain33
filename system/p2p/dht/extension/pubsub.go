@@ -1,16 +1,17 @@
-package net
+package extension
 
 import (
 	"context"
 	"fmt"
-
-	host "github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-
 	"sync"
 
+	"github.com/33cn/chain33/common/log/log15"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
+
+var log = log15.New("module", "pubsub")
 
 // TopicMap topic map
 type TopicMap map[string]*topicinfo

@@ -8,20 +8,15 @@ import (
 	"context"
 	"sync/atomic"
 
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-type broadcastHandler struct {
-	*prototypes.BaseStreamHandler
-}
-
 // Handle 处理请求
-func (handler *broadcastHandler) Handle(stream core.Stream) {
+func (p *broadcastProtocol) handleStreamBroadcastV1(stream core.Stream) {
 
-	protocol := handler.GetProtocol().(*broadcastProtocol)
 	pid := stream.Conn().RemotePeer()
 	sPid := pid.Pretty()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
@@ -31,56 +26,51 @@ func (handler *broadcastHandler) Handle(stream core.Stream) {
 		log.Error("Handle", "pid", pid.Pretty(), "addr", peerAddr, "err", err)
 		return
 	}
-	_ = protocol.handleReceive(data.Message, sPid, peerAddr, broadcastV1)
-	sendNonBlocking(protocol.peerV1, pid)
-}
-
-// VerifyRequest verify request
-func (handler *broadcastHandler) VerifyRequest(types.Message, *types.MessageComm) bool {
-	return true
+	_ = p.handleReceive(data.Message, sPid, peerAddr, broadcastV1)
+	sendNonBlocking(p.peerV1, pid)
 }
 
 // 增加广播节点， 每个节点分配一个协程处理广播逻辑
-func (protocol *broadcastProtocol) addBroadcastPeer(id peer.ID) {
+func (p *broadcastProtocol) addBroadcastPeer(id peer.ID) {
 	// 广播节点加入保护， 避免被连接管理误删除
-	pCtx, pCancel := context.WithCancel(protocol.Ctx)
-	protocol.broadcastPeers[id] = pCancel
-	atomic.AddInt32(&protocol.peerV1Num, 1)
-	protocol.Host.ConnManager().Protect(id, broadcastTag)
-	go protocol.broadcastV1(pCtx, id)
+	pCtx, pCancel := context.WithCancel(p.Ctx)
+	p.broadcastPeers[id] = pCancel
+	atomic.AddInt32(&p.peerV1Num, 1)
+	p.Host.ConnManager().Protect(id, broadcastTag)
+	go p.broadcastV1(pCtx, id)
 }
 
 // 移除广播节点
-func (protocol *broadcastProtocol) removeBroadcastPeer(id peer.ID) {
-	protocol.Host.ConnManager().Unprotect(id, broadcastTag)
-	delete(protocol.broadcastPeers, id)
-	atomic.AddInt32(&protocol.peerV1Num, -1)
+func (p *broadcastProtocol) removeBroadcastPeer(id peer.ID) {
+	p.Host.ConnManager().Unprotect(id, broadcastTag)
+	delete(p.broadcastPeers, id)
+	atomic.AddInt32(&p.peerV1Num, -1)
 }
 
 // 兼容处理老版本的广播
-func (protocol *broadcastProtocol) handleClassicBroadcast() {
+func (p *broadcastProtocol) manageBroadcastV1Peer() {
 
 	for {
 
 		select {
-		case pid := <-protocol.peerV1:
+		case pid := <-p.peerV1:
 			// 老版本限制广播广播数量
-			if len(protocol.broadcastPeers) >= protocol.p2pCfg.MaxBroadcastPeers {
+			if len(p.broadcastPeers) >= p.p2pCfg.MaxBroadcastPeers {
 				break
 			}
-			_, ok := protocol.broadcastPeers[pid]
+			_, ok := p.broadcastPeers[pid]
 			// 已经存在
 			if ok {
 				break
 			}
-			protocol.addBroadcastPeer(pid)
+			p.addBroadcastPeer(pid)
 
-		case pid := <-protocol.exitPeer:
-			protocol.removeBroadcastPeer(pid)
-		case pid := <-protocol.errPeer:
+		case pid := <-p.exitPeer:
+			p.removeBroadcastPeer(pid)
+		case pid := <-p.errPeer:
 			//错误节点减少tag值， 这样在内部连接超额时会优先断开
-			protocol.Host.ConnManager().UpsertTag(pid, broadcastTag, func(oldVal int) int { return oldVal - 1 })
-		case <-protocol.Ctx.Done():
+			p.Host.ConnManager().UpsertTag(pid, broadcastTag, func(oldVal int) int { return oldVal - 1 })
+		case <-p.Ctx.Done():
 			return
 
 		}
@@ -88,21 +78,21 @@ func (protocol *broadcastProtocol) handleClassicBroadcast() {
 }
 
 //TODO 老版本广播后期全网升级后，可以移除
-func (protocol *broadcastProtocol) broadcastV1(peerCtx context.Context, pid peer.ID) {
+func (p *broadcastProtocol) broadcastV1(peerCtx context.Context, pid peer.ID) {
 
 	var stream core.Stream
 	var err error
-	outgoing := protocol.ps.Sub(bcTopic)
+	outgoing := p.ps.Sub(bcTopic)
 	sPid := pid.String()
 	log.Debug("broadcastV1Start", "pid", sPid)
 	defer func() {
-		protocol.ps.Unsub(outgoing)
-		sendNonBlocking(protocol.exitPeer, pid)
+		p.ps.Unsub(outgoing)
+		sendNonBlocking(p.exitPeer, pid)
 		if stream != nil {
 			_ = stream.Reset()
 		}
 		if err != nil {
-			sendNonBlocking(protocol.errPeer, pid)
+			sendNonBlocking(p.errPeer, pid)
 		}
 		log.Debug("broadcastV1End", "pid", sPid)
 	}()
@@ -110,7 +100,7 @@ func (protocol *broadcastProtocol) broadcastV1(peerCtx context.Context, pid peer
 	for {
 		select {
 		case data := <-outgoing:
-			sendData, doSend := protocol.handleSend(data, sPid)
+			sendData, doSend := p.handleSend(data, sPid)
 			if !doSend {
 				break //ignore send
 			}
@@ -118,7 +108,7 @@ func (protocol *broadcastProtocol) broadcastV1(peerCtx context.Context, pid peer
 			broadData := &types.MessageBroadCast{
 				Message: sendData}
 
-			stream, err = prototypes.NewStream(protocol.Host, pid, broadcastV1)
+			stream, err = p.Host.NewStream(p.Ctx, pid, broadcastV1)
 			if err != nil {
 				log.Error("broadcastV1", "pid", sPid, "NewStreamErr", err)
 				return
@@ -129,11 +119,8 @@ func (protocol *broadcastProtocol) broadcastV1(peerCtx context.Context, pid peer
 				log.Error("broadcastV1", "pid", sPid, "WriteStream err", err)
 				return
 			}
-			err = prototypes.CloseStream(stream)
-			if err != nil {
-				log.Error("broadcastV1", "pid", sPid, "CloseStream err", err)
-				return
-			}
+			prototypes.CloseStream(stream)
+
 		case <-peerCtx.Done():
 			return
 
