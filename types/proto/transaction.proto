@@ -98,7 +98,7 @@ message Transaction {
     int32  groupCount = 8;
     bytes  header     = 9;
     bytes  next       = 10;
-    int32  channelID  = 11;
+    int32  chainID    = 11;
 }
 
 message Transactions {
