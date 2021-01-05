@@ -36,6 +36,7 @@ func TestDecodeTx(t *testing.T) {
 		Payload: []byte("342412abcd"),
 		Nonce:   8978167239,
 		To:      "1asd234dsf43fds",
+		ChainID: cfg.GetChainID(),
 	}
 
 	data, err := DecodeTx(&tx)
@@ -52,6 +53,7 @@ func TestDecodeTx(t *testing.T) {
 		Payload: []byte("34"),
 		Nonce:   8978167239,
 		To:      "1asd234dsf43fds",
+		ChainID: cfg.GetChainID(),
 	}
 
 	t.Log(string(tx.Execer))

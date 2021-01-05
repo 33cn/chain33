@@ -43,7 +43,7 @@ func DecodeTransaction(tx *rpctypes.Transaction) *TxResult {
 		Header:     tx.Header,
 		Next:       tx.Next,
 		Hash:       tx.Hash,
-		ChannelID:  tx.ChannelID,
+		ChainID:    tx.ChainID,
 	}
 	return result
 }

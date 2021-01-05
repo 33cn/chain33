@@ -118,6 +118,8 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: wallet.minFee, To: to}
 	tx.Nonce = rand.Int63()
+	tx.ChainID = wallet.client.GetConfig().GetChainID()
+
 	proper, err := wallet.api.GetProperFee(nil)
 	if err != nil {
 		return nil, err
@@ -261,6 +263,8 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 	}
 
 	tx.Nonce = rand.Int63()
+	tx.ChainID = cfg.GetChainID()
+
 	return tx, nil
 }
 
