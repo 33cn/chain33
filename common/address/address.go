@@ -38,7 +38,7 @@ var ErrAddressChecksum = errors.New("address checksum error")
 const MaxExecNameLength = 100
 
 //NormalVer 普通地址的版本号
-var NormalVer byte = 0
+var NormalVer byte
 
 //MultiSignVer 多重签名地址的版本号
 var MultiSignVer byte = 5
@@ -268,7 +268,7 @@ func (a *Address) String() string {
 	return a.Enc58str
 }
 
-//根据配置设置生成普通地址的version版本号，默认是0
+//SetNormalAddrVer 根据配置设置生成普通地址的version版本号，默认是0
 func SetNormalAddrVer(ver byte) {
 	if MultiSignVer == ver {
 		panic("the version of the normal address conflicts with the version of the multi-signature address!")
