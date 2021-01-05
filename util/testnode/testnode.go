@@ -256,7 +256,7 @@ func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, non
 		return nil, err
 	}
 	tx.Nonce = nonce
-	tx.ChainID = mock.GetCfg().GetChainID()
+	tx.ChainID = mock.q.GetConfig().GetChainID()
 
 	tx.Fee = 1e6
 	tx.Sign(types.SECP256K1, priv)
