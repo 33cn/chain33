@@ -517,6 +517,10 @@ func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) e
 	if tx.Fee > maxFee && maxFee > 0 && cfg.IsFork(height, "ForkBlockCheck") {
 		return ErrTxFeeTooHigh
 	}
+	//增加交易中chainID的检测，
+	if tx.ChainID != cfg.GetChainID() {
+		return ErrTxChainID
+	}
 	return nil
 }
 
@@ -641,7 +645,7 @@ func (tx *Transaction) JSON() string {
 		GroupCount int32  `json:"groupCount,omitempty"`
 		Header     string `json:"header,omitempty"`
 		Next       string `json:"next,omitempty"`
-		ChannelID  int32  `json:"channelID,omitempty"`
+		ChainID    int32  `json:"chainID,omitempty"`
 	}
 
 	newtx := &transaction{}
@@ -656,7 +660,7 @@ func (tx *Transaction) JSON() string {
 	newtx.GroupCount = tx.GroupCount
 	newtx.Header = hex.EncodeToString(tx.Header)
 	newtx.Next = hex.EncodeToString(tx.Next)
-	newtx.ChannelID = tx.ChannelID
+	newtx.ChainID = tx.ChainID
 
 	data, err := json.MarshalIndent(newtx, "", "\t")
 	if err != nil {
@@ -840,7 +844,7 @@ func cloneTx(tx *Transaction) *Transaction {
 	copytx.GroupCount = tx.GroupCount
 	copytx.Header = tx.Header
 	copytx.Next = tx.Next
-	copytx.ChannelID = tx.ChannelID
+	copytx.ChainID = tx.ChainID
 	return copytx
 }
 

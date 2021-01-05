@@ -267,3 +267,12 @@ func (a *Address) String() string {
 	}
 	return a.Enc58str
 }
+
+//根据配置设置生成普通地址的version版本号，默认是0
+func SetNormalAddrVer(ver byte) {
+	if MultiSignVer == ver {
+		panic("the version of the normal address conflicts with the version of the multi-signature address!")
+
+	}
+	NormalVer = ver
+}

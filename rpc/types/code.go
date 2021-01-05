@@ -130,7 +130,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Header:     common.ToHex(tx.Header),
 		Next:       common.ToHex(tx.Next),
 		Hash:       common.ToHex(tx.Hash()),
-		ChannelID:  tx.ChannelID,
+		ChainID:    tx.ChainID,
 	}
 	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
 	result.FeeFmt = feeResult
