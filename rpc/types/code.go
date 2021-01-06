@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
@@ -105,7 +106,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = nil
 		}
 	}
-	if string(tx.Execer) == "user.write" {
+	if strings.HasSuffix(string(tx.Execer), "user.write") {
 		pl = decodeUserWrite(tx.GetPayload())
 	}
 	var pljson json.RawMessage
