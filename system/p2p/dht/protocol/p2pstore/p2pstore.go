@@ -207,20 +207,23 @@ func (p *Protocol) debugFullNode() {
 
 func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
 	for p.RoutingTable.Size() == 0 {
-		time.Sleep(time.Second / 2)
+		time.Sleep(time.Second)
 	}
 	updateFunc := func() {
 		for _, pid := range p.RoutingTable.ListPeers() {
 			ok, height, err := p.queryFull(pid)
-			if err != nil {
+			if err != nil || ok {
 				continue
 			}
-			if !ok && height > p.PeerInfoManager.PeerMaxHeight()-512 {
+			if height > p.PeerInfoManager.PeerMaxHeight()-512 || height > p.PeerInfoManager.PeerHeight(p.Host.ID())+1024 {
 				_, _ = p.ShardHealthyRoutingTable.Update(pid)
 			}
 		}
 	}
-	updateFunc()
+	for i := 0; i < 3; i++ {
+		updateFunc()
+		time.Sleep(time.Second)
+	}
 	ticker := time.NewTicker(time.Minute * 5)
 	select {
 	case <-p.Ctx.Done():
