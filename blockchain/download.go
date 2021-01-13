@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -187,6 +188,7 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 			break
 		}
 		synlog.Debug("ReadBlockToExec:ProcessBlock:success!", "height", block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash(cfg)))
+		blockPool.Put(*block)
 	}
 }
 
@@ -199,13 +201,19 @@ func (chain *BlockChain) cancelDownLoadFlag(isNewStart bool) {
 	synlog.Info("cancelFastDownLoadFlag", "isNewStart", isNewStart)
 }
 
+var blockPool = sync.Pool{
+	New: func() interface{} {
+		return types.Block{}
+	},
+}
+
 //ReadBlockByHeight 从数据库中读取快速下载临时存储的block信息
 func (chain *BlockChain) ReadBlockByHeight(height int64) (*types.Block, error) {
 	blockByte, err := chain.blockStore.db.Get(calcHeightToTempBlockKey(height))
 	if blockByte == nil || err != nil {
 		return nil, types.ErrHeightNotExist
 	}
-	var block types.Block
+	block := blockPool.Get().(types.Block)
 	err = proto.Unmarshal(blockByte, &block)
 	if err != nil {
 		storeLog.Error("ReadBlockByHeight", "err", err)

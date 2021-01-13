@@ -54,11 +54,10 @@ func (chain *BlockChain) chunkProcessRoutine() {
 
 // CheckGenChunkNum 检测是否需要生成chunkNum
 func (chain *BlockChain) CheckGenChunkNum() {
-	if atomic.LoadInt32(&chain.processingGenChunk) == 1 {
+	if !atomic.CompareAndSwapInt32(&chain.processingGenChunk, 0, 1) {
 		// 保证同一时刻只存在一个该协程
 		return
 	}
-	atomic.StoreInt32(&chain.processingGenChunk, 1)
 	defer atomic.StoreInt32(&chain.processingGenChunk, 0)
 	safetyChunkNum, _, _ := chain.CalcSafetyChunkInfo(chain.GetBlockHeight())
 	for i := int32(0); i < OnceMaxChunkNum; i++ {
@@ -77,7 +76,7 @@ func (chain *BlockChain) CheckGenChunkNum() {
 
 // CheckDeleteBlockBody 检测是否需要删除已经归档BlockBody
 func (chain *BlockChain) CheckDeleteBlockBody() {
-	if atomic.LoadInt32(&chain.processingDeleteChunk) == 1 {
+	if !atomic.CompareAndSwapInt32(&chain.processingDeleteChunk, 0, 1) {
 		// 保证同一时刻只存在一个该协程
 		return
 	}
