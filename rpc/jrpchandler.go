@@ -867,7 +867,6 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		log.Error("Query", "funcname", in.FuncName, "err", types.ErrNotSupport)
 		return types.ErrNotSupport
 	}
-	log.Info("Queryrrrrryyyy", "funcname", in.FuncName, "execer", in.Execer)
 	decodePayload, err := execty.CreateQuery(in.FuncName, in.Payload)
 	if err != nil {
 		log.Error("EventQuery1", "err", err.Error(), "funcName", in.FuncName)
