@@ -867,10 +867,10 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		log.Error("Query", "funcname", in.FuncName, "err", types.ErrNotSupport)
 		return types.ErrNotSupport
 	}
-
+	log.Info("Queryrrrrryyyy", "funcname", in.FuncName, "execer", in.Execer)
 	decodePayload, err := execty.CreateQuery(in.FuncName, in.Payload)
 	if err != nil {
-		log.Error("EventQuery1", "err", err.Error())
+		log.Error("EventQuery1", "err", err.Error(), "funcName", in.FuncName)
 		return err
 	}
 	resp, err := c.cli.Query(cfg.ExecName(in.Execer), in.FuncName, decodePayload)
@@ -1232,6 +1232,14 @@ func convertBlockDetails(details []*types.BlockDetail, retDetails *rpctypes.Bloc
 		block.ParentHash = common.ToHex(item.Block.GetParentHash())
 		block.StateHash = common.ToHex(item.Block.GetStateHash())
 		block.TxHash = common.ToHex(item.Block.GetTxHash())
+		block.Difficulty = item.Block.Difficulty
+		block.MainHash = common.ToHex(item.Block.MainHash)
+		block.MainHeight = item.Block.MainHeight
+		if item.Block.Signature != nil {
+			block.Signature = &rpctypes.Signature{Ty: item.Block.Signature.Ty, Pubkey: common.ToHex(item.Block.Signature.Pubkey),
+				Signature: common.ToHex(item.Block.Signature.Signature)}
+		}
+
 		txs := item.Block.GetTxs()
 		if isDetail && len(txs) != len(item.Receipts) { //只有获取详情时才需要校验txs和Receipts的数量是否相等CHAIN33-540
 			return types.ErrDecode
@@ -1315,73 +1323,68 @@ func (c *Chain33) NetProtocols(in types.ReqNil, result *interface{}) error {
 
 //GetSequenceByHash
 func (c *Chain33) GetSequenceByHash(in rpctypes.ReqHashes, result *interface{}) error {
-	var req types.ReqHash
-	req.Upgrade = in.DisableDetail
-	req.Hash = common.HexToHash(in.Hashes[0]).Bytes()
-	seq, err := c.cli.GetSequenceByHash(&req)
-	if err != nil {
-		return err
+	if len(in.Hashes) != 0 && common.IsHex(in.Hashes[0]) {
+		var req types.ReqHash
+		req.Upgrade = in.DisableDetail
+		req.Hash = common.HexToHash(in.Hashes[0]).Bytes()
+		seq, err := c.cli.GetSequenceByHash(&req)
+		if err != nil {
+			return err
+		}
+		*result = seq
+		return nil
 	}
-	*result = seq
-	return nil
+
+	return types.ErrInvalidParam
+
 }
 
 //GetBlockBySeq
 func (c *Chain33) GetBlockBySeq(in types.Int64, result *interface{}) error {
 
-	blockseq, err := c.cli.GetBlockBySeq(&in)
+	blockSeq, err := c.cli.GetBlockBySeq(&in)
 	if err != nil {
 		return err
 	}
 	var bseq rpctypes.BlockSeq
 	var retDetail rpctypes.BlockDetails
 
-	bseq.Num = blockseq.Num
-	convertBlockDetails([]*types.BlockDetail{blockseq.Detail}, &retDetail, false)
+	bseq.Num = blockSeq.Num
+	err = convertBlockDetails([]*types.BlockDetail{blockSeq.Detail}, &retDetail, false)
 	bseq.Detail = retDetail.Items[0]
-	bseq.Seq = &rpctypes.BlockSequence{Hash: common.ToHex(blockseq.Seq.Hash), Type: blockseq.Seq.Type}
+	bseq.Seq = &rpctypes.BlockSequence{Hash: common.ToHex(blockSeq.Seq.Hash), Type: blockSeq.Seq.Type}
 	*result = bseq
-	return nil
+	return err
 
+}
+
+func convertHeader(header *types.Header, message *rpctypes.Header) {
+
+	message.BlockTime = header.GetBlockTime()
+	message.Height = header.GetHeight()
+	message.ParentHash = common.ToHex(header.GetParentHash())
+	message.StateHash = common.ToHex(header.GetStateHash())
+	message.TxHash = common.ToHex(header.GetTxHash())
+	message.Version = header.GetVersion()
+	message.Hash = common.ToHex(header.GetHash())
+	message.TxCount = header.GetTxCount()
+	message.Difficulty = header.GetDifficulty()
+	if header.Signature != nil {
+		message.Signature = &rpctypes.Signature{Ty: header.Signature.Ty, Pubkey: common.ToHex(header.Signature.Pubkey),
+			Signature: common.ToHex(header.Signature.Signature)}
+	}
+	return
 }
 
 //GetParaTxByTitle
 func (c *Chain33) GetParaTxByTitle(req types.ReqParaTxByTitle, result *interface{}) error {
-	paraTxDetail, err := c.cli.GetParaTxByTitle(&req)
+	paraTxDetails, err := c.cli.GetParaTxByTitle(&req)
 	if err != nil {
 		return err
 	}
-
-	var txDetails rpctypes.ParaTxDetails
-	for _, item := range paraTxDetail.Items {
-		var detail rpctypes.ParaTxDetail
-		detail.Type = item.Type
-		detail.Index = item.Index
-		detail.ChildHash = common.ToHex(item.ChildHash)
-		for _, proof := range item.Proofs {
-			detail.Proofs = append(detail.Proofs, common.ToHex(proof))
-		}
-		var header rpctypes.Header
-		header.BlockTime = item.Header.GetBlockTime()
-		header.Height = item.Header.Height
-		header.ParentHash = common.ToHex(item.Header.GetParentHash())
-		header.StateHash = common.ToHex(item.Header.GetStateHash())
-		header.TxHash = common.ToHex(item.Header.GetTxHash())
-		header.Version = item.Header.GetVersion()
-		header.Hash = common.ToHex(item.Header.GetHash())
-		header.TxCount = item.Header.TxCount
-		header.Difficulty = item.Header.GetDifficulty()
-		if item.Header.Signature != nil {
-			header.Signature = &rpctypes.Signature{Ty: item.Header.Signature.Ty, Pubkey: common.ToHex(item.Header.Signature.Pubkey),
-				Signature: common.ToHex(item.Header.Signature.Signature)}
-		}
-
-		detail.Header = &header
-		txDetails.Items = append(txDetails.Items, &detail)
-
-	}
-
-	*result = txDetails
+	var paraDetails rpctypes.ParaTxDetails
+	convertParaTxDetails(paraTxDetails, &paraDetails)
+	*result = paraDetails
 	return nil
 }
 
@@ -1402,69 +1405,64 @@ func (c *Chain33) LoadParaTxByTitle(req types.ReqHeightByTitle, result *interfac
 	return nil
 }
 
+func convertParaTxDetails(details *types.ParaTxDetails, message *rpctypes.ParaTxDetails) {
+	for _, item := range details.Items {
+		var ptxDetail rpctypes.ParaTxDetail
+		var header rpctypes.Header
+		convertHeader(item.Header, &header)
+		ptxDetail.Header = &header
+		ptxDetail.Type = item.Type
+		ptxDetail.Index = item.Index
+		ptxDetail.ChildHash = common.ToHex(item.ChildHash)
+		for _, proof := range item.Proofs {
+			ptxDetail.Proofs = append(ptxDetail.Proofs, common.ToHex(proof))
+		}
+		for _, detail := range item.TxDetails {
+			var txDetail rpctypes.TxDetail
+			txDetail.Index = detail.Index
+			for _, proof := range detail.Proofs {
+				txDetail.Proofs = append(txDetail.Proofs, common.ToHex(proof))
+			}
+
+			var receipt rpctypes.ReceiptData
+			receipt.Ty = detail.Receipt.Ty
+			for _, log := range detail.Receipt.Logs {
+				receipt.Logs = append(receipt.Logs, &rpctypes.ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.Log)})
+			}
+			txDetail.Receipt = &receipt
+			tranTx, err := rpctypes.DecodeTx(detail.Tx)
+			if err != nil {
+				continue
+			}
+			txDetail.Tx = tranTx
+			ptxDetail.TxDetails = append(ptxDetail.TxDetails, &txDetail)
+		}
+		message.Items = append(message.Items, &ptxDetail)
+	}
+
+}
+
 //GetParaTxByHeight
 func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interface{}) error {
 	paraTxDetails, err := c.cli.GetParaTxByHeight(&req)
 	if err != nil {
 		return err
 	}
-
 	var ptxDetails rpctypes.ParaTxDetails
-
-	for _, item := range paraTxDetails.Items {
-		var ptxDetail rpctypes.ParaTxDetail
-		var header rpctypes.Header
-		header.BlockTime = item.Header.GetBlockTime()
-		header.Height = item.Header.Height
-		header.ParentHash = common.ToHex(item.Header.GetParentHash())
-		header.StateHash = common.ToHex(item.Header.GetStateHash())
-		header.TxHash = common.ToHex(item.Header.GetTxHash())
-		header.Version = item.Header.GetVersion()
-		header.Hash = common.ToHex(item.Header.GetHash())
-		header.TxCount = item.Header.TxCount
-		header.Difficulty = item.Header.GetDifficulty()
-		ptxDetail.Header = &header
-		ptxDetail.Type = item.Type
-		ptxDetail.Index = item.Index
-		ptxDetail.ChildHash = common.ToHex(item.ChildHash)
-
-		for _, detail := range item.TxDetails {
-			var txdetail rpctypes.TxDetail
-			txdetail.Index = detail.Index
-			var proofs []string
-			for _, proof := range detail.Proofs {
-				proofs = append(proofs, common.ToHex(proof))
-			}
-			txdetail.Proofs = proofs
-			var receipt rpctypes.ReceiptData
-			receipt.Ty = detail.Receipt.Ty
-			var logs []*rpctypes.ReceiptLog
-			for _, log := range detail.Receipt.Logs {
-				logs = append(logs, &rpctypes.ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.Log)})
-			}
-			receipt.Logs = logs
-			txdetail.Receipt = &receipt
-			tranTx, err := rpctypes.DecodeTx(detail.Tx)
-			if err != nil {
-				continue
-			}
-			txdetail.Tx = tranTx
-			ptxDetail.TxDetails = append(ptxDetail.TxDetails, &txdetail)
-		}
-		ptxDetails.Items = append(ptxDetails.Items, &ptxDetail)
-
-	}
+	convertParaTxDetails(paraTxDetails, &ptxDetails)
 	*result = ptxDetails
 	return nil
 
 }
 
+//QueryChain
 func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) error {
 	var qin = new(types.ChainExecutor)
 
 	msg, err := dapp.QueryData.DecodeJSON(in.Driver, in.FuncName, in.Payload)
 	if err != nil {
-		log.Info("QueryChain", "DecodeJSON err", err, "driver", in.Driver, "payload size", len(in.Payload))
+		log.Error("QueryChain", "DecodeJSON err", err, "driver", in.Driver,
+			"func name", in.FuncName, "payload size", len(in.Payload))
 		return err
 	}
 
@@ -1474,19 +1472,17 @@ func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) err
 	if in.StateHash != "" {
 		qin.StateHash = common.HexToHash(in.StateHash).Bytes()
 	}
-	log.Info("QueryChain", "funcname", qin.FuncName, "Param", hex.EncodeToString(qin.Param), "drive", qin.Driver, "funcName", qin.FuncName)
+
 	msg, err = c.cli.QueryChain(qin)
 	if err != nil {
 		log.Info("QueryChain", "err", err)
 		return err
 	}
-
-	log.Info("QueryChain", "jsonMsg", msg.String())
-	var jsonmsg json.RawMessage
-	jsonmsg, err = types.PBToJSON(msg)
+	var jsonMsg json.RawMessage
+	jsonMsg, err = types.PBToJSON(msg)
 	if err != nil {
 		return err
 	}
-	*result = jsonmsg
+	*result = jsonMsg
 	return err
 }

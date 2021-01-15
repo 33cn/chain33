@@ -120,6 +120,10 @@ type Block struct {
 	Height     int64          `json:"height"`
 	BlockTime  int64          `json:"blockTime"`
 	Txs        []*Transaction `json:"txs"`
+	Difficulty uint32         ` json:"difficulty,omitempty"`
+	MainHash   string         ` json:"mainHash,omitempty"`
+	MainHeight int64          `json:"mainHeight,omitempty"`
+	Signature  *Signature     `json:"signature,omitempty"`
 }
 
 // BlockDetail  block detail

@@ -183,6 +183,8 @@ const (
 
 	//检测mempool是否存在该交易
 	EventCheckTxsExist = 357
+	//delete para blocks
+	EventDeleteParaBlocks = 358
 )
 
 var eventName = map[int]string{
@@ -340,4 +342,5 @@ var eventName = map[int]string{
 	EventReceiveSubData:             "EventReceiveSubData",
 	EventNetProtocols:               "EventNetProtocols",
 	EventCheckTxsExist:              "EventCheckTxsExist",
+	EventDeleteParaBlocks:           "EventDeleteParaBlocks",
 }
