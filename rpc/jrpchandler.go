@@ -1457,7 +1457,7 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 //QueryChain
 func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) error {
 	var qin = new(types.ChainExecutor)
-	msg, err := common.QueryData.DecodeJSON(in.Driver, in.FuncName, in.Payload)
+	msg, err := types.QueryFunc.DecodeJSON(in.Driver, in.FuncName, in.Payload)
 	if err != nil {
 		log.Error("QueryChain", "DecodeJSON err", err, "driver", in.Driver,
 			"func name", in.FuncName, "payload size", len(in.Payload))
