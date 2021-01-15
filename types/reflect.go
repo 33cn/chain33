@@ -17,6 +17,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
+//QueryFunc support query
 var QueryFunc = NewQueryData("Query_")
 
 func buildFuncList(funclist []interface{}) map[string]bool {

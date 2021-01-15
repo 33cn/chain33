@@ -1320,7 +1320,7 @@ func (c *Chain33) NetProtocols(in types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-//GetSequenceByHash
+//GetSequenceByHash get sequcen by hashes
 func (c *Chain33) GetSequenceByHash(in rpctypes.ReqHashes, result *interface{}) error {
 	if len(in.Hashes) != 0 && common.IsHex(in.Hashes[0]) {
 		var req types.ReqHash
@@ -1338,7 +1338,7 @@ func (c *Chain33) GetSequenceByHash(in rpctypes.ReqHashes, result *interface{}) 
 
 }
 
-//GetBlockBySeq
+//GetBlockBySeq get block by seq
 func (c *Chain33) GetBlockBySeq(in types.Int64, result *interface{}) error {
 
 	blockSeq, err := c.cli.GetBlockBySeq(&in)
@@ -1372,10 +1372,9 @@ func convertHeader(header *types.Header, message *rpctypes.Header) {
 		message.Signature = &rpctypes.Signature{Ty: header.Signature.Ty, Pubkey: common.ToHex(header.Signature.Pubkey),
 			Signature: common.ToHex(header.Signature.Signature)}
 	}
-	return
 }
 
-//GetParaTxByTitle
+//GetParaTxByTitle get paraTx by title
 func (c *Chain33) GetParaTxByTitle(req types.ReqParaTxByTitle, result *interface{}) error {
 	paraTxDetails, err := c.cli.GetParaTxByTitle(&req)
 	if err != nil {
@@ -1387,7 +1386,7 @@ func (c *Chain33) GetParaTxByTitle(req types.ReqParaTxByTitle, result *interface
 	return nil
 }
 
-//LoadParaTxByTitle
+//LoadParaTxByTitle load paratx by title
 func (c *Chain33) LoadParaTxByTitle(req types.ReqHeightByTitle, result *interface{}) error {
 
 	reply, err := c.cli.LoadParaTxByTitle(&req)
@@ -1441,7 +1440,7 @@ func convertParaTxDetails(details *types.ParaTxDetails, message *rpctypes.ParaTx
 
 }
 
-//GetParaTxByHeight
+//GetParaTxByHeight get paraTx by block height
 func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interface{}) error {
 	paraTxDetails, err := c.cli.GetParaTxByHeight(&req)
 	if err != nil {
@@ -1454,7 +1453,7 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 
 }
 
-//QueryChain
+//QueryChain querychain by chain executor
 func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) error {
 	var qin = new(types.ChainExecutor)
 	msg, err := types.QueryFunc.DecodeJSON(in.Driver, in.FuncName, in.Payload)
