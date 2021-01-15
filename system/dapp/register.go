@@ -26,7 +26,6 @@ var (
 	execDrivers        = make(map[string]*driverWithHeight)
 	execAddressNameMap = make(map[string]string)
 	registedExecDriver = make(map[string]*driverWithHeight)
-	QueryData          = types.NewQueryData("Query_")
 )
 
 // Register register dcriver height in name

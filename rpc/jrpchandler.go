@@ -15,7 +15,6 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	"github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	wcom "github.com/33cn/chain33/wallet/common"
 )
@@ -1458,8 +1457,7 @@ func (c *Chain33) GetParaTxByHeight(req types.ReqParaTxByHeight, result *interfa
 //QueryChain
 func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) error {
 	var qin = new(types.ChainExecutor)
-
-	msg, err := dapp.QueryData.DecodeJSON(in.Driver, in.FuncName, in.Payload)
+	msg, err := common.QueryData.DecodeJSON(in.Driver, in.FuncName, in.Payload)
 	if err != nil {
 		log.Error("QueryChain", "DecodeJSON err", err, "driver", in.Driver,
 			"func name", in.FuncName, "payload size", len(in.Payload))
@@ -1475,7 +1473,7 @@ func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) err
 
 	msg, err = c.cli.QueryChain(qin)
 	if err != nil {
-		log.Info("QueryChain", "err", err)
+		log.Error("QueryChain", "err", err)
 		return err
 	}
 	var jsonMsg json.RawMessage

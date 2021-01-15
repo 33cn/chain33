@@ -7,6 +7,7 @@ package common
 
 import (
 	"errors"
+	"github.com/33cn/chain33/types"
 	"math/rand"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ var random *rand.Rand
 var globalPointerMap = make(map[int64]interface{})
 var globalPointerID int64
 var gloabalMu sync.Mutex
+var QueryData = types.NewQueryData("Query_")
 
 //ErrPointerNotFound 指针没有找到
 var ErrPointerNotFound = errors.New("ErrPointerNotFound")
