@@ -10,7 +10,7 @@ import (
 
 /*
 MaxHeight 出于forks 过程安全的考虑，比如代码更新，出现了新的fork，旧的链只要不明确指定 fork的高度，那么默认fork高度为 MaxHeight
-也就是新的代码默认不会被启用，知道使用的人明确指定了fork的高度
+也就是新的代码默认不会被启用，直到使用的人明确指定了fork的高度
 */
 const MaxHeight = 10000000000000000
 

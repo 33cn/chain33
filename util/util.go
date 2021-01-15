@@ -259,7 +259,6 @@ func CreateCoinsBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *t
 
 // ExecBlock : just exec block
 func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn, sync, checkblock bool) (*types.BlockDetail, []*types.Transaction, error) {
-	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
 	beg := types.Now()
 	defer func() {
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
@@ -267,6 +266,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 
 	detail, deltx, err := PreExecBlock(client, prevStateRoot, block, errReturn, sync, checkblock)
 	if err != nil {
+
 		return nil, nil, err
 	}
 	// 写数据库失败时需要及时返回错误，防止错误数据被写入localdb中CHAIN33-567
