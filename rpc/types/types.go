@@ -414,7 +414,7 @@ type BlockSeq struct {
 //BlockSequence
 type BlockSequence struct {
 	Hash string `json:"hash,omitempty"`
-	Type int64  `json:"type,omitempty "`
+	Type int64  `json:"type,omitempty"`
 }
 
 //ParaTxDetails
