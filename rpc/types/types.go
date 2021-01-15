@@ -404,25 +404,25 @@ type ReWriteRawTx struct {
 	Index  int32  `json:"index"`
 }
 
-//BlockSeq
+//BlockSeq parameter
 type BlockSeq struct {
 	Num    int64          `json:"num,omitempty"`
 	Seq    *BlockSequence `json:"seq,omitempty"`
 	Detail *BlockDetail   `json:"detail,omitempty"`
 }
 
-//BlockSequence
+//BlockSequence parameter
 type BlockSequence struct {
 	Hash string `json:"hash,omitempty"`
 	Type int64  `json:"type,omitempty"`
 }
 
-//ParaTxDetails
+//ParaTxDetails parameter
 type ParaTxDetails struct {
 	Items []*ParaTxDetail `json:"paraTxDetail"`
 }
 
-//ParaTxDetail
+//ParaTxDetail parameter
 type ParaTxDetail struct {
 	Type      int64       `json:"type,omitempty"`
 	Header    *Header     `json:"header,omitempty"`
@@ -432,7 +432,7 @@ type ParaTxDetail struct {
 	Proofs    []string    `json:"proofs,omitempty"`
 }
 
-//TxDetail
+//TxDetail parameter
 type TxDetail struct {
 	Index   uint32       `json:"index,omitempty"`
 	Tx      *Transaction `json:"tx,omitempty"`
@@ -440,12 +440,13 @@ type TxDetail struct {
 	Proofs  []string     `json:"proofs,omitempty"`
 }
 
-//ReplyHeightByTitle
+//ReplyHeightByTitle parameter
 type ReplyHeightByTitle struct {
 	Title string       `json:"title,omitempty"`
 	Items []*BlockInfo `json:"items,omitempty"`
 }
 
+//BlockInfo parameter
 type BlockInfo struct {
 	Height int64  `json:"height,omitempty"`
 	Hash   string `json:"hash,omitempty"`
