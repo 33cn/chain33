@@ -13,12 +13,10 @@ require (
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.3.4
-	github.com/golang/snappy v0.0.1
+	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/influxdata/influxdb v1.7.9
-	github.com/ipfs/go-datastore v0.4.4
-	github.com/ipfs/go-ipfs-addr v0.0.1
 	github.com/kevinms/leakybucket-go v0.0.0-20200115003610-082473db97ca
 	github.com/libp2p/go-libp2p v0.10.3
 	github.com/libp2p/go-libp2p-blankhost v0.2.0
@@ -30,7 +28,7 @@ require (
 	github.com/libp2p/go-libp2p-kbucket v0.2.3
 	github.com/libp2p/go-libp2p-pubsub v0.2.6
 	github.com/libp2p/go-libp2p-swarm v0.2.8
-	github.com/mattn/go-colorable v0.1.1
+	github.com/mattn/go-colorable v0.1.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.2.2
 	github.com/multiformats/go-multiaddr-net v0.1.5
@@ -42,14 +40,13 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tjfoc/gmsm v1.3.1
-	go.opencensus.io v0.22.4
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/mod v0.3.0 // indirect
-	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
+	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
 	golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
 	golang.org/x/tools v0.0.0-20200615222825-6aa8f57aacd9 // indirect
 	google.golang.org/genproto v0.0.0-20200310143817-43be25429f5a // indirect
-	google.golang.org/grpc v1.28.0
+	google.golang.org/grpc v1.29.1
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/go-playground/webhooks.v5 v5.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3

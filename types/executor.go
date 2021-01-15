@@ -171,6 +171,7 @@ func CreateFormatTx(c *Chain33Config, execName string, payload []byte) (*Transac
 func FormatTx(c *Chain33Config, execName string, tx *Transaction) (*Transaction, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
 	tx.Nonce = rand.Int63()
+	tx.ChainID = c.GetChainID()
 	tx.Execer = []byte(execName)
 	//平行链，所有的to地址都是合约地址
 	if c.IsPara() || tx.To == "" {

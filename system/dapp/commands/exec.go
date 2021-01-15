@@ -116,6 +116,7 @@ func addUserData(cmd *cobra.Command, args []string) {
 	}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
+	tx.ChainID = cfg.GetChainID()
 	//tx.Sign(int32(wallet.SignType), privKey)
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))

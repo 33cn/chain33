@@ -13,6 +13,36 @@ import (
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
+func (p *Protocol) handleStreamIsFullNode(resp *types.P2PResponse) error {
+	resp.Response = &types.P2PResponse_NodeInfo{
+		NodeInfo: &types.NodeInfo{
+			Answer: p.SubConfig.IsFullNode,
+			Height: p.PeerInfoManager.PeerHeight(p.Host.ID()),
+		},
+	}
+	return nil
+}
+
+func (p *Protocol) handleStreamFetchShardPeers(req *types.P2PRequest, res *types.P2PResponse) error {
+	reqPeers := req.GetRequest().(*types.P2PRequest_ReqPeers).ReqPeers
+	count := reqPeers.Count
+	if count <= 0 {
+		count = Backup
+	}
+	closerPeers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(reqPeers.ReferKey), int(count))
+	for _, pid := range closerPeers {
+		var addrs [][]byte
+		for _, addr := range p.Host.Peerstore().Addrs(pid) {
+			addrs = append(addrs, addr.Bytes())
+		}
+		res.CloserPeers = append(res.CloserPeers, &types.PeerInfo{
+			ID:        []byte(pid),
+			MultiAddr: addrs,
+		})
+	}
+	return nil
+}
+
 func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 	var req types.P2PRequest
 	if err := protocol.ReadStreamAndAuthenticate(&req, stream); err != nil {
@@ -26,7 +56,7 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 		t := time.Now()
 		writeBodys(bodys, stream)
 		_ = protocol.WriteStream(&res, stream)
-		log.Info("handleStreamFetchChunk", "chunk hash", hex.EncodeToString(param.ChunkHash), "start", param.Start, "remote peer", stream.Conn().RemoteMultiaddr(), "time cost", time.Since(t))
+		log.Info("handleStreamFetchChunk", "chunk hash", hex.EncodeToString(param.ChunkHash), "start", param.Start, "remote peer", stream.Conn().RemotePeer(), "addrs", stream.Conn().RemoteMultiaddr(), "time cost", time.Since(t))
 	}()
 
 	// 全节点模式，只有网络中出现数据丢失时才提供数据
@@ -64,9 +94,9 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 		return
 	}
 
-	closerPeers := p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
+	closerPeers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
 	if len(closerPeers) != 0 && kb.Closer(p.Host.ID(), closerPeers[0], genChunkNameSpaceKey(param.ChunkHash)) {
-		closerPeers = p.healthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup-1)
+		closerPeers = p.ShardHealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), Backup-1)
 	}
 	for _, pid := range closerPeers {
 		if pid == p.Host.ID() {
@@ -102,9 +132,7 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 	2）若未保存则从网络中请求chunk数据
 */
 func (p *Protocol) handleStreamStoreChunks(req *types.P2PRequest) {
-	log.Info("into handleStreamStoreChunks......")
 	param := req.Request.(*types.P2PRequest_ChunkInfoList).ChunkInfoList.Items
-	log.Info("handleStreamStoreChunks", "items len", len(param))
 	for _, info := range param {
 		chunkHash := hex.EncodeToString(info.ChunkHash)
 		//已有其他节点通知该节点保存该chunk，避免接收到多个节点的通知后重复查询数据
@@ -145,6 +173,39 @@ func (p *Protocol) handleStreamGetHeader(req *types.P2PRequest, res *types.P2PRe
 	return types.ErrNotFound
 }
 
+func (p *Protocol) handleStreamGetHeaderOld(stream network.Stream) {
+	var req types.MessageHeaderReq
+	err := protocol.ReadStream(&req, stream)
+	if err != nil {
+		return
+	}
+	param := &types.ReqBlocks{
+		Start: req.Message.StartHeight,
+		End:   req.Message.EndHeight,
+	}
+	msg := p.QueueClient.NewMessage("blockchain", types.EventGetHeaders, param)
+	err = p.QueueClient.Send(msg, true)
+	if err != nil {
+		return
+	}
+	resp, err := p.QueueClient.Wait(msg)
+	if err != nil {
+		return
+	}
+
+	if headers, ok := resp.GetData().(*types.Headers); ok {
+		err = protocol.WriteStream(&types.MessageHeaderResp{
+			Message: &types.P2PHeaders{
+				Headers: headers.Items,
+			},
+		}, stream)
+		if err != nil {
+			return
+		}
+	}
+
+}
+
 func (p *Protocol) handleStreamGetChunkRecord(req *types.P2PRequest, res *types.P2PResponse) error {
 	param := req.Request.(*types.P2PRequest_ReqChunkRecords).ReqChunkRecords
 	records, err := p.getChunkRecordFromBlockchain(param)
@@ -174,16 +235,17 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	}
 
 	//如果本节点是本地路由表中距离该chunk最近的节点，则保存数据；否则不需要保存数据
-	pid := p.healthyRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
+	tmpRoutingTable := p.genTempRoutingTable(req.ChunkHash, 100)
+	pid := tmpRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
 	if pid != "" && kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}
+	log.Info("handleEventNotifyStoreChunk", "local nearest peer", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
 	err = p.checkNetworkAndStoreChunk(req)
 	if err != nil {
-		log.Error("StoreChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
+		log.Error("storeChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return
 	}
-	log.Info("StoreChunk", "local pid", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
 }
 
 func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
@@ -193,7 +255,11 @@ func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
 		log.Error("GetChunkBlock", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return
 	}
-	headers := p.getHeaders(&types.ReqBlocks{Start: req.Start, End: req.End})
+	headers, _ := p.getHeaders(&types.ReqBlocks{Start: req.Start, End: req.End})
+	if headers == nil {
+		log.Error("GetBlockHeader", "error", types2.ErrNotFound)
+		return
+	}
 	if len(headers.Items) != len(bodys.Items) {
 		log.Error("GetBlockHeader", "error", types2.ErrLength, "header length", len(headers.Items), "body length", len(bodys.Items), "start", req.Start, "end", req.End)
 		return
@@ -222,7 +288,9 @@ func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
 	err = p.QueueClient.Send(msg, false)
 	if err != nil {
 		log.Error("EventGetChunkBlock", "reply message error", err)
+		return
 	}
+	log.Info("GetChunkBlock", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End)
 }
 
 func (p *Protocol) handleEventGetChunkBlockBody(m *queue.Message) {
@@ -248,6 +316,27 @@ func (p *Protocol) handleEventGetChunkRecord(m *queue.Message) {
 	if err != nil {
 		log.Error("handleEventGetChunkRecord", "reply message error", err)
 	}
+}
+
+func (p *Protocol) handleEventGetHeaders(m *queue.Message) {
+	req := m.GetData().(*types.ReqBlocks)
+	if len(req.GetPid()) == 0 { //根据指定的pidlist 获取对应的block header
+		log.Debug("GetHeaders:pid is nil")
+		m.Reply(p.QueueClient.NewMessage("blockchain", types.EventReply, types.Reply{Msg: []byte("no pid")}))
+		return
+	}
+	m.Reply(p.QueueClient.NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
+	headers, pid := p.getHeadersOld(req)
+	if headers == nil || len(headers.Items) == 0 {
+		return
+	}
+	msg := p.QueueClient.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid.Pretty(), Headers: headers})
+	err := p.QueueClient.Send(msg, true)
+	if err != nil {
+		log.Error("handleEventGetHeaders", "send message error", err)
+		return
+	}
+	_, _ = p.QueueClient.Wait(msg)
 }
 
 func writeBodys(bodys *types.BlockBodys, stream network.Stream) {

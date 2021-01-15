@@ -210,11 +210,12 @@ func initEnv4(size int) (queue.Queue, *Mempool) {
 	return q, mem
 }
 
-func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+func createTx(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = rand.Int63()
+	tx.ChainID = cfg.GetChainID()
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
@@ -1093,7 +1094,7 @@ func BenchmarkMempool(b *testing.B) {
 	maxTxNumPerAccount = 100000
 	for i := 0; i < b.N; i++ {
 		to, _ := genaddress()
-		tx := createTx(mainPriv, to, 10000)
+		tx := createTx(q.GetConfig(), mainPriv, to, 10000)
 		msg := mem.client.NewMessage("mempool", types.EventTx, tx)
 		err := mem.client.Send(msg, true)
 		if err != nil {
@@ -1101,7 +1102,7 @@ func BenchmarkMempool(b *testing.B) {
 		}
 	}
 	to0, _ := genaddress()
-	tx0 := createTx(mainPriv, to0, 10000)
+	tx0 := createTx(q.GetConfig(), mainPriv, to0, 10000)
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx0)
 	mem.client.Send(msg, true)
 	mem.client.Wait(msg)

@@ -135,7 +135,10 @@ type BlockChain struct {
 	onChainTimeout int64
 
 	//记录当前已经连续的最高高度
-	maxSerialChunkNum int64
+	maxSerialChunkNum     int64
+	processingGenChunk    int32
+	processingDeleteChunk int32
+	deleteChunkCount      int64
 }
 
 //New new

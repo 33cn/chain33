@@ -7,14 +7,13 @@ import (
 	"sync"
 	"time"
 
-	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/kevinms/leakybucket-go"
 	"github.com/libp2p/go-libp2p-core/control"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
-	manet "github.com/multiformats/go-multiaddr-net"
+	net "github.com/multiformats/go-multiaddr-net"
 )
 
 const (
@@ -23,7 +22,6 @@ const (
 	// burst limit for inbound dials.
 	ipBurst = 8
 	//缓存的临时的节点连接数量，虽然达到了最大限制，但是有的节点连接是查询需要，开辟缓冲区
-
 )
 
 //CacheLimit cachebuffer
@@ -31,18 +29,21 @@ var CacheLimit int32 = 50
 
 //Conngater gater struct data
 type Conngater struct {
-	host       *host.Host
-	cfg        *p2pty.P2PSubConfig
-	ipLimiter  *leakybucket.Collector
-	blackCache *TimeCache
+	host          *host.Host
+	maxConnectNum int32
+	ipLimiter     *leakybucket.Collector
+	blacklist     *TimeCache
 }
 
 //NewConnGater connect gater
-func NewConnGater(host *host.Host, cfg *p2pty.P2PSubConfig, timecache *TimeCache) *Conngater {
+func NewConnGater(h *host.Host, limit int32, cache *TimeCache) *Conngater {
 	gater := &Conngater{}
-	gater.host = host
-	gater.cfg = cfg
-	gater.blackCache = timecache
+	gater.host = h
+	gater.maxConnectNum = limit
+	gater.blacklist = cache
+	if gater.blacklist == nil {
+		gater.blacklist = NewTimeCache(context.Background(), time.Minute*5)
+	}
 	gater.ipLimiter = leakybucket.NewCollector(ipLimit, ipBurst, true)
 	return gater
 }
@@ -52,7 +53,7 @@ func (s *Conngater) InterceptPeerDial(p peer.ID) (allow bool) {
 	//具体的拦截策略
 	//黑名单检查
 	//TODO 引进其他策略
-	return !s.blackCache.Has(p.Pretty())
+	return !s.blacklist.Has(p.Pretty())
 
 }
 
@@ -87,7 +88,7 @@ func (s *Conngater) InterceptUpgraded(n network.Conn) (allow bool, reason contro
 }
 
 func (s *Conngater) validateDial(addr multiaddr.Multiaddr) bool {
-	ip, err := manet.ToIP(addr)
+	ip, err := net.ToIP(addr)
 	if err != nil {
 		return false
 	}
@@ -100,15 +101,15 @@ func (s *Conngater) validateDial(addr multiaddr.Multiaddr) bool {
 }
 
 func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
-	if s.cfg.MaxConnectNum == 0 { //不对连接节点数量进行限制
+	if s.maxConnectNum == 0 { //不对连接节点数量进行限制
 		return false
 	}
 	numOfConns := len((*s.host).Network().Peers())
 	var maxPeers int
 	if direction == network.DirInbound { //inbound connect
-		maxPeers = int(s.cfg.MaxConnectNum + CacheLimit/2)
+		maxPeers = int(s.maxConnectNum + CacheLimit/2)
 	} else {
-		maxPeers = int(s.cfg.MaxConnectNum + CacheLimit)
+		maxPeers = int(s.maxConnectNum + CacheLimit)
 	}
 	return numOfConns >= maxPeers
 }
@@ -122,7 +123,7 @@ type TimeCache struct {
 	span      time.Duration
 }
 
-//NewTimeCache new timecache obj.
+//NewTimeCache new time cache obj.
 func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
 	cache := &TimeCache{
 		Q:    list.New(),

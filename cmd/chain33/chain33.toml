@@ -4,6 +4,8 @@ FixTime=false
 # 配置主币的名称: 比特元链bty, 部分未配置的平行链需要配置为 bty， 新的平行链配置 para或其他， 不配置panic
 CoinSymbol="bty"
 TxHeight=true
+ChainID=0
+AddrVer=0
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit

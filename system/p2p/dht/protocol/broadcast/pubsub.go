@@ -9,11 +9,8 @@ import (
 	"runtime"
 	"time"
 
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
-	core "github.com/libp2p/go-libp2p-core"
-
 	"github.com/33cn/chain33/p2p/utils"
-	"github.com/33cn/chain33/system/p2p/dht/net"
+	net "github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/snappy"
 )
@@ -96,7 +93,7 @@ func (p *pubSub) handlePubMsg(topic string, out chan interface{}) {
 
 			err = p.Pubsub.Publish(topic, raw)
 			if err != nil {
-				log.Error("handlePubMsg", "publish err", err)
+				log.Error("handlePubMsg", "topic", topic, "publish err", err)
 			}
 
 		case <-p.Ctx.Done():
@@ -210,13 +207,4 @@ func (p *pubSub) decodeMsg(raw []byte, pbuf *[]byte, msg types.Message) error {
 	}
 
 	return nil
-}
-
-// broadcast pub sub
-type pubsubHandler struct {
-	prototypes.BaseStreamHandler
-}
-
-// Handle, 做一个版本标记，方便后续可能的协议变更
-func (b *pubsubHandler) Handle(stream core.Stream) {
 }

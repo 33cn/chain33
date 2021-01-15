@@ -517,6 +517,10 @@ func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) e
 	if tx.Fee > maxFee && maxFee > 0 && cfg.IsFork(height, "ForkBlockCheck") {
 		return ErrTxFeeTooHigh
 	}
+	//增加交易中chainID的检测，
+	if tx.ChainID != cfg.GetChainID() {
+		return ErrTxChainID
+	}
 	return nil
 }
 
@@ -641,6 +645,7 @@ func (tx *Transaction) JSON() string {
 		GroupCount int32  `json:"groupCount,omitempty"`
 		Header     string `json:"header,omitempty"`
 		Next       string `json:"next,omitempty"`
+		ChainID    int32  `json:"chainID,omitempty"`
 	}
 
 	newtx := &transaction{}
@@ -655,6 +660,8 @@ func (tx *Transaction) JSON() string {
 	newtx.GroupCount = tx.GroupCount
 	newtx.Header = hex.EncodeToString(tx.Header)
 	newtx.Next = hex.EncodeToString(tx.Next)
+	newtx.ChainID = tx.ChainID
+
 	data, err := json.MarshalIndent(newtx, "", "\t")
 	if err != nil {
 		return err.Error()
@@ -814,4 +821,51 @@ func (tx *Transaction) FullHash() []byte {
 	copytx := tx.Clone()
 	data := Encode(copytx)
 	return common.Sha256(data)
+}
+
+//TxGroup 交易组的接口，Transactions 和 Transaction 都符合这个接口
+type TxGroup interface {
+	Tx() *Transaction
+	GetTxGroup() (*Transactions, error)
+	CheckSign() bool
+}
+
+//这里要避免用 tmp := *tx 这样就会读 可能被 proto 其他线程修改的 size 字段
+//proto buffer 字段发生更改之后，一定要修改这里，否则可能引起严重的bug
+func cloneTx(tx *Transaction) *Transaction {
+	copytx := &Transaction{}
+	copytx.Execer = tx.Execer
+	copytx.Payload = tx.Payload
+	copytx.Signature = tx.Signature
+	copytx.Fee = tx.Fee
+	copytx.Expire = tx.Expire
+	copytx.Nonce = tx.Nonce
+	copytx.To = tx.To
+	copytx.GroupCount = tx.GroupCount
+	copytx.Header = tx.Header
+	copytx.Next = tx.Next
+	copytx.ChainID = tx.ChainID
+	return copytx
+}
+
+//Clone copytx := proto.Clone(tx).(*Transaction) too slow
+func (tx *Transaction) Clone() *Transaction {
+	if tx == nil {
+		return nil
+	}
+	tmp := cloneTx(tx)
+	tmp.Signature = tx.Signature.Clone()
+	return tmp
+}
+
+//cloneTxs  拷贝 txs
+func cloneTxs(b []*Transaction) []*Transaction {
+	if b == nil {
+		return nil
+	}
+	txs := make([]*Transaction, len(b))
+	for i := 0; i < len(b); i++ {
+		txs[i] = b[i].Clone()
+	}
+	return txs
 }
