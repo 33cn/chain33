@@ -17,6 +17,8 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
+var QueryFunc = NewQueryData("Query_")
+
 func buildFuncList(funclist []interface{}) map[string]bool {
 	list := make(map[string]bool)
 	for i := 0; i < len(funclist); i++ {
