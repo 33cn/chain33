@@ -766,6 +766,8 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 			toAddr = address.ExecAddress(string(exec))
 		}
 		tx := &types.Transaction{Execer: exec, Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: toAddr, Nonce: wallet.random.Int63()}
+		tx.ChainID = cfg.GetChainID()
+
 		tx.SetExpire(cfg, time.Second*120)
 		tx.Sign(int32(wallet.SignType), priv)
 		//walletlog.Info("ProcMergeBalance", "tx.Nonce", tx.Nonce, "tx", tx, "index", index)

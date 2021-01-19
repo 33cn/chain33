@@ -201,4 +201,5 @@ var (
 	ErrNotAllowModifyPush = errors.New("ErrNotAllowModifyPush")
 	ErrTxReceiptReduced   = errors.New("ErrTxReceiptReduced")
 	ErrPushNotSubscribed  = errors.New("ErrPushNotSubscribed")
+	ErrTxChainID          = errors.New("ErrTxChainID")
 )

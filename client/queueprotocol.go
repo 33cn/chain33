@@ -605,6 +605,7 @@ func (q *QueueProtocol) Version() (*types.VersionInfo, error) {
 		App:     version.GetAppVersion(),
 		Chain33: version.GetVersion(),
 		LocalDb: version.GetLocalDBVersion(),
+		ChainID: q.client.GetConfig().GetChainID(),
 	}, nil
 }
 

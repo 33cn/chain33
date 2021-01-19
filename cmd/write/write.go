@@ -195,6 +195,8 @@ func scanWrite(cfg *types.Chain33Config) {
 				continue
 			}
 			userTx.Nonce = rand.New(rand.NewSource(time.Now().UnixNano())).Int63()
+			userTx.ChainID = cfg.GetChainID()
+
 			txHex := types.Encode(userTx)
 			paramsReqSignRawTx := types.ReqSignRawTx{
 				Addr:   receiveAddr,

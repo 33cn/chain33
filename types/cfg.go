@@ -26,6 +26,8 @@ type Config struct {
 	CoinSymbol     string       `json:"coinSymbol,omitempty"`
 	EnableParaFork bool         `json:"enableParaFork,omitempty"`
 	Metrics        *Metrics     `json:"metrics,omitempty"`
+	ChainID        int32        `json:"chainID,omitempty"`
+	AddrVer        byte         `json:"addrVer,omitempty"`
 }
 
 // ForkList fork列表配置
