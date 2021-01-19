@@ -1725,3 +1725,19 @@ func TestChain33_convertParaTxDetails(t *testing.T) {
 	assert.Equal(t, 39169, int(rmsg.Items[0].Header.BlockTime))
 	assert.Equal(t, txhash, rmsg.Items[0].Header.TxHash)
 }
+
+func TestChain33_convertHeader(t *testing.T) {
+	var header types.Header
+	var reheader rpctypes.Header
+	header.TxHash, _ = hex.DecodeString("7feb86911f2143b992c5d543cc7314f24c3f94535f1beb38f781f2a0d72ae918")
+	header.Height = 666
+	header.BlockTime = 1234567
+	header.Signature = nil
+	header.TxCount = 9
+	convertHeader(&header, &reheader)
+	assert.Equal(t, "0x7feb86911f2143b992c5d543cc7314f24c3f94535f1beb38f781f2a0d72ae918", reheader.TxHash)
+	assert.Equal(t, header.GetTxCount(), reheader.TxCount)
+	assert.Equal(t, header.GetBlockTime(), reheader.BlockTime)
+	assert.Equal(t, header.GetHeight(), reheader.Height)
+
+}
