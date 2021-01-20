@@ -87,10 +87,7 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 	var kvs []*types.KeyValue
 	toDelete := chain.blockStore.GetMaxDeletedChunkNum() + 1
 	chainlog.Info("CheckDeleteBlockBody start", "start", toDelete)
-	//TODO
-	if toDelete > 8000 && !chain.IsCaughtUp() {
-		return
-	}
+
 	for toDelete+int64(DelRollbackChunkNum) < atomic.LoadInt64(&chain.maxSerialChunkNum) && count < onceDelChunkNum {
 		chainlog.Info("CheckDeleteBlockBody toDelete", "toDelete", toDelete)
 		kv := chain.DeleteBlockBody(toDelete)
