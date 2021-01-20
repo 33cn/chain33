@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -166,18 +167,32 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 }
 
 func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
-	for _, pid := range p.ShardHealthyRoutingTable.ListPeers() {
+	// 从多个节点请求ChunkRecords, 并从中选择多数节点返回的数据
+	recordsCache := make(map[string]*types.ChunkRecords)
+	recordsCount := make(map[string]int)
+	for i, pid := range p.ShardHealthyRoutingTable.ListPeers() {
 		records, err := p.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
 			log.Error("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
 			continue
 		}
+		sum := common.Sha256(types.Encode(records))
+		recordsCache[string(sum)] = records
+		recordsCount[string(sum)]++
 		log.Info("getChunkRecords", "peer", pid, "start", param.Start, "end", param.End)
-		return records
+		if i > 10 && len(recordsCount) != 0 {
+			break
+		}
+	}
+	var records *types.ChunkRecords
+	var maxCount int
+	for sum, count := range recordsCount {
+		if count > maxCount {
+			records = recordsCache[sum]
+		}
 	}
 
-	log.Error("getChunkRecords", "error", types2.ErrNotFound)
-	return nil
+	return records
 }
 
 func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid peer.ID) (*types.ChunkRecords, error) {
