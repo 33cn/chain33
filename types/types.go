@@ -33,13 +33,6 @@ const Size1Kshiftlen uint = 10
 // Message 声明proto.Message
 type Message proto.Message
 
-//TxGroup 交易组的接口，Transactions 和 Transaction 都符合这个接口
-type TxGroup interface {
-	Tx() *Transaction
-	GetTxGroup() (*Transactions, error)
-	CheckSign() bool
-}
-
 //ExecName  执行器name
 func (c *Chain33Config) ExecName(name string) string {
 	if len(name) > 1 && name[0] == '#' {
@@ -503,33 +496,6 @@ func (sig *Signature) Clone() *Signature {
 	}
 }
 
-//这里要避免用 tmp := *tx 这样就会读 可能被 proto 其他线程修改的 size 字段
-//proto buffer 字段发生更改之后，一定要修改这里，否则可能引起严重的bug
-func cloneTx(tx *Transaction) *Transaction {
-	copytx := &Transaction{}
-	copytx.Execer = tx.Execer
-	copytx.Payload = tx.Payload
-	copytx.Signature = tx.Signature
-	copytx.Fee = tx.Fee
-	copytx.Expire = tx.Expire
-	copytx.Nonce = tx.Nonce
-	copytx.To = tx.To
-	copytx.GroupCount = tx.GroupCount
-	copytx.Header = tx.Header
-	copytx.Next = tx.Next
-	return copytx
-}
-
-//Clone copytx := proto.Clone(tx).(*Transaction) too slow
-func (tx *Transaction) Clone() *Transaction {
-	if tx == nil {
-		return nil
-	}
-	tmp := cloneTx(tx)
-	tmp.Signature = tx.Signature.Clone()
-	return tmp
-}
-
 //Clone 浅拷贝： BlockDetail
 func (b *BlockDetail) Clone() *BlockDetail {
 	if b == nil {
@@ -633,18 +599,6 @@ func cloneReceiptLogs(b []*ReceiptLog) []*ReceiptLog {
 		rs[i] = b[i].Clone()
 	}
 	return rs
-}
-
-//cloneTxs  拷贝 txs
-func cloneTxs(b []*Transaction) []*Transaction {
-	if b == nil {
-		return nil
-	}
-	txs := make([]*Transaction, len(b))
-	for i := 0; i < len(b); i++ {
-		txs[i] = b[i].Clone()
-	}
-	return txs
 }
 
 //cloneKVList 拷贝kv 列表
