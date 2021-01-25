@@ -225,11 +225,13 @@ func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
 		time.Sleep(time.Second)
 	}
 	ticker := time.NewTicker(time.Minute * 5)
-	select {
-	case <-p.Ctx.Done():
-		return
-	case <-ticker.C:
-		updateFunc()
+	for {
+		select {
+		case <-p.Ctx.Done():
+			return
+		case <-ticker.C:
+			updateFunc()
+		}
 	}
 }
 
