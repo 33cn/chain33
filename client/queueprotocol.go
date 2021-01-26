@@ -256,6 +256,19 @@ func (q *QueueProtocol) PeerInfo(req *types.P2PGetPeerReq) (*types.PeerList, err
 	return nil, types.ErrTypeAsset
 }
 
+//NetProtocols protocols list
+func (q *QueueProtocol) NetProtocols(req *types.ReqNil) (*types.NetProtocolInfos, error) {
+	msg, err := q.send(p2pKey, types.EventNetProtocols, req)
+	if err != nil {
+		log.Error("PeerInfo", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.NetProtocolInfos); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 // GetHeaders get block headers by height
 func (q *QueueProtocol) GetHeaders(param *types.ReqBlocks) (*types.Headers, error) {
 	if param == nil {
@@ -592,6 +605,7 @@ func (q *QueueProtocol) Version() (*types.VersionInfo, error) {
 		App:     version.GetAppVersion(),
 		Chain33: version.GetVersion(),
 		LocalDb: version.GetLocalDBVersion(),
+		ChainID: q.client.GetConfig().GetChainID(),
 	}, nil
 }
 

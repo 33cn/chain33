@@ -114,7 +114,7 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 
 //HasTx 是否包含该交易
 func (chain *BlockChain) HasTx(txhash []byte, onlyquerycache bool) (has bool, err error) {
-	has = chain.cache.HasCacheTx(txhash)
+	has = chain.txCache.HasCacheTx(txhash)
 	if has {
 		return true, nil
 	}
@@ -193,8 +193,6 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresult *types.TxResult) {
 	TransactionDetail.Receipt = txresult.Receiptdate
 	TransactionDetail.Tx = txresult.GetTx()
-	//缓存哈希置空
-	TransactionDetail.Tx.UnsetCacheHash()
 	TransactionDetail.Height = txresult.GetHeight()
 	TransactionDetail.Index = int64(txresult.GetIndex())
 	TransactionDetail.Blocktime = txresult.GetBlocktime()

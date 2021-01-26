@@ -463,7 +463,6 @@ func (tx *Transaction) Size() int {
 //Sign 交易签名
 func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	tx.Signature = nil
-	tx.UnsetCacheHash()
 	data := Encode(tx)
 	pub := priv.PubKey()
 	sign := priv.Sign(data)
@@ -483,7 +482,6 @@ func (tx *Transaction) CheckSign() bool {
 func (tx *Transaction) checkSign() bool {
 	copytx := *tx
 	copytx.Signature = nil
-	copytx.UnsetCacheHash()
 	data := Encode(&copytx)
 	if tx.GetSignature() == nil {
 		return false
@@ -519,6 +517,10 @@ func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) e
 	if tx.Fee > maxFee && maxFee > 0 && cfg.IsFork(height, "ForkBlockCheck") {
 		return ErrTxFeeTooHigh
 	}
+	//增加交易中chainID的检测，
+	if tx.ChainID != cfg.GetChainID() {
+		return ErrTxChainID
+	}
 	return nil
 }
 
@@ -548,14 +550,7 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	if tx.Signature == nil {
 		txSize += 300
 	}
-	// hash cache 不作为fee大小计算, byte数组经过proto编码会有2个字节的标志长度
-	if tx.HashCache != nil {
-		txSize -= len(tx.HashCache) + 2
-	}
-	if tx.FullHashCache != nil {
-		txSize -= len(tx.FullHashCache) + 2
-	}
-	if txSize > int(MaxTxSize) {
+	if txSize > MaxTxSize {
 		return 0, ErrTxMsgSizeTooBig
 	}
 	// 检查交易费是否小于最低值
@@ -625,6 +620,9 @@ func (tx *Transaction) isExpire(cfg *Chain33Config, height, blocktime int64) boo
 
 //GetTxHeight 获取交易高度
 func GetTxHeight(cfg *Chain33Config, valid int64, height int64) int64 {
+	if cfg.IsPara() {
+		return -1
+	}
 	if cfg.IsEnableFork(height, "ForkTxHeight", cfg.IsEnable("TxHeight")) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
@@ -647,6 +645,7 @@ func (tx *Transaction) JSON() string {
 		GroupCount int32  `json:"groupCount,omitempty"`
 		Header     string `json:"header,omitempty"`
 		Next       string `json:"next,omitempty"`
+		ChainID    int32  `json:"chainID,omitempty"`
 	}
 
 	newtx := &transaction{}
@@ -661,6 +660,8 @@ func (tx *Transaction) JSON() string {
 	newtx.GroupCount = tx.GroupCount
 	newtx.Header = hex.EncodeToString(tx.Header)
 	newtx.Next = hex.EncodeToString(tx.Next)
+	newtx.ChainID = tx.ChainID
+
 	data, err := json.MarshalIndent(newtx, "", "\t")
 	if err != nil {
 		return err.Error()
@@ -808,39 +809,63 @@ func TransactionSort(rawtxs []*Transaction) []*Transaction {
 
 //Hash 交易的hash不包含header的值，引入tx group的概念后，做了修改
 func (tx *Transaction) Hash() []byte {
-	if tx.HashCache != nil {
-		return tx.HashCache
-	}
 	copytx := cloneTx(tx)
 	copytx.Signature = nil
 	copytx.Header = nil
-	copytx.FullHashCache = nil
 	data := Encode(copytx)
 	return common.Sha256(data)
 }
 
-//FullHash 交易的fullhash包含交易的签名信息，
-//这里做了clone 主要是因为 Encode 可能会修改 tx 的 Size 字段，可能会引起data race
+//FullHash 交易的fullhash包含交易的签名信息
 func (tx *Transaction) FullHash() []byte {
-
-	if tx.FullHashCache != nil {
-		return tx.FullHashCache
-	}
 	copytx := tx.Clone()
-	copytx.HashCache = nil
 	data := Encode(copytx)
 	return common.Sha256(data)
 }
 
-// UnsetCacheHash 清空hash缓存，交易向外部系统发送时调用
-func (tx *Transaction) UnsetCacheHash() {
-	tx.HashCache = nil
-	tx.FullHashCache = nil
+//TxGroup 交易组的接口，Transactions 和 Transaction 都符合这个接口
+type TxGroup interface {
+	Tx() *Transaction
+	GetTxGroup() (*Transactions, error)
+	CheckSign() bool
 }
 
-// ReCalcCacheHash 重新计算 hash缓存， 通常交易首次进入系统时调用
-func (tx *Transaction) ReCalcCacheHash() {
-	tx.UnsetCacheHash()
-	tx.HashCache = tx.Hash()
-	tx.FullHashCache = tx.FullHash()
+//这里要避免用 tmp := *tx 这样就会读 可能被 proto 其他线程修改的 size 字段
+//proto buffer 字段发生更改之后，一定要修改这里，否则可能引起严重的bug
+func cloneTx(tx *Transaction) *Transaction {
+	copytx := &Transaction{}
+	copytx.Execer = tx.Execer
+	copytx.Payload = tx.Payload
+	copytx.Signature = tx.Signature
+	copytx.Fee = tx.Fee
+	copytx.Expire = tx.Expire
+	copytx.Nonce = tx.Nonce
+	copytx.To = tx.To
+	copytx.GroupCount = tx.GroupCount
+	copytx.Header = tx.Header
+	copytx.Next = tx.Next
+	copytx.ChainID = tx.ChainID
+	return copytx
+}
+
+//Clone copytx := proto.Clone(tx).(*Transaction) too slow
+func (tx *Transaction) Clone() *Transaction {
+	if tx == nil {
+		return nil
+	}
+	tmp := cloneTx(tx)
+	tmp.Signature = tx.Signature.Clone()
+	return tmp
+}
+
+//cloneTxs  拷贝 txs
+func cloneTxs(b []*Transaction) []*Transaction {
+	if b == nil {
+		return nil
+	}
+	txs := make([]*Transaction, len(b))
+	for i := 0; i < len(b); i++ {
+		txs[i] = b[i].Clone()
+	}
+	return txs
 }

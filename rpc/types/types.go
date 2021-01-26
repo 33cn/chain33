@@ -82,6 +82,7 @@ type Transaction struct {
 	Header     string          `json:"header,omitempty"`
 	Next       string          `json:"next,omitempty"`
 	Hash       string          `json:"hash,omitempty"`
+	ChainID    int32           `json:"chainID,omitempty"`
 }
 
 // ReceiptLog defines receipt log command
@@ -325,6 +326,9 @@ type NodeNetinfo struct {
 	Inbounds     int32  `json:"inbounds"`
 	Routingtable int32  `json:"routingtable"`
 	Peerstore    int32  `json:"peerstore"`
+	Ratein       string `json:"ratein"`
+	Rateout      string `json:"rateout"`
+	Ratetotal    string `json:"ratetotal"`
 }
 
 // ReplyCacheTxList reply cache tx list

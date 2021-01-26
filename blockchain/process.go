@@ -289,14 +289,17 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	blockdetail, _, err = execBlock(b.client, prevStateHash, block, errReturn, sync)
 	if err != nil {
 		//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
-		if IsRecordFaultErr(err) {
-			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
-		} else if node.pid == "self" {
+		//快速下载时执行失败的区块不需要记录错误信息，并删除index中此区块的信息尝试通过普通模式再次下载执行
+		ok := IsRecordFaultErr(err)
+
+		if node.pid == "download" || (!ok && node.pid == "self") {
 			// 本节点产生的block由于api或者queue导致执行失败需要删除block在index中的记录，
 			// 返回错误信息给共识模块，由共识模块尝试再次发起block的执行
-			// 同步或者广播过来的情况会再下了一个区块过来后重新触发此block的执行
+			// 同步或者广播过来的情况会在下一个区块过来后重新触发此block的执行
 			chainlog.Debug("connectBlock DelNode!", "height", block.Height, "node.hash", common.ToHex(node.hash), "err", err)
 			b.index.DelNode(node.hash)
+		} else {
+			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
 		}
 		chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 		return nil, err
@@ -332,9 +335,10 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	saveBlkCost := types.Since(beg)
 	//cache new add block
 	beg = types.Now()
-	b.cache.cacheBlock(blockdetail)
-
+	b.cache.CacheBlock(blockdetail)
+	b.txCache.Add(blockdetail.Block)
 	cacheCost := types.Since(beg)
+
 	//保存block的总难度到db中
 	difficulty := difficulty.CalcWork(block.Difficulty)
 	var blocktd *big.Int
@@ -361,7 +365,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		panic(err)
 	}
 	writeCost := types.Since(beg)
-	chainlog.Debug("connectBlock cost", "execLocal", txCost, "saveBlk", saveBlkCost, "cacheBlk", cacheCost, "write", writeCost)
+	chainlog.Debug("ConnectBlock", "execLocal", txCost, "saveBlk", saveBlkCost, "cacheBlk", cacheCost, "writeBatch", writeCost)
 	chainlog.Debug("connectBlock info", "height", block.Height, "batchsync", sync, "hash", common.ToHex(blockdetail.Block.Hash(cfg)))
 
 	// 更新最新的高度和header
@@ -388,14 +392,6 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash(cfg)), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 		} else {
 			b.SendBlockBroadcast(blockdetail)
-		}
-	}
-
-	if !b.cfg.DisableShard {
-		// chunk 处理
-		isNeed, chunkInfo := b.IsNeedChunk(block.Height)
-		if isNeed {
-			b.chunkShardHandle(chunkInfo, true)
 		}
 	}
 
@@ -455,7 +451,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	newtipnode := b.bestChain.Tip()
 
 	//删除缓存中的block信息
-	b.cache.delBlockFromCache(blockdetail.Block.Height)
+	b.DelCacheBlock(blockdetail.Block.Height, node.hash)
 
 	if newtipnode != node.parent {
 		chainlog.Error("disconnectBlock newtipnode err:", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
@@ -498,9 +494,28 @@ func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List
 
 //LoadBlockByHash 根据hash值从缓存中查询区块
 func (b *BlockChain) LoadBlockByHash(hash []byte) (block *types.BlockDetail, err error) {
+
+	//从缓存的最新区块中获取
 	block = b.cache.GetCacheBlock(hash)
-	if block == nil {
-		block, err = b.blockStore.LoadBlockByHash(hash)
+	if block != nil {
+		return block, err
+	}
+
+	//从缓存的活跃区块中获取
+	block, _ = b.blockStore.GetActiveBlock(string(hash))
+	if block != nil {
+		return block, err
+	}
+
+	//从数据库中获取
+	block, err = b.blockStore.LoadBlockByHash(hash)
+
+	//如果是主链区块需要添加到活跃区块的缓存中
+	if block != nil {
+		mainHash, _ := b.blockStore.GetBlockHashByHeight(block.Block.GetHeight())
+		if mainHash != nil && bytes.Equal(mainHash, hash) {
+			b.blockStore.AddActiveBlock(string(hash), block)
+		}
 	}
 	return block, err
 }

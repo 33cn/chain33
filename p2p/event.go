@@ -85,9 +85,10 @@ func (mgr *Manager) PubBroadCast(hash string, data interface{}, eventTy int) err
 	}
 	var err error
 	if eventTy == types.EventTx {
-		err = mgr.Client.Send(mgr.Client.NewMessage("mempool", types.EventTx, data), false)
+		//同步模式发送交易，但不需要进行等待回复，目的是为了在消息队列内部使用高速模式
+		err = mgr.Client.Send(mgr.Client.NewMessage("mempool", types.EventTx, data), true)
 	} else if eventTy == types.EventBroadcastAddBlock {
-		err = mgr.Client.Send(mgr.Client.NewMessage("blockchain", types.EventBroadcastAddBlock, data), false)
+		err = mgr.Client.Send(mgr.Client.NewMessage("blockchain", types.EventBroadcastAddBlock, data), true)
 	}
 	if err != nil {
 		log.Error("PubBroadCast", "eventTy", eventTy, "sendMsgErr", err)

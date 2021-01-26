@@ -202,6 +202,11 @@ func testGetAccountsOK(t *testing.T) {
 	assert.Nil(t, err, "the error should be nil")
 }
 
+func TestGetAccount(t *testing.T) {
+	qapi.On("ExecWalletFunc", "wallet", "WalletGetAccount", mock.Anything).Return(&types.WalletAccount{}, nil)
+	_, err := g.GetAccount(getOkCtx(), nil)
+	assert.Nil(t, err, "the error should be nil")
+}
 func TestGetAccounts(t *testing.T) {
 	testGetAccountsOK(t)
 }

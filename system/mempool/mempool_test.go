@@ -210,11 +210,12 @@ func initEnv4(size int) (queue.Queue, *Mempool) {
 	return q, mem
 }
 
-func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
+func createTx(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = rand.Int63()
+	tx.ChainID = cfg.GetChainID()
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
@@ -1093,7 +1094,7 @@ func BenchmarkMempool(b *testing.B) {
 	maxTxNumPerAccount = 100000
 	for i := 0; i < b.N; i++ {
 		to, _ := genaddress()
-		tx := createTx(mainPriv, to, 10000)
+		tx := createTx(q.GetConfig(), mainPriv, to, 10000)
 		msg := mem.client.NewMessage("mempool", types.EventTx, tx)
 		err := mem.client.Send(msg, true)
 		if err != nil {
@@ -1101,7 +1102,7 @@ func BenchmarkMempool(b *testing.B) {
 		}
 	}
 	to0, _ := genaddress()
-	tx0 := createTx(mainPriv, to0, 10000)
+	tx0 := createTx(q.GetConfig(), mainPriv, to0, 10000)
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx0)
 	mem.client.Send(msg, true)
 	mem.client.Wait(msg)
@@ -1264,4 +1265,43 @@ func BenchmarkGetTxList(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		mem.getTxList(&types.TxHashList{Hashes: nil, Count: int64(txNum)})
 	}
+}
+
+func TestCheckTxsExist(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	txs := util.GenCoinsTxs(q.GetConfig(), privKey, 10)
+	for _, tx := range txs {
+		err := mem.PushTx(tx)
+		assert.Nil(t, err)
+	}
+	_, priv := util.Genaddress()
+	txs1 := append(util.GenCoinsTxs(q.GetConfig(), priv, 10))
+
+	checkReq := &types.ReqCheckTxsExist{}
+	// 构造请求数据，存在不存在交替
+	for i, tx := range txs {
+		checkReq.TxHashes = append(checkReq.TxHashes, tx.Hash(), txs1[i].Hash())
+	}
+	checkReqMsg := mem.client.NewMessage("mempool", types.EventCheckTxsExist, checkReq)
+	mem.eventCheckTxsExist(checkReqMsg)
+	reply, err := mem.client.Wait(checkReqMsg)
+	assert.Nil(t, err)
+	replyData := reply.GetData().(*types.ReplyCheckTxsExist)
+
+	assert.Equal(t, 20, len(replyData.ExistFlags))
+	assert.Equal(t, 10, int(replyData.ExistCount))
+	for i, exist := range replyData.ExistFlags {
+		//根据请求数据，结果应该是存在（true）、不存在（false）交替序列，即奇偶交错
+		assert.Equal(t, i%2 == 0, exist)
+	}
+	mem.setSync(false)
+	mem.eventCheckTxsExist(checkReqMsg)
+	reply, err = mem.client.Wait(checkReqMsg)
+	assert.Nil(t, err)
+	replyData = reply.GetData().(*types.ReplyCheckTxsExist)
+	assert.Equal(t, 0, len(replyData.ExistFlags))
+	assert.Equal(t, 0, int(replyData.ExistCount))
 }

@@ -1,112 +1,135 @@
 package manage
 
 import (
+	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/queue"
-
 	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
-
-// manage peer info
 
 // PeerInfoManager peer info manager
 type PeerInfoManager struct {
-	peerInfo sync.Map
-	client   queue.Client
-	done     chan struct{}
+	ctx       context.Context
+	peerInfo  sync.Map
+	client    queue.Client
+	host      host.Host
+	maxHeight int64
 }
 
 type peerStoreInfo struct {
-	storeTime time.Duration
+	storeTime time.Time
 	peer      *types.Peer
 }
 
-// Add add peer info
-func (p *PeerInfoManager) Add(pid string, info *types.Peer) {
-	var storeInfo peerStoreInfo
-	storeInfo.storeTime = time.Duration(time.Now().Unix())
-	storeInfo.peer = info
-	p.peerInfo.Store(pid, &storeInfo)
+// NewPeerInfoManager new peer info manager
+func NewPeerInfoManager(ctx context.Context, host host.Host, cli queue.Client) *PeerInfoManager {
+	peerInfoManage := &PeerInfoManager{
+		ctx:    ctx,
+		client: cli,
+		host:   host,
+	}
+	go peerInfoManage.start()
+	return peerInfoManage
 }
 
-// Copy copy peer info
-func (p *PeerInfoManager) Copy(dest *types.Peer, source *types.P2PPeerInfo) {
-	dest.Addr = source.GetAddr()
-	dest.Name = source.GetName()
-	dest.Header = source.GetHeader()
-	dest.Self = false
-	dest.MempoolSize = source.GetMempoolSize()
-	dest.Port = source.GetPort()
-	dest.Version = source.GetVersion()
-	dest.StoreDBVersion = source.GetStoreDBVersion()
-	dest.LocalDBVersion = source.GetLocalDBVersion()
+// Refresh refreshes peer info
+func (p *PeerInfoManager) Refresh(peer *types.Peer) {
+	if peer == nil {
+		return
+	}
+	storeInfo := peerStoreInfo{
+		storeTime: time.Now(),
+		peer:      peer,
+	}
+	p.peerInfo.Store(peer.Name, &storeInfo)
+	if peer.GetHeader().GetHeight() > atomic.LoadInt64(&p.maxHeight) {
+		atomic.StoreInt64(&p.maxHeight, peer.GetHeader().GetHeight())
+	}
 }
 
-// GetPeerInfoInMin get peer info
-func (p *PeerInfoManager) GetPeerInfoInMin(key string) *types.Peer {
+// Fetch returns info of given peer
+func (p *PeerInfoManager) Fetch(pid peer.ID) *types.Peer {
+	key := pid.Pretty()
 	v, ok := p.peerInfo.Load(key)
 	if !ok {
 		return nil
 	}
-	info := v.(*peerStoreInfo)
-	if time.Duration(time.Now().Unix())-info.storeTime > 60 {
-		p.peerInfo.Delete(key)
-		return nil
+	if info, ok := v.(*peerStoreInfo); ok {
+		if time.Since(info.storeTime) > time.Minute {
+			p.peerInfo.Delete(key)
+			return nil
+		}
+		return info.peer
 	}
-	return info.peer
+	return nil
 }
 
-// FetchPeerInfosInMin fetch peer info
-func (p *PeerInfoManager) FetchPeerInfosInMin() []*types.Peer {
-
+// FetchAll returns all peers info
+func (p *PeerInfoManager) FetchAll() []*types.Peer {
 	var peers []*types.Peer
-	p.peerInfo.Range(func(key interface{}, value interface{}) bool {
+	var self *types.Peer
+	p.peerInfo.Range(func(key, value interface{}) bool {
 		info := value.(*peerStoreInfo)
-		if time.Duration(time.Now().Unix())-info.storeTime > 60 {
+		if time.Since(info.storeTime) > time.Minute {
 			p.peerInfo.Delete(key)
 			return true
 		}
-
+		if key.(string) == p.host.ID().Pretty() {
+			self = info.peer
+			return true
+		}
 		peers = append(peers, info.peer)
 		return true
 	})
-
+	if self != nil {
+		peers = append(peers, self)
+	}
 	return peers
 }
 
-// MonitorPeerInfos monitor peer info
-func (p *PeerInfoManager) MonitorPeerInfos() {
+// PeerHeight returns block height of given peer
+func (p *PeerInfoManager) PeerHeight(pid peer.ID) int64 {
+	v, ok := p.peerInfo.Load(pid.Pretty())
+	if !ok {
+		return -1
+	}
+	info, ok := v.(*peerStoreInfo)
+	if !ok {
+		return -1
+	}
+	if info.peer.GetHeader() == nil {
+		return -1
+	}
+	return info.peer.GetHeader().Height
+}
+
+// PeerMaxHeight returns max block height of all connected peers.
+func (p *PeerInfoManager) PeerMaxHeight() int64 {
+	return atomic.LoadInt64(&p.maxHeight)
+}
+
+func (p *PeerInfoManager) start() {
 	for {
 		select {
-
-		case <-time.After(time.Minute):
-			log.Info("MonitorPeerInfos", "Num", len(p.FetchPeerInfosInMin()))
-
-		case <-p.done:
+		case <-p.ctx.Done():
 			return
-
+		case <-time.After(time.Second * 30):
+			p.prune()
 		}
 	}
 }
-
-// Close close peer info manager
-func (p *PeerInfoManager) Close() {
-	defer func() {
-		if recover() != nil {
-			log.Error("channel reclosed")
+func (p *PeerInfoManager) prune() {
+	p.peerInfo.Range(func(key interface{}, value interface{}) bool {
+		info := value.(*peerStoreInfo)
+		if time.Since(info.storeTime) > time.Minute {
+			p.peerInfo.Delete(key)
+			return true
 		}
-	}()
-
-	close(p.done)
-}
-
-// NewPeerInfoManager new peer info manager
-func NewPeerInfoManager(cli queue.Client) *PeerInfoManager {
-
-	peerInfoManage := &PeerInfoManager{done: make(chan struct{})}
-	peerInfoManage.client = cli
-	go peerInfoManage.MonitorPeerInfos()
-	return peerInfoManage
+		return true
+	})
 }

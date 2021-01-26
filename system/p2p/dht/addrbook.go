@@ -12,7 +12,7 @@ import (
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet/bipwallet"
-	p2pcrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -37,11 +37,8 @@ func NewAddrBook(cfg *types.P2P) *AddrBook {
 		cfg: cfg,
 	}
 	dbPath := cfg.DbPath + "/" + p2pty.DHTTypeName
-	a.bookDb = db.NewDB("addrbook", a.cfg.Driver, dbPath, a.cfg.DbCache)
-
-	if !a.loadDb() {
-		a.initKey()
-	}
+	a.bookDb = db.NewDB("addrBook", a.cfg.Driver, dbPath, a.cfg.DbCache)
+	a.loadDb()
 	return a
 
 }
@@ -85,6 +82,11 @@ func (a *AddrBook) loadDb() bool {
 
 }
 
+//Randkey Rand keypair
+func (a *AddrBook) Randkey() crypto.PrivKey {
+	a.initKey()
+	return a.GetPrivkey()
+}
 func (a *AddrBook) initKey() {
 
 	priv, pub, err := GenPrivPubkey()
@@ -114,9 +116,12 @@ func (a *AddrBook) saveKey(priv, pub string) {
 }
 
 // GetPrivkey get private key
-func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
+func (a *AddrBook) GetPrivkey() crypto.PrivKey {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
+	if a.privkey == "" {
+		return nil
+	}
 	keybytes, err := hex.DecodeString(a.privkey)
 	if err != nil {
 		log.Error("GetPrivkey", "DecodeString Error", err.Error())
@@ -124,9 +129,9 @@ func (a *AddrBook) GetPrivkey() p2pcrypto.PrivKey {
 	}
 	log.Debug("GetPrivkey", "privsize", len(keybytes))
 
-	privkey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
+	privkey, err := crypto.UnmarshalSecp256k1PrivateKey(keybytes)
 	if err != nil {
-		privkey, err = p2pcrypto.UnmarshalPrivateKey(keybytes)
+		privkey, err = crypto.UnmarshalPrivateKey(keybytes)
 		if err != nil {
 			log.Error("GetPrivkey", "UnmarshalPrivateKey", err.Error())
 			return nil
@@ -158,7 +163,7 @@ func (a *AddrBook) SaveAddr(addrinfos []peer.AddrInfo) error {
 	jsonBytes, err := json.Marshal(addrinfos)
 	if err != nil {
 		log.Error("Failed to save AddrBook to file", "err", err)
-		return nil
+		return err
 	}
 	log.Debug("saveToDb", "addrs", string(jsonBytes))
 	return a.bookDb.Set([]byte(addrkeyTag), jsonBytes)
@@ -204,8 +209,8 @@ func (a *AddrBook) StoreHostID(id peer.ID, path string) {
 
 // GenPrivPubkey return key and pubkey in bytes
 func GenPrivPubkey() ([]byte, []byte, error) {
-	priv, pub, err := p2pcrypto.GenerateSecp256k1Key(rand.Reader)
-	//priv, pub, err := p2pcrypto.GenerateKeyPairWithReader(p2pcrypto.Secp256k1, 2048, rand.Reader)
+	priv, pub, err := crypto.GenerateSecp256k1Key(rand.Reader)
+	//priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.Secp256k1, 2048, rand.Reader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -233,10 +238,10 @@ func GenPubkey(key string) (string, error) {
 	}
 
 	log.Info("GenPubkey", "key size", len(keybytes))
-	privkey, err := p2pcrypto.UnmarshalSecp256k1PrivateKey(keybytes)
+	privkey, err := crypto.UnmarshalSecp256k1PrivateKey(keybytes)
 	if err != nil {
 
-		privkey, err = p2pcrypto.UnmarshalPrivateKey(keybytes)
+		privkey, err = crypto.UnmarshalPrivateKey(keybytes)
 		if err != nil {
 			//切换
 			log.Error("genPubkey", "UnmarshalPrivateKey", err.Error())

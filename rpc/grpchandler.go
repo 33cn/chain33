@@ -510,3 +510,13 @@ func (g *Grpc) LoadParaTxByTitle(ctx context.Context, in *pb.ReqHeightByTitle) (
 func (g *Grpc) GetParaTxByHeight(ctx context.Context, in *pb.ReqParaTxByHeight) (*pb.ParaTxDetails, error) {
 	return g.cli.GetParaTxByHeight(in)
 }
+
+//GetAccount 通过地址标签获取账户地址以及账户余额信息
+func (g *Grpc) GetAccount(ctx context.Context, in *pb.ReqGetAccount) (*pb.WalletAccount, error) {
+	acc, err := g.cli.ExecWalletFunc("wallet", "WalletGetAccount", in)
+	if err != nil {
+		return nil, err
+	}
+
+	return acc.(*pb.WalletAccount), nil
+}

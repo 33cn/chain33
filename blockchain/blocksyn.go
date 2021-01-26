@@ -153,8 +153,8 @@ func (chain *BlockChain) SynRoutine() {
 	//2分钟尝试检测一次最优链，确保本节点在最优链
 	checkBestChainTicker := time.NewTicker(120 * time.Second)
 
-	//60s尝试从peer节点请求ChunkRecord
-	chunkRecordSynTicker := time.NewTicker(60 * time.Second)
+	//30s尝试从peer节点请求ChunkRecord
+	chunkRecordSynTicker := time.NewTicker(30 * time.Second)
 
 	//节点下载模式
 	go chain.DownLoadBlocks()
@@ -326,10 +326,8 @@ func (chain *BlockChain) fetchPeerList() error {
 	curheigt := chain.GetBlockHeight()
 
 	var peerInfoList PeerInfoList
-	for _, peer := range peerlist.Peers {
-		//chainlog.Info("fetchPeerList", "peername:", peer.Name, "peerHeight:", peer.Header.Height)
+	for _, peer := range peerlist.GetPeers() {
 		//过滤掉自己和小于自己5个高度的节点
-
 		if peer == nil || peer.Self || curheigt > peer.Header.Height+5 {
 			continue
 		}
@@ -1149,18 +1147,15 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 		Pid:      pid,
 	}
 	var cb func()
-	var timeoutcb func(chunkNum int64)
 	if count >= int64(MaxReqChunkRecord) { // 每次请求最大MaxReqChunkRecord个chunk的record
 		reqRec.End = reqRec.Start + int64(MaxReqChunkRecord) - 1
 		cb = func() {
 			chain.ChunkRecordSync()
 		}
-	} else {
-		reqRec.End = end
 	}
 	// 目前数据量小可在一个节点下载多个chunk记录
 	// TODO 后续可以多个节点并发下载
-	err = chain.chunkRecordTask.Start(reqRec.Start, reqRec.End, cb, timeoutcb)
+	err = chain.chunkRecordTask.Start(reqRec.Start, reqRec.End, cb, nil)
 	if err != nil {
 		return err
 	}

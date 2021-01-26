@@ -179,6 +179,10 @@ const (
 	EventFetchTopics    = 352
 	EventRemoveTopic    = 353
 	EventReceiveSubData = 355
+	EventNetProtocols   = 356
+
+	//检测mempool是否存在该交易
+	EventCheckTxsExist = 357
 )
 
 var eventName = map[int]string{
@@ -334,4 +338,6 @@ var eventName = map[int]string{
 	EventFetchTopics:                "EventFetchTopics",
 	EventRemoveTopic:                "EventRemoveTopic",
 	EventReceiveSubData:             "EventReceiveSubData",
+	EventNetProtocols:               "EventNetProtocols",
+	EventCheckTxsExist:              "EventCheckTxsExist",
 }

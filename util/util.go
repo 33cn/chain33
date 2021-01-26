@@ -285,12 +285,43 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	dupErrChan := make(chan error, 1)
 	cacheTxs := types.TxsToCache(block.Txs)
 	beg := types.Now()
-	//check sign routine
-	if errReturn && block.Height > 0 && !block.CheckSign(config) {
-		//block的来源不是自己的mempool，而是别人的区块
-		return nil, nil, types.ErrSign
+	//区块验签，只验证非本节点打包的区块
+	if errReturn && block.Height > 0 {
+
+		//首先向mempool模块查询是否存在该交易，避免重复验签，同步历史区块时方案无效
+		checkReq := &types.ReqCheckTxsExist{TxHashes: make([][]byte, len(block.Txs))}
+		for i, tx := range cacheTxs {
+			checkReq.TxHashes[i] = tx.Hash()
+		}
+		checkReqMsg := client.NewMessage("mempool", types.EventCheckTxsExist, checkReq)
+		err := client.Send(checkReqMsg, true)
+		if err != nil {
+			ulog.Error("PreExecBlock", "send mempool check txs exist err", err)
+			return nil, nil, err
+		}
+		reply, err := client.Wait(checkReqMsg)
+		if err != nil {
+			ulog.Error("PreExecBlock", "wait mempool check txs exist reply err", err)
+			return nil, nil, err
+		}
+		replyData := reply.GetData().(*types.ReplyCheckTxsExist)
+		unverifiedTxs := block.Txs
+		//区块中交易在mempool中已有存在情况，重新构造需要验签的交易列表
+		if replyData.ExistCount > 0 {
+			unverifiedTxs = make([]*types.Transaction, 0, len(block.Txs)-int(replyData.ExistCount))
+			for index, exist := range replyData.ExistFlags {
+				//只需要对mempool中不存在的交易验签
+				if !exist {
+					unverifiedTxs = append(unverifiedTxs, block.Txs[index])
+				}
+			}
+		}
+		signOK := types.VerifySignature(config, block, unverifiedTxs)
+		ulog.Debug("PreExecBlock", "height", block.GetHeight(), "checkCount", len(unverifiedTxs), "CheckSign", types.Since(beg))
+		if !signOK {
+			return nil, nil, types.ErrSign
+		}
 	}
-	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "CheckSign", types.Since(beg))
 
 	//check dup routine
 	go func() {
@@ -308,16 +339,15 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 		if len(block.Txs) != len(cacheTxs) {
 			ulog.Error("PreExecBlock", "prevtx", len(block.Txs), "newtx", len(cacheTxs))
 			if errReturn {
-				dupErrChan <- types.ErrTxDup
-				return
+				err = types.ErrTxDup
 			}
 		}
-		dupErrChan <- nil
+		dupErrChan <- err
 	}()
 
 	// exec tx routine
 	beg = types.Now()
-	//对区块的正确性保持乐观，在检测结束前先执行，达到并行执行目的
+	//对区块的正确性保持乐观，交易查重和执行并行处理，提高效率
 	receipts, err := ExecTx(client, prevStateRoot, block)
 	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "ExecTx", types.Since(beg))
 	beg = types.Now()
@@ -327,7 +357,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 		ulog.Error("PreExecBlock", "height", block.GetHeight(), "CheckDupErr", dupErr)
 		return nil, nil, dupErr
 	}
-	//有重复交易， 需要重新赋值交易内容并执行
+	//如果有重复交易， 需要重新赋值交易内容并执行
 	if len(block.Txs) != len(cacheTxs) {
 		block.Txs = types.CacheToTxs(cacheTxs)
 		receipts, err = ExecTx(client, prevStateRoot, block)
@@ -338,8 +368,8 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	}
 
 	beg = types.Now()
-	var kvset []*types.KeyValue
-	var rdata []*types.ReceiptData //save to db receipt log
+	kvset := make([]*types.KeyValue, 0, len(receipts.GetReceipts()))
+	rdata := make([]*types.ReceiptData, 0, len(receipts.GetReceipts())) //save to db receipt log
 	//删除无效的交易
 	var deltxs []*types.Transaction
 	index := 0

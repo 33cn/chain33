@@ -18,6 +18,7 @@ import (
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/difficulty"
+	"github.com/33cn/chain33/common/utils"
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
@@ -47,7 +48,7 @@ var (
 	ChunkHashToNum     = []byte("ChunkHashToNum:")
 	RecvChunkNumToHash = []byte("RecvChunkNumToHash:")
 	MaxSerialChunkNum  = []byte("MaxSilChunkNum:")
-	ToDeleteChunkSign  = []byte("ToDelChunkSign:")
+	MaxDeletedChunkNum = []byte("MaxDeletedChunkNum:")
 	storeLog           = chainlog.New("submodule", "store")
 )
 
@@ -61,7 +62,7 @@ func GetLocalDBKeyList() [][]byte {
 		pushPrefix, lastSeqNumPrefix, tempBlockKey, lastTempBlockKey, LastParaSequence,
 		chainParaTxPrefix, chainBodyPrefix, chainHeaderPrefix, chainReceiptPrefix,
 		BodyHashToChunk, ChunkNumToHash, ChunkHashToNum, RecvChunkNumToHash,
-		MaxSerialChunkNum, ToDeleteChunkSign,
+		MaxSerialChunkNum, MaxDeletedChunkNum,
 	}
 }
 
@@ -135,10 +136,10 @@ func calcMainSequenceToHashKey(sequence int64) []byte {
 	return append(seqToHashKey, []byte(fmt.Sprintf("%v", sequence))...)
 }
 
-// 存储归档索引 blockhash--->chunkhash
-func calcBlockHashToChunkHash(hash []byte) []byte {
-	return append(BodyHashToChunk, hash...)
-}
+//// 存储归档索引 blockhash--->chunkhash
+//func calcBlockHashToChunkHash(hash []byte) []byte {
+//	return append(BodyHashToChunk, hash...)
+//}
 
 // 存储归档索引 chunkNum--->chunkhash
 func calcChunkNumToHash(chunkNum int64) []byte {
@@ -155,11 +156,6 @@ func calcRecvChunkNumToHash(chunkNum int64) []byte {
 	return append(RecvChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
 }
 
-// 辅助 chunkNum--->MaxPeerHeight 用于记录在生成chunk时候当前网络最高节点高度，主要用于后续删除操作
-func calcToDeleteChunkSign(chunkNum int64) []byte {
-	return append(ToDeleteChunkSign, []byte(fmt.Sprintf("%012d", chunkNum))...)
-}
-
 //BlockStore 区块存储
 type BlockStore struct {
 	db             dbm.DB
@@ -170,6 +166,9 @@ type BlockStore struct {
 	saveSequence   bool
 	isParaChain    bool
 	batch          dbm.Batch
+
+	//记录当前活跃的block，减少数据库的访问提高效率
+	activeBlocks *utils.SpaceLimitCache
 }
 
 //NewBlockStore new
@@ -218,6 +217,17 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 		}
 	}
 	blockStore.batch = db.NewBatch(true)
+
+	//初始化活跃区块的缓存
+	maxActiveBlockNum := maxActiveBlocks
+	maxActiveBlockSize := maxActiveBlocksCacheSize
+	if cfg.GetModuleConfig().BlockChain.MaxActiveBlockNum > 0 {
+		maxActiveBlockNum = cfg.GetModuleConfig().BlockChain.MaxActiveBlockNum
+	}
+	if cfg.GetModuleConfig().BlockChain.MaxActiveBlockSize > 0 {
+		maxActiveBlockSize = cfg.GetModuleConfig().BlockChain.MaxActiveBlockSize
+	}
+	blockStore.activeBlocks = utils.NewSpaceLimitCache(maxActiveBlockNum, maxActiveBlockSize*1024*1024)
 
 	return blockStore
 }
@@ -657,18 +667,38 @@ func (bs *BlockStore) getRealTxResult(txr *types.TxResult) *types.TxResult {
 	if !cfg.IsEnable("reduceLocaldb") {
 		return txr
 	}
-	// 如果是精简版的localdb 则需要从block中获取tx交易内容以及receipt
-	blockinfo, err := bs.LoadBlockByHeight(txr.Height)
+
+	var blockinfo *types.BlockDetail
+	var err error
+	var exist bool
+
+	//首先从缓存的活跃区块中获取，不存在时再从数据库获取并保存到活跃区块中供下次使用
+	hash, err := bs.GetBlockHashByHeight(txr.Height)
 	if err != nil {
-		chainlog.Error("getRealTxResult LoadBlockByHeight", "height", txr.Height, "error", err)
+		chainlog.Error("getRealTxResult GetBlockHashByHeight", "height", txr.Height, "error", err)
 		return txr
 	}
+
+	blockinfo, exist = bs.GetActiveBlock(string(hash))
+	if !exist {
+		// 如果是精简版的localdb 则需要从block中获取tx交易内容以及receipt
+		blockinfo, err = bs.LoadBlockByHash(hash)
+		if err != nil {
+			chainlog.Error("getRealTxResult LoadBlockByHash", "height", txr.Height, "hash", common.ToHex(hash), "error", err)
+			return txr
+		}
+
+		//添加到活跃区块的缓存中
+		bs.AddActiveBlock(string(hash), blockinfo)
+	}
+
 	if int(txr.Index) < len(blockinfo.Block.Txs) {
 		txr.Tx = blockinfo.Block.Txs[txr.Index]
 	}
 	if int(txr.Index) < len(blockinfo.Receipts) {
 		txr.Receiptdate = blockinfo.Receipts[txr.Index]
 	}
+
 	return txr
 }
 
@@ -1562,39 +1592,12 @@ func (bs *BlockStore) multiGetBody(blockheader *types.Header, indexName string, 
 	cfg := bs.client.GetConfig()
 	chainCfg := cfg.GetModuleConfig().BlockChain
 
-	//获取body
-	var blockbody *types.BlockBody
-	if chainCfg.EnableIfDelLocalChunk { // 6.6之后，测试完成之后该分支进行删除
-		chunkNum, _, _ := calcChunkInfo(chainCfg, blockheader.Height)
-		if bs.Height() > blockheader.Height+MaxRollBlockNum+chainCfg.ChunkblockNum+int64(DelRollbackChunkNum) { // 这里模拟删除情况下去网络中查找
-			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
-			if bodys == nil || len(bodys.Items) == 0 || err != nil {
-				if err != dbm.ErrNotFoundInDb {
-					storeLog.Error("multiGetBody:getBodyFromP2Pstore", "chunkNum", chunkNum, "height", blockheader.Height,
-						"hash", common.ToHex(blockheader.Hash), "err", err)
-				}
-				return nil, types.ErrHashNotExist
-			}
-			blockbody = bodys.Items[0]
-			storeLog.Info("multiGetBody", "chunkNum", chunkNum, "height", blockheader.Height,
-				"hash", common.ToHex(blockheader.Hash))
-			return blockbody, nil
-		}
-
-		storeLog.Info("multiGetBody", "chunkNum", chunkNum, "height", blockheader.Height,
-			"hash", common.ToHex(blockheader.Hash))
-		blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
-		if blockbody == nil || err != nil {
-			if err != dbm.ErrNotFoundInDb {
-				storeLog.Error("multiGetBody:getBodyByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
-			}
-			return nil, types.ErrHashNotExist
-		}
-		return blockbody, nil
-	}
-
 	blockbody, err := getBodyByIndex(bs.db, indexName, prefix, primaryKey)
 	if blockbody == nil || err != nil {
+		if blockheader.GetHeight() > bs.Height()-MaxRollBlockNum-(chainCfg.ChunkblockNum)*int64(DelRollbackChunkNum) {
+			// 该高度范围应该保存在本地
+			return nil, types.ErrHashNotExist
+		}
 		if !chainCfg.DisableShard && chainCfg.EnableFetchP2pstore {
 			bodys, err := bs.getBodyFromP2Pstore(blockheader.Hash, blockheader.Height, blockheader.Height)
 			if bodys == nil || len(bodys.Items) == 0 || err != nil {
@@ -1620,21 +1623,33 @@ func (bs *BlockStore) getBodyFromP2Pstore(hash []byte, start, end int64) (*types
 	stime := time.Now()
 	defer func() {
 		etime := time.Now()
-		storeLog.Info("getBodyFromP2Pstore", "cost time is:", etime.Sub(stime))
+		storeLog.Info("getBodyFromP2Pstore", "start", start, "end", end, "cost time", etime.Sub(stime))
 	}()
-	value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
-	if value == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("getBodyFromP2Pstore:calcBlockHashToChunkHash", "hash", common.ToHex(hash), "chunkhash", common.ToHex(value), "err", err)
-		}
+	//value, err := bs.db.Get(calcBlockHashToChunkHash(hash))
+	//if value == nil || err != nil {
+	//	if err != dbm.ErrNotFoundInDb {
+	//		storeLog.Error("getBodyFromP2Pstore:calcBlockHashToChunkHash", "hash", common.ToHex(hash), "chunkhash", common.ToHex(value), "err", err)
+	//	}
+	//	return nil, types.ErrHashNotExist
+	//}
+	cfg := bs.client.GetConfig()
+	chainCfg := cfg.GetModuleConfig().BlockChain
+	chunkNum := start / chainCfg.ChunkblockNum
+	value, err := bs.db.Get(calcChunkNumToHash(chunkNum))
+	if err != nil {
 		return nil, types.ErrHashNotExist
 	}
+	var chunkInfo types.ChunkInfo
+	if err := types.Decode(value, &chunkInfo); err != nil {
+		return nil, types.ErrDecode
+	}
+
 	if bs.client == nil {
 		storeLog.Error("getBodyFromP2Pstore: chain client not bind message queue.")
 		return nil, types.ErrClientNotBindQueue
 	}
 	req := &types.ChunkInfoMsg{
-		ChunkHash: value,
+		ChunkHash: chunkInfo.ChunkHash,
 		Start:     start,
 		End:       end,
 	}
@@ -1707,9 +1722,47 @@ func (bs *BlockStore) SetMaxSerialChunkNum(chunkNum int64) error {
 	data := &types.Int64{
 		Data: chunkNum,
 	}
-	err := bs.db.Set(MaxSerialChunkNum, types.Encode(data))
+	return bs.db.Set(MaxSerialChunkNum, types.Encode(data))
+}
+
+// GetMaxDeletedChunkNum gets max chunkNum of deleted chunks.
+func (bs *BlockStore) GetMaxDeletedChunkNum() int64 {
+	value, err := bs.db.Get(MaxDeletedChunkNum)
 	if err != nil {
-		return err
+		return -1
 	}
-	return nil
+	chunkNum := &types.Int64{}
+	err = types.Decode(value, chunkNum)
+	if err != nil {
+		return -1
+	}
+	return chunkNum.Data
+}
+
+// SetMaxDeletedChunkNum sets max chunkNum of deleted chunks.
+func (bs *BlockStore) SetMaxDeletedChunkNum(chunkNum int64) error {
+	data := &types.Int64{
+		Data: chunkNum,
+	}
+	return bs.db.Set(MaxDeletedChunkNum, types.Encode(data))
+}
+
+// GetActiveBlock :从缓存的活跃区块中获取对应高度的区块
+func (bs *BlockStore) GetActiveBlock(hash string) (*types.BlockDetail, bool) {
+	block := bs.activeBlocks.Get(hash)
+	if block != nil {
+		return block.(*types.BlockDetail), true
+	}
+	return nil, false
+}
+
+// AddActiveBlock :将区块缓存到活跃区块中
+func (bs *BlockStore) AddActiveBlock(hash string, block *types.BlockDetail) bool {
+	return bs.activeBlocks.Add(hash, block, block.Size())
+}
+
+// RemoveActiveBlock :从缓存的活跃区块中删除对应的区块
+func (bs *BlockStore) RemoveActiveBlock(hash string) bool {
+	_, ok := bs.activeBlocks.Remove(hash)
+	return ok
 }

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
@@ -105,7 +106,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = nil
 		}
 	}
-	if string(tx.Execer) == "user.write" {
+	if strings.HasSuffix(string(tx.Execer), "user.write") {
 		pl = decodeUserWrite(tx.GetPayload())
 	}
 	var pljson json.RawMessage
@@ -130,6 +131,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Header:     common.ToHex(tx.Header),
 		Next:       common.ToHex(tx.Next),
 		Hash:       common.ToHex(tx.Hash()),
+		ChainID:    tx.ChainID,
 	}
 	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
 	result.FeeFmt = feeResult

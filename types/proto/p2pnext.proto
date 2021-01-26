@@ -2,7 +2,6 @@ syntax = "proto3";
 
 import "p2p.proto";
 import "blockchain.proto";
-import "common.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
@@ -216,8 +215,8 @@ message MessageBroadCast {
 }
 
 /**
-* p2p 分布式存储
-*/
+ * p2p 分布式存储
+ */
 
 message P2PMessageHeaders {
     // shared between all requests
@@ -232,25 +231,48 @@ message P2PRequest {
     oneof             request {
         ReqChunkRecords reqChunkRecords = 2;
         ChunkInfoMsg    chunkInfoMsg    = 3;
-        ReqBlocks       reqBlocks       = 4;
+        ChunkInfoList   chunkInfoList   = 4;
+        ReqBlocks       reqBlocks       = 5;
         //新的协议可以继续添加request类型
-        int64 healthyHeight = 5;
-        bytes addrInfo      = 6;
+        ReqPeers reqPeers = 6;
     }
 }
 
+message ReqPeers {
+    bytes referKey = 1;
+    int32 count    = 2;
+}
+
+message HashList {
+    repeated bytes hashes = 1;
+}
+
+message ChunkInfoList {
+    repeated ChunkInfoMsg items = 1;
+}
+
 message P2PResponse {
-    P2PMessageHeaders headers = 1;
-    string            error   = 2;
+    P2PMessageHeaders headers     = 1;
+    string            error       = 2;
+    repeated PeerInfo closerPeers = 3;
     oneof             response {
-        BlockBodys   blockBodys   = 3;
-        Headers      blockHeaders = 4;
-        ChunkRecords chunkRecords = 5;
-        bytes        addrInfo     = 6;
+        BlockBody    blockBody    = 5;
+        Headers      blockHeaders = 6;
+        ChunkRecords chunkRecords = 7;
         //新的协议可以继续添加response类型
-        Reply  reply      = 7;
-        Header lastHeader = 8;
+        NodeInfo nodeInfo = 8;
+        // Reply reply = 8;
     }
+}
+
+message NodeInfo {
+    bool  answer = 1;
+    int64 height = 2;
+}
+
+message PeerInfo {
+    bytes    ID              = 1;
+    repeated bytes MultiAddr = 2;
 }
 
 /**
@@ -315,4 +337,18 @@ message RemoveTopicReply {
     string topic  = 1;
     bool   status = 2;
     string msg    = 3;
+}
+
+/**
+ *dht protos 网络带宽信息
+ */
+message NetProtocolInfos {
+    repeated ProtocolInfo protoinfo = 1;
+}
+
+message ProtocolInfo {
+    string protocol  = 1;
+    string ratein    = 2;
+    string rateout   = 3;
+    string ratetotal = 4;
 }

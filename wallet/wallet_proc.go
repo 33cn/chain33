@@ -160,6 +160,23 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	return signedTx, nil
 }
 
+// ProcGetAccount 通过地址标签获取账户地址
+func (wallet *Wallet) ProcGetAccount(req *types.ReqGetAccount) (*types.WalletAccount, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	accStore, err := wallet.walletStore.GetAccountByLabel(req.GetLabel())
+	if err != nil {
+		return nil, err
+	}
+
+	accs, err := wallet.accountdb.LoadAccounts(wallet.api, []string{accStore.GetAddr()})
+	if err != nil {
+		return nil, err
+	}
+	return &types.WalletAccount{Label: accStore.GetLabel(), Acc: accs[0]}, nil
+
+}
+
 // ProcGetAccountList 获取钱包账号列表
 //output:
 //type WalletAccounts struct {
@@ -749,6 +766,8 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 			toAddr = address.ExecAddress(string(exec))
 		}
 		tx := &types.Transaction{Execer: exec, Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: toAddr, Nonce: wallet.random.Int63()}
+		tx.ChainID = cfg.GetChainID()
+
 		tx.SetExpire(cfg, time.Second*120)
 		tx.Sign(int32(wallet.SignType), priv)
 		//walletlog.Info("ProcMergeBalance", "tx.Nonce", tx.Nonce, "tx", tx, "index", index)

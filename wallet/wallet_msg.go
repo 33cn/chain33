@@ -96,6 +96,15 @@ func (wallet *Wallet) On_WalletSetLabel(req *types.ReqWalletSetLabel) (types.Mes
 	return reply, err
 }
 
+// On_WalletGetAccount 通过账户标签获取账户地址
+func (wallet *Wallet) On_WalletGetAccount(req *types.ReqGetAccount) (types.Message, error) {
+	reply, err := wallet.ProcGetAccount(req)
+	if err != nil {
+		walletlog.Error("On_WalletGetAccount", "err", err.Error())
+	}
+	return reply, err
+}
+
 // On_WalletMergeBalance 响应钱包合并金额
 func (wallet *Wallet) On_WalletMergeBalance(req *types.ReqWalletMergeBalance) (types.Message, error) {
 	reply, err := wallet.ProcMergeBalance(req)

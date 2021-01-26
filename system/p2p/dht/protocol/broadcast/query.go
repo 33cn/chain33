@@ -11,30 +11,29 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (protocol *broadCastProtocol) sendQueryData(query *types.P2PQueryData, p2pData *types.BroadCastData, peerAddr string) bool {
-	log.Debug("P2PSendQueryData", "peerAddr", peerAddr)
+func (p *broadcastProtocol) sendQueryData(query *types.P2PQueryData, p2pData *types.BroadCastData, pid string) bool {
+	log.Debug("P2PSendQueryData", "pid", pid)
 	p2pData.Value = &types.BroadCastData_Query{Query: query}
 	return true
 }
 
-func (protocol *broadCastProtocol) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCastData, peerAddr string) bool {
-	log.Debug("P2PSendQueryReply", "peerAddr", peerAddr)
+func (p *broadcastProtocol) sendQueryReply(rep *types.P2PBlockTxReply, p2pData *types.BroadCastData, pid string) bool {
+	log.Debug("P2PSendQueryReply", "pid", pid)
 	p2pData.Value = &types.BroadCastData_BlockRep{BlockRep: rep}
 	return true
 }
 
-func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid peer.ID, peerAddr string) error {
+func (p *broadcastProtocol) recvQueryData(query *types.P2PQueryData, pid, peerAddr, version string) error {
 
 	var reply interface{}
 	if txReq := query.GetTxReq(); txReq != nil {
 
 		txHash := hex.EncodeToString(txReq.TxHash)
-		log.Debug("recvQueryTx", "txHash", txHash, "pid", pid.Pretty())
+		log.Debug("recvQueryTx", "txHash", txHash, "pid", pid)
 		//向mempool请求交易
-		resp, err := protocol.QueryMempool(types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
+		resp, err := p.P2PEnv.QueryModule("mempool", types.EventTxListByHash, &types.ReqTxHashList{Hashes: []string{string(txReq.TxHash)}})
 		if err != nil {
 			log.Error("recvQuery", "queryMempoolErr", err)
 			return errQueryMempool
@@ -50,13 +49,15 @@ func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid 
 		//再次发送完整交易至节点, ttl重设为1
 		p2pTx.Route = &types.P2PRoute{TTL: 1}
 		reply = p2pTx
+		// 轻广播交易需要再次发送交易，删除发送过滤相关记录，确保不被拦截
+		removeIgnoreSendPeerAtomic(p.txSendFilter, txHash, pid)
 
 	} else if blcReq := query.GetBlockTxReq(); blcReq != nil {
 
 		log.Debug("recvQueryBlockTx", "hash", blcReq.BlockHash, "queryCount", len(blcReq.TxIndices), "pid", pid)
 		blcHash, _ := common.FromHex(blcReq.BlockHash)
 		if blcHash != nil {
-			resp, err := protocol.QueryBlockChain(types.EventGetBlockByHashes, &types.ReqHashes{Hashes: [][]byte{blcHash}})
+			resp, err := p.P2PEnv.QueryModule("blockchain", types.EventGetBlockByHashes, &types.ReqHashes{Hashes: [][]byte{blcHash}})
 			if err != nil {
 				log.Error("recvQueryBlockTx", "queryBlockChainErr", err)
 				return errQueryBlockChain
@@ -81,19 +82,18 @@ func (protocol *broadCastProtocol) recvQueryData(query *types.P2PQueryData, pid 
 	}
 
 	if reply != nil {
-		_, err := protocol.sendPeer(pid, reply, false)
-		if err != nil {
+		if err := p.sendPeer(reply, pid, version); err != nil {
 			log.Error("recvQueryData", "pid", pid, "addr", peerAddr, "err", err)
-			return errSendStream
+			return errSendPeer
 		}
 	}
 	return nil
 }
 
-func (protocol *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid peer.ID, peerAddr string) (err error) {
+func (p *broadcastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid, peerAddr, version string) (err error) {
 
-	log.Debug("recvQueryReply", "hash", rep.BlockHash, "queryTxsCount", len(rep.GetTxIndices()), "pid", pid.Pretty())
-	val, exist := protocol.ltBlockCache.Remove(rep.BlockHash)
+	log.Debug("recvQueryReply", "hash", rep.BlockHash, "queryTxsCount", len(rep.GetTxIndices()), "pid", pid)
+	val, exist := p.ltBlockCache.Remove(rep.BlockHash)
 	block, _ := val.(*types.Block)
 	//not exist in cache or nil block
 	if !exist || block == nil {
@@ -110,10 +110,10 @@ func (protocol *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pi
 	}
 
 	//计算的root hash是否一致
-	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(protocol.BaseProtocol.ChainCfg, block.GetHeight(), block.Txs)) {
+	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(p.ChainCfg, block.GetHeight(), block.Txs)) {
 		log.Debug("recvQueryReply", "height", block.GetHeight())
 		//发送至blockchain执行
-		if err := protocol.postBlockChain(rep.BlockHash, pid, block); err != nil {
+		if err := p.postBlockChain(rep.BlockHash, pid, block); err != nil {
 			log.Error("recvQueryReply", "height", block.GetHeight(), "send block to blockchain Error", err.Error())
 			return errSendBlockChain
 		}
@@ -137,14 +137,13 @@ func (protocol *broadCastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pi
 		},
 	}
 	block.Txs = nil
-	protocol.ltBlockCache.Add(rep.BlockHash, block, block.Size())
+	p.ltBlockCache.Add(rep.BlockHash, block, block.Size())
 	//query peer
-	_, err = protocol.sendPeer(pid, query, false)
-	if err != nil {
+	if err = p.sendPeer(query, pid, version); err != nil {
 		log.Error("recvQueryReply", "pid", pid, "addr", peerAddr, "err", err)
-		protocol.ltBlockCache.Remove(rep.BlockHash)
-		protocol.blockFilter.Remove(rep.BlockHash)
-		return errSendStream
+		p.ltBlockCache.Remove(rep.BlockHash)
+		p.blockFilter.Remove(rep.BlockHash)
+		return errSendPeer
 	}
 	return
 }

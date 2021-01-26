@@ -5,14 +5,23 @@
 package broadcast
 
 import (
+	"context"
+	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"testing"
+
+	net "github.com/33cn/chain33/system/p2p/dht/extension"
+	"github.com/libp2p/go-libp2p"
+	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/multiformats/go-multiaddr"
 
 	"github.com/33cn/chain33/client"
 	commlog "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -37,8 +46,28 @@ var (
 		Txs:    txList,
 	}
 	testAddr   = "testPeerAddr"
+	testPidStr = "16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U"
 	testPid, _ = peer.Decode("16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U")
 )
+
+func newHost(port int32) core.Host {
+	priv, _, _ := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
+	if err != nil {
+		return nil
+	}
+
+	host, err := libp2p.New(context.Background(),
+		libp2p.ListenAddrs(m),
+		libp2p.Identity(priv),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return host
+}
 
 func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
@@ -54,25 +83,26 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 	env := &prototypes.P2PEnv{
 		ChainCfg:        cfg,
 		QueueClient:     q.Client(),
-		Host:            nil,
+		Host:            newHost(13902),
 		ConnManager:     nil,
 		PeerInfoManager: nil,
-		Discovery:       nil,
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
+		Ctx:             context.Background(),
 	}
+	env.Pubsub, _ = net.NewPubSub(env.Ctx, env.Host)
 	return env
 }
 
-func newTestProtocolWithQueue(q queue.Queue) *broadCastProtocol {
+func newTestProtocolWithQueue(q queue.Queue) *broadcastProtocol {
 	env := newTestEnv(q)
-	protocol := &broadCastProtocol{}
 	prototypes.ClearEventHandler()
-	protocol.InitProtocol(env)
-	return protocol
+	p := &broadcastProtocol{}
+	p.init(env)
+	return p
 }
 
-func newTestProtocol() *broadCastProtocol {
+func newTestProtocol() *broadcastProtocol {
 
 	q := queue.New("test")
 	return newTestProtocolWithQueue(q)
@@ -85,14 +115,14 @@ func TestBroadCastProtocol_InitProtocol(t *testing.T) {
 	assert.Equal(t, defaultLtTxBroadCastTTL, int(protocol.p2pCfg.LightTxTTL))
 }
 
-func testHandleEvent(protocol *broadCastProtocol, msg *queue.Message) {
+func testHandleEvent(protocol *broadcastProtocol, msg *queue.Message) {
 
 	defer func() {
 		if r := recover(); r != nil {
 		}
 	}()
 
-	protocol.handleEvent(msg)
+	protocol.handleBroadCastEvent(msg)
 }
 
 func TestBroadCastEvent(t *testing.T) {
@@ -105,22 +135,14 @@ func TestBroadCastEvent(t *testing.T) {
 	for _, msg := range msgs {
 		testHandleEvent(protocol, msg)
 	}
-	val, ok := protocol.txFilter.Get(hex.EncodeToString((&types.Transaction{}).Hash()))
+	_, ok := protocol.txFilter.Get(hex.EncodeToString((&types.Transaction{}).Hash()))
 	assert.True(t, ok)
-	assert.True(t, val.(bool))
-	val, ok = protocol.blockFilter.Get(hex.EncodeToString((&types.Block{}).Hash(protocol.ChainCfg)))
+	_, ok = protocol.blockFilter.Get(hex.EncodeToString((&types.Block{}).Hash(protocol.ChainCfg)))
 	assert.True(t, ok)
-	assert.True(t, val.(bool))
 }
 
 func Test_util(t *testing.T) {
 	proto := newTestProtocol()
-	handler := &broadCastHandler{}
-	handler.BaseStreamHandler = &prototypes.BaseStreamHandler{}
-	handler.SetProtocol(proto)
-	ok := handler.VerifyRequest(nil, nil)
-	assert.True(t, ok)
-
 	exist := addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid1")
 	assert.False(t, exist)
 	exist = addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid2")

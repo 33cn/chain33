@@ -91,20 +91,60 @@ func (block *Block) getHeaderHashNew() *Header {
 	return head
 }
 
-// CheckSign 检测block的签名
-func (block *Block) CheckSign(cfg *Chain33Config) bool {
+// VerifySignature 验证区块和交易的签名,支持指定需要验证的交易
+func VerifySignature(cfg *Chain33Config, block *Block, txs []*Transaction) bool {
 	//检查区块的签名
-	if block.Signature != nil {
-		hash := block.Hash(cfg)
-		sign := block.GetSignature()
-		if !CheckSign(hash, "", sign) {
+	if !block.verifySignature(cfg) {
+		return false
+	}
+	//检查交易的签名
+	return verifyTxsSignature(txs)
+}
+
+// CheckSign 检测block的签名,以及交易的签名
+func (block *Block) CheckSign(cfg *Chain33Config) bool {
+	return VerifySignature(cfg, block, block.Txs)
+}
+
+func (block *Block) verifySignature(cfg *Chain33Config) bool {
+	if block.GetSignature() == nil {
+		return true
+	}
+	hash := block.Hash(cfg)
+	return CheckSign(hash, "", block.GetSignature())
+}
+
+func verifyTxsSignature(txs []*Transaction) bool {
+
+	//没有需要要验签的交易，直接返回
+	if len(txs) == 0 {
+		return true
+	}
+	done := make(chan struct{})
+	defer close(done)
+	taskes := gen(done, txs)
+	cpuNum := runtime.NumCPU()
+	// Start a fixed number of goroutines to read and digest files.
+	c := make(chan result) // HLc
+	var wg sync.WaitGroup
+	wg.Add(cpuNum)
+	for i := 0; i < cpuNum; i++ {
+		go func() {
+			checksign(done, taskes, c) // HLc
+			wg.Done()
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(c) // HLc
+	}()
+	// End of pipeline. OMIT
+	for r := range c {
+		if !r.isok {
 			return false
 		}
 	}
-	//检查交易的签名
-	cpu := runtime.NumCPU()
-	ok := checkAll(block.Txs, cpu)
-	return ok
+	return true
 }
 
 func gen(done <-chan struct{}, task []*Transaction) <-chan *Transaction {
@@ -140,35 +180,6 @@ func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result
 			return
 		}
 	}
-}
-
-func checkAll(task []*Transaction, n int) bool {
-	done := make(chan struct{})
-	defer close(done)
-
-	taskes := gen(done, task)
-
-	// Start a fixed number of goroutines to read and digest files.
-	c := make(chan result) // HLc
-	var wg sync.WaitGroup
-	wg.Add(n)
-	for i := 0; i < n; i++ {
-		go func() {
-			checksign(done, taskes, c) // HLc
-			wg.Done()
-		}()
-	}
-	go func() {
-		wg.Wait()
-		close(c) // HLc
-	}()
-	// End of pipeline. OMIT
-	for r := range c {
-		if !r.isok {
-			return false
-		}
-	}
-	return true
 }
 
 // CheckSign 检测签名

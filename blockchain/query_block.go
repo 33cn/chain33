@@ -45,11 +45,11 @@ func (chain *BlockChain) ProcGetBlockHash(height *types.ReqInt) (*types.ReplyHas
 		return nil, types.ErrInvalidParam
 	}
 	var ReplyHash types.ReplyHash
-	block, err := chain.GetBlock(height.GetHeight())
+	var err error
+	ReplyHash.Hash, err = chain.blockStore.GetBlockHashByHeight(height.GetHeight())
 	if err != nil {
 		return nil, err
 	}
-	ReplyHash.Hash = block.Block.Hash(chain.client.GetConfig())
 	return &ReplyHash, nil
 }
 
@@ -243,7 +243,8 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail, pid string) (*types.BlockDetail, error) {
 	beg := types.Now()
 	defer func() {
-		chainlog.Debug("ProcAddBlockMsg", "cost", types.Since(beg))
+		chainlog.Debug("ProcAddBlockMsg", "height", blockdetail.GetBlock().GetHeight(),
+			"txCount", blockdetail.GetBlock().GetHeight(), "recvFrom", pid, "cost", types.Since(beg))
 	}()
 
 	block := blockdetail.Block

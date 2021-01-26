@@ -35,8 +35,20 @@ var (
 	errQueryBlockChain  = errors.New("errQueryBlockChain")
 	errRecvBlockChain   = errors.New("errRecvBlockChain")
 	errRecvMempool      = errors.New("errRecvMempool")
-	errSendStream       = errors.New("errSendStream")
+	errSendPeer         = errors.New("errSendPeer")
 	errSendBlockChain   = errors.New("errSendBlockChain")
 	errBuildBlockFailed = errors.New("errBuildBlockFailed")
 	errLtBlockNotExist  = errors.New("errLtBlockNotExist")
+)
+
+// 常量字符串
+
+const (
+	bcTopic      = "broadcast"
+	broadcastTag = "broadcast-tag"
+)
+
+// pubsub error
+var (
+	errSnappyDecode = errors.New("errSnappyDecode")
 )

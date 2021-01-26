@@ -14,6 +14,7 @@ import (
 
 	"fmt"
 
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/types/chaincfg"
 	tml "github.com/BurntSushi/toml"
 )
@@ -46,16 +47,18 @@ const (
 
 //Chain33Config ...
 type Chain33Config struct {
-	mcfg            *Config
-	scfg            *ConfigSubModule
-	minerExecs      []string
-	title           string
+	mcfg       *Config
+	scfg       *ConfigSubModule
+	minerExecs []string
+	title      string
+
 	mu              sync.Mutex
 	chainConfig     map[string]interface{}
 	mver            *mversion
 	coinSymbol      string
 	forks           *Forks
 	enableCheckFork bool
+	chainID         int32
 }
 
 //ChainParam 结构体
@@ -104,25 +107,8 @@ func RegExecInit(cfg *Chain33Config) {
 
 //NewChain33Config ...
 func NewChain33Config(cfgstring string) *Chain33Config {
-	cfg, sub := InitCfgString(cfgstring)
-	chain33Cfg := &Chain33Config{
-		mcfg:            cfg,
-		scfg:            sub,
-		minerExecs:      []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
-		title:           cfg.Title,
-		chainConfig:     make(map[string]interface{}),
-		coinSymbol:      "bty",
-		forks:           &Forks{make(map[string]int64)},
-		enableCheckFork: true,
-	}
-	// 先将每个模块的fork初始化到Chain33Config中，然后如果需要再将toml中的替换
-	chain33Cfg.setDefaultConfig()
-	chain33Cfg.setFlatConfig(cfgstring)
-	chain33Cfg.setMver(cfgstring)
-	// TODO 需要测试是否与NewChain33Config分开
-	RegForkInit(chain33Cfg)
-	RegExecInit(chain33Cfg)
-	chain33Cfg.chain33CfgInit(cfg)
+	chain33Cfg := NewChain33ConfigNoInit(cfgstring)
+	chain33Cfg.chain33CfgInit(chain33Cfg.mcfg)
 	return chain33Cfg
 }
 
@@ -137,6 +123,7 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 		chainConfig: make(map[string]interface{}),
 		coinSymbol:  "bty",
 		forks:       &Forks{make(map[string]int64)},
+		chainID:     cfg.ChainID,
 	}
 	// 先将每个模块的fork初始化到Chain33Config中，然后如果需要再将toml中的替换
 	chain33Cfg.setDefaultConfig()
@@ -145,6 +132,10 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 	// TODO 需要测试是否与NewChain33Config分开
 	RegForkInit(chain33Cfg)
 	RegExecInit(chain33Cfg)
+
+	//设置生成账户地址的版本号
+	address.SetNormalAddrVer(cfg.AddrVer)
+
 	return chain33Cfg
 }
 
@@ -184,7 +175,6 @@ func (c *Chain33Config) setDefaultConfig() {
 	if !c.HasConf("cfg.local") {
 		c.S("cfg.local", "")
 	}
-	c.S("TxHeight", false)
 }
 
 func (c *Chain33Config) setFlatConfig(cfgstring string) {
@@ -256,11 +246,12 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 				c.coinSymbol = DefaultCoinsSymbol
 			}
 		}
+		//TxHeight
+		c.setChainConfig("TxHeight", cfg.TxHeight)
 	}
 	if c.needSetForkZero() { //local 只用于单元测试
 		if c.isLocal() {
 			c.forks.setLocalFork()
-			c.setChainConfig("TxHeight", true)
 			c.setChainConfig("Debug", true)
 		} else {
 			c.forks.setForkForParaZero()
@@ -887,4 +878,11 @@ func AssertConfig(check interface{}) {
 	if check == nil {
 		panic("check object is nil (Chain33Config)")
 	}
+}
+
+// GetChainID 获取链ID,提供给其他模块使用
+func (c *Chain33Config) GetChainID() int32 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.chainID
 }

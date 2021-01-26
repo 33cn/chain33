@@ -58,6 +58,7 @@ type TxResult struct {
 	Header     string              `json:"header,omitempty"`
 	Next       string              `json:"next,omitempty"`
 	Hash       string              `json:"hash,omitempty"`
+	ChainID    int32               `json:"chainID,"`
 }
 
 // ReceiptAccountTransfer defines receipt account transfer

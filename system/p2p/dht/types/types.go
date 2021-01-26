@@ -27,30 +27,20 @@ type P2PSubConfig struct {
 	//轻广播本地区块缓存大小, 单位M
 	LtBlockCacheSize int32 `protobuf:"varint,9,opt,name=ltBlockCacheSize" json:"ltBlockCacheSize,omitempty"`
 
-	//中继传输主动建立连接，中继服务端可以选配
-	/*
+	//中继传输主动建立连接，中继服务端可以选配，启动中继服务之后，NAT后面的节点可以通过中继节点广播自己的节点地址信息
 
-		    a config RelayDiscovery
-		    b config RelayHop,RelayActive
-		    c config nothing
-			a->b a connect b
-			a.DialPeer(b,c) will success
-			if b just config RelayHop,a->b a connect b
-			a.DialPeer(b,c) will failed
-		    if  b just config RelayHop,a->b,b->c
-			a.DialPeer(b,c) will success
-	*/
-	RelayActive bool `protobuf:"varint,10,opt,name=relayActive" json:"relayActive,omitempty"`
-	//接受其他节点发过来的中继请求，中继服务端必须配置
-	RelayHop bool `protobuf:"varint,11,opt,name=relayHop" json:"relayHop,omitempty"`
-	//发现新的中继节点，中继客户端端必须配置
-	RelayDiscovery      bool `protobuf:"varint,12,opt,name=relayDiscovery" json:"relayDiscovery,omitempty"`
-	DisableFindLANPeers bool `protobuf:"varint,13,opt,name=disableFindLANPeers" json:"disableFindLANPeers,omitempty"`
-
-	DHTDataDriver string `protobuf:"bytes,14,opt,name=DHTDataDriver" json:"DHTDataDriver,omitempty"`
-	DHTDataPath   string `protobuf:"bytes,15,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
-	DHTDataCache  int32  `protobuf:"varint,16,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
-
+	RelayHop            bool   `protobuf:"varint,10,opt,name=relayHop" json:"relayHop,omitempty"`
+	DisableFindLANPeers bool   `protobuf:"varint,11,opt,name=disableFindLANPeers" json:"disableFindLANPeers,omitempty"`
+	DHTDataPath         string `protobuf:"bytes,13,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
+	DHTDataCache        int32  `protobuf:"varint,14,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
 	//是否开启全节点模式
-	IsFullNode bool `protobuf:"varint,17,opt,name=isFullNode" json:"isFullNode,omitempty"`
+	IsFullNode bool `protobuf:"varint,15,opt,name=isFullNode" json:"isFullNode,omitempty"`
+	//老版本最大广播节点数
+	MaxBroadcastPeers int `protobuf:"varint,16,opt,name=maxBroadcastPeers" json:"maxBroadcastPeers,omitempty"`
+	//pub sub消息是否需要签名和验签
+	DisablePubSubMsgSign bool `protobuf:"varint,17,opt,name=disablePubSubMsgSign" json:"disablePubSubMsgSign,omitempty"`
+	//是否启用中继功能，如果自己身NAT后面的节点，RelayEnable=true，则仍有可能被其他节点连接。
+	RelayEnable bool `protobuf:"varint,18,opt,name=relayEnable" json:"relayEnable,omitempty"`
+	//指定中继节点作为
+	RelayNodeAddr []string `protobuf:"varint,19,opt,name=relayNodeAddr" json:"relayNodeAddr,omitempty"`
 }

@@ -81,4 +81,5 @@ message VersionInfo {
     string app     = 2;
     string chain33 = 3;
     string localDb = 4;
+    int32  chainID = 5;
 }
