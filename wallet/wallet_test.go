@@ -31,16 +31,15 @@ func init() {
 	SetLogLevel("err")
 }
 
-func initEnv() (*Wallet, queue.Module, queue.Queue, string) {
+func initEnv(q queue.Queue) (*Wallet, queue.Module, string) {
 	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
-	var q = queue.New("channel")
 	q.SetConfig(cfg)
 	wallet := New(cfg)
 	wallet.SetQueueClient(q.Client())
 	store := store.New(cfg)
 	store.SetQueueClient(q.Client())
 
-	return wallet, store, q, cfg.GetModuleConfig().Wallet.DbPath
+	return wallet, store, cfg.GetModuleConfig().Wallet.DbPath
 }
 
 var (
@@ -57,9 +56,11 @@ var (
 
 func blockchainModProc(q queue.Queue) {
 	//store
+	waitStart := make(chan struct{}, 1)
 	go func() {
 		client := q.Client()
 		client.Sub("blockchain")
+		waitStart <- struct{}{}
 		for msg := range client.Recv() {
 			walletlog.Error("blockchain", "msg.Ty", msg.Ty, "name", types.GetEventName(int(msg.Ty)))
 			if msg.Ty == types.EventGetLastHeader {
@@ -124,6 +125,7 @@ func blockchainModProc(q queue.Queue) {
 			}
 		}
 	}()
+	<-waitStart
 }
 
 func mempoolModProc(q queue.Queue) {
@@ -165,13 +167,14 @@ func TestAll(t *testing.T) {
 }
 
 func testAllWallet(t *testing.T) {
-	wallet, store, q, datapath := initEnv()
+	var q = queue.New("channel")
+	//启动blockchain模块
+	blockchainModProc(q)
+	wallet, store, datapath := initEnv(q)
 	defer os.RemoveAll("datadir") // clean up
 	defer wallet.Close()
 	defer store.Close()
 
-	//启动blockchain模块
-	blockchainModProc(q)
 	mempoolModProc(q)
 
 	testSeed(t, wallet)
@@ -210,13 +213,14 @@ func testAllWallet(t *testing.T) {
 }
 
 func testWalletImportPrivkeysFile(t *testing.T) {
-	wallet, store, q, _ := initEnv()
+	var q = queue.New("channel")
+	//启动blockchain模块
+	blockchainModProc(q)
+	wallet, store, _ := initEnv(q)
 	defer os.RemoveAll("datadir") // clean up
 	defer wallet.Close()
 	defer store.Close()
 
-	//启动blockchain模块
-	blockchainModProc(q)
 	mempoolModProc(q)
 
 	testSeed(t, wallet)
@@ -224,13 +228,15 @@ func testWalletImportPrivkeysFile(t *testing.T) {
 }
 
 func testWalletImportPrivkeysFile2(t *testing.T) {
-	wallet, store, q, _ := initEnv()
+
+	var q = queue.New("channel")
+	//启动blockchain模块
+	blockchainModProc(q)
+	wallet, store, _ := initEnv(q)
 	defer os.RemoveAll("datadir") // clean up
 	defer wallet.Close()
 	defer store.Close()
 
-	//启动blockchain模块
-	blockchainModProc(q)
 	mempoolModProc(q)
 
 	testSeed(t, wallet)
@@ -981,13 +987,14 @@ func testCreateNewAccountByIndex(t *testing.T, wallet *Wallet) {
 }
 
 func TestInitSeedLibrary(t *testing.T) {
-	wallet, store, q, _ := initEnv()
+	var q = queue.New("channel")
+	//启动blockchain模块
+	blockchainModProc(q)
+	wallet, store, _ := initEnv(q)
 	defer os.RemoveAll("datadir") // clean up
 	defer wallet.Close()
 	defer store.Close()
 
-	//启动blockchain模块
-	blockchainModProc(q)
 	mempoolModProc(q)
 
 	InitSeedLibrary()
