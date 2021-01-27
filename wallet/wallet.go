@@ -293,6 +293,10 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	if err != nil {
 		panic("SetQueueClient client.New err")
 	}
+	//启动时触发获取last header，避免下游获取nil lastHeader
+	if err := wallet.updateLastHeader(nil, 1); err != nil {
+		panic("getLastHeader err:" + err.Error())
+	}
 	sub := cli.GetConfig().GetSubConfig().Wallet
 	// 置完client之后才做Init
 	wcom.Init(wallet, sub)
