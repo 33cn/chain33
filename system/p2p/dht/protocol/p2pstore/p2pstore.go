@@ -30,6 +30,7 @@ const (
 const maxConcurrency = 10
 
 var log = log15.New("module", "protocol.p2pstore")
+var backup = 20
 
 //Protocol ...
 type Protocol struct {
@@ -62,6 +63,10 @@ func InitProtocol(env *protocol.P2PEnv) {
 		P2PEnv:                   env,
 		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue*2, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 		notifyingQueue:           make(chan *types.ChunkInfoMsg, 1024),
+	}
+	//
+	if env.SubConfig.Backup > 1 {
+		backup = env.SubConfig.Backup
 	}
 	// RoutingTable更新时同时更新ShardHealthyRoutingTable
 	p.RoutingTable.PeerRemoved = func(id peer.ID) {

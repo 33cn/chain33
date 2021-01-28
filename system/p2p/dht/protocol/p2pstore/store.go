@@ -17,7 +17,6 @@ const (
 	ChunkNameSpace    = "chunk"
 	ChunkPrefix       = "chunk-"
 	AlphaValue        = 3
-	Backup            = 100
 )
 
 //LocalChunkInfo wraps local chunk key with time.
