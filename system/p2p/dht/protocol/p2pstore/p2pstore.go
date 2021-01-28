@@ -60,7 +60,7 @@ func init() {
 func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
 		P2PEnv:                   env,
-		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
+		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue*2, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 		notifyingQueue:           make(chan *types.ChunkInfoMsg, 1024),
 	}
 	// RoutingTable更新时同时更新ShardHealthyRoutingTable
@@ -225,11 +225,13 @@ func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
 		time.Sleep(time.Second)
 	}
 	ticker := time.NewTicker(time.Minute * 5)
-	select {
-	case <-p.Ctx.Done():
-		return
-	case <-ticker.C:
-		updateFunc()
+	for {
+		select {
+		case <-p.Ctx.Done():
+			return
+		case <-ticker.C:
+			updateFunc()
+		}
 	}
 }
 
