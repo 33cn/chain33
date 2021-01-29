@@ -45,4 +45,6 @@ type P2PSubConfig struct {
 	RelayEnable bool `protobuf:"varint,18,opt,name=relayEnable" json:"relayEnable,omitempty"`
 	//指定中继节点作为
 	RelayNodeAddr []string `protobuf:"varint,19,opt,name=relayNodeAddr" json:"relayNodeAddr,omitempty"`
+	// 不启动分片功能，默认启动
+	DisableShard bool `protobuf:"varint,120,opt,name=disableShard" json:"disableShard,omitempty"`
 }
