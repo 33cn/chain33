@@ -129,6 +129,29 @@ func (c *Chain33) SendTransaction(in rpctypes.RawParm, result *interface{}) erro
 	return err
 }
 
+// SendTransactionSync send transaction and wait reply
+func (c *Chain33) SendTransactionSync(in rpctypes.RawParm, result *interface{}) error {
+	err := c.SendTransaction(in, result)
+	if err != nil {
+		return err
+	}
+	hash := (*result).(string)
+	param := rpctypes.QueryParm{Hash: hash}
+	var res interface{}
+	for i := 0; i < 100; i++ {
+		err = c.QueryTransaction(param, &res)
+		if err == types.ErrInvalidParam || err == types.ErrTypeAsset {
+			return err
+		}
+		if _, ok := (res).(*rpctypes.TransactionDetail); ok {
+			return nil
+		}
+		time.Sleep(time.Second / 3)
+	}
+
+	return types.ErrTimeout
+}
+
 // GetHexTxByHash get hex transaction by hash
 func (c *Chain33) GetHexTxByHash(in rpctypes.QueryParm, result *interface{}) error {
 	var data types.ReqHash
