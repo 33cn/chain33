@@ -30,6 +30,7 @@ const (
 const maxConcurrency = 10
 
 var log = log15.New("module", "protocol.p2pstore")
+var backup = 20
 
 //Protocol ...
 type Protocol struct {
@@ -63,6 +64,10 @@ func InitProtocol(env *protocol.P2PEnv) {
 		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue*2, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 		notifyingQueue:           make(chan *types.ChunkInfoMsg, 1024),
 	}
+	//
+	if env.SubConfig.Backup > 1 {
+		backup = env.SubConfig.Backup
+	}
 	// RoutingTable更新时同时更新ShardHealthyRoutingTable
 	p.RoutingTable.PeerRemoved = func(id peer.ID) {
 		p.ShardHealthyRoutingTable.Remove(id)
@@ -73,11 +78,13 @@ func InitProtocol(env *protocol.P2PEnv) {
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p.Host, fetchShardPeer, protocol.HandlerWithRW(p.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p.Host, getHeaderOld, p.handleStreamGetHeaderOld)
-	protocol.RegisterStreamHandler(p.Host, fullNode, protocol.HandlerWithWrite(p.handleStreamIsFullNode))
-	protocol.RegisterStreamHandler(p.Host, fetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p.Host, storeChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p.Host, getHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
-	protocol.RegisterStreamHandler(p.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
+	if !p.SubConfig.DisableShard {
+		protocol.RegisterStreamHandler(p.Host, fullNode, protocol.HandlerWithWrite(p.handleStreamIsFullNode))
+		protocol.RegisterStreamHandler(p.Host, fetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
+		protocol.RegisterStreamHandler(p.Host, storeChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
+		protocol.RegisterStreamHandler(p.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
+	}
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
 	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, p.handleEventNotifyStoreChunk)
 	protocol.RegisterEventHandler(types.EventGetChunkBlock, p.handleEventGetChunkBlock)

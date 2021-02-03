@@ -1637,3 +1637,107 @@ func TestChain33_QueryTotalFee(t *testing.T) {
 	assert.Equal(t, total.Fee, queryTotalFee(client, req1, t))
 	assert.True(t, bytes.Equal(req.Keys[0], req1.Keys[0]))
 }
+
+func TestChain33_GetSequenceByHash(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	api.On("GetSequenceByHash", mock.Anything).Return(&types.Int64{}, nil)
+	var testResult interface{}
+	err := client.GetSequenceByHash(rpctypes.ReqHashes{Hashes: []string{"testhash"}}, &testResult)
+	assert.Error(t, err)
+	hash := "0x06a9f4ae07dd8a9b5f7f01ed23084880209d5ddff7195a8515ce43da218e8aa7"
+	err = client.GetSequenceByHash(rpctypes.ReqHashes{Hashes: []string{hash}}, &testResult)
+	assert.Nil(t, err)
+
+}
+
+func TestChain33_GetBlockBySeq(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	api.On("GetBlockBySeq", mock.Anything).Return(&types.BlockSeq{Num: 12345, Seq: &types.BlockSequence{Type: 1, Hash: []byte("1111")}}, nil)
+	var testResult interface{}
+	err := client.GetBlockBySeq(types.Int64{Data: 11}, &testResult)
+	assert.Nil(t, err)
+
+}
+
+func TestChain33_GetParaTxByTitle(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	api.On("GetParaTxByTitle", mock.Anything).Return(&types.ParaTxDetails{Items: []*types.ParaTxDetail{}}, nil)
+	var testResult interface{}
+	err := client.GetParaTxByTitle(types.ReqParaTxByTitle{Start: 11, End: 11, Title: "2323"}, &testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_LoadParaTxByTitle(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	api.On("LoadParaTxByTitle", mock.Anything).Return(&types.ReplyHeightByTitle{}, nil)
+	var testResult interface{}
+	err := client.LoadParaTxByTitle(types.ReqHeightByTitle{}, &testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_GetParaTxByHeight(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	api.On("GetParaTxByHeight", mock.Anything).Return(&types.ParaTxDetails{}, nil)
+	var testResult interface{}
+	err := client.GetParaTxByHeight(types.ReqParaTxByHeight{}, &testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_QueryChain(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	api.On("QueryChain", mock.Anything).Return(nil, types.ErrInvalidParam)
+	var testResult interface{}
+	err := client.QueryChain(rpctypes.ChainExecutor{}, &testResult)
+	assert.NotNil(t, err)
+}
+
+func TestChain33_convertParaTxDetails(t *testing.T) {
+
+	var details types.ParaTxDetails
+	var detail types.ParaTxDetail
+	details.Items = append(details.Items, &detail)
+	detail.Type = 123
+	txhash := "0x7feb86911f2143b992c5d543cc7314f24c3f94535f1beb38f781f2a0d72ae918"
+	hashBs, err := common.FromHex(txhash)
+	assert.Nil(t, err)
+	detail.Header = &types.Header{Height: 555, BlockTime: 39169, TxHash: hashBs}
+	var rmsg rpctypes.ParaTxDetails
+	convertParaTxDetails(&details, &rmsg)
+	assert.Equal(t, 555, int(rmsg.Items[0].Header.Height))
+	assert.Equal(t, 39169, int(rmsg.Items[0].Header.BlockTime))
+	assert.Equal(t, txhash, rmsg.Items[0].Header.TxHash)
+}
+
+func TestChain33_convertHeader(t *testing.T) {
+	var header types.Header
+	var reheader rpctypes.Header
+	header.TxHash, _ = hex.DecodeString("7feb86911f2143b992c5d543cc7314f24c3f94535f1beb38f781f2a0d72ae918")
+	header.Height = 666
+	header.BlockTime = 1234567
+	header.Signature = nil
+	header.TxCount = 9
+	convertHeader(&header, &reheader)
+	assert.Equal(t, "0x7feb86911f2143b992c5d543cc7314f24c3f94535f1beb38f781f2a0d72ae918", reheader.TxHash)
+	assert.Equal(t, header.GetTxCount(), reheader.TxCount)
+	assert.Equal(t, header.GetBlockTime(), reheader.BlockTime)
+	assert.Equal(t, header.GetHeight(), reheader.Height)
+
+}
