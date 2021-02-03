@@ -22,6 +22,8 @@ service chain33 {
     rpc CreateRawTxGroup(CreateTransactionGroup) returns (UnsignTx) {}
     // 根据哈希查询交易
     rpc QueryTransaction(ReqHash) returns (TransactionDetail) {}
+    // 发送交易&&根据哈希查询交易
+    rpc SendTransactionSync(Transaction) returns (Reply) {}
     // 发送交易
     rpc SendTransaction(Transaction) returns (Reply) {}
 

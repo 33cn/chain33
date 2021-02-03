@@ -202,4 +202,5 @@ var (
 	ErrTxReceiptReduced   = errors.New("ErrTxReceiptReduced")
 	ErrPushNotSubscribed  = errors.New("ErrPushNotSubscribed")
 	ErrTxChainID          = errors.New("ErrTxChainID")
+	ErrTimeout            = errors.New("ErrTimeout")
 )
