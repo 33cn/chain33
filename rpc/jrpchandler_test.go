@@ -493,6 +493,25 @@ func TestChain33_SendTransaction(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, api)
 }
 
+func TestChain33_SendTransactionSync(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	tx := &types.Transaction{}
+	hash := tx.Hash()
+	api.On("SendTx", tx).Return(&types.Reply{IsOk: true, Msg: hash}, nil)
+	api.On("QueryTx", mock.Anything).Return(&types.TransactionDetail{}, nil)
+	testChain33 := newTestChain33(api)
+	var testResult interface{}
+	data := rpctypes.RawParm{
+		Data: common.ToHex(types.Encode(tx)),
+	}
+	err := testChain33.SendTransactionSync(data, &testResult)
+	t.Log(err)
+	assert.Equal(t, common.ToHex(hash), testResult.(string))
+	assert.Nil(t, err)
+}
+
 func TestChain33_GetHexTxByHash(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
