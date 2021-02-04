@@ -103,19 +103,19 @@ func (s *Conngater) checkWhitAddr(addr multiaddr.Multiaddr) bool {
 	if s.whitPeerList == nil {
 		return true
 	}
-	iswhiteIp := false
-	checkIp, _ := net.ToIP(addr)
+	iswhiteIP := false
+	checkIP, _ := net.ToIP(addr)
 	for _, maddr := range s.whitPeerList {
 		ip, err := net.ToIP(maddr)
 		if err != nil {
 			continue
 		}
-		if ip.String() == checkIp.String() {
-			iswhiteIp = true
+		if ip.String() == checkIP.String() {
+			iswhiteIP = true
 		}
 	}
 
-	return iswhiteIp
+	return iswhiteIP
 }
 
 // InterceptSecured tests whether a given connection, now authenticated,
