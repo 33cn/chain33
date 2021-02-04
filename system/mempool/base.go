@@ -130,18 +130,27 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 	blocktime := mem.header.GetBlockTime()
 	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
-	mem.cache.Walk(int(count), func(tx *Item) bool {
+	var expiredTxHashes [][]byte
+	//由于mempool可能存在过期交易，先遍历所有，满足目标交易数再退出，否则存在无法获取到实际交易情况
+	mem.cache.Walk(0, func(tx *Item) bool {
 		if len(dupMap) > 0 {
 			if _, ok := dupMap[string(tx.Value.Hash())]; ok {
 				return true
 			}
 		}
 		if isExpired(cfg, tx, height, blocktime) && !isAll {
+			expiredTxHashes = append(expiredTxHashes, tx.Value.Hash())
 			return true
 		}
 		txs = append(txs, tx.Value)
+		//达到设定的交易数，退出循环
+		if count > 0 && len(txs) == int(count) {
+			return false
+		}
 		return true
 	})
+	//直接触发mempool对过期交易清理
+	mem.removeTxs(expiredTxHashes)
 	return txs
 }
 
@@ -149,13 +158,18 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	for _, hash := range hashList.Hashes {
+	mem.removeTxs(hashList.Hashes)
+	return nil
+}
+
+func (mem *Mempool) removeTxs(hashes [][]byte) {
+
+	for _, hash := range hashes {
 		exist := mem.cache.Exist(string(hash))
 		if exist {
 			mem.cache.Remove(string(hash))
 		}
 	}
-	return nil
 }
 
 // PushTx 将交易推入mempool，并返回结果（error）
