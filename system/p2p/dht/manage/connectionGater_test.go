@@ -99,7 +99,7 @@ func Test_InterceptPeerDial(t *testing.T) {
 	defer ctx.Done()
 	whitePeer1, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%v", "192.168.105.123", 3001, "16Uiu2HAmK9PAPYoTzHnobzB5nQFnY7p9ZVcJYQ1BgzKCr7izAhbJ"))
 	peerInfo, err := peer.AddrInfoFromP2pAddr(whitePeer1)
-
+	require.Nil(t, err)
 	gater := NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second), nil)
 	var pid = "16Uiu2HAmCyJhBvE1vn62MQWhhaPph1cxeU9nNZJoZQ1Pe1xASZUg"
 
