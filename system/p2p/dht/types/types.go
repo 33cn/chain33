@@ -47,4 +47,6 @@ type P2PSubConfig struct {
 	RelayNodeAddr []string `protobuf:"varint,19,opt,name=relayNodeAddr" json:"relayNodeAddr,omitempty"`
 	// 不启动分片功能，默认启动
 	DisableShard bool `protobuf:"varint,120,opt,name=disableShard" json:"disableShard,omitempty"`
+	//特定场景下的p2p白名单，只连接配置的节点,联盟链使用
+	WhitePeerList []string `protobuf:"bytes,21,rep,name=whitePeerList" json:"whitePeerList,omitempty"`
 }

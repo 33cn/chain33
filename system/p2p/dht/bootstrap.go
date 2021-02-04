@@ -79,3 +79,17 @@ func genAddrInfo(addr string) *peer.AddrInfo {
 	}
 	return peerInfo
 }
+
+func genAddrInfos(addrs []string) []*peer.AddrInfo {
+	if len(addrs) == 0 {
+		return nil
+	}
+	var infos []*peer.AddrInfo
+	for _, addr := range addrs {
+		info := genAddrInfo(addr)
+		if info != nil {
+			infos = append(infos, info)
+		}
+	}
+	return infos
+}

@@ -361,7 +361,21 @@ func Test_Id(t *testing.T) {
 	require.Equal(t, pubkey, "02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0")
 
 }
-
+func Test_genAddrInfos(t *testing.T) {
+	peer := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%v", "192.168.105.123", 3001, "16Uiu2HAmK9PAPYoTzHnobzB5nQFnY7p9ZVcJYQ1BgzKCr7izAhbJ")
+	addrinfos := genAddrInfos([]string{peer})
+	require.NotNil(t, addrinfos)
+	require.Equal(t, 1, len(addrinfos))
+	peer = fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%v", "afasfase", 3001, "16Uiu2HAmK9PAPYoTzHnobzB5nQFnY7p9ZVcJYQ1BgzKCr7izAhbJ")
+	addrinfos = genAddrInfos([]string{peer})
+	require.Nil(t, addrinfos)
+	peer2 := fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%v", "192.168.105.124", 3001, "16Uiu2HAkxg1xyu3Ja2MERb3KyBev2CAKXvZwoe6EQgyg2tstg9wr")
+	peer3 := fmt.Sprintf("%v:%d", "192.168.105.124", 3001)
+	addrinfos = genAddrInfos([]string{peer, peer2, peer3})
+	require.NotNil(t, addrinfos)
+	require.Equal(t, 1, len(addrinfos))
+	t.Log(addrinfos[0].Addrs[0].String())
+}
 func Test_p2p(t *testing.T) {
 
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
