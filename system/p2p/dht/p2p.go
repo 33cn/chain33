@@ -239,7 +239,7 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 		//2分钟的宽限期,定期清理
 		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(minconnect, maxconnect, time.Minute*2)))
 		//ConnectionGater,处理网络连接的策略
-		options = append(options, libp2p.ConnectionGater(manage.NewConnGater(&p.host, p.subCfg.MaxConnectNum, timeCache)))
+		options = append(options, libp2p.ConnectionGater(manage.NewConnGater(&p.host, p.subCfg.MaxConnectNum, timeCache, genAddrInfos(p.subCfg.WhitePeerList))))
 	}
 	//关闭ping
 	options = append(options, libp2p.Ping(false))
