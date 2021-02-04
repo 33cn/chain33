@@ -249,13 +249,13 @@ func (chain *BlockChain) addBlockDetail(msg *queue.Message) {
 	chainlog.Debug("EventAddBlockDetail", "height", blockDetail.Block.Height, "parent", common.ToHex(blockDetail.Block.ParentHash))
 	blockDetail, err := chain.ProcAddBlockMsg(true, blockDetail, "self")
 	if err != nil {
-		chainlog.Error("addBlockDetail", "err", err.Error())
+		chainlog.Error("addBlockDetail", "height", Height, "procAddBlockMsg err", err.Error())
 		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
 		return
 	}
 	if blockDetail == nil {
 		err = types.ErrExecBlockNil
-		chainlog.Error("addBlockDetail", "err", err.Error())
+		chainlog.Error("addBlockDetail", "height", Height, "nil block err", err.Error())
 		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
 		return
 	}
