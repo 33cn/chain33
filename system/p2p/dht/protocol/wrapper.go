@@ -55,7 +55,7 @@ func CloseStream(stream network.Stream) {
 		err := helpers.FullClose(stream)
 		if err != nil {
 			//just log it because it dose not matter
-			log.Debug("CloseStream", "err", err)
+			log.Debug("CloseStream", "err", err, "protocol ID", stream.Protocol())
 		}
 	}()
 }
