@@ -290,7 +290,7 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		return types.ErrInvalidParam
 	}
 
-	if subscribe.Type != PushBlock && subscribe.Type != PushBlockHeader && subscribe.Type != PushTxReceipt && subscribe.Type != PushTxResult {
+	if subscribe.Type < PushBlock || subscribe.Type > PushTxResult {
 		chainlog.Error("addSubscriber input type is error", "type", subscribe.Type)
 		return types.ErrInvalidParam
 	}
