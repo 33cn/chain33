@@ -50,7 +50,8 @@ func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptC
 
 func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 	types.AssertConfig(mem.client)
-	if tx.IsExpire(mem.client.GetConfig(), mem.header.GetHeight(), mem.header.GetBlockTime()) {
+	//进入mempool中的交易可能被下一个区块打包，这里用下一个区块的高度和时间作为交易过期判定
+	if tx.IsExpire(mem.client.GetConfig(), mem.header.GetHeight()+1, mem.header.GetBlockTime()+1) {
 		return false
 	}
 	if tx.Expire > 1000000000 && tx.Expire < types.Now().Unix()+int64(time.Minute/time.Second) {
