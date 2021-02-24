@@ -44,7 +44,7 @@ var (
 	v          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
 	bigByte    = make([]byte, 99510)
 	transfer   = &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
-	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: toAddr}
+	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 3, To: toAddr}
 	tx2        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
 	tx3        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: toAddr}
 	tx4        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To: toAddr}
@@ -470,10 +470,7 @@ func TestAddMoreTxThanPoolSize(t *testing.T) {
 	defer mem.Close()
 
 	err := add4Tx(mem.client)
-	if err != nil {
-		t.Error("add tx error", err.Error())
-		return
-	}
+	require.Nil(t, err)
 
 	msg5 := mem.client.NewMessage("mempool", types.EventTx, tx5)
 	mem.client.Send(msg5, true)
