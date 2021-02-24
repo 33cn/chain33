@@ -38,6 +38,27 @@ func TestCheckIpWhitelist(t *testing.T) {
 
 }
 
+func TestCheckBasicAuth(t *testing.T) {
+	rpcCfg = new(types.RPC)
+	var r = &http.Request{Header: make(http.Header)}
+	assert.True(t, checkBasicAuth(r))
+	r.SetBasicAuth("1212121", "chain33-mypasswd")
+	assert.True(t, checkBasicAuth(r))
+	rpcCfg.JrpcUserName = "chain33-user"
+	rpcCfg.JrpcUserPasswd = "chain33-mypasswd"
+	r.SetBasicAuth("", "chain33-mypasswd")
+	assert.False(t, checkBasicAuth(r))
+	r.SetBasicAuth("", "")
+	assert.False(t, checkBasicAuth(r))
+	r.SetBasicAuth("chain33-user", "")
+	assert.False(t, checkBasicAuth(r))
+	r.SetBasicAuth("chain33", "1234")
+	assert.False(t, checkBasicAuth(r))
+	r.SetBasicAuth("chain33-user", "chain33-mypasswd")
+	assert.True(t, checkBasicAuth(r))
+
+}
+
 func TestJSONClient_Call(t *testing.T) {
 	rpcCfg = new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"

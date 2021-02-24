@@ -68,6 +68,11 @@ func (j *JSONRPCServer) Listen() (int, error) {
 			writeError(w, r, 0, fmt.Sprintf(`The %s Address is not authorized!`, ip))
 			return
 		}
+
+		if !checkBasicAuth(r) {
+			writeError(w, r, 0, fmt.Sprintf(`Unauthozied`))
+			return
+		}
 		if r.URL.Path == "/" {
 			data, err := ioutil.ReadAll(r.Body)
 			if err != nil {
