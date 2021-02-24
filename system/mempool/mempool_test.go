@@ -28,7 +28,7 @@ import (
 	_ "github.com/33cn/chain33/system/dapp/init"
 	_ "github.com/33cn/chain33/system/store/init"
 	"github.com/33cn/chain33/types"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 //----------------------------- data for testing ---------------------------------
@@ -381,7 +381,7 @@ func add10Tx(client queue.Client) error {
 	return nil
 }
 
-func TestGetTxList(t *testing.T) {
+func TestEventTxList(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
@@ -537,18 +537,18 @@ func TestAddBlockedTx(t *testing.T) {
 
 	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx3)
 	err := mem.client.Send(msg1, true)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	_, err = mem.client.Wait(msg1)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	blkDetail := &types.BlockDetail{Block: blk}
 	msg2 := mem.client.NewMessage("mempool", types.EventAddBlock, blkDetail)
 	mem.client.Send(msg2, false)
 
 	msg3 := mem.client.NewMessage("mempool", types.EventTx, tx3)
 	err = mem.client.Send(msg3, true)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	resp, err := mem.client.Wait(msg3)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrDupTx.Error() {
 		t.Error("TestAddBlockedTx failed")
 	}
@@ -565,7 +565,7 @@ func TestDuplicateMempool(t *testing.T) {
 		t.Error("add tx error", err.Error())
 		return
 	}
-	assert.Equal(t, mem.Size(), 10)
+	require.Equal(t, mem.Size(), 10)
 	msg := mem.client.NewMessage("mempool", types.EventGetMempool, nil)
 	mem.client.Send(msg, true)
 
@@ -621,7 +621,7 @@ func testProperFee(t *testing.T, client queue.Client, req *types.ReqProperFee, e
 		return 0
 	}
 	fee := reply.GetData().(*types.ReplyProperFee).GetProperFee()
-	assert.Equal(t, expectFee, fee)
+	require.Equal(t, expectFee, fee)
 	return fee
 }
 
@@ -746,9 +746,9 @@ func TestCheckExpire3(t *testing.T) {
 		return
 	}
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
-	assert.Equal(t, mem.Size(), 4)
+	require.Equal(t, mem.Size(), 4)
 	mem.removeExpired()
-	assert.Equal(t, mem.Size(), 3)
+	require.Equal(t, mem.Size(), 3)
 }
 
 func TestWrongToAddr(t *testing.T) {
@@ -1044,8 +1044,8 @@ func TestSimpleQueue_TotalFee(t *testing.T) {
 		sumFee += it.Value.Fee
 		return true
 	})
-	assert.Equal(t, sumFee, mem.cache.TotalFee())
-	assert.Equal(t, sumFee, int64(200000))
+	require.Equal(t, sumFee, mem.cache.TotalFee())
+	require.Equal(t, sumFee, int64(200000))
 
 	mem.cache.Remove(string(txb.Hash()))
 
@@ -1054,8 +1054,8 @@ func TestSimpleQueue_TotalFee(t *testing.T) {
 		sumFee2 += it.Value.Fee
 		return true
 	})
-	assert.Equal(t, sumFee2, mem.cache.TotalFee())
-	assert.Equal(t, sumFee2, int64(100000))
+	require.Equal(t, sumFee2, mem.cache.TotalFee())
+	require.Equal(t, sumFee2, int64(100000))
 }
 
 func TestSimpleQueue_TotalByte(t *testing.T) {
@@ -1073,8 +1073,8 @@ func TestSimpleQueue_TotalByte(t *testing.T) {
 		sumByte += int64(proto.Size(it.Value))
 		return true
 	})
-	assert.Equal(t, sumByte, mem.GetTotalCacheBytes())
-	assert.Equal(t, sumByte, int64(19))
+	require.Equal(t, sumByte, mem.GetTotalCacheBytes())
+	require.Equal(t, sumByte, int64(19))
 
 	mem.cache.Remove(string(txb.Hash()))
 
@@ -1083,8 +1083,8 @@ func TestSimpleQueue_TotalByte(t *testing.T) {
 		sumByte2 += int64(proto.Size(it.Value))
 		return true
 	})
-	assert.Equal(t, sumByte2, mem.GetTotalCacheBytes())
-	assert.Equal(t, sumByte2, int64(9))
+	require.Equal(t, sumByte2, mem.GetTotalCacheBytes())
+	require.Equal(t, sumByte2, int64(9))
 }
 
 func BenchmarkMempool(b *testing.B) {
@@ -1259,12 +1259,49 @@ func BenchmarkGetTxList(b *testing.B) {
 	for i := 0; i < txNum; i++ {
 		tx := util.CreateCoinsTx(cfg, privKey, toAddr, int64(i+1))
 		err := mem.PushTx(tx)
-		assert.Nil(b, err)
+		require.Nil(b, err)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mem.getTxList(&types.TxHashList{Hashes: nil, Count: int64(txNum)})
 	}
+}
+
+func TestGetTxList(t *testing.T) {
+
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	cacheSize := 100
+	subConfig := SubConfig{int64(cacheSize), mem.cfg.MinTxFeeRate}
+	mem.SetQueueCache(NewSimpleQueue(subConfig))
+	mem.cache.AccountTxIndex.maxperaccount = cacheSize
+	mem.cache.SHashTxCache.max = cacheSize
+
+	cfg := q.GetConfig()
+	currentHeight := cfg.GetFork("ForkTxHeight")
+	mem.setHeader(&types.Header{Height: currentHeight})
+	//push expired invalid tx
+	for i := 0; i < 10; i++ {
+		tx := util.CreateNoneTxWithTxHeight(cfg, privKey, currentHeight+2)
+		require.True(t, tx.IsExpire(cfg, currentHeight+1, 0))
+		err := mem.PushTx(tx)
+		require.Nil(t, err)
+	}
+	// push unexpired valid tx
+	for i := 0; i < 10; i++ {
+		tx := util.CreateNoneTxWithTxHeight(cfg, privKey, currentHeight+1)
+		require.False(t, tx.IsExpire(cfg, currentHeight+1, 0))
+		require.True(t, tx.IsExpire(cfg, currentHeight, 0))
+		err := mem.PushTx(tx)
+		require.Nil(t, err)
+	}
+
+	// 取交易自动过滤过期交易
+	txs := mem.getTxList(&types.TxHashList{Hashes: nil, Count: int64(5)})
+	require.Equal(t, 5, len(txs))
+	require.Equal(t, 10, mem.cache.Size())
 }
 
 func TestCheckTxsExist(t *testing.T) {
@@ -1275,7 +1312,7 @@ func TestCheckTxsExist(t *testing.T) {
 	txs := util.GenCoinsTxs(q.GetConfig(), privKey, 10)
 	for _, tx := range txs {
 		err := mem.PushTx(tx)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 	_, priv := util.Genaddress()
 	txs1 := append(util.GenCoinsTxs(q.GetConfig(), priv, 10))
@@ -1288,20 +1325,20 @@ func TestCheckTxsExist(t *testing.T) {
 	checkReqMsg := mem.client.NewMessage("mempool", types.EventCheckTxsExist, checkReq)
 	mem.eventCheckTxsExist(checkReqMsg)
 	reply, err := mem.client.Wait(checkReqMsg)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	replyData := reply.GetData().(*types.ReplyCheckTxsExist)
 
-	assert.Equal(t, 20, len(replyData.ExistFlags))
-	assert.Equal(t, 10, int(replyData.ExistCount))
+	require.Equal(t, 20, len(replyData.ExistFlags))
+	require.Equal(t, 10, int(replyData.ExistCount))
 	for i, exist := range replyData.ExistFlags {
 		//根据请求数据，结果应该是存在（true）、不存在（false）交替序列，即奇偶交错
-		assert.Equal(t, i%2 == 0, exist)
+		require.Equal(t, i%2 == 0, exist)
 	}
 	mem.setSync(false)
 	mem.eventCheckTxsExist(checkReqMsg)
 	reply, err = mem.client.Wait(checkReqMsg)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	replyData = reply.GetData().(*types.ReplyCheckTxsExist)
-	assert.Equal(t, 0, len(replyData.ExistFlags))
-	assert.Equal(t, 0, int(replyData.ExistCount))
+	require.Equal(t, 0, len(replyData.ExistFlags))
+	require.Equal(t, 0, int(replyData.ExistCount))
 }
