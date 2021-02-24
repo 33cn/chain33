@@ -6,6 +6,7 @@ package rpc
 
 import (
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
