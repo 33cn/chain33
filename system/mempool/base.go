@@ -126,8 +126,9 @@ func (mem *Mempool) getTxList(filterList *types.TxHashList) (txs []*types.Transa
 }
 
 func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool) (txs []*types.Transaction) {
-	height := mem.header.GetHeight()
-	blocktime := mem.header.GetBlockTime()
+	//mempool中的交易都是未打包的，需要用下一个区块的高度和时间作为交易过期判定
+	height := mem.header.GetHeight() + 1
+	blockTime := mem.header.GetBlockTime() + 1
 	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
 	var expiredTxHashes [][]byte
@@ -138,12 +139,12 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 				return true
 			}
 		}
-		if isExpired(cfg, tx, height, blocktime) && !isAll {
+		if isExpired(cfg, tx, height, blockTime) && !isAll {
 			expiredTxHashes = append(expiredTxHashes, tx.Value.Hash())
 			return true
 		}
 		txs = append(txs, tx.Value)
-		//达到设定的交易数，退出循环
+		//达到设定的交易数，退出循环, count为0获取所有
 		if count > 0 && len(txs) == int(count) {
 			return false
 		}
