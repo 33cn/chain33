@@ -124,7 +124,7 @@ func TestGenTx(t *testing.T) {
 	assert.Equal(t, 2, len(txs))
 	assert.Equal(t, "coins", string(txs[0].Execer))
 	assert.Equal(t, "coins", string(txs[1].Execer))
-	assert.Equal(t, types.TxHeightFlag+10+20, txs[0].Expire)
+	assert.Equal(t, types.TxHeightFlag+10+types.LowAllowPackHeight, txs[0].Expire)
 }
 
 func TestGenBlock(t *testing.T) {
