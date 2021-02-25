@@ -131,7 +131,6 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 	blockTime := mem.header.GetBlockTime() + 1
 	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
-	var expiredTxHashes [][]byte
 	//由于mempool可能存在过期交易，先遍历所有，满足目标交易数再退出，否则存在无法获取到实际交易情况
 	mem.cache.Walk(0, func(tx *Item) bool {
 		if len(dupMap) > 0 {
@@ -140,7 +139,6 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 			}
 		}
 		if isExpired(cfg, tx, height, blockTime) && !isAll {
-			expiredTxHashes = append(expiredTxHashes, tx.Value.Hash())
 			return true
 		}
 		txs = append(txs, tx.Value)
@@ -150,8 +148,6 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 		}
 		return true
 	})
-	//直接触发mempool对过期交易清理
-	mem.removeTxs(expiredTxHashes)
 	return txs
 }
 
@@ -269,7 +265,8 @@ func (mem *Mempool) removeExpired() {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	types.AssertConfig(mem.client)
-	mem.cache.removeExpiredTx(mem.client.GetConfig(), mem.header.GetHeight(), mem.header.GetBlockTime())
+	//mempool的header是当前高度，而交易将被下一个区块打包，过期判定采用下一个区块的高度和时间
+	mem.cache.removeExpiredTx(mem.client.GetConfig(), mem.header.GetHeight()+1, mem.header.GetBlockTime()+1)
 }
 
 // removeBlockedTxs 每隔1分钟清理一次已打包的交易

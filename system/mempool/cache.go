@@ -131,7 +131,7 @@ func (cache *txCache) removeExpiredTx(cfg *types.Chain33Config, height, blocktim
 		}
 		return true
 	})
-	mlog.Info("removeExpiredTx", "totalTxs", cache.Size(), "expiredTxs", len(txs))
+	mlog.Info("removeExpiredTx", "height", height, "totalTxs", cache.Size(), "expiredTxs", len(txs))
 	cache.RemoveTxs(txs)
 }
 

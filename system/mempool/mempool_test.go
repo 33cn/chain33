@@ -44,7 +44,7 @@ var (
 	v          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
 	bigByte    = make([]byte, 99510)
 	transfer   = &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
-	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 3, To: toAddr}
+	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 4, To: toAddr}
 	tx2        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
 	tx3        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: toAddr}
 	tx4        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To: toAddr}
@@ -521,10 +521,7 @@ func TestRemoveTxOfBlock(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
-	if reply.GetData().(*types.MempoolSize).Size != 3 {
-		t.Error("TestGetMempoolSize failed")
-	}
+	require.Equal(t, int64(3), reply.GetData().(*types.MempoolSize).Size)
 }
 
 func TestAddBlockedTx(t *testing.T) {
@@ -1298,7 +1295,9 @@ func TestGetTxList(t *testing.T) {
 	// 取交易自动过滤过期交易
 	txs := mem.getTxList(&types.TxHashList{Hashes: nil, Count: int64(5)})
 	require.Equal(t, 5, len(txs))
-	require.Equal(t, 10, mem.cache.Size())
+	require.Equal(t, 20, mem.cache.Size())
+	txs = mem.getTxList(&types.TxHashList{Hashes: nil, Count: int64(20)})
+	require.Equal(t, 10, len(txs))
 }
 
 func TestCheckTxsExist(t *testing.T) {
