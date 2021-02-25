@@ -385,7 +385,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	b.syncTask.Done(blockdetail.Block.GetHeight())
 
 	//广播此block到全网络
-	if node.broadcast {
+	if node.broadcast && !b.cfg.DisableBlockBroadcast {
 		if blockdetail.Block.BlockTime-types.Now().Unix() > FutureBlockDelayTime {
 			//将此block添加到futureblocks中延时广播
 			b.futureBlocks.Add(string(blockdetail.Block.Hash(cfg)), blockdetail)
