@@ -228,6 +228,10 @@ type RPC struct {
 	CertFile string `json:"certFile,omitempty"`
 	// 私钥文件
 	KeyFile string `json:"keyFile,omitempty"`
+	//basic auth 用户名
+	JrpcUserName string `json:"jrpcUserName,omitempty"`
+	//basic auth 用户密码
+	JrpcUserPasswd string `json:"jrpcUserPasswd,omitempty"`
 }
 
 // Exec 配置

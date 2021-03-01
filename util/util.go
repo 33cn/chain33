@@ -227,7 +227,7 @@ func CreateTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to stri
 func GenTxsTxHeigt(cfg *types.Chain33Config, priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
-		tx := CreateTxWithTxHeight(cfg, priv, to, types.Coin*(n+1), 20+height)
+		tx := CreateTxWithTxHeight(cfg, priv, to, types.Coin*(n+1), types.LowAllowPackHeight+height)
 		txs = append(txs, tx)
 	}
 	return txs

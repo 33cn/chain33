@@ -14,6 +14,26 @@ import (
 	"golang.org/x/net/context"
 )
 
+// SendTransactionSync send transaction by network and query
+func (g *Grpc) SendTransactionSync(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
+	reply, err := g.cli.SendTx(in)
+	if err != nil {
+		return reply, err
+	}
+	hash := in.Hash()
+	for i := 0; i < 100; i++ {
+		detail, err := g.cli.QueryTx(&pb.ReqHash{Hash: hash})
+		if err == pb.ErrInvalidParam || err == pb.ErrTypeAsset {
+			return nil, err
+		}
+		if detail != nil {
+			return &pb.Reply{IsOk: true, Msg: hash}, nil
+		}
+		time.Sleep(time.Second / 3)
+	}
+	return nil, pb.ErrTimeout
+}
+
 // SendTransaction send transaction by network
 func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
 	return g.cli.SendTx(in)

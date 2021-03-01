@@ -47,7 +47,6 @@ func Register(cfg *types.Chain33Config, name string, create DriverCreate, height
 	//考虑到前期平行链兼容性和防止误操作(平行链下转账到一个主链合约)，也会注册主链合约(不带前缀)的地址
 	registerAddress(name)
 	execDrivers[ExecAddress(name)] = driverHeight
-
 	if cfg.IsPara() {
 		paraHeight := cfg.GetFork("ForkEnableParaRegExec")
 		if paraHeight < height {

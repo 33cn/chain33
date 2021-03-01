@@ -28,13 +28,14 @@ func newTestHost(port int) (core.Host, error) {
 	)
 
 }
+
 func Test_MaxLimit(t *testing.T) {
 	m, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 12345))
 	require.Nil(t, err)
 
 	var host1 host.Host
 	CacheLimit = 0
-	gater := NewConnGater(&host1, 1, nil)
+	gater := NewConnGater(&host1, 1, nil, nil)
 	host1, err = libp2p.New(context.Background(),
 		libp2p.ListenAddrs(m),
 		libp2p.ConnectionGater(gater),
@@ -59,7 +60,7 @@ func Test_MaxLimit(t *testing.T) {
 
 func Test_InterceptAccept(t *testing.T) {
 	var host1 host.Host
-	gater := NewConnGater(&host1, 0, nil)
+	gater := NewConnGater(&host1, 0, nil, nil)
 
 	var ip = "47.97.223.101"
 	multiAddress, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, 3000))
@@ -70,12 +71,22 @@ func Test_InterceptAccept(t *testing.T) {
 	}
 	valid := gater.validateDial(multiAddress)
 	require.False(t, valid)
+	//test whiteList
+	whitePeer1, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%v", "192.168.102.123", 3001, "16Uiu2HAmK9PAPYoTzHnobzB5nQFnY7p9ZVcJYQ1BgzKCr7izAhbJ"))
+	peerInfo, err := peer.AddrInfoFromP2pAddr(whitePeer1)
+	assert.Nil(t, err)
+	gater2 := NewConnGater(&host1, 0, nil, []*peer.AddrInfo{peerInfo})
+	whitePeer2, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", "192.168.102.123", 3002))
+	//在白名单内部，校验通过
+	assert.True(t, gater2.checkWhitAddr(whitePeer2))
+	//通过peerID 校验白名单
+	assert.True(t, gater2.checkWhitePeerList(peerInfo.ID))
 
 }
 
 func Test_InterceptAddrDial(t *testing.T) {
 	var host1 host.Host
-	gater := NewConnGater(&host1, 0, nil)
+	gater := NewConnGater(&host1, 0, nil, nil)
 	var ip = "47.97.223.101"
 	multiAddress, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, 3000))
 	require.NoError(t, err)
@@ -86,7 +97,10 @@ func Test_InterceptPeerDial(t *testing.T) {
 	var host1 host.Host
 	ctx := context.Background()
 	defer ctx.Done()
-	gater := NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second))
+	whitePeer1, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d/p2p/%v", "192.168.105.123", 3001, "16Uiu2HAmK9PAPYoTzHnobzB5nQFnY7p9ZVcJYQ1BgzKCr7izAhbJ"))
+	peerInfo, err := peer.AddrInfoFromP2pAddr(whitePeer1)
+	require.Nil(t, err)
+	gater := NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second), nil)
 	var pid = "16Uiu2HAmCyJhBvE1vn62MQWhhaPph1cxeU9nNZJoZQ1Pe1xASZUg"
 
 	gater.blacklist.Add(pid, 0)
@@ -97,13 +111,19 @@ func Test_InterceptPeerDial(t *testing.T) {
 	time.Sleep(time.Second * 2)
 	ok = gater.InterceptPeerDial(id)
 	require.True(t, ok)
+	//白名单校验
+	gater = NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second), []*peer.AddrInfo{peerInfo})
+	ok = gater.InterceptPeerDial(id)
+	//因为ID不在白名单内部，所有会被拦截
+	require.False(t, ok)
+
 }
 
 func Test_otherInterface(t *testing.T) {
 	var host1 host.Host
 	ctx := context.Background()
 	defer ctx.Done()
-	gater := NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second))
+	gater := NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second), nil)
 	allow, _ := gater.InterceptUpgraded(nil)
 	require.True(t, allow)
 	require.True(t, gater.InterceptSecured(network.DirInbound, "", nil))

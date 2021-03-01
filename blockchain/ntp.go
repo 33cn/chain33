@@ -37,13 +37,13 @@ func (chain *BlockChain) checkClockDrift() {
 		warning := fmt.Sprintf("System clock seems off by %v, which can prevent network connectivity", drift)
 		howtofix := fmt.Sprintf("Please enable network time synchronisation in system settings")
 		separator := strings.Repeat("-", len(warning))
-		ntpLog.Warn(fmt.Sprint(separator))
-		ntpLog.Warn(fmt.Sprint(warning))
-		ntpLog.Warn(fmt.Sprint(howtofix))
-		ntpLog.Warn(fmt.Sprint(separator))
+		ntpLog.Info(fmt.Sprint(separator))
+		ntpLog.Info(fmt.Sprint(warning))
+		ntpLog.Info(fmt.Sprint(howtofix))
+		ntpLog.Info(fmt.Sprint(separator))
 		atomic.AddInt32(&chain.failed, 1)
 		if atomic.LoadInt32(&chain.failed) == ntpChecks {
-			ntpLog.Error("System clock seems ERROR")
+			ntpLog.Info("System clock seems ERROR")
 			chain.UpdateNtpClockSyncStatus(false)
 		}
 	} else {

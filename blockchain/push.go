@@ -33,6 +33,7 @@ const (
 	PushBlock       = int32(0)
 	PushBlockHeader = int32(1)
 	PushTxReceipt   = int32(2)
+	PushTxResult    = int32(3)
 )
 
 // CommonStore 通用的store 接口
@@ -100,7 +101,7 @@ type PushClient struct {
 type PushType int32
 
 func (pushType PushType) string() string {
-	return []string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "NotSupported"}[pushType]
+	return []string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "NotSupported"}[pushType]
 }
 
 //PostData ...
@@ -289,7 +290,7 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		return types.ErrInvalidParam
 	}
 
-	if subscribe.Type != PushBlock && subscribe.Type != PushBlockHeader && subscribe.Type != PushTxReceipt {
+	if subscribe.Type < PushBlock || subscribe.Type > PushTxResult {
 		chainlog.Error("addSubscriber input type is error", "type", subscribe.Type)
 		return types.ErrInvalidParam
 	}
@@ -583,6 +584,8 @@ func (push *Push) getPushData(subscribe *types.PushSubscribeReq, startSeq int64,
 		return push.getBlockSeqs(subscribe.Encode, startSeq, seqCount, maxSize)
 	} else if subscribe.Type == PushBlockHeader {
 		return push.getHeaderSeqs(subscribe.Encode, startSeq, seqCount, maxSize)
+	} else if subscribe.Type == PushTxResult {
+		return push.getTxResults(subscribe.Encode, startSeq, seqCount)
 	}
 	return push.getTxReceipts(subscribe, startSeq, seqCount, maxSize)
 }
@@ -662,6 +665,43 @@ func (push *Push) getBlockDataBySeq(seq int64) (*types.BlockSeq, int, error) {
 		return nil, 0, err
 	}
 	return &types.BlockSeq{Num: seq, Seq: seqdata, Detail: detail}, blockSize, nil
+}
+
+func (push *Push) getTxResults(encode string, seq int64, seqCount int) ([]byte, int64, error) {
+	var txResultSeqs types.TxResultSeqs
+	for i := seq; i < seq+int64(seqCount); i++ {
+		blockSeq, _, err := push.getBlockDataBySeq(i)
+		if err != nil {
+			return nil, -1, err
+		}
+		txResults := types.TxResultPerBlock{
+			Items:      make([]*types.TxHashWithReceiptType, len(blockSeq.Detail.Receipts)),
+			Height:     blockSeq.Detail.Block.Height,
+			BlockHash:  blockSeq.Detail.Block.Hash(push.cfg),
+			ParentHash: blockSeq.Detail.Block.ParentHash,
+			AddDelType: int32(blockSeq.Seq.Type),
+			SeqNum:     blockSeq.Num,
+		}
+		for i := range txResults.Items {
+			txResults.Items[i] = &types.TxHashWithReceiptType{
+				Hash: blockSeq.Detail.Block.Txs[i].Hash(),
+				Ty:   blockSeq.Detail.Receipts[i].Ty,
+			}
+		}
+		txResultSeqs.Items = append(txResultSeqs.Items, &txResults)
+	}
+
+	var postdata []byte
+	var err error
+	if encode == "json" {
+		postdata, err = types.PBToJSON(&txResultSeqs)
+		if err != nil {
+			return nil, -1, err
+		}
+	} else {
+		postdata = types.Encode(&txResultSeqs)
+	}
+	return postdata, txResultSeqs.Items[0].SeqNum + int64(len(txResultSeqs.Items)) - 1, nil
 }
 
 func (push *Push) getBlockSeqs(encode string, seq int64, seqCount, maxSize int) ([]byte, int64, error) {

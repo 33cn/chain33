@@ -14,7 +14,7 @@ import (
 
 func (p *Protocol) republish() {
 	//全节点的p2pstore保存所有chunk, 不进行republish操作
-	if p.SubConfig.IsFullNode {
+	if p.SubConfig.DisableShard || p.SubConfig.IsFullNode {
 		return
 	}
 	reply, err := p.API.IsSync()
@@ -43,7 +43,7 @@ func (p *Protocol) republish() {
 			continue
 		}
 		log.Info("local chunk", "hash", hash, "start", info.Start)
-		peers := tmpRoutingTable.NearestPeers(genDHTID(info.ChunkHash), Backup-1)
+		peers := tmpRoutingTable.NearestPeers(genDHTID(info.ChunkHash), backup-1)
 		for _, pid := range peers {
 			invertedIndex[pid] = append(invertedIndex[pid], info.ChunkInfoMsg)
 		}
@@ -62,7 +62,7 @@ func (p *Protocol) republish() {
 // 通知最近的 *BackUp-1* 个节点备份数据，加上本节点共Backup个
 func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
 	tmpRoutingTable := p.genTempRoutingTable(req.ChunkHash, 100)
-	for _, pid := range tmpRoutingTable.NearestPeers(genDHTID(req.ChunkHash), Backup-1) {
+	for _, pid := range tmpRoutingTable.NearestPeers(genDHTID(req.ChunkHash), backup-1) {
 		err := p.storeChunksOnPeer(pid, req)
 		if err != nil {
 			log.Error("notifyStoreChunk", "peer id", pid, "error", err)
@@ -90,18 +90,18 @@ func (p *Protocol) storeChunksOnPeer(pid peer.ID, req ...*types.ChunkInfoMsg) er
 }
 
 func (p *Protocol) genTempRoutingTable(key []byte, count int) *kb.RoutingTable {
-	tmpRoutingTable := kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(p.Host.ID()), time.Minute, p.Host.Peerstore())
+	tmpRoutingTable := kb.NewRoutingTable(dht.KValue*2, kb.ConvertPeerID(p.Host.ID()), time.Minute, p.Host.Peerstore())
 	peers := p.ShardHealthyRoutingTable.ListPeers()
 	for _, pid := range peers {
 		_, _ = tmpRoutingTable.Update(pid)
 	}
 	if key != nil {
-		peers = p.ShardHealthyRoutingTable.NearestPeers(genDHTID(key), Backup-1)
+		peers = p.ShardHealthyRoutingTable.NearestPeers(genDHTID(key), backup-1)
 	}
 
 	for i, pid := range peers {
-		// 至少从 3 个节点上获取新节点，保证 tmpRoutingTable 至少有 3*Backup 个节点，但至多从 10 个节点上获取新节点
-		if i+1 > 3 && (tmpRoutingTable.Size() > 3*Backup || i+1 > 10) {
+		// 至少从 3 个节点上获取新节点，保证 tmpRoutingTable 至少有 3*backup 个节点，但至多从 10 个节点上获取新节点
+		if i+1 > 3 && (tmpRoutingTable.Size() > 3*backup || i+1 > 10) {
 			break
 		}
 		closerPeers, err := p.fetchCloserPeers(key, count, pid)

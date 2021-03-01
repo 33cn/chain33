@@ -210,11 +210,10 @@ func TestCheckDupTxHashList05(t *testing.T) {
 	cfg := mock33.GetClient().GetConfig()
 	cfg.S("TxHeight", true)
 	chainlog.Debug("TestCheckDupTxHashList05 begin --------------------")
-	TxHeightOffset = 60
 	//发送带TxHeight交易且TxHeight不满足条件
-	for i := 1; i < 10; i++ {
+	for i := 2; i < 10; i++ {
 		_, _, err := addTxTxHeigt(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), int64(i))
-		require.EqualError(t, err, "ErrTxExpire")
+		require.EqualErrorf(t, err, "ErrTxExpire", "index-%d", i)
 		time.Sleep(sendTxWait)
 	}
 	chainlog.Debug("TestCheckDupTxHashList05 end --------------------")

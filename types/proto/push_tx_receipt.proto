@@ -21,3 +21,21 @@ message TxReceipts4SubscribePerBlk {
 message TxReceipts4Subscribe {
     repeated TxReceipts4SubscribePerBlk txReceipts = 1;
 }
+
+message TxHashWithReceiptType {
+    bytes hash = 1;
+    int32 ty   = 2;
+}
+
+message TxResultPerBlock {
+    repeated TxHashWithReceiptType items      = 1;
+    int64                          height     = 2;
+    bytes                          blockHash  = 3;
+    bytes                          parentHash = 4;
+    int32                          addDelType = 5;
+    int64                          seqNum     = 6;
+}
+
+message TxResultSeqs {
+    repeated TxResultPerBlock items = 1;
+}

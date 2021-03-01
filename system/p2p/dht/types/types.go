@@ -31,8 +31,10 @@ type P2PSubConfig struct {
 
 	RelayHop            bool   `protobuf:"varint,10,opt,name=relayHop" json:"relayHop,omitempty"`
 	DisableFindLANPeers bool   `protobuf:"varint,11,opt,name=disableFindLANPeers" json:"disableFindLANPeers,omitempty"`
-	DHTDataPath         string `protobuf:"bytes,13,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
-	DHTDataCache        int32  `protobuf:"varint,14,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
+	DHTDataPath         string `protobuf:"bytes,12,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
+	DHTDataCache        int32  `protobuf:"varint,13,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
+	// 分片数据备份节点数
+	Backup int `protobuf:"varint,14,opt,name=backup" json:"backup,omitempty"`
 	//是否开启全节点模式
 	IsFullNode bool `protobuf:"varint,15,opt,name=isFullNode" json:"isFullNode,omitempty"`
 	//老版本最大广播节点数
@@ -43,4 +45,8 @@ type P2PSubConfig struct {
 	RelayEnable bool `protobuf:"varint,18,opt,name=relayEnable" json:"relayEnable,omitempty"`
 	//指定中继节点作为
 	RelayNodeAddr []string `protobuf:"varint,19,opt,name=relayNodeAddr" json:"relayNodeAddr,omitempty"`
+	// 不启动分片功能，默认启动
+	DisableShard bool `protobuf:"varint,120,opt,name=disableShard" json:"disableShard,omitempty"`
+	//特定场景下的p2p白名单，只连接配置的节点,联盟链使用
+	WhitePeerList []string `protobuf:"bytes,21,rep,name=whitePeerList" json:"whitePeerList,omitempty"`
 }

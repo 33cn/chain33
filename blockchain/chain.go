@@ -621,14 +621,12 @@ func (chain *BlockChain) DelCacheBlock(height int64, hash []byte) {
 
 //InitAllowPackHeight 根据配置修改LowAllowPackHeight和值HighAllowPackHeight
 func InitAllowPackHeight(mcfg *types.BlockChain) {
-	if mcfg.HighAllowPackHeight != 0 && mcfg.LowAllowPackHeight != 0 {
-		if mcfg.HighAllowPackHeight+mcfg.LowAllowPackHeight < types.MaxAllowPackInterval {
-			types.HighAllowPackHeight = mcfg.HighAllowPackHeight
-			types.LowAllowPackHeight = mcfg.LowAllowPackHeight
-		} else {
+	if mcfg.HighAllowPackHeight > 0 && mcfg.LowAllowPackHeight > 0 {
+		if mcfg.HighAllowPackHeight+mcfg.LowAllowPackHeight > types.MaxAllowPackInterval {
 			panic("when Enable TxHeight HighAllowPackHeight + LowAllowPackHeight must less than types.MaxAllowPackInterval")
 		}
+		types.HighAllowPackHeight = mcfg.HighAllowPackHeight
+		types.LowAllowPackHeight = mcfg.LowAllowPackHeight
 	}
-	chainlog.Debug("InitAllowPackHeight", "mcfg.HighAllowPackHeight", mcfg.HighAllowPackHeight, "mcfg.LowAllowPackHeight", mcfg.LowAllowPackHeight)
 	chainlog.Debug("InitAllowPackHeight", "types.HighAllowPackHeight", types.HighAllowPackHeight, "types.LowAllowPackHeight", types.LowAllowPackHeight)
 }

@@ -33,10 +33,11 @@ type Conngater struct {
 	maxConnectNum int32
 	ipLimiter     *leakybucket.Collector
 	blacklist     *TimeCache
+	whitPeerList  map[peer.ID]multiaddr.Multiaddr
 }
 
 //NewConnGater connect gater
-func NewConnGater(h *host.Host, limit int32, cache *TimeCache) *Conngater {
+func NewConnGater(h *host.Host, limit int32, cache *TimeCache, whitPeers []*peer.AddrInfo) *Conngater {
 	gater := &Conngater{}
 	gater.host = h
 	gater.maxConnectNum = limit
@@ -45,6 +46,13 @@ func NewConnGater(h *host.Host, limit int32, cache *TimeCache) *Conngater {
 		gater.blacklist = NewTimeCache(context.Background(), time.Minute*5)
 	}
 	gater.ipLimiter = leakybucket.NewCollector(ipLimit, ipBurst, true)
+
+	for _, pr := range whitPeers {
+		if gater.whitPeerList == nil {
+			gater.whitPeerList = make(map[peer.ID]multiaddr.Multiaddr)
+		}
+		gater.whitPeerList[pr.ID] = pr.Addrs[0]
+	}
 	return gater
 }
 
@@ -52,9 +60,21 @@ func NewConnGater(h *host.Host, limit int32, cache *TimeCache) *Conngater {
 func (s *Conngater) InterceptPeerDial(p peer.ID) (allow bool) {
 	//具体的拦截策略
 	//黑名单检查
-	//TODO 引进其他策略
+	//1.增加校验p2p白名单节点列表
+	if !s.checkWhitePeerList(p) {
+		return false
+	}
 	return !s.blacklist.Has(p.Pretty())
 
+}
+
+func (s *Conngater) checkWhitePeerList(p peer.ID) bool {
+	if s.whitPeerList != nil {
+		if _, ok := s.whitPeerList[p]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // InterceptAddrDial tests whether we're permitted to dial the specified
@@ -71,9 +91,31 @@ func (s *Conngater) InterceptAccept(n network.ConnMultiaddrs) (allow bool) {
 		runtime.Gosched()
 		return false
 	}
-
+	//增加校验p2p白名单节点列表
+	if !s.checkWhitAddr(n.RemoteMultiaddr()) {
+		return false
+	}
 	return !s.isPeerAtLimit(network.DirInbound)
 
+}
+
+func (s *Conngater) checkWhitAddr(addr multiaddr.Multiaddr) bool {
+	if s.whitPeerList == nil {
+		return true
+	}
+	iswhiteIP := false
+	checkIP, _ := net.ToIP(addr)
+	for _, maddr := range s.whitPeerList {
+		ip, err := net.ToIP(maddr)
+		if err != nil {
+			continue
+		}
+		if ip.String() == checkIP.String() {
+			iswhiteIP = true
+		}
+	}
+
+	return iswhiteIP
 }
 
 // InterceptSecured tests whether a given connection, now authenticated,
