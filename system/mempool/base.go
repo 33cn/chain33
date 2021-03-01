@@ -128,7 +128,7 @@ func (mem *Mempool) getTxList(filterList *types.TxHashList) (txs []*types.Transa
 func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool) (txs []*types.Transaction) {
 	//mempool中的交易都是未打包的，需要用下一个区块的高度和时间作为交易过期判定
 	height := mem.header.GetHeight() + 1
-	blockTime := mem.header.GetBlockTime() + 1
+	blockTime := mem.header.GetBlockTime()
 	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
 	//由于mempool可能存在过期交易，先遍历所有，满足目标交易数再退出，否则存在无法获取到实际交易情况
@@ -266,7 +266,7 @@ func (mem *Mempool) removeExpired() {
 	defer mem.proxyMtx.Unlock()
 	types.AssertConfig(mem.client)
 	//mempool的header是当前高度，而交易将被下一个区块打包，过期判定采用下一个区块的高度和时间
-	mem.cache.removeExpiredTx(mem.client.GetConfig(), mem.header.GetHeight()+1, mem.header.GetBlockTime()+1)
+	mem.cache.removeExpiredTx(mem.client.GetConfig(), mem.header.GetHeight()+1, mem.header.GetBlockTime())
 }
 
 // removeBlockedTxs 每隔1分钟清理一次已打包的交易
