@@ -1246,6 +1246,16 @@ func TestChain33_GetTimeStatus(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestChain33_GetServerTime(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	var result interface{}
+	err := client.GetServerTime(&types.ReqNil{}, &result)
+	assert.Nil(t, err)
+}
+
 func TestChain33_GetLastBlockSequence(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)

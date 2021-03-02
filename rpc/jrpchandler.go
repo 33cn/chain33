@@ -1108,6 +1108,16 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
+// GetServerTime get server time
+func (c *Chain33) GetServerTime(in *types.ReqNil, result *interface{}) error {
+
+	serverTime := &rpctypes.ServerTime{
+		CurrentTimestamp: types.Now().Unix(),
+	}
+	*result = serverTime
+	return nil
+}
+
 // CloseQueue close queue
 func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
 	go func() {
