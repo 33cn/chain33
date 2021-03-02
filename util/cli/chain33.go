@@ -53,7 +53,7 @@ var (
 	versionCmd  = flag.Bool("v", false, "version")
 	fixtime     = flag.Bool("fixtime", false, "fix time")
 	waitPid     = flag.Bool("waitpid", false, "p2p stuck until seed save info wallet & wallet unlock")
-	rollback    = flag.Int64("rollback", 0, "rollback block. the command is used to test")
+	rollback    = flag.Int64("rollback", 0, "rollback block. WARNNING this command is only for test")
 	save        = flag.Bool("save", false, "rollback save temporary block")
 	importFile  = flag.String("import", "", "import block file name")
 	exportTitle = flag.String("export", "", "export block title name")
