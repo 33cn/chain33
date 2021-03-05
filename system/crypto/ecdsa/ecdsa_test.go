@@ -92,6 +92,7 @@ func testCryptoCompress(t *testing.T) {
 	t.Logf("pub:%X, len:%d", pub.Bytes(), len(pub.Bytes()))
 
 	pubkey, err := parsePubKeyCompressed(pub.Bytes())
+	assert.Nil(t, err)
 
 	pubbytes := SerializePublicKeyCompressed(pubkey)
 	pub2, err := c.PubKeyFromBytes(pubbytes)

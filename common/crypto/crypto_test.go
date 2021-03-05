@@ -45,8 +45,10 @@ func TestAll(t *testing.T) {
 	testFromBytes(t, "ed25519")
 	testCrypto(t, "secp256k1")
 	testFromBytes(t, "secp256k1")
-	testCrypto(t, "sm2")
-	testFromBytes(t, "sm2")
+	testCrypto(t, "auth_sm2")
+	testFromBytes(t, "auth_sm2")
+	testCrypto(t, "auth_ecdsa")
+	testFromBytes(t, "auth_ecdsa")
 }
 
 func testFromBytes(t *testing.T, name string) {
