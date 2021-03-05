@@ -104,7 +104,7 @@ func (privKey PrivKeyECDSA) Sign(msg []byte) crypto.Signature {
 func (privKey PrivKeyECDSA) PubKey() crypto.PubKey {
 	_, pub := privKeyFromBytes(elliptic.P256(), privKey[:])
 	var pubECDSA PubKeyECDSA
-	copy(pubECDSA[:], SerializePublicKeyCompressed(pub))
+	copy(pubECDSA[:], serializePublicKeyCompressed(pub))
 	return pubECDSA
 }
 

@@ -262,7 +262,7 @@ func (auth *Authority) Validate(signature *types.Signature) error {
 	return nil
 }
 
-// GetSnFromSig 解析证书序列号
+// GetSnFromByte 解析证书序列号
 func (auth *Authority) GetSnFromByte(signature *types.Signature) ([]byte, error) {
 	return auth.validator.GetCertSnFromSignature(signature.Signature)
 

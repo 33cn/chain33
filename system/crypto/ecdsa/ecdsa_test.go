@@ -94,7 +94,7 @@ func testCryptoCompress(t *testing.T) {
 	pubkey, err := parsePubKeyCompressed(pub.Bytes())
 	assert.Nil(t, err)
 
-	pubbytes := SerializePublicKeyCompressed(pubkey)
+	pubbytes := serializePublicKeyCompressed(pubkey)
 	pub2, err := c.PubKeyFromBytes(pubbytes)
 	assert.Nil(t, err)
 

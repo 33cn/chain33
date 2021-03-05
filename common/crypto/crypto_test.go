@@ -22,15 +22,15 @@ func TestGet(t *testing.T) {
 	require.Equal("secp256k1", name)
 	name = crypto.GetName(2)
 	require.Equal("ed25519", name)
-	name = crypto.GetName(3)
-	require.Equal("sm2", name)
+	name = crypto.GetName(258)
+	require.Equal("auth_sm2", name)
 
 	ty := crypto.GetType("secp256k1")
 	require.True(ty == 1)
 	ty = crypto.GetType("ed25519")
 	require.True(ty == 2)
-	ty = crypto.GetType("sm2")
-	require.True(ty == 3)
+	ty = crypto.GetType("auth_sm2")
+	require.True(ty == 258)
 	require.Panics(func() { crypto.RegisterType("testCrypto", crypto.GetType("secp256k1")) })
 }
 
