@@ -6,12 +6,12 @@ package core
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/executor/authority/utils"
 	"io/ioutil"
 	"path/filepath"
 
-	"os"
+	"github.com/33cn/chain33/executor/authority/utils"
 
+	"os"
 )
 
 func getPemMaterialFromDir(dir string) ([][]byte, error) {

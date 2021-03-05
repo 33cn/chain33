@@ -12,10 +12,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/33cn/chain33/executor/authority/utils"
 	"math/big"
 	"reflect"
 	"time"
+
+	"github.com/33cn/chain33/executor/authority/utils"
 
 	sm2_util "github.com/33cn/chain33/system/crypto/sm2"
 	"github.com/33cn/chain33/types"

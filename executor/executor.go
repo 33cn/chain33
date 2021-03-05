@@ -8,10 +8,11 @@ package executor
 //store package store the world - state data
 import (
 	"fmt"
-	"github.com/33cn/chain33/executor/authority"
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/33cn/chain33/executor/authority"
 
 	"github.com/33cn/chain33/client/api"
 	dbm "github.com/33cn/chain33/common/db"

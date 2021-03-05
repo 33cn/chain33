@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	cert "github.com/33cn/chain33/system/crypto/common"
 	"github.com/gogo/protobuf/proto"
 
@@ -20,8 +21,8 @@ import (
 )
 
 const (
-	privateKeyECDSALength = 32
-	publicKeyECDSALength  = 65
+	privateKeyECDSALength          = 32
+	publicKeyECDSALength           = 65
 	publicKeyECDSALengthCompressed = 33
 )
 
@@ -53,7 +54,7 @@ func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
 
 // PubKeyFromBytes create public key from bytes
 func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
-	if len(b) != publicKeyECDSALength && len(b) != publicKeyECDSALengthCompressed{
+	if len(b) != publicKeyECDSALength && len(b) != publicKeyECDSALengthCompressed {
 		return nil, errors.New("invalid pub key byte")
 	}
 	pubKeyBytes := new([publicKeyECDSALength]byte)

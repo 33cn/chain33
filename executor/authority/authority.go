@@ -6,12 +6,13 @@ package authority
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/executor/authority/core"
-	"github.com/33cn/chain33/executor/authority/utils"
 	"io/ioutil"
 	"path"
 	"runtime"
 	"sync"
+
+	"github.com/33cn/chain33/executor/authority/core"
+	"github.com/33cn/chain33/executor/authority/utils"
 
 	"bytes"
 

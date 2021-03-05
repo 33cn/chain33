@@ -10,9 +10,10 @@ import (
 	"crypto/elliptic"
 	"errors"
 	"fmt"
+	"math/big"
+
 	cert "github.com/33cn/chain33/system/crypto/common"
 	"github.com/gogo/protobuf/proto"
-	"math/big"
 
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/tjfoc/gmsm/sm2"

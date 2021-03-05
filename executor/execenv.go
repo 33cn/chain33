@@ -6,6 +6,7 @@ package executor
 
 import (
 	"bytes"
+
 	"github.com/33cn/chain33/executor/authority"
 
 	"github.com/33cn/chain33/account"
