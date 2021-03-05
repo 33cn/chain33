@@ -65,7 +65,7 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	require.NoError(t, err)
 
 	//通过当前高度获取block
-	block, err := blockchain.GetStore().LoadBlockByHeight(curheight)
+	block, err := blockchain.GetStore().LoadBlock(curheight, nil)
 	require.NoError(t, err)
 
 	assert.Equal(t, header.GetHash(), block.Block.Hash(cfg))

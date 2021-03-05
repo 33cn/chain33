@@ -15,7 +15,7 @@ func TestChainConfig(t *testing.T) {
 	cfg.S("a", true)
 	_, err := cfg.G("b")
 	assert.Equal(t, err, ErrNotFound)
-	assert.False(t, cfg.IsEnable("TxHeight"))
+	assert.True(t, cfg.IsEnable("TxHeight"))
 	adata, err := cfg.G("a")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, adata.(bool), true)

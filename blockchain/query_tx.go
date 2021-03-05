@@ -113,13 +113,10 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 }
 
 //HasTx 是否包含该交易
-func (chain *BlockChain) HasTx(txhash []byte, onlyquerycache bool) (has bool, err error) {
-	has = chain.txCache.HasCacheTx(txhash)
-	if has {
-		return true, nil
-	}
-	if onlyquerycache {
-		return has, nil
+func (chain *BlockChain) HasTx(txhash []byte, txHeight int64) (has bool, err error) {
+
+	if txHeight > 0 {
+		return chain.txHeightCache.Contains(txhash, txHeight), nil
 	}
 	return chain.blockStore.HasTx(txhash)
 }
@@ -127,10 +124,12 @@ func (chain *BlockChain) HasTx(txhash []byte, onlyquerycache bool) (has bool, er
 //GetDuplicateTxHashList 获取重复的交易
 func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList, err error) {
 	var dupTxHashList types.TxHashList
-	onlyquerycache := false
-	if txhashlist.Count == -1 {
-		onlyquerycache = true
-	}
+	//onlyquerycache := false
+	//FIXME:这里Count实际传的是区块高度的值，代码中没找到-1的传参，不清楚具体含义
+	//对于非txHeight类交易，直接查询数据库，不会有影响，暂时先注释
+	//if txhashlist.Count == -1 {
+	//	onlyquerycache = true
+	//}
 	if txhashlist.Expire != nil && len(txhashlist.Expire) != len(txhashlist.Hashes) {
 		return nil, types.ErrInvalidParam
 	}
@@ -141,11 +140,7 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 			expire = txhashlist.Expire[i]
 		}
 		txHeight := types.GetTxHeight(cfg, expire, txhashlist.Count)
-		//在txHeight > 0 的情况下，可以安全的查询cache
-		if txHeight > 0 {
-			onlyquerycache = true
-		}
-		has, err := chain.HasTx(txhash, onlyquerycache)
+		has, err := chain.HasTx(txhash, txHeight)
 		if err == nil && has {
 			dupTxHashList.Hashes = append(dupTxHashList.Hashes, txhash)
 		}

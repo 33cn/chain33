@@ -8,7 +8,7 @@ var cfgstring = `
 Title="local"
 TestNet=true
 FixTime=false
-TxHeight=false
+TxHeight=true
 CoinSymbol="bty"
 
 [log]
