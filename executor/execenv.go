@@ -6,6 +6,7 @@ package executor
 
 import (
 	"bytes"
+	"github.com/33cn/chain33/executor/authority"
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
@@ -227,6 +228,18 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 
 	}
+
+	if e.cfg.IsFork(e.height, "ForkExecCert") {
+		// 证书检查
+		if authority.IsAuthEnable {
+			err := authority.Author.Validate(tx.GetSignature())
+			if err != nil {
+				elog.Error("execCheckTx.authority", "exec", string(tx.Execer), "err", err.Error())
+				return err
+			}
+		}
+	}
+
 	return exec.CheckTx(tx, index)
 }
 

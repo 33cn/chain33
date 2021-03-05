@@ -8,6 +8,7 @@ package executor
 //store package store the world - state data
 import (
 	"fmt"
+	"github.com/33cn/chain33/executor/authority"
 	"runtime"
 	"strings"
 	"sync"
@@ -93,6 +94,19 @@ func New(cfg *typ.Chain33Config) *Executor {
 		}
 		exec.alias[data[0]] = data[1]
 	}
+
+	sub := cfg.GetSubConfig().Exec["cert"]
+	var scfg types.AuthorityCfg
+	if sub == nil {
+		panic("exec.auth config [exec.sub.cert] not exist")
+	}
+	types.MustDecode(sub, &scfg)
+
+	err := authority.Author.Init(&scfg)
+	if err != nil {
+		panic("exec.auth error to initialize authority:" + err.Error())
+	}
+
 	return exec
 }
 

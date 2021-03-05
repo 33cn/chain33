@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package sm2 系统签名包
+// Package sm2 带证书交易的签名
 package sm2
 
 import (
 	"bytes"
+	"crypto/elliptic"
 	"errors"
 	"fmt"
-
-	"crypto/elliptic"
-	"encoding/asn1"
+	cert "github.com/33cn/chain33/system/crypto/common"
+	"github.com/gogo/protobuf/proto"
 	"math/big"
 
 	"github.com/33cn/chain33/common/crypto"
@@ -23,6 +23,7 @@ const (
 	SM2PrivateKeyLength    = 32
 	SM2PublicKeyLength     = 65
 	SM2PublicKeyCompressed = 33
+	SM2SignatureMinLength  = 72
 )
 
 //Driver 驱动
@@ -63,17 +64,16 @@ func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
 
 //SignatureFromBytes 字节转为签名
 func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
-	var certSignature crypto.CertSignature
-	_, err = asn1.Unmarshal(b, &certSignature)
+	var certSignature cert.CertSignature
+	err = proto.Unmarshal(b, &certSignature)
 	if err != nil {
 		return SignatureSM2(b), nil
 	}
 
-	if len(certSignature.Cert) == 0 {
-		return SignatureSM2(b), nil
-	}
-
-	return SignatureSM2(certSignature.Signature), nil
+	return &SignatureS{
+		Signature: SignatureSM2(certSignature.Signature),
+		uid:       certSignature.Uid,
+	}, nil
 }
 
 //PrivKeySM2 私钥
@@ -89,7 +89,7 @@ func (privKey PrivKeySM2) Bytes() []byte {
 //Sign 签名
 func (privKey PrivKeySM2) Sign(msg []byte) crypto.Signature {
 	priv, _ := privKeyFromBytes(sm2.P256Sm2(), privKey[:])
-	r, s, err := sm2.Sign(priv, crypto.Sm3Hash(msg))
+	r, s, err := sm2.Sm2Sign(priv, msg, nil)
 	if err != nil {
 		return nil
 	}
@@ -139,8 +139,10 @@ func (pubKey PubKeySM2) isCompressed() bool {
 
 //VerifyBytes 验证字节
 func (pubKey PubKeySM2) VerifyBytes(msg []byte, sig crypto.Signature) bool {
-	if wrap, ok := sig.(SignatureS); ok {
+	var uid []byte
+	if wrap, ok := sig.(*SignatureS); ok {
 		sig = wrap.Signature
+		uid = wrap.uid
 	}
 	sigSM2, ok := sig.(SignatureSM2)
 	if !ok {
@@ -171,7 +173,7 @@ func (pubKey PubKeySM2) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 	//	return false
 	//}
 
-	return sm2.Verify(pub, crypto.Sm3Hash(msg), r, s)
+	return sm2.Sm2Verify(pub, msg, uid, r, s)
 }
 
 func (pubKey PubKeySM2) String() string {
@@ -198,6 +200,7 @@ type SignatureSM2 []byte
 //SignatureS 签名
 type SignatureS struct {
 	crypto.Signature
+	uid []byte
 }
 
 //Bytes 字节格式
@@ -227,8 +230,8 @@ func (sig SignatureSM2) Equals(other crypto.Signature) bool {
 
 //const
 const (
-	Name = "sm2"
-	ID   = 3
+	Name = "auth_sm2"
+	ID   = 258
 )
 
 func init() {
