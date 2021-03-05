@@ -125,9 +125,9 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 		}
 
 		// 需要校验block是否连续
-		block, err := chain.blockStore.LoadBlockByHeight(endBlock.Height + 1)
+		block, err := chain.blockStore.LoadBlock(endBlock.Height+1, nil)
 		if err != nil {
-			exportlog.Error("exportBlock:LoadBlockByHeight", "Height", endBlock.Height+1, "error", err)
+			exportlog.Error("exportBlock:LoadBlock", "Height", endBlock.Height+1, "error", err)
 			return err
 		}
 		parentHash := block.Block.ParentHash
@@ -171,9 +171,9 @@ func (chain *BlockChain) exportMainBlock(startHeight, endheight int64, batch dbm
 	cfg := chain.client.GetConfig()
 	var count = 0
 	for height := startHeight; height <= endheight; height++ {
-		block, err := chain.blockStore.LoadBlockByHeight(height)
+		block, err := chain.blockStore.LoadBlock(height, nil)
 		if err != nil {
-			exportlog.Error("exportMainBlock:LoadBlockByHeight", "height", height, "error", err)
+			exportlog.Error("exportMainBlock:LoadBlock", "height", height, "error", err)
 			return err
 		}
 		count += block.Size()

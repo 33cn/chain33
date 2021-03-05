@@ -156,7 +156,7 @@ func calcRecvChunkNumToHash(chunkNum int64) []byte {
 	return append(RecvChunkNumToHash, []byte(fmt.Sprintf("%012d", chunkNum))...)
 }
 
-//BlockStore 区块存储
+//BlockStore 区块存储 TODO：有较多的冗余代码，接口函数需要进行功能梳理和重写
 type BlockStore struct {
 	db             dbm.DB
 	client         queue.Client
@@ -169,6 +169,7 @@ type BlockStore struct {
 
 	//记录当前活跃的block，减少数据库的访问提高效率
 	activeBlocks *utils.SpaceLimitCache
+	chain        *BlockChain
 }
 
 //NewBlockStore new
@@ -184,6 +185,7 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 		height: height,
 		db:     db,
 		client: client,
+		chain:  chain,
 	}
 	if chain != nil {
 		blockStore.saveSequence = chain.isRecordBlockSequence
@@ -196,9 +198,9 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 			blockStore.saveQuickIndexFlag()
 		}
 	} else {
-		blockdetail, err := blockStore.LoadBlockByHeight(height)
+		blockdetail, err := blockStore.LoadBlock(height, nil)
 		if err != nil {
-			chainlog.Error("init::LoadBlockByHeight::database may be crash")
+			chainlog.Error("init::LoadBlock::database may be crash")
 			panic(err)
 		}
 		blockStore.lastBlock = blockdetail.GetBlock()
@@ -246,7 +248,7 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 	var count = 0
 	cfg := bs.client.GetConfig()
 	for i := int64(0); i <= height; i++ {
-		blockdetail, err := bs.LoadBlockByHeight(i)
+		blockdetail, err := bs.LoadBlock(i, nil)
 		if err != nil {
 			panic(err)
 		}
@@ -430,7 +432,7 @@ func (bs *BlockStore) UpdateHeight() {
 	storeLog.Debug("UpdateHeight", "curblockheight", height)
 }
 
-//UpdateHeight2 更新指定的block高度到BlockStore.Height
+//UpdateHeight2 更新指定的block高度到BlockStore.Height TODO：命名不清晰，不能体现和原来函数的区别
 func (bs *BlockStore) UpdateHeight2(height int64) {
 	atomic.StoreInt64(&bs.height, height)
 	storeLog.Debug("UpdateHeight2", "curblockheight", height)
@@ -474,7 +476,7 @@ func (bs *BlockStore) UpdateLastBlock(hash []byte) {
 	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", blockdetail.Block.Height, "LastHederhash", common.ToHex(blockdetail.Block.Hash(bs.client.GetConfig())))
 }
 
-//UpdateLastBlock2 更新LastBlock到缓存中
+//UpdateLastBlock2 更新LastBlock到缓存中 TODO:命名不清晰，不能体现和原来函数的区别
 func (bs *BlockStore) UpdateLastBlock2(block *types.Block) {
 	bs.lastheaderlock.Lock()
 	defer bs.lastheaderlock.Unlock()
@@ -506,19 +508,22 @@ func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
 	return &reply
 }
 
-//LoadBlockByHeight 通过height高度获取BlockDetail信息
+//LoadBlock 通过height高度获取BlockDetail信息, hash可为空
 //首先通过height+hash 主键获取header和body
 //如果失败使用旧的代码获取block信息
 //主要考虑到使用新的软件在localdb没有完成升级之前，
 //启动的过程中通过height获取区块时需要兼容旧的存储格式
 //升级完成正常启动之后通过loadBlockByIndex获取block不应该有失败
-func (bs *BlockStore) LoadBlockByHeight(height int64) (*types.BlockDetail, error) {
-	hash, err := bs.GetBlockHashByHeight(height)
-	if err != nil {
-		return nil, err
-	}
+//TODO:升级是否是一次性的，升级完成后需要将无效代码移除
+func (bs *BlockStore) LoadBlock(height int64, hash []byte) (block *types.BlockDetail, err error) {
 
-	block, err := bs.loadBlockByIndex("", calcHeightHashKey(height, hash), nil)
+	if len(hash) == 0 {
+		hash, err = bs.chain.GetBlockHash(height)
+		if err != nil {
+			return nil, err
+		}
+	}
+	block, err = bs.loadBlockByIndex("", calcHeightHashKey(height, hash), nil)
 	if block == nil && err != nil {
 		return bs.loadBlockByHashOld(hash)
 	}

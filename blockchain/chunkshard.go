@@ -236,7 +236,7 @@ func (chain *BlockChain) genChunkBlocks(start, end int64) ([]byte, *types.BlockB
 	var hashs types.ReplyHashes
 	var bodys types.BlockBodys
 	for i := start; i <= end; i++ {
-		detail, err := chain.blockStore.LoadBlockByHeight(i)
+		detail, err := chain.blockStore.LoadBlock(i, nil)
 		if err != nil {
 			return nil, nil, err
 		}
