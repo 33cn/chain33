@@ -150,10 +150,10 @@ var TxHeightFlag int64 = 1 << 62
 //关于交易查重:
 //也就是说，两笔相同的交易必然有相同的expire，即TxHeight相同，以及对应的打包区间一致，只能被打包在这个区间(9910,10210)。
 //那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易是否有重复
-var HighAllowPackHeight int64 = 200
+var HighAllowPackHeight int64 = 600
 
 //LowAllowPackHeight 允许打包的low区块高度
-var LowAllowPackHeight int64 = 100
+var LowAllowPackHeight int64 = 200
 
 //MaxAllowPackInterval 允许打包的最大区间值
 var MaxAllowPackInterval int64 = 5000
