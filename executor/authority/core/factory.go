@@ -6,8 +6,9 @@ package core
 
 import (
 	"errors"
-	sm2_util "github.com/33cn/chain33/system/crypto/sm2"
+
 	ecdsa_util "github.com/33cn/chain33/system/crypto/ecdsa"
+	sm2_util "github.com/33cn/chain33/system/crypto/sm2"
 )
 
 // GetLocalValidator 根据类型获取校验器

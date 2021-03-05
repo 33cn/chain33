@@ -11,8 +11,9 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
-	"github.com/33cn/chain33/types"
 	"math/big"
+
+	"github.com/33cn/chain33/types"
 
 	"fmt"
 

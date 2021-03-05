@@ -12,16 +12,17 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/33cn/chain33/executor/authority/utils"
 	"math/big"
 	"reflect"
 	"time"
 
+	"github.com/33cn/chain33/executor/authority/utils"
+
 	"crypto/ecdsa"
 
 	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/types"
 	ecdsa_util "github.com/33cn/chain33/system/crypto/ecdsa"
+	"github.com/33cn/chain33/types"
 )
 
 var authLogger = log.New("module", "authority")

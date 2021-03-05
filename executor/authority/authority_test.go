@@ -6,9 +6,10 @@ package authority_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/33cn/chain33/executor/authority"
 	"github.com/33cn/chain33/executor/authority/utils"
-	"testing"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
