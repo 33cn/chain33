@@ -86,6 +86,7 @@ func parsePubKey(pubKeyStr []byte) (key *ecdsa.PublicKey, err error) {
 	return &pubkey, nil
 }
 
+// SerializePublicKeyCompressed serialize compressed publicKey
 func SerializePublicKeyCompressed(p *ecdsa.PublicKey) []byte {
 	byteLen := (elliptic.P256().Params().BitSize + 7) >> 3
 	compressed := make([]byte, 1+byteLen)

@@ -5,15 +5,13 @@
 package authority
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/executor/authority/core"
 	"github.com/33cn/chain33/executor/authority/utils"
 	"io/ioutil"
 	"path"
-	"runtime"
-
-	"bytes"
 
 	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -22,8 +20,7 @@ import (
 
 var (
 	alog   = log.New("module", "authority")
-	cpuNum = runtime.NumCPU()
-
+	
 	// Author 全局证书校验器
 	Author = &Authority{}
 
