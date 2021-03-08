@@ -171,5 +171,5 @@ func TestNoneCache(t *testing.T) {
 	c := &noneCache{}
 	c.Add(nil)
 	c.Del(0)
-	require.True(t, c.Contains(nil, 0))
+	require.False(t, c.Contains([]byte("test"), 10))
 }

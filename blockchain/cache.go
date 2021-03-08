@@ -248,8 +248,9 @@ func (tc *txHashCache) Contains(hash []byte, txHeight int64) bool {
 	return false
 }
 
+// txHeight未开启情况，兼容blockchain调用，实现txHeightCacheType接口
 type noneCache struct{}
 
-func (n *noneCache) Add(block *types.Block)                   {}
-func (n *noneCache) Del(height int64)                         {}
-func (n *noneCache) Contains(key []byte, txHeight int64) bool { return true }
+func (n *noneCache) Add(*types.Block)            {}
+func (n *noneCache) Del(int64)                   {}
+func (n *noneCache) Contains([]byte, int64) bool { return false }
