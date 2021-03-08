@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	alog   = log.New("module", "authority")
-	
+	alog = log.New("module", "authority")
+
 	// Author 全局证书校验器
 	Author = &Authority{}
 
