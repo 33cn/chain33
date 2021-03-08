@@ -163,8 +163,11 @@ func (mem *Mempool) eventAddBlock(msg *queue.Message) {
 		header.StateHash = block.StateHash
 		mem.setHeader(header)
 	}
-	mem.RemoveTxsOfBlock(block)
-	mem.removeExpired()
+	//同步状态等mempool中不存在交易时，不需要执行操作
+	if mem.Size() > 0 {
+		mem.RemoveTxsOfBlock(block)
+		mem.removeExpired()
+	}
 }
 
 // EventGetMempoolSize 获取mempool大小
