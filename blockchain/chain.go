@@ -262,8 +262,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client.Sub("blockchain")
 
 	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, chain.cfg.DbCache)
-	blockStore := NewBlockStore(chain, blockStoreDB, client)
-	chain.blockStore = blockStore
+	chain.blockStore = NewBlockStore(chain, blockStoreDB, client)
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
 	if chain.enablePushSubscribe && chain.isRecordBlockSequence {
@@ -415,27 +414,13 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 	return chain.blockStore.Height()
 }
 
-// GetBlockHash get block hash by height
-func (chain *BlockChain) GetBlockHash(height int64) ([]byte, error) {
-
-	if hash := chain.blockCache.GetBlockHash(height); len(hash) > 0 {
-		return hash, nil
-	}
-	hash, err := chain.blockStore.GetBlockHashByHeight(height)
-	if err != nil {
-		chainlog.Error("GetBlockHash GetBlockHashByHeight", "height", height, "error", err)
-		return nil, err
-	}
-	return hash, nil
-}
-
 //GetBlock 用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
 func (chain *BlockChain) GetBlock(height int64) (detail *types.BlockDetail, err error) {
 
 	cfg := chain.client.GetConfig()
 
 	var hash []byte
-	if hash, err = chain.GetBlockHash(height); err != nil {
+	if hash, err = chain.blockStore.GetBlockHashByHeight(height); err != nil {
 		return nil, err
 	}
 
@@ -452,7 +437,7 @@ func (chain *BlockChain) GetBlock(height int64) (detail *types.BlockDetail, err 
 	}
 
 	//从blockstore db中通过block height获取block
-	detail, err = chain.blockStore.LoadBlock(height, nil)
+	detail, err = chain.blockStore.LoadBlock(height, hash)
 	if err != nil {
 		chainlog.Error("GetBlock", "height", height, "LoadBlock err", err)
 		return nil, err

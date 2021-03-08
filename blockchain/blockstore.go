@@ -170,6 +170,7 @@ type BlockStore struct {
 	//记录当前活跃的block，减少数据库的访问提高效率
 	activeBlocks *utils.SpaceLimitCache
 	chain        *BlockChain
+	blockCache   *BlockCache
 }
 
 //NewBlockStore new
@@ -182,10 +183,11 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 		}
 	}
 	blockStore := &BlockStore{
-		height: height,
-		db:     db,
-		client: client,
-		chain:  chain,
+		height:     height,
+		db:         db,
+		client:     client,
+		chain:      chain,
+		blockCache: chain.blockCache,
 	}
 	if chain != nil {
 		blockStore.saveSequence = chain.isRecordBlockSequence
@@ -518,7 +520,7 @@ func (bs *BlockStore) Get(keys *types.LocalDBGet) *types.LocalReplyValue {
 func (bs *BlockStore) LoadBlock(height int64, hash []byte) (block *types.BlockDetail, err error) {
 
 	if len(hash) == 0 {
-		hash, err = bs.chain.GetBlockHash(height)
+		hash, err = bs.GetBlockHashByHeight(height)
 		if err != nil {
 			return nil, err
 		}
@@ -776,6 +778,9 @@ func decodeHeight(heightbytes []byte) (int64, error) {
 //GetBlockHashByHeight 从db数据库中获取指定height对应的blockhash
 func (bs *BlockStore) GetBlockHashByHeight(height int64) ([]byte, error) {
 
+	if hash := bs.blockCache.GetBlockHash(height); len(hash) > 0 {
+		return hash, nil
+	}
 	hash, err := bs.db.Get(calcHeightToHashKey(height))
 	if hash == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
