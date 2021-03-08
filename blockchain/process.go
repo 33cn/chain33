@@ -335,8 +335,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	saveBlkCost := types.Since(beg)
 	//hashCache new add block
 	beg = types.Now()
-	chain.txHeightCache.Add(blockdetail.Block)
-	chain.blockCache.AddBlock(blockdetail)
+	chain.AddCacheBlock(blockdetail)
 	cacheCost := types.Since(beg)
 
 	//保存block的总难度到db中
