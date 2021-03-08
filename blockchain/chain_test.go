@@ -50,7 +50,7 @@ func addTxTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, api client.Que
 	hash := common.ToHex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
-		return nil, hash, err
+		return txs, hash, err
 	}
 	if !reply.GetIsOk() {
 		return nil, hash, errors.New("sendtx unknow error")

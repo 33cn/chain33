@@ -28,7 +28,8 @@ func addTestBlock(t *testing.T, mock33 *testnode.Chain33Mock, blockNum int, isTx
 		} else {
 			txList, _, err = addTx(mock33.GetAPI().GetConfig(), mock33.GetGenesisKey(), mock33.GetAPI())
 		}
-		require.Nil(t, err)
+		txHeight := types.GetTxHeight(mock33.GetAPI().GetConfig(), txList[0].Expire, currHeight+1)
+		require.Nilf(t, err, "currHeight:%d, txHeight=%d", currHeight, txHeight)
 		txs = append(txs, txList...)
 		for mock33.GetBlockChain().GetBlockHeight() != currHeight+1 {
 			time.Sleep(time.Millisecond)

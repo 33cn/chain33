@@ -54,8 +54,6 @@ func TestBlockCache(t *testing.T) {
 func initTxHashCache(txHeightRange int64) (*txHashCache, *BlockChain, *types.Chain33Config) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	cfg.GetModuleConfig().BlockChain.DefCacheSize = txHeightRange * 4
-	cfg.GetModuleConfig().BlockChain.LowAllowPackHeight = txHeightRange
-	cfg.GetModuleConfig().BlockChain.HighAllowPackHeight = txHeightRange
 	chain := New(cfg)
 	q := queue.New("channel")
 	q.SetConfig(cfg)
@@ -66,20 +64,20 @@ func initTxHashCache(txHeightRange int64) (*txHashCache, *BlockChain, *types.Cha
 
 }
 
-func newTestTxs(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) []*types.Transaction {
+func newTestTxs(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight, txHeightRange int64) []*types.Transaction {
 
 	txs := util.GenNoneTxs(cfg, priv, 4)
 	//分别设置，最低txHeight， 最高txHeight， 正常txHeight，非txHeight交易
-	util.UpdateExpireWithTxHeight(txs[0], priv, currHeight-types.HighAllowPackHeight)
+	util.UpdateExpireWithTxHeight(txs[0], priv, currHeight-txHeightRange)
 	util.UpdateExpireWithTxHeight(txs[1], priv, currHeight)
-	util.UpdateExpireWithTxHeight(txs[2], priv, currHeight+types.LowAllowPackHeight)
+	util.UpdateExpireWithTxHeight(txs[2], priv, currHeight+txHeightRange)
 	return txs
 }
 
-func addTestBlock(chain *BlockChain, cfg *types.Chain33Config, priv crypto.PrivKey, startHeight int64, blockNum int) {
+func addTestBlock(chain *BlockChain, cfg *types.Chain33Config, priv crypto.PrivKey, startHeight, txHeightRange int64, blockNum int) {
 
 	for i := 0; i < blockNum; i++ {
-		txs := newTestTxs(cfg, priv, startHeight)
+		txs := newTestTxs(cfg, priv, startHeight, txHeightRange)
 		block := &types.BlockDetail{Block: &types.Block{Txs: txs, Height: startHeight}}
 		chain.blockCache.AddBlock(block)
 		chain.txHeightCache.Add(block.GetBlock())
@@ -89,10 +87,11 @@ func addTestBlock(chain *BlockChain, cfg *types.Chain33Config, priv crypto.PrivK
 
 func TestTxHashCache_Add(t *testing.T) {
 
-	tc, chain, cfg := initTxHashCache(5)
+	var txHeightRange int64 = 5
+	tc, chain, cfg := initTxHashCache(txHeightRange)
 	_, priv := util.Genaddress()
 
-	addTestBlock(chain, cfg, priv, 0, 30)
+	addTestBlock(chain, cfg, priv, 0, txHeightRange, 30)
 	currHeight := tc.currBlockHeight
 	require.Equal(t, 29, int(currHeight))
 	for i := 15; i < 34; i++ {
@@ -100,7 +99,7 @@ func TestTxHashCache_Add(t *testing.T) {
 		require.True(t, ok)
 	}
 	require.Equal(t, 20, len(tc.txHashes))
-	txs := newTestTxs(cfg, priv, currHeight+1)
+	txs := newTestTxs(cfg, priv, currHeight+1, txHeightRange)
 	tc.Add(&types.Block{Txs: txs, Height: currHeight + 1})
 
 	require.Nil(t, tc.txHashes[15])
@@ -109,10 +108,11 @@ func TestTxHashCache_Add(t *testing.T) {
 
 func TestTxHashCache_Del(t *testing.T) {
 
-	tc, chain, cfg := initTxHashCache(5)
+	var txHeightRange int64 = 5
+	tc, chain, cfg := initTxHashCache(txHeightRange)
 	_, priv := util.Genaddress()
 
-	addTestBlock(chain, cfg, priv, 0, 10)
+	addTestBlock(chain, cfg, priv, 0, txHeightRange, 10)
 	currHeight := tc.currBlockHeight
 	for i := 0; i < 5; i++ {
 		tc.Del(currHeight)
@@ -123,7 +123,7 @@ func TestTxHashCache_Del(t *testing.T) {
 	for i := 1; i < 10; i++ {
 		require.NotNil(t, tc.txHashes[int64(i)])
 	}
-	addTestBlock(chain, cfg, priv, currHeight+1, 20)
+	addTestBlock(chain, cfg, priv, currHeight+1, txHeightRange, 20)
 	currHeight = tc.currBlockHeight
 	for i := 0; i < 5; i++ {
 		tc.Del(currHeight)
@@ -138,10 +138,11 @@ func TestTxHashCache_Del(t *testing.T) {
 
 func TestTxHashCache_Contains(t *testing.T) {
 
-	tc, chain, cfg := initTxHashCache(5)
+	var txHeightRange int64 = 5
+	tc, chain, cfg := initTxHashCache(txHeightRange)
 	_, priv := util.Genaddress()
 
-	addTestBlock(chain, cfg, priv, 0, 30)
+	addTestBlock(chain, cfg, priv, 0, txHeightRange, 30)
 	currHeight := tc.currBlockHeight
 	for i := 0; i < 5; i++ {
 		tc.Del(currHeight)
