@@ -7,11 +7,12 @@ package authority
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"path"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/executor/authority/core"
 	"github.com/33cn/chain33/executor/authority/utils"
-	"io/ioutil"
-	"path"
 
 	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -273,7 +274,7 @@ func (loader *UserLoader) genCryptoPriv(keyBytes []byte) (crypto.PrivKey, error)
 	//	return nil, err
 	//}
 
-	privkeyBytes ,err := common.FromHex(string(keyBytes))
+	privkeyBytes, err := common.FromHex(string(keyBytes))
 	if err != nil {
 		return nil, err
 	}
