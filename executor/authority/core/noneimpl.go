@@ -23,7 +23,3 @@ func (validator *noneValidator) Validate(certByte []byte, pubKey []byte) error {
 func (validator *noneValidator) GetCertFromSignature(signature []byte) ([]byte, error) {
 	return []byte(""), nil
 }
-
-func (validator *noneValidator) GetCertSnFromSignature(signature []byte) ([]byte, error) {
-	return []byte(""), nil
-}

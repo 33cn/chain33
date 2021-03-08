@@ -21,7 +21,7 @@ import (
 	"crypto/ecdsa"
 
 	log "github.com/33cn/chain33/common/log/log15"
-	ecdsa_util "github.com/33cn/chain33/system/crypto/ecdsa"
+	secp256r1_util "github.com/33cn/chain33/system/crypto/secp256r1"
 	"github.com/33cn/chain33/types"
 )
 
@@ -149,7 +149,7 @@ func (validator *ecdsaValidator) Validate(certByte []byte, pubKey []byte) error 
 		return fmt.Errorf("Error publick key type in transaction. expect ECDSA")
 	}
 
-	if !bytes.Equal(pubKey, ecdsa_util.SerializePublicKey(certPubKey)) {
+	if !bytes.Equal(pubKey, secp256r1_util.SerializePublicKeyCompressed(certPubKey)) {
 		return fmt.Errorf("Invalid public key")
 	}
 
@@ -418,19 +418,4 @@ func (validator *ecdsaValidator) GetCertFromSignature(signature []byte) ([]byte,
 	}
 
 	return certSign.Cert, nil
-}
-
-func (validator *ecdsaValidator) GetCertSnFromSignature(signature []byte) ([]byte, error) {
-	certByte, err := validator.GetCertFromSignature(signature)
-	if err != nil {
-		authLogger.Error(fmt.Sprintf("GetCertSnFromSignature from signature failed. %s", err.Error()))
-		return nil, err
-	}
-
-	cert, err := validator.getCertFromPem(certByte)
-	if err != nil {
-		return nil, fmt.Errorf("ParseCertificate failed %s", err)
-	}
-
-	return cert.SerialNumber.Bytes(), nil
 }

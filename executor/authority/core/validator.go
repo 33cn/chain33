@@ -11,8 +11,6 @@ type Validator interface {
 	Validate(cert []byte, pubKey []byte) error
 
 	GetCertFromSignature(signature []byte) ([]byte, error)
-
-	GetCertSnFromSignature(signature []byte) ([]byte, error)
 }
 
 // AuthConfig 校验器配置

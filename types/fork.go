@@ -139,8 +139,6 @@ func (f *Forks) SetTestNetFork() {
 	f.SetFork("ForkCacheDriver", 2580000)
 	f.SetFork("ForkTicketFundAddrV1", 3350000)
 	f.SetFork("ForkRootHash", 4500000)
-	//是否开启执行器框架身份证书校验，联盟链证书校验使用
-	f.SetFork("ForkExecCert", 0)
 }
 
 func (f *Forks) setLocalFork() {

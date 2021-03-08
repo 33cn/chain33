@@ -7,7 +7,7 @@ package core
 import (
 	"errors"
 
-	ecdsa_util "github.com/33cn/chain33/system/crypto/ecdsa"
+	secp256r1_util "github.com/33cn/chain33/system/crypto/secp256r1"
 	sm2_util "github.com/33cn/chain33/system/crypto/sm2"
 )
 
@@ -16,7 +16,7 @@ func GetLocalValidator(authConfig *AuthConfig, signType int) (Validator, error) 
 	var lclValidator Validator
 	var err error
 
-	if signType == ecdsa_util.ID {
+	if signType == secp256r1_util.ID {
 		lclValidator = NewEcdsaValidator()
 	} else if signType == sm2_util.ID {
 		lclValidator = NewGmValidator()

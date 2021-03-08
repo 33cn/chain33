@@ -13,7 +13,7 @@ import (
 	"math/big"
 
 	cert "github.com/33cn/chain33/system/crypto/common"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/tjfoc/gmsm/sm2"

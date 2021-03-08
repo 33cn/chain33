@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package authority_test
+package secp256r1_test
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-	ecdsa_util "github.com/33cn/chain33/system/crypto/ecdsa"
+	secp256r1_util "github.com/33cn/chain33/system/crypto/secp256r1"
 	sm2_util "github.com/33cn/chain33/system/crypto/sm2"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
@@ -56,7 +56,7 @@ var (
 
 var USERNAME = "user1"
 var ORGNAME = "org1"
-var SIGNTYPE = sm2_util.ID
+var SIGNTYPE = secp256r1_util.ID
 
 func signtx(tx *types.Transaction, priv crypto.PrivKey, cert []byte) {
 	tx.Sign(int32(SIGNTYPE), priv)
@@ -83,7 +83,7 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 初始化Author实例和userloader
 */
 func initEnv() (*types.Chain33Config, error) {
-	cfg := types.NewChain33Config(types.ReadFile("./test/chain33.auth.test.toml"))
+	cfg := types.NewChain33Config(types.ReadFile("./chain33.auth.test.toml"))
 	sub := cfg.GetSubConfig()
 	var subcfg types.AuthorityCfg
 	if sub.Exec["cert"] != nil {
@@ -213,7 +213,7 @@ func TestChckSignWithSm2(t *testing.T) {
 TestCase05 不带证书，secp256r1签名验证
 */
 func TestChckSignWithEcdsa(t *testing.T) {
-	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", ecdsa_util.ID))
+	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", secp256r1_util.ID))
 	privKeyecdsa, _ := ecdsacrypto.PrivKeyFromBytes(privRaw)
 	tx16 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
@@ -226,7 +226,7 @@ func TestChckSignWithEcdsa(t *testing.T) {
 	}
 	cfg.SetMinFee(0)
 
-	tx16.Sign(ecdsa_util.ID, privKeyecdsa)
+	tx16.Sign(secp256r1_util.ID, privKeyecdsa)
 	if !tx16.CheckSign() {
 		t.Error("check signature failed")
 		return
@@ -314,26 +314,3 @@ func TestReloadByHeight(t *testing.T) {
 		t.Error("reload by height failed")
 	}
 }
-
-//FIXME 有并发校验的场景需要考虑竞争，暂时没有并发校验的场景
-/*
-func TestValidateCerts(t *testing.T) {
-	err := initEnv()
-	if err != nil {
-		t.Errorf("init env failed, error:%s", err)
-	}
-
-	prev := types.GetMinTxFeeRate()
-	types.SetMinFee(0)
-	defer types.SetMinFee(prev)
-
-	signatures := []*types.Signature{tx1.Signature, tx2.Signature, tx3.Signature, tx4.Signature, tx5.Signature,
-		tx6.Signature, tx7.Signature, tx8.Signature, tx9.Signature, tx10.Signature, tx11.Signature,
-		tx12.Signature, tx13.Signature}
-
-	result := Author.ValidateCerts(signatures)
-	if !result {
-		t.Error("error process txs signature validate")
-	}
-}
-*/

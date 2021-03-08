@@ -6,13 +6,12 @@ package authority
 
 import (
 	"fmt"
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/executor/authority/core"
+	"github.com/33cn/chain33/executor/authority/utils"
 	"io/ioutil"
 	"path"
 	"runtime"
-	"sync"
-
-	"github.com/33cn/chain33/executor/authority/core"
-	"github.com/33cn/chain33/executor/authority/utils"
 
 	"bytes"
 
@@ -174,68 +173,6 @@ func (auth *Authority) ReloadCertByHeght(currentHeight int64) error {
 	return nil
 }
 
-// ValidateCerts 并发校验证书
-func (auth *Authority) ValidateCerts(task []*types.Signature) bool {
-	//FIXME 有并发校验的场景需要考虑竞争，暂时没有并发校验的场景
-	done := make(chan struct{})
-	defer close(done)
-
-	taskes := gen(done, task)
-
-	c := make(chan result)
-	var wg sync.WaitGroup
-	wg.Add(cpuNum)
-	for i := 0; i < cpuNum; i++ {
-		go func() {
-			auth.task(done, taskes, c)
-			wg.Done()
-		}()
-	}
-	go func() {
-		wg.Wait()
-		close(c)
-	}()
-
-	for r := range c {
-		if r.err != nil {
-			return false
-		}
-	}
-
-	return true
-}
-
-func gen(done <-chan struct{}, task []*types.Signature) <-chan *types.Signature {
-	ch := make(chan *types.Signature)
-	go func() {
-		defer func() {
-			close(ch)
-		}()
-		for i := 0; i < len(task); i++ {
-			select {
-			case ch <- task[i]:
-			case <-done:
-				return
-			}
-		}
-	}()
-	return ch
-}
-
-type result struct {
-	err error
-}
-
-func (auth *Authority) task(done <-chan struct{}, taskes <-chan *types.Signature, c chan<- result) {
-	for task := range taskes {
-		select {
-		case c <- result{auth.Validate(task)}:
-		case <-done:
-			return
-		}
-	}
-}
-
 // Validate 检验证书
 func (auth *Authority) Validate(signature *types.Signature) error {
 	// 从proto中解码signature
@@ -260,38 +197,6 @@ func (auth *Authority) Validate(signature *types.Signature) error {
 	auth.validCertCache = append(auth.validCertCache, cert)
 
 	return nil
-}
-
-// GetSnFromByte 解析证书序列号
-func (auth *Authority) GetSnFromByte(signature *types.Signature) ([]byte, error) {
-	return auth.validator.GetCertSnFromSignature(signature.Signature)
-
-}
-
-// ToHistoryCertStore 历史数据转成store可存储的历史数据
-func (certdata *HistoryCertData) ToHistoryCertStore(store *types.HistoryCertStore) {
-	if store == nil {
-		alog.Error("Convert cert data to cert store failed")
-		return
-	}
-
-	store.Rootcerts = make([][]byte, len(certdata.CryptoCfg.RootCerts))
-	for i, v := range certdata.CryptoCfg.RootCerts {
-		store.Rootcerts[i] = append(store.Rootcerts[i], v...)
-	}
-
-	store.IntermediateCerts = make([][]byte, len(certdata.CryptoCfg.IntermediateCerts))
-	for i, v := range certdata.CryptoCfg.IntermediateCerts {
-		store.IntermediateCerts[i] = append(store.IntermediateCerts[i], v...)
-	}
-
-	store.RevocationList = make([][]byte, len(certdata.CryptoCfg.RevocationList))
-	for i, v := range certdata.CryptoCfg.RevocationList {
-		store.RevocationList[i] = append(store.RevocationList[i], v...)
-	}
-
-	store.CurHeigth = certdata.CurHeight
-	store.NxtHeight = certdata.NxtHeight
 }
 
 // User 用户关联的证书私钥信息
@@ -371,7 +276,12 @@ func (loader *UserLoader) genCryptoPriv(keyBytes []byte) (crypto.PrivKey, error)
 	//	return nil, err
 	//}
 
-	priv, err := cr.PrivKeyFromBytes(keyBytes)
+	privkeyBytes ,err := common.FromHex(string(keyBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	priv, err := cr.PrivKeyFromBytes(privkeyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("get private key failed, error:%s", err)
 	}

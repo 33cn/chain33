@@ -7,57 +7,8 @@ package utils
 import (
 	"encoding/pem"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"os"
 )
-
-// DirMissingOrEmpty 路径是否为空
-func DirMissingOrEmpty(path string) (bool, error) {
-	dirExists, err := dirExists(path)
-	if err != nil {
-		return false, err
-	}
-	if !dirExists {
-		return true, nil
-	}
-
-	dirEmpty, err := dirEmpty(path)
-	if err != nil {
-		return false, err
-	}
-	if dirEmpty {
-		return true, nil
-	}
-	return false, nil
-}
-
-// DirExists 目录是否存在
-func dirExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
-// DirEmpty 目录是否为空
-func dirEmpty(path string) (bool, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return false, err
-	}
-	defer f.Close()
-
-	_, err = f.Readdir(1)
-	if err == io.EOF {
-		return true, nil
-	}
-	return false, err
-}
 
 // ReadFile 读取文件
 func ReadFile(file string) ([]byte, error) {

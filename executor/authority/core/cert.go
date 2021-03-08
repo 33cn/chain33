@@ -14,7 +14,7 @@ import (
 	"math/big"
 	"time"
 
-	ecdsa_util "github.com/33cn/chain33/system/crypto/ecdsa"
+	secp256r1_util "github.com/33cn/chain33/system/crypto/secp256r1"
 	"github.com/tjfoc/gmsm/sm2"
 )
 
@@ -91,13 +91,13 @@ func sanitizeECDSASignedCert(cert *x509.Certificate, parentCert *x509.Certificat
 }
 
 func signatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
-	r, s, err := ecdsa_util.UnmarshalECDSASignature(signature)
+	r, s, err := secp256r1_util.UnmarshalECDSASignature(signature)
 	if err != nil {
 		return nil, err
 	}
 
-	s = ecdsa_util.ToLowS(k, s)
-	return ecdsa_util.MarshalECDSASignature(r, s)
+	s = secp256r1_util.ToLowS(k, s)
+	return secp256r1_util.MarshalECDSASignature(r, s)
 }
 
 func certFromX509Cert(cert *x509.Certificate) (certificate, error) {

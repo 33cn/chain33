@@ -15,10 +15,8 @@ import (
 
 	"github.com/33cn/chain33/types"
 
-	"fmt"
-
 	cert_util "github.com/33cn/chain33/system/crypto/common"
-	ecdsa_util "github.com/33cn/chain33/system/crypto/ecdsa"
+	secp256r1_util "github.com/33cn/chain33/system/crypto/secp256r1"
 	sm2_util "github.com/33cn/chain33/system/crypto/sm2"
 	"github.com/pkg/errors"
 	"github.com/tjfoc/gmsm/sm2"
@@ -42,7 +40,7 @@ func GetPublicKeySKIFromCert(cert []byte, signType int) (string, error) {
 
 	var ski []byte
 	switch signType {
-	case ecdsa_util.ID:
+	case secp256r1_util.ID:
 		x509Cert, err := x509.ParseCertificate(dcert.Bytes)
 		if err != nil {
 			return "", errors.Errorf("Unable to parse cert from decoded bytes: %s", err)
@@ -81,29 +79,4 @@ func DecodeCertFromSignature(signByte []byte) (*cert_util.CertSignature, error) 
 	}
 
 	return &certSign, nil
-}
-
-// PrivKeyByteFromRaw pem结构转成byte类型私钥
-func PrivKeyByteFromRaw(raw []byte, signType int) ([]byte, error) {
-	block, _ := pem.Decode(raw)
-	if block == nil {
-		return nil, fmt.Errorf("Failed decoding PEM. Block must be different from nil. [% x]", raw)
-	}
-
-	switch signType {
-	case ecdsa_util.ID:
-		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-		return ecdsa_util.SerializePrivateKey(key.(*ecdsa.PrivateKey)), nil
-	case sm2_util.ID:
-		key, err := sm2.ParsePKCS8PrivateKey(block.Bytes, nil)
-		if err != nil {
-			return nil, err
-		}
-		return sm2_util.SerializePrivateKey(key), nil
-	}
-
-	return nil, errors.Errorf("unknow public key type")
 }

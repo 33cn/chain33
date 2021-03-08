@@ -359,18 +359,3 @@ func (validator *gmValidator) GetCertFromSignature(signature []byte) ([]byte, er
 
 	return cert.Cert, nil
 }
-
-func (validator *gmValidator) GetCertSnFromSignature(signature []byte) ([]byte, error) {
-	certByte, err := validator.GetCertFromSignature(signature)
-	if err != nil {
-		authLogger.Error(fmt.Sprintf("GetCertSnFromSignature from signature failed. %s", err.Error()))
-		return nil, err
-	}
-
-	cert, err := validator.getCertFromPem(certByte)
-	if err != nil {
-		return nil, fmt.Errorf("ParseCertificate failed %s", err)
-	}
-
-	return cert.SerialNumber.Bytes(), nil
-}

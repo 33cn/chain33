@@ -230,14 +230,12 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 
 	}
 
-	if e.cfg.IsFork(e.height, "ForkExecCert") {
-		// 证书检查
-		if authority.IsAuthEnable {
-			err := authority.Author.Validate(tx.GetSignature())
-			if err != nil {
-				elog.Error("execCheckTx.authority", "exec", string(tx.Execer), "err", err.Error())
-				return err
-			}
+	// 证书检查
+	if authority.IsAuthEnable && e.cfg.IsFork(e.height, "ForkExecCert") {
+		err := authority.Author.Validate(tx.GetSignature())
+		if err != nil {
+			elog.Error("execCheckTx.authority", "exec", string(tx.Execer), "err", err.Error())
+			return err
 		}
 	}
 

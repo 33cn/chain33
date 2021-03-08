@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	cert "github.com/33cn/chain33/system/crypto/common"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -104,7 +104,7 @@ func (privKey PrivKeyECDSA) Sign(msg []byte) crypto.Signature {
 func (privKey PrivKeyECDSA) PubKey() crypto.PubKey {
 	_, pub := privKeyFromBytes(elliptic.P256(), privKey[:])
 	var pubECDSA PubKeyECDSA
-	copy(pubECDSA[:], serializePublicKeyCompressed(pub))
+	copy(pubECDSA[:], SerializePublicKeyCompressed(pub))
 	return pubECDSA
 }
 
