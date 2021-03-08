@@ -55,6 +55,7 @@ func initTxHashCache(txHeightRange int64) (*txHashCache, *BlockChain, *types.Cha
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	cfg.GetModuleConfig().BlockChain.DefCacheSize = txHeightRange * 4
 	chain := New(cfg)
+	chain.blockStore = &BlockStore{blockCache: chain.blockCache}
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	chain.client = q.Client()
