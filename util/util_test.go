@@ -120,7 +120,7 @@ func TestGenTx(t *testing.T) {
 	assert.Equal(t, "coins", string(txs[0].Execer))
 	assert.Equal(t, "coins", string(txs[1].Execer))
 
-	txs = GenTxsTxHeigt(cfg, TestPrivkeyList[0], 2, 10)
+	txs = GenTxsTxHeight(cfg, TestPrivkeyList[0], 2, 10)
 	assert.Equal(t, 2, len(txs))
 	assert.Equal(t, "coins", string(txs[0].Execer))
 	assert.Equal(t, "coins", string(txs[1].Execer))

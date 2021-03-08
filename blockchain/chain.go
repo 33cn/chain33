@@ -186,7 +186,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		onChainTimeout:      0,
 	}
 	blockchain.initConfig(cfg)
-	blockchain.blockCache = newBlockCache(cfg)
+	blockchain.blockCache = newBlockCache(cfg, defaultBlockHashCacheSize)
 	return blockchain
 }
 
@@ -415,6 +415,7 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 	return chain.blockStore.Height()
 }
 
+// GetBlockHash get block hash by height
 func (chain *BlockChain) GetBlockHash(height int64) ([]byte, error) {
 
 	if hash := chain.blockCache.GetBlockHash(height); len(hash) > 0 {
@@ -630,9 +631,16 @@ func (chain *BlockChain) GetValueByKey(keys *types.LocalDBGet) *types.LocalReply
 	return chain.blockStore.Get(keys)
 }
 
+// AddCacheBlock 添加区块相关缓存
+func (chain *BlockChain) AddCacheBlock(detail *types.BlockDetail) {
+	//txHeight缓存先增加
+	chain.txHeightCache.Add(detail.Block)
+	chain.blockCache.AddBlock(detail)
+}
+
 //DelCacheBlock 删除缓存的中对应的区块
 func (chain *BlockChain) DelCacheBlock(height int64, hash []byte) {
-
+	//txHeight缓存先删除
 	chain.txHeightCache.Del(height)
 	chain.blockCache.DelBlock(height)
 	chain.blockStore.RemoveActiveBlock(string(hash))

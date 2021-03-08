@@ -11,7 +11,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-const defaultHashCacheSize = 10000 //哈希缓存大小暂时采用固定值，约0.4MB内存占用
+const defaultBlockHashCacheSize = 10000 //区块哈希缓存个数暂时采用固定值，约0.4MB内存占用
 
 //BlockCache 区块缓存
 type BlockCache struct {
@@ -26,20 +26,22 @@ type BlockCache struct {
 }
 
 //newBlockCache new
-func newBlockCache(cfg *types.Chain33Config) *BlockCache {
+func newBlockCache(cfg *types.Chain33Config, blockHashCacheSize int64) *BlockCache {
 	blkCacheSize := cfg.GetModuleConfig().BlockChain.DefCacheSize
-	if blkCacheSize > defaultHashCacheSize {
-		panic(fmt.Sprintf("newBlockCache: block cache size config must less than hash cache size(%d)", defaultHashCacheSize))
+	if blkCacheSize > blockHashCacheSize {
+		panic(fmt.Sprintf("newBlockCache: block cache size config must less than hash cache size, "+
+			"blkCacheSize=%d, blkHashCacheSize=%d", blkCacheSize, blockHashCacheSize))
 	}
 	return &BlockCache{
-		hashCache:     make(map[int64]string, defaultHashCacheSize),
+		hashCache:     make(map[int64]string, blockHashCacheSize),
 		blockCache:    make(map[string]*types.BlockDetail, blkCacheSize),
 		blkCacheSize:  blkCacheSize,
-		hashCacheSize: defaultHashCacheSize,
+		hashCacheSize: blockHashCacheSize,
 		cfg:           cfg,
 	}
 }
 
+// GetBlockHash get block hash by height
 func (bc *BlockCache) GetBlockHash(height int64) []byte {
 	bc.cacheLock.RLock()
 	defer bc.cacheLock.RUnlock()
@@ -133,6 +135,7 @@ const txHashCacheLen = 16
 // 缓存采用双层map结构，交易按照txHeight值分类，提高map查重效率
 // 占用空间， (lowerTxHeightRange+upperTxHeightRange) * 单个区块平均交易数 * 16 (byte)
 // 1000 * 10000 * 16/1024/1024 = 150MB
+// 不考虑回滚处理，缓存空间进一步优化减少，TODO：实现上区分区块链是否可能回滚
 type txHashCache struct {
 	currBlockHeight    int64
 	lowerTxHeightRange int64                         //区块允许的下限txHeight范围
@@ -159,7 +162,7 @@ func (tc *txHashCache) Add(block *types.Block) {
 	defer tc.lock.Unlock()
 
 	tc.currBlockHeight = block.GetHeight()
-
+	tc.addTxList(block.Txs)
 	delHeight := tc.currBlockHeight - tc.upperTxHeightRange - tc.lowerTxHeightRange
 	if delHeight >= 0 {
 		delBlock, err := tc.chain.GetBlock(delHeight)
@@ -167,12 +170,11 @@ func (tc *txHashCache) Add(block *types.Block) {
 			//获取区块出错，将导致缓存异常
 			chainlog.Crit("txHashCache Add", "height", delHeight, "Get del Block err", err)
 		} else {
-			//对于新区快，所有txHeight<=tc.currBlockHeight - tc.lowerTxHeightRange都过期交易，可以从缓存中删除
-			//但批量删除可能导致区块回滚时再重新添加这些交易不好定位，因为这些交易可能分布在多个区块中
+			//对于新区快，所有txHeight<=tc.currBlockHeight - tc.lowerTxHeightRange都已经过期，可以从缓存中删除
+			//但批量删除可能导致区块回滚时再重新添加这些交易不好定位，因为这些交易可能分布在多个区块中, 这里只删除一个区块的交易
 			tc.delTxList(delBlock.Block.Txs)
 		}
 	}
-	tc.addTxList(block.Txs)
 }
 
 // Del 回滚区块时是Add的逆向处理, 缓存窗口后退一个高度
@@ -180,20 +182,9 @@ func (tc *txHashCache) Del(height int64) {
 
 	tc.lock.Lock()
 	defer tc.lock.Unlock()
-	maxCacheTxHeight := height + tc.upperTxHeightRange
-	delete(tc.txHashes, maxCacheTxHeight)
 	tc.currBlockHeight = height - 1
-	delBlock, err := tc.chain.GetBlock(height)
-	if err != nil {
-		//获取区块出错，将导致缓存异常
-		chainlog.Crit("txHashCache Del", "height", height, "Get del Block err", err)
-		return
-	}
-
-	tc.delTxList(delBlock.Block.Txs)
-
 	//窗口向左移动一个高度，需要添加窗口中第一个区块内交易哈希
-	addHeight := tc.currBlockHeight - tc.upperTxHeightRange - tc.lowerTxHeightRange
+	addHeight := height - tc.upperTxHeightRange - tc.lowerTxHeightRange
 	if addHeight >= 0 {
 		addBlock, err := tc.chain.GetBlock(addHeight)
 		if err != nil {
@@ -204,16 +195,21 @@ func (tc *txHashCache) Del(height int64) {
 		tc.addTxList(addBlock.Block.Txs)
 	}
 
+	delBlock, err := tc.chain.GetBlock(height)
+	if err != nil {
+		//获取区块出错，将导致缓存异常
+		chainlog.Crit("txHashCache Del", "height", height, "Get del Block err", err)
+		return
+	}
+	tc.delTxList(delBlock.Block.Txs)
 }
 
 func (tc *txHashCache) addTxList(txs []*types.Transaction) {
 
-	//下一个区块合法txHeight最小值
-	minValidTxHeight := tc.currBlockHeight - tc.lowerTxHeightRange - 1
-	//只需要将expire为txHeight类型，且txHeight符合范围的交易哈希缓存
+	//只需要将expire为txHeight类型缓存
 	for _, tx := range txs {
 		txHeight := types.GetTxHeight(tc.chain.client.GetConfig(), tx.Expire, tc.currBlockHeight)
-		if txHeight < minValidTxHeight || txHeight < 0 {
+		if txHeight < 0 {
 			continue
 		}
 		hashMap, ok := tc.txHashes[txHeight]
