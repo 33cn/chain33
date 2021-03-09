@@ -89,7 +89,7 @@ func testCryptoCompress(t *testing.T) {
 
 	pub := priv.PubKey()
 	require.NotNil(pub)
-	t.Logf("pub:%X, len:%d", pub.Bytes(), len(pub.Bytes()))
+	t.Logf("pub:%X, len:%d, string:%s", pub.Bytes(), len(pub.Bytes()), pub.KeyString())
 
 	pubkey, err := parsePubKeyCompressed(pub.Bytes())
 	assert.Nil(t, err)
@@ -100,7 +100,7 @@ func testCryptoCompress(t *testing.T) {
 
 	msg := []byte("hello world")
 	signature := priv.Sign(msg)
-	t.Logf("sign:%X, len:%d", signature.Bytes(), len(signature.Bytes()))
+	t.Logf("sign:%X, len:%d, string:%s", signature.Bytes(), len(signature.Bytes()), signature.String())
 
 	ok := pub.VerifyBytes(msg, signature)
 	require.Equal(true, ok)

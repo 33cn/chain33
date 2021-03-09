@@ -30,18 +30,12 @@ func UnmarshalECDSASignature(raw []byte) (*big.Int, *big.Int, error) {
 		return nil, nil, fmt.Errorf("failed unmashalling signature [%s]", err)
 	}
 
-	if sig.R == nil {
-		return nil, nil, errors.New("invalid signature, R must be different from nil")
-	}
-	if sig.S == nil {
-		return nil, nil, errors.New("invalid signature, S must be different from nil")
+	if sig.R == nil || sig.S == nil {
+		return nil, nil, errors.New("invalid signature, R/S must be different from nil")
 	}
 
-	if sig.R.Sign() != 1 {
-		return nil, nil, errors.New("invalid signature, R must be larger than zero")
-	}
-	if sig.S.Sign() != 1 {
-		return nil, nil, errors.New("invalid signature, S must be larger than zero")
+	if sig.R.Sign() != 1 || sig.S.Sign() != 1{
+		return nil, nil, errors.New("invalid signature, R/S must be larger than zero")
 	}
 
 	return sig.R, sig.S, nil
