@@ -147,32 +147,19 @@ func (pubKey PubKeySM2) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 	}
 	sigSM2, ok := sig.(SignatureSM2)
 	if !ok {
-		fmt.Printf("convert failed\n")
 		return false
 	}
-	var pub *sm2.PublicKey
-	if pubKey.isCompressed() {
-		pub = sm2.Decompress(pubKey[0:SM2PublicKeyCompressed])
-	} else {
-		var err error
-		pub, err = parsePubKey(pubKey[:], sm2.P256Sm2())
-		if err != nil {
-			fmt.Printf("parse pubkey failed\n")
-			return false
-		}
+
+	if !pubKey.isCompressed() {
+		return false
 	}
+
+	pub := sm2.Decompress(pubKey[0:SM2PublicKeyCompressed])
 	r, s, err := Deserialize(sigSM2)
 	if err != nil {
 		fmt.Printf("unmarshal sign failed")
 		return false
 	}
-	//国密签名算法和ecdsa不一样，-s验签不通过，所以不需要LowS检查
-	//fmt.Printf("verify:%x, r:%d, s:%d\n", crypto.Sm3Hash(msg), r, s)
-	//lowS := IsLowS(s)
-	//if !lowS {
-	//	fmt.Printf("lowS check failed")
-	//	return false
-	//}
 
 	return sm2.Sm2Verify(pub, msg, uid, r, s)
 }

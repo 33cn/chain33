@@ -40,6 +40,12 @@ func TestRipemd160(t *testing.T) {
 	require.NotNil(b)
 }
 
+func TestSm3Hash(t *testing.T) {
+	require := require.New(t)
+	b := crypto.Sm3Hash([]byte("test"))
+	require.NotNil(b)
+}
+
 func TestAll(t *testing.T) {
 	testCrypto(t, "ed25519")
 	testFromBytes(t, "ed25519")

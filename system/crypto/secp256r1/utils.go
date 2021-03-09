@@ -64,28 +64,6 @@ func IsLowS(s *big.Int) bool {
 	return s.Cmp(new(big.Int).Rsh(elliptic.P256().Params().N, 1)) != 1
 }
 
-func parsePubKey(pubKeyStr []byte) (key *ecdsa.PublicKey, err error) {
-	pubkey := ecdsa.PublicKey{}
-	pubkey.Curve = elliptic.P256()
-
-	if len(pubKeyStr) == 0 {
-		return nil, errors.New("pubkey string is empty")
-	}
-
-	pubkey.X = new(big.Int).SetBytes(pubKeyStr[1:33])
-	pubkey.Y = new(big.Int).SetBytes(pubKeyStr[33:])
-	if pubkey.X.Cmp(pubkey.Curve.Params().P) >= 0 {
-		return nil, fmt.Errorf("pubkey X parameter is >= to P")
-	}
-	if pubkey.Y.Cmp(pubkey.Curve.Params().P) >= 0 {
-		return nil, fmt.Errorf("pubkey Y parameter is >= to P")
-	}
-	if !pubkey.Curve.IsOnCurve(pubkey.X, pubkey.Y) {
-		return nil, fmt.Errorf("pubkey isn't on secp256k1 curve")
-	}
-	return &pubkey, nil
-}
-
 // SerializePublicKeyCompressed serialize compressed publicKey
 func SerializePublicKeyCompressed(p *ecdsa.PublicKey) []byte {
 	byteLen := (elliptic.P256().Params().BitSize + 7) >> 3
@@ -144,14 +122,6 @@ func parsePubKeyCompressed(data []byte) (*ecdsa.PublicKey, error) {
 	pubkey.X = x
 	pubkey.Y = y
 	return &pubkey, nil
-}
-
-// SerializePublicKey serialize public key
-func SerializePublicKey(p *ecdsa.PublicKey) []byte {
-	b := make([]byte, 0, publicKeyECDSALength)
-	b = append(b, 0x4)
-	b = paddedAppend(32, b, p.X.Bytes())
-	return paddedAppend(32, b, p.Y.Bytes())
 }
 
 // SerializePrivateKey serialize private key

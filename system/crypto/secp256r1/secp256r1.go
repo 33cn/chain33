@@ -57,7 +57,7 @@ func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
 	if len(b) != publicKeyECDSALength && len(b) != publicKeyECDSALengthCompressed {
 		return nil, errors.New("invalid pub key byte")
 	}
-	pubKeyBytes := new([publicKeyECDSALength]byte)
+	pubKeyBytes := new([publicKeyECDSALengthCompressed]byte)
 	copy(pubKeyBytes[:], b[:])
 	return PubKeyECDSA(*pubKeyBytes), nil
 }
@@ -124,14 +124,11 @@ func (privKey PrivKeyECDSA) String() string {
 
 // PubKeyECDSA PubKey
 // prefixed with 0x02 or 0x03, depending on the y-cord.
-type PubKeyECDSA [publicKeyECDSALength]byte
+type PubKeyECDSA [publicKeyECDSALengthCompressed]byte
 
 // Bytes convert to bytes
 func (pubKey PubKeyECDSA) Bytes() []byte {
-	length := publicKeyECDSALength
-	if pubKey.isCompressed() {
-		length = publicKeyECDSALengthCompressed
-	}
+	length := publicKeyECDSALengthCompressed
 	s := make([]byte, length)
 	copy(s, pubKey[:])
 	return s
@@ -149,13 +146,11 @@ func (pubKey PubKeyECDSA) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 		return false
 	}
 
-	var pub *ecdsa.PublicKey
-	var err error
-	if pubKey.isCompressed() {
-		pub, err = parsePubKeyCompressed(pubKey[0:publicKeyECDSALengthCompressed])
-	} else {
-		pub, err = parsePubKey(pubKey[:])
+	if !pubKey.isCompressed() {
+		return false
 	}
+
+	pub, err := parsePubKeyCompressed(pubKey[0:publicKeyECDSALengthCompressed])
 	if err != nil {
 		return false
 	}
