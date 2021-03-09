@@ -284,7 +284,7 @@ type Chain33Client interface {
 	GetParaTxByHeight(ctx context.Context, in *ReqParaTxByHeight, opts ...grpc.CallOption) (*ParaTxDetails, error)
 	//获取区块头信息
 	GetHeaders(ctx context.Context, in *ReqBlocks, opts ...grpc.CallOption) (*Headers, error)
-	//get server time
+	// get server time
 	GetServerTime(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ServerTime, error)
 }
 
@@ -973,7 +973,7 @@ type Chain33Server interface {
 	GetParaTxByHeight(context.Context, *ReqParaTxByHeight) (*ParaTxDetails, error)
 	//获取区块头信息
 	GetHeaders(context.Context, *ReqBlocks) (*Headers, error)
-	//get server time
+	// get server time
 	GetServerTime(context.Context, *ReqNil) (*ServerTime, error)
 }
 
