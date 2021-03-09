@@ -176,6 +176,6 @@ service chain33 {
     //获取区块头信息
     rpc GetHeaders(ReqBlocks) returns (Headers) {}
 
-    //get server time
+    // get server time
     rpc GetServerTime(ReqNil) returns (serverTime) {}
 }
