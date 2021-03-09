@@ -347,11 +347,6 @@ type TimeStatus struct {
 	Diff      int64  `json:"diff"`
 }
 
-// ServerTime server time
-type ServerTime struct {
-	CurrentTimestamp int64 `json:"currentTimestamp"`
-}
-
 // ReplyBlkSeqs reply block sequences
 type ReplyBlkSeqs struct {
 	BlkSeqInfos []*ReplyBlkSeq `json:"blkseqInfos"`
