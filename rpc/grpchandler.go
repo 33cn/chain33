@@ -541,6 +541,7 @@ func (g *Grpc) GetAccount(ctx context.Context, in *pb.ReqGetAccount) (*pb.Wallet
 	return acc.(*pb.WalletAccount), nil
 }
 
+// GetServerTime get server time
 func (g *Grpc) GetServerTime(ctx context.Context, in *pb.ReqNil) (*pb.ServerTime, error) {
 	serverTime := &pb.ServerTime{
 		CurrentTimestamp: pb.Now().Unix(),
