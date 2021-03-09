@@ -730,3 +730,9 @@ func TestGrpc_GetParaTxByHeight(t *testing.T) {
 	_, err := g.GetParaTxByHeight(getOkCtx(), &pb.ReqParaTxByHeight{})
 	assert.NoError(t, err)
 }
+
+func TestGrpc_GetServerTime(t *testing.T) {
+	qapi.On("GetServer", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.GetServerTime(getOkCtx(), nil)
+	assert.NoError(t, err)
+}

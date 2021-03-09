@@ -1111,7 +1111,7 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 // GetServerTime get server time
 func (c *Chain33) GetServerTime(in *types.ReqNil, result *interface{}) error {
 
-	serverTime := &rpctypes.ServerTime{
+	serverTime := &types.ServerTime{
 		CurrentTimestamp: types.Now().Unix(),
 	}
 	*result = serverTime
