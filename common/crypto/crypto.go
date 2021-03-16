@@ -11,6 +11,14 @@ import (
 	"sync"
 )
 
+// 插件的具体数值类型定义在一个文件中，方便查阅
+const (
+	TySecp256K1 = 1
+	TyEd25519   = 2
+	TySm2       = 3
+	TyNone      = 10
+)
+
 //ErrNotSupportAggr 不支持聚合签名
 var ErrNotSupportAggr = errors.New("AggregateCrypto not support")
 

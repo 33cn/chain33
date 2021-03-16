@@ -190,7 +190,7 @@ func (sig SignatureSecp256k1) Equals(other crypto.Signature) bool {
 //const
 const (
 	Name = "secp256k1"
-	ID   = 1
+	ID   = crypto.TySecp256K1
 )
 
 func init() {

@@ -102,7 +102,7 @@ func New(cfg *types.Chain33Config) *Wallet {
 	walletStore := newStore(walletStoreDB)
 	//minFee = cfg.MinFee
 	signType := types.GetSignType("", mcfg.SignType)
-	if signType == types.Invalid {
+	if signType <= 0 {
 		signType = types.SECP256K1
 	}
 

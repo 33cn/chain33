@@ -163,7 +163,7 @@ func (sig SignatureEd25519) Equals(other crypto.Signature) bool {
 //const
 const (
 	Name = "ed25519"
-	ID   = 2
+	ID   = crypto.TyEd25519
 )
 
 func init() {

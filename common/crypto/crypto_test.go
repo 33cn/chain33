@@ -47,6 +47,15 @@ func TestAll(t *testing.T) {
 	testFromBytes(t, "secp256k1")
 	testCrypto(t, "sm2")
 	testFromBytes(t, "sm2")
+	c, err := crypto.New("none")
+	require.Nil(t, err)
+	pub, err := c.PubKeyFromBytes([]byte("test"))
+	require.Nil(t, pub)
+	require.Nil(t, err)
+	sig, err := c.SignatureFromBytes([]byte("test"))
+	require.Nil(t, sig)
+	require.Nil(t, err)
+	require.Nil(t, c.Validate([]byte("test"), nil, nil))
 }
 
 func testFromBytes(t *testing.T, name string) {
