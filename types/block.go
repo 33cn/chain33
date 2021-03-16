@@ -189,15 +189,7 @@ func CheckSign(data []byte, execer string, sign *Signature) bool {
 	if err != nil {
 		return false
 	}
-	pub, err := c.PubKeyFromBytes(sign.Pubkey)
-	if err != nil {
-		return false
-	}
-	signbytes, err := c.SignatureFromBytes(sign.Signature)
-	if err != nil {
-		return false
-	}
-	return pub.VerifyBytes(data, signbytes)
+	return c.Validate(data, sign.Pubkey, sign.Signature) == nil
 }
 
 //FilterParaTxsByTitle 过滤指定title的平行链交易
