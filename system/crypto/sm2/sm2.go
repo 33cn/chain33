@@ -76,6 +76,10 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	return SignatureSM2(certSignature.Signature), nil
 }
 
+func (d Driver) Validate(msg, pub, sig []byte) error {
+	return crypto.BasicValidation(d, msg, pub, sig)
+}
+
 //PrivKeySM2 私钥
 type PrivKeySM2 [SM2PrivateKeyLength]byte
 

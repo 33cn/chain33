@@ -14,6 +14,9 @@ import (
 //ErrNotSupportAggr 不支持聚合签名
 var ErrNotSupportAggr = errors.New("AggregateCrypto not support")
 
+//ErrNotSupportAggr 不支持聚合签名
+var ErrSign = errors.New("error signature")
+
 //PrivKey 私钥
 type PrivKey interface {
 	Bytes() []byte
@@ -44,6 +47,24 @@ type Crypto interface {
 	SignatureFromBytes([]byte) (Signature, error)
 	PrivKeyFromBytes([]byte) (PrivKey, error)
 	PubKeyFromBytes([]byte) (PubKey, error)
+	Validate(msg, pub, sig []byte) error
+}
+
+// BasicValidation 公私钥数据签名验证基础实现
+func BasicValidation(c Crypto, msg, pub, sig []byte) error {
+
+	pubKey, err := c.PubKeyFromBytes(pub)
+	if err != nil {
+		return err
+	}
+	s, err := c.SignatureFromBytes(sig)
+	if err != nil {
+		return err
+	}
+	if !pubKey.VerifyBytes(msg, s) {
+		return ErrSign
+	}
+	return nil
 }
 
 //AggregateCrypto 聚合签名

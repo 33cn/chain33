@@ -53,6 +53,10 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	return SignatureEd25519(*sigBytes), nil
 }
 
+func (d Driver) Validate(msg, pub, sig []byte) error {
+	return crypto.BasicValidation(d, msg, pub, sig)
+}
+
 //PrivKeyEd25519 PrivKey
 type PrivKeyEd25519 [64]byte
 

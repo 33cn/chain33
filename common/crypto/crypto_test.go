@@ -91,6 +91,7 @@ func testFromBytes(t *testing.T, name string) {
 	require.Equal(true, pub2.VerifyBytes(msg, sign2))
 	require.Equal(true, pub.VerifyBytes(msg, sign3))
 	require.Equal(true, pub2.VerifyBytes(msg, sign3))
+	require.Nil(c.Validate(msg, pub.Bytes(), sign1.Bytes()))
 }
 
 func testCrypto(t *testing.T, name string) {
@@ -159,25 +160,6 @@ func benchVerify(b *testing.B, name string) {
 	}
 }
 
-func Verify(signType string, pubBytes, msg, signBytes []byte) bool {
-	c, err := crypto.New(signType)
-	if err != nil {
-		panic(err)
-	}
-
-	pub, err := c.PubKeyFromBytes(pubBytes)
-	if err != nil {
-		panic(err)
-	}
-
-	sign, err := c.SignatureFromBytes(signBytes)
-	if err != nil {
-		panic(err)
-	}
-
-	return pub.VerifyBytes(msg, sign)
-}
-
 func TestAggregate(t *testing.T) {
 	c, err := crypto.New("secp256k1")
 	if err != nil {
@@ -208,6 +190,9 @@ func (d democrypto) PrivKeyFromBytes([]byte) (crypto.PrivKey, error) {
 }
 func (d democrypto) PubKeyFromBytes([]byte) (crypto.PubKey, error) {
 	return nil, nil
+}
+func (d democrypto) Validate(msg, pub, sig []byte) error {
+	return nil
 }
 
 //AggregateCrypto 聚合签名
