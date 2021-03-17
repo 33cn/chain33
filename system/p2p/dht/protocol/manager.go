@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -41,6 +42,7 @@ type EventHandler func(*queue.Message)
 
 var (
 	eventHandlers = make(map[int64]EventHandler)
+	mu            sync.RWMutex
 )
 
 // RegisterEventHandler registers a handler with an event ID.
@@ -56,11 +58,15 @@ func RegisterEventHandler(eventID int64, handler EventHandler) {
 
 // GetEventHandler gets event handler by event ID.
 func GetEventHandler(eventID int64) EventHandler {
+	mu.RLock()
+	defer mu.RUnlock()
 	return eventHandlers[eventID]
 }
 
 // ClearEventHandler clear event handler map, plugin存在多个p2p实例测试，会导致重复注册，需要清除
 func ClearEventHandler() {
+	mu.Lock()
+	defer mu.Unlock()
 	for k := range eventHandlers {
 		delete(eventHandlers, k)
 	}
