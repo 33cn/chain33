@@ -186,7 +186,8 @@ type BlockChain struct {
 	//LowAllowPackHeight 允许打包的low区块高度
 	LowAllowPackHeight int64 `json:"lowAllowPackHeight,omitempty"`
 	//关闭blockchain 区块广播
-	DisableBlockBroadcast bool `json:"disableBlockBroadcast,omitempty"`
+	DisableBlockBroadcast  bool `json:"disableBlockBroadcast,omitempty"`
+	DisableClockDriftCheck bool `json:"disableClockDriftCheck,omitempty"`
 }
 
 // P2P 配置

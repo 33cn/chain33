@@ -146,6 +146,9 @@ func (chain *BlockChain) SynRoutine() {
 
 	//5分钟检测一次系统时间，不同步提示告警
 	checkClockDriftTicker := time.NewTicker(300 * time.Second)
+	if chain.cfg.DisableClockDriftCheck {
+		checkBlockHashTicker.Stop()
+	}
 
 	//3分钟尝试检测一次故障peer是否已经恢复
 	recoveryFaultPeerTicker := time.NewTicker(180 * time.Second)

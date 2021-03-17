@@ -75,6 +75,8 @@ enableIfDelLocalChunk=false
 
 # 使能推送注册，默认不开启
 enablePushSubscribe=false
+# 是否开启本地时钟和ntp时钟偏移检查，默认开启
+disableClockDriftCheck=false
 
 [p2p]
 # p2p类型
