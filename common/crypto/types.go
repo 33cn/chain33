@@ -56,9 +56,9 @@ type CertSignature struct {
 
 // Config crypto模块配置
 type Config struct {
-	//支持指定若干签名类型，不配置默认启用所有的加密插件, 如 types=["secp256k1", "sm2"]
-	Types []string `json:"types,omitempty"`
-	//支持配置每个加密插件启用高度, 不配置采用内置的启用高度
+	//支持只指定若干加密类型，不配置默认启用所有的加密插件, 如 types=["secp256k1", "sm2"]
+	EnableTypes []string `json:"enableTypes,omitempty"`
+	//支持对EnableTypes的每个加密插件分别设置启用高度, 不配置采用内置的启用高度
 	// [crypto.enableHeight]
 	// secp256k1=0
 	EnableHeight map[string]int64 `json:"enableHeight,omitempty"`

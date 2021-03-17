@@ -11,13 +11,16 @@ import (
 	"sync"
 )
 
-// 插件的具体数值类型定义在一个文件中，方便查阅
+// 插件的名称和类型值
 const (
-	TySecp256K1 = 1
-	TyEd25519   = 2
-	TySm2       = 3
-	TyNone      = 10
-	NameNone    = "none"
+	TySecp256K1   = 1
+	TyEd25519     = 2
+	TySm2         = 3
+	TyNone        = 10
+	NameSecp256K1 = "secp256k1"
+	NameEd25519   = "ed25519"
+	NameSm2       = "sm2"
+	NameNone      = "none"
 )
 
 var (
@@ -42,18 +45,12 @@ func Init(cfg *Config, subCfg map[string][]byte) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
 
-	if len(cfg.Types) > 0 {
+	if len(cfg.EnableTypes) > 0 {
+		driversEnableHeight = make(map[string]int64, len(cfg.EnableTypes))
 		// 对配置的插件，默认设置开启高度为0
-		for _, name := range cfg.Types {
+		for _, name := range cfg.EnableTypes {
 			driversEnableHeight[name] = 0
 		}
-
-	} else {
-		// 配置中未指定，默认开启除none外的所有插件
-		for name := range driversType {
-			driversEnableHeight[name] = 0
-		}
-		delete(driversEnableHeight, NameNone)
 	}
 
 	// 配置中指定了启用高度，覆盖设置
@@ -63,7 +60,7 @@ func Init(cfg *Config, subCfg map[string][]byte) {
 		}
 	}
 
-	//初始化子配置
+	//初始化子配置 [crypto.sub.name]
 	for name, fn := range driversInitFn {
 		fn(subCfg[name])
 	}
@@ -83,8 +80,8 @@ func Register(name string, driver Crypto, isCGO bool) {
 	d[name] = driver
 }
 
-//RegisterType 注册类型
-func RegisterType(name string, ty int) {
+//RegisterType 注册类型, 并设置启用高度
+func RegisterType(name string, ty int, enableHeight int64) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
 	for n, t := range driversType {
@@ -96,6 +93,8 @@ func RegisterType(name string, ty int) {
 		}
 	}
 	driversType[name] = ty
+	//设置默认启用高度
+	driversEnableHeight[name] = enableHeight
 }
 
 // RegisterDriverInitFn 某些签名插件需要初始化操作，如证书导入，需要将初始化接口进行预先注册
@@ -141,4 +140,11 @@ func New(name string) (Crypto, error) {
 		return nil, fmt.Errorf("unknown driver %q", name)
 	}
 	return c, nil
+}
+
+// IsEnable 根据高度判定是否开启
+func IsEnable(name string, height int64) bool {
+
+	enableHeight, ok := driversEnableHeight[name]
+	return ok && enableHeight >= 0 && enableHeight <= height
 }

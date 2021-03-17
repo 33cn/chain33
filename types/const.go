@@ -5,8 +5,9 @@
 package types
 
 import (
-	"github.com/33cn/chain33/common/crypto"
 	"reflect"
+
+	"github.com/33cn/chain33/common/crypto"
 )
 
 var slash = []byte("-")

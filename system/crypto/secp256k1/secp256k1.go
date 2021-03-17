@@ -53,6 +53,7 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	return SignatureSecp256k1(b), nil
 }
 
+// Validate validate msg and signature
 func (d Driver) Validate(msg, pub, sig []byte) error {
 	return crypto.BasicValidation(d, msg, pub, sig)
 }
@@ -189,11 +190,11 @@ func (sig SignatureSecp256k1) Equals(other crypto.Signature) bool {
 
 //const
 const (
-	Name = "secp256k1"
+	Name = crypto.NameSecp256K1
 	ID   = crypto.TySecp256K1
 )
 
 func init() {
 	crypto.Register(Name, &Driver{}, false)
-	crypto.RegisterType(Name, ID)
+	crypto.RegisterType(Name, ID, 0)
 }

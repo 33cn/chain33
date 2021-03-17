@@ -76,6 +76,7 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	return SignatureSM2(certSignature.Signature), nil
 }
 
+// Validate validate msg and signature
 func (d Driver) Validate(msg, pub, sig []byte) error {
 	return crypto.BasicValidation(d, msg, pub, sig)
 }
@@ -231,13 +232,13 @@ func (sig SignatureSM2) Equals(other crypto.Signature) bool {
 
 //const
 const (
-	Name = "sm2"
+	Name = crypto.NameSm2
 	ID   = crypto.TySm2
 )
 
 func init() {
 	crypto.Register(Name, &Driver{}, false)
-	crypto.RegisterType(Name, ID)
+	crypto.RegisterType(Name, ID, 0)
 }
 
 func privKeyFromBytes(curve elliptic.Curve, pk []byte) (*sm2.PrivateKey, *sm2.PublicKey) {

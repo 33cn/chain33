@@ -5,6 +5,7 @@
 package crypto_test
 
 import (
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -31,7 +32,7 @@ func TestGet(t *testing.T) {
 	require.True(ty == 2)
 	ty = crypto.GetType("sm2")
 	require.True(ty == 3)
-	require.Panics(func() { crypto.RegisterType("testCrypto", crypto.GetType("secp256k1")) })
+	require.Panics(func() { crypto.RegisterType("testCrypto", crypto.GetType("secp256k1"), 0) })
 }
 
 func TestRipemd160(t *testing.T) {
@@ -236,9 +237,9 @@ func TestRegister(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, p)
 	crypto.Register("secp256k1", democryptoCGO{}, true)
-	crypto.RegisterType("secp256k1", 1)
-	assert.Panics(t, func() { crypto.RegisterType("secp256k1_cgo", 1) })
-	assert.Panics(t, func() { crypto.RegisterType("secp256k1", 2) })
+	crypto.RegisterType("secp256k1", 1, 0)
+	assert.Panics(t, func() { crypto.RegisterType("secp256k1_cgo", 1, 0) })
+	assert.Panics(t, func() { crypto.RegisterType("secp256k1", 2, 0) })
 	c, err = crypto.New("secp256k1")
 	if err != nil {
 		panic(err)
@@ -246,4 +247,48 @@ func TestRegister(t *testing.T) {
 	p, err = c.GenKey()
 	assert.Nil(t, p)
 	assert.Equal(t, errors.New("testCGO"), err)
+}
+
+func TestInitCfg(t *testing.T) {
+
+	cfg := &crypto.Config{}
+	crypto.Init(cfg, nil)
+	must := require.New(t)
+	must.False(crypto.IsEnable(crypto.NameNone, 0))
+	must.True(crypto.IsEnable(crypto.NameSecp256K1, 0))
+	must.True(crypto.IsEnable(crypto.NameEd25519, 0))
+	cfg.EnableTypes = []string{crypto.NameSecp256K1, crypto.NameNone}
+	cfg.EnableHeight = make(map[string]int64)
+	cfg.EnableHeight[crypto.NameEd25519] = 10
+	cfg.EnableHeight[crypto.NameNone] = 100
+	crypto.Init(cfg, nil)
+	must.False(crypto.IsEnable(crypto.NameNone, 0))
+	must.True(crypto.IsEnable(crypto.NameNone, 100))
+	must.True(crypto.IsEnable(crypto.NameSecp256K1, 0))
+	must.False(crypto.IsEnable(crypto.NameEd25519, 0))
+}
+
+type testSubCfg struct {
+	Name   string
+	Height int64
+}
+
+func TestInitSubCfg(t *testing.T) {
+
+	cfg := &crypto.Config{}
+	subCfg := make(map[string][]byte)
+
+	sub1 := &testSubCfg{Name: "test", Height: 100}
+	bsub, err := json.Marshal(sub1)
+	require.Nil(t, err)
+	initFn := func(b []byte) {
+		sub2 := &testSubCfg{}
+		err := json.Unmarshal(b, sub2)
+		require.Nil(t, err)
+		require.Equal(t, sub1, sub2)
+	}
+
+	crypto.RegisterDriverInitFn(sub1.Name, initFn)
+	subCfg[sub1.Name] = bsub
+	crypto.Init(cfg, subCfg)
 }

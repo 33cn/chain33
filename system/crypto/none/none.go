@@ -17,7 +17,8 @@ const (
 
 func init() {
 	crypto.Register(Name, &Driver{}, false)
-	crypto.RegisterType(Name, ID)
+	// 默认启用高度-1， 不开启
+	crypto.RegisterType(Name, ID, -1)
 }
 
 //Driver 驱动
@@ -43,6 +44,7 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	return nil, nil
 }
 
+// Validate validate msg and signature
 func (d Driver) Validate(msg, pub, sig []byte) error {
 	return nil
 }
