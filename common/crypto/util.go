@@ -31,3 +31,28 @@ func Sm3Hash(msg []byte) []byte {
 	c.Write(msg)
 	return c.Sum(nil)
 }
+
+// BasicValidation 公私钥数据签名验证基础实现
+func BasicValidation(c Crypto, msg, pub, sig []byte) error {
+
+	pubKey, err := c.PubKeyFromBytes(pub)
+	if err != nil {
+		return err
+	}
+	s, err := c.SignatureFromBytes(sig)
+	if err != nil {
+		return err
+	}
+	if !pubKey.VerifyBytes(msg, s) {
+		return ErrSign
+	}
+	return nil
+}
+
+//ToAggregate 判断签名是否可以支持聚合签名，并且返回聚合签名的接口
+func ToAggregate(c Crypto) (AggregateCrypto, error) {
+	if aggr, ok := c.(AggregateCrypto); ok {
+		return aggr, nil
+	}
+	return nil, ErrNotSupportAggr
+}

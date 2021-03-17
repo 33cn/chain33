@@ -4,30 +4,45 @@
 
 package types
 
+import "github.com/33cn/chain33/common/crypto"
+
 // Config 配置信息
 type Config struct {
-	Title          string       `json:"title,omitempty"`
-	Version        string       `json:"version,omitempty"`
-	Log            *Log         `json:"log,omitempty"`
-	Store          *Store       `json:"store,omitempty"`
-	Consensus      *Consensus   `json:"consensus,omitempty"`
-	Mempool        *Mempool     `json:"memPool,omitempty"`
-	BlockChain     *BlockChain  `json:"blockChain,omitempty"`
-	Wallet         *Wallet      `json:"wallet,omitempty"`
-	P2P            *P2P         `json:"p2p,omitempty"`
-	RPC            *RPC         `json:"rpc,omitempty"`
-	Exec           *Exec        `json:"exec,omitempty"`
-	TestNet        bool         `json:"testNet,omitempty"`
-	FixTime        bool         `json:"fixTime,omitempty"`
-	TxHeight       bool         `json:"txHeight,omitempty"`
-	Pprof          *Pprof       `json:"pprof,omitempty"`
-	Fork           *ForkList    `json:"fork,omitempty"`
-	Health         *HealthCheck `json:"health,omitempty"`
-	CoinSymbol     string       `json:"coinSymbol,omitempty"`
-	EnableParaFork bool         `json:"enableParaFork,omitempty"`
-	Metrics        *Metrics     `json:"metrics,omitempty"`
-	ChainID        int32        `json:"chainID,omitempty"`
-	AddrVer        byte         `json:"addrVer,omitempty"`
+	Title          string         `json:"title,omitempty"`
+	Version        string         `json:"version,omitempty"`
+	Log            *Log           `json:"log,omitempty"`
+	Store          *Store         `json:"store,omitempty"`
+	Consensus      *Consensus     `json:"consensus,omitempty"`
+	Mempool        *Mempool       `json:"memPool,omitempty"`
+	BlockChain     *BlockChain    `json:"blockChain,omitempty"`
+	Wallet         *Wallet        `json:"wallet,omitempty"`
+	P2P            *P2P           `json:"p2p,omitempty"`
+	RPC            *RPC           `json:"rpc,omitempty"`
+	Exec           *Exec          `json:"exec,omitempty"`
+	TestNet        bool           `json:"testNet,omitempty"`
+	FixTime        bool           `json:"fixTime,omitempty"`
+	TxHeight       bool           `json:"txHeight,omitempty"`
+	Pprof          *Pprof         `json:"pprof,omitempty"`
+	Fork           *ForkList      `json:"fork,omitempty"`
+	Health         *HealthCheck   `json:"health,omitempty"`
+	CoinSymbol     string         `json:"coinSymbol,omitempty"`
+	EnableParaFork bool           `json:"enableParaFork,omitempty"`
+	Metrics        *Metrics       `json:"metrics,omitempty"`
+	ChainID        int32          `json:"chainID,omitempty"`
+	AddrVer        byte           `json:"addrVer,omitempty"`
+	Crypto         *crypto.Config `json:"crypto,omitempty"`
+}
+
+//ConfigSubModule 子模块的配置
+type ConfigSubModule struct {
+	Store     map[string][]byte
+	Exec      map[string][]byte
+	Consensus map[string][]byte
+	Wallet    map[string][]byte
+	Mempool   map[string][]byte
+	Metrics   map[string][]byte
+	P2P       map[string][]byte
+	Crypto    map[string][]byte
 }
 
 // ForkList fork列表配置

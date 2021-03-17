@@ -19,84 +19,29 @@ const (
 	TyNone      = 10
 )
 
-//ErrNotSupportAggr 不支持聚合签名
-var ErrNotSupportAggr = errors.New("AggregateCrypto not support")
-
-//ErrNotSupportAggr 不支持聚合签名
-var ErrSign = errors.New("error signature")
-
-//PrivKey 私钥
-type PrivKey interface {
-	Bytes() []byte
-	Sign(msg []byte) Signature
-	PubKey() PubKey
-	Equals(PrivKey) bool
-}
-
-//Signature 签名
-type Signature interface {
-	Bytes() []byte
-	IsZero() bool
-	String() string
-	Equals(Signature) bool
-}
-
-//PubKey 公钥
-type PubKey interface {
-	Bytes() []byte
-	KeyString() string
-	VerifyBytes(msg []byte, sig Signature) bool
-	Equals(PubKey) bool
-}
-
-//Crypto 加密
-type Crypto interface {
-	GenKey() (PrivKey, error)
-	SignatureFromBytes([]byte) (Signature, error)
-	PrivKeyFromBytes([]byte) (PrivKey, error)
-	PubKeyFromBytes([]byte) (PubKey, error)
-	Validate(msg, pub, sig []byte) error
-}
-
-// BasicValidation 公私钥数据签名验证基础实现
-func BasicValidation(c Crypto, msg, pub, sig []byte) error {
-
-	pubKey, err := c.PubKeyFromBytes(pub)
-	if err != nil {
-		return err
-	}
-	s, err := c.SignatureFromBytes(sig)
-	if err != nil {
-		return err
-	}
-	if !pubKey.VerifyBytes(msg, s) {
-		return ErrSign
-	}
-	return nil
-}
-
-//AggregateCrypto 聚合签名
-type AggregateCrypto interface {
-	Aggregate(sigs []Signature) (Signature, error)
-	AggregatePublic(pubs []PubKey) (PubKey, error)
-	VerifyAggregatedOne(pubs []PubKey, m []byte, sig Signature) error
-	VerifyAggregatedN(pubs []PubKey, ms [][]byte, sig Signature) error
-}
-
-//ToAggregate 判断签名是否可以支持聚合签名，并且返回聚合签名的接口
-func ToAggregate(c Crypto) (AggregateCrypto, error) {
-	if aggr, ok := c.(AggregateCrypto); ok {
-		return aggr, nil
-	}
-	return nil, ErrNotSupportAggr
-}
+var (
+	//ErrNotSupportAggr 不支持聚合签名
+	ErrNotSupportAggr = errors.New("AggregateCrypto not support")
+	//ErrSign 签名错误
+	ErrSign = errors.New("error signature")
+)
 
 var (
-	drivers     = make(map[string]Crypto)
-	driversCGO  = make(map[string]Crypto)
-	driversType = make(map[string]int)
-	driverMutex sync.Mutex
+	drivers       = make(map[string]Crypto)
+	driversCGO    = make(map[string]Crypto)
+	driversType   = make(map[string]int)
+	driverInitFns = make(map[string]DriverInitFn)
+	driverMutex   sync.Mutex
 )
+
+// Init init crypto
+func Init(cfg *Config, subCfg map[string][]byte) {
+
+	//初始化子配置
+	for name, fn := range driverInitFns {
+		fn(subCfg[name])
+	}
+}
 
 //Register 注册加密算法，允许同种加密算法的cgo版本同时注册
 func Register(name string, driver Crypto, isCGO bool) {
@@ -125,6 +70,17 @@ func RegisterType(name string, ty int) {
 		}
 	}
 	driversType[name] = ty
+}
+
+// RegisterDriverInitFn 某些签名插件需要初始化操作，如证书导入，需要将初始化接口进行预先注册
+// 配置文件格式[crypto.sub.name]
+func RegisterDriverInitFn(name string, fn DriverInitFn) {
+	driverMutex.Lock()
+	defer driverMutex.Unlock()
+	if _, dup := driverInitFns[name]; dup {
+		panic("crypto: RegisterDriverInitFn called twice for name: " + name)
+	}
+	driverInitFns[name] = fn
 }
 
 //GetName 获取name
@@ -159,10 +115,4 @@ func New(name string) (c Crypto, err error) {
 		err = fmt.Errorf("unknown driver %q", name)
 	}
 	return c, err
-}
-
-//CertSignature 签名
-type CertSignature struct {
-	Signature []byte
-	Cert      []byte
 }
