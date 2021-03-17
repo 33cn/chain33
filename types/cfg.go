@@ -28,6 +28,7 @@ type Config struct {
 	Metrics        *Metrics     `json:"metrics,omitempty"`
 	ChainID        int32        `json:"chainID,omitempty"`
 	AddrVer        byte         `json:"addrVer,omitempty"`
+	NtpHosts       []string     `json:"ntpHosts,omitempty"`
 }
 
 // ForkList fork列表配置

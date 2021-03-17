@@ -11,15 +11,6 @@ import (
 
 var deltaTime int64
 
-//NtpHosts ntp hosts
-var NtpHosts = []string{
-	"ntp.aliyun.com:123",
-	"time1.cloud.tencent.com:123",
-	"time.ustc.edu.cn:123",
-	"cn.ntp.org.cn:123",
-	"time.apple.com:123",
-}
-
 //SetTimeDelta realtime - localtime
 //超过60s 不做修正
 //为了系统的安全，我们只做小范围时间错误的修复
