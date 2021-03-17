@@ -17,6 +17,7 @@ const (
 	TyEd25519   = 2
 	TySm2       = 3
 	TyNone      = 10
+	NameNone    = "none"
 )
 
 var (
@@ -27,18 +28,43 @@ var (
 )
 
 var (
-	drivers       = make(map[string]Crypto)
-	driversCGO    = make(map[string]Crypto)
-	driversType   = make(map[string]int)
-	driverInitFns = make(map[string]DriverInitFn)
-	driverMutex   sync.Mutex
+	drivers             = make(map[string]Crypto)
+	driversCGO          = make(map[string]Crypto)
+	driversType         = make(map[string]int)
+	driversInitFn       = make(map[string]DriverInitFn)
+	driversEnableHeight = make(map[string]int64)
+	driverMutex         sync.Mutex
 )
 
 // Init init crypto
 func Init(cfg *Config, subCfg map[string][]byte) {
 
+	driverMutex.Lock()
+	defer driverMutex.Unlock()
+
+	if len(cfg.Types) > 0 {
+		// 对配置的插件，默认设置开启高度为0
+		for _, name := range cfg.Types {
+			driversEnableHeight[name] = 0
+		}
+
+	} else {
+		// 配置中未指定，默认开启除none外的所有插件
+		for name := range driversType {
+			driversEnableHeight[name] = 0
+		}
+		delete(driversEnableHeight, NameNone)
+	}
+
+	// 配置中指定了启用高度，覆盖设置
+	for name, enableHeight := range cfg.EnableHeight {
+		if _, ok := driversEnableHeight[name]; ok {
+			driversEnableHeight[name] = enableHeight
+		}
+	}
+
 	//初始化子配置
-	for name, fn := range driverInitFns {
+	for name, fn := range driversInitFn {
 		fn(subCfg[name])
 	}
 }
@@ -77,10 +103,10 @@ func RegisterType(name string, ty int) {
 func RegisterDriverInitFn(name string, fn DriverInitFn) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
-	if _, dup := driverInitFns[name]; dup {
+	if _, dup := driversInitFn[name]; dup {
 		panic("crypto: RegisterDriverInitFn called twice for name: " + name)
 	}
-	driverInitFns[name] = fn
+	driversInitFn[name] = fn
 }
 
 //GetName 获取name
@@ -102,7 +128,7 @@ func GetType(name string) int {
 }
 
 //New new
-func New(name string) (c Crypto, err error) {
+func New(name string) (Crypto, error) {
 
 	//优先使用性能更好的cgo版本
 	c, ok := driversCGO[name]
@@ -112,7 +138,7 @@ func New(name string) (c Crypto, err error) {
 	//不存在cgo, 加载普通版本
 	c, ok = drivers[name]
 	if !ok {
-		err = fmt.Errorf("unknown driver %q", name)
+		return nil, fmt.Errorf("unknown driver %q", name)
 	}
-	return c, err
+	return c, nil
 }

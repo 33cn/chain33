@@ -11,7 +11,7 @@ import (
 
 //const
 const (
-	Name = "none"
+	Name = crypto.NameNone
 	ID   = crypto.TyNone
 )
 
