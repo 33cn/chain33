@@ -148,6 +148,7 @@ func (chain *BlockChain) SynRoutine() {
 	checkClockDriftTicker := time.NewTicker(300 * time.Second)
 	if chain.cfg.DisableClockDriftCheck {
 		checkBlockHashTicker.Stop()
+		checkClockDriftTicker.C = nil
 	}
 
 	//3分钟尝试检测一次故障peer是否已经恢复
