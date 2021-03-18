@@ -1435,6 +1435,7 @@ func TestDisableCmpBestBlock(t *testing.T) {
 	} else {
 		require.NoError(t, err)
 	}
+
 	chainlog.Debug("TestDisableCmpBestBlock end --------------------")
 }
 

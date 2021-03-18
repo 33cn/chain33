@@ -10,6 +10,13 @@ TestNet=true
 FixTime=false
 TxHeight=true
 CoinSymbol="bty"
+NtpHosts=[
+    "ntp.aliyun.com:123",
+    "time1.cloud.tencent.com:123",
+    "time.ustc.edu.cn:123",
+    "cn.ntp.org.cn:123",
+    "time.apple.com:123",
+]
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
