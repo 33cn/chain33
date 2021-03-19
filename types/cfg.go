@@ -28,6 +28,7 @@ type Config struct {
 	Metrics        *Metrics     `json:"metrics,omitempty"`
 	ChainID        int32        `json:"chainID,omitempty"`
 	AddrVer        byte         `json:"addrVer,omitempty"`
+	NtpHosts       []string     `json:"ntpHosts,omitempty"`
 }
 
 // ForkList fork列表配置
@@ -186,6 +187,8 @@ type BlockChain struct {
 	LowAllowPackHeight int64 `json:"lowAllowPackHeight,omitempty"`
 	//关闭blockchain 区块广播
 	DisableBlockBroadcast bool `json:"disableBlockBroadcast,omitempty"`
+	//关闭本地和ntp server的时钟偏移检查
+	DisableClockDriftCheck bool `json:"disableClockDriftCheck,omitempty"`
 }
 
 // P2P 配置

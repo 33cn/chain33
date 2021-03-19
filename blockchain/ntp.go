@@ -26,9 +26,10 @@ var (
 // checkClockDrift queries an NTP server for clock drifts and warns the user if
 // one large enough is detected.
 func (chain *BlockChain) checkClockDrift() {
-	realnow := common.GetRealTimeRetry(types.NtpHosts, 10)
+	realnow := common.GetRealTimeRetry(chain.client.GetConfig().GetModuleConfig().NtpHosts, 10)
 	if realnow.IsZero() {
-		ntpLog.Info("checkClockDrift", "sntpDrift err", "get ntptime error")
+		chain.UpdateNtpClockSyncStatus(false)
+		ntpLog.Warn("checkClockDrift", "sntpDrift err", "get ntptime error")
 		return
 	}
 	now := types.Now()
