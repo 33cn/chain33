@@ -106,8 +106,11 @@ func RunChain33(name, defCfg string) {
 		cfg.P2P.WaitPid = *waitPid
 	}
 
+	if len(cfg.NtpHosts) <= 0 {
+		cfg.NtpHosts = append(cfg.NtpHosts, types.NtpHosts...)
+	}
 	if cfg.FixTime {
-		go fixtimeRoutine()
+		go fixtimeRoutine(cfg.NtpHosts)
 	}
 	//compare minFee in wallet, mempool, exec
 	//set file log
@@ -257,8 +260,7 @@ func pwd() string {
 	return dir
 }
 
-func fixtimeRoutine() {
-	hosts := types.NtpHosts
+func fixtimeRoutine(hosts []string) {
 	for i := 0; i < len(hosts); i++ {
 		t, err := common.GetNtpTime(hosts[i])
 		if err == nil {
