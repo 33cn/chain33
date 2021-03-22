@@ -11,14 +11,13 @@ import (
 
 //const
 const (
-	Name = crypto.NameNone
-	ID   = crypto.TyNone
+	Name = "none"
+	ID   = 10
 )
 
 func init() {
-	crypto.Register(Name, &Driver{}, false)
 	// 默认启用高度-1， 不开启
-	crypto.RegisterType(Name, ID, -1)
+	crypto.Register(Name, &Driver{}, crypto.WithOptionTypeID(ID), crypto.WithOptionDefaultDisable())
 }
 
 //Driver 驱动

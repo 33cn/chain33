@@ -696,17 +696,6 @@ func InitCfgString(cfgstring string) (*Config, *ConfigSubModule) {
 	return cfg, sub
 }
 
-// subModule 子模块结构体
-type subModule struct {
-	Store     map[string]interface{}
-	Exec      map[string]interface{}
-	Consensus map[string]interface{}
-	Wallet    map[string]interface{}
-	Mempool   map[string]interface{}
-	Metrics   map[string]interface{}
-	P2P       map[string]interface{}
-}
-
 //ReadFile ...
 func ReadFile(path string) string {
 	return readFile(path)
@@ -737,6 +726,7 @@ func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
 	subcfg.Mempool = parseItem(cfg.Mempool)
 	subcfg.Metrics = parseItem(cfg.Metrics)
 	subcfg.P2P = parseItem(cfg.P2P)
+	subcfg.Crypto = parseItem(cfg.Crypto)
 	return &subcfg, nil
 }
 

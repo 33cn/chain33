@@ -45,6 +45,18 @@ type ConfigSubModule struct {
 	Crypto    map[string][]byte
 }
 
+// subModule 子模块结构体
+type subModule struct {
+	Store     map[string]interface{}
+	Exec      map[string]interface{}
+	Consensus map[string]interface{}
+	Wallet    map[string]interface{}
+	Mempool   map[string]interface{}
+	Metrics   map[string]interface{}
+	P2P       map[string]interface{}
+	Crypto    map[string]interface{}
+}
+
 // ForkList fork列表配置
 type ForkList struct {
 	System map[string]int64

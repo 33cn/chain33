@@ -45,9 +45,6 @@ type PubKey interface {
 	Equals(PubKey) bool
 }
 
-// DriverInitFn 加密插件的初始化接口
-type DriverInitFn func(subCfg []byte)
-
 //CertSignature 签名
 type CertSignature struct {
 	Signature []byte
@@ -63,3 +60,18 @@ type Config struct {
 	// secp256k1=0
 	EnableHeight map[string]int64 `json:"enableHeight,omitempty"`
 }
+
+// DriverInitFunc 插件初始化接口，参数是序列化的json数据，需要unmarshal为自定义的结构
+type DriverInitFunc func(jsonCfg []byte)
+
+// Driver 加密插件及相关信息
+type Driver struct {
+	crypto       Crypto
+	initFunc     DriverInitFunc
+	isCGO        bool  // 是否为cgo编译
+	enableHeight int64 // 启用高度
+	typeID       int32 //类型值
+}
+
+// Option 注册Driver时可选参数，设置相关参数默认值
+type Option func(*Driver) error

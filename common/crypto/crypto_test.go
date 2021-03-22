@@ -10,6 +10,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/33cn/chain33/system/crypto/ed25519"
+	"github.com/33cn/chain33/system/crypto/none"
+	"github.com/33cn/chain33/system/crypto/secp256k1"
+
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/init"
 	"github.com/stretchr/testify/assert"
@@ -32,7 +36,6 @@ func TestGet(t *testing.T) {
 	require.True(ty == 2)
 	ty = crypto.GetType("sm2")
 	require.True(ty == 3)
-	require.Panics(func() { crypto.RegisterType("testCrypto", crypto.GetType("secp256k1"), 0) })
 }
 
 func TestRipemd160(t *testing.T) {
@@ -236,10 +239,9 @@ func TestRegister(t *testing.T) {
 	p, err := c.GenKey()
 	assert.Nil(t, err)
 	assert.NotNil(t, p)
-	crypto.Register("secp256k1", democryptoCGO{}, true)
-	crypto.RegisterType("secp256k1", 1, 0)
-	assert.Panics(t, func() { crypto.RegisterType("secp256k1_cgo", 1, 0) })
-	assert.Panics(t, func() { crypto.RegisterType("secp256k1", 2, 0) })
+	crypto.Register("secp256k1", democryptoCGO{}, crypto.WithOptionCGO(true), crypto.WithOptionTypeID(secp256k1.ID))
+	assert.Panics(t, func() { crypto.Register("secp256k1_cgo", democryptoCGO{}, crypto.WithOptionTypeID(1)) })
+	assert.Panics(t, func() { crypto.Register("secp256k1", democryptoCGO{}, crypto.WithOptionTypeID(2)) })
 	c, err = crypto.New("secp256k1")
 	if err != nil {
 		panic(err)
@@ -254,18 +256,18 @@ func TestInitCfg(t *testing.T) {
 	cfg := &crypto.Config{}
 	crypto.Init(cfg, nil)
 	must := require.New(t)
-	must.False(crypto.IsEnable(crypto.NameNone, 0))
-	must.True(crypto.IsEnable(crypto.NameSecp256K1, 0))
-	must.True(crypto.IsEnable(crypto.NameEd25519, 0))
-	cfg.EnableTypes = []string{crypto.NameSecp256K1, crypto.NameNone}
+	must.False(crypto.IsEnable(none.Name, 0))
+	must.True(crypto.IsEnable(secp256k1.Name, 0))
+	must.True(crypto.IsEnable(ed25519.Name, 0))
+	cfg.EnableTypes = []string{secp256k1.Name, none.Name}
 	cfg.EnableHeight = make(map[string]int64)
-	cfg.EnableHeight[crypto.NameEd25519] = 10
-	cfg.EnableHeight[crypto.NameNone] = 100
+	cfg.EnableHeight[ed25519.Name] = 10
+	cfg.EnableHeight[none.Name] = 100
 	crypto.Init(cfg, nil)
-	must.False(crypto.IsEnable(crypto.NameNone, 0))
-	must.True(crypto.IsEnable(crypto.NameNone, 100))
-	must.True(crypto.IsEnable(crypto.NameSecp256K1, 0))
-	must.False(crypto.IsEnable(crypto.NameEd25519, 0))
+	must.False(crypto.IsEnable(none.Name, 0))
+	must.True(crypto.IsEnable(none.Name, 100))
+	must.True(crypto.IsEnable(secp256k1.Name, 0))
+	must.False(crypto.IsEnable(ed25519.Name, 0))
 }
 
 type testSubCfg struct {
@@ -287,8 +289,7 @@ func TestInitSubCfg(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, sub1, sub2)
 	}
-
-	crypto.RegisterDriverInitFn(sub1.Name, initFn)
+	crypto.Register("test", democrypto{}, crypto.WithOptionInitFunc(initFn))
 	subCfg[sub1.Name] = bsub
 	crypto.Init(cfg, subCfg)
 }

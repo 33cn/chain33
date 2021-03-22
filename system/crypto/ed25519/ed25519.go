@@ -163,11 +163,10 @@ func (sig SignatureEd25519) Equals(other crypto.Signature) bool {
 
 //const
 const (
-	Name = crypto.NameEd25519
-	ID   = crypto.TyEd25519
+	Name = "ed25519"
+	ID   = 2
 )
 
 func init() {
-	crypto.Register(Name, &Driver{}, false)
-	crypto.RegisterType(Name, ID, 0)
+	crypto.Register(Name, &Driver{}, crypto.WithOptionTypeID(ID))
 }
