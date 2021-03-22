@@ -31,6 +31,7 @@ type Config struct {
 	ChainID        int32          `json:"chainID,omitempty"`
 	AddrVer        byte           `json:"addrVer,omitempty"`
 	Crypto         *crypto.Config `json:"crypto,omitempty"`
+	NtpHosts       []string       `json:"ntpHosts,omitempty"`
 }
 
 //ConfigSubModule 子模块的配置
@@ -213,6 +214,8 @@ type BlockChain struct {
 	LowAllowPackHeight int64 `json:"lowAllowPackHeight,omitempty"`
 	//关闭blockchain 区块广播
 	DisableBlockBroadcast bool `json:"disableBlockBroadcast,omitempty"`
+	//关闭本地和ntp server的时钟偏移检查
+	DisableClockDriftCheck bool `json:"disableClockDriftCheck,omitempty"`
 }
 
 // P2P 配置
