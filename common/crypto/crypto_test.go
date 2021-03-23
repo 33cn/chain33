@@ -16,7 +16,6 @@ import (
 
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/init"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,9 +38,8 @@ func TestGet(t *testing.T) {
 }
 
 func TestRipemd160(t *testing.T) {
-	require := require.New(t)
 	b := crypto.Ripemd160([]byte("test"))
-	require.NotNil(b)
+	require.NotNil(t, b)
 }
 
 func TestAll(t *testing.T) {
@@ -179,14 +177,14 @@ func TestAggregate(t *testing.T) {
 		panic(err)
 	}
 	_, err = crypto.ToAggregate(c)
-	assert.Equal(t, err, crypto.ErrNotSupportAggr)
+	require.Equal(t, err, crypto.ErrNotSupportAggr)
 
 	c = democrypto{}
 	aggr, err := crypto.ToAggregate(c)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	sig, err := aggr.Aggregate(nil)
-	assert.Nil(t, sig)
-	assert.Nil(t, err)
+	require.Nil(t, sig)
+	require.Nil(t, err)
 }
 
 type democrypto struct{}
@@ -233,22 +231,25 @@ func (d democryptoCGO) GenKey() (crypto.PrivKey, error) {
 
 func TestRegister(t *testing.T) {
 	c, err := crypto.New("secp256k1")
-	if err != nil {
-		panic(err)
-	}
+	require.Nil(t, err)
 	p, err := c.GenKey()
-	assert.Nil(t, err)
-	assert.NotNil(t, p)
-	crypto.Register("secp256k1", democryptoCGO{}, crypto.WithOptionCGO(), crypto.WithOptionTypeID(secp256k1.ID))
-	assert.Panics(t, func() { crypto.Register("secp256k1_cgo", democryptoCGO{}, crypto.WithOptionTypeID(1)) })
-	assert.Panics(t, func() { crypto.Register("secp256k1", democryptoCGO{}, crypto.WithOptionTypeID(2)) })
+	require.Nil(t, err)
+	require.NotNil(t, p)
+	require.Panics(t, func() { crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionTypeID(secp256k1.ID)) })
+	//注册cgo版本，替换
+	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionCGO(), crypto.WithOptionTypeID(secp256k1.ID))
+	//重复注册非cgo版本，不会报错
+	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionTypeID(secp256k1.ID))
+	require.Panics(t, func() {
+		crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionCGO(), crypto.WithOptionTypeID(1024))
+	})
+	require.Panics(t, func() { crypto.Register(secp256k1.Name+"cgo", democryptoCGO{}, crypto.WithOptionTypeID(secp256k1.ID)) })
+
 	c, err = crypto.New("secp256k1")
-	if err != nil {
-		panic(err)
-	}
+	require.Nil(t, err)
 	p, err = c.GenKey()
-	assert.Nil(t, p)
-	assert.Equal(t, errors.New("testCGO"), err)
+	require.Nil(t, p)
+	require.Equal(t, errors.New("testCGO"), err)
 }
 
 func TestInitCfg(t *testing.T) {
