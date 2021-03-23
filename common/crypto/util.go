@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math"
 
 	"github.com/tjfoc/gmsm/sm3"
@@ -60,10 +61,10 @@ func ToAggregate(c Crypto) (AggregateCrypto, error) {
 	return nil, ErrNotSupportAggr
 }
 
-// WithOptionCGO 设置是否为CGO
-func WithOptionCGO(isCGO bool) Option {
+// WithOptionCGO 设置为CGO版本
+func WithOptionCGO() Option {
 	return func(d *Driver) error {
-		d.isCGO = isCGO
+		d.isCGO = true
 		return nil
 	}
 }
@@ -76,11 +77,17 @@ func WithOptionDefaultDisable() Option {
 	}
 }
 
+// MaxManualTypeID 手动指定ID最大值 65534
+const MaxManualTypeID = math.MaxUint16 - 1
+
 // WithOptionTypeID 手动指定typeID， 不指定情况，系统将根据name自动生成typeID
 func WithOptionTypeID(id int32) Option {
 	return func(d *Driver) error {
 		if id <= 0 {
 			return errors.New("TypeIDMustPositive")
+		}
+		if id > MaxManualTypeID {
+			return fmt.Errorf("TypeIDMustLessThan %d", MaxManualTypeID+1)
 		}
 		d.typeID = id
 		return nil
@@ -101,7 +108,7 @@ func WithOptionInitFunc(fn DriverInitFunc) Option {
 // GenDriverTypeID 根据名称生成driver type id
 func GenDriverTypeID(name string) int32 {
 	buf := Sha256([]byte(name))
-	id := binary.BigEndian.Uint16(buf)
-	// 自动生成的在区间[65535, 65535*2)
-	return int32(id + math.MaxUint16)
+	id := int32(binary.BigEndian.Uint32(buf) % 1e8)
+	// 自动生成的在区间[65535, 1e8+65535)
+	return id + MaxManualTypeID + 1
 }

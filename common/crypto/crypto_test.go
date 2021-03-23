@@ -239,7 +239,7 @@ func TestRegister(t *testing.T) {
 	p, err := c.GenKey()
 	assert.Nil(t, err)
 	assert.NotNil(t, p)
-	crypto.Register("secp256k1", democryptoCGO{}, crypto.WithOptionCGO(true), crypto.WithOptionTypeID(secp256k1.ID))
+	crypto.Register("secp256k1", democryptoCGO{}, crypto.WithOptionCGO(), crypto.WithOptionTypeID(secp256k1.ID))
 	assert.Panics(t, func() { crypto.Register("secp256k1_cgo", democryptoCGO{}, crypto.WithOptionTypeID(1)) })
 	assert.Panics(t, func() { crypto.Register("secp256k1", democryptoCGO{}, crypto.WithOptionTypeID(2)) })
 	c, err = crypto.New("secp256k1")
@@ -292,4 +292,21 @@ func TestInitSubCfg(t *testing.T) {
 	crypto.Register("test", democrypto{}, crypto.WithOptionInitFunc(initFn))
 	subCfg[sub1.Name] = bsub
 	crypto.Init(cfg, subCfg)
+}
+
+func TestGenDriverTypeID(t *testing.T) {
+	id := crypto.GenDriverTypeID("TestGenDriverTypeID")
+	require.Equal(t, int32(81208513), id)
+}
+
+func TestWithOption(t *testing.T) {
+	driver := &crypto.Driver{}
+	option := crypto.WithOptionTypeID(-1)
+	require.NotNil(t, option(driver))
+	option = crypto.WithOptionTypeID(crypto.MaxManualTypeID)
+	require.Nil(t, option(driver))
+	option = crypto.WithOptionTypeID(crypto.MaxManualTypeID + 1)
+	require.NotNil(t, option(driver))
+	option = crypto.WithOptionInitFunc(nil)
+	require.NotNil(t, option(driver))
 }
