@@ -6,6 +6,10 @@ package types
 
 import (
 	"reflect"
+
+	"github.com/33cn/chain33/system/crypto/ed25519"
+	"github.com/33cn/chain33/system/crypto/secp256k1"
+	"github.com/33cn/chain33/system/crypto/sm2"
 )
 
 var slash = []byte("-")
@@ -74,9 +78,9 @@ const (
 //ty = 2+offset(1<<8) -> auth_sm2
 const (
 	Invalid   = 0
-	SECP256K1 = 1
-	ED25519   = 2
-	AuthSM2   = 258
+	SECP256K1 = secp256k1.ID
+	ED25519   = ed25519.ID
+	AuthSM2   = sm2.ID
 )
 
 //log type

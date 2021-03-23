@@ -99,6 +99,7 @@ func newWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *C
 func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	mfg := cfg.GetModuleConfig()
 	sub := cfg.GetSubConfig()
+	crypto.Init(mfg.Crypto, sub.Crypto)
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	types.Debug = false

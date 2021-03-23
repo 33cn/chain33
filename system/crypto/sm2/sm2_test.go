@@ -110,4 +110,5 @@ func testCryptoCompress(t *testing.T) {
 	require.Equal(true, ok)
 
 	assert.True(t, pub2.VerifyBytes(msg, signature))
+	assert.Nil(t, c.Validate(msg, pub.Bytes(), signature.Bytes()))
 }

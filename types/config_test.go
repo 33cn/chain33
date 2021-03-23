@@ -7,6 +7,8 @@ package types
 import (
 	"testing"
 
+	"github.com/33cn/chain33/system/crypto/secp256k1"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,6 +26,11 @@ func TestChainConfig(t *testing.T) {
 	assert.Equal(t, cfg.GetMaxTxFee(), int64(1e9))
 	assert.Equal(t, cfg.GetMaxTxFeeRate(), int64(1e7))
 	assert.Equal(t, cfg.GetMinTxFeeRate(), int64(1e5))
+	height, ok := cfg.GetModuleConfig().Crypto.EnableHeight[secp256k1.Name]
+	assert.True(t, ok)
+	_, ok = cfg.GetSubConfig().Crypto[secp256k1.Name]
+	assert.True(t, ok)
+	assert.Equal(t, int64(0), height)
 }
 
 //测试实际的配置文件

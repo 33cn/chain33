@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/33cn/chain33/common/crypto"
+
 	"github.com/33cn/chain33/p2p"
 
 	"github.com/33cn/chain33/metrics"
@@ -149,6 +151,7 @@ func RunChain33(name, defCfg string) {
 	runtime.GOMAXPROCS(cpuNum)
 	//开始区块链模块加载
 	//channel, rabitmq 等
+	crypto.Init(chain33Cfg.GetModuleConfig().Crypto, chain33Cfg.GetSubConfig().Crypto)
 	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
 	version.SetStoreDBVersion(cfg.Store.StoreDBVersion)
 	version.SetAppVersion(cfg.Version)

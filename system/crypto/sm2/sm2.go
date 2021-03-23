@@ -77,6 +77,11 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	}, nil
 }
 
+// Validate validate msg and signature TODO:目前只做了公私钥签名验证，需要根据框架整合证书验证
+func (d Driver) Validate(msg, pub, sig []byte) error {
+	return crypto.BasicValidation(d, msg, pub, sig)
+}
+
 //PrivKeySM2 私钥
 type PrivKeySM2 [SM2PrivateKeyLength]byte
 
@@ -223,8 +228,8 @@ const (
 )
 
 func init() {
-	crypto.Register(Name, &Driver{}, false)
-	crypto.RegisterType(Name, ID)
+	// TODO： 注册时需要初始化证书，WithOptionInitFunc
+	crypto.Register(Name, &Driver{}, crypto.WithOptionTypeID(ID))
 }
 
 func privKeyFromBytes(curve elliptic.Curve, pk []byte) (*sm2.PrivateKey, *sm2.PublicKey) {
