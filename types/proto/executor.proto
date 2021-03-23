@@ -79,3 +79,9 @@ message HistoryCertStore {
     int64          curHeigth         = 4;
     int64          nxtHeight         = 5;
 }
+
+message AuthorityCfg {
+    bool   enable     = 1;
+    string cryptoPath = 2;
+    string signType   = 3;
+}

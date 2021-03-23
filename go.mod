@@ -12,6 +12,7 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.0
+	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.4
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/uuid v1.1.1
@@ -39,7 +40,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/goleveldb v1.0.0
-	github.com/tjfoc/gmsm v1.3.1
+	github.com/tjfoc/gmsm v1.3.2
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	golang.org/x/mod v0.3.0 // indirect
 	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7

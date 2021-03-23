@@ -77,9 +77,10 @@ const (
 //ty = 1+offset(1<<8) ->auth_ecdsa
 //ty = 2+offset(1<<8) -> auth_sm2
 const (
+	Invalid   = 0
 	SECP256K1 = secp256k1.ID
 	ED25519   = ed25519.ID
-	SM2       = sm2.ID
+	AuthSM2   = sm2.ID
 )
 
 //log type

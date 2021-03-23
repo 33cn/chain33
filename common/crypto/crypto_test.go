@@ -26,15 +26,16 @@ func TestGet(t *testing.T) {
 	require.Equal("secp256k1", name)
 	name = crypto.GetName(2)
 	require.Equal("ed25519", name)
-	name = crypto.GetName(3)
-	require.Equal("sm2", name)
+	name = crypto.GetName(258)
+	require.Equal("auth_sm2", name)
 
 	ty := crypto.GetType("secp256k1")
 	require.True(ty == 1)
 	ty = crypto.GetType("ed25519")
 	require.True(ty == 2)
-	ty = crypto.GetType("sm2")
-	require.True(ty == 3)
+
+	ty = crypto.GetType("auth_sm2")
+	require.True(ty == 258)
 }
 
 func TestRipemd160(t *testing.T) {
@@ -42,13 +43,18 @@ func TestRipemd160(t *testing.T) {
 	require.NotNil(t, b)
 }
 
+func TestSm3Hash(t *testing.T) {
+	require := require.New(t)
+	b := crypto.Sm3Hash([]byte("test"))
+	require.NotNil(b)
+}
+
 func TestAll(t *testing.T) {
 	testCrypto(t, "ed25519")
 	testFromBytes(t, "ed25519")
 	testCrypto(t, "secp256k1")
 	testFromBytes(t, "secp256k1")
-	testCrypto(t, "sm2")
-	testFromBytes(t, "sm2")
+
 	c, err := crypto.New("none")
 	require.Nil(t, err)
 	pub, err := c.PubKeyFromBytes([]byte("test"))
@@ -58,6 +64,10 @@ func TestAll(t *testing.T) {
 	require.Nil(t, sig)
 	require.Nil(t, err)
 	require.Nil(t, c.Validate([]byte("test"), nil, nil))
+	testCrypto(t, "auth_sm2")
+	testFromBytes(t, "auth_sm2")
+	testCrypto(t, "auth_ecdsa")
+	testFromBytes(t, "auth_ecdsa")
 }
 
 func testFromBytes(t *testing.T, name string) {

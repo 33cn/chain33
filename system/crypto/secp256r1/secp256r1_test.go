@@ -1,4 +1,4 @@
-package sm2
+package ecdsa
 
 import (
 	"strings"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tjfoc/gmsm/sm2"
 )
 
 func TestAll(t *testing.T) {
@@ -92,14 +91,11 @@ func testCryptoCompress(t *testing.T) {
 	require.NotNil(pub)
 	t.Logf("pub:%X, len:%d, string:%s", pub.Bytes(), len(pub.Bytes()), pub.KeyString())
 
-	pubkey := sm2.Decompress(pub.Bytes())
-
-	pubbytes := SerializePublicKey(pubkey, true)
-	pub2, err := c.PubKeyFromBytes(pubbytes)
+	pubkey, err := parsePubKeyCompressed(pub.Bytes())
 	assert.Nil(t, err)
 
-	pubbytes = SerializePublicKey(pubkey, false)
-	_, err = c.PubKeyFromBytes(pubbytes)
+	pubbytes := SerializePublicKeyCompressed(pubkey)
+	pub2, err := c.PubKeyFromBytes(pubbytes)
 	assert.Nil(t, err)
 
 	msg := []byte("hello world")
@@ -110,5 +106,4 @@ func testCryptoCompress(t *testing.T) {
 	require.Equal(true, ok)
 
 	assert.True(t, pub2.VerifyBytes(msg, signature))
-	assert.Nil(t, c.Validate(msg, pub.Bytes(), signature.Bytes()))
 }
