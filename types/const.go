@@ -76,7 +76,7 @@ const (
 	Invalid   = 0
 	SECP256K1 = 1
 	ED25519   = 2
-	SM2       = 3
+	AuthSM2   = 258
 )
 
 //log type

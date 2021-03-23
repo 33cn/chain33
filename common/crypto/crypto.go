@@ -131,9 +131,3 @@ func New(name string) (c Crypto, err error) {
 	}
 	return c, err
 }
-
-//CertSignature 签名
-type CertSignature struct {
-	Signature []byte
-	Cert      []byte
-}

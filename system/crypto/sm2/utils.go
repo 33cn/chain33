@@ -5,9 +5,6 @@
 package sm2
 
 import (
-	"crypto/elliptic"
-	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/btcsuite/btcd/btcec"
@@ -59,28 +56,6 @@ func Deserialize(sigStr []byte) (*big.Int, *big.Int, error) {
 	}
 
 	return sig.R, sig.S, nil
-}
-
-func parsePubKey(pubKeyStr []byte, curve elliptic.Curve) (key *sm2.PublicKey, err error) {
-	pubkey := sm2.PublicKey{}
-	pubkey.Curve = curve
-
-	if len(pubKeyStr) == 0 {
-		return nil, errors.New("pubkey string is empty")
-	}
-
-	pubkey.X = new(big.Int).SetBytes(pubKeyStr[1:33])
-	pubkey.Y = new(big.Int).SetBytes(pubKeyStr[33:])
-	if pubkey.X.Cmp(pubkey.Curve.Params().P) >= 0 {
-		return nil, fmt.Errorf("pubkey X parameter is >= to P")
-	}
-	if pubkey.Y.Cmp(pubkey.Curve.Params().P) >= 0 {
-		return nil, fmt.Errorf("pubkey Y parameter is >= to P")
-	}
-	if !pubkey.Curve.IsOnCurve(pubkey.X, pubkey.Y) {
-		return nil, fmt.Errorf("pubkey isn't on secp256k1 curve")
-	}
-	return &pubkey, nil
 }
 
 //SerializePublicKey 公钥序列化

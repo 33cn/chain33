@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+message CertSignature {
+    bytes signature = 1;
+    bytes cert      = 2;
+    bytes uid       = 3;
+}

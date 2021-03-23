@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/33cn/chain33/executor/authority"
+
 	"github.com/33cn/chain33/client/api"
 	dbm "github.com/33cn/chain33/common/db"
 	clog "github.com/33cn/chain33/common/log"
@@ -93,6 +95,18 @@ func New(cfg *typ.Chain33Config) *Executor {
 		}
 		exec.alias[data[0]] = data[1]
 	}
+
+	sub := cfg.GetSubConfig().Exec["cert"]
+	if sub != nil {
+		var scfg types.AuthorityCfg
+		types.MustDecode(sub, &scfg)
+
+		err := authority.Author.Init(&scfg)
+		if err != nil {
+			panic("exec.auth error to initialize authority:" + err.Error())
+		}
+	}
+
 	return exec
 }
 
