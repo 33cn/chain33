@@ -554,6 +554,16 @@ func (push *Push) runTask(input *pushNotify) {
 				}
 				continueFailCount = 0
 				lastProcessedseq = updateSeq
+				// 在联盟链情况下, 无新增交易的情况下, 不会完成从新开始同步
+				// 在公链情况下, 需要有新区块才能触发推送,
+				// 所以这里在未同步到最新区块, 需要主动触发同步
+				if lastProcessedseq < lastesBlockSeq {
+					push.mu.Lock()
+					if len(in.seqUpdateChan) == 0 {
+						in.seqUpdateChan <- lastesBlockSeq
+					}
+					push.mu.Unlock()
+				}
 			case <-in.closechan:
 				push.postwg.Done()
 				chainlog.Info("getPushData", "push task closed for subscribe", subscribe.Name)
