@@ -117,18 +117,18 @@ func UpdateExpireWithTxHeight(tx *types.Transaction, priv crypto.PrivKey, txHeig
 }
 
 // CreateCoinsTxWithTxHeight 使用txHeight作为交易过期
-func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, currHeight int64) *types.Transaction {
+func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, txHeight int64) *types.Transaction {
 
 	tx := CreateCoinsTx(cfg, nil, to, amount)
-	UpdateExpireWithTxHeight(tx, priv, currHeight+types.LowAllowPackHeight/2)
+	UpdateExpireWithTxHeight(tx, priv, txHeight)
 	return tx
 }
 
 //CreateNoneTxWithTxHeight 使用txHeight作为交易过期
-func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) *types.Transaction {
+func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, txHeight int64) *types.Transaction {
 
 	tx := CreateNoneTx(cfg, nil)
-	UpdateExpireWithTxHeight(tx, priv, currHeight+types.LowAllowPackHeight/2)
+	UpdateExpireWithTxHeight(tx, priv, txHeight)
 	return tx
 }
 

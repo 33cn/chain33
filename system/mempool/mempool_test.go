@@ -1278,14 +1278,14 @@ func TestGetTxList(t *testing.T) {
 	mem.setHeader(&types.Header{Height: currentHeight})
 	//push expired invalid tx
 	for i := 0; i < 10; i++ {
-		tx := util.CreateNoneTxWithTxHeight(cfg, privKey, currentHeight+2)
+		tx := util.CreateNoneTxWithTxHeight(cfg, privKey, currentHeight+2+types.LowAllowPackHeight)
 		require.True(t, tx.IsExpire(cfg, currentHeight+1, 0))
 		err := mem.PushTx(tx)
 		require.Nil(t, err)
 	}
 	// push unexpired valid tx
 	for i := 0; i < 10; i++ {
-		tx := util.CreateNoneTxWithTxHeight(cfg, privKey, currentHeight+1)
+		tx := util.CreateNoneTxWithTxHeight(cfg, privKey, currentHeight+1+types.LowAllowPackHeight)
 		require.False(t, tx.IsExpire(cfg, currentHeight+1, 0))
 		require.True(t, tx.IsExpire(cfg, currentHeight, 0))
 		err := mem.PushTx(tx)
