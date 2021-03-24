@@ -182,7 +182,7 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 			defer conn.Close()
 			gcli := types.NewChain33Client(conn)
 			for {
-				tx := util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), atomic.LoadInt64(&height) + types.LowAllowPackHeight/2)
+				tx := util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), atomic.LoadInt64(&height)+types.LowAllowPackHeight/2)
 				//测试去签名情况
 				//tx := util.CreateNoneTxWithTxHeight(cfg, nil, 0)
 				//tx.Signature = &types.Signature{
