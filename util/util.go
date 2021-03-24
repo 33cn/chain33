@@ -120,7 +120,7 @@ func UpdateExpireWithTxHeight(tx *types.Transaction, priv crypto.PrivKey, txHeig
 func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, currHeight int64) *types.Transaction {
 
 	tx := CreateCoinsTx(cfg, nil, to, amount)
-	UpdateExpireWithTxHeight(tx, priv, currHeight+types.LowAllowPackHeight)
+	UpdateExpireWithTxHeight(tx, priv, currHeight+types.LowAllowPackHeight/2)
 	return tx
 }
 
@@ -128,7 +128,7 @@ func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to
 func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) *types.Transaction {
 
 	tx := CreateNoneTx(cfg, nil)
-	UpdateExpireWithTxHeight(tx, priv, currHeight+types.LowAllowPackHeight)
+	UpdateExpireWithTxHeight(tx, priv, currHeight+types.LowAllowPackHeight/2)
 	return tx
 }
 
@@ -228,7 +228,7 @@ func CreateTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to stri
 func GenTxsTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
-		tx := CreateTxWithTxHeight(cfg, priv, to, types.Coin*(n+1), types.LowAllowPackHeight+height)
+		tx := CreateTxWithTxHeight(cfg, priv, to, types.Coin*(n+1), height)
 		txs = append(txs, tx)
 	}
 	return txs

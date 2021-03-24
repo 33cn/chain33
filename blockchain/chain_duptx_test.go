@@ -168,8 +168,8 @@ func TestCheckDupTxHashList05(t *testing.T) {
 	chainlog.Debug("TestCheckDupTxHashList05 begin --------------------")
 	//发送带TxHeight交易且TxHeight不满足条件
 	for i := 2; i < 10; i++ {
-		_, _, err := addTxTxHeight(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), int64(i))
-		require.EqualErrorf(t, err, "ErrTxExpire", "index-%d", i)
+		_, _, err := addTxTxHeight(cfg, mock33.GetGenesisKey(), mock33.GetAPI(), int64(i)+types.LowAllowPackHeight)
+		require.EqualErrorf(t, err, types.ErrTxExpire.Error(), "index-%d", i)
 		time.Sleep(sendTxWait)
 	}
 	chainlog.Debug("TestCheckDupTxHashList05 end --------------------")
