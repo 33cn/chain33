@@ -27,6 +27,9 @@ var (
 // Init init crypto
 func Init(cfg *Config, subCfg map[string][]byte) {
 
+	if cfg == nil {
+		return
+	}
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
 
