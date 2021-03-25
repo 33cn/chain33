@@ -6,6 +6,8 @@ package commands
 
 import (
 	"fmt"
+	"github.com/33cn/chain33-sdk-go/client"
+	"github.com/33cn/chain33-sdk-go/crypto"
 	"os"
 	"strconv"
 	"time"
@@ -14,6 +16,9 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
+	sdk "github.com/33cn/chain33-sdk-go"
+	sdktypes "github.com/33cn/chain33-sdk-go/types"
+	sdkgm "github.com/33cn/chain33-sdk-go/crypto/gm"
 	"github.com/spf13/cobra"
 )
 
@@ -37,6 +42,7 @@ func WalletCmd() *cobra.Command {
 		NoBalanceCmd(),
 		SetFeeCmd(),
 		SendTxCmd(),
+		SignRawTxWithCertCmd(),
 	)
 
 	return cmd
@@ -319,6 +325,67 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	// decimal numbers, each with optional fraction and a unit suffix,
 	// such as "300ms", "-1.5h" or "2h45m".
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+}
+
+
+// SignRawTxCmd sign raw tx
+func SignRawTxWithCertCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "signWithCert",
+		Short: "SignWithCert transaction",
+		Run:   signRawTxWithCert,
+	}
+	addSignRawTxWithCertFlags(cmd)
+	return cmd
+}
+
+func addSignRawTxWithCertFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("data", "d", "", "raw transaction data")
+	cmd.MarkFlagRequired("data")
+	cmd.Flags().StringP("signType", "s", "sm2", "sign type")
+	cmd.Flags().StringP("keyFilePath", "k", "", "private key file path")
+	cmd.Flags().StringP("certFilePath", "c", "", "cert file path")
+	// A duration string is a possibly signed sequence of
+	// decimal numbers, each with optional fraction and a unit suffix,
+	// such as "300ms", "-1.5h" or "2h45m".
+	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+}
+
+func signRawTxWithCert(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	data, _ := cmd.Flags().GetString("data")
+	signType,_:=cmd.Flags().GetString("signType")
+	keyFilePath, _ := cmd.Flags().GetString("keyFilePath")
+	certFilePath,_:=cmd.Flags().GetString("certFilePath")
+
+	account,err :=sdk.NewAccountFromLocal(signType,keyFilePath)
+	if err !=nil {
+		fmt.Println("load account from local have err",err)
+		return
+	}
+	certByte,err := sdktypes.ReadFile(certFilePath)
+	if err !=nil {
+		fmt.Println("load cert file have err",err)
+		return
+	}
+	 da,_:=sdktypes.FromHex(data)
+	 var tx sdktypes.Transaction
+	 sdktypes.Decode(da,&tx)
+
+	 signTx,err:=sdk.Sign(&tx,account.PrivateKey,signType,nil)
+	 if err !=nil {
+	 	fmt.Println("Sign have err",err)
+		 return
+	 }
+	signTx.Signature.Signature = crypto.EncodeCertToSignature(signTx.Signature.Signature, certByte, sdkgm.DefaultUID)
+	jsonclient, err := client.NewJSONClient("", rpcLaddr)
+	txHex := sdktypes.ToHexPrefix(sdktypes.Encode(signTx))
+	reply, err := jsonclient.SendTransaction(txHex)
+	if err !=nil {
+		fmt.Println("send tx have err",reply)
+		return
+	}
+	fmt.Println(reply)
 }
 
 func noBalanceTx(cmd *cobra.Command, args []string) {
