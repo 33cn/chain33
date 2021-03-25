@@ -235,10 +235,6 @@ func LoadPrivKeyFromLocal(signType string, filePath string) (crypto.PrivKey, err
 	if signType == "" {
 		signType = SECP256K1
 	}
-
-	account := Account{}
-	account.SignType = signType
-
 	if signType == SECP256K1 {
 		//TODO
 		return nil, errors.New("not support")
@@ -257,7 +253,6 @@ func LoadPrivKeyFromLocal(signType string, filePath string) (crypto.PrivKey, err
 			fmt.Println("GetKeyByte.private key length error", "len", len(keyBytes), "expect", sm2.SM2PrivateKeyLength)
 			return nil, errors.New("private key length error")
 		}
-		account.PrivateKey = keyBytes
 		driver := sm2.Driver{}
 		privKey, err := driver.PrivKeyFromBytes(keyBytes)
 		if err != nil {

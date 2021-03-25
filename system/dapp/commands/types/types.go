@@ -185,9 +185,3 @@ type ExecBalance struct {
 	Active   string `json:"active"`
 }
 
-type Account struct {
-	PrivateKey []byte
-	PublicKey  []byte
-	Address    string
-	SignType   string
-}
