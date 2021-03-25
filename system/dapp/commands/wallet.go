@@ -6,19 +6,17 @@ package commands
 
 import (
 	"fmt"
-	"github.com/33cn/chain33-sdk-go/client"
-	"github.com/33cn/chain33-sdk-go/crypto"
+	"github.com/33cn/chain33/common"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/33cn/chain33/executor/authority/utils"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
+	ctype "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
-	sdk "github.com/33cn/chain33-sdk-go"
-	sdktypes "github.com/33cn/chain33-sdk-go/types"
-	sdkgm "github.com/33cn/chain33-sdk-go/crypto/gm"
 	"github.com/spf13/cobra"
 )
 
@@ -327,7 +325,6 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 }
 
-
 // SignRawTxCmd sign raw tx
 func SignRawTxWithCertCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -352,40 +349,36 @@ func addSignRawTxWithCertFlags(cmd *cobra.Command) {
 }
 
 func signRawTxWithCert(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	//rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
-	signType,_:=cmd.Flags().GetString("signType")
+	signType, _ := cmd.Flags().GetString("signType")
 	keyFilePath, _ := cmd.Flags().GetString("keyFilePath")
-	certFilePath,_:=cmd.Flags().GetString("certFilePath")
+	certFilePath, _ := cmd.Flags().GetString("certFilePath")
 
-	account,err :=sdk.NewAccountFromLocal(signType,keyFilePath)
-	if err !=nil {
-		fmt.Println("load account from local have err",err)
+	privatekey, err := ctype.LoadPrivKeyFromLocal(signType, keyFilePath)
+	if err != nil {
+		fmt.Println("load account from local have err", err)
 		return
 	}
-	certByte,err := sdktypes.ReadFile(certFilePath)
-	if err !=nil {
-		fmt.Println("load cert file have err",err)
+	certByte, err := ctype.ReadFile(certFilePath)
+	if err != nil {
+		fmt.Println("load cert file have err", err)
 		return
 	}
-	 da,_:=sdktypes.FromHex(data)
-	 var tx sdktypes.Transaction
-	 sdktypes.Decode(da,&tx)
-
-	 signTx,err:=sdk.Sign(&tx,account.PrivateKey,signType,nil)
-	 if err !=nil {
-	 	fmt.Println("Sign have err",err)
-		 return
-	 }
-	signTx.Signature.Signature = crypto.EncodeCertToSignature(signTx.Signature.Signature, certByte, sdkgm.DefaultUID)
-	jsonclient, err := client.NewJSONClient("", rpcLaddr)
-	txHex := sdktypes.ToHexPrefix(sdktypes.Encode(signTx))
-	reply, err := jsonclient.SendTransaction(txHex)
-	if err !=nil {
-		fmt.Println("send tx have err",reply)
+	da, _ := common.FromHex(data)
+	var tx types.Transaction
+	err = types.Decode(da, &tx)
+	if err != nil {
+		fmt.Println("decode tx failed", err)
 		return
 	}
-	fmt.Println(reply)
+	signature := privatekey.Sign(da)
+	var sign types.Signature
+	types.Decode(signature.Bytes(), &sign)
+	tx.Signature = &sign
+	tx.Signature.Signature = utils.EncodeCertToSignature(signature.Bytes(), certByte, commandtypes.Default_uid)
+	txHex := common.ToHex(types.Encode(&tx))
+	fmt.Println(txHex)
 }
 
 func noBalanceTx(cmd *cobra.Command, args []string) {

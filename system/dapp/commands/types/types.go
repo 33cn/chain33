@@ -9,6 +9,13 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
+var (
+	SECP256K1 = "secp256k1"
+	SM2       = "sm2"
+	ED25519   = "ed25519" //TODO
+
+	Default_uid = []byte{0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38}
+)
 // AccountsResult defines accountsresult command
 type AccountsResult struct {
 	Wallets []*WalletResult `json:"wallets"`
@@ -176,4 +183,11 @@ type ExecBalance struct {
 	ExecAddr string `json:"execAddr,omitempty"`
 	Frozen   string `json:"frozen"`
 	Active   string `json:"active"`
+}
+
+type Account struct {
+	PrivateKey []byte
+	PublicKey  []byte
+	Address    string
+	SignType   string
 }

@@ -61,10 +61,18 @@ func oneStepSendCertTx(cmd *cobra.Command, cmdName string, params []string) {
 	createCmd, createFlags, _ := cmd.Root().Traverse(createParams)
 	_ = createCmd.ParseFlags(createFlags)
 	rpcAddr, _ := createCmd.Flags().GetString("rpc_laddr")
-	//交易签名和发送
-	signParams := []string{"wallet", "signWithCert", "-d", createRes, "-s", signType, "-k", keyFilePath, "-c", certFilePath, "--rpc_laddr", rpcAddr}
+	//交易签名
+	signParams := []string{"wallet", "signWithCert", "-d", createRes, "-s", signType, "-k", keyFilePath, "-c", certFilePath}
 	cmdSign := exec.Command(cmdName, append(signParams, keyParams...)...)
-	sendRes, err := execCmd(cmdSign)
+	signRes, err := execCmd(cmdSign)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	//交易发送命令调用
+	sendParams := []string{"wallet", "send", "-d", signRes, "--rpc_laddr", rpcAddr}
+	cmdSend := exec.Command(cmdName, sendParams...)
+	sendRes, err := execCmd(cmdSend)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
