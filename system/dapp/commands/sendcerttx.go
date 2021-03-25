@@ -18,8 +18,8 @@ func OneStepSendCertTxCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringP("signType", "s", "sm2", "sign type")
-	cmd.Flags().StringP("keyFilePath", "key", "", "private key file path")
-	cmd.Flags().StringP("certFilePath", "cert", "", "cert file path")
+	cmd.Flags().StringP("keyFilePath", "k", "", "private key file path")
+	cmd.Flags().StringP("certFilePath", "c", "", "cert file path")
 	//cmd.MarkFlagRequired("key")
 	return cmd
 }
@@ -34,7 +34,7 @@ func oneStepSendCertTx(cmd *cobra.Command, cmdName string, params []string) {
 	var createParams, keyParams []string
 	//取出sendcerttx命令的signType,keyFilePath,certFilePath参数, 保留原始构建的参数列表
 	for _, v := range params {
-		if strings.HasPrefix(v, "-s=") || strings.HasPrefix(v, "signType") || strings.HasPrefix(v, "-key=") || strings.HasPrefix(v, "--keyFilePath=") || strings.HasPrefix(v, "-cert=") || strings.HasPrefix(v, "certFilePath") {
+		if strings.HasPrefix(v, "-s=") || strings.HasPrefix(v, "--signType=") || strings.HasPrefix(v, "-k=") || strings.HasPrefix(v, "--keyFilePath=") || strings.HasPrefix(v, "-c=") || strings.HasPrefix(v, "--certFilePath=") {
 			keyParams = append(keyParams, v)
 		} else {
 			createParams = append(createParams, v)
@@ -86,17 +86,17 @@ Usage:
   -cli sendcerttx [flags]
 
 Examples:
-cli send coins transfer -a 1 -n note -t toAddr  -s signType -key=keyFilePath -cert=certFilePath
+cli send coins transfer -a 1 -n note -t toAddr  -s signType -k keyFilePath -c certFilePath
 
 equivalent to three steps: 
-1. cli coins transfer -a 1 -n note -t toAddr   //create raw tx
+1. cli coins transfer -a 1 -n note -t toAddr                                        //create raw tx
 2. cli wallet signWithCert -d rawTx -s signType -k keyFilePath -c certFilePath      //sign raw tx
-
+3. cli wallet send -d signTx                                                        //send tx to block chain
 
 Flags:
-  -h, --help         help for send
-  -s, --signType     sign type
-  -key, --keyFilePath			 private key file path
-  -cert, --certFilePaht       cert file path`
+  -h, --help                     help for send
+  -s, --signType                 sign type
+  -k, --keyFilePath			     private key file path
+  -c, --certFilePaht             cert file path`
 	fmt.Println(help)
 }
