@@ -323,7 +323,7 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 }
 
-// SignRawTxCmd sign raw tx
+// SignRawTxWithCertCmd sign raw tx
 func SignRawTxWithCertCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "signWithCert",

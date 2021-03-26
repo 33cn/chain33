@@ -237,12 +237,12 @@ func ReadFile(file string) ([]byte, error) {
 // LoadPrivKeyFromLocal 加载账户
 func LoadPrivKeyFromLocal(signType string, filePath string) (crypto.PrivKey, error) {
 	if signType == "" {
-		signType = SECP256K1
+		signType = secp_256k1
 	}
-	if signType == SECP256K1 {
+	if signType == secp_256k1 {
 		//TODO
 		return nil, errors.New("not support")
-	} else if signType == SM2 {
+	} else if signType == sm_2 {
 		content, err := ReadFile(filePath)
 		if err != nil {
 			fmt.Println("GetKeyByte.read key file failed.", "file", filePath, "error", err.Error())
@@ -264,7 +264,7 @@ func LoadPrivKeyFromLocal(signType string, filePath string) (crypto.PrivKey, err
 			return nil, err
 		}
 		return privKey, nil
-	} else if signType == ED25519 {
+	} else if signType == ed_25519 {
 		return nil, errors.New("not support")
 	} else {
 		return nil, errors.New("sign type not support")
@@ -282,14 +282,14 @@ func CreateTxWithCert(signType string, privateKey crypto.PrivKey, hexTx string, 
 		return "", err
 	}
 	signature := privateKey.Sign(data)
-	if signType == SM2 {
+	if signType == sm_2 {
 		sign := &types.Signature{
 			Ty:        258,
 			Pubkey:    privateKey.PubKey().Bytes(),
 			Signature: signature.Bytes(),
 		}
 		tx.Signature = sign
-		tx.Signature.Signature = utils.EncodeCertToSignature(signature.Bytes(), certByte, Default_uid)
+		tx.Signature.Signature = utils.EncodeCertToSignature(signature.Bytes(), certByte, default_uid)
 	} else {
 		return "", errors.New("not support")
 	}
