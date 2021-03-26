@@ -223,6 +223,7 @@ func CheckExpireOpt(expire string) (string, error) {
 
 	return expire, err
 }
+
 // ReadFile 读取文件
 func ReadFile(file string) ([]byte, error) {
 	fileCont, err := ioutil.ReadFile(file)
