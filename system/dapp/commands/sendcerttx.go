@@ -2,10 +2,11 @@ package commands
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 func OneStepSendCertTxCmd() *cobra.Command {

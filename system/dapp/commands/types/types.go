@@ -16,6 +16,7 @@ var (
 
 	Default_uid = []byte{0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38}
 )
+
 // AccountsResult defines accountsresult command
 type AccountsResult struct {
 	Wallets []*WalletResult `json:"wallets"`
@@ -184,4 +185,3 @@ type ExecBalance struct {
 	Frozen   string `json:"frozen"`
 	Active   string `json:"active"`
 }
-
