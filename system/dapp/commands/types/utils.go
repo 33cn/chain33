@@ -223,7 +223,7 @@ func CheckExpireOpt(expire string) (string, error) {
 
 	return expire, err
 }
-
+// ReadFile 读取文件
 func ReadFile(file string) ([]byte, error) {
 	fileCont, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -233,7 +233,7 @@ func ReadFile(file string) ([]byte, error) {
 	return fileCont, nil
 }
 
-//加载账户
+// LoadPrivKeyFromLocal 加载账户
 func LoadPrivKeyFromLocal(signType string, filePath string) (crypto.PrivKey, error) {
 	if signType == "" {
 		signType = SECP256K1
@@ -271,7 +271,7 @@ func LoadPrivKeyFromLocal(signType string, filePath string) (crypto.PrivKey, err
 
 }
 
-//构造携带证书的交易
+// CreateTxWithCert 构造携带证书的交易
 func CreateTxWithCert(signType string, privateKey crypto.PrivKey, hexTx string, certByte []byte) (string, error) {
 	data, _ := common.FromHex(hexTx)
 	var tx types.Transaction

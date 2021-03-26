@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 )
-
+// OneStepSendCertTxCmd send cmd
 func OneStepSendCertTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                "sendcerttx",
@@ -24,7 +24,7 @@ func OneStepSendCertTxCmd() *cobra.Command {
 	return cmd
 }
 
-// one step send
+// oneStepSendCertTx send cmd
 func oneStepSendCertTx(cmd *cobra.Command, cmdName string, params []string) {
 	if len(params) < 1 || params[0] == "help" || params[0] == "--help" || params[0] == "-h" {
 		loadSendCertTxHelp()
@@ -79,7 +79,7 @@ func oneStepSendCertTx(cmd *cobra.Command, cmdName string, params []string) {
 	}
 	fmt.Println(sendRes)
 }
-
+// loadSendCertTxHelp
 func loadSendCertTxHelp() {
 	help := `[Integrate create/sign/send transaction operations in one command]
 Usage:
