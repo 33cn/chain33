@@ -6,6 +6,7 @@ package types
 
 import (
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/executor/authority/utils"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -231,6 +232,7 @@ func ReadFile(file string) ([]byte, error) {
 	return fileCont, nil
 }
 
+//加载账户
 func LoadPrivKeyFromLocal(signType string, filePath string) (crypto.PrivKey, error) {
 	if signType == "" {
 		signType = SECP256K1
@@ -266,4 +268,28 @@ func LoadPrivKeyFromLocal(signType string, filePath string) (crypto.PrivKey, err
 		return nil, errors.New("sign type not support")
 	}
 
+}
+
+//构造携带证书的交易
+func CreateTxWithCert(signType string, privateKey crypto.PrivKey, hexTx string, certByte []byte) (string, error) {
+	data, _ := common.FromHex(hexTx)
+	var tx types.Transaction
+	err := types.Decode(data, &tx)
+	if err != nil {
+		fmt.Println("decode tx failed", err)
+		return "", err
+	}
+	signature := privateKey.Sign(data)
+	if signType == SM2 {
+		sign := &types.Signature{
+			Ty:        258,
+			Pubkey:    privateKey.PubKey().Bytes(),
+			Signature: signature.Bytes(),
+		}
+		tx.Signature = sign
+		tx.Signature.Signature = utils.EncodeCertToSignature(signature.Bytes(), certByte, Default_uid)
+	} else {
+		return "", errors.New("not support")
+	}
+	return common.ToHex(types.Encode(&tx)), nil
 }
