@@ -363,7 +363,7 @@ func signRawTxWithCert(cmd *cobra.Command, args []string) {
 		fmt.Println("load cert file have err", err)
 		return
 	}
-	signTx,err:=ctype.CreateTxWithCert(signType,privatekey,data,certByte)
+	signTx, err := ctype.CreateTxWithCert(signType, privatekey, data, certByte)
 	if err != nil {
 		fmt.Println("load cert file have err", err)
 		return
