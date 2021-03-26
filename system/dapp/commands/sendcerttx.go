@@ -21,7 +21,6 @@ func OneStepSendCertTxCmd() *cobra.Command {
 	cmd.Flags().StringP("signType", "s", "sm2", "sign type")
 	cmd.Flags().StringP("keyFilePath", "k", "", "private key file path")
 	cmd.Flags().StringP("certFilePath", "c", "", "cert file path")
-	//cmd.MarkFlagRequired("key")
 	return cmd
 }
 
@@ -42,7 +41,7 @@ func oneStepSendCertTx(cmd *cobra.Command, cmdName string, params []string) {
 		}
 	}
 	//调用send命令parse函数解析key参数
-	err := cmd.Flags().Parse(keyParams)
+	cmd.Flags().Parse(keyParams)
 	keyFilePath, _ := cmd.Flags().GetString("keyFilePath")
 	certFilePath, _ := cmd.Flags().GetString("certFilePath")
 	signType, _ := cmd.Flags().GetString("signType")
