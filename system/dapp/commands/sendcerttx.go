@@ -86,7 +86,7 @@ Usage:
   -cli sendcerttx [flags]
 
 Examples:
-cli send coins transfer -a 1 -n note -t toAddr  -s signType -k keyFilePath -c certFilePath
+cli sendcerttx coins transfer -a 1 -n note -t toAddr  -s=signType -k=keyFilePath -c=certFilePath
 
 equivalent to three steps: 
 1. cli coins transfer -a 1 -n note -t toAddr                                        //create raw tx

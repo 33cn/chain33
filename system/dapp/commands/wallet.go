@@ -6,12 +6,10 @@ package commands
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/common"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/33cn/chain33/executor/authority/utils"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -365,20 +363,12 @@ func signRawTxWithCert(cmd *cobra.Command, args []string) {
 		fmt.Println("load cert file have err", err)
 		return
 	}
-	da, _ := common.FromHex(data)
-	var tx types.Transaction
-	err = types.Decode(da, &tx)
+	signTx,err:=ctype.CreateTxWithCert(signType,privatekey,data,certByte)
 	if err != nil {
-		fmt.Println("decode tx failed", err)
+		fmt.Println("load cert file have err", err)
 		return
 	}
-	signature := privatekey.Sign(da)
-	var sign types.Signature
-	types.Decode(signature.Bytes(), &sign)
-	tx.Signature = &sign
-	tx.Signature.Signature = utils.EncodeCertToSignature(signature.Bytes(), certByte, commandtypes.Default_uid)
-	txHex := common.ToHex(types.Encode(&tx))
-	fmt.Println(txHex)
+	fmt.Println(signTx)
 }
 
 func noBalanceTx(cmd *cobra.Command, args []string) {
