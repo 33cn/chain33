@@ -31,23 +31,31 @@ const (
 	MaxReqChunkRecord int32 = 100
 )
 
-func (chain *BlockChain) chunkProcessRoutine() {
+func (chain *BlockChain) chunkDeleteRoutine() {
 	defer chain.tickerwg.Done()
-
-	// 1.60s检测一次是否可以删除本地的body数据
-	// 2.10s检测一次是否可以触发归档操作
-
+	// 60s检测一次是否可以删除本地的body数据
 	checkDelTicker := time.NewTicker(time.Minute)
-	checkGenChunkTicker := time.NewTicker(10 * time.Second)
 	for {
 		select {
 		case <-chain.quit:
 			return
 		case <-checkDelTicker.C:
-			go chain.CheckDeleteBlockBody()
+			chain.CheckDeleteBlockBody()
+		}
+	}
+}
+
+func (chain *BlockChain) chunkGenerateRoutine() {
+	defer chain.tickerwg.Done()
+	// 10s检测一次是否可以触发归档操作
+	checkGenChunkTicker := time.NewTicker(10 * time.Second)
+	for {
+		select {
+		case <-chain.quit:
+			return
 		case <-checkGenChunkTicker.C:
 			//主动查询当前未归档，然后进行触发
-			go chain.CheckGenChunkNum()
+			chain.CheckGenChunkNum()
 		}
 	}
 }
@@ -80,7 +88,6 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 		// 保证同一时刻只存在一个该协程
 		return
 	}
-	atomic.StoreInt32(&chain.processingDeleteChunk, 1)
 	defer atomic.StoreInt32(&chain.processingDeleteChunk, 0)
 	const onceDelChunkNum = 100 // 每次walkOverDeleteChunk的最大删除chunk个数
 	var count int64

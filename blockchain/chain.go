@@ -334,8 +334,9 @@ func (chain *BlockChain) InitBlockChain() {
 	}
 
 	if !chain.cfg.DisableShard {
-		chain.tickerwg.Add(1)
-		go chain.chunkProcessRoutine()
+		chain.tickerwg.Add(2)
+		go chain.chunkDeleteRoutine()
+		go chain.chunkGenerateRoutine()
 	}
 
 	//初始化默认DownLoadInfo
