@@ -1099,6 +1099,23 @@ func (chain *BlockChain) CheckBestChainProc(headers *types.Headers, pid string) 
 // ChunkRecordSync 同步chunkrecord
 func (chain *BlockChain) ChunkRecordSync() {
 	curheight := chain.GetBlockHeight()
+	// 记录检测到高度停止增长的次数
+	if curheight == atomic.LoadInt64(&chain.lastHeight) {
+		atomic.AddInt32(&chain.heightNotIncreaseTimes, 1)
+	} else {
+		atomic.StoreInt64(&chain.lastHeight, curheight)
+		atomic.StoreInt32(&chain.heightNotIncreaseTimes, 0)
+	}
+	// re-download chunk hash after 6 times no increasing.
+	if atomic.CompareAndSwapInt32(&chain.heightNotIncreaseTimes, 6, 0) {
+		chunkNum := curheight / chain.cfg.ChunkblockNum
+		if err := chain.blockStore.deleteRecvChunkHash(chunkNum); err != nil {
+			chainlog.Error("ChunkRecordSync", "chunkNum", chunkNum, "deleteRecvChunkHash error", err)
+		} else {
+			atomic.StoreInt32(&chain.heightNotIncreaseTimes, 0)
+			chainlog.Info("ChunkRecordSync", "deleteRecvChunkHash chunkNum", chunkNum)
+		}
+	}
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 	recvChunk := chain.GetCurRecvChunkNum()
 

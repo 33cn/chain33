@@ -1698,6 +1698,22 @@ func (bs *BlockStore) getCurChunkNum(prefix []byte) int64 {
 	return height
 }
 
+func (bs *BlockStore) deleteRecvChunkHash(num int64) error {
+	prefix := RecvChunkNumToHash
+	it := bs.db.Iterator(prefix, nil, true)
+	defer it.Close()
+	batch := bs.db.NewBatch(false)
+	defer dbm.MustWrite(batch)
+	for it.Rewind(); it.Valid(); it.Next() {
+		chunkNum, err := strconv.ParseInt(string(bytes.TrimPrefix(it.Key(), prefix)), 10, 64)
+		if err != nil || chunkNum < num {
+			return err
+		}
+		batch.Delete(it.Key())
+	}
+	return nil
+}
+
 func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
 	value, err := bs.GetKey(calcRecvChunkNumToHash(chunkNum))
 	if err != nil {
