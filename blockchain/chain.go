@@ -138,6 +138,10 @@ type BlockChain struct {
 	processingGenChunk    int32
 	processingDeleteChunk int32
 	deleteChunkCount      int64
+
+	// TODO
+	lastHeight             int64
+	heightNotIncreaseTimes int32
 }
 
 //New new

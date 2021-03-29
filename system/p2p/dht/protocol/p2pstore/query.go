@@ -179,7 +179,7 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 		sum := common.Sha256(types.Encode(records))
 		recordsCache[string(sum)] = records
 		recordsCount[string(sum)]++
-		log.Info("getChunkRecords", "peer", pid, "start", param.Start, "end", param.End)
+		log.Info("getChunkRecords", "peer", pid, "start", param.Start, "end", param.End, "addr", p.Host.Peerstore().Addrs(pid))
 		if i > 10 && len(recordsCount) != 0 {
 			break
 		}
