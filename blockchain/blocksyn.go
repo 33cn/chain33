@@ -1101,7 +1101,10 @@ func (chain *BlockChain) ChunkRecordSync() {
 	curheight := chain.GetBlockHeight()
 	// 记录检测到高度停止增长的次数
 	if curheight == atomic.LoadInt64(&chain.lastHeight) {
-		atomic.AddInt32(&chain.heightNotIncreaseTimes, 1)
+		// 若 peerList 只有一个本节点说明网络不通，不记录
+		if len(chain.GetPeers()) > 1 {
+			atomic.AddInt32(&chain.heightNotIncreaseTimes, 1)
+		}
 	} else {
 		atomic.StoreInt64(&chain.lastHeight, curheight)
 		atomic.StoreInt32(&chain.heightNotIncreaseTimes, 0)
