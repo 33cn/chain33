@@ -1109,18 +1109,14 @@ func (chain *BlockChain) ChunkRecordSync() {
 		atomic.StoreInt64(&chain.lastHeight, curheight)
 		atomic.StoreInt32(&chain.heightNotIncreaseTimes, 0)
 	}
-	// re-download chunk hash after 6 times no increasing.
-	if atomic.CompareAndSwapInt32(&chain.heightNotIncreaseTimes, 6, 0) {
-		chunkNum := curheight / chain.cfg.ChunkblockNum
-		if err := chain.blockStore.deleteRecvChunkHash(chunkNum); err != nil {
-			chainlog.Error("ChunkRecordSync", "chunkNum", chunkNum, "deleteRecvChunkHash error", err)
-		} else {
-			atomic.StoreInt32(&chain.heightNotIncreaseTimes, 0)
-			chainlog.Info("ChunkRecordSync", "deleteRecvChunkHash chunkNum", chunkNum)
-		}
-	}
+
 	peerMaxBlkHeight := chain.GetPeerMaxBlkHeight()
 	recvChunk := chain.GetCurRecvChunkNum()
+	// re-download chunk hash after 6 times no increasing.
+	if atomic.CompareAndSwapInt32(&chain.heightNotIncreaseTimes, 6, 0) {
+		recvChunk = curheight/chain.cfg.ChunkblockNum - 1
+		chainlog.Info("ChunkRecordSync redownload", "start", recvChunk+1)
+	}
 
 	curShouldChunk, _, _ := chain.CalcChunkInfo(curheight)
 	targetChunk, _, _ := chain.CalcSafetyChunkInfo(peerMaxBlkHeight)
