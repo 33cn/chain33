@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -135,7 +136,8 @@ func initP2P(p *P2P) *P2P {
 	p.connManager = manage.NewConnManager(p.ctx, p.host, p.discovery.RoutingTable(), bandwidthTracker, p.subCfg)
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
 	p.taskGroup = &sync.WaitGroup{}
-	p.db = newDB("", p.p2pCfg.Driver, p.subCfg.DHTDataPath, p.subCfg.DHTDataCache)
+
+	p.db = newDB("", p.p2pCfg.Driver, filepath.Dir(p.p2pCfg.DbPath), p.subCfg.DHTDataCache)
 	return p
 }
 
@@ -447,7 +449,7 @@ func newDB(name, backend, dir string, cache int32) dbm.DB {
 	if backend == "" {
 		backend = "leveldb"
 	}
-	if dir == "" {
+	if dir == "" || dir == "." {
 		dir = "datadir"
 	}
 	if cache <= 0 {
