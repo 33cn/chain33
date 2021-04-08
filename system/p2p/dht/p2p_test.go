@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -395,12 +396,11 @@ func Test_p2p(t *testing.T) {
 	var tcfg types.P2P
 	tcfg.Driver = "leveldb"
 	tcfg.DbCache = 4
-	tcfg.DbPath = datadir
+	tcfg.DbPath = filepath.Join(datadir, "addrbook")
 	testAddrbook(t, &tcfg)
 
 	var mcfg p2pty.P2PSubConfig
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], &mcfg)
-	mcfg.DHTDataPath = datadir
 	jcfg, err := json.Marshal(mcfg)
 	require.Nil(t, err)
 	cfg.GetSubConfig().P2P[p2pty.DHTTypeName] = jcfg
