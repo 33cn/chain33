@@ -6,10 +6,11 @@ package core
 
 import (
 	"fmt"
-	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 	"io/ioutil"
 	"path/filepath"
+
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
 	"os"
 )

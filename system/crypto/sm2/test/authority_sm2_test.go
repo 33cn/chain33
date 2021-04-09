@@ -6,10 +6,11 @@ package test
 
 import (
 	"fmt"
-	sm2Util "github.com/33cn/chain33/system/crypto/sm2"
 	"io/ioutil"
 	"path"
 	"testing"
+
+	sm2Util "github.com/33cn/chain33/system/crypto/sm2"
 
 	"github.com/33cn/chain33/system/crypto/common/authority"
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"

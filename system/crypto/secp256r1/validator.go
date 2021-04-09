@@ -12,10 +12,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/33cn/chain33/system/crypto/common/authority/core"
 	"math/big"
 	"reflect"
 	"time"
+
+	"github.com/33cn/chain33/system/crypto/common/authority/core"
 
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
@@ -61,7 +62,6 @@ func (validator *ecdsaValidator) getCertFromPem(idBytes []byte) (*x509.Certifica
 
 	return cert, nil
 }
-
 
 func getSubjectKeyIdentifierFromCert(cert *x509.Certificate) ([]byte, error) {
 	var SKI []byte
