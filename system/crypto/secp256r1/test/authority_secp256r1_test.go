@@ -2,20 +2,21 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package secp256r1_test
+package test
 
 import (
 	"fmt"
+	"github.com/33cn/chain33/system/crypto/secp256r1"
+	"io/ioutil"
+	"path"
 	"testing"
 
-	"github.com/33cn/chain33/executor/authority"
-	"github.com/33cn/chain33/executor/authority/utils"
+	"github.com/33cn/chain33/system/crypto/common/authority"
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-	secp256r1_util "github.com/33cn/chain33/system/crypto/secp256r1"
-	sm2_util "github.com/33cn/chain33/system/crypto/sm2"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -56,10 +57,9 @@ var (
 
 var USERNAME = "user1"
 var ORGNAME = "org1"
-var SIGNTYPE = secp256r1_util.ID
 
 func signtx(tx *types.Transaction, priv crypto.PrivKey, cert []byte) {
-	tx.Sign(int32(SIGNTYPE), priv)
+	tx.Sign(int32(secp256r1.ID), priv)
 	tx.Signature.Signature = utils.EncodeCertToSignature(tx.Signature.Signature, cert, nil)
 }
 
@@ -79,21 +79,111 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 	signtx(tx13, priv, cert)
 }
 
+// User 用户关联的证书私钥信息
+type User struct {
+	ID   string
+	Cert []byte
+	Key  crypto.PrivKey
+}
+
+// UserLoader SKD加载user使用
+type UserLoader struct {
+	configPath string
+	userMap    map[string]*User
+	signType   int
+}
+
+// Init userloader初始化
+func (loader *UserLoader) Init(configPath string, signType string) error {
+	loader.configPath = configPath
+	loader.userMap = make(map[string]*User)
+
+	sign := types.GetSignType("cert", signType)
+	if sign == types.Invalid {
+		return types.ErrInvalidParam
+	}
+	loader.signType = sign
+
+	return loader.loadUsers()
+}
+
+func (loader *UserLoader) loadUsers() error {
+	var priv crypto.PrivKey
+	keyDir := path.Join(loader.configPath, "keystore")
+	dir, err := ioutil.ReadDir(keyDir)
+	for _, file := range dir {
+		filePath := path.Join(keyDir, file.Name())
+		keyBytes, err := utils.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+		privHex, _ := common.FromHex(string(keyBytes))
+		priv, err = loader.genCryptoPriv(privHex)
+		if err != nil {
+			continue
+		}
+	}
+
+	certDir := path.Join(loader.configPath, "signcerts")
+	dir, err = ioutil.ReadDir(certDir)
+	if err != nil {
+		return err
+	}
+	for _, file := range dir {
+		filePath := path.Join(certDir, file.Name())
+		certBytes, err := utils.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+		loader.userMap[file.Name()] = &User{file.Name(), certBytes, priv}
+	}
+
+	return nil
+}
+
+func (loader *UserLoader) genCryptoPriv(keyBytes []byte) (crypto.PrivKey, error) {
+	cr, err := crypto.New(types.GetSignName("cert", loader.signType))
+	if err != nil {
+		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignName("cert", loader.signType), err)
+	}
+
+	priv, err := cr.PrivKeyFromBytes(keyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("get private key failed, error:%s", err)
+	}
+
+	return priv, nil
+}
+
+// Get 根据用户名获取user结构
+func (loader *UserLoader) Get(userName, orgName string) (*User, error) {
+	keyvalue := fmt.Sprintf("%s@%s-cert.pem", userName, orgName)
+	user, ok := loader.userMap[keyvalue]
+	if !ok {
+		return nil, types.ErrInvalidParam
+	}
+
+	resp := &User{}
+	resp.Cert = append(resp.Cert, user.Cert...)
+	resp.Key = user.Key
+
+	return resp, nil
+}
+
 /**
 初始化Author实例和userloader
 */
 func initEnv() (*types.Chain33Config, error) {
 	cfg := types.NewChain33Config(types.ReadFile("./chain33.auth.test.toml"))
-	sub := cfg.GetSubConfig()
-	var subcfg types.AuthorityCfg
-	if sub.Exec["cert"] != nil {
-		types.MustDecode(sub.Exec["cert"], &subcfg)
+	sub := cfg.GetSubConfig().Crypto[secp256r1.Name]
+	var subcfg authority.SubConfig
+	if sub != nil {
+		utils.MustDecode(sub, &subcfg)
 	}
-	authority.Author.Init(&subcfg)
-	SIGNTYPE = types.GetSignType("cert", subcfg.SignType)
+	secp256r1.EcdsaAuthor.Init(&subcfg, secp256r1.ID, secp256r1.NewEcdsaValidator())
 
-	userLoader := &authority.UserLoader{}
-	err := userLoader.Init(subcfg.CryptoPath, subcfg.SignType)
+	userLoader := &UserLoader{}
+	err := userLoader.Init(subcfg.CertPath, secp256r1.Name)
 	if err != nil {
 		fmt.Printf("Init user loader falied -> %v", err)
 		return nil, err
@@ -129,7 +219,7 @@ func TestChckSign(t *testing.T) {
 }
 
 /**
-TestCase10 带证书的多交易验签
+TestCase02 带证书的多交易验签
 */
 func TestChckSigns(t *testing.T) {
 	cfg, err := initEnv()
@@ -148,7 +238,7 @@ func TestChckSigns(t *testing.T) {
 }
 
 /**
-TestCase02 带证书的交易并行验签
+TestCase03 带证书的交易并行验签
 */
 func TestChckSignsPara(t *testing.T) {
 	cfg, err := initEnv()
@@ -167,7 +257,7 @@ func TestChckSignsPara(t *testing.T) {
 }
 
 /**
-TestCase03 不带证书，公链签名算法验证
+TestCase04 不带证书，公链签名算法验证
 */
 func TestChckSignWithNoneAuth(t *testing.T) {
 	cfg, err := initEnv()
@@ -185,35 +275,10 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 }
 
 /**
-TestCase04 不带证书，SM2签名验证
-*/
-func TestChckSignWithSm2(t *testing.T) {
-	sm2, err := crypto.New(types.GetSignName("cert", sm2_util.ID))
-	assert.Nil(t, err)
-	privKeysm2, _ := sm2.PrivKeyFromBytes(privRaw)
-	tx15 := &types.Transaction{Execer: []byte("coins"),
-		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
-		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKeysm2.PubKey().Bytes()).String()}
-
-	cfg, err := initEnv()
-	if err != nil {
-		t.Errorf("init env failed, error:%s", err)
-		return
-	}
-	cfg.SetMinFee(0)
-
-	tx15.Sign(sm2_util.ID, privKeysm2)
-	if !tx15.CheckSign() {
-		t.Error("check signature failed")
-		return
-	}
-}
-
-/**
 TestCase05 不带证书，secp256r1签名验证
 */
 func TestChckSignWithEcdsa(t *testing.T) {
-	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", secp256r1_util.ID))
+	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", secp256r1.ID))
 	privKeyecdsa, _ := ecdsacrypto.PrivKeyFromBytes(privRaw)
 	tx16 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
@@ -226,91 +291,6 @@ func TestChckSignWithEcdsa(t *testing.T) {
 	}
 	cfg.SetMinFee(0)
 
-	tx16.Sign(secp256r1_util.ID, privKeyecdsa)
-	if !tx16.CheckSign() {
-		t.Error("check signature failed")
-		return
-	}
-}
-
-/**
-TestCase 06 证书检验
-*/
-func TestValidateCert(t *testing.T) {
-	cfg, err := initEnv()
-	if err != nil {
-		t.Errorf("init env failed, error:%s", err)
-		return
-	}
-
-	cfg.SetMinFee(0)
-
-	for _, tx := range txs {
-		err = authority.Author.Validate(tx.Signature)
-		if err != nil {
-			t.Error("error cert validate", err.Error())
-			return
-		}
-	}
-}
-
-/**
-Testcase07 noneimpl校验器验证（回滚到未开启证书验证的区块使用）
-*/
-func TestValidateTxWithNoneAuth(t *testing.T) {
-	cfg, err := initEnv()
-	if err != nil {
-		t.Errorf("init env failed, error:%s", err)
-		return
-	}
-	noneCertdata := &types.HistoryCertStore{}
-	noneCertdata.CurHeigth = 0
-	authority.Author.ReloadCert(noneCertdata)
-
-	cfg.SetMinFee(0)
-
-	err = authority.Author.Validate(tx14.Signature)
-	if err != nil {
-		t.Error("error cert validate", err.Error())
-		return
-	}
-}
-
-/**
-Testcase08 重载历史证书
-*/
-func TestReloadCert(t *testing.T) {
-	cfg, err := initEnv()
-	if err != nil {
-		t.Errorf("init env failed, error:%s", err)
-		return
-	}
-
-	cfg.SetMinFee(0)
-
-	store := &types.HistoryCertStore{}
-
-	authority.Author.ReloadCert(store)
-
-	err = authority.Author.Validate(tx1.Signature)
-	if err != nil {
-		t.Error(err.Error())
-	}
-}
-
-/**
-Testcase09 根据高度重载历史证书
-*/
-func TestReloadByHeight(t *testing.T) {
-	cfg, err := initEnv()
-	if err != nil {
-		t.Errorf("init env failed, error:%s", err)
-		return
-	}
-	cfg.SetMinFee(0)
-
-	authority.Author.ReloadCertByHeght(30)
-	if authority.Author.HistoryCertCache.CurHeight != 30 {
-		t.Error("reload by height failed")
-	}
+	tx16.Sign(secp256r1.ID, privKeyecdsa)
+	assert.Equal(t, false, tx16.CheckSign())
 }

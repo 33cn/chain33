@@ -27,14 +27,14 @@ func TestGet(t *testing.T) {
 	name = crypto.GetName(2)
 	require.Equal("ed25519", name)
 	name = crypto.GetName(258)
-	require.Equal("auth_sm2", name)
+	require.Equal("sm2", name)
 
 	ty := crypto.GetType("secp256k1")
 	require.True(ty == 1)
 	ty = crypto.GetType("ed25519")
 	require.True(ty == 2)
 
-	ty = crypto.GetType("auth_sm2")
+	ty = crypto.GetType("sm2")
 	require.True(ty == 258)
 }
 
@@ -64,10 +64,10 @@ func TestAll(t *testing.T) {
 	require.Nil(t, sig)
 	require.Nil(t, err)
 	require.Nil(t, c.Validate([]byte("test"), nil, nil))
-	testCrypto(t, "auth_sm2")
-	testFromBytes(t, "auth_sm2")
-	testCrypto(t, "auth_ecdsa")
-	testFromBytes(t, "auth_ecdsa")
+	testCrypto(t, "sm2")
+	testFromBytes(t, "sm2")
+	testCrypto(t, "secp256r1")
+	testFromBytes(t, "secp256r1")
 }
 
 func testFromBytes(t *testing.T, name string) {

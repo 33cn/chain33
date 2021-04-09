@@ -1,4 +1,4 @@
-package ecdsa
+package secp256r1
 
 import (
 	"strings"

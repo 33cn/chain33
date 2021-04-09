@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package core
+package secp256r1
 
 import (
 	"bytes"
@@ -12,20 +12,19 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/33cn/chain33/system/crypto/common/authority/core"
 	"math/big"
 	"reflect"
 	"time"
 
-	"github.com/33cn/chain33/executor/authority/utils"
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
 	"crypto/ecdsa"
 
 	log "github.com/33cn/chain33/common/log/log15"
-	secp256r1_util "github.com/33cn/chain33/system/crypto/secp256r1"
-	"github.com/33cn/chain33/types"
 )
 
-var authLogger = log.New("module", "authority")
+var authLogger = log.New("module", "crypto")
 
 type ecdsaValidator struct {
 	rootCerts []*x509.Certificate
@@ -40,7 +39,7 @@ type ecdsaValidator struct {
 }
 
 // NewEcdsaValidator 创建ecdsa校验器
-func NewEcdsaValidator() Validator {
+func NewEcdsaValidator() core.Validator {
 	return &ecdsaValidator{}
 }
 
@@ -63,28 +62,6 @@ func (validator *ecdsaValidator) getCertFromPem(idBytes []byte) (*x509.Certifica
 	return cert, nil
 }
 
-type authorityKeyIdentifier struct {
-	KeyIdentifier             []byte  `asn1:"optional,tag:0"`
-	AuthorityCertIssuer       []byte  `asn1:"optional,tag:1"`
-	AuthorityCertSerialNumber big.Int `asn1:"optional,tag:2"`
-}
-
-func getAuthorityKeyIdentifierFromCrl(crl *pkix.CertificateList) ([]byte, error) {
-	aki := authorityKeyIdentifier{}
-
-	for _, ext := range crl.TBSCertList.Extensions {
-		if reflect.DeepEqual(ext.Id, asn1.ObjectIdentifier{2, 5, 29, 35}) {
-			_, err := asn1.Unmarshal(ext.Value, &aki)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to unmarshal AKI, error %s", err)
-			}
-
-			return aki.KeyIdentifier, nil
-		}
-	}
-
-	return nil, errors.New("authorityKeyIdentifier not found in certificate")
-}
 
 func getSubjectKeyIdentifierFromCert(cert *x509.Certificate) ([]byte, error) {
 	var SKI []byte
@@ -116,7 +93,7 @@ func isCACert(cert *x509.Certificate) bool {
 	return true
 }
 
-func (validator *ecdsaValidator) Setup(conf *AuthConfig) error {
+func (validator *ecdsaValidator) Setup(conf *core.AuthConfig) error {
 	if conf == nil {
 		return fmt.Errorf("Setup error: nil conf reference")
 	}
@@ -149,7 +126,7 @@ func (validator *ecdsaValidator) Validate(certByte []byte, pubKey []byte) error 
 		return fmt.Errorf("Error publick key type in transaction. expect ECDSA")
 	}
 
-	if !bytes.Equal(pubKey, secp256r1_util.SerializePublicKeyCompressed(certPubKey)) {
+	if !bytes.Equal(pubKey, SerializePublicKeyCompressed(certPubKey)) {
 		return fmt.Errorf("Invalid public key")
 	}
 
@@ -219,7 +196,7 @@ func (validator *ecdsaValidator) getValidationChain(cert *x509.Certificate, isIn
 	return validationChain, nil
 }
 
-func (validator *ecdsaValidator) setupCAs(conf *AuthConfig) error {
+func (validator *ecdsaValidator) setupCAs(conf *core.AuthConfig) error {
 	if len(conf.RootCerts) == 0 {
 		return errors.New("Expected at least one CA certificate")
 	}
@@ -279,7 +256,7 @@ func (validator *ecdsaValidator) setupCAs(conf *AuthConfig) error {
 	return nil
 }
 
-func (validator *ecdsaValidator) setupCRLs(conf *AuthConfig) error {
+func (validator *ecdsaValidator) setupCRLs(conf *core.AuthConfig) error {
 	validator.CRL = make([]*pkix.CertificateList, len(conf.RevocationList))
 	for i, crlbytes := range conf.RevocationList {
 		crl, err := x509.ParseCRL(crlbytes)
@@ -292,7 +269,7 @@ func (validator *ecdsaValidator) setupCRLs(conf *AuthConfig) error {
 	return nil
 }
 
-func (validator *ecdsaValidator) finalizeSetupCAs(config *AuthConfig) error {
+func (validator *ecdsaValidator) finalizeSetupCAs(config *core.AuthConfig) error {
 	for _, cert := range append(append([]*x509.Certificate{}, validator.rootCerts...), validator.intermediateCerts...) {
 		if !isCACert(cert) {
 			return fmt.Errorf("CA Certificate did not have the Subject Key Identifier extension, (SN: %s)", cert.SerialNumber)
@@ -319,7 +296,7 @@ func (validator *ecdsaValidator) finalizeSetupCAs(config *AuthConfig) error {
 }
 
 func (validator *ecdsaValidator) sanitizeCert(cert *x509.Certificate) (*x509.Certificate, error) {
-	if isECDSASignedCert(cert) {
+	if core.IsECDSASignedCert(cert) {
 		var parentCert *x509.Certificate
 		if cert.IsCA {
 			chain, err := validator.getUniqueValidationChain(cert, validator.getValidityOptsForCert(cert))
@@ -371,7 +348,7 @@ func (validator *ecdsaValidator) validateCertAgainstChain(serialNumber *big.Int,
 	}
 
 	for _, crl := range validator.CRL {
-		aki, err := getAuthorityKeyIdentifierFromCrl(crl)
+		aki, err := core.GetAuthorityKeyIdentifierFromCrl(crl)
 		if err != nil {
 			return fmt.Errorf("Could not obtain Authority Key Identifier for crl, err %s", err)
 		}
@@ -414,8 +391,52 @@ func (validator *ecdsaValidator) GetCertFromSignature(signature []byte) ([]byte,
 
 	if len(certSign.Cert) == 0 {
 		authLogger.Error("cert can not be null")
-		return nil, types.ErrInvalidParam
+		return nil, errors.New("ErrInvalidParam")
 	}
 
 	return certSign.Cert, nil
+}
+
+func sanitizeECDSASignedCert(cert *x509.Certificate, parentCert *x509.Certificate) (*x509.Certificate, error) {
+	if cert == nil {
+		return nil, errors.New("Certificate must be different from nil")
+	}
+	if parentCert == nil {
+		return nil, errors.New("Parent certificate must be different from nil")
+	}
+
+	expectedSig, err := signatureToLowS(parentCert.PublicKey.(*ecdsa.PublicKey), cert.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	if bytes.Equal(cert.Signature, expectedSig) {
+		return cert, nil
+	}
+
+	var newCert core.Certificate
+	newCert, err = core.CertFromX509Cert(cert)
+	if err != nil {
+		return nil, err
+	}
+
+	newCert.SignatureValue = asn1.BitString{Bytes: expectedSig, BitLength: len(expectedSig) * 8}
+
+	newCert.Raw = nil
+	newRaw, err := asn1.Marshal(newCert)
+	if err != nil {
+		return nil, err
+	}
+
+	return x509.ParseCertificate(newRaw)
+}
+
+func signatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
+	r, s, err := UnmarshalECDSASignature(signature)
+	if err != nil {
+		return nil, err
+	}
+
+	s = ToLowS(k, s)
+	return MarshalECDSASignature(r, s)
 }

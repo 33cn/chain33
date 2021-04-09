@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/33cn/chain33/common"
-	"github.com/33cn/chain33/executor/authority/utils"
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
