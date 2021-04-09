@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package core
+package sm2
 
 import (
 	"bytes"
@@ -12,16 +12,18 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/system/crypto/common/authority/core"
 	"math/big"
 	"reflect"
 	"time"
 
-	"github.com/33cn/chain33/executor/authority/utils"
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
-	sm2_util "github.com/33cn/chain33/system/crypto/sm2"
-	"github.com/33cn/chain33/types"
 	"github.com/tjfoc/gmsm/sm2"
 )
+
+var authLogger = log.New("module", "crypto")
 
 type gmValidator struct {
 	rootCerts []*sm2.Certificate
@@ -36,7 +38,7 @@ type gmValidator struct {
 }
 
 // NewGmValidator 创建国密证书校验器
-func NewGmValidator() Validator {
+func NewGmValidator() core.Validator {
 	return &gmValidator{}
 }
 
@@ -59,7 +61,7 @@ func (validator *gmValidator) getCertFromPem(idBytes []byte) (*sm2.Certificate, 
 	return cert, nil
 }
 
-func (validator *gmValidator) Setup(conf *AuthConfig) error {
+func (validator *gmValidator) Setup(conf *core.AuthConfig) error {
 	if conf == nil {
 		return fmt.Errorf("Setup error: nil conf reference")
 	}
@@ -92,8 +94,8 @@ func (validator *gmValidator) Validate(certByte []byte, pubKey []byte) error {
 		return fmt.Errorf("Error publick key type in transaction. expect SM2")
 	}
 
-	if !bytes.Equal(pubKey, sm2_util.SerializePublicKey(
-		ParseECDSAPubKey2SM2PubKey(certPubKey), len(pubKey) == sm2_util.SM2PublicKeyCompressed)) {
+	if !bytes.Equal(pubKey, SerializePublicKey(
+		core.ParseECDSAPubKey2SM2PubKey(certPubKey), len(pubKey) == SM2PublicKeyCompressed)) {
 		return fmt.Errorf("Invalid public key")
 	}
 
@@ -159,7 +161,7 @@ func (validator *gmValidator) getValidationChain(cert *sm2.Certificate, isInterm
 	return validationChain, nil
 }
 
-func (validator *gmValidator) setupCAs(conf *AuthConfig) error {
+func (validator *gmValidator) setupCAs(conf *core.AuthConfig) error {
 	if len(conf.RootCerts) == 0 {
 		return errors.New("Expected at least one CA certificate")
 	}
@@ -211,7 +213,7 @@ func (validator *gmValidator) setupCAs(conf *AuthConfig) error {
 	return nil
 }
 
-func (validator *gmValidator) setupCRLs(conf *AuthConfig) error {
+func (validator *gmValidator) setupCRLs(conf *core.AuthConfig) error {
 	validator.CRL = make([]*pkix.CertificateList, len(conf.RevocationList))
 	for i, crlbytes := range conf.RevocationList {
 		crl, err := sm2.ParseCRL(crlbytes)
@@ -225,7 +227,7 @@ func (validator *gmValidator) setupCRLs(conf *AuthConfig) error {
 	return nil
 }
 
-func (validator *gmValidator) finalizeSetupCAs(config *AuthConfig) error {
+func (validator *gmValidator) finalizeSetupCAs(config *core.AuthConfig) error {
 	for _, cert := range append(append([]*sm2.Certificate{}, validator.rootCerts...), validator.intermediateCerts...) {
 		if !isSm2CACert(cert) {
 			return fmt.Errorf("CA Certificate did not have the Subject Key Identifier extension, (SN: %s)", cert.SerialNumber)
@@ -304,7 +306,7 @@ func (validator *gmValidator) validateCertAgainstChain(serialNumber *big.Int, va
 	}
 
 	for _, crl := range validator.CRL {
-		aki, err := getAuthorityKeyIdentifierFromCrl(crl)
+		aki, err := core.GetAuthorityKeyIdentifierFromCrl(crl)
 		if err != nil {
 			return fmt.Errorf("Could not obtain Authority Key Identifier for crl, err %s", err)
 		}
@@ -340,9 +342,9 @@ func (validator *gmValidator) getValidityOptsForCert(cert *sm2.Certificate) sm2.
 }
 
 func (validator *gmValidator) GetCertFromSignature(signature []byte) ([]byte, error) {
-	if len(signature) <= sm2_util.SM2SignatureMinLength {
+	if len(signature) <= SM2SignatureMinLength {
 		authLogger.Error("invalid signature, please make sure certificate info encoded.")
-		return nil, types.ErrCertificate
+		return nil, errors.New("ErrCertificate")
 	}
 
 	// 从proto中解码signature
@@ -354,7 +356,7 @@ func (validator *gmValidator) GetCertFromSignature(signature []byte) ([]byte, er
 
 	if len(cert.Cert) == 0 {
 		authLogger.Error("cert can not be null")
-		return nil, types.ErrInvalidParam
+		return nil, errors.New("ErrInvalidParam")
 	}
 
 	return cert.Cert, nil

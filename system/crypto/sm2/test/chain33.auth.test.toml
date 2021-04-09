@@ -86,3 +86,12 @@ enable=true
 cryptoPath="./authdir/crypto"
 # 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
 signType="auth_sm2"
+
+# crypto模块配置
+[crypto]
+enableTypes=[]    #设置启用的加密插件名称，不配置启用所有
+[crypto.enableHeight]  #配置已启用插件的启用高度，不配置采用默认高度0， 负数表示不启用
+secp256k1=0
+[crypto.sub.sm2] #支持插件子配置
+certEnable=true
+certPath="./authdir/crypto"

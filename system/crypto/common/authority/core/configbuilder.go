@@ -6,13 +6,15 @@ package core
 
 import (
 	"fmt"
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/33cn/chain33/executor/authority/utils"
-
 	"os"
 )
+
+var authLogger = log.New("module", "crypto")
 
 func getPemMaterialFromDir(dir string) ([][]byte, error) {
 	authLogger.Debug(fmt.Sprintf("Reading directory %s", dir))

@@ -74,13 +74,13 @@ const (
 //ty = 3 -> sm2
 //ty = 4 -> onetimeed25519
 //ty = 5 -> RingBaseonED25519
-//ty = 1+offset(1<<8) ->auth_ecdsa
-//ty = 2+offset(1<<8) -> auth_sm2
+//ty = 1+offset(1<<8) -> secp256r1
+//ty = 2+offset(1<<8) -> sm2
 const (
 	Invalid   = 0
 	SECP256K1 = secp256k1.ID
 	ED25519   = ed25519.ID
-	AuthSM2   = sm2.ID
+	SM2   = sm2.ID
 )
 
 //log type
