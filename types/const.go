@@ -80,7 +80,7 @@ const (
 	Invalid   = 0
 	SECP256K1 = secp256k1.ID
 	ED25519   = ed25519.ID
-	SM2   = sm2.ID
+	SM2       = sm2.ID
 )
 
 //log type

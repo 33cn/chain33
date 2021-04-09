@@ -6,10 +6,11 @@ package test
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/system/crypto/secp256r1"
 	"io/ioutil"
 	"path"
 	"testing"
+
+	"github.com/33cn/chain33/system/crypto/secp256r1"
 
 	"github.com/33cn/chain33/system/crypto/common/authority"
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"

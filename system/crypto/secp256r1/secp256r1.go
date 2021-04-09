@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	cert "github.com/33cn/chain33/system/crypto/common"
 	"github.com/33cn/chain33/system/crypto/common/authority"
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"

@@ -8,9 +8,10 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+
 	cert_util "github.com/33cn/chain33/system/crypto/common"
 	"github.com/gogo/protobuf/proto"
-	"io/ioutil"
 )
 
 // EncodeCertToSignature 证书编码进签名

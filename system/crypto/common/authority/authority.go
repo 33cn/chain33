@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/crypto/common/authority/core"
 )
@@ -39,8 +40,8 @@ type Authority struct {
 }
 
 type SubConfig struct {
-	CertEnable     bool     `json:"certEnable"`
-	CertPath       string   `json:"certPath"`
+	CertEnable bool   `json:"certEnable"`
+	CertPath   string `json:"certPath"`
 }
 
 // Init 初始化auth
