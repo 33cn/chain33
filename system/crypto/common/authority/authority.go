@@ -5,7 +5,6 @@
 package authority
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -32,8 +31,6 @@ type Authority struct {
 	validator core.Validator
 	// 签名类型
 	signType int
-	// 有效证书缓存
-	validCertCache [][]byte
 	// 初始化标记
 	IsInit bool
 }
@@ -62,7 +59,6 @@ func (auth *Authority) Init(conf *SubConfig, sign int, lclValidator interface{})
 	auth.validator = lclValidator.(core.Validator)
 	auth.validator.Setup(authConfig)
 
-	auth.validCertCache = make([][]byte, 0)
 	auth.IsInit = true
 
 	return nil
@@ -76,20 +72,12 @@ func (auth *Authority) Validate(pub, signature []byte) error {
 		return err
 	}
 
-	// 是否在有效证书缓存中
-	for _, v := range auth.validCertCache {
-		if bytes.Equal(v, cert) {
-			return nil
-		}
-	}
-
 	// 校验
 	err = auth.validator.Validate(cert, pub)
 	if err != nil {
 		alog.Error(fmt.Sprintf("validate cert failed. %s", err.Error()))
 		return fmt.Errorf("validate cert failed. error:%s", err.Error())
 	}
-	auth.validCertCache = append(auth.validCertCache, cert)
 
 	return nil
 }
