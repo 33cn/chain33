@@ -18,19 +18,19 @@ import (
 	"github.com/tjfoc/gmsm/sm2"
 )
 
-// Validity
+// Validity Validity
 type Validity struct {
 	NotBefore, NotAfter time.Time
 }
 
-// PublicKeyInfo
+// PublicKeyInfo PublicKeyInfo
 type PublicKeyInfo struct {
 	Raw       asn1.RawContent
 	Algorithm pkix.AlgorithmIdentifier
 	PublicKey asn1.BitString
 }
 
-// Certificate
+// Certificate Certificate
 type Certificate struct {
 	Raw                asn1.RawContent
 	TBSCertificate     TbsCertificate
@@ -38,7 +38,7 @@ type Certificate struct {
 	SignatureValue     asn1.BitString
 }
 
-// TbsCertificate
+// TbsCertificate TbsCertificate
 type TbsCertificate struct {
 	Raw                asn1.RawContent
 	Version            int `asn1:"optional,explicit,default:0,tag:0"`
@@ -88,7 +88,7 @@ type authorityKeyIdentifier struct {
 	AuthorityCertSerialNumber big.Int `asn1:"optional,tag:2"`
 }
 
-// GetAuthorityKeyIdentifierFromCrl
+// GetAuthorityKeyIdentifierFromCrl  Crl
 func GetAuthorityKeyIdentifierFromCrl(crl *pkix.CertificateList) ([]byte, error) {
 	aki := authorityKeyIdentifier{}
 
