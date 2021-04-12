@@ -12,15 +12,7 @@ import (
 	"github.com/33cn/chain33/system/crypto/common/authority/core"
 )
 
-var (
-	alog = log.New("module", "authority")
-
-	// Author 全局证书校验器
-	Author = &Authority{}
-
-	// IsAuthEnable 是否开启全局校验开关
-	// IsAuthEnable = false
-)
+var alog = log.New("module", "authority")
 
 // Authority 证书校验器主要结构
 type Authority struct {
