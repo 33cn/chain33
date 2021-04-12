@@ -12,11 +12,12 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/system/crypto/common/authority/core"
 	"math/big"
 	"reflect"
 	"time"
+
+	log "github.com/33cn/chain33/common/log/log15"
+	"github.com/33cn/chain33/system/crypto/common/authority/core"
 
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
