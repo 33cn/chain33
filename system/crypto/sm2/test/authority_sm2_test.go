@@ -112,6 +112,9 @@ func (loader *UserLoader) loadUsers() error {
 	var priv crypto.PrivKey
 	keyDir := path.Join(loader.configPath, "keystore")
 	dir, err := ioutil.ReadDir(keyDir)
+	if err != nil {
+		return err
+	}
 	for _, file := range dir {
 		filePath := path.Join(keyDir, file.Name())
 		keyBytes, err := utils.ReadFile(filePath)
