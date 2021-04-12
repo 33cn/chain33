@@ -38,6 +38,7 @@ func DecodeCertFromSignature(signByte []byte) (*cert_util.CertSignature, error) 
 	return &certSign, nil
 }
 
+// MustDecode json解码
 func MustDecode(data []byte, v interface{}) {
 	if data == nil {
 		return

@@ -36,6 +36,7 @@ type Authority struct {
 	IsInit bool
 }
 
+// SubConfig 配置文件
 type SubConfig struct {
 	CertEnable bool   `json:"certEnable"`
 	CertPath   string `json:"certPath"`
