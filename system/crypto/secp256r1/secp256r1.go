@@ -28,6 +28,7 @@ const (
 	publicKeyECDSALengthCompressed = 33
 )
 
+// EcdsaAuthor secp256r1证书校验
 var EcdsaAuthor = authority.Authority{}
 
 // Driver driver

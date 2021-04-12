@@ -29,6 +29,7 @@ const (
 	SM2SignatureMinLength  = 72
 )
 
+// SM2Author sm2证书校验
 var SM2Author = authority.Authority{}
 
 //Driver 驱动

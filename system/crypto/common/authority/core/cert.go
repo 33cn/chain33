@@ -18,16 +18,19 @@ import (
 	"github.com/tjfoc/gmsm/sm2"
 )
 
+// Validity
 type Validity struct {
 	NotBefore, NotAfter time.Time
 }
 
+// PublicKeyInfo
 type PublicKeyInfo struct {
 	Raw       asn1.RawContent
 	Algorithm pkix.AlgorithmIdentifier
 	PublicKey asn1.BitString
 }
 
+// Certificate
 type Certificate struct {
 	Raw                asn1.RawContent
 	TBSCertificate     TbsCertificate
@@ -35,6 +38,7 @@ type Certificate struct {
 	SignatureValue     asn1.BitString
 }
 
+// TbsCertificate
 type TbsCertificate struct {
 	Raw                asn1.RawContent
 	Version            int `asn1:"optional,explicit,default:0,tag:0"`
@@ -49,6 +53,7 @@ type TbsCertificate struct {
 	Extensions         []pkix.Extension `asn1:"optional,explicit,tag:3"`
 }
 
+// CertFromX509Cert x509格式转换
 func CertFromX509Cert(cert *x509.Certificate) (Certificate, error) {
 	var newCert Certificate
 	_, err := asn1.Unmarshal(cert.Raw, &newCert)
@@ -58,6 +63,7 @@ func CertFromX509Cert(cert *x509.Certificate) (Certificate, error) {
 	return newCert, nil
 }
 
+// IsECDSASignedCert 是否ecdsa证书
 func IsECDSASignedCert(cert *x509.Certificate) bool {
 	return cert.SignatureAlgorithm == x509.ECDSAWithSHA1 ||
 		cert.SignatureAlgorithm == x509.ECDSAWithSHA256 ||
@@ -82,6 +88,7 @@ type authorityKeyIdentifier struct {
 	AuthorityCertSerialNumber big.Int `asn1:"optional,tag:2"`
 }
 
+// GetAuthorityKeyIdentifierFromCrl
 func GetAuthorityKeyIdentifierFromCrl(crl *pkix.CertificateList) ([]byte, error) {
 	aki := authorityKeyIdentifier{}
 
