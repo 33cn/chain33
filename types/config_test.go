@@ -51,7 +51,7 @@ func TestConfInit(t *testing.T) {
 func TestConfigNoInit(t *testing.T) {
 	cfg := NewChain33ConfigNoInit(ReadFile("testdata/chain33.toml"))
 	assert.False(t, cfg.IsEnable("TxHeight"))
-	cfg.EnableCheckFork(false)
+	cfg.DisableCheckFork(true)
 	cfg.chain33CfgInit(cfg.GetModuleConfig())
 	mcfg := cfg.GetModuleConfig()
 	assert.Equal(t, cfg.forks.forks["ForkV16Withdraw"], int64(480000))

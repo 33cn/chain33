@@ -52,13 +52,13 @@ type Chain33Config struct {
 	minerExecs []string
 	title      string
 
-	mu              sync.Mutex
-	chainConfig     map[string]interface{}
-	mver            *mversion
-	coinSymbol      string
-	forks           *Forks
-	enableCheckFork bool
-	chainID         int32
+	mu               sync.Mutex
+	chainConfig      map[string]interface{}
+	mver             *mversion
+	coinSymbol       string
+	forks            *Forks
+	disableCheckFork bool
+	chainID          int32
 }
 
 //ChainParam 结构体
@@ -116,14 +116,15 @@ func NewChain33Config(cfgstring string) *Chain33Config {
 func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 	cfg, sub := InitCfgString(cfgstring)
 	chain33Cfg := &Chain33Config{
-		mcfg:        cfg,
-		scfg:        sub,
-		minerExecs:  []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
-		title:       cfg.Title,
-		chainConfig: make(map[string]interface{}),
-		coinSymbol:  "bty",
-		forks:       &Forks{make(map[string]int64)},
-		chainID:     cfg.ChainID,
+		mcfg:             cfg,
+		scfg:             sub,
+		minerExecs:       []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
+		title:            cfg.Title,
+		chainConfig:      make(map[string]interface{}),
+		coinSymbol:       "bty",
+		forks:            &Forks{make(map[string]int64)},
+		chainID:          cfg.ChainID,
+		disableCheckFork: cfg.DisableForkCheck,
 	}
 	// 先将每个模块的fork初始化到Chain33Config中，然后如果需要再将toml中的替换
 	chain33Cfg.setDefaultConfig()
@@ -150,8 +151,8 @@ func (c *Chain33Config) GetSubConfig() *ConfigSubModule {
 }
 
 //EnableCheckFork ...
-func (c *Chain33Config) EnableCheckFork(enable bool) {
-	c.enableCheckFork = false
+func (c *Chain33Config) DisableCheckFork(d bool) {
+	c.disableCheckFork = d
 }
 
 //GetForks ...

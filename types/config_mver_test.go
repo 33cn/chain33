@@ -27,7 +27,7 @@ func TestConfigMverInit(t *testing.T) {
 		cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", MaxHeight)
 	})
 	cfg := NewChain33ConfigNoInit(ReadFile("testdata/local.mvertest.toml"))
-	cfg.EnableCheckFork(false)
+	cfg.DisableCheckFork(true)
 	cfg.chain33CfgInit(cfg.GetModuleConfig())
 	assert.Equal(t, cfg.MGStr("mver.consensus.name2", 0), "ticket-bityuan")
 	assert.Equal(t, cfg.MGStr("mver.consensus.name2", 10), "ticket-bityuanv5")
