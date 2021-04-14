@@ -238,13 +238,14 @@ func (c *Chain33Config) initForkConfig(forks *ForkList) {
 		if forks.Sub != nil {
 			//如果这个执行器，用户没有enable
 			if _, ok := forks.Sub[exec]; !ok {
+				s += "exec " + exec + " not enable in config file\n"
 				continue
 			}
 			if _, ok := forks.Sub[exec][name]; ok {
 				continue
 			}
 		}
-		s += "exec " + exec + " name " + name + " not config\n"
+		s += "exec " + exec + " name " + name + " not config in config file\n"
 	}
 	//配置检查没有问题后，开始设置配置
 	for k, v := range forks.System {
@@ -266,13 +267,13 @@ func (c *Chain33Config) initForkConfig(forks *ForkList) {
 				v = MaxHeight
 			}
 			if !c.HasFork(dapp + "." + k) {
-				s += "exec fork not exist : exec = " + dapp + " key = " + k + "\n"
+				s += "exec fork not exist in code : exec = " + dapp + " key = " + k + "\n"
 			}
 			// 由于toml文件中保存的是新的fork所以需要替换已有的初始化的fork
 			c.forks.SetDappFork(dapp, k, v)
 		}
 	}
-	if c.enableCheckFork {
+	if !c.disableCheckFork {
 		if len(s) > 0 {
 			panic(s)
 		}
