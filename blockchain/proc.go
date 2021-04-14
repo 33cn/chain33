@@ -249,13 +249,13 @@ func (chain *BlockChain) addBlockDetail(msg *queue.Message) {
 	chainlog.Debug("EventAddBlockDetail", "height", blockDetail.Block.Height, "parent", common.ToHex(blockDetail.Block.ParentHash))
 	blockDetail, err := chain.ProcAddBlockMsg(true, blockDetail, "self")
 	if err != nil {
-		chainlog.Error("addBlockDetail", "err", err.Error())
+		chainlog.Error("addBlockDetail", "height", Height, "procAddBlockMsg err", err.Error())
 		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
 		return
 	}
 	if blockDetail == nil {
 		err = types.ErrExecBlockNil
-		chainlog.Error("addBlockDetail", "err", err.Error())
+		chainlog.Error("addBlockDetail", "height", Height, "nil block err", err.Error())
 		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
 		return
 	}
@@ -669,6 +669,10 @@ func (chain *BlockChain) addChunkRecord(msg *queue.Message) {
 // getChunkBlockBody // 获取chunk BlockBody
 func (chain *BlockChain) getChunkBlockBody(msg *queue.Message) {
 	req := (msg.Data).(*types.ChunkInfoMsg)
+	if req.End < (atomic.LoadInt64(&chain.maxSerialChunkNum)-int64(DelRollbackChunkNum)+1)*chain.cfg.ChunkblockNum {
+		msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, types.ErrNotFound))
+		return
+	}
 	reply, err := chain.GetChunkBlockBody(req)
 	if err != nil {
 		msg.Reply(chain.client.NewMessage("", types.EventGetChunkBlockBody, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))

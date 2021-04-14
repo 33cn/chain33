@@ -4,28 +4,58 @@
 
 package types
 
+import "github.com/33cn/chain33/common/crypto"
+
 // Config 配置信息
 type Config struct {
-	Title          string       `json:"title,omitempty"`
-	Version        string       `json:"version,omitempty"`
-	Log            *Log         `json:"log,omitempty"`
-	Store          *Store       `json:"store,omitempty"`
-	Consensus      *Consensus   `json:"consensus,omitempty"`
-	Mempool        *Mempool     `json:"memPool,omitempty"`
-	BlockChain     *BlockChain  `json:"blockChain,omitempty"`
-	Wallet         *Wallet      `json:"wallet,omitempty"`
-	P2P            *P2P         `json:"p2p,omitempty"`
-	RPC            *RPC         `json:"rpc,omitempty"`
-	Exec           *Exec        `json:"exec,omitempty"`
-	TestNet        bool         `json:"testNet,omitempty"`
-	FixTime        bool         `json:"fixTime,omitempty"`
-	TxHeight       bool         `json:"txHeight,omitempty"`
-	Pprof          *Pprof       `json:"pprof,omitempty"`
-	Fork           *ForkList    `json:"fork,omitempty"`
-	Health         *HealthCheck `json:"health,omitempty"`
-	CoinSymbol     string       `json:"coinSymbol,omitempty"`
-	EnableParaFork bool         `json:"enableParaFork,omitempty"`
-	Metrics        *Metrics     `json:"metrics,omitempty"`
+	Title          string         `json:"title,omitempty"`
+	Version        string         `json:"version,omitempty"`
+	Log            *Log           `json:"log,omitempty"`
+	Store          *Store         `json:"store,omitempty"`
+	Consensus      *Consensus     `json:"consensus,omitempty"`
+	Mempool        *Mempool       `json:"memPool,omitempty"`
+	BlockChain     *BlockChain    `json:"blockChain,omitempty"`
+	Wallet         *Wallet        `json:"wallet,omitempty"`
+	P2P            *P2P           `json:"p2p,omitempty"`
+	RPC            *RPC           `json:"rpc,omitempty"`
+	Exec           *Exec          `json:"exec,omitempty"`
+	TestNet        bool           `json:"testNet,omitempty"`
+	FixTime        bool           `json:"fixTime,omitempty"`
+	TxHeight       bool           `json:"txHeight,omitempty"`
+	Pprof          *Pprof         `json:"pprof,omitempty"`
+	Fork           *ForkList      `json:"fork,omitempty"`
+	Health         *HealthCheck   `json:"health,omitempty"`
+	CoinSymbol     string         `json:"coinSymbol,omitempty"`
+	EnableParaFork bool           `json:"enableParaFork,omitempty"`
+	Metrics        *Metrics       `json:"metrics,omitempty"`
+	ChainID        int32          `json:"chainID,omitempty"`
+	AddrVer        byte           `json:"addrVer,omitempty"`
+	Crypto         *crypto.Config `json:"crypto,omitempty"`
+	NtpHosts       []string       `json:"ntpHosts,omitempty"`
+}
+
+//ConfigSubModule 子模块的配置
+type ConfigSubModule struct {
+	Store     map[string][]byte
+	Exec      map[string][]byte
+	Consensus map[string][]byte
+	Wallet    map[string][]byte
+	Mempool   map[string][]byte
+	Metrics   map[string][]byte
+	P2P       map[string][]byte
+	Crypto    map[string][]byte
+}
+
+// subModule 子模块结构体
+type subModule struct {
+	Store     map[string]interface{}
+	Exec      map[string]interface{}
+	Consensus map[string]interface{}
+	Wallet    map[string]interface{}
+	Mempool   map[string]interface{}
+	Metrics   map[string]interface{}
+	P2P       map[string]interface{}
+	Crypto    map[string]interface{}
 }
 
 // ForkList fork列表配置
@@ -182,6 +212,10 @@ type BlockChain struct {
 
 	//LowAllowPackHeight 允许打包的low区块高度
 	LowAllowPackHeight int64 `json:"lowAllowPackHeight,omitempty"`
+	//关闭blockchain 区块广播
+	DisableBlockBroadcast bool `json:"disableBlockBroadcast,omitempty"`
+	//关闭本地和ntp server的时钟偏移检查
+	DisableClockDriftCheck bool `json:"disableClockDriftCheck,omitempty"`
 }
 
 // P2P 配置
@@ -226,6 +260,10 @@ type RPC struct {
 	CertFile string `json:"certFile,omitempty"`
 	// 私钥文件
 	KeyFile string `json:"keyFile,omitempty"`
+	//basic auth 用户名
+	JrpcUserName string `json:"jrpcUserName,omitempty"`
+	//basic auth 用户密码
+	JrpcUserPasswd string `json:"jrpcUserPasswd,omitempty"`
 }
 
 // Exec 配置

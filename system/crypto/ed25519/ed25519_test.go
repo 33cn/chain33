@@ -56,4 +56,5 @@ func TestPrivateKeyFromBytes(t *testing.T) {
 	assert.True(t, pub.Equals(pub2))
 
 	assert.True(t, pub2.VerifyBytes(msg, sig))
+	assert.Nil(t, d.Validate(msg, pub.Bytes(), sigbytes))
 }

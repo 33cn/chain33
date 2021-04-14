@@ -115,7 +115,7 @@ func BenchmarkSendTx(b *testing.B) {
 	b.Run("SendTx-Internal", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				tx := util.CreateNoneTxWithTxHeight(cfg, priv, 0)
+				tx := util.CreateNoneTxWithTxHeight(cfg, priv, types.LowAllowPackHeight/2)
 				mock33.GetAPI().SendTx(tx)
 			}
 		})
@@ -125,7 +125,7 @@ func BenchmarkSendTx(b *testing.B) {
 		gcli, _ := grpcclient.NewMainChainClient(cfg, "localhost:8802")
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				tx := util.CreateNoneTxWithTxHeight(cfg, priv, 0)
+				tx := util.CreateNoneTxWithTxHeight(cfg, priv, types.LowAllowPackHeight/2)
 				_, err := gcli.SendTransaction(context.Background(), tx)
 				if err != nil {
 					tlog.Error("sendtx grpc", "err", err)
@@ -139,7 +139,7 @@ func BenchmarkSendTx(b *testing.B) {
 	b.Run("SendTx-JSONRPC", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				tx := util.CreateNoneTxWithTxHeight(cfg, priv, 0)
+				tx := util.CreateNoneTxWithTxHeight(cfg, priv, types.LowAllowPackHeight/2)
 				poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,
 					common.ToHex(types.Encode(tx)))
 
@@ -182,7 +182,7 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 			defer conn.Close()
 			gcli := types.NewChain33Client(conn)
 			for {
-				tx := util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), atomic.LoadInt64(&height))
+				tx := util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), atomic.LoadInt64(&height)+types.LowAllowPackHeight/2)
 				//测试去签名情况
 				//tx := util.CreateNoneTxWithTxHeight(cfg, nil, 0)
 				//tx.Signature = &types.Signature{

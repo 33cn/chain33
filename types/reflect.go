@@ -17,6 +17,9 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
+//QueryFunc support query
+var QueryFunc = NewQueryData("Query_")
+
 func buildFuncList(funclist []interface{}) map[string]bool {
 	list := make(map[string]bool)
 	for i := 0; i < len(funclist); i++ {
@@ -242,6 +245,7 @@ func (q *QueryData) Register(key string, obj interface{}) {
 		panic(fmt.Sprintf("QueryData Register dup for key=%s", key))
 	}
 	q.funcMap[key], q.typeMap[key] = BuildQueryType(q.prefix, ListMethod(obj))
+
 }
 
 // SetThis 设置

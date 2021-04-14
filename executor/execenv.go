@@ -227,11 +227,22 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 
 	}
+
 	return exec.CheckTx(tx, index)
 }
 
 // Exec base exec func
-func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (e *executor) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
+	//针对一个交易执行阶段panic的处理，防止链停止，返回TyLogErr
+	defer func() {
+		if r := recover(); r != nil {
+			receipt = nil
+			err = types.ErrExecPanic
+			elog.Error("execTx.Exec", "index", index, "hash", common.ToHex(tx.Hash()), "err", r, "stack", GetStack())
+			return
+		}
+	}()
+
 	exec := e.loadDriver(tx, index)
 	//to 必须是一个地址
 	if err := drivers.CheckAddress(e.cfg, tx.GetRealToAddr(), e.height); err != nil {

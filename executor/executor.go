@@ -7,6 +7,8 @@ package executor
 
 //store package store the world - state data
 import (
+	"fmt"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -91,6 +93,7 @@ func New(cfg *typ.Chain33Config) *Executor {
 		}
 		exec.alias[data[0]] = data[1]
 	}
+
 	return exec
 }
 
@@ -282,11 +285,18 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
+// GetStack ...
+func GetStack() string {
+	var buf [4048]byte
+	n := runtime.Stack(buf[:], false)
+	return fmt.Sprintf("==> %s\n", string(buf[:n]))
+}
+
 func (exec *Executor) procExecTxList(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("exec tx list panic error", "err", r)
+			elog.Error("exec tx list panic error", "err", r, "stack", GetStack())
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}

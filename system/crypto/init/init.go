@@ -10,6 +10,8 @@ package init
 import (
 	//初始化
 	_ "github.com/33cn/chain33/system/crypto/ed25519"
+	_ "github.com/33cn/chain33/system/crypto/none"
 	_ "github.com/33cn/chain33/system/crypto/secp256k1"
+	_ "github.com/33cn/chain33/system/crypto/secp256r1"
 	_ "github.com/33cn/chain33/system/crypto/sm2"
 )

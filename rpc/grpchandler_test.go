@@ -95,6 +95,21 @@ func testSendTransactionOk(t *testing.T) {
 	assert.Equal(t, true, reply.IsOk, "reply should be ok")
 }
 
+func TestGrpc_SendTransactionSync(t *testing.T) {
+	var tx types.Transaction
+	reply := &types.Reply{IsOk: true, Msg: tx.Hash()}
+	mockAPI := new(mocks.QueueProtocolAPI)
+	mockAPI.On("SendTx", mock.Anything).Return(reply, nil)
+	mockAPI.On("QueryTx", mock.Anything).Return(&types.TransactionDetail{}, nil)
+
+	g := Grpc{}
+	g.cli.QueueProtocolAPI = mockAPI
+	reply, err := g.SendTransactionSync(getOkCtx(), &tx)
+	assert.Nil(t, err, "the error should be nil")
+	assert.Equal(t, true, reply.IsOk, "reply should be ok")
+	assert.Equal(t, tx.Hash(), reply.Msg)
+}
+
 func TestSendTransaction(t *testing.T) {
 	testSendTransactionOk(t)
 }
@@ -713,5 +728,11 @@ func TestGrpc_LoadParaTxByTitle(t *testing.T) {
 func TestGrpc_GetParaTxByHeight(t *testing.T) {
 	qapi.On("GetParaTxByHeight", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
 	_, err := g.GetParaTxByHeight(getOkCtx(), &pb.ReqParaTxByHeight{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetServerTime(t *testing.T) {
+	qapi.On("GetServer", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.GetServerTime(getOkCtx(), nil)
 	assert.NoError(t, err)
 }

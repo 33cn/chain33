@@ -108,26 +108,27 @@ func CreateNoneTx(cfg *types.Chain33Config, priv crypto.PrivKey) *types.Transact
 	return CreateTxWithExecer(cfg, priv, "none")
 }
 
-func updateExpireWithTxHeight(tx *types.Transaction, priv crypto.PrivKey, currHeight int64) {
-	tx.Expire = currHeight + types.LowAllowPackHeight + types.TxHeightFlag
+// UpdateExpireWithTxHeight 设置txHeight类型交易过期
+func UpdateExpireWithTxHeight(tx *types.Transaction, priv crypto.PrivKey, txHeight int64) {
+	tx.Expire = txHeight + types.TxHeightFlag
 	if priv != nil {
 		tx.Sign(types.SECP256K1, priv)
 	}
 }
 
 // CreateCoinsTxWithTxHeight 使用txHeight作为交易过期
-func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, currHeight int64) *types.Transaction {
+func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, txHeight int64) *types.Transaction {
 
 	tx := CreateCoinsTx(cfg, nil, to, amount)
-	updateExpireWithTxHeight(tx, priv, currHeight)
+	UpdateExpireWithTxHeight(tx, priv, txHeight)
 	return tx
 }
 
 //CreateNoneTxWithTxHeight 使用txHeight作为交易过期
-func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, currHeight int64) *types.Transaction {
+func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, txHeight int64) *types.Transaction {
 
 	tx := CreateNoneTx(cfg, nil)
-	updateExpireWithTxHeight(tx, priv, currHeight)
+	UpdateExpireWithTxHeight(tx, priv, txHeight)
 	return tx
 }
 
@@ -223,11 +224,11 @@ func CreateTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to stri
 	return tx
 }
 
-// GenTxsTxHeigt : Gen Txs with Heigt
-func GenTxsTxHeigt(cfg *types.Chain33Config, priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
+// GenTxsTxHeight : Gen Txs with Heigt
+func GenTxsTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
-		tx := CreateTxWithTxHeight(cfg, priv, to, types.Coin*(n+1), 20+height)
+		tx := CreateTxWithTxHeight(cfg, priv, to, types.Coin*(n+1), height)
 		txs = append(txs, tx)
 	}
 	return txs

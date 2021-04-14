@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/33cn/chain33/common/crypto"
+
 	"github.com/33cn/chain33/p2p"
 
 	"github.com/33cn/chain33/metrics"
@@ -53,7 +55,7 @@ var (
 	versionCmd  = flag.Bool("v", false, "version")
 	fixtime     = flag.Bool("fixtime", false, "fix time")
 	waitPid     = flag.Bool("waitpid", false, "p2p stuck until seed save info wallet & wallet unlock")
-	rollback    = flag.Int64("rollback", 0, "rollback block")
+	rollback    = flag.Int64("rollback", 0, "rollback block. WARNNING this command is only for test")
 	save        = flag.Bool("save", false, "rollback save temporary block")
 	importFile  = flag.String("import", "", "import block file name")
 	exportTitle = flag.String("export", "", "export block title name")
@@ -106,8 +108,11 @@ func RunChain33(name, defCfg string) {
 		cfg.P2P.WaitPid = *waitPid
 	}
 
+	if len(cfg.NtpHosts) <= 0 {
+		cfg.NtpHosts = append(cfg.NtpHosts, types.NtpHosts...)
+	}
 	if cfg.FixTime {
-		go fixtimeRoutine()
+		go fixtimeRoutine(cfg.NtpHosts)
 	}
 	//compare minFee in wallet, mempool, exec
 	//set file log
@@ -146,6 +151,7 @@ func RunChain33(name, defCfg string) {
 	runtime.GOMAXPROCS(cpuNum)
 	//开始区块链模块加载
 	//channel, rabitmq 等
+	crypto.Init(chain33Cfg.GetModuleConfig().Crypto, chain33Cfg.GetSubConfig().Crypto)
 	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
 	version.SetStoreDBVersion(cfg.Store.StoreDBVersion)
 	version.SetAppVersion(cfg.Version)
@@ -257,8 +263,7 @@ func pwd() string {
 	return dir
 }
 
-func fixtimeRoutine() {
-	hosts := types.NtpHosts
+func fixtimeRoutine(hosts []string) {
 	for i := 0; i < len(hosts); i++ {
 		t, err := common.GetNtpTime(hosts[i])
 		if err == nil {

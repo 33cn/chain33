@@ -131,7 +131,10 @@ func (cache *txCache) removeExpiredTx(cfg *types.Chain33Config, height, blocktim
 		}
 		return true
 	})
-	cache.RemoveTxs(txs)
+	if len(txs) > 0 {
+		mlog.Info("removeExpiredTx", "height", height, "totalTxs", cache.Size(), "expiredTxs", len(txs))
+		cache.RemoveTxs(txs)
+	}
 }
 
 //判断交易是否过期

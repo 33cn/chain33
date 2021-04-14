@@ -6,6 +6,7 @@ package rpc
 
 import (
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -35,6 +36,27 @@ func TestCheckIpWhitelist(t *testing.T) {
 	remoteIPWhitelist["0.0.0.0"] = true
 	assert.True(t, checkIPWhitelist(address))
 	assert.True(t, checkIPWhitelist("192.168.3.2"))
+
+}
+
+func TestCheckBasicAuth(t *testing.T) {
+	rpcCfg = new(types.RPC)
+	var r = &http.Request{Header: make(http.Header)}
+	assert.True(t, checkBasicAuth(r))
+	r.SetBasicAuth("1212121", "chain33-mypasswd")
+	assert.True(t, checkBasicAuth(r))
+	rpcCfg.JrpcUserName = "chain33-user"
+	rpcCfg.JrpcUserPasswd = "chain33-mypasswd"
+	r.SetBasicAuth("", "chain33-mypasswd")
+	assert.False(t, checkBasicAuth(r))
+	r.SetBasicAuth("", "")
+	assert.False(t, checkBasicAuth(r))
+	r.SetBasicAuth("chain33-user", "")
+	assert.False(t, checkBasicAuth(r))
+	r.SetBasicAuth("chain33", "1234")
+	assert.False(t, checkBasicAuth(r))
+	r.SetBasicAuth("chain33-user", "chain33-mypasswd")
+	assert.True(t, checkBasicAuth(r))
 
 }
 

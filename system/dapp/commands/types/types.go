@@ -9,6 +9,14 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 )
 
+var (
+	secp_256k1 = "secp256k1"
+	sm_2       = "sm2"
+	ed_25519   = "ed25519"
+
+	default_uid = []byte{0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38}
+)
+
 // AccountsResult defines accountsresult command
 type AccountsResult struct {
 	Wallets []*WalletResult `json:"wallets"`
@@ -58,6 +66,7 @@ type TxResult struct {
 	Header     string              `json:"header,omitempty"`
 	Next       string              `json:"next,omitempty"`
 	Hash       string              `json:"hash,omitempty"`
+	ChainID    int32               `json:"chainID,"`
 }
 
 // ReceiptAccountTransfer defines receipt account transfer

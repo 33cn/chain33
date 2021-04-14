@@ -415,27 +415,33 @@ func TestGetBodyFromP2Pstore(t *testing.T) {
 	client.On("GetConfig").Return(cfg)
 	client.On("NewMessage", mock.Anything, mock.Anything, mock.Anything).Return(&queue.Message{})
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
+	blockStore.UpdateHeight2(100000)
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	rspMsg := &queue.Message{Data: &types.BlockBodys{Items: []*types.BlockBody{{}, {}}}}
 	client.On("WaitTimeout", mock.Anything, mock.Anything).Return(rspMsg, nil)
 
-	blcokHash := []byte("111111111111111")
+	blockHash := []byte("111111111111111")
 	chunkHash := []byte("222222222222222")
-	blockStoreDB.Set(calcBlockHashToChunkHash(blcokHash), chunkHash)
-	bodys, err := blockStore.getBodyFromP2Pstore(blcokHash, 1, 10)
+	chunkInfo := types.ChunkInfo{
+		ChunkHash: chunkHash,
+		Start:     0,
+		End:       999,
+	}
+	blockStoreDB.Set(calcChunkNumToHash(0), types.Encode(&chunkInfo))
+	bodys, err := blockStore.getBodyFromP2Pstore(blockHash, 1, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, len(bodys.Items), 2)
 
 	blockheader := &types.Header{
-		Hash:   blcokHash,
+		Hash:   blockHash,
 		Height: 1,
 	}
-	body, err := blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blcokHash), nil)
+	body, err := blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blockHash), nil)
 	assert.Nil(t, body)
 	assert.Equal(t, err, types.ErrHashNotExist)
 	bcConfig := cfg.GetModuleConfig().BlockChain
 	bcConfig.EnableFetchP2pstore = true
-	body, err = blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blcokHash), nil)
+	body, err = blockStore.multiGetBody(blockheader, "", calcHeightHashKey(1, blockHash), nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, body)
 }

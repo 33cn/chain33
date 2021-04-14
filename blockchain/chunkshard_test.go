@@ -90,42 +90,6 @@ func TestDeleteBlockBody(t *testing.T) {
 	}
 }
 
-func TestGenDeleteChunkSign(t *testing.T) {
-	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
-	defer os.RemoveAll(dir) // clean up
-	os.RemoveAll(dir)       //删除已存在目录
-
-	chain := InitEnv()
-	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
-	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
-	chain.blockStore = blockStore
-
-	blockStore.UpdateHeight2(10)
-	kv := chain.genDeleteChunkSign(1)
-	fn := func(value []byte) int64 {
-		data := &types.Int64{}
-		err = types.Decode(value, data)
-		assert.NoError(t, err)
-		return data.Data
-	}
-	// test for no GetPeerMaxBlkHeight
-	assert.Equal(t, int64(-1), fn(kv.Value))
-	// test 可以获取到最大peer节点，但是比本地高度低的情况
-	chain.peerList = PeerInfoList{
-		&PeerInfo{
-			Height: 9,
-		},
-	}
-	kv = chain.genDeleteChunkSign(1)
-	assert.Equal(t, int64(10), fn(kv.Value))
-	// test 可以获取到最大peer节点，但是比本地高度高的情况
-	chain.peerList[0].Height = 15
-	kv = chain.genDeleteChunkSign(1)
-	assert.Equal(t, int64(15), fn(kv.Value))
-}
-
 func TestMaxSerialChunkNum(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
@@ -139,7 +103,7 @@ func TestMaxSerialChunkNum(t *testing.T) {
 	chain.blockStore = blockStore
 	// test noerror
 	for i := 0; i < 100; i++ {
-		err = chain.updateMaxSerialChunkNum()
+		err = chain.updateMaxSerialChunkNum(int64(i))
 		assert.NoError(t, err)
 		chunkNum := chain.getMaxSerialChunkNum()
 		assert.Equal(t, int64(i), chunkNum)
@@ -313,16 +277,16 @@ func TestGenChunkRecord(t *testing.T) {
 		},
 	}
 	kvs := genChunkRecord(chunk, bodys)
-	assert.Equal(t, 4, len(kvs))
-	assert.Equal(t, kvs[0].Key, calcBlockHashToChunkHash([]byte("123")))
-	assert.Equal(t, kvs[0].Value, chunk.ChunkHash)
-	assert.Equal(t, kvs[1].Key, calcBlockHashToChunkHash([]byte("456")))
-	assert.Equal(t, kvs[1].Value, chunk.ChunkHash)
+	assert.Equal(t, 2, len(kvs))
+	//assert.Equal(t, kvs[0].Key, calcBlockHashToChunkHash([]byte("123")))
+	//assert.Equal(t, kvs[0].Value, chunk.ChunkHash)
+	//assert.Equal(t, kvs[1].Key, calcBlockHashToChunkHash([]byte("456")))
+	//assert.Equal(t, kvs[1].Value, chunk.ChunkHash)
 
-	assert.Equal(t, kvs[2].Key, calcChunkNumToHash(1))
-	assert.Equal(t, kvs[2].Value, types.Encode(chunk))
-	assert.Equal(t, kvs[3].Key, calcChunkHashToNum(chunk.ChunkHash))
-	assert.Equal(t, kvs[3].Value, types.Encode(chunk))
+	assert.Equal(t, kvs[0].Key, calcChunkNumToHash(1))
+	assert.Equal(t, kvs[0].Value, types.Encode(chunk))
+	assert.Equal(t, kvs[1].Key, calcChunkHashToNum(chunk.ChunkHash))
+	assert.Equal(t, kvs[1].Value, types.Encode(chunk))
 }
 
 func TestFetchChunkBlock(t *testing.T) {

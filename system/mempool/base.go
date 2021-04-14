@@ -126,20 +126,26 @@ func (mem *Mempool) getTxList(filterList *types.TxHashList) (txs []*types.Transa
 }
 
 func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool) (txs []*types.Transaction) {
-	height := mem.header.GetHeight()
-	blocktime := mem.header.GetBlockTime()
+	//mempool中的交易都是未打包的，需要用下一个区块的高度和时间作为交易过期判定
+	height := mem.header.GetHeight() + 1
+	blockTime := mem.header.GetBlockTime()
 	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
-	mem.cache.Walk(int(count), func(tx *Item) bool {
+	//由于mempool可能存在过期交易，先遍历所有，满足目标交易数再退出，否则存在无法获取到实际交易情况
+	mem.cache.Walk(0, func(tx *Item) bool {
 		if len(dupMap) > 0 {
 			if _, ok := dupMap[string(tx.Value.Hash())]; ok {
 				return true
 			}
 		}
-		if isExpired(cfg, tx, height, blocktime) && !isAll {
+		if isExpired(cfg, tx, height, blockTime) && !isAll {
 			return true
 		}
 		txs = append(txs, tx.Value)
+		//达到设定的交易数，退出循环, count为0获取所有
+		if count > 0 && len(txs) == int(count) {
+			return false
+		}
 		return true
 	})
 	return txs
@@ -149,13 +155,18 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	for _, hash := range hashList.Hashes {
+	mem.removeTxs(hashList.Hashes)
+	return nil
+}
+
+func (mem *Mempool) removeTxs(hashes [][]byte) {
+
+	for _, hash := range hashes {
 		exist := mem.cache.Exist(string(hash))
 		if exist {
 			mem.cache.Remove(string(hash))
 		}
 	}
-	return nil
 }
 
 // PushTx 将交易推入mempool，并返回结果（error）
@@ -254,7 +265,8 @@ func (mem *Mempool) removeExpired() {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	types.AssertConfig(mem.client)
-	mem.cache.removeExpiredTx(mem.client.GetConfig(), mem.header.GetHeight(), mem.header.GetBlockTime())
+	//mempool的header是当前高度，而交易将被下一个区块打包，过期判定采用下一个区块的高度和时间
+	mem.cache.removeExpiredTx(mem.client.GetConfig(), mem.header.GetHeight()+1, mem.header.GetBlockTime())
 }
 
 // removeBlockedTxs 每隔1分钟清理一次已打包的交易

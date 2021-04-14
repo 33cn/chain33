@@ -11,6 +11,10 @@ import "executor.proto";
 package types;
 option go_package = "github.com/33cn/chain33/types";
 
+message serverTime {
+    int64 currentTimestamp = 1;
+}
+
 service chain33 {
     // chain33 对外提供服务的接口
     //区块链接口
@@ -22,6 +26,8 @@ service chain33 {
     rpc CreateRawTxGroup(CreateTransactionGroup) returns (UnsignTx) {}
     // 根据哈希查询交易
     rpc QueryTransaction(ReqHash) returns (TransactionDetail) {}
+    // 发送交易&&根据哈希查询交易
+    rpc SendTransactionSync(Transaction) returns (Reply) {}
     // 发送交易
     rpc SendTransaction(Transaction) returns (Reply) {}
 
@@ -169,4 +175,7 @@ service chain33 {
 
     //获取区块头信息
     rpc GetHeaders(ReqBlocks) returns (Headers) {}
+
+    // get server time
+    rpc GetServerTime(ReqNil) returns (serverTime) {}
 }

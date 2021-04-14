@@ -14,6 +14,7 @@ import (
 
 	"fmt"
 
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/types/chaincfg"
 	tml "github.com/BurntSushi/toml"
 )
@@ -46,16 +47,18 @@ const (
 
 //Chain33Config ...
 type Chain33Config struct {
-	mcfg            *Config
-	scfg            *ConfigSubModule
-	minerExecs      []string
-	title           string
+	mcfg       *Config
+	scfg       *ConfigSubModule
+	minerExecs []string
+	title      string
+
 	mu              sync.Mutex
 	chainConfig     map[string]interface{}
 	mver            *mversion
 	coinSymbol      string
 	forks           *Forks
 	enableCheckFork bool
+	chainID         int32
 }
 
 //ChainParam 结构体
@@ -120,6 +123,7 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 		chainConfig: make(map[string]interface{}),
 		coinSymbol:  "bty",
 		forks:       &Forks{make(map[string]int64)},
+		chainID:     cfg.ChainID,
 	}
 	// 先将每个模块的fork初始化到Chain33Config中，然后如果需要再将toml中的替换
 	chain33Cfg.setDefaultConfig()
@@ -128,6 +132,10 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 	// TODO 需要测试是否与NewChain33Config分开
 	RegForkInit(chain33Cfg)
 	RegExecInit(chain33Cfg)
+
+	//设置生成账户地址的版本号
+	address.SetNormalAddrVer(cfg.AddrVer)
+
 	return chain33Cfg
 }
 
@@ -688,17 +696,6 @@ func InitCfgString(cfgstring string) (*Config, *ConfigSubModule) {
 	return cfg, sub
 }
 
-// subModule 子模块结构体
-type subModule struct {
-	Store     map[string]interface{}
-	Exec      map[string]interface{}
-	Consensus map[string]interface{}
-	Wallet    map[string]interface{}
-	Mempool   map[string]interface{}
-	Metrics   map[string]interface{}
-	P2P       map[string]interface{}
-}
-
 //ReadFile ...
 func ReadFile(path string) string {
 	return readFile(path)
@@ -729,6 +726,7 @@ func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
 	subcfg.Mempool = parseItem(cfg.Mempool)
 	subcfg.Metrics = parseItem(cfg.Metrics)
 	subcfg.P2P = parseItem(cfg.P2P)
+	subcfg.Crypto = parseItem(cfg.Crypto)
 	return &subcfg, nil
 }
 
@@ -870,4 +868,11 @@ func AssertConfig(check interface{}) {
 	if check == nil {
 		panic("check object is nil (Chain33Config)")
 	}
+}
+
+// GetChainID 获取链ID,提供给其他模块使用
+func (c *Chain33Config) GetChainID() int32 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.chainID
 }

@@ -4,23 +4,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/33cn/chain33/common/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tjfoc/gmsm/sm2"
 )
 
 func TestAll(t *testing.T) {
-	testCrypto(t, "sm2")
-	testFromBytes(t, "sm2")
-	testCryptoUncompress(t, "sm2")
+	testCrypto(t)
+	testFromBytes(t)
+	testCryptoCompress(t)
 }
 
-func testFromBytes(t *testing.T, name string) {
+func testFromBytes(t *testing.T) {
 	require := require.New(t)
 
-	c, err := crypto.New(name)
-	require.Nil(err)
+	c := &Driver{}
 
 	priv, err := c.GenKey()
 	require.Nil(err)
@@ -60,41 +58,39 @@ func testFromBytes(t *testing.T, name string) {
 	require.Equal(true, pub2.VerifyBytes(msg, sign3))
 }
 
-func testCrypto(t *testing.T, name string) {
+func testCrypto(t *testing.T) {
 	require := require.New(t)
 
-	c, err := crypto.New(name)
-	require.Nil(err)
+	c := &Driver{}
 
 	priv, err := c.GenKey()
 	require.Nil(err)
-	t.Logf("%s priv:%X, len:%d", name, priv.Bytes(), len(priv.Bytes()))
+	t.Logf("priv:%X, len:%d", priv.Bytes(), len(priv.Bytes()))
 
 	pub := priv.PubKey()
 	require.NotNil(pub)
-	t.Logf("%s pub:%X, len:%d", name, pub.Bytes(), len(pub.Bytes()))
+	t.Logf("pub:%X, len:%d", pub.Bytes(), len(pub.Bytes()))
 
 	msg := []byte("hello world")
 	signature := priv.Sign(msg)
-	t.Logf("%s sign:%X, len:%d", name, signature.Bytes(), len(signature.Bytes()))
+	t.Logf("sign:%X, len:%d", signature.Bytes(), len(signature.Bytes()))
 
 	ok := pub.VerifyBytes(msg, signature)
 	require.Equal(true, ok)
 }
 
-func testCryptoUncompress(t *testing.T, name string) {
+func testCryptoCompress(t *testing.T) {
 	require := require.New(t)
 
-	c, err := crypto.New(name)
-	require.Nil(err)
+	c := &Driver{}
 
 	priv, err := c.GenKey()
 	require.Nil(err)
-	t.Logf("%s priv:%X, len:%d", name, priv.Bytes(), len(priv.Bytes()))
+	t.Logf("priv:%X, len:%d", priv.Bytes(), len(priv.Bytes()))
 
 	pub := priv.PubKey()
 	require.NotNil(pub)
-	t.Logf("%s pub:%X, len:%d", name, pub.Bytes(), len(pub.Bytes()))
+	t.Logf("pub:%X, len:%d, string:%s", pub.Bytes(), len(pub.Bytes()), pub.KeyString())
 
 	pubkey := sm2.Decompress(pub.Bytes())
 
@@ -102,12 +98,17 @@ func testCryptoUncompress(t *testing.T, name string) {
 	pub2, err := c.PubKeyFromBytes(pubbytes)
 	assert.Nil(t, err)
 
+	pubbytes = SerializePublicKey(pubkey, false)
+	_, err = c.PubKeyFromBytes(pubbytes)
+	assert.Nil(t, err)
+
 	msg := []byte("hello world")
 	signature := priv.Sign(msg)
-	t.Logf("%s sign:%X, len:%d", name, signature.Bytes(), len(signature.Bytes()))
+	t.Logf("sign:%X, len:%d, string:%s", signature.Bytes(), len(signature.Bytes()), signature.String())
 
 	ok := pub.VerifyBytes(msg, signature)
 	require.Equal(true, ok)
 
 	assert.True(t, pub2.VerifyBytes(msg, signature))
+	assert.Nil(t, c.Validate(msg, pub.Bytes(), signature.Bytes()))
 }

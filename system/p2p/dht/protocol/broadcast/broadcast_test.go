@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/33cn/chain33/system/p2p/dht/net"
+	net "github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -21,7 +21,7 @@ import (
 	commlog "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
-	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol/types"
+	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -86,7 +86,6 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		Host:            newHost(13902),
 		ConnManager:     nil,
 		PeerInfoManager: nil,
-		Discovery:       nil,
 		P2PManager:      mgr,
 		SubConfig:       subCfg,
 		Ctx:             context.Background(),
@@ -97,10 +96,10 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 
 func newTestProtocolWithQueue(q queue.Queue) *broadcastProtocol {
 	env := newTestEnv(q)
-	protocol := &broadcastProtocol{}
 	prototypes.ClearEventHandler()
-	protocol.InitProtocol(env)
-	return protocol
+	p := &broadcastProtocol{}
+	p.init(env)
+	return p
 }
 
 func newTestProtocol() *broadcastProtocol {
@@ -144,12 +143,6 @@ func TestBroadCastEvent(t *testing.T) {
 
 func Test_util(t *testing.T) {
 	proto := newTestProtocol()
-	handler := &broadcastHandler{}
-	handler.BaseStreamHandler = &prototypes.BaseStreamHandler{}
-	handler.SetProtocol(proto)
-	ok := handler.VerifyRequest(nil, nil)
-	assert.True(t, ok)
-
 	exist := addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid1")
 	assert.False(t, exist)
 	exist = addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid2")

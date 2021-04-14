@@ -48,9 +48,9 @@ func (chain *BlockChain) Rollback() {
 	tipnode := chain.bestChain.Tip()
 	startHeight := tipnode.height
 	for i := startHeight; i > chain.cfg.RollbackBlock; i-- {
-		blockdetail, err := chain.blockStore.LoadBlockByHeight(i)
+		blockdetail, err := chain.blockStore.LoadBlock(i, nil)
 		if err != nil {
-			panic(fmt.Sprintln("rollback LoadBlockByHeight err :", err))
+			panic(fmt.Sprintln("rollback LoadBlock err :", err))
 		}
 		if chain.cfg.RollbackSave { //本地保存临时区块
 			lastHeightSave := false
@@ -83,6 +83,7 @@ func (chain *BlockChain) Rollback() {
 // 删除blocks
 func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64) error {
 	var lastSequence int64
+	cfg := chain.client.GetConfig()
 
 	//批量删除block的信息从磁盘中
 	newbatch := chain.blockStore.NewBatch(true)
@@ -93,6 +94,9 @@ func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64
 		chainlog.Error("disBlock DelTxs:", "height", blockdetail.Block.Height, "err", err)
 		return err
 	}
+
+	//优先删除缓存中的block信息
+	chain.DelCacheBlock(blockdetail.Block.Height, blockdetail.Block.Hash(cfg))
 
 	//从db中删除block相关的信息
 	lastSequence, err = chain.blockStore.DelBlock(newbatch, blockdetail, sequence)
@@ -111,9 +115,6 @@ func (chain *BlockChain) disBlock(blockdetail *types.BlockDetail, sequence int64
 	if err != nil {
 		chainlog.Error("disBlock SendDelBlockEvent", "err", err)
 	}
-
-	//删除缓存中的block信息
-	chain.DelCacheBlock(blockdetail.Block.Height)
 
 	//目前非平行链并开启isRecordBlockSequence功能和enablePushSubscribe
 	if chain.isRecordBlockSequence && chain.enablePushSubscribe {

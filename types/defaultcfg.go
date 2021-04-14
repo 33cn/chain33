@@ -8,8 +8,15 @@ var cfgstring = `
 Title="local"
 TestNet=true
 FixTime=false
-TxHeight=false
+TxHeight=true
 CoinSymbol="bty"
+
+# crypto模块配置
+[crypto]
+enableTypes=[]    #设置启用的加密插件名称，不配置启用所有
+[crypto.enableHeight]  #配置已启用插件的启用高度，不配置采用默认高度0， 负数表示不启用
+secp256k1=0
+[crypto.sub.secp256k1] #支持插件子配置
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit

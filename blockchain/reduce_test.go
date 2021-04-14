@@ -151,7 +151,7 @@ func TestReduceBody(t *testing.T) {
 	newbatch.Write()
 
 	// check
-	blockDetail, err := blockStore.LoadBlockByHeight(0)
+	blockDetail, err := blockStore.LoadBlock(0, nil)
 	assert.NoError(t, err)
 	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {
@@ -166,7 +166,7 @@ func TestReduceBody(t *testing.T) {
 
 	// check
 	cfg.S("reduceLocaldb", true)
-	blockDetail, err = blockStore.LoadBlockByHeight(0)
+	blockDetail, err = blockStore.LoadBlock(0, nil)
 	assert.NoError(t, err)
 	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {
@@ -231,7 +231,7 @@ func TestReduceBodyInit(t *testing.T) {
 
 	// check
 	// 1 body
-	blockDetail, err := blockStore.LoadBlockByHeight(0)
+	blockDetail, err := blockStore.LoadBlock(0, nil)
 	assert.NoError(t, err)
 	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {

@@ -193,7 +193,7 @@ func Test_addSubscriber_InvalidType(t *testing.T) {
 	defer mock33.Close()
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
-	subscribe.Type = int32(3)
+	subscribe.Type = int32(4)
 	err := chain.push.addSubscriber(subscribe)
 	assert.Equal(t, err, types.ErrInvalidParam)
 }

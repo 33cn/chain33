@@ -8,6 +8,7 @@ Package blockchain 实现区块链模块，包含区块链存储
 package blockchain
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -42,9 +43,9 @@ const (
 
 //BlockChain 区块链结构体
 type BlockChain struct {
-	client  queue.Client
-	cache   *BlockCache
-	txCache *TxCache
+	client        queue.Client
+	blockCache    *BlockCache
+	txHeightCache txHeightCacheType
 
 	// 永久存储数据到db中
 	blockStore *BlockStore
@@ -126,8 +127,6 @@ type BlockChain struct {
 	MaxFetchBlockNum int64 //一次最多申请获取block个数
 	TimeoutSeconds   int64
 	blockSynInterVal time.Duration
-	DefCacheSize     int64
-	DefTxCacheSize   int
 
 	failed int32
 
@@ -135,7 +134,14 @@ type BlockChain struct {
 	onChainTimeout int64
 
 	//记录当前已经连续的最高高度
-	maxSerialChunkNum int64
+	maxSerialChunkNum     int64
+	processingGenChunk    int32
+	processingDeleteChunk int32
+	deleteChunkCount      int64
+
+	// TODO
+	lastHeight             int64
+	heightNotIncreaseTimes int32
 }
 
 //New new
@@ -146,23 +152,11 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		panic("when New BlockChain lru.New return err")
 	}
 
-	defCacheSize := int64(128)
-	if mcfg.DefCacheSize > 0 {
-		defCacheSize = mcfg.DefCacheSize
-	}
 	if atomic.LoadInt64(&mcfg.ChunkblockNum) == 0 {
 		atomic.StoreInt64(&mcfg.ChunkblockNum, defaultChunkBlockNum)
 	}
 
-	// 	初始化AllowPackHeight
-	InitAllowPackHeight(mcfg)
-	txCacheSize := int(types.HighAllowPackHeight + types.LowAllowPackHeight + 1)
-
 	blockchain := &BlockChain{
-		cache:              NewBlockCache(cfg, defCacheSize),
-		txCache:            NewTxCache(txCacheSize),
-		DefCacheSize:       defCacheSize,
-		DefTxCacheSize:     txCacheSize,
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		maxSerialChunkNum:  -1,
@@ -196,14 +190,12 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		onChainTimeout:      0,
 	}
 	blockchain.initConfig(cfg)
+	blockchain.blockCache = newBlockCache(cfg, defaultBlockHashCacheSize)
 	return blockchain
 }
 
 func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	mcfg := cfg.GetModuleConfig().BlockChain
-	//if cfg.IsEnable("TxHeight") && chain.DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
-	//	panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight + types.HighAllowPackHeight")
-	//}
 
 	if mcfg.MaxFetchBlockNum > 0 {
 		chain.MaxFetchBlockNum = mcfg.MaxFetchBlockNum
@@ -212,6 +204,11 @@ func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	if mcfg.TimeoutSeconds > 0 {
 		chain.TimeoutSeconds = mcfg.TimeoutSeconds
 	}
+
+	if mcfg.DefCacheSize <= 0 {
+		mcfg.DefCacheSize = 128
+	}
+
 	chain.blockSynInterVal = time.Duration(chain.TimeoutSeconds)
 	chain.isStrongConsistency = mcfg.IsStrongConsistency
 	chain.isRecordBlockSequence = mcfg.IsRecordBlockSequence
@@ -224,6 +221,8 @@ func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 		chain.onChainTimeout = mcfg.OnChainTimeout
 	}
 	chain.initOnChainTimeout()
+	// 	初始化AllowPackHeight
+	initAllowPackHeight(chain.cfg)
 }
 
 //Close 关闭区块链
@@ -267,8 +266,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client.Sub("blockchain")
 
 	blockStoreDB := dbm.NewDB("blockchain", chain.cfg.Driver, chain.cfg.DbPath, chain.cfg.DbCache)
-	blockStore := NewBlockStore(chain, blockStoreDB, client)
-	chain.blockStore = blockStore
+	chain.blockStore = NewBlockStore(chain, blockStoreDB, client)
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
 	if chain.enablePushSubscribe && chain.isRecordBlockSequence {
@@ -311,9 +309,8 @@ func (chain *BlockChain) InitBlockChain() {
 
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
-	if chain.client.GetConfig().IsEnable("TxHeight") {
-		chain.InitCache(curheight)
-	}
+	chain.InitCache(curheight)
+
 	//获取数据库中最新的10240个区块加载到index和bestview链中
 	beg := types.Now()
 	chain.InitIndexAndBestView()
@@ -341,8 +338,9 @@ func (chain *BlockChain) InitBlockChain() {
 	}
 
 	if !chain.cfg.DisableShard {
-		chain.tickerwg.Add(1)
-		go chain.chunkProcessRoutine()
+		chain.tickerwg.Add(2)
+		go chain.chunkDeleteRoutine()
+		go chain.chunkGenerateRoutine()
 	}
 
 	//初始化默认DownLoadInfo
@@ -422,35 +420,39 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 }
 
 //GetBlock 用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
-func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err error) {
+func (chain *BlockChain) GetBlock(height int64) (detail *types.BlockDetail, err error) {
 
-	//从缓存的最新区块中尝试获取，最新区块的add是在执行block流程中处理
-	blockdetail := chain.cache.CheckcacheBlock(height)
-	if blockdetail != nil {
-		if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
-			chainlog.Debug("GetBlock  CheckcacheBlock Receipts ==0", "height", height)
-		}
-		return blockdetail, nil
+	cfg := chain.client.GetConfig()
+
+	var hash []byte
+	if hash, err = chain.blockStore.GetBlockHashByHeight(height); err != nil {
+		return nil, err
 	}
 
-	//从缓存的活跃区块中尝试获取
-	block, exist := chain.blockStore.GetActiveBlock(height)
-	if exist {
-		return block, nil
+	//从缓存的最新区块中尝试获取，最新区块的add是在执行block流程中处理
+	if detail = chain.blockCache.GetBlockByHash(hash); detail != nil {
+		if len(detail.Receipts) == 0 && len(detail.Block.Txs) != 0 {
+			chainlog.Debug("GetBlockByHash  GetBlockByHeight Receipts ==0", "height", height)
+		}
+		return detail, nil
+	}
+
+	if detail, exist := chain.blockStore.GetActiveBlock(string(hash)); exist {
+		return detail, nil
 	}
 
 	//从blockstore db中通过block height获取block
-	blockinfo, err := chain.blockStore.LoadBlockByHeight(height)
-	if blockinfo != nil {
-		if len(blockinfo.Receipts) == 0 && len(blockinfo.Block.Txs) != 0 {
-			chainlog.Debug("GetBlock  LoadBlock Receipts ==0", "height", height)
-		}
-
-		//缓存到活跃区块中
-		chain.blockStore.AddActiveBlock(height, blockinfo)
-		return blockinfo, nil
+	detail, err = chain.blockStore.LoadBlock(height, hash)
+	if err != nil {
+		chainlog.Error("GetBlock", "height", height, "LoadBlock err", err)
+		return nil, err
 	}
-	return nil, err
+	if len(detail.Receipts) == 0 && len(detail.Block.Txs) != 0 {
+		chainlog.Debug("GetBlock  LoadBlock Receipts ==0", "height", height)
+	}
+	//缓存到活跃区块中
+	chain.blockStore.AddActiveBlock(string(detail.Block.Hash(cfg)), detail)
+	return detail, nil
 
 }
 
@@ -492,20 +494,38 @@ func (chain *BlockChain) GetDB() dbm.DB {
 }
 
 //InitCache 初始化缓存
-func (chain *BlockChain) InitCache(height int64) {
-	if height < 0 {
+func (chain *BlockChain) InitCache(currHeight int64) {
+
+	if !chain.client.GetConfig().IsEnable("TxHeight") {
+		chain.txHeightCache = &noneCache{}
 		return
 	}
-	for i := height - chain.DefCacheSize; i <= height; i++ {
+	chain.txHeightCache = newTxHashCache(chain, types.HighAllowPackHeight, types.LowAllowPackHeight)
+	// cache history block if exist
+	if currHeight < 0 {
+		return
+	}
+
+	for i := currHeight - chain.cfg.DefCacheSize; i <= currHeight; i++ {
 		if i < 0 {
 			i = 0
 		}
-		blockdetail, err := chain.GetBlock(i)
+		block, err := chain.GetBlock(i)
+		if err != nil {
+			panic(fmt.Sprintf("getBlock err=%s, height=%d", err.Error(), i))
+		}
+		chain.blockCache.AddBlock(block)
+	}
+
+	for i := currHeight - types.HighAllowPackHeight - types.LowAllowPackHeight + 1; i <= currHeight; i++ {
+		if i < 0 {
+			i = 0
+		}
+		block, err := chain.GetBlock(i)
 		if err != nil {
 			panic(err)
 		}
-		chain.cache.CacheBlock(blockdetail)
-		chain.txCache.Add(blockdetail.Block)
+		chain.txHeightCache.Add(block.GetBlock())
 	}
 }
 
@@ -601,24 +621,29 @@ func (chain *BlockChain) GetValueByKey(keys *types.LocalDBGet) *types.LocalReply
 	return chain.blockStore.Get(keys)
 }
 
-//DelCacheBlock 删除缓存的中对应的区块
-func (chain *BlockChain) DelCacheBlock(height int64) {
-
-	chain.cache.DelBlockFromCache(height)
-	chain.txCache.Del(height)
-	chain.blockStore.RemoveActiveBlock(height)
+// AddCacheBlock 添加区块相关缓存
+func (chain *BlockChain) AddCacheBlock(detail *types.BlockDetail) {
+	//txHeight缓存先增加
+	chain.txHeightCache.Add(detail.Block)
+	chain.blockCache.AddBlock(detail)
 }
 
-//InitAllowPackHeight 根据配置修改LowAllowPackHeight和值HighAllowPackHeight
-func InitAllowPackHeight(mcfg *types.BlockChain) {
-	if mcfg.HighAllowPackHeight != 0 && mcfg.LowAllowPackHeight != 0 {
-		if mcfg.HighAllowPackHeight+mcfg.LowAllowPackHeight < types.MaxAllowPackInterval {
-			types.HighAllowPackHeight = mcfg.HighAllowPackHeight
-			types.LowAllowPackHeight = mcfg.LowAllowPackHeight
-		} else {
+//DelCacheBlock 删除缓存的中对应的区块
+func (chain *BlockChain) DelCacheBlock(height int64, hash []byte) {
+	//txHeight缓存先删除
+	chain.txHeightCache.Del(height)
+	chain.blockCache.DelBlock(height)
+	chain.blockStore.RemoveActiveBlock(string(hash))
+}
+
+//initAllowPackHeight 根据配置修改LowAllowPackHeight和值HighAllowPackHeight
+func initAllowPackHeight(mcfg *types.BlockChain) {
+	if mcfg.HighAllowPackHeight > 0 && mcfg.LowAllowPackHeight > 0 {
+		if mcfg.HighAllowPackHeight+mcfg.LowAllowPackHeight > types.MaxAllowPackInterval {
 			panic("when Enable TxHeight HighAllowPackHeight + LowAllowPackHeight must less than types.MaxAllowPackInterval")
 		}
+		types.HighAllowPackHeight = mcfg.HighAllowPackHeight
+		types.LowAllowPackHeight = mcfg.LowAllowPackHeight
 	}
-	chainlog.Debug("InitAllowPackHeight", "mcfg.HighAllowPackHeight", mcfg.HighAllowPackHeight, "mcfg.LowAllowPackHeight", mcfg.LowAllowPackHeight)
-	chainlog.Debug("InitAllowPackHeight", "types.HighAllowPackHeight", types.HighAllowPackHeight, "types.LowAllowPackHeight", types.LowAllowPackHeight)
+	chainlog.Debug("initAllowPackHeight", "types.HighAllowPackHeight", types.HighAllowPackHeight, "types.LowAllowPackHeight", types.LowAllowPackHeight)
 }

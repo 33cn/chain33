@@ -82,6 +82,7 @@ type Transaction struct {
 	Header     string          `json:"header,omitempty"`
 	Next       string          `json:"next,omitempty"`
 	Hash       string          `json:"hash,omitempty"`
+	ChainID    int32           `json:"chainID,omitempty"`
 }
 
 // ReceiptLog defines receipt log command
@@ -120,6 +121,10 @@ type Block struct {
 	Height     int64          `json:"height"`
 	BlockTime  int64          `json:"blockTime"`
 	Txs        []*Transaction `json:"txs"`
+	Difficulty uint32         ` json:"difficulty,omitempty"`
+	MainHash   string         ` json:"mainHash,omitempty"`
+	MainHeight int64          `json:"mainHeight,omitempty"`
+	Signature  *Signature     `json:"signature,omitempty"`
 }
 
 // BlockDetail  block detail
@@ -397,4 +402,52 @@ type ReWriteRawTx struct {
 	Fee    int64  `json:"fee"`
 	Expire string `json:"expire"`
 	Index  int32  `json:"index"`
+}
+
+//BlockSeq parameter
+type BlockSeq struct {
+	Num    int64          `json:"num,omitempty"`
+	Seq    *BlockSequence `json:"seq,omitempty"`
+	Detail *BlockDetail   `json:"detail,omitempty"`
+}
+
+//BlockSequence parameter
+type BlockSequence struct {
+	Hash string `json:"hash,omitempty"`
+	Type int64  `json:"type,omitempty"`
+}
+
+//ParaTxDetails parameter
+type ParaTxDetails struct {
+	Items []*ParaTxDetail `json:"paraTxDetail"`
+}
+
+//ParaTxDetail parameter
+type ParaTxDetail struct {
+	Type      int64       `json:"type,omitempty"`
+	Header    *Header     `json:"header,omitempty"`
+	TxDetails []*TxDetail `json:"txDetail,omitempty"`
+	ChildHash string      `json:"childHash,omitempty"`
+	Index     uint32      `json:"index,omitempty"`
+	Proofs    []string    `json:"proofs,omitempty"`
+}
+
+//TxDetail parameter
+type TxDetail struct {
+	Index   uint32       `json:"index,omitempty"`
+	Tx      *Transaction `json:"tx,omitempty"`
+	Receipt *ReceiptData `json:"receipt,omitempty"`
+	Proofs  []string     `json:"proofs,omitempty"`
+}
+
+//ReplyHeightByTitle parameter
+type ReplyHeightByTitle struct {
+	Title string       `json:"title,omitempty"`
+	Items []*BlockInfo `json:"items,omitempty"`
+}
+
+//BlockInfo parameter
+type BlockInfo struct {
+	Height int64  `json:"height,omitempty"`
+	Hash   string `json:"hash,omitempty"`
 }

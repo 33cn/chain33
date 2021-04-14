@@ -99,6 +99,7 @@ func newWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *C
 func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	mfg := cfg.GetModuleConfig()
 	sub := cfg.GetSubConfig()
+	crypto.Init(mfg.Crypto, sub.Crypto)
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	types.Debug = false
@@ -256,6 +257,8 @@ func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, non
 		return nil, err
 	}
 	tx.Nonce = nonce
+	tx.ChainID = mock.q.GetConfig().GetChainID()
+
 	tx.Fee = 1e6
 	tx.Sign(types.SECP256K1, priv)
 	reply, err := mock.api.SendTx(tx)

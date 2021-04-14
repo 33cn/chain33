@@ -5,14 +5,18 @@
 package types
 
 import (
-	//	"encoding/json"
-
+	"io/ioutil"
 	"strconv"
 	"strings"
 
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
+
 	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/system/crypto/sm2"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
@@ -43,6 +47,7 @@ func DecodeTransaction(tx *rpctypes.Transaction) *TxResult {
 		Header:     tx.Header,
 		Next:       tx.Next,
 		Hash:       tx.Hash,
+		ChainID:    tx.ChainID,
 	}
 	return result
 }
@@ -217,4 +222,76 @@ func CheckExpireOpt(expire string) (string, error) {
 	}
 
 	return expire, err
+}
+
+// ReadFile 读取文件
+func ReadFile(file string) ([]byte, error) {
+	fileCont, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return fileCont, nil
+}
+
+// LoadPrivKeyFromLocal 加载账户
+func LoadPrivKeyFromLocal(signType string, filePath string) (crypto.PrivKey, error) {
+	if signType == "" {
+		signType = secp_256k1
+	}
+	if signType == secp_256k1 {
+		//TODO
+		return nil, errors.New("not support")
+	} else if signType == sm_2 {
+		content, err := ReadFile(filePath)
+		if err != nil {
+			fmt.Println("GetKeyByte.read key file failed.", "file", filePath, "error", err.Error())
+			return nil, err
+		}
+		keyBytes, err := common.FromHex(string(content))
+		if err != nil {
+			fmt.Println("GetKeyByte.FromHex.", "error", err.Error())
+			return nil, err
+		}
+		if len(keyBytes) != sm2.SM2PrivateKeyLength {
+			fmt.Println("GetKeyByte.private key length error", "len", len(keyBytes), "expect", sm2.SM2PrivateKeyLength)
+			return nil, errors.New("private key length error")
+		}
+		driver := sm2.Driver{}
+		privKey, err := driver.PrivKeyFromBytes(keyBytes)
+		if err != nil {
+			fmt.Println("load private key file  failed,err", err)
+			return nil, err
+		}
+		return privKey, nil
+	} else if signType == ed_25519 {
+		return nil, errors.New("not support")
+	} else {
+		return nil, errors.New("sign type not support")
+	}
+
+}
+
+// CreateTxWithCert 构造携带证书的交易
+func CreateTxWithCert(signType string, privateKey crypto.PrivKey, hexTx string, certByte []byte) (string, error) {
+	data, _ := common.FromHex(hexTx)
+	var tx types.Transaction
+	err := types.Decode(data, &tx)
+	if err != nil {
+		fmt.Println("decode tx failed", err)
+		return "", err
+	}
+	signature := privateKey.Sign(data)
+	if signType == sm_2 {
+		sign := &types.Signature{
+			Ty:        258,
+			Pubkey:    privateKey.PubKey().Bytes(),
+			Signature: signature.Bytes(),
+		}
+		tx.Signature = sign
+		tx.Signature.Signature = utils.EncodeCertToSignature(signature.Bytes(), certByte, default_uid)
+	} else {
+		return "", errors.New("not support")
+	}
+	return common.ToHex(types.Encode(&tx)), nil
 }

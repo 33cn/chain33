@@ -26,9 +26,10 @@ var (
 // checkClockDrift queries an NTP server for clock drifts and warns the user if
 // one large enough is detected.
 func (chain *BlockChain) checkClockDrift() {
-	realnow := common.GetRealTimeRetry(types.NtpHosts, 10)
+	realnow := common.GetRealTimeRetry(chain.client.GetConfig().GetModuleConfig().NtpHosts, 10)
 	if realnow.IsZero() {
-		ntpLog.Info("checkClockDrift", "sntpDrift err", "get ntptime error")
+		chain.UpdateNtpClockSyncStatus(false)
+		ntpLog.Warn("checkClockDrift", "sntpDrift err", "get ntptime error")
 		return
 	}
 	now := types.Now()
@@ -37,13 +38,13 @@ func (chain *BlockChain) checkClockDrift() {
 		warning := fmt.Sprintf("System clock seems off by %v, which can prevent network connectivity", drift)
 		howtofix := fmt.Sprintf("Please enable network time synchronisation in system settings")
 		separator := strings.Repeat("-", len(warning))
-		ntpLog.Warn(fmt.Sprint(separator))
-		ntpLog.Warn(fmt.Sprint(warning))
-		ntpLog.Warn(fmt.Sprint(howtofix))
-		ntpLog.Warn(fmt.Sprint(separator))
+		ntpLog.Info(fmt.Sprint(separator))
+		ntpLog.Info(fmt.Sprint(warning))
+		ntpLog.Info(fmt.Sprint(howtofix))
+		ntpLog.Info(fmt.Sprint(separator))
 		atomic.AddInt32(&chain.failed, 1)
 		if atomic.LoadInt32(&chain.failed) == ntpChecks {
-			ntpLog.Error("System clock seems ERROR")
+			ntpLog.Info("System clock seems ERROR")
 			chain.UpdateNtpClockSyncStatus(false)
 		}
 	} else {

@@ -2,7 +2,6 @@ syntax = "proto3";
 
 import "p2p.proto";
 import "blockchain.proto";
-import "common.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
@@ -235,8 +234,17 @@ message P2PRequest {
         ChunkInfoList   chunkInfoList   = 4;
         ReqBlocks       reqBlocks       = 5;
         //新的协议可以继续添加request类型
-        int64 healthyHeight = 6;
+        ReqPeers reqPeers = 6;
     }
+}
+
+message ReqPeers {
+    bytes referKey = 1;
+    int32 count    = 2;
+}
+
+message HashList {
+    repeated bytes hashes = 1;
 }
 
 message ChunkInfoList {
@@ -252,9 +260,14 @@ message P2PResponse {
         Headers      blockHeaders = 6;
         ChunkRecords chunkRecords = 7;
         //新的协议可以继续添加response类型
-        Reply  reply      = 8;
-        Header lastHeader = 9;
+        NodeInfo nodeInfo = 8;
+        // Reply reply = 8;
     }
+}
+
+message NodeInfo {
+    bool  answer = 1;
+    int64 height = 2;
 }
 
 message PeerInfo {

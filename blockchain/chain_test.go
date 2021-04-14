@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var TxHeightOffset int64
 var sendTxWait = time.Millisecond * 5
 var chainlog = log15.New("module", "chain_test")
 
@@ -46,12 +45,12 @@ func addTx(cfg *types.Chain33Config, priv crypto.PrivKey, api client.QueueProtoc
 	return txs, hash, nil
 }
 
-func addTxTxHeigt(cfg *types.Chain33Config, priv crypto.PrivKey, api client.QueueProtocolAPI, height int64) ([]*types.Transaction, string, error) {
-	txs := util.GenTxsTxHeigt(cfg, priv, 1, height+TxHeightOffset)
+func addTxTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, api client.QueueProtocolAPI, height int64) ([]*types.Transaction, string, error) {
+	txs := util.GenTxsTxHeight(cfg, priv, 1, height)
 	hash := common.ToHex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
-		return nil, hash, err
+		return txs, hash, err
 	}
 	if !reply.GetIsOk() {
 		return nil, hash, errors.New("sendtx unknow error")

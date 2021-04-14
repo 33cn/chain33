@@ -155,14 +155,19 @@ func (mem *Mempool) eventTxList(msg *queue.Message) {
 // EventAddBlock 将添加到区块内的交易从mempool中删除
 func (mem *Mempool) eventAddBlock(msg *queue.Message) {
 	block := msg.GetData().(*types.BlockDetail).Block
-	if block.Height > mem.Height() || (block.Height == 0 && mem.Height() == 0) {
+	height := mem.Height()
+	if block.Height > height || (block.Height == 0 && height == 0) {
 		header := &types.Header{}
 		header.BlockTime = block.BlockTime
 		header.Height = block.Height
 		header.StateHash = block.StateHash
 		mem.setHeader(header)
 	}
-	mem.RemoveTxsOfBlock(block)
+	//同步状态等mempool中不存在交易时，不需要执行操作
+	if mem.Size() > 0 {
+		mem.RemoveTxsOfBlock(block)
+		mem.removeExpired()
+	}
 }
 
 // EventGetMempoolSize 获取mempool大小

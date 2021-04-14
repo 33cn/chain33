@@ -11,129 +11,135 @@ import (
 	"sync"
 )
 
-//ErrNotSupportAggr 不支持聚合签名
-var ErrNotSupportAggr = errors.New("AggregateCrypto not support")
-
-//PrivKey 私钥
-type PrivKey interface {
-	Bytes() []byte
-	Sign(msg []byte) Signature
-	PubKey() PubKey
-	Equals(PrivKey) bool
-}
-
-//Signature 签名
-type Signature interface {
-	Bytes() []byte
-	IsZero() bool
-	String() string
-	Equals(Signature) bool
-}
-
-//PubKey 公钥
-type PubKey interface {
-	Bytes() []byte
-	KeyString() string
-	VerifyBytes(msg []byte, sig Signature) bool
-	Equals(PubKey) bool
-}
-
-//Crypto 加密
-type Crypto interface {
-	GenKey() (PrivKey, error)
-	SignatureFromBytes([]byte) (Signature, error)
-	PrivKeyFromBytes([]byte) (PrivKey, error)
-	PubKeyFromBytes([]byte) (PubKey, error)
-}
-
-//AggregateCrypto 聚合签名
-type AggregateCrypto interface {
-	Aggregate(sigs []Signature) (Signature, error)
-	AggregatePublic(pubs []PubKey) (PubKey, error)
-	VerifyAggregatedOne(pubs []PubKey, m []byte, sig Signature) error
-	VerifyAggregatedN(pubs []PubKey, ms [][]byte, sig Signature) error
-}
-
-//ToAggregate 判断签名是否可以支持聚合签名，并且返回聚合签名的接口
-func ToAggregate(c Crypto) (AggregateCrypto, error) {
-	if aggr, ok := c.(AggregateCrypto); ok {
-		return aggr, nil
-	}
-	return nil, ErrNotSupportAggr
-}
+var (
+	//ErrNotSupportAggr 不支持聚合签名
+	ErrNotSupportAggr = errors.New("AggregateCrypto not support")
+	//ErrSign 签名错误
+	ErrSign = errors.New("error signature")
+)
 
 var (
-	drivers     = make(map[string]Crypto)
-	driversCGO  = make(map[string]Crypto)
-	driversType = make(map[string]int)
+	drivers     = make(map[string]*Driver)
+	driversType = make(map[int32]string)
 	driverMutex sync.Mutex
 )
 
-//Register 注册加密算法，允许同种加密算法的cgo版本同时注册
-func Register(name string, driver Crypto, isCGO bool) {
-	driverMutex.Lock()
-	defer driverMutex.Unlock()
-	d := drivers
-	if isCGO {
-		d = driversCGO
-	}
-	if _, dup := d[name]; dup {
-		panic("crypto: Register called twice for driver " + name)
-	}
-	d[name] = driver
-}
+// Init init crypto
+func Init(cfg *Config, subCfg map[string][]byte) {
 
-//RegisterType 注册类型
-func RegisterType(name string, ty int) {
+	if cfg == nil {
+		return
+	}
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
-	for n, t := range driversType {
-		//由于可能存在cgo版本，允许name，ty都相等情况，重复注册
-		//或者都不相等，添加新的类型
-		//不允许只有一个相等的情况，即不允许修改已经存在的ty或者name
-		if (n == name && t != ty) || (n != name && t == ty) {
-			panic(fmt.Sprintf("crypto: Register Conflict, exist=(%s,%d), register=(%s, %d)", n, t, name, ty))
+
+	// 未指定时，所有插件采用代码中的开启配置
+	if len(cfg.EnableTypes) > 0 {
+		//配置中指定了插件类型，先屏蔽所有
+		for _, d := range drivers {
+			d.enableHeight = -1
+		}
+		// 对配置的插件，默认设置开启高度为0
+		for _, name := range cfg.EnableTypes {
+			if d, ok := drivers[name]; ok {
+				d.enableHeight = 0
+			}
 		}
 	}
-	driversType[name] = ty
+
+	// 配置中指定了启用高度，覆盖设置
+	for name, enableHeight := range cfg.EnableHeight {
+		// enableHeight如果为-1，表示插件本身在配置中未开启，则enableHeight的配置无效
+		if d, ok := drivers[name]; ok && d.enableHeight >= 0 {
+			d.enableHeight = enableHeight
+		}
+	}
+
+	//插件初始化
+	for name, driver := range drivers {
+		if driver.initFunc != nil {
+			driver.initFunc(subCfg[name])
+		}
+	}
+}
+
+//Register 注册加密算法，支持选项，设置typeID相关参数
+func Register(name string, crypto Crypto, options ...Option) {
+	driverMutex.Lock()
+	defer driverMutex.Unlock()
+
+	driver := &Driver{crypto: crypto}
+
+	for _, option := range options {
+		if err := option(driver); err != nil {
+			panic(err)
+		}
+	}
+
+	// 未指定情况，系统生成对应的typeID
+	if driver.typeID <= 0 {
+		driver.typeID = GenDriverTypeID(name)
+	}
+
+	d, ok := drivers[name]
+	// cgo和go版本同时存在时，允许重复注册
+	if ok {
+		if driver.isCGO == d.isCGO {
+			panic("crypto: Register duplicate driver name, name=" + name)
+		}
+		// 检测cgo和go版本typeID值是否一致
+		if driver.typeID != d.typeID {
+			panic(fmt.Sprintf("crypto: Register differt type id in cgo version,"+
+				" typeID=[%d, %d]", d.typeID, driver.typeID))
+		}
+		// 替换go版本，使用性能更好的cgo版本
+		if driver.isCGO {
+			drivers[name] = driver
+		}
+		return
+	}
+
+	if _, ok := driversType[driver.typeID]; ok {
+		// 有重复直接显示报错, 这里有可能是系统自动生成重复TypeID导致的，不能隐式解决重复
+		// 因为不同插件组合方式，冲突的情况也不同，需要及时报错并采用手动指定方式解决
+		panic(fmt.Sprintf("crypto: Register duplicate driver typeID=%d, "+
+			"use WithOptionTypeID for manual setting", driver.typeID))
+	}
+	drivers[name] = driver
+	driversType[driver.typeID] = name
 }
 
 //GetName 获取name
 func GetName(ty int) string {
-	for name, t := range driversType {
-		if t == ty {
-			return name
-		}
+
+	name, ok := driversType[int32(ty)]
+	if ok {
+		return name
 	}
 	return "unknown"
 }
 
 //GetType 获取type
 func GetType(name string) int {
-	if ty, ok := driversType[name]; ok {
-		return ty
+	if driver, ok := drivers[name]; ok {
+		return int(driver.typeID)
 	}
 	return 0
 }
 
 //New new
-func New(name string) (c Crypto, err error) {
+func New(name string) (Crypto, error) {
 
-	//优先使用性能更好的cgo版本
-	c, ok := driversCGO[name]
-	if ok {
-		return c, nil
-	}
-	//不存在cgo, 加载普通版本
-	c, ok = drivers[name]
+	c, ok := drivers[name]
 	if !ok {
-		err = fmt.Errorf("unknown driver %q", name)
+		return nil, fmt.Errorf("unknown driver %q", name)
 	}
-	return c, err
+	return c.crypto, nil
 }
 
-//CertSignature 签名
-type CertSignature struct {
-	Signature []byte
-	Cert      []byte
+// IsEnable 根据高度判定是否开启
+func IsEnable(name string, height int64) bool {
+
+	d, ok := drivers[name]
+	return ok && d.enableHeight >= 0 && d.enableHeight <= height
 }
