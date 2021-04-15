@@ -150,7 +150,7 @@ func (c *Chain33Config) GetSubConfig() *ConfigSubModule {
 	return c.scfg
 }
 
-//EnableCheckFork ...
+//DisableCheckFork ...
 func (c *Chain33Config) DisableCheckFork(d bool) {
 	c.disableCheckFork = d
 }
