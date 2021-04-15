@@ -3,6 +3,7 @@ TestNet=false
 FixTime=false
 EnableParaFork=true
 CoinSymbol="gd"
+DisableForkCheck=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
