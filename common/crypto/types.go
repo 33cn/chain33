@@ -69,6 +69,7 @@ type Driver struct {
 	crypto       Crypto
 	initFunc     DriverInitFunc
 	isCGO        bool  // 是否为cgo编译
+	enable       bool  // 是否启用
 	enableHeight int64 // 启用高度
 	typeID       int32 //类型值
 }

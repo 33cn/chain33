@@ -72,7 +72,7 @@ func WithOptionCGO() Option {
 // WithOptionDefaultDisable 设置默认不启用
 func WithOptionDefaultDisable() Option {
 	return func(d *Driver) error {
-		d.enableHeight = -1
+		d.enable = false
 		return nil
 	}
 }
