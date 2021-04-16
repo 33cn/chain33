@@ -98,7 +98,7 @@ func VerifySignature(cfg *Chain33Config, block *Block, txs []*Transaction) bool 
 		return false
 	}
 	//检查交易的签名
-	return verifyTxsSignature(txs)
+	return verifyTxsSignature(txs, block.GetHeight())
 }
 
 // CheckSign 检测block的签名,以及交易的签名
@@ -111,10 +111,10 @@ func (block *Block) verifySignature(cfg *Chain33Config) bool {
 		return true
 	}
 	hash := block.Hash(cfg)
-	return CheckSign(hash, "", block.GetSignature())
+	return CheckSign(hash, "", block.GetSignature(), block.GetHeight())
 }
 
-func verifyTxsSignature(txs []*Transaction) bool {
+func verifyTxsSignature(txs []*Transaction, blockHeight int64) bool {
 
 	//没有需要要验签的交易，直接返回
 	if len(txs) == 0 {
@@ -130,7 +130,7 @@ func verifyTxsSignature(txs []*Transaction) bool {
 	wg.Add(cpuNum)
 	for i := 0; i < cpuNum; i++ {
 		go func() {
-			checksign(done, taskes, c) // HLc
+			checksign(done, taskes, c, blockHeight) // HLc
 			wg.Done()
 		}()
 	}
@@ -168,14 +168,14 @@ type result struct {
 	isok bool
 }
 
-func check(data *Transaction) bool {
-	return data.CheckSign()
+func check(data *Transaction, blockHeight int64) bool {
+	return data.CheckSign(blockHeight)
 }
 
-func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result) {
+func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result, blockHeight int64) {
 	for task := range taskes {
 		select {
-		case c <- result{check(task)}:
+		case c <- result{check(task, blockHeight)}:
 		case <-done:
 			return
 		}
@@ -183,9 +183,9 @@ func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result
 }
 
 // CheckSign 检测签名
-func CheckSign(data []byte, execer string, sign *Signature) bool {
+func CheckSign(data []byte, execer string, sign *Signature, blockHeight int64) bool {
 	//GetDefaultSign: 系统内置钱包，非插件中的签名
-	c, err := crypto.New(GetSignName(execer, int(sign.Ty)))
+	c, err := crypto.New(GetSignName(execer, int(sign.Ty)), blockHeight)
 	if err != nil {
 		return false
 	}

@@ -236,7 +236,7 @@ func BenchmarkTxSign(b *testing.B) {
 			<-start
 			for {
 				//txs[index%txBenchNum].Sign(types.SECP256K1, priv)
-				result <- txs[index%txBenchNum].CheckSign()
+				result <- txs[index%txBenchNum].CheckSign(0)
 				index++
 			}
 		}()

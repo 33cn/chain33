@@ -128,18 +128,15 @@ func GetType(name string) int {
 }
 
 //New new
-func New(name string) (Crypto, error) {
+func New(name string, height int64) (Crypto, error) {
 
 	c, ok := drivers[name]
 	if !ok {
 		return nil, fmt.Errorf("unknown driver %q", name)
 	}
+	// check enable height
+	if c.enableHeight < 0 || height < c.enableHeight {
+		return nil, fmt.Errorf("driver not enable, enableHeight=%d", c.enableHeight)
+	}
 	return c.crypto, nil
-}
-
-// IsEnable 根据高度判定是否开启
-func IsEnable(name string, height int64) bool {
-
-	d, ok := drivers[name]
-	return ok && d.enableHeight >= 0 && d.enableHeight <= height
 }

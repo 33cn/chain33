@@ -33,7 +33,7 @@ import (
 
 //----------------------------- data for testing ---------------------------------
 var (
-	c, _       = crypto.New(types.GetSignName("", types.SECP256K1))
+	c, _       = crypto.New(types.GetSignName("", types.SECP256K1), 0)
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 	a, _       = common.FromHex(hex)
 	privKey, _ = c.PrivKeyFromBytes(a)
@@ -130,7 +130,7 @@ func init() {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1), 0)
 	if err != nil {
 		panic(err)
 	}
@@ -221,7 +221,7 @@ func createTx(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount i
 }
 
 func genaddress() (string, crypto.PrivKey) {
-	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1), 0)
 	if err != nil {
 		panic(err)
 	}

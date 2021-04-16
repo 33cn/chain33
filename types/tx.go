@@ -128,10 +128,10 @@ func (txgroup *Transactions) SignN(n int, ty int32, priv crypto.PrivKey) error {
 }
 
 //CheckSign 检测交易组的签名
-func (txgroup *Transactions) CheckSign() bool {
+func (txgroup *Transactions) CheckSign(blockHeight int64) bool {
 	txs := txgroup.Txs
 	for i := 0; i < len(txs); i++ {
-		if !txs[i].checkSign() {
+		if !txs[i].checkSign(blockHeight) {
 			return false
 		}
 	}
@@ -384,7 +384,7 @@ func (tx *TransactionCache) GetTxGroup() (*Transactions, error) {
 }
 
 //CheckSign 检测签名
-func (tx *TransactionCache) CheckSign() bool {
+func (tx *TransactionCache) CheckSign(blockHeight int64) bool {
 	if tx.signok == 0 {
 		tx.signok = 2
 		group, err := tx.GetTxGroup()
@@ -393,11 +393,11 @@ func (tx *TransactionCache) CheckSign() bool {
 		}
 		if group == nil {
 			//非group，简单校验签名
-			if ok := tx.checkSign(); ok {
+			if ok := tx.checkSign(blockHeight); ok {
 				tx.signok = 1
 			}
 		} else {
-			if ok := group.CheckSign(); ok {
+			if ok := group.CheckSign(blockHeight); ok {
 				tx.signok = 1
 			}
 		}
@@ -474,19 +474,19 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 }
 
 //CheckSign tx 有些时候是一个交易组
-func (tx *Transaction) CheckSign() bool {
-	return tx.checkSign()
+func (tx *Transaction) CheckSign(blockHeight int64) bool {
+	return tx.checkSign(blockHeight)
 }
 
 //txgroup 的情况
-func (tx *Transaction) checkSign() bool {
+func (tx *Transaction) checkSign(blockHeight int64) bool {
 	copytx := *tx
 	copytx.Signature = nil
 	data := Encode(&copytx)
 	if tx.GetSignature() == nil {
 		return false
 	}
-	return CheckSign(data, string(tx.Execer), tx.GetSignature())
+	return CheckSign(data, string(tx.Execer), tx.GetSignature(), blockHeight)
 }
 
 //Check 交易检测
@@ -827,7 +827,7 @@ func (tx *Transaction) FullHash() []byte {
 type TxGroup interface {
 	Tx() *Transaction
 	GetTxGroup() (*Transactions, error)
-	CheckSign() bool
+	CheckSign(blockHeight int64) bool
 }
 
 //这里要避免用 tmp := *tx 这样就会读 可能被 proto 其他线程修改的 size 字段
