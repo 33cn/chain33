@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+// import "common.proto";
+import "transaction.proto";
+
+package types;
+option go_package = "github.com/33cn/chain33/types";
+
+// 一条evm event log数据
+message EVMLog {
+    bytes topic = 1;
+    bytes data  = 2;
+}
+
+// 多条evm event log数据
+message EVMLogsPerTx {
+    repeated EVMLog logs = 1;
+}
+
+message EVMTxAndLogs {
+    Transaction tx          = 1;
+    EVMLogsPerTx logsPerTx  = 2;
+}
+
+
+//一个块中包含的多条evm event log数据
+message EVMTxLogPerBlk {
+    repeated EVMTxAndLogs txAndLogs = 1;
+    int64 height                    = 2;
+    bytes blockHash                 = 3;
+    bytes parentHash                = 4;
+    bytes previousHash              = 5;
+    int32 addDelType                = 6;
+    int64 seqNum                    = 7;
+}
+
+//多个块中包含的多条evm event log数据
+message EVMTxLogsInBlks {
+    repeated EVMTxLogPerBlk logs4EVMPerBlk = 1;
+}
+
