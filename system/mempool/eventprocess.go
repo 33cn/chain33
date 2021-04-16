@@ -217,7 +217,7 @@ func (mem *Mempool) eventGetProperFee(msg *queue.Message) {
 
 func (mem *Mempool) checkSign(data *queue.Message) *queue.Message {
 	tx, ok := data.GetData().(types.TxGroup)
-	if ok && tx.CheckSign() {
+	if ok && tx.CheckSign(mem.GetHeader().GetHeight()) {
 		return data
 	}
 	mlog.Error("wrong tx", "err", types.ErrSign)

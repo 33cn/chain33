@@ -20,7 +20,7 @@ import (
 )
 
 func genkey() crypto.PrivKey {
-	c, err := crypto.New("secp256k1")
+	c, err := crypto.New("secp256k1", 0)
 	if err != nil {
 		panic(err)
 	}
@@ -62,7 +62,7 @@ func TestPubkeyToAddress(t *testing.T) {
 }
 
 func TestCheckAddress(t *testing.T) {
-	c, err := crypto.New("secp256k1")
+	c, err := crypto.New("secp256k1", 0)
 	if err != nil {
 		t.Error(err)
 		return

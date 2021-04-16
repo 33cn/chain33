@@ -45,7 +45,7 @@ var (
 
 	privRaw, _  = common.FromHex("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	tr          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: int64(1e8)}}
-	secpp256, _ = crypto.New(types.GetSignName("", types.SECP256K1))
+	secpp256, _ = crypto.New(types.GetSignName("", types.SECP256K1), 0)
 	privKey, _  = secpp256.PrivKeyFromBytes(privRaw)
 	tx14        = &types.Transaction{
 		Execer:  []byte("coins"),
@@ -146,7 +146,7 @@ func (loader *UserLoader) loadUsers() error {
 }
 
 func (loader *UserLoader) genCryptoPriv(keyBytes []byte) (crypto.PrivKey, error) {
-	cr, err := crypto.New(types.GetSignName("cert", loader.signType))
+	cr, err := crypto.New(types.GetSignName("cert", loader.signType), 0)
 	if err != nil {
 		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignName("cert", loader.signType), err)
 	}
@@ -219,7 +219,7 @@ func TestChckSign(t *testing.T) {
 	}
 	cfg.SetMinFee(0)
 
-	assert.Equal(t, true, tx1.CheckSign())
+	assert.Equal(t, true, tx1.CheckSign(0))
 }
 
 /**
@@ -234,7 +234,7 @@ func TestChckSigns(t *testing.T) {
 	cfg.SetMinFee(0)
 
 	for i, tx := range txs {
-		if !tx.CheckSign() {
+		if !tx.CheckSign(0) {
 			t.Error(fmt.Sprintf("error check tx[%d]", i+1))
 			return
 		}
@@ -272,7 +272,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 	cfg.SetMinFee(0)
 
 	tx14.Sign(types.SECP256K1, privKey)
-	if !tx14.CheckSign() {
+	if !tx14.CheckSign(0) {
 		t.Error("check signature failed")
 		return
 	}
@@ -282,7 +282,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 TestCase05 不带证书，secp256r1签名验证
 */
 func TestChckSignWithEcdsa(t *testing.T) {
-	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", secp256r1.ID))
+	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", secp256r1.ID), 0)
 	privKeyecdsa, _ := ecdsacrypto.PrivKeyFromBytes(privRaw)
 	tx16 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
@@ -296,5 +296,5 @@ func TestChckSignWithEcdsa(t *testing.T) {
 	cfg.SetMinFee(0)
 
 	tx16.Sign(secp256r1.ID, privKeyecdsa)
-	assert.Equal(t, false, tx16.CheckSign())
+	assert.Equal(t, false, tx16.CheckSign(0))
 }

@@ -45,7 +45,7 @@ var (
 
 	privRaw, _  = common.FromHex("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	tr          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: int64(1e8)}}
-	secpp256, _ = crypto.New(types.GetSignName("", types.SECP256K1))
+	secpp256, _ = crypto.New(types.GetSignName("", types.SECP256K1), 0)
 	privKey, _  = secpp256.PrivKeyFromBytes(privRaw)
 	tx14        = &types.Transaction{
 		Execer:  []byte("coins"),
@@ -146,7 +146,7 @@ func (loader *UserLoader) loadUsers() error {
 }
 
 func (loader *UserLoader) genCryptoPriv(keyBytes []byte) (crypto.PrivKey, error) {
-	cr, err := crypto.New(types.GetSignName("cert", loader.signType))
+	cr, err := crypto.New(types.GetSignName("cert", loader.signType), 0)
 	if err != nil {
 		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignName("cert", loader.signType), err)
 	}
@@ -219,7 +219,7 @@ func TestChckSign(t *testing.T) {
 	}
 	cfg.SetMinFee(0)
 
-	assert.Equal(t, true, tx1.CheckSign())
+	assert.Equal(t, true, tx1.CheckSign(0))
 }
 
 /**
@@ -234,7 +234,7 @@ func TestChckSigns(t *testing.T) {
 	cfg.SetMinFee(0)
 
 	for i, tx := range txs {
-		if !tx.CheckSign() {
+		if !tx.CheckSign(0) {
 			t.Error(fmt.Sprintf("error check tx[%d]", i+1))
 			return
 		}
@@ -272,7 +272,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 	cfg.SetMinFee(0)
 
 	tx14.Sign(types.SECP256K1, privKey)
-	if !tx14.CheckSign() {
+	if !tx14.CheckSign(0) {
 		t.Error("check signature failed")
 		return
 	}
@@ -282,7 +282,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 TestCase05 不带证书，SM2签名验证
 */
 func TestChckSignWithSm2(t *testing.T) {
-	sm2, err := crypto.New(types.GetSignName("cert", sm2Util.ID))
+	sm2, err := crypto.New(types.GetSignName("cert", sm2Util.ID), 0)
 	assert.Nil(t, err)
 	privKeysm2, _ := sm2.PrivKeyFromBytes(privRaw)
 	tx15 := &types.Transaction{Execer: []byte("coins"),
@@ -297,5 +297,5 @@ func TestChckSignWithSm2(t *testing.T) {
 	cfg.SetMinFee(0)
 
 	tx15.Sign(sm2Util.ID, privKeysm2)
-	assert.Equal(t, false, tx15.CheckSign())
+	assert.Equal(t, false, tx15.CheckSign(0))
 }

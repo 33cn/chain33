@@ -40,7 +40,7 @@ var TestPrivkeyList = []crypto.PrivKey{
 
 //HexToPrivkey ： convert hex string to private key
 func HexToPrivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignName("", types.SECP256K1))
+	cr, err := crypto.New(types.GetSignName("", types.SECP256K1), 0)
 	if err != nil {
 		panic(err)
 	}
