@@ -33,24 +33,24 @@ func Init(cfg *Config, subCfg map[string][]byte) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
 
-	// 未指定时，所有插件采用代码中的开启配置
+	// 未指定时，所有插件是使能的
 	if len(cfg.EnableTypes) > 0 {
 		//配置中指定了插件类型，先屏蔽所有
 		for _, d := range drivers {
-			d.enableHeight = -1
+			d.enable = false
 		}
 		// 对配置的插件，默认设置开启高度为0
 		for _, name := range cfg.EnableTypes {
 			if d, ok := drivers[name]; ok {
-				d.enableHeight = 0
+				d.enable = true
 			}
 		}
 	}
 
-	// 配置中指定了启用高度，覆盖设置
+	// 配置中指定了启用高度，覆盖默认的使能高度设置
 	for name, enableHeight := range cfg.EnableHeight {
-		// enableHeight如果为-1，表示插件本身在配置中未开启，则enableHeight的配置无效
-		if d, ok := drivers[name]; ok && d.enableHeight >= 0 {
+		// 插件本身在配置中未开启，则enableHeight的配置无效
+		if d, ok := drivers[name]; ok && d.enable {
 			d.enableHeight = enableHeight
 		}
 	}
@@ -68,7 +68,7 @@ func Register(name string, crypto Crypto, options ...Option) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
 
-	driver := &Driver{crypto: crypto}
+	driver := &Driver{crypto: crypto, enable: true}
 
 	for _, option := range options {
 		if err := option(driver); err != nil {
@@ -134,8 +134,8 @@ func New(name string, height int64) (Crypto, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown driver %q", name)
 	}
-	// check enable height
-	if c.enableHeight < 0 || height < c.enableHeight {
+	// check if enable
+	if !c.enable || height < c.enableHeight {
 		return nil, fmt.Errorf("driver not enable, enableHeight=%d", c.enableHeight)
 	}
 	return c.crypto, nil
