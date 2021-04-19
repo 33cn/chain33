@@ -64,11 +64,11 @@ func Init(cfg *Config, subCfg map[string][]byte) {
 }
 
 //Register 注册加密算法，支持选项，设置typeID相关参数
-func Register(name string, crypto Crypto, options ...Option) {
+func Register(name string, crypto Crypto, options ...RegOption) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
 
-	driver := &Driver{crypto: crypto, enable: true}
+	driver := &Driver{name: name, crypto: crypto, enable: true}
 
 	for _, option := range options {
 		if err := option(driver); err != nil {
@@ -103,7 +103,7 @@ func Register(name string, crypto Crypto, options ...Option) {
 		// 有重复直接显示报错, 这里有可能是系统自动生成重复TypeID导致的，不能隐式解决重复
 		// 因为不同插件组合方式，冲突的情况也不同，需要及时报错并采用手动指定方式解决
 		panic(fmt.Sprintf("crypto: Register duplicate driver typeID=%d, "+
-			"use WithOptionTypeID for manual setting", driver.typeID))
+			"use WithRegOptionTypeID for manual setting", driver.typeID))
 	}
 	drivers[name] = driver
 	driversType[driver.typeID] = name
@@ -128,16 +128,19 @@ func GetType(name string) int {
 }
 
 //New new
-func New(name string, height int64) (Crypto, error) {
+func New(name string, options ...NewOption) (Crypto, error) {
 
 	c, ok := drivers[name]
 	if !ok {
 		return nil, fmt.Errorf("unknown driver: %s", name)
 	}
-	// check if enable
-	if !c.enable || height < c.enableHeight {
-		return nil, fmt.Errorf("%s not enabled, enableHeight=%d", name, c.enableHeight)
+
+	for _, opt := range options {
+		if err := opt(c); err != nil {
+			return nil, err
+		}
 	}
+
 	return c.crypto, nil
 }
 

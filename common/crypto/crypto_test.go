@@ -63,7 +63,7 @@ func TestAll(t *testing.T) {
 func testFromBytes(t *testing.T, name string) {
 	require := require.New(t)
 
-	c, err := crypto.New(name, 0)
+	c, err := crypto.New(name)
 	require.Nil(err)
 
 	priv, err := c.GenKey()
@@ -108,7 +108,7 @@ func testFromBytes(t *testing.T, name string) {
 func testCrypto(t *testing.T, name string) {
 	require := require.New(t)
 
-	c, err := crypto.New(name, 0)
+	c, err := crypto.New(name)
 	require.Nil(err)
 
 	priv, err := c.GenKey()
@@ -152,7 +152,7 @@ func BenchmarkVerifySm2(b *testing.B) {
 }
 
 func benchSign(b *testing.B, name string) {
-	c, _ := crypto.New(name, 0)
+	c, _ := crypto.New(name)
 	priv, _ := c.GenKey()
 	msg := []byte("hello world")
 	for i := 0; i < b.N; i++ {
@@ -161,7 +161,7 @@ func benchSign(b *testing.B, name string) {
 }
 
 func benchVerify(b *testing.B, name string) {
-	c, _ := crypto.New(name, 0)
+	c, _ := crypto.New(name)
 	priv, _ := c.GenKey()
 	pub := priv.PubKey()
 	msg := []byte("hello world")
@@ -172,7 +172,7 @@ func benchVerify(b *testing.B, name string) {
 }
 
 func TestAggregate(t *testing.T) {
-	c, err := crypto.New("secp256k1", 0)
+	c, err := crypto.New("secp256k1")
 	if err != nil {
 		panic(err)
 	}
@@ -230,22 +230,24 @@ func (d democryptoCGO) GenKey() (crypto.PrivKey, error) {
 }
 
 func TestRegister(t *testing.T) {
-	c, err := crypto.New("secp256k1", 0)
+	c, err := crypto.New("secp256k1")
 	require.Nil(t, err)
 	p, err := c.GenKey()
 	require.Nil(t, err)
 	require.NotNil(t, p)
-	require.Panics(t, func() { crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionTypeID(secp256k1.ID)) })
+	require.Panics(t, func() { crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithRegOptionTypeID(secp256k1.ID)) })
 	//注册cgo版本，替换
-	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionCGO(), crypto.WithOptionTypeID(secp256k1.ID))
+	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithRegOptionCGO(), crypto.WithRegOptionTypeID(secp256k1.ID))
 	//重复注册非cgo版本，不会报错
-	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionTypeID(secp256k1.ID))
+	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithRegOptionTypeID(secp256k1.ID))
 	require.Panics(t, func() {
-		crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionCGO(), crypto.WithOptionTypeID(1024))
+		crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithRegOptionCGO(), crypto.WithRegOptionTypeID(1024))
 	})
-	require.Panics(t, func() { crypto.Register(secp256k1.Name+"cgo", democryptoCGO{}, crypto.WithOptionTypeID(secp256k1.ID)) })
+	require.Panics(t, func() {
+		crypto.Register(secp256k1.Name+"cgo", democryptoCGO{}, crypto.WithRegOptionTypeID(secp256k1.ID))
+	})
 
-	c, err = crypto.New("secp256k1", 0)
+	c, err = crypto.New("secp256k1")
 	require.Nil(t, err)
 	p, err = c.GenKey()
 	require.Nil(t, p)
@@ -253,7 +255,7 @@ func TestRegister(t *testing.T) {
 }
 
 func getNewCryptoErr(name string, height int64) error {
-	_, err := crypto.New(name, height)
+	_, err := crypto.New(name, crypto.WithNewOptionEnableCheck(height))
 	return err
 }
 
@@ -296,7 +298,7 @@ func TestInitSubCfg(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, sub1, sub2)
 	}
-	crypto.Register("test", democrypto{}, crypto.WithOptionInitFunc(initFn))
+	crypto.Register("test", democrypto{}, crypto.WithRegOptionInitFunc(initFn))
 	subCfg[sub1.Name] = bsub
 	crypto.Init(cfg, subCfg)
 }
@@ -308,12 +310,12 @@ func TestGenDriverTypeID(t *testing.T) {
 
 func TestWithOption(t *testing.T) {
 	driver := &crypto.Driver{}
-	option := crypto.WithOptionTypeID(-1)
+	option := crypto.WithRegOptionTypeID(-1)
 	require.NotNil(t, option(driver))
-	option = crypto.WithOptionTypeID(crypto.MaxManualTypeID)
+	option = crypto.WithRegOptionTypeID(crypto.MaxManualTypeID)
 	require.Nil(t, option(driver))
-	option = crypto.WithOptionTypeID(crypto.MaxManualTypeID + 1)
+	option = crypto.WithRegOptionTypeID(crypto.MaxManualTypeID + 1)
 	require.NotNil(t, option(driver))
-	option = crypto.WithOptionInitFunc(nil)
+	option = crypto.WithRegOptionInitFunc(nil)
 	require.NotNil(t, option(driver))
 }

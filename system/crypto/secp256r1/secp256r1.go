@@ -269,7 +269,7 @@ func New(sub []byte) {
 }
 
 func init() {
-	crypto.Register(Name, &Driver{}, crypto.WithOptionTypeID(ID), crypto.WithOptionInitFunc(New))
+	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID), crypto.WithRegOptionInitFunc(New))
 }
 
 func privKeyFromBytes(curve elliptic.Curve, pk []byte) (*ecdsa.PrivateKey, *ecdsa.PublicKey) {

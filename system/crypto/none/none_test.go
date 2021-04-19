@@ -21,6 +21,8 @@ func Test_None(t *testing.T) {
 	require.Nil(t, sig)
 	require.Nil(t, err)
 	require.Nil(t, c.Validate([]byte("test"), nil, nil))
-	_, err = crypto.New(Name, 0)
+	_, err = crypto.New(Name)
+	require.Nil(t, err)
+	_, err = crypto.New(Name, crypto.WithNewOptionEnableCheck(0))
 	require.NotNil(t, err)
 }
