@@ -17,8 +17,8 @@ message serverTime {
 
 // 数字签名加密算法类型
 message crypto {
-    string name = 1;
-    int32 typeID = 2;
+    string name   = 1;
+    int32  typeID = 2;
 }
 
 message cryptoList {
