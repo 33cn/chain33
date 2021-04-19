@@ -132,11 +132,11 @@ func New(name string, height int64) (Crypto, error) {
 
 	c, ok := drivers[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown driver %q", name)
+		return nil, fmt.Errorf("unknown driver: %s", name)
 	}
 	// check if enable
 	if !c.enable || height < c.enableHeight {
-		return nil, fmt.Errorf("driver not enable, enableHeight=%d", c.enableHeight)
+		return nil, fmt.Errorf("%s not enabled, enableHeight=%d", name, c.enableHeight)
 	}
 	return c.crypto, nil
 }
