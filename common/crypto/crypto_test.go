@@ -262,20 +262,21 @@ func getNewCryptoErr(name string, height int64) error {
 func TestInitCfg(t *testing.T) {
 
 	cfg := &crypto.Config{}
+	cfg.EnableHeight = make(map[string]int64)
+	cfg.EnableHeight[none.Name] = 0
 	crypto.Init(cfg, nil)
 	must := require.New(t)
-	must.NotNil(getNewCryptoErr(none.Name, 0))
 	must.NotNil(getNewCryptoErr(none.Name, 0))
 	must.Nil(getNewCryptoErr(secp256k1.Name, 0))
 	must.Nil(getNewCryptoErr(ed25519.Name, 0))
 	cfg.EnableTypes = []string{secp256k1.Name, none.Name}
-	cfg.EnableHeight = make(map[string]int64)
 	cfg.EnableHeight[ed25519.Name] = 10
+	cfg.EnableHeight[secp256k1.Name] = -1
 	cfg.EnableHeight[none.Name] = 100
 	crypto.Init(cfg, nil)
 	must.NotNil(getNewCryptoErr(none.Name, 0))
 	must.Nil(getNewCryptoErr(none.Name, 100))
-	must.Nil(getNewCryptoErr(secp256k1.Name, 0))
+	must.NotNil(getNewCryptoErr(secp256k1.Name, -1))
 	must.NotNil(getNewCryptoErr(ed25519.Name, 10))
 }
 
