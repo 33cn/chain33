@@ -116,7 +116,7 @@ func GenDriverTypeID(name string) int32 {
 // WithNewOptionEnableCheck 在New阶段根据当前区块高度进行插件使能检测
 func WithNewOptionEnableCheck(blockHeight int64) NewOption {
 	return func(d *Driver) error {
-		if d.enable && d.enableHeight >= 0 && blockHeight >= d.enableHeight{
+		if d.enable && d.enableHeight >= 0 && blockHeight >= d.enableHeight {
 			return nil
 		}
 		return fmt.Errorf("%s not enabled, enableHeight=%d", d.name, d.enableHeight)
