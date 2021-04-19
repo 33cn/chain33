@@ -548,3 +548,8 @@ func (g *Grpc) GetServerTime(ctx context.Context, in *pb.ReqNil) (*pb.ServerTime
 	}
 	return serverTime, nil
 }
+
+// GetCryptoList 获取加密算法列表
+func (g *Grpc) GetCryptoList(ctx context.Context, in *pb.ReqNil) (*pb.CryptoList, error) {
+	return g.cli.GetCryptoList(), nil
+}
