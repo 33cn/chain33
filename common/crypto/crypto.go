@@ -140,3 +140,16 @@ func New(name string, height int64) (Crypto, error) {
 	}
 	return c.crypto, nil
 }
+
+// GetCryptoList 获取加密插件列表，名称和对应的类型值
+func GetCryptoList() ([]string, []int32) {
+
+	names := make([]string, 0, len(driversType))
+	typeIDs := make([]int32, 0, len(driversType))
+
+	for ty, name := range driversType {
+		names = append(names, name)
+		typeIDs = append(typeIDs, ty)
+	}
+	return names, typeIDs
+}

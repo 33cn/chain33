@@ -453,6 +453,14 @@ chain33_IsNtpClockSync() {
     http_req '{"method":"Chain33.IsNtpClockSync", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (. | has("result"))' "$FUNCNAME"
 }
 
+chain33_GetServerTime() {
+    http_req '{"method":"Chain33.GetServerTime", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.currentTimestamp>0)' "$FUNCNAME"
+}
+
+chain33_GetCryptoList() {
+    http_req '{"method":"Chain33.GetCryptoList", "params":[{}]}' ${MAIN_HTTP} '(.error|not) and (.result.cryptos[]|select(.name=="none").typeID==10)' "$FUNCNAME"
+}
+
 run_testcases() {
     #    set -x
     set +e
