@@ -43,7 +43,7 @@ func (t btcBaseTransformer) PrivKeyToPub(keyTy uint32, priv []byte) (pub []byte,
 	}
 	//pub = secp256k1.PubkeyFromSeckey(priv)
 
-	edcrypto, err := crypto.New(crypto.GetName(int(keyTy)), 0)
+	edcrypto, err := crypto.New(crypto.GetName(int(keyTy)))
 	if err != nil {
 		return nil, err
 	}
