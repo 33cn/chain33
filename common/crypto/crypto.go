@@ -18,7 +18,7 @@ var (
 	ErrSign = errors.New("error signature")
 	//ErrUnknownDriver 未注册加密插件
 	ErrUnknownDriver = errors.New("ErrUnknownDriver")
-	//ErrUnknownDriver 加密插件未开启
+	//ErrDriverNotEnable 加密插件未开启
 	ErrDriverNotEnable = errors.New("ErrUnknownDriver")
 )
 
