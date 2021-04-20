@@ -119,6 +119,6 @@ func WithNewOptionEnableCheck(blockHeight int64) NewOption {
 		if d.enable && d.enableHeight >= 0 && blockHeight >= d.enableHeight {
 			return nil
 		}
-		return fmt.Errorf("%s not enabled, enableHeight=%d", d.name, d.enableHeight)
+		return ErrDriverNotEnable
 	}
 }

@@ -16,6 +16,10 @@ var (
 	ErrNotSupportAggr = errors.New("AggregateCrypto not support")
 	//ErrSign 签名错误
 	ErrSign = errors.New("error signature")
+	//ErrUnknownDriver 未注册加密插件
+	ErrUnknownDriver = errors.New("ErrUnknownDriver")
+	//ErrUnknownDriver 加密插件未开启
+	ErrDriverNotEnable = errors.New("ErrUnknownDriver")
 )
 
 var (
@@ -132,7 +136,7 @@ func New(name string, options ...NewOption) (Crypto, error) {
 
 	c, ok := drivers[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown driver: %s", name)
+		return nil, ErrUnknownDriver
 	}
 
 	for _, opt := range options {
