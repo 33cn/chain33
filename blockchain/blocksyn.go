@@ -321,8 +321,8 @@ func (chain *BlockChain) fetchPeerList() error {
 		return err
 	}
 
-	peerlist := resp.GetData().(*types.PeerList)
-	if peerlist == nil {
+	peerlist, ok := resp.GetData().(*types.PeerList)
+	if !ok {
 		synlog.Error("fetchPeerList", "peerlist", "is nil")
 		return types.ErrNoPeer
 	}
