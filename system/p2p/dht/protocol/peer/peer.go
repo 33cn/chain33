@@ -86,16 +86,19 @@ func InitProtocol(env *protocol.P2PEnv) {
 
 	go p.detectNodeAddr()
 	go func() {
-		ticker1 := time.NewTicker(time.Second * 10)
+		ticker1 := time.NewTicker(time.Second * 5)
 		if p.ChainCfg.IsTestNet() {
 			ticker1 = time.NewTicker(time.Second)
 		}
+		ticker2 := time.NewTicker(time.Second)
 		for {
 			select {
 			case <-p.Ctx.Done():
 				return
 			case <-ticker1.C:
 				p.refreshPeerInfo()
+			case <-ticker2.C:
+				p.refreshSelf()
 			}
 		}
 	}()

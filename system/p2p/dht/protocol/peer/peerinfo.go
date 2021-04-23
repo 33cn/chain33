@@ -55,6 +55,12 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	return &localPeer
 }
 
+func (p *Protocol) refreshSelf() {
+	selfPeer := p.getLocalPeerInfo()
+	selfPeer.Self = true
+	p.PeerInfoManager.Refresh(selfPeer)
+}
+
 func (p *Protocol) refreshPeerInfo() {
 	if !atomic.CompareAndSwapInt32(&p.refreshing, 0, 1) {
 		return
@@ -81,16 +87,16 @@ func (p *Protocol) refreshPeerInfo() {
 			p.PeerInfoManager.Refresh(pInfo)
 		}(remoteID)
 	}
-	selfPeer := p.getLocalPeerInfo()
-	if selfPeer != nil {
-		selfPeer.Self = true
-		p.PeerInfoManager.Refresh(selfPeer)
-		p.checkOutBound(selfPeer.GetHeader().GetHeight())
-	}
 	wg.Wait()
+	selfPeer := p.PeerInfoManager.Fetch(p.Host.ID())
+	p.PeerInfoManager.Refresh(selfPeer)
+	p.checkOutBound(selfPeer.GetHeader().GetHeight())
 }
 
 func (p *Protocol) checkOutBound(height int64) {
+	if height == 0 {
+		return
+	}
 	for _, pinfo := range p.PeerInfoManager.FetchAll() {
 		if pinfo.GetHeader().GetHeight()+diffHeightValue < height {
 			pid, err := peer.Decode(pinfo.GetName())

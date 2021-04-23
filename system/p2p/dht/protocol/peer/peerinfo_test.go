@@ -204,6 +204,7 @@ func TestPeerInfoHandler(t *testing.T) {
 
 	t.Log(p.getExternalAddr(), p.getPublicIP())
 
+	p.refreshSelf()
 	p.refreshPeerInfo()
 	time.Sleep(time.Second)
 	fmt.Println(p.PeerInfoManager.FetchAll())
@@ -233,6 +234,9 @@ type peerInfoManager struct {
 }
 
 func (p *peerInfoManager) Refresh(info *types.Peer) {
+	if info == nil {
+		return
+	}
 	p.peers.Store(info.Name, info)
 }
 
