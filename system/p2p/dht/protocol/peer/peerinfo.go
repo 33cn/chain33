@@ -57,8 +57,10 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 
 func (p *Protocol) refreshSelf() {
 	selfPeer := p.getLocalPeerInfo()
-	selfPeer.Self = true
-	p.PeerInfoManager.Refresh(selfPeer)
+	if selfPeer != nil {
+		selfPeer.Self = true
+		p.PeerInfoManager.Refresh(selfPeer)
+	}
 }
 
 func (p *Protocol) refreshPeerInfo() {
