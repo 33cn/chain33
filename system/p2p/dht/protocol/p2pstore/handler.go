@@ -336,7 +336,7 @@ func (p *Protocol) handleEventGetHeaders(m *queue.Message) {
 		log.Error("handleEventGetHeaders", "send message error", err)
 		return
 	}
-	_, _ = p.QueueClient.Wait(msg)
+	_, _ = p.QueueClient.WaitTimeout(msg, time.Second)
 }
 
 func writeBodys(bodys *types.BlockBodys, stream network.Stream) {
