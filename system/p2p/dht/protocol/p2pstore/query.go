@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -247,6 +248,10 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 				continue
 			}
 			searchedPeers[pid] = struct{}{}
+			// 检查其他节点上是否有该分片数据时，忽略只有内网ip的节点
+			if !queryFull && !hasPublicIP(p.Host.Peerstore().Addrs(pid)) {
+				continue
+			}
 			start := time.Now()
 			bodys, nearerPeers, err = p.fetchChunkFromPeer(ctx, req, pid)
 			if err != nil {
@@ -504,4 +509,14 @@ func saveCloserPeers(peerInfos []*types.PeerInfo, store peerstore.Peerstore) []p
 		peers = append(peers, pid)
 	}
 	return peers
+}
+
+func hasPublicIP(addrs []multiaddr.Multiaddr) bool {
+	for _, addr := range addrs {
+		data := strings.Split(addr.String(),"/")
+		if len(data) > 4 && data[4] == "13803" {
+			return true
+		}
+	}
+	return false
 }
