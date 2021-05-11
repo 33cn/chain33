@@ -249,7 +249,7 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 			}
 			searchedPeers[pid] = struct{}{}
 			// 检查其他节点上是否有该分片数据时，忽略只有内网ip的节点
-			if !queryFull && !hasPublicIP(p.Host.Peerstore().Addrs(pid)) {
+			if !queryFull && !hasPublicIP(p.Host.Peerstore().Addrs(pid), p.SubConfig.Port) {
 				continue
 			}
 			start := time.Now()
@@ -511,10 +511,11 @@ func saveCloserPeers(peerInfos []*types.PeerInfo, store peerstore.Peerstore) []p
 	return peers
 }
 
-func hasPublicIP(addrs []multiaddr.Multiaddr) bool {
+func hasPublicIP(addrs []multiaddr.Multiaddr, port int32) bool {
 	for _, addr := range addrs {
 		data := strings.Split(addr.String(),"/")
-		if len(data) > 4 && data[4] == "13803" {
+		// 端口与配置文件端口一致，没有做端口映射，认为有公网ip
+		if len(data) > 4 && data[4] == fmt.Sprintf("%d", port) {
 			return true
 		}
 	}
