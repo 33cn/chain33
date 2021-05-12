@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net"
 	"strings"
 	"time"
 
@@ -248,8 +249,8 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 				continue
 			}
 			searchedPeers[pid] = struct{}{}
-			// 检查其他节点上是否有该分片数据时，忽略只有内网ip的节点
-			if !queryFull && !hasPublicIP(p.Host.Peerstore().Addrs(pid), p.SubConfig.Port) {
+			// 检查其他节点上是否有该分片数据时，忽略无法通过外网连接的节点
+			if !queryFull && !p.canConnect(pid) {
 				continue
 			}
 			start := time.Now()
@@ -490,6 +491,54 @@ func (p *Protocol) getHistoryChunkInfos(in *types.ChunkInfoMsg, count int64) []*
 	return chunkInfos
 }
 
+func (p *Protocol) canConnect(pid peer.ID) bool {
+	addrs := p.Host.Peerstore().Addrs(pid)
+	for _, addr := range addrs {
+		data := strings.Split(addr.String(), "/")
+		if len(data) < 5 {
+			continue
+		}
+		ip, port := data[2], data[4]
+		if !isPublicIP(ip) {
+			continue
+		}
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", ip, port), time.Second/10)
+		if err != nil {
+			continue
+		}
+		_ = conn.Close()
+		return true
+	}
+
+	return false
+}
+
+/*
+tcp/ip协议中，专门保留了三个IP地址区域作为私有地址，其地址范围如下：
+10.0.0.0/8：10.0.0.0～10.255.255.255
+172.16.0.0/12：172.16.0.0～172.31.255.255
+192.168.0.0/16：192.168.0.0～192.168.255.255
+*/
+func isPublicIP(ip string) bool {
+	IP := net.ParseIP(ip)
+	if IP == nil || IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
+		return false
+	}
+	if ip4 := IP.To4(); ip4 != nil {
+		switch true {
+		case ip4[0] == 10:
+			return false
+		case ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31:
+			return false
+		case ip4[0] == 192 && ip4[1] == 168:
+			return false
+		default:
+			return true
+		}
+	}
+	return false
+}
+
 func saveCloserPeers(peerInfos []*types.PeerInfo, store peerstore.Peerstore) []peer.ID {
 	var peers []peer.ID
 	for _, peerInfo := range peerInfos {
@@ -509,15 +558,4 @@ func saveCloserPeers(peerInfos []*types.PeerInfo, store peerstore.Peerstore) []p
 		peers = append(peers, pid)
 	}
 	return peers
-}
-
-func hasPublicIP(addrs []multiaddr.Multiaddr, port int32) bool {
-	for _, addr := range addrs {
-		data := strings.Split(addr.String(),"/")
-		// 端口与配置文件端口一致，没有做端口映射，认为有公网ip
-		if len(data) > 4 && data[4] == fmt.Sprintf("%d", port) {
-			return true
-		}
-	}
-	return false
 }
