@@ -69,7 +69,10 @@ func (p *Protocol) refreshPeerInfo() {
 	}
 	defer atomic.StoreInt32(&p.refreshing, 0)
 	var wg sync.WaitGroup
-	for _, remoteID := range p.ConnManager.FetchConnPeers() {
+	// 限制最大并发数量为20
+	ch := make(chan struct{}, 20)
+	start := time.Now()
+	for _, remoteID := range p.RoutingTable.ListPeers() {
 		if p.checkDone() {
 			log.Warn("getPeerInfo", "process", "done+++++++")
 			return
@@ -79,8 +82,12 @@ func (p *Protocol) refreshPeerInfo() {
 		}
 		//修改为并发获取peerinfo信息
 		wg.Add(1)
+		ch <- struct{}{}
 		go func(pid peer.ID) {
-			defer wg.Done()
+			defer func() {
+				wg.Done()
+				<- ch
+			}()
 			pInfo, err := p.queryPeerInfoOld(pid)
 			if err != nil {
 				log.Error("refreshPeerInfo", "error", err, "pid", pid)
@@ -90,6 +97,7 @@ func (p *Protocol) refreshPeerInfo() {
 		}(remoteID)
 	}
 	wg.Wait()
+	log.Info("refreshPeerInfo", "time cost", time.Since(start))
 	selfPeer := p.PeerInfoManager.Fetch(p.Host.ID())
 	p.PeerInfoManager.Refresh(selfPeer)
 	p.checkOutBound(selfPeer.GetHeader().GetHeight())
@@ -163,7 +171,7 @@ func (p *Protocol) detectNodeAddr() {
 }
 
 func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*10)
 	defer cancel()
 	stream, err := p.Host.NewStream(ctx, pid, peerInfoOld)
 	if err != nil {
