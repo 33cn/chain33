@@ -13,6 +13,9 @@ import (
 
 func (p *Protocol) handleStreamPeerInfo(stream network.Stream) {
 	peerInfo := p.getLocalPeerInfo()
+	if peerInfo == nil {
+		return
+	}
 	err := protocol.WriteStream(peerInfo, stream)
 	if err != nil {
 		log.Error("handleStreamPeerInfo", "WriteStream error", err)
@@ -64,6 +67,9 @@ func (p *Protocol) handleStreamPeerInfoOld(stream network.Stream) {
 	}
 
 	peerInfo := p.getLocalPeerInfo()
+	if peerInfo == nil {
+		return
+	}
 	pInfo := &types.P2PPeerInfo{
 		Addr:           peerInfo.Addr,
 		Port:           peerInfo.Port,
