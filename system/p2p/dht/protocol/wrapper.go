@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
 	"runtime"
 	"time"
@@ -157,7 +158,7 @@ func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error("handle stream", "panic error", r)
-				//fmt.Println(string(panicTrace(4)))
+				fmt.Println(string(panicTrace(4)))
 				_ = stream.Reset()
 			}
 		}()
@@ -284,7 +285,7 @@ func EventHandlerWithRecover(f func(m *queue.Message)) func(m *queue.Message) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error("handle event", "panic error", r)
-				//fmt.Println(string(panicTrace(4)))
+				fmt.Println(string(panicTrace(4)))
 			}
 		}()
 		f(m)
