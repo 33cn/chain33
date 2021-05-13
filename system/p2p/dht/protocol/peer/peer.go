@@ -87,14 +87,14 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.detectNodeAddr()
 	go func() {
 		ticker := time.NewTicker(time.Second / 2)
-		ticker2 := time.NewTicker(time.Minute*5)
+		ticker2 := time.NewTicker(time.Minute * 5)
 		for {
 			select {
 			case <-p.Ctx.Done():
 				return
 			case <-ticker.C:
 				p.refreshSelf()
-			case <- ticker2.C:
+			case <-ticker2.C:
 				p.checkOutBound(p.PeerInfoManager.Fetch(p.Host.ID()).GetHeader().GetHeight())
 			}
 		}

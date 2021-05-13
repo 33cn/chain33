@@ -272,7 +272,7 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 		return nil, "", types2.ErrNotFound
 	}
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
-	ctx2, cancel2 := context.WithTimeout(ctx, time.Minute * 3)
+	ctx2, cancel2 := context.WithTimeout(ctx, time.Minute*3)
 	defer cancel2()
 	peerInfos, err := p.FindPeers(ctx2, fullNode)
 	if err != nil {
