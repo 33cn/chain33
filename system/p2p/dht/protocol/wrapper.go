@@ -2,18 +2,16 @@ package protocol
 
 import (
 	"bytes"
-	"fmt"
 	"math/rand"
 	"runtime"
 	"time"
-
-	"github.com/libp2p/go-libp2p-core/helpers"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
@@ -159,7 +157,7 @@ func HandlerWithClose(f network.StreamHandler) network.StreamHandler {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error("handle stream", "panic error", r)
-				fmt.Println(string(panicTrace(4)))
+				//fmt.Println(string(panicTrace(4)))
 				_ = stream.Reset()
 			}
 		}()
@@ -286,7 +284,7 @@ func EventHandlerWithRecover(f func(m *queue.Message)) func(m *queue.Message) {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Error("handle event", "panic error", r)
-				fmt.Println(string(panicTrace(4)))
+				//fmt.Println(string(panicTrace(4)))
 			}
 		}()
 		f(m)
