@@ -84,7 +84,7 @@ func (p *Protocol) refreshPeerInfo() {
 		ch <- struct{}{}
 		go func(pid peer.ID) {
 			defer func() {
-				<- ch
+				<-ch
 				wg.Done()
 			}()
 			pInfo, err := p.queryPeerInfoOld(pid)
@@ -173,7 +173,7 @@ func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
 		log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
 		return nil, err
 	}
-	_ = stream.SetDeadline(time.Now().Add(time.Second*5))
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
 	defer protocol.CloseStream(stream)
 	err = protocol.WriteStream(&types.MessagePeerInfoReq{}, stream)
 	if err != nil {
@@ -208,7 +208,7 @@ func (p *Protocol) queryPeerInfo(pid peer.ID) (*types.Peer, error) {
 		log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
 		return nil, err
 	}
-	_ = stream.SetDeadline(time.Now().Add(time.Second*5))
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
 	defer protocol.CloseStream(stream)
 	var resp types.Peer
 	err = protocol.ReadStream(&resp, stream)
@@ -226,7 +226,7 @@ func (p *Protocol) queryVersionOld(pid peer.ID) error {
 		log.Error("NewStream", "err", err, "remoteID", pid)
 		return err
 	}
-	_ = stream.SetDeadline(time.Now().Add(time.Second*5))
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
 	defer protocol.CloseStream(stream)
 
 	req := types.MessageP2PVersionReq{
@@ -272,7 +272,7 @@ func (p *Protocol) queryVersion(pid peer.ID) error {
 		log.Error("NewStream", "err", err, "remoteID", pid)
 		return err
 	}
-	_ = stream.SetDeadline(time.Now().Add(time.Second*5))
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
 	defer protocol.CloseStream(stream)
 
 	req := &types.P2PVersion{
