@@ -72,6 +72,7 @@ func (p *Protocol) refreshPeerInfo() {
 	// 限制最大并发数量为20
 	ch := make(chan struct{}, 20)
 	start := time.Now()
+	var count int
 	for _, remoteID := range p.RoutingTable.ListPeers() {
 		if p.checkDone() {
 			log.Warn("getPeerInfo", "process", "done+++++++")
@@ -95,9 +96,10 @@ func (p *Protocol) refreshPeerInfo() {
 			}
 			p.PeerInfoManager.Refresh(pInfo)
 		}(remoteID)
+		count++
 	}
 	wg.Wait()
-	log.Info("refreshPeerInfo", "time cost", time.Since(start))
+	log.Info("refreshPeerInfo", "time cost", time.Since(start), "peers count", count)
 	selfPeer := p.PeerInfoManager.Fetch(p.Host.ID())
 	p.PeerInfoManager.Refresh(selfPeer)
 	p.checkOutBound(selfPeer.GetHeader().GetHeight())
