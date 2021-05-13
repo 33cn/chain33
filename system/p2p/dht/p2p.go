@@ -318,10 +318,7 @@ func (p *P2P) handleP2PEvent() {
 			go func(m *queue.Message) {
 				defer p.taskGroup.Done()
 				if handler := protocol.GetEventHandler(m.Ty); handler != nil {
-					start := time.Now()
-					log.Info("into handleP2PEvent", "ty", m.Ty)
 					handler(m)
-					log.Info("		handleP2PEvent end", "ty", m.Ty, "time cost", time.Since(start))
 				} else {
 					log.Error("handleP2PEvent", "unknown message type", m.Ty)
 				}
