@@ -179,6 +179,7 @@ func (p *P2P) StartP2P() {
 func (p *P2P) CloseP2P() {
 	log.Info("p2p closing")
 	p.discovery.Close()
+	p.cancel()
 	p.waitTaskDone()
 	p.db.Close()
 
@@ -188,7 +189,6 @@ func (p *P2P) CloseP2P() {
 
 	}
 	p.host.Close()
-	p.cancel()
 	log.Info("p2p closed")
 }
 
