@@ -35,6 +35,8 @@ func (chain *BlockChain) chunkDeleteRoutine() {
 	defer chain.tickerwg.Done()
 	// 60s检测一次是否可以删除本地的body数据
 	checkDelTicker := time.NewTicker(time.Minute)
+	defer checkDelTicker.Stop()
+
 	for {
 		select {
 		case <-chain.quit:
@@ -49,6 +51,8 @@ func (chain *BlockChain) chunkGenerateRoutine() {
 	defer chain.tickerwg.Done()
 	// 10s检测一次是否可以触发归档操作
 	checkGenChunkTicker := time.NewTicker(10 * time.Second)
+	defer checkGenChunkTicker.Stop()
+
 	for {
 		select {
 		case <-chain.quit:

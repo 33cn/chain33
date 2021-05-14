@@ -144,6 +144,8 @@ func SyncBlock(host string) {
 	syncHeaders(host)
 
 	timeout := time.NewTicker(time.Minute)
+	defer timeout.Stop()
+
 	for {
 		<-timeout.C
 		syncHeaders(host)

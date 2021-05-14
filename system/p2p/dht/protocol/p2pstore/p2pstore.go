@@ -109,8 +109,11 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.syncRoutine()
 	go func() {
 		ticker1 := time.NewTicker(time.Minute)
+		defer ticker1.Stop()
 		ticker2 := time.NewTicker(types2.RefreshInterval)
+		defer ticker2.Stop()
 		ticker4 := time.NewTicker(time.Hour)
+		defer ticker4.Stop()
 
 		for {
 			select {
@@ -246,6 +249,8 @@ func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
 		time.Sleep(time.Second)
 	}
 	ticker := time.NewTicker(time.Minute * 5)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-p.Ctx.Done():
