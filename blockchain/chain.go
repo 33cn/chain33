@@ -581,6 +581,7 @@ func (chain *BlockChain) InitIndexAndBestView() {
 func (chain *BlockChain) UpdateRoutine() {
 	//1秒尝试检测一次futureblock，futureblock的time小于当前系统时间就广播此block
 	futureblockTicker := time.NewTicker(1 * time.Second)
+	defer futureblockTicker.Stop()
 
 	for {
 		select {

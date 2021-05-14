@@ -194,6 +194,8 @@ func (tc *TimeCache) Add(s string, lifetime time.Duration) {
 
 func (tc *TimeCache) sweep() {
 	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ticker.C:

@@ -101,7 +101,10 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 // MonitorAllPeers monitory all peers
 func (s *ConnManager) MonitorAllPeers() {
 	ticker1 := time.NewTicker(time.Minute)
+	defer ticker1.Stop()
 	ticker2 := time.NewTicker(time.Minute * 2)
+	defer ticker2.Stop()
+
 	for {
 		select {
 		case <-s.ctx.Done():

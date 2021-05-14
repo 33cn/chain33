@@ -160,6 +160,8 @@ func (chain *BlockChain) ReduceLocalDB() {
 	}
 	// 10s检测一次是否可以进行reduce localdb
 	checkTicker := time.NewTicker(10 * time.Second)
+	defer checkTicker.Stop()
+
 	for {
 		select {
 		case <-chain.quit:
