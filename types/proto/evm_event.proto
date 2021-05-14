@@ -8,7 +8,7 @@ option go_package = "github.com/33cn/chain33/types";
 
 // 一条evm event log数据
 message EVMLog {
-    bytes topic = 1;
+    repeated bytes topic = 1;
     bytes data  = 2;
 }
 
