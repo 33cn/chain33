@@ -69,7 +69,7 @@ func newHost(port int32) core.Host {
 	return host
 }
 
-func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
+func newTestEnv(q queue.Queue) (*prototypes.P2PEnv, context.CancelFunc) {
 	cfg := types.NewChain33Config(types.ReadFile("../../../../../cmd/chain33/chain33.test.toml"))
 	q.SetConfig(cfg)
 	go q.Start()
@@ -90,15 +90,18 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		SubConfig:       subCfg,
 		Ctx:             context.Background(),
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	env.Ctx = ctx
 	env.Pubsub, _ = net.NewPubSub(env.Ctx, env.Host, &p2pty.PubSubConfig{})
-	return env
+	return env, cancel
 }
 
 func newTestProtocolWithQueue(q queue.Queue) *broadcastProtocol {
-	env := newTestEnv(q)
+	env, cancel := newTestEnv(q)
 	prototypes.ClearEventHandler()
 	p := &broadcastProtocol{syncStatus: true}
 	p.init(env)
+	cancel()
 	return p
 }
 

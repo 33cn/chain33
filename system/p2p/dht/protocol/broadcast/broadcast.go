@@ -111,7 +111,7 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventAddBlock, p.handleAddBlock)
 
 	// pub sub broadcast
-	go newPubSub(p).broadcast()
+	newPubSub(p).broadcast()
 	go p.manageBroadcastV1Peer()
 }
 

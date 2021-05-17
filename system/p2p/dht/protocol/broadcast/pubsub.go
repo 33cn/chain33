@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"runtime"
 	"sync"
-	"time"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
@@ -64,11 +63,6 @@ func (p *pubSub) broadcast() {
 
 	p.Pubsub.RegisterTopicValidator(psBlockTopic, p.validateBlock, pubsub.WithValidatorInline(true))
 	p.Pubsub.RegisterTopicValidator(psTxTopic, p.validateTx, pubsub.WithValidatorInline(true))
-	// 不存在订阅topic的节点时，不开启广播，目前只在初始化时做判定
-	for len(p.Pubsub.FetchTopicPeers(psTxTopic)) == 0 {
-		time.Sleep(time.Second * 2)
-		log.Warn("pub sub broadcast", "info", "no peers available")
-	}
 
 	//发送和接收用多个函数并发处理，提高效率
 	//交易广播, 使用多个协程并发处理，提高效率
