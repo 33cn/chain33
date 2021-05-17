@@ -28,7 +28,6 @@ const (
 type pubSub struct {
 	*broadcastProtocol
 	blkHeaderCache   map[int64]*types.Header
-	syncStatus       bool
 	maxRecvBlkHeight int64
 	lock             sync.RWMutex
 }
