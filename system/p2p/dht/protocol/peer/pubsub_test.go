@@ -195,7 +195,8 @@ func TestPubSub(t *testing.T) {
 	q := queue.New("test")
 	testBlockRecvSubData(t, q)
 	testMempoolRecvSubData(t, q)
-	protocol := initEnv(t, q)
+	protocol, cancel := initEnv(t, q)
+	defer cancel()
 	testSubTopic(t, protocol) //订阅topic
 
 	topics := testFetchTopics(t, protocol) //获取topic list
