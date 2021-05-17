@@ -389,7 +389,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	}
 	chainlog.Debug("SendAddBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
 	msg = chain.client.NewMessage("wallet", types.EventAddBlock, block)
-	if err = chain.client.Send(msg, false); err != nil{
+	if err = chain.client.Send(msg, false); err != nil {
 		chainlog.Error("SendAddBlockEvent -->>wallet", "err", err)
 	}
 	return nil
