@@ -7,7 +7,10 @@ package broadcast
 import (
 	"encoding/hex"
 	"runtime"
+	"sync"
 	"time"
+
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/33cn/chain33/p2p/utils"
 	net "github.com/33cn/chain33/system/p2p/dht/extension"
@@ -16,18 +19,25 @@ import (
 )
 
 const (
-	psTxTopic    = "tx/v1.0.0"
-	psBlockTopic = "block/v1.0.0"
+	psTxTopic          = "tx/v1.0.0"
+	psBlockTopic       = "block/v1.0.0"
+	blkHeaderCacheSize = 128
 )
 
 // 基于libp2p pubsub插件广播
 type pubSub struct {
 	*broadcastProtocol
+	blkHeaderCache   map[int64]*types.Header
+	syncStatus       bool
+	maxRecvBlkHeight int64
+	lock             sync.RWMutex
 }
 
 // new pub sub
 func newPubSub(b *broadcastProtocol) *pubSub {
-	return &pubSub{b}
+	p := &pubSub{broadcastProtocol: b}
+	p.blkHeaderCache = make(map[int64]*types.Header)
+	return p
 }
 
 // 广播入口函数，处理相关初始化
@@ -53,6 +63,8 @@ func (p *pubSub) broadcast() {
 		return
 	}
 
+	p.Pubsub.RegisterTopicValidator(psBlockTopic, p.validateBlock, pubsub.WithValidatorInline(true))
+	p.Pubsub.RegisterTopicValidator(psTxTopic, p.validateTx, pubsub.WithValidatorInline(true))
 	// 不存在订阅topic的节点时，不开启广播，目前只在初始化时做判定
 	for len(p.Pubsub.FetchTopicPeers(psTxTopic)) == 0 {
 		time.Sleep(time.Second * 2)
@@ -121,19 +133,14 @@ func (p *pubSub) handleSubMsg(topic string, in chan net.SubMsg, filter *utils.Fi
 				break
 			}
 			hash := p.getMsgHash(topic, msg)
-			// 接收重复检测,
-			if filter.Contains(hash) {
-				break
-			}
-
-			//TODO 保存消息源节点，对错误消息需要拉黑处理
-			filter.Add(hash, struct{}{})
 
 			// 将接收的交易或区块 转发到内部对应模块
 			if topic == psTxTopic {
 				err = p.postMempool(hash, msg.(*types.Transaction))
 			} else {
-				err = p.postBlockChain(hash, data.ReceivedFrom.String(), msg.(*types.Block))
+				block := msg.(*types.Block)
+				log.Debug("recvBlkPs", "height", block.GetHeight(), "hash", hash, "from", data.ReceivedFrom.String())
+				err = p.postBlockChain(hash, data.ReceivedFrom.String(), block)
 			}
 
 			if err != nil {
@@ -188,10 +195,16 @@ func (p *pubSub) encodeMsg(msg types.Message, pbuf *[]byte) []byte {
 }
 
 // 接收数据并解压缩
-func (p *pubSub) decodeMsg(raw []byte, pbuf *[]byte, msg types.Message) error {
+func (p *pubSub) decodeMsg(raw []byte, reuseBuf *[]byte, msg types.Message) error {
 
 	var err error
-	buf := *pbuf
+	var buf []byte
+	if reuseBuf == nil {
+		reuseBuf = &buf
+	} else {
+		buf = *reuseBuf
+	}
+
 	buf = buf[:cap(buf)]
 	buf, err = snappy.Decode(buf, raw)
 	if err != nil {
@@ -199,7 +212,7 @@ func (p *pubSub) decodeMsg(raw []byte, pbuf *[]byte, msg types.Message) error {
 		return errSnappyDecode
 	}
 	//重复利用解码buf
-	*pbuf = buf
+	*reuseBuf = buf
 	err = types.Decode(buf, msg)
 	if err != nil {
 		log.Error("pubSub decodeMsg", "pb decode err", err)

@@ -7,6 +7,7 @@ require (
 	github.com/XiaoMi/pegasus-go-client v0.0.0-20181029071519-9400942c5d1c
 	github.com/apache/thrift v0.0.0-20171203172758-327ebb6c2b6d // indirect
 	github.com/btcsuite/btcd v0.20.1-beta
+	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/decred/base58 v1.0.2
 	github.com/dgraph-io/badger v1.6.1
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
@@ -18,6 +19,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/influxdata/influxdb v1.7.9
+	github.com/ipfs/go-log/v2 v2.1.1
 	github.com/kevinms/leakybucket-go v0.0.0-20200115003610-082473db97ca
 	github.com/libp2p/go-libp2p v0.10.3
 	github.com/libp2p/go-libp2p-blankhost v0.2.0
@@ -27,7 +29,7 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.5.2
 	github.com/libp2p/go-libp2p-kbucket v0.2.3
-	github.com/libp2p/go-libp2p-pubsub v0.2.6
+	github.com/libp2p/go-libp2p-pubsub v0.3.6
 	github.com/libp2p/go-libp2p-swarm v0.2.8
 	github.com/mattn/go-colorable v0.1.2
 	github.com/mr-tron/base58 v1.2.0

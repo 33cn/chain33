@@ -25,7 +25,7 @@ func testRecvMsg(p *pubSub, topic string, data []byte, buf *[]byte) (types.Messa
 }
 
 func newTestPubSub() *pubSub {
-	p := &pubSub{&broadcastProtocol{}}
+	p := &pubSub{broadcastProtocol: &broadcastProtocol{}}
 	p.P2PEnv = &prototypes.P2PEnv{}
 	p.ChainCfg = testnode.GetDefaultConfig()
 
@@ -57,6 +57,9 @@ func TestPubSub(t *testing.T) {
 	require.Equal(t, len(types.Encode(tx)), len(recvBuf))
 	require.Equal(t, txHash, ps.getMsgHash(psTxTopic, msg))
 	msg, err = testRecvMsg(ps, psBlockTopic, blockData, &recvBuf)
+	require.Nil(t, err)
+	require.Equal(t, blockHash, ps.getMsgHash(psBlockTopic, msg))
+	msg, err = testRecvMsg(ps, psBlockTopic, blockData, nil)
 	require.Nil(t, err)
 	require.Equal(t, blockHash, ps.getMsgHash(psBlockTopic, msg))
 }

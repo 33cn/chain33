@@ -374,22 +374,23 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	chainlog.Debug("SendAddBlockEvent -->>mempool")
 	msg := chain.client.NewMessage("mempool", types.EventAddBlock, block)
 	//此处采用同步发送模式，主要是为了消息在消息队列内部走高速通道，尽快被mempool模块处理
-	Err := chain.client.Send(msg, true)
-	if Err != nil {
-		chainlog.Error("SendAddBlockEvent -->>mempool", "err", Err)
+	if err = chain.client.Send(msg, true); err != nil {
+		chainlog.Error("SendAddBlockEvent -->>mempool", "err", err)
 	}
 	chainlog.Debug("SendAddBlockEvent -->>consensus")
 
 	msg = chain.client.NewMessage("consensus", types.EventAddBlock, block)
-	Err = chain.client.Send(msg, false)
-	if Err != nil {
-		chainlog.Error("SendAddBlockEvent -->>consensus", "err", Err)
+	if err = chain.client.Send(msg, false); err != nil {
+		chainlog.Error("SendAddBlockEvent -->>consensus", "err", err)
+	}
+
+	if err = chain.client.Send(chain.client.NewMessage("p2p", types.EventAddBlock, block.GetBlock()), true); err != nil {
+		chainlog.Error("SendAddBlockEvent -->>p2p", "err", err)
 	}
 	chainlog.Debug("SendAddBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
 	msg = chain.client.NewMessage("wallet", types.EventAddBlock, block)
-	Err = chain.client.Send(msg, false)
-	if Err != nil {
-		chainlog.Error("SendAddBlockEvent -->>wallet", "err", Err)
+	if err = chain.client.Send(msg, false); err != nil{
+		chainlog.Error("SendAddBlockEvent -->>wallet", "err", err)
 	}
 	return nil
 }

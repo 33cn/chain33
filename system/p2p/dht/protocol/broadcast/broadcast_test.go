@@ -90,14 +90,14 @@ func newTestEnv(q queue.Queue) *prototypes.P2PEnv {
 		SubConfig:       subCfg,
 		Ctx:             context.Background(),
 	}
-	env.Pubsub, _ = net.NewPubSub(env.Ctx, env.Host)
+	env.Pubsub, _ = net.NewPubSub(env.Ctx, env.Host, &p2pty.PubSubConfig{})
 	return env
 }
 
 func newTestProtocolWithQueue(q queue.Queue) *broadcastProtocol {
 	env := newTestEnv(q)
 	prototypes.ClearEventHandler()
-	p := &broadcastProtocol{}
+	p := &broadcastProtocol{syncStatus: true}
 	p.init(env)
 	return p
 }

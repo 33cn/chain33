@@ -113,7 +113,7 @@ func (p *broadcastProtocol) recvQueryReply(rep *types.P2PBlockTxReply, pid, peer
 	if bytes.Equal(block.TxHash, merkle.CalcMerkleRoot(p.ChainCfg, block.GetHeight(), block.Txs)) {
 		log.Debug("recvQueryReply", "height", block.GetHeight())
 		//发送至blockchain执行
-		if err := p.postBlockChain(rep.BlockHash, pid, block); err != nil {
+		if err := p.postBlockChainV1(rep.BlockHash, pid, block); err != nil {
 			log.Error("recvQueryReply", "height", block.GetHeight(), "send block to blockchain Error", err.Error())
 			return errSendBlockChain
 		}

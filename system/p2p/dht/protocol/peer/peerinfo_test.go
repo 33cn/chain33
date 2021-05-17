@@ -60,7 +60,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		panic(err)
 	}
-	ps1, err := extension.NewPubSub(context.Background(), host1)
+	ps1, err := extension.NewPubSub(context.Background(), host1, &p2pty.PubSubConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	}
 	_, err = kademliaDHT2.RoutingTable().Update(host1.ID())
 	require.Nil(t, err)
-	ps2, err := extension.NewPubSub(context.Background(), host2)
+	ps2, err := extension.NewPubSub(context.Background(), host2, &p2pty.PubSubConfig{})
 	if err != nil {
 		t.Fatal(err)
 	}
