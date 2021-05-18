@@ -15,6 +15,16 @@ message serverTime {
     int64 currentTimestamp = 1;
 }
 
+// 数字签名加密算法类型
+message crypto {
+    string name   = 1;
+    int32  typeID = 2;
+}
+
+message cryptoList {
+    repeated crypto cryptos = 1;
+}
+
 service chain33 {
     // chain33 对外提供服务的接口
     //区块链接口
@@ -178,4 +188,7 @@ service chain33 {
 
     // get server time
     rpc GetServerTime(ReqNil) returns (serverTime) {}
+
+    // 获取加密算法列表，用于签名等
+    rpc GetCryptoList(ReqNil) returns (cryptoList) {}
 }

@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/33cn/chain33/common/crypto"
+
 	"github.com/33cn/chain33/common/log/log15"
 
 	"github.com/33cn/chain33/common/version"
@@ -1044,4 +1046,14 @@ func (q *QueueProtocol) GetConfig() *types.Chain33Config {
 		panic("Chain33Config is nil")
 	}
 	return cfg
+}
+
+// GetCryptoList 获取加密算法列表
+func (q *QueueProtocol) GetCryptoList() *types.CryptoList {
+	names, ids := crypto.GetCryptoList()
+	list := &types.CryptoList{Cryptos: make([]*types.Crypto, len(names))}
+	for i, name := range names {
+		list.Cryptos[i] = &types.Crypto{Name: name, TypeID: ids[i]}
+	}
+	return list
 }

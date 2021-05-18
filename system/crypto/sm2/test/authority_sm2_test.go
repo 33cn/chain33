@@ -219,7 +219,7 @@ func TestChckSign(t *testing.T) {
 	}
 	cfg.SetMinFee(0)
 
-	assert.Equal(t, true, tx1.CheckSign())
+	assert.Equal(t, true, tx1.CheckSign(0))
 }
 
 /**
@@ -234,7 +234,7 @@ func TestChckSigns(t *testing.T) {
 	cfg.SetMinFee(0)
 
 	for i, tx := range txs {
-		if !tx.CheckSign() {
+		if !tx.CheckSign(0) {
 			t.Error(fmt.Sprintf("error check tx[%d]", i+1))
 			return
 		}
@@ -272,7 +272,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 	cfg.SetMinFee(0)
 
 	tx14.Sign(types.SECP256K1, privKey)
-	if !tx14.CheckSign() {
+	if !tx14.CheckSign(0) {
 		t.Error("check signature failed")
 		return
 	}
@@ -297,5 +297,5 @@ func TestChckSignWithSm2(t *testing.T) {
 	cfg.SetMinFee(0)
 
 	tx15.Sign(sm2Util.ID, privKeysm2)
-	assert.Equal(t, false, tx15.CheckSign())
+	assert.Equal(t, false, tx15.CheckSign(0))
 }

@@ -1770,3 +1770,14 @@ func TestChain33_convertHeader(t *testing.T) {
 	assert.Equal(t, header.GetHeight(), reheader.Height)
 
 }
+
+func TestChain33_GetCryptoList(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	var result interface{}
+	api.On("GetCryptoList").Return(nil)
+	err := client.GetCryptoList(&types.ReqNil{}, &result)
+	assert.Nil(t, err)
+}

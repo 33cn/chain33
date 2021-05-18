@@ -7,13 +7,12 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/helpers"
-
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )

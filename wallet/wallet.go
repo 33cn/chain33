@@ -342,7 +342,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 
 	privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType), crypto.WithNewOptionEnableCheck(wallet.lastHeader.GetHeight()))
 	if err != nil {
 		walletlog.Error("getPrivKeyByAddr", "err", err)
 		return nil, err

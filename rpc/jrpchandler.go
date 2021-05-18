@@ -1516,3 +1516,9 @@ func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) err
 	*result = jsonMsg
 	return err
 }
+
+// GetCryptoList 获取加密列表
+func (c *Chain33) GetCryptoList(in *types.ReqNil, result *interface{}) error {
+	*result = c.cli.GetCryptoList()
+	return nil
+}

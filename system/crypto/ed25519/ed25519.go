@@ -168,5 +168,5 @@ const (
 )
 
 func init() {
-	crypto.Register(Name, &Driver{}, crypto.WithOptionTypeID(ID))
+	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID))
 }

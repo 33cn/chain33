@@ -66,12 +66,17 @@ type DriverInitFunc func(jsonCfg []byte)
 
 // Driver 加密插件及相关信息
 type Driver struct {
+	name         string
 	crypto       Crypto
 	initFunc     DriverInitFunc
 	isCGO        bool  // 是否为cgo编译
+	enable       bool  // 是否启用
 	enableHeight int64 // 启用高度
 	typeID       int32 //类型值
 }
 
-// Option 注册Driver时可选参数，设置相关参数默认值
-type Option func(*Driver) error
+// RegOption  Register Driver可选参数，设置相关参数默认值
+type RegOption func(*Driver) error
+
+// NewOption New Crypto可选参数
+type NewOption func(*Driver) error
