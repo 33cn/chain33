@@ -13,11 +13,13 @@ import (
 // LoadExecAccount Load exec account from address and exec
 func (acc *DB) LoadExecAccount(addr, execaddr string) *types.Account {
 	value, err := acc.db.Get(acc.execAccountKey(addr, execaddr))
+	alog.Info("============", "valueA is:", value, "err is", err, "acc is:", acc)
 	if err != nil {
 		return &types.Account{Addr: addr}
 	}
 	var acc1 types.Account
 	err = types.Decode(value, &acc1)
+	alog.Info("============", "valueB is:", value)
 	if err != nil {
 		panic(err) //数据库已经损坏
 	}
@@ -104,6 +106,7 @@ func (acc *DB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, 
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
+	alog.Info("acc1=============", "acc1", acc1)
 	if acc1.Balance-amount < 0 {
 		alog.Error("ExecFrozen", "balance", acc1.Balance, "amount", amount)
 		return nil, types.ErrNoBalance
