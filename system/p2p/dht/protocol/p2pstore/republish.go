@@ -106,7 +106,7 @@ func (p *Protocol) genExtendRoutingTable(key []byte, count int) *kb.RoutingTable
 	searchedPeers := make(map[peer.ID]struct{})
 	for i, pid := range peers {
 		// 保证 extendRoutingTable 至少有 300 个节点，且至少从 3 个节点上获取新节点，
-		if i+1 > 3 && extendRoutingTable.Size() > 300 {
+		if i+1 > 3 && extendRoutingTable.Size() > p.SubConfig.MaxExtendRoutingTableSize {
 			break
 		}
 		searchedPeers[pid] = struct{}{}
@@ -125,7 +125,7 @@ func (p *Protocol) genExtendRoutingTable(key []byte, count int) *kb.RoutingTable
 
 	// 如果扩展路由表节点数小于200，则迭代查询增加节点
 	var lastSize int //如果经过一轮迭代节点数没有增加则结束迭代，防止节点数不到200导致无法退出
-	for extendRoutingTable.Size() < 200 && extendRoutingTable.Size() > lastSize {
+	for extendRoutingTable.Size() < p.SubConfig.MinExtendRoutingTableSize && extendRoutingTable.Size() > lastSize {
 		lastSize = extendRoutingTable.Size()
 		for _, pid := range extendRoutingTable.ListPeers() {
 			if _, ok := searchedPeers[pid]; ok {
