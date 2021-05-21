@@ -18,6 +18,11 @@ const (
 
 	// DefaultP2PPort 默认端口
 	DefaultP2PPort = 13803
+
+	// DefaultMinExtendRoutingTableSize ...
+	DefaultMinExtendRoutingTableSize = 200
+	// DefaultMaxExtendRoutingTableSize ...
+	DefaultMaxExtendRoutingTableSize = 300
 )
 
 var (

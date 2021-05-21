@@ -47,6 +47,10 @@ type P2PSubConfig struct {
 	DisableShard bool `protobuf:"varint,120,opt,name=disableShard" json:"disableShard,omitempty"`
 	//特定场景下的p2p白名单，只连接配置的节点,联盟链使用
 	WhitePeerList []string `protobuf:"bytes,21,rep,name=whitePeerList" json:"whitePeerList,omitempty"`
+	// 扩展路由表最小节点数
+	MinExtendRoutingTableSize int `protobuf:"varint,22,opt,name=minExtendRoutingTableSize" json:"minExtendRoutingTableSize,omitempty"`
+	// 扩展路由表最大节点数
+	MaxExtendRoutingTableSize int `protobuf:"varint,23,opt,name=n=maxExtendRoutingTableSize" json:"maxExtendRoutingTableSize,omitempty"`
 
 	//配置libp2p库代码日志等级， 支持DEBUG, INFO, WARN, ERROR，默认ERROR
 	Libp2pLogLevel string `json:"libp2pLogLevel,omitempty"`
