@@ -72,6 +72,16 @@ func InitProtocol(env *protocol.P2PEnv) {
 	if env.SubConfig.Backup > 1 {
 		backup = env.SubConfig.Backup
 	}
+	if env.SubConfig.MinExtendRoutingTableSize == 0 {
+		env.SubConfig.MinExtendRoutingTableSize = types2.DefaultMinExtendRoutingTableSize
+	}
+	if env.SubConfig.MaxExtendRoutingTableSize == 0 {
+		env.SubConfig.MaxExtendRoutingTableSize = types2.DefaultMaxExtendRoutingTableSize
+	}
+	if env.SubConfig.MaxExtendRoutingTableSize < env.SubConfig.MinExtendRoutingTableSize {
+		env.SubConfig.MaxExtendRoutingTableSize = env.SubConfig.MinExtendRoutingTableSize
+	}
+
 	// RoutingTable更新时同时更新ShardHealthyRoutingTable
 	p.RoutingTable.PeerRemoved = func(id peer.ID) {
 		p.ShardHealthyRoutingTable.Remove(id)
