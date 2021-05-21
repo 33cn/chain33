@@ -382,6 +382,7 @@ func Test_p2p(t *testing.T) {
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
 	datadir := util.ResetDatadir(cfg.GetModuleConfig(), "$TEMP/")
+	cfg.GetModuleConfig().Log.LogFile = ""
 	q.SetConfig(cfg)
 	processMsg(q)
 

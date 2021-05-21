@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 
+	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
+
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +21,7 @@ func Test_pubsub(t *testing.T) {
 	hosts := getNetHosts(ctx, 2, t)
 	connect(t, hosts[0], hosts[1])
 
-	psub, err := NewPubSub(ctx, hosts[0])
+	psub, err := NewPubSub(ctx, hosts[0], &p2pty.PubSubConfig{})
 	require.Nil(t, err)
 	err = psub.JoinAndSubTopic("bztest", testMsg)
 	require.Nil(t, err)

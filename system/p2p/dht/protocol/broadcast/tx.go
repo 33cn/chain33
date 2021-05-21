@@ -58,6 +58,8 @@ func (p *broadcastProtocol) recvTx(tx *types.P2PTx, pid string) (err error) {
 		tx.Route = &types.P2PRoute{TTL: 1}
 	}
 	p.txFilter.Add(txHash, tx.GetRoute())
+	//新老广播网络存在隔离情况，将接收的老版本广播数据再次分发到新网络(重复的数据在新网络会自动屏蔽)
+	p.ps.FIFOPub(tx.GetTx(), psTxTopic)
 	return p.postMempool(txHash, tx.GetTx())
 
 }

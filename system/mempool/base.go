@@ -457,6 +457,11 @@ func (mem *Mempool) checkSync() {
 		}
 		if resp.GetData().(*types.IsCaughtUp).GetIscaughtup() {
 			mem.setSync(true)
+			// 通知p2p广播模块，区块同步状态
+			err = mem.client.Send(mem.client.NewMessage("p2p", types.EventIsSync, nil), false)
+			if err != nil {
+				mlog.Error("checkSync", "send p2p error", err)
+			}
 			return
 		}
 		time.Sleep(time.Second)
