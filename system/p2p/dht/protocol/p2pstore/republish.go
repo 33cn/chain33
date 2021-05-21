@@ -29,7 +29,7 @@ func (p *Protocol) republish() {
 	}
 	p.localChunkInfoMutex.RUnlock()
 	invertedIndex := make(map[peer.ID][]*types.ChunkInfoMsg)
-	tmpRoutingTable := p.genTempRoutingTable(nil, 100)
+	extendRoutingTable := p.genExtendRoutingTable(nil, 100)
 
 	for hash, info := range m {
 		if time.Since(info.Time) > types2.ExpiredTime {
@@ -43,7 +43,7 @@ func (p *Protocol) republish() {
 			continue
 		}
 		log.Info("local chunk", "hash", hash, "start", info.Start)
-		peers := tmpRoutingTable.NearestPeers(genDHTID(info.ChunkHash), backup-1)
+		peers := extendRoutingTable.NearestPeers(genDHTID(info.ChunkHash), backup-1)
 		for _, pid := range peers {
 			invertedIndex[pid] = append(invertedIndex[pid], info.ChunkInfoMsg)
 		}
@@ -61,8 +61,8 @@ func (p *Protocol) republish() {
 
 // 通知最近的 *BackUp-1* 个节点备份数据，加上本节点共Backup个
 func (p *Protocol) notifyStoreChunk(req *types.ChunkInfoMsg) {
-	tmpRoutingTable := p.genTempRoutingTable(req.ChunkHash, 100)
-	for _, pid := range tmpRoutingTable.NearestPeers(genDHTID(req.ChunkHash), backup-1) {
+	extendRoutingTable := p.genExtendRoutingTable(req.ChunkHash, 100)
+	for _, pid := range extendRoutingTable.NearestPeers(genDHTID(req.ChunkHash), backup-1) {
 		err := p.storeChunksOnPeer(pid, req)
 		if err != nil {
 			log.Error("notifyStoreChunk", "peer id", pid, "error", err)
@@ -89,34 +89,64 @@ func (p *Protocol) storeChunksOnPeer(pid peer.ID, req ...*types.ChunkInfoMsg) er
 	return protocol.SignAndWriteStream(&msg, stream)
 }
 
-func (p *Protocol) genTempRoutingTable(key []byte, count int) *kb.RoutingTable {
-	tmpRoutingTable := kb.NewRoutingTable(dht.KValue*2, kb.ConvertPeerID(p.Host.ID()), time.Minute, p.Host.Peerstore())
+func (p *Protocol) genExtendRoutingTable(key []byte, count int) *kb.RoutingTable {
+	if time.Since(p.refreshedTime) < time.Hour {
+		return p.extendShardHealthyRoutingTable
+	}
+	start := time.Now()
+	extendRoutingTable := kb.NewRoutingTable(dht.KValue*2, kb.ConvertPeerID(p.Host.ID()), time.Minute, p.Host.Peerstore())
 	peers := p.ShardHealthyRoutingTable.ListPeers()
 	for _, pid := range peers {
-		_, _ = tmpRoutingTable.Update(pid)
+		_, _ = extendRoutingTable.Update(pid)
 	}
 	if key != nil {
 		peers = p.ShardHealthyRoutingTable.NearestPeers(genDHTID(key), backup-1)
 	}
 
+	searchedPeers := make(map[peer.ID]struct{})
 	for i, pid := range peers {
-		// 至少从 3 个节点上获取新节点，保证 tmpRoutingTable 至少有 3*backup 个节点，但至多从 10 个节点上获取新节点
-		if i+1 > 3 && (tmpRoutingTable.Size() > 3*backup || i+1 > 10) {
+		// 保证 extendRoutingTable 至少有 300 个节点，且至少从 3 个节点上获取新节点，
+		if i+1 > 3 && extendRoutingTable.Size() > 300 {
 			break
 		}
+		searchedPeers[pid] = struct{}{}
 		closerPeers, err := p.fetchCloserPeers(key, count, pid)
 		if err != nil {
-			log.Error("genTempRoutingTable", "fetchCloserPeers error", err, "peer id", pid)
+			log.Error("genExtendRoutingTable", "fetchCloserPeers error", err, "peer id", pid)
 			continue
 		}
 		for _, cPid := range closerPeers {
 			if cPid == p.Host.ID() {
 				continue
 			}
-			_, _ = tmpRoutingTable.Update(cPid)
+			_, _ = extendRoutingTable.Update(cPid)
 		}
 	}
-	log.Info("genTempRoutingTable", "tmpRoutingTable peer count", tmpRoutingTable.Size())
 
-	return tmpRoutingTable
+	// 如果扩展路由表节点数小于200，则迭代查询增加节点
+	var lastSize int //如果经过一轮迭代节点数没有增加则结束迭代，防止节点数不到200导致无法退出
+	for extendRoutingTable.Size() < 200 && extendRoutingTable.Size() > lastSize {
+		lastSize = extendRoutingTable.Size()
+		for _, pid := range extendRoutingTable.ListPeers() {
+			if _, ok := searchedPeers[pid]; ok {
+				continue
+			}
+			searchedPeers[pid] = struct{}{}
+			closerPeers, err := p.fetchCloserPeers(key, count, pid)
+			if err != nil {
+				log.Error("genExtendRoutingTable", "fetchCloserPeers error", err, "peer id", pid)
+				continue
+			}
+			for _, cPid := range closerPeers {
+				if cPid == p.Host.ID() {
+					continue
+				}
+				_, _ = extendRoutingTable.Update(cPid)
+			}
+		}
+	}
+	log.Info("genExtendRoutingTable", "local peers count", len(peers), "extendRoutingTable peer count", extendRoutingTable.Size(), "time cost", time.Since(start), "origin count", count)
+	p.extendShardHealthyRoutingTable = extendRoutingTable
+	p.refreshedTime = start
+	return extendRoutingTable
 }

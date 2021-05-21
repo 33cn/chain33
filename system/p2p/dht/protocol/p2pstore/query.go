@@ -28,6 +28,7 @@ func (p *Protocol) fetchCloserPeers(key []byte, count int, pid peer.ID) ([]peer.
 	if err != nil {
 		return nil, err
 	}
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
 	defer protocol.CloseStream(stream)
 	req := types.P2PRequest{
 		Request: &types.P2PRequest_ReqPeers{
