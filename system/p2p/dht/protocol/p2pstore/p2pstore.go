@@ -54,7 +54,7 @@ type Protocol struct {
 
 	// 增加一个扩展路由表的缓存，每小时最多生成一次
 	extendShardHealthyRoutingTable *kb.RoutingTable
-	refreshedTime time.Time
+	refreshedTime                  time.Time
 }
 
 func init() {
