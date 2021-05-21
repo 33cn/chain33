@@ -1516,3 +1516,8 @@ func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) err
 	*result = jsonMsg
 	return err
 }
+
+func (c *Chain33) GetChainID(in *types.ReqNil, result *interface{}) error {
+	*result = &rpctypes.ChainIDInfo{ChainID: c.cli.GetConfig().GetChainID()}
+	return nil
+}

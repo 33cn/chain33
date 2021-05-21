@@ -10,6 +10,7 @@ TestNet=true
 FixTime=false
 TxHeight=true
 CoinSymbol="bty"
+ChainID=33
 
 # crypto模块配置
 [crypto]

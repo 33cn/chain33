@@ -1768,5 +1768,19 @@ func TestChain33_convertHeader(t *testing.T) {
 	assert.Equal(t, header.GetTxCount(), reheader.TxCount)
 	assert.Equal(t, header.GetBlockTime(), reheader.BlockTime)
 	assert.Equal(t, header.GetHeight(), reheader.Height)
+}
 
+func TestChain33_ChainID(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	testChain33 := newTestChain33(api)
+	var testResult interface{}
+
+	in := &types.ReqNil{}
+	chainId := int32(33)
+	api.On("GetChainID", mock.Anything).Return(chainId, nil)
+	err := testChain33.GetChainID(in, &testResult)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, int32(33), testResult.(*rpctypes.ChainIDInfo).ChainID)
 }

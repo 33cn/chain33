@@ -26,7 +26,7 @@ echo_rst() {
 http_req() {
     #  echo "#$4 request: $1"
     body=$(curl -ksd "$1" "$2")
-    #  echo "#response: $body"
+    #echo "#response: $body"
     ok=$(echo "$body" | jq -r "$3")
     [ "$ok" == true ]
     rst=$?
@@ -235,6 +235,12 @@ chain33_GetCoinSymbol() {
     resok='(.result.data == "'"$symbol"'")'
     http_req '{"method":"Chain33.GetCoinSymbol","params":[]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
 }
+
+chain33_GetChainID() {
+    resok='(.result.chainID == 0)'
+    http_req '{"method":"Chain33.GetChainID","params":[]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
+}
+
 
 chain33_GetHexTxByHash() {
     #先获取一笔交易
@@ -491,6 +497,7 @@ run_testcases() {
     chain33_ListPushes
     chain33_GetPushSeqLastNum
     chain33_GetCoinSymbol
+    chain33_GetChainID
 
     chain33_GetHexTxByHash
     chain33_QueryTransaction

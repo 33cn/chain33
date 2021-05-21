@@ -451,3 +451,8 @@ type BlockInfo struct {
 	Height int64  `json:"height,omitempty"`
 	Hash   string `json:"hash,omitempty"`
 }
+
+//ChainIDInfo parameter
+type ChainIDInfo struct {
+	ChainID int32 `json:"chainID"`
+}
