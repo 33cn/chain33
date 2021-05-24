@@ -27,14 +27,14 @@ func TestGet(t *testing.T) {
 	name = crypto.GetName(2)
 	require.Equal("ed25519", name)
 	name = crypto.GetName(258)
-	require.Equal("auth_sm2", name)
+	require.Equal("sm2", name)
 
 	ty := crypto.GetType("secp256k1")
 	require.True(ty == 1)
 	ty = crypto.GetType("ed25519")
 	require.True(ty == 2)
 
-	ty = crypto.GetType("auth_sm2")
+	ty = crypto.GetType("sm2")
 	require.True(ty == 258)
 }
 
@@ -54,20 +54,10 @@ func TestAll(t *testing.T) {
 	testFromBytes(t, "ed25519")
 	testCrypto(t, "secp256k1")
 	testFromBytes(t, "secp256k1")
-
-	c, err := crypto.New("none")
-	require.Nil(t, err)
-	pub, err := c.PubKeyFromBytes([]byte("test"))
-	require.Nil(t, pub)
-	require.Nil(t, err)
-	sig, err := c.SignatureFromBytes([]byte("test"))
-	require.Nil(t, sig)
-	require.Nil(t, err)
-	require.Nil(t, c.Validate([]byte("test"), nil, nil))
-	testCrypto(t, "auth_sm2")
-	testFromBytes(t, "auth_sm2")
-	testCrypto(t, "auth_ecdsa")
-	testFromBytes(t, "auth_ecdsa")
+	testCrypto(t, "sm2")
+	testFromBytes(t, "sm2")
+	testCrypto(t, "secp256r1")
+	testFromBytes(t, "secp256r1")
 }
 
 func testFromBytes(t *testing.T, name string) {
@@ -245,15 +235,17 @@ func TestRegister(t *testing.T) {
 	p, err := c.GenKey()
 	require.Nil(t, err)
 	require.NotNil(t, p)
-	require.Panics(t, func() { crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionTypeID(secp256k1.ID)) })
+	require.Panics(t, func() { crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithRegOptionTypeID(secp256k1.ID)) })
 	//注册cgo版本，替换
-	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionCGO(), crypto.WithOptionTypeID(secp256k1.ID))
+	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithRegOptionCGO(), crypto.WithRegOptionTypeID(secp256k1.ID))
 	//重复注册非cgo版本，不会报错
-	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionTypeID(secp256k1.ID))
+	crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithRegOptionTypeID(secp256k1.ID))
 	require.Panics(t, func() {
-		crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithOptionCGO(), crypto.WithOptionTypeID(1024))
+		crypto.Register(secp256k1.Name, democryptoCGO{}, crypto.WithRegOptionCGO(), crypto.WithRegOptionTypeID(1024))
 	})
-	require.Panics(t, func() { crypto.Register(secp256k1.Name+"cgo", democryptoCGO{}, crypto.WithOptionTypeID(secp256k1.ID)) })
+	require.Panics(t, func() {
+		crypto.Register(secp256k1.Name+"cgo", democryptoCGO{}, crypto.WithRegOptionTypeID(secp256k1.ID))
+	})
 
 	c, err = crypto.New("secp256k1")
 	require.Nil(t, err)
@@ -262,23 +254,30 @@ func TestRegister(t *testing.T) {
 	require.Equal(t, errors.New("testCGO"), err)
 }
 
+func getNewCryptoErr(name string, height int64) error {
+	_, err := crypto.New(name, crypto.WithNewOptionEnableCheck(height))
+	return err
+}
+
 func TestInitCfg(t *testing.T) {
 
 	cfg := &crypto.Config{}
+	cfg.EnableHeight = make(map[string]int64)
+	cfg.EnableHeight[none.Name] = 0
 	crypto.Init(cfg, nil)
 	must := require.New(t)
-	must.False(crypto.IsEnable(none.Name, 0))
-	must.True(crypto.IsEnable(secp256k1.Name, 0))
-	must.True(crypto.IsEnable(ed25519.Name, 0))
+	must.NotNil(getNewCryptoErr(none.Name, 0))
+	must.Nil(getNewCryptoErr(secp256k1.Name, 0))
+	must.Nil(getNewCryptoErr(ed25519.Name, 0))
 	cfg.EnableTypes = []string{secp256k1.Name, none.Name}
-	cfg.EnableHeight = make(map[string]int64)
 	cfg.EnableHeight[ed25519.Name] = 10
+	cfg.EnableHeight[secp256k1.Name] = -1
 	cfg.EnableHeight[none.Name] = 100
 	crypto.Init(cfg, nil)
-	must.False(crypto.IsEnable(none.Name, 0))
-	must.True(crypto.IsEnable(none.Name, 100))
-	must.True(crypto.IsEnable(secp256k1.Name, 0))
-	must.False(crypto.IsEnable(ed25519.Name, 0))
+	must.NotNil(getNewCryptoErr(none.Name, 0))
+	must.Nil(getNewCryptoErr(none.Name, 100))
+	must.NotNil(getNewCryptoErr(secp256k1.Name, -1))
+	must.NotNil(getNewCryptoErr(ed25519.Name, 10))
 }
 
 type testSubCfg struct {
@@ -300,7 +299,7 @@ func TestInitSubCfg(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, sub1, sub2)
 	}
-	crypto.Register("test", democrypto{}, crypto.WithOptionInitFunc(initFn))
+	crypto.Register("test", democrypto{}, crypto.WithRegOptionInitFunc(initFn))
 	subCfg[sub1.Name] = bsub
 	crypto.Init(cfg, subCfg)
 }
@@ -312,12 +311,12 @@ func TestGenDriverTypeID(t *testing.T) {
 
 func TestWithOption(t *testing.T) {
 	driver := &crypto.Driver{}
-	option := crypto.WithOptionTypeID(-1)
+	option := crypto.WithRegOptionTypeID(-1)
 	require.NotNil(t, option(driver))
-	option = crypto.WithOptionTypeID(crypto.MaxManualTypeID)
+	option = crypto.WithRegOptionTypeID(crypto.MaxManualTypeID)
 	require.Nil(t, option(driver))
-	option = crypto.WithOptionTypeID(crypto.MaxManualTypeID + 1)
+	option = crypto.WithRegOptionTypeID(crypto.MaxManualTypeID + 1)
 	require.NotNil(t, option(driver))
-	option = crypto.WithOptionInitFunc(nil)
+	option = crypto.WithRegOptionInitFunc(nil)
 	require.NotNil(t, option(driver))
 }

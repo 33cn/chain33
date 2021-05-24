@@ -17,6 +17,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/system/crypto/none"
+	"github.com/33cn/chain33/system/crypto/secp256k1"
+
 	"github.com/33cn/chain33/common/log/log15"
 	"google.golang.org/grpc"
 
@@ -160,6 +163,7 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 	cfg.GetModuleConfig().Exec.DisableAddrIndex = true
 	cfg.GetModuleConfig().Mempool.DisableExecCheck = true
 	cfg.GetModuleConfig().RPC.GrpcBindAddr = "localhost:8802"
+	cfg.GetModuleConfig().Crypto.EnableTypes = []string{secp256k1.Name, none.Name}
 	subcfg := cfg.GetSubConfig()
 	solocfg, err := types.ModifySubConfig(subcfg.Consensus["solo"], "waitTxMs", 100)
 	assert.Nil(b, err)
@@ -169,7 +173,7 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 	mock33 := testnode.NewWithRPC(cfg, nil)
 	defer mock33.Close()
 	start := make(chan struct{})
-	//pub := mock33.GetGenesisKey().PubKey().Bytes()
+
 	var height int64
 	for i := 0; i < 10; i++ {
 		addr, _ := util.Genaddress()
@@ -181,16 +185,16 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 			}
 			defer conn.Close()
 			gcli := types.NewChain33Client(conn)
+			//pub := mock33.GetGenesisKey().PubKey().Bytes()
 			for {
 				tx := util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), atomic.LoadInt64(&height)+types.LowAllowPackHeight/2)
 				//测试去签名情况
 				//tx := util.CreateNoneTxWithTxHeight(cfg, nil, 0)
 				//tx.Signature = &types.Signature{
-				//	Ty: types.SECP256K1,
+				//	Ty: none.ID,
 				//	Pubkey:pub,
 				//}
 				_, err := gcli.SendTransaction(context.Background(), tx)
-				//_, err := mock33.GetAPI().SendTx(tx)
 				if err != nil {
 					if strings.Contains(err.Error(), "ErrChannelClosed") {
 						return
@@ -236,7 +240,7 @@ func BenchmarkTxSign(b *testing.B) {
 			<-start
 			for {
 				//txs[index%txBenchNum].Sign(types.SECP256K1, priv)
-				result <- txs[index%txBenchNum].CheckSign()
+				result <- txs[index%txBenchNum].CheckSign(0)
 				index++
 			}
 		}()

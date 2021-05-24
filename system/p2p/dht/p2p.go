@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,8 +32,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	discovery "github.com/libp2p/go-libp2p-discovery"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
+
+	libp2pLog "github.com/ipfs/go-log/v2"
 )
 
 var log = log15.New("module", p2pty.DHTTypeName)
@@ -67,6 +69,25 @@ type P2P struct {
 	env *protocol.P2PEnv
 }
 
+func setLibp2pLog(logFile, logLevel string) {
+
+	// set libp2p log
+	if logLevel == "" {
+		logLevel = "ERROR"
+	}
+
+	libp2pLog.SetupLogging(libp2pLog.Config{
+		Stderr: false,
+		Stdout: false,
+		File:   logFile,
+	})
+
+	err := libp2pLog.SetLogLevel("*", logLevel)
+	if err != nil {
+		log.Error("NewP2P", "set libp2p log level err", err)
+	}
+}
+
 // New new dht p2p network
 func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 
@@ -77,6 +98,9 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	if mcfg.Port == 0 {
 		mcfg.Port = p2pty.DefaultP2PPort
 	}
+	// set libp2p log
+	setLibp2pLog(mgr.ChainCfg.GetModuleConfig().Log.LogFile, mcfg.Libp2pLogLevel)
+
 	p := &P2P{
 		client:   mgr.Client,
 		chainCfg: chainCfg,
@@ -121,12 +145,7 @@ func initP2P(p *P2P) *P2P {
 	}
 
 	p.host = host
-	psOpts := make([]pubsub.Option, 0)
-	// pubsub消息默认会基于节点私钥进行签名和验签，支持关闭
-	if p.subCfg.DisablePubSubMsgSign {
-		psOpts = append(psOpts, pubsub.WithMessageSigning(false), pubsub.WithStrictSignatureVerification(false))
-	}
-	ps, err := extension.NewPubSub(p.ctx, p.host, psOpts...)
+	ps, err := extension.NewPubSub(p.ctx, p.host, &p.subCfg.PubSub)
 	if err != nil {
 		return nil
 	}
@@ -135,7 +154,8 @@ func initP2P(p *P2P) *P2P {
 	p.connManager = manage.NewConnManager(p.ctx, p.host, p.discovery.RoutingTable(), bandwidthTracker, p.subCfg)
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
 	p.taskGroup = &sync.WaitGroup{}
-	p.db = newDB("", p.p2pCfg.Driver, p.subCfg.DHTDataPath, p.subCfg.DHTDataCache)
+
+	p.db = newDB("", p.p2pCfg.Driver, filepath.Dir(p.p2pCfg.DbPath), p.subCfg.DHTDataCache)
 	return p
 }
 
@@ -177,6 +197,7 @@ func (p *P2P) StartP2P() {
 func (p *P2P) CloseP2P() {
 	log.Info("p2p closing")
 	p.discovery.Close()
+	p.cancel()
 	p.waitTaskDone()
 	p.db.Close()
 
@@ -186,7 +207,6 @@ func (p *P2P) CloseP2P() {
 
 	}
 	p.host.Close()
-	p.cancel()
 	log.Info("p2p closed")
 }
 
@@ -447,7 +467,7 @@ func newDB(name, backend, dir string, cache int32) dbm.DB {
 	if backend == "" {
 		backend = "leveldb"
 	}
-	if dir == "" {
+	if dir == "" || dir == "." {
 		dir = "datadir"
 	}
 	if cache <= 0 {

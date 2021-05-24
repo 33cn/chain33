@@ -8,6 +8,7 @@ package broadcast
 import (
 	"context"
 	"encoding/hex"
+	"sync"
 	"sync/atomic"
 
 	"github.com/33cn/chain33/common/pubsub"
@@ -50,6 +51,10 @@ type broadcastProtocol struct {
 	// 接收V1版本节点
 	peerV1    chan peer.ID
 	peerV1Num int32
+
+	syncStatus bool
+	currHeight int64
+	lock       sync.RWMutex
 }
 
 // InitProtocol init protocol
@@ -102,10 +107,28 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 	//注册事件处理函数
 	protocol.RegisterEventHandler(types.EventTxBroadcast, p.handleBroadCastEvent)
 	protocol.RegisterEventHandler(types.EventBlockBroadcast, p.handleBroadCastEvent)
+	protocol.RegisterEventHandler(types.EventIsSync, p.handleIsSyncEvent)
+	protocol.RegisterEventHandler(types.EventAddBlock, p.handleAddBlock)
 
 	// pub sub broadcast
-	go newPubSub(p).broadcast()
+	newPubSub(p).broadcast()
 	go p.manageBroadcastV1Peer()
+}
+
+func (p *broadcastProtocol) getSyncStatus() bool {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	return p.syncStatus
+}
+
+func (p *broadcastProtocol) handleIsSyncEvent(msg *queue.Message) {
+	p.lock.Lock()
+	p.syncStatus = true
+	p.lock.Unlock()
+}
+
+func (p *broadcastProtocol) handleAddBlock(msg *queue.Message) {
+	atomic.StoreInt64(&p.currHeight, msg.GetData().(*types.Block).GetHeight())
 }
 
 // 处理系统广播发送事件，交易及区块
@@ -171,13 +194,12 @@ func (p *broadcastProtocol) sendPeer(data interface{}, pid, version string) erro
 		log.Error("sendPeer", "id", pid, "NewStreamErr", err)
 		return err
 	}
-
+	defer protocol.CloseStream(stream)
 	err = protocol.WriteStream(broadData, stream)
 	if err != nil {
 		log.Error("sendPeer", "pid", pid, "WriteStream err", err)
 		return err
 	}
-	protocol.CloseStream(stream)
 	return nil
 }
 
@@ -232,11 +254,27 @@ func (p *broadcastProtocol) handleReceive(data *types.BroadCastData, pid, peerAd
 	return
 }
 
+// Deprecated, TODO 全网升级后可删除
+func (p *broadcastProtocol) postBlockChainV1(blockHash, pid string, block *types.Block) error {
+	//新老广播网络存在隔离情况，将接收的老版本广播数据再次分发到新网络(重复的数据在新网络会自动屏蔽)
+	p.ps.FIFOPub(block, psBlockTopic)
+	return p.postBlockChain(blockHash, pid, block)
+}
+
 func (p *broadcastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {
+
+	// 非同步状态
+	if !p.getSyncStatus() && atomic.LoadInt64(&p.currHeight) <= block.GetHeight()-32 {
+		return nil
+	}
 	return p.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
 }
 
 func (p *broadcastProtocol) postMempool(txHash string, tx *types.Transaction) error {
+
+	if !p.getSyncStatus() {
+		return nil
+	}
 	return p.P2PManager.PubBroadCast(txHash, tx, types.EventTx)
 }
 

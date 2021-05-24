@@ -133,4 +133,7 @@ type QueueProtocolAPI interface {
 
 	// get chain config
 	GetConfig() *types.Chain33Config
+
+	// get crypto list
+	GetCryptoList() *types.CryptoList
 }

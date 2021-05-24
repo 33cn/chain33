@@ -51,6 +51,10 @@ type Protocol struct {
 	localChunkInfoMutex sync.RWMutex
 
 	concurrency int64
+
+	// 增加一个扩展路由表的缓存，每小时最多生成一次
+	extendShardHealthyRoutingTable *kb.RoutingTable
+	refreshedTime                  time.Time
 }
 
 func init() {
@@ -68,6 +72,16 @@ func InitProtocol(env *protocol.P2PEnv) {
 	if env.SubConfig.Backup > 1 {
 		backup = env.SubConfig.Backup
 	}
+	if env.SubConfig.MinExtendRoutingTableSize == 0 {
+		env.SubConfig.MinExtendRoutingTableSize = types2.DefaultMinExtendRoutingTableSize
+	}
+	if env.SubConfig.MaxExtendRoutingTableSize == 0 {
+		env.SubConfig.MaxExtendRoutingTableSize = types2.DefaultMaxExtendRoutingTableSize
+	}
+	if env.SubConfig.MaxExtendRoutingTableSize < env.SubConfig.MinExtendRoutingTableSize {
+		env.SubConfig.MaxExtendRoutingTableSize = env.SubConfig.MinExtendRoutingTableSize
+	}
+
 	// RoutingTable更新时同时更新ShardHealthyRoutingTable
 	p.RoutingTable.PeerRemoved = func(id peer.ID) {
 		p.ShardHealthyRoutingTable.Remove(id)
@@ -95,8 +109,11 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.syncRoutine()
 	go func() {
 		ticker1 := time.NewTicker(time.Minute)
+		defer ticker1.Stop()
 		ticker2 := time.NewTicker(types2.RefreshInterval)
+		defer ticker2.Stop()
 		ticker4 := time.NewTicker(time.Hour)
+		defer ticker4.Stop()
 
 		for {
 			select {
@@ -232,6 +249,8 @@ func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
 		time.Sleep(time.Second)
 	}
 	ticker := time.NewTicker(time.Minute * 5)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-p.Ctx.Done():

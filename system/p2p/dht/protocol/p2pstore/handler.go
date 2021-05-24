@@ -133,6 +133,7 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 */
 func (p *Protocol) handleStreamStoreChunks(req *types.P2PRequest) {
 	param := req.Request.(*types.P2PRequest_ChunkInfoList).ChunkInfoList.Items
+	log.Info("handleStreamStoreChunks", "len", len(param))
 	for _, info := range param {
 		chunkHash := hex.EncodeToString(info.ChunkHash)
 		//已有其他节点通知该节点保存该chunk，避免接收到多个节点的通知后重复查询数据
@@ -235,9 +236,10 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	}
 
 	//如果本节点是本地路由表中距离该chunk最近的节点，则保存数据；否则不需要保存数据
-	tmpRoutingTable := p.genTempRoutingTable(req.ChunkHash, backup)
-	pid := tmpRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
+	extendRoutingTable := p.genExtendRoutingTable(req.ChunkHash, backup)
+	pid := extendRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
 	if pid != "" && kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
+		log.Info("handleEventNotifyStoreChunk", "pid", pid, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
 		return
 	}
 	log.Info("handleEventNotifyStoreChunk", "local nearest peer", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
@@ -336,7 +338,7 @@ func (p *Protocol) handleEventGetHeaders(m *queue.Message) {
 		log.Error("handleEventGetHeaders", "send message error", err)
 		return
 	}
-	_, _ = p.QueueClient.Wait(msg)
+	_, _ = p.QueueClient.WaitTimeout(msg, time.Second)
 }
 
 func writeBodys(bodys *types.BlockBodys, stream network.Stream) {

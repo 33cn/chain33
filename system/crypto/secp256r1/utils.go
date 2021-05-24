@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ecdsa
+package secp256r1
 
 import (
 	"crypto/ecdsa"
@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	pubkeyCompressed   byte = 0x2 // y_bit + x coord
 	pubkeyUncompressed byte = 0x4 // x coord + y coord
 )
 
@@ -58,15 +59,19 @@ func IsLowS(s *big.Int) bool {
 	return s.Cmp(new(big.Int).Rsh(elliptic.P256().Params().N, 1)) != 1
 }
 
+func isOdd(a *big.Int) bool {
+	return a.Bit(0) == 1
+}
+
 // SerializePublicKeyCompressed serialize compressed publicKey
 func SerializePublicKeyCompressed(p *ecdsa.PublicKey) []byte {
-	byteLen := (elliptic.P256().Params().BitSize + 7) >> 3
-	compressed := make([]byte, 1+byteLen)
-	compressed[0] = byte(p.Y.Bit(0)) | 2
-
-	xBytes := p.X.Bytes()
-	copy(compressed[1:], xBytes)
-	return compressed
+	b := make([]byte, 0, publicKeyECDSALengthCompressed)
+	format := pubkeyCompressed
+	if isOdd(p.Y) {
+		format |= 0x1
+	}
+	b = append(b, format)
+	return paddedAppend(32, b, p.X.Bytes())
 }
 
 // y² = x³ - 3x + b

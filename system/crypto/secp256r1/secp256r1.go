@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ecdsa
+package secp256r1
 
 import (
 	"bytes"
@@ -10,6 +10,8 @@ import (
 	"fmt"
 
 	cert "github.com/33cn/chain33/system/crypto/common"
+	"github.com/33cn/chain33/system/crypto/common/authority"
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 	"github.com/golang/protobuf/proto"
 
 	"crypto/ecdsa"
@@ -25,6 +27,9 @@ const (
 	publicKeyECDSALength           = 65
 	publicKeyECDSALengthCompressed = 33
 )
+
+// EcdsaAuthor secp256r1证书校验
+var EcdsaAuthor = authority.Authority{}
 
 // Driver driver
 type Driver struct{}
@@ -77,9 +82,18 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	return SignatureECDSA(certSignature.Signature), nil
 }
 
-// Validate validate msg and signature TODO:目前只做了公私钥签名验证，需要根据框架整合证书验证
+// Validate validate msg and signature
 func (d Driver) Validate(msg, pub, sig []byte) error {
-	return crypto.BasicValidation(d, msg, pub, sig)
+	err := crypto.BasicValidation(d, msg, pub, sig)
+	if err != nil {
+		return err
+	}
+
+	if EcdsaAuthor.IsInit {
+		err = EcdsaAuthor.Validate(pub, sig)
+	}
+
+	return err
 }
 
 // PrivKeyECDSA PrivKey
@@ -234,14 +248,28 @@ func (sig SignatureECDSA) Equals(other crypto.Signature) bool {
 }
 
 // Name name
-const Name = "auth_ecdsa"
+const Name = "secp256r1"
 
 // ID id
 const ID = 257
 
+//New new
+func New(sub []byte) {
+	var subcfg authority.SubConfig
+	if sub != nil {
+		utils.MustDecode(sub, &subcfg)
+	}
+
+	if subcfg.CertEnable {
+		err := EcdsaAuthor.Init(&subcfg, ID, NewEcdsaValidator())
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+}
+
 func init() {
-	// TODO： 注册时需要初始化证书，WithOptionInitFunc
-	crypto.Register(Name, &Driver{}, crypto.WithOptionTypeID(ID))
+	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID), crypto.WithRegOptionInitFunc(New))
 }
 
 func privKeyFromBytes(curve elliptic.Curve, pk []byte) (*ecdsa.PrivateKey, *ecdsa.PublicKey) {

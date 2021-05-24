@@ -131,14 +131,15 @@ func (chain *BlockChain) OnChainTimeout(height int64) bool {
 func (chain *BlockChain) SynRoutine() {
 	//获取peerlist的定时器，默认1分钟
 	fetchPeerListTicker := time.NewTicker(time.Duration(fetchPeerListSeconds) * time.Second)
+	defer fetchPeerListTicker.Stop()
 
 	//向peer请求同步block的定时器，默认2s
 	blockSynTicker := time.NewTicker(chain.blockSynInterVal * time.Second)
-
+	defer blockSynTicker.Stop()
 	//5分钟检测一次bestchain主链高度是否有增长，如果没有增长可能是目前主链在侧链上，
 	//需要从最高peer向后同步指定的headers用来获取分叉点，再后从指定peer获取分叉点以后的blocks
 	checkHeightNoIncreaseTicker := time.NewTicker(time.Duration(checkHeightNoIncSeconds) * time.Second)
-
+	defer checkHeightNoIncreaseTicker.Stop()
 	//目前暂定1分钟检测一次本bestchain的tiphash和最高peer的对应高度的blockshash是否一致。
 	//如果不一致可能两个节点在各自的链上挖矿，需要从peer的对应高度向后获取指定数量的headers寻找分叉点
 	//考虑叉后的第一个block没有广播到本节点，导致接下来广播过来的blocks都是孤儿节点，无法进行主侧链总难度对比
@@ -152,13 +153,13 @@ func (chain *BlockChain) SynRoutine() {
 	}
 	//3分钟尝试检测一次故障peer是否已经恢复
 	recoveryFaultPeerTicker := time.NewTicker(180 * time.Second)
-
+	defer recoveryFaultPeerTicker.Stop()
 	//2分钟尝试检测一次最优链，确保本节点在最优链
 	checkBestChainTicker := time.NewTicker(120 * time.Second)
-
+	defer checkBestChainTicker.Stop()
 	//30s尝试从peer节点请求ChunkRecord
 	chunkRecordSynTicker := time.NewTicker(30 * time.Second)
-
+	defer chunkRecordSynTicker.Stop()
 	//节点下载模式
 	go chain.DownLoadBlocks()
 
@@ -321,8 +322,8 @@ func (chain *BlockChain) fetchPeerList() error {
 		return err
 	}
 
-	peerlist := resp.GetData().(*types.PeerList)
-	if peerlist == nil {
+	peerlist, ok := resp.GetData().(*types.PeerList)
+	if !ok {
 		synlog.Error("fetchPeerList", "peerlist", "is nil")
 		return types.ErrNoPeer
 	}

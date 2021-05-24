@@ -80,7 +80,7 @@ func TestSecp256k1PrivPub(t *testing.T) {
 }
 
 func TestSm2PrivPub(t *testing.T) {
-	wallet, err := NewWalletFromMnemonic(TypeYcc, types.AuthSM2, mnem)
+	wallet, err := NewWalletFromMnemonic(TypeYcc, types.SM2, mnem)
 	assert.Nil(t, err)
 	priv, pub, err := wallet.NewKeyPair(0)
 	assert.Nil(t, err)
@@ -95,7 +95,7 @@ func TestSm2PrivPub(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, addr, naddr)
 
-	tpub, err := PrivkeyToPub(TypeYcc, types.AuthSM2, priv)
+	tpub, err := PrivkeyToPub(TypeYcc, types.SM2, priv)
 	assert.Nil(t, err)
 	assert.Equal(t, tpub, pub)
 }

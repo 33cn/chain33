@@ -288,6 +288,22 @@ func (_m *QueueProtocolAPI) GetConfig() *types.Chain33Config {
 	return r0
 }
 
+// GetCryptoList provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetCryptoList() *types.CryptoList {
+	ret := _m.Called()
+
+	var r0 *types.CryptoList
+	if rf, ok := ret.Get(0).(func() *types.CryptoList); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.CryptoList)
+		}
+	}
+
+	return r0
+}
+
 // GetHeaders provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetHeaders(param *types.ReqBlocks) (*types.Headers, error) {
 	ret := _m.Called(param)

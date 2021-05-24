@@ -19,7 +19,7 @@ var mlog = log.New("module", "mempool.base")
 
 //Mempool mempool 基础类
 type Mempool struct {
-	proxyMtx          sync.Mutex
+	proxyMtx          sync.RWMutex
 	in                chan *queue.Message
 	out               <-chan *queue.Message
 	client            queue.Client
@@ -36,8 +36,8 @@ type Mempool struct {
 
 //GetSync 判断是否mempool 同步
 func (mem *Mempool) getSync() bool {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
+	mem.proxyMtx.RLock()
+	defer mem.proxyMtx.RUnlock()
 	return mem.sync
 }
 
@@ -96,8 +96,8 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 
 // Size 返回mempool中txCache大小
 func (mem *Mempool) Size() int {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
+	mem.proxyMtx.RLock()
+	defer mem.proxyMtx.RUnlock()
 	return mem.cache.Size()
 }
 
@@ -184,10 +184,10 @@ func (mem *Mempool) setHeader(h *types.Header) {
 	mem.proxyMtx.Unlock()
 }
 
-// GetHeader 获取Mempool.header
+// GetHeader 获取header, 只需要读锁
 func (mem *Mempool) GetHeader() *types.Header {
-	mem.proxyMtx.Lock()
-	defer mem.proxyMtx.Unlock()
+	mem.proxyMtx.RLock()
+	defer mem.proxyMtx.RUnlock()
 	return mem.header
 }
 
@@ -365,7 +365,6 @@ func (mem *Mempool) delBlock(block *types.Block) {
 		return
 	}
 	blkTxs := block.Txs
-	header := mem.GetHeader()
 	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
 	for i := 0; i < len(blkTxs); i++ {
@@ -380,7 +379,7 @@ func (mem *Mempool) delBlock(block *types.Block) {
 			tx = group.Tx()
 			i = i + groupCount - 1
 		}
-		err := tx.Check(cfg, header.GetHeight(), mem.cfg.MinTxFeeRate, mem.cfg.MaxTxFee)
+		err := tx.Check(cfg, mem.GetHeader().GetHeight(), mem.cfg.MinTxFeeRate, mem.cfg.MaxTxFee)
 		if err != nil {
 			continue
 		}
@@ -458,6 +457,11 @@ func (mem *Mempool) checkSync() {
 		}
 		if resp.GetData().(*types.IsCaughtUp).GetIscaughtup() {
 			mem.setSync(true)
+			// 通知p2p广播模块，区块同步状态
+			err = mem.client.Send(mem.client.NewMessage("p2p", types.EventIsSync, nil), false)
+			if err != nil {
+				mlog.Error("checkSync", "send p2p error", err)
+			}
 			return
 		}
 		time.Sleep(time.Second)

@@ -43,7 +43,7 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 	d := new(Discovery)
 	opt := opts.Protocols(protocol.ID(fmt.Sprintf(dhtProtoID, chainCfg.GetTitle(), subCfg.Channel)),
 		protocol.ID(fmt.Sprintf(classicDhtProtoID, chainCfg.GetTitle(), subCfg.Channel)))
-	kademliaDHT, err := dht.New(ctx, host, opt, opts.BucketSize(dht.KValue*2))
+	kademliaDHT, err := dht.New(ctx, host, opt, opts.BucketSize(dht.KValue), opts.RoutingTableLatencyTolerance(time.Second*5))
 	if err != nil {
 		panic(err)
 	}

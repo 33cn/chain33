@@ -13,6 +13,8 @@ import (
 	"math/big"
 
 	cert "github.com/33cn/chain33/system/crypto/common"
+	"github.com/33cn/chain33/system/crypto/common/authority"
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 	"github.com/golang/protobuf/proto"
 
 	"github.com/33cn/chain33/common/crypto"
@@ -26,6 +28,9 @@ const (
 	SM2PublicKeyCompressed = 33
 	SM2SignatureMinLength  = 72
 )
+
+// SM2Author sm2证书校验
+var SM2Author = authority.Authority{}
 
 //Driver 驱动
 type Driver struct{}
@@ -77,9 +82,18 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	}, nil
 }
 
-// Validate validate msg and signature TODO:目前只做了公私钥签名验证，需要根据框架整合证书验证
+// Validate validate msg and signature
 func (d Driver) Validate(msg, pub, sig []byte) error {
-	return crypto.BasicValidation(d, msg, pub, sig)
+	err := crypto.BasicValidation(d, msg, pub, sig)
+	if err != nil {
+		return err
+	}
+
+	if SM2Author.IsInit {
+		err = SM2Author.Validate(pub, sig)
+	}
+
+	return err
 }
 
 //PrivKeySM2 私钥
@@ -223,13 +237,27 @@ func (sig SignatureSM2) Equals(other crypto.Signature) bool {
 
 //const
 const (
-	Name = "auth_sm2"
+	Name = "sm2"
 	ID   = 258
 )
 
+//New new
+func New(sub []byte) {
+	var subcfg authority.SubConfig
+	if sub != nil {
+		utils.MustDecode(sub, &subcfg)
+	}
+
+	if subcfg.CertEnable {
+		err := SM2Author.Init(&subcfg, ID, NewGmValidator())
+		if err != nil {
+			panic(err.Error())
+		}
+	}
+}
+
 func init() {
-	// TODO： 注册时需要初始化证书，WithOptionInitFunc
-	crypto.Register(Name, &Driver{}, crypto.WithOptionTypeID(ID))
+	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID), crypto.WithRegOptionInitFunc(New))
 }
 
 func privKeyFromBytes(curve elliptic.Curve, pk []byte) (*sm2.PrivateKey, *sm2.PublicKey) {

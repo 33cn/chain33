@@ -1517,7 +1517,14 @@ func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) err
 	return err
 }
 
+// GetChainID: 获取chain ID
 func (c *Chain33) GetChainID(in *types.ReqNil, result *interface{}) error {
 	*result = &rpctypes.ChainIDInfo{ChainID: c.cli.GetConfig().GetChainID()}
+	return nil
+}
+
+// GetCryptoList 获取加密列表
+func (c *Chain33) GetCryptoList(in *types.ReqNil, result *interface{}) error {
+	*result = c.cli.GetCryptoList()
 	return nil
 }

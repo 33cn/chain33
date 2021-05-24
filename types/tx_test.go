@@ -172,7 +172,7 @@ func TestDecodeTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if !group.CheckSign() {
+	if !group.CheckSign(0) {
 		t.Error("group: sign should be no err")
 	}
 	//txs[0] 的hash 应该和 整体的hash相同
@@ -184,7 +184,7 @@ func TestDecodeTx(t *testing.T) {
 		if group.Txs[i].IsExpire(cfg, 10, Now().Unix()) {
 			t.Error("group txs[i]: Expire not set so, no exprie forever")
 		}
-		if !group.Txs[i].CheckSign() {
+		if !group.Txs[i].CheckSign(0) {
 			t.Error("group txs[i]: sign should be no err")
 		}
 	}

@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
+	p2ptypes "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -26,7 +28,7 @@ type topicinfo struct {
 
 // PubSub pub sub
 type PubSub struct {
-	ps         *pubsub.PubSub
+	*pubsub.PubSub
 	topics     TopicMap
 	topicMutex sync.RWMutex
 	ctx        context.Context
@@ -38,27 +40,78 @@ type SubMsg *pubsub.Message
 // SubCallBack 订阅消息回调函数
 type SubCallBack func(topic string, msg SubMsg)
 
+func setPubSubParameters(psConf *p2ptypes.PubSubConfig) {
+
+	if psConf.PeerOutboundQueueSize <= 0 {
+		psConf.PeerOutboundQueueSize = 128
+	}
+	if psConf.ValidateQueueSize <= 0 {
+		psConf.ValidateQueueSize = 128
+	}
+
+	if psConf.GossipSubDlo <= 0 {
+		psConf.GossipSubDlo = 6
+	}
+
+	if psConf.GossipSubD <= 0 {
+		psConf.GossipSubD = 8
+	}
+
+	if psConf.GossipSubDhi <= 0 {
+		psConf.GossipSubDhi = 15
+	}
+
+	if psConf.GossipSubHeartbeatInterval <= 0 {
+		psConf.GossipSubHeartbeatInterval = 700
+	}
+
+	if psConf.GossipSubHistoryGossip <= 0 {
+		psConf.GossipSubHistoryGossip = 3
+	}
+
+	if psConf.GossipSubHistoryLength <= 0 {
+		psConf.GossipSubHistoryLength = 10
+	}
+
+	if psConf.GossipSubDlo > psConf.GossipSubD || psConf.GossipSubD > psConf.GossipSubDhi {
+		panic("setPubSubParameters, must GossipSubDlo <= GossipSubD <= GossipSubDhi")
+	}
+	pubsub.GossipSubDlo = psConf.GossipSubDlo
+	pubsub.GossipSubD = psConf.GossipSubD
+	pubsub.GossipSubDhi = psConf.GossipSubDhi
+	pubsub.GossipSubHeartbeatInterval = time.Duration(psConf.GossipSubHeartbeatInterval) * time.Millisecond
+	pubsub.GossipSubHistoryGossip = psConf.GossipSubHistoryGossip
+	pubsub.GossipSubHistoryLength = psConf.GossipSubHistoryLength
+
+}
+
 // NewPubSub new pub sub
-func NewPubSub(ctx context.Context, host host.Host, opts ...pubsub.Option) (*PubSub, error) {
+func NewPubSub(ctx context.Context, host host.Host, psConf *p2ptypes.PubSubConfig) (*PubSub, error) {
 	p := &PubSub{
-		ps:     nil,
 		topics: make(TopicMap),
 	}
+	setPubSubParameters(psConf)
+
+	psOpts := make([]pubsub.Option, 0)
+	// pubsub消息默认会基于节点私钥进行签名和验签，支持关闭
+	if psConf.DisablePubSubMsgSign {
+		psOpts = append(psOpts, pubsub.WithMessageSigning(false), pubsub.WithStrictSignatureVerification(false))
+	}
+	psOpts = append(psOpts, pubsub.WithFloodPublish(true),
+		pubsub.WithPeerOutboundQueueSize(psConf.PeerOutboundQueueSize),
+		pubsub.WithValidateQueueSize(psConf.ValidateQueueSize),
+		pubsub.WithPeerExchange(psConf.EnablePeerExchange))
+
 	//选择使用GossipSub
-	ps, err := pubsub.NewGossipSub(ctx, host, opts...)
+	ps, err := pubsub.NewGossipSub(ctx, host, psOpts...)
 	if err != nil {
 		return nil, err
 	}
 
-	p.ps = ps
+	p.PubSub = ps
 	p.ctx = ctx
 	p.topics = make(TopicMap)
 	return p, nil
-}
-
-// GetTopics get topics
-func (p *PubSub) GetTopics() []string {
-	return p.ps.GetTopics()
 }
 
 // HasTopic check topic exist
@@ -72,7 +125,7 @@ func (p *PubSub) HasTopic(topic string) bool {
 // JoinAndSubTopic 加入topic&subTopic
 func (p *PubSub) JoinAndSubTopic(topic string, callback SubCallBack, opts ...pubsub.TopicOpt) error {
 
-	Topic, err := p.ps.Join(topic, opts...)
+	Topic, err := p.Join(topic, opts...)
 	if err != nil {
 		return err
 	}
@@ -161,6 +214,6 @@ func (p *PubSub) FetchTopicPeers(topic string) []peer.ID {
 
 // TopicNum get topic number
 func (p *PubSub) TopicNum() int {
-	return len(p.ps.GetTopics())
+	return len(p.GetTopics())
 
 }

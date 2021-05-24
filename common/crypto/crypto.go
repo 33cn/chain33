@@ -16,6 +16,10 @@ var (
 	ErrNotSupportAggr = errors.New("AggregateCrypto not support")
 	//ErrSign 签名错误
 	ErrSign = errors.New("error signature")
+	//ErrUnknownDriver 未注册加密插件
+	ErrUnknownDriver = errors.New("ErrUnknownDriver")
+	//ErrDriverNotEnable 加密插件未开启
+	ErrDriverNotEnable = errors.New("ErrUnknownDriver")
 )
 
 var (
@@ -33,24 +37,24 @@ func Init(cfg *Config, subCfg map[string][]byte) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
 
-	// 未指定时，所有插件采用代码中的开启配置
+	// 未指定时，所有插件是使能的
 	if len(cfg.EnableTypes) > 0 {
 		//配置中指定了插件类型，先屏蔽所有
 		for _, d := range drivers {
-			d.enableHeight = -1
+			d.enable = false
 		}
 		// 对配置的插件，默认设置开启高度为0
 		for _, name := range cfg.EnableTypes {
 			if d, ok := drivers[name]; ok {
-				d.enableHeight = 0
+				d.enable = true
 			}
 		}
 	}
 
-	// 配置中指定了启用高度，覆盖设置
+	// 配置中指定了启用高度，覆盖默认的使能高度设置
 	for name, enableHeight := range cfg.EnableHeight {
-		// enableHeight如果为-1，表示插件本身在配置中未开启，则enableHeight的配置无效
-		if d, ok := drivers[name]; ok && d.enableHeight >= 0 {
+		// 插件本身在配置中未开启，则enableHeight的配置无效
+		if d, ok := drivers[name]; ok && d.enable {
 			d.enableHeight = enableHeight
 		}
 	}
@@ -64,11 +68,11 @@ func Init(cfg *Config, subCfg map[string][]byte) {
 }
 
 //Register 注册加密算法，支持选项，设置typeID相关参数
-func Register(name string, crypto Crypto, options ...Option) {
+func Register(name string, crypto Crypto, options ...RegOption) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
 
-	driver := &Driver{crypto: crypto}
+	driver := &Driver{name: name, crypto: crypto, enable: true}
 
 	for _, option := range options {
 		if err := option(driver); err != nil {
@@ -103,7 +107,7 @@ func Register(name string, crypto Crypto, options ...Option) {
 		// 有重复直接显示报错, 这里有可能是系统自动生成重复TypeID导致的，不能隐式解决重复
 		// 因为不同插件组合方式，冲突的情况也不同，需要及时报错并采用手动指定方式解决
 		panic(fmt.Sprintf("crypto: Register duplicate driver typeID=%d, "+
-			"use WithOptionTypeID for manual setting", driver.typeID))
+			"use WithRegOptionTypeID for manual setting", driver.typeID))
 	}
 	drivers[name] = driver
 	driversType[driver.typeID] = name
@@ -128,18 +132,31 @@ func GetType(name string) int {
 }
 
 //New new
-func New(name string) (Crypto, error) {
+func New(name string, options ...NewOption) (Crypto, error) {
 
 	c, ok := drivers[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown driver %q", name)
+		return nil, ErrUnknownDriver
 	}
+
+	for _, opt := range options {
+		if err := opt(c); err != nil {
+			return nil, err
+		}
+	}
+
 	return c.crypto, nil
 }
 
-// IsEnable 根据高度判定是否开启
-func IsEnable(name string, height int64) bool {
+// GetCryptoList 获取加密插件列表，名称和对应的类型值
+func GetCryptoList() ([]string, []int32) {
 
-	d, ok := drivers[name]
-	return ok && d.enableHeight >= 0 && d.enableHeight <= height
+	names := make([]string, 0, len(driversType))
+	typeIDs := make([]int32, 0, len(driversType))
+
+	for ty, name := range driversType {
+		names = append(names, name)
+		typeIDs = append(typeIDs, ty)
+	}
+	return names, typeIDs
 }

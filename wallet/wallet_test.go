@@ -325,7 +325,7 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	}
 
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType), crypto.WithNewOptionEnableCheck(wallet.lastHeader.GetHeight()))
 	require.NoError(t, err)
 
 	Privkey := "0xb94ae286a508e4bb3fbbcb61997822fea6f0a534510597ef8eb60a19d6b219a0"
@@ -386,7 +386,7 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	println("TestProcImportPrivKey begin")
 
 	//生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignName("", wallet.SignType))
+	cr, err := crypto.New(types.GetSignName("", wallet.SignType), crypto.WithNewOptionEnableCheck(wallet.lastHeader.GetHeight()))
 	require.NoError(t, err)
 
 	priv, err := cr.GenKey()
