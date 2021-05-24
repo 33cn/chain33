@@ -241,7 +241,6 @@ chain33_GetChainID() {
     http_req '{"method":"Chain33.GetChainID","params":[]}' ${MAIN_HTTP} "$resok" "$FUNCNAME"
 }
 
-
 chain33_GetHexTxByHash() {
     #先获取一笔交易
     reHash=$(curl -ksd '{"jsonrpc":"2.0","id":2,"method":"Chain33.GetTxByAddr","params":[{"addr":"14KEKbYtKKQm4wMthSK9J4La4nAiidGozt","flag":0,"count":1,"direction":0,"height":-1,"index":0}]}' -H 'content-type:text/plain;' ${MAIN_HTTP} | jq -r '.result.txInfos[0].hash')
