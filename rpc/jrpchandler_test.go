@@ -1778,8 +1778,8 @@ func TestChain33_ChainID(t *testing.T) {
 	var testResult interface{}
 
 	in := &types.ReqNil{}
-	chainId := int32(33)
-	api.On("GetChainID", mock.Anything).Return(chainId, nil)
+	chainID := int32(33)
+	api.On("GetChainID", mock.Anything).Return(chainID, nil)
 	err := testChain33.GetChainID(in, &testResult)
 	assert.Equal(t, nil, err)
 	assert.Equal(t, int32(33), testResult.(*rpctypes.ChainIDInfo).ChainID)

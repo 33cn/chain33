@@ -451,28 +451,6 @@ func Test_PostTxReceipt(t *testing.T) {
 	defer mock33.Close()
 }
 
-func prepareEvmEventBlock(chain *BlockChain) error {
-	var blockSequence types.BlockSequence
-	blockSequence.Hash, _ = common.FromHex("0xe902b2e28be70e2062f6c7838fe12196c91b159ed6cbf189741c43f5d4c09927")
-	blockSequence.Type = 1
-	BlockSequenceByte, err := proto.Marshal(&blockSequence)
-	if nil != err {
-		return err
-	}
-
-	for i := 0; i < 10; i++ {
-		newSequence := int64(i)
-		hash := []byte(fmt.Sprintf("block-sequence-hash-index-%d", i))
-		chain.blockStore.Set(calcSequenceToHashKey(newSequence, true), BlockSequenceByte)
-		newSequence += 1
-
-		sequenceBytes := types.Encode(&types.Int64{Data: newSequence})
-		chain.blockStore.Set(calcHashToSequenceKey(hash, true), sequenceBytes)
-
-	}
-	return nil
-}
-
 func Test_PostEVMEvent(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 
