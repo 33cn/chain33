@@ -507,7 +507,7 @@ func Test_PostEVMEvent(t *testing.T) {
 
 		receipt := &types.ReceiptData{
 			Ty: types.ExecOk,
-			Logs: []*types.ReceiptLog{&types.ReceiptLog{
+			Logs: []*types.ReceiptLog{{
 				Ty:  605,
 				Log: types.Encode(evmLog),
 			}, other},
@@ -590,7 +590,7 @@ func Test_PostEVMEvent_bigsize(t *testing.T) {
 
 		receipt := &types.ReceiptData{
 			Ty: types.ExecOk,
-			Logs: []*types.ReceiptLog{&types.ReceiptLog{
+			Logs: []*types.ReceiptLog{{
 				Ty:  605,
 				Log: types.Encode(evmLog),
 			}, other},
@@ -667,7 +667,7 @@ func Test_PostEVMEvent_notJson(t *testing.T) {
 
 		receipt := &types.ReceiptData{
 			Ty: types.ExecOk,
-			Logs: []*types.ReceiptLog{&types.ReceiptLog{
+			Logs: []*types.ReceiptLog{{
 				Ty:  605,
 				Log: types.Encode(evmLog),
 			}, other},
@@ -744,7 +744,7 @@ func Test_PostEVMEvent_badLog(t *testing.T) {
 
 		receipt := &types.ReceiptData{
 			Ty: types.ExecOk,
-			Logs: []*types.ReceiptLog{&types.ReceiptLog{
+			Logs: []*types.ReceiptLog{{
 				Ty:  605,
 				Log: []byte{0, 1},
 			}, other},
@@ -822,7 +822,7 @@ func Test_PostEVMEvent_nil(t *testing.T) {
 
 		receipt := &types.ReceiptData{
 			Ty: types.ExecOk,
-			Logs: []*types.ReceiptLog{&types.ReceiptLog{
+			Logs: []*types.ReceiptLog{{
 				Ty:  606,
 				Log: types.Encode(evmLog),
 			}, other},

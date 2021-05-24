@@ -652,8 +652,8 @@ func (push *Push) getEVMEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 				}
 				if nil != evmLogsPerTx.Logs {
 					txAndLogs := &types.EVMTxAndLogs{
-						Tx:tx,
-						LogsPerTx:evmLogsPerTx,
+						Tx:        tx,
+						LogsPerTx: evmLogsPerTx,
 					}
 					evmLogsPerBlk.TxAndLogs = append(evmLogsPerBlk.TxAndLogs, txAndLogs)
 				}
