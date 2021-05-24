@@ -450,7 +450,7 @@ func Test_PostTxReceipt(t *testing.T) {
 	defer mock33.Close()
 }
 
-func Test_PostEVMEvent(t *testing.T) {
+func Test_PostEVMEvent_Subscribe(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 
 	ps := &bcMocks.PostService{}
@@ -516,6 +516,80 @@ func Test_PostEVMEvent(t *testing.T) {
 
 	err := chain.push.addSubscriber(subscribe)
 	assert.Equal(t, err, nil)
+
+	//createBlocks(t, mock33, chain, 1)
+	keyStr := string(calcPushKey(subscribe.Name))
+	pushNotify := chain.push.tasks[keyStr]
+	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	assert.Equal(t, pushNotify.subscribe.Type, subscribe.Type)
+
+	defer mock33.Close()
+}
+
+func Test_PostEVMEvent(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+	seqStore := &bcMocks.SequenceStore{}
+	var blockSequence types.BlockSequence
+	blockSequence.Hash, _ = common.FromHex("0xe902b2e28be70e2062f6c7838fe12196c91b159ed6cbf189741c43f5d4c09927")
+	blockSequence.Type = 1
+	seqStore.On("GetBlockSequence", mock.Anything).Return(&blockSequence, nil)
+	seqStore.On("LoadBlockLastSequence").Return(int64(1), nil)
+
+	///////////////////
+	var txs []*types.Transaction
+	var receipts []*types.ReceiptData
+	for i := 0; i < 10; i++ {
+		tx := &types.Transaction{}
+		tx.Execer = []byte("evm")
+		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
+		txs = append(txs, tx)
+
+		topic, _ := common.FromHex("0x374449c83a37309524754bbdfc5b8306d3694b5d14609b8fbb1b50cc5c0319a7")
+		evmLog := &types.EVMLog{
+			Topic: [][]byte{topic},
+			Data:  []byte{0, 1},
+		}
+
+		other := &types.ReceiptLog{
+			Ty: 99,
+		}
+
+		receipt := &types.ReceiptData{
+			Ty: types.ExecOk,
+			Logs: []*types.ReceiptLog{{
+				Ty:  605,
+				Log: types.Encode(evmLog),
+			}, other},
+		}
+		receipts = append(receipts, receipt)
+	}
+	block := &types.Block{
+		Height: 1,
+		Txs:    txs,
+	}
+	blockDetail := &types.BlockDetail{
+		Block:          block,
+		Receipts:       receipts,
+		KV:             nil,
+		PrevStatusHash: nil,
+	}
+	size := blockDetail.Size()
+	////////////////////
+	seqStore.On("LoadBlockBySequence", mock.Anything).Return(blockDetail, size, nil)
+	chain.push.sequenceStore = seqStore
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test-evm-event"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushEVMEvent
+	subscribe.Encode = "json"
+	subscribe.Contract = make(map[string]bool)
+	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
+
 	startSeq := int64(0)
 	seqCount := 5
 	maxSize := int(1024 * 1024)
@@ -523,12 +597,6 @@ func Test_PostEVMEvent(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
 	assert.NotEqual(t, nil, data)
-
-	//createBlocks(t, mock33, chain, 1)
-	keyStr := string(calcPushKey(subscribe.Name))
-	pushNotify := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
-	assert.Equal(t, pushNotify.subscribe.Type, subscribe.Type)
 
 	defer mock33.Close()
 }
@@ -597,8 +665,6 @@ func Test_PostEVMEvent_bigsize(t *testing.T) {
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
 
-	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
 	startSeq := int64(0)
 	seqCount := 5
 	maxSize := int(10)
@@ -674,8 +740,6 @@ func Test_PostEVMEvent_notJson(t *testing.T) {
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
 
-	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
 	startSeq := int64(0)
 	seqCount := 5
 	maxSize := int(1024 * 1024)
@@ -683,12 +747,6 @@ func Test_PostEVMEvent_notJson(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
 	assert.NotEqual(t, nil, data)
-
-	//createBlocks(t, mock33, chain, 1)
-	keyStr := string(calcPushKey(subscribe.Name))
-	pushNotify := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
-	assert.Equal(t, pushNotify.subscribe.Type, subscribe.Type)
 
 	defer mock33.Close()
 }
@@ -752,8 +810,6 @@ func Test_PostEVMEvent_badLog(t *testing.T) {
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
 
-	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
 	startSeq := int64(0)
 	seqCount := 5
 	maxSize := int(1)
@@ -829,8 +885,6 @@ func Test_PostEVMEvent_nil(t *testing.T) {
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
 
-	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
 	startSeq := int64(0)
 	seqCount := 5
 	maxSize := int(1)
@@ -868,12 +922,10 @@ func Test_PostEVMEvent_errProcess(t *testing.T) {
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
 
-	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
 	startSeq := int64(0)
 	seqCount := 5
 	maxSize := int(1024 * 1024)
-	_, _, err = chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
+	_, _, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
 	assert.NotEqual(t, nil, err)
 
 	_, _, err = chain.push.getPushData(subscribe, startSeq+1, seqCount, maxSize)
