@@ -45,7 +45,7 @@ func (priv privKeyBtcScript) Bytes() []byte {
 }
 
 //Sign 签名
-func (priv privKeyBtcScript) Sign(msg []byte) crypto.Signature {
+func (priv privKeyBtcScript) Sign(msg []byte, opts ...interface{}) crypto.Signature {
 
 	var err error
 	key, pk := secp256k1.PrivKeyFromBytes(secp256k1.S256(), priv.key[:])
@@ -75,7 +75,7 @@ func (priv privKeyBtcScript) Sign(msg []byte) crypto.Signature {
 }
 
 //PubKey 私钥生成公钥
-func (priv privKeyBtcScript) PubKey() crypto.PubKey {
+func (priv privKeyBtcScript) PubKey(opts ...interface{}) crypto.PubKey {
 	_, pub := secp256k1.PrivKeyFromBytes(secp256k1.S256(), priv.key[:])
 	var pubSecp256k1 pubKeyBtcScript
 	copy(pubSecp256k1[:], pub.SerializeCompressed())
