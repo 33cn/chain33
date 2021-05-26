@@ -24,8 +24,8 @@ type AggregateCrypto interface {
 //PrivKey 私钥
 type PrivKey interface {
 	Bytes() []byte
-	Sign(msg []byte) Signature
-	PubKey() PubKey
+	Sign(msg []byte, opts ...interface{}) Signature
+	PubKey(opts ...interface{}) PubKey
 	Equals(PrivKey) bool
 }
 
