@@ -2,11 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package btcscript btc script driver
+// Package btcscript btc Script driver
 package btcscript
 
 import (
+	"bytes"
 	"errors"
+
+	"github.com/33cn/chain33/common"
 
 	"github.com/33cn/chain33/common/crypto"
 	secp256k1 "github.com/btcsuite/btcd/btcec"
@@ -40,7 +43,7 @@ func (d Driver) GenKey() (crypto.PrivKey, error) {
 //PrivKeyFromBytes 字节转为私钥
 func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
 	if len(b) != 32 {
-		return nil, errors.New("invalid priv key byte")
+		return nil, errors.New("invalid priv Key byte")
 	}
 	privKeyBytes := new([32]byte)
 	copy(privKeyBytes[:], b[:32])
@@ -51,12 +54,9 @@ func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
 
 //PubKeyFromBytes 字节转为公钥
 func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
-	if len(b) != 33 {
-		return nil, errors.New("invalid pub key byte")
-	}
-	pubKeyBytes := new([33]byte)
+	pubKeyBytes := make([]byte, len(b))
 	copy(pubKeyBytes[:], b[:])
-	return pubKeyBtcScript(*pubKeyBytes), nil
+	return pubKeyBtcScript(pubKeyBytes), nil
 }
 
 //SignatureFromBytes 字节转为签名
@@ -72,10 +72,14 @@ func (d Driver) Validate(msg, pk, sig []byte) error {
 		return err
 	}
 
-	_, lockScript, err := GetBtcLockScript(ssig.ScriptTy, pk, pk)
-	if err != nil {
-		return err
+	//需要验证公钥和锁定脚本是否一一对应
+	if !bytes.Equal(pk, common.Sha256(ssig.LockScript)) {
+		return errors.New("invalid lock Script")
 	}
 
-	return CheckBtcScript(msg, lockScript, ssig.UnlockScript, txscript.StandardVerifyFlags)
+	if err := CheckBtcScript(msg, ssig.LockScript, ssig.UnlockScript,
+		txscript.StandardVerifyFlags); err != nil {
+		return errors.New("invalid unlock Script, err:" + err.Error())
+	}
+	return nil
 }

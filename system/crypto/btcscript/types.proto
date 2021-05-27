@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-package btcscript;
-
-message Signature {
-    int32   scriptTy = 1;
-    bytes unlockScript       = 2;
-}

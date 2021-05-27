@@ -8,33 +8,24 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
-	secp256k1 "github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/gogo/protobuf/proto"
 )
 
-const (
-	TyPay2PubKey = iota
-	TyPay2Script
-)
-
-var btcParams = &chaincfg.Params{
-	Name: "chain33-btc-script",
-	//PubKeyHashAddrID:
-}
-
-type signOption struct {
-	ty         int32
-	btcScript  []byte
-	prevScript []byte
+type btcSignOption struct {
+	prevSigScript []byte
+	lockScript    []byte
+	keys          map[string]*BtcAddr2Key
+	scripts       map[string]*BtcAddr2Script
+	btcParams     *chaincfg.Params
 }
 
 //privKeyBtcScript PrivKey
 type privKeyBtcScript struct {
-	key     [32]byte
-	signOpt signOption
+	key [32]byte
 }
 
 //Bytes 字节格式
@@ -47,39 +38,34 @@ func (priv privKeyBtcScript) Bytes() []byte {
 //Sign 签名
 func (priv privKeyBtcScript) Sign(msg []byte, opts ...interface{}) crypto.Signature {
 
-	var err error
-	key, pk := secp256k1.PrivKeyFromBytes(secp256k1.S256(), priv.key[:])
+	option := initBtcSignOption(priv.key[:])
+	applySignOption(option, opts...)
 
-	btcAddr, lockScript, err := GetBtcLockScript(priv.signOpt.ty, pk.SerializeCompressed(), priv.signOpt.btcScript)
-	if err != nil {
-		panic("GetBtcLockScript err:" + err.Error())
-	}
-
-	unlockScript, err := GetBtcUnlockScript(msg, lockScript, priv.signOpt.prevScript, txscript.SigHashAll, btcParams,
-		mkGetKey(map[string]addressToKey{btcAddr.EncodeAddress(): {key, true}}),
-		mkGetScript(map[string][]byte{btcAddr.EncodeAddress(): priv.signOpt.btcScript}))
+	unlockScript, err := GetBtcUnlockScript(msg, option.lockScript,
+		option.prevSigScript, txscript.SigHashAll, Chain33BtcParams,
+		mkGetKey(option.keys), mkGetScript(option.scripts))
 
 	if err != nil {
-		panic("sign btc script err:" + err.Error())
+		panic("GetBtcUnlockScript err:" + err.Error())
 	}
 	sig, err := proto.Marshal(&Signature{
-		ScriptTy:     priv.signOpt.ty,
+		LockScript:   option.lockScript,
 		UnlockScript: unlockScript,
 	})
 
 	if err != nil {
-		panic("serial signature err:" + err.Error())
+		panic("marshal signature err:" + err.Error())
 	}
 
 	return sigBtcScript(sig)
 }
 
-//PubKey 私钥生成公钥
+//PubKey 私钥生成公钥, 公钥由锁定脚本生成
 func (priv privKeyBtcScript) PubKey(opts ...interface{}) crypto.PubKey {
-	_, pub := secp256k1.PrivKeyFromBytes(secp256k1.S256(), priv.key[:])
-	var pubSecp256k1 pubKeyBtcScript
-	copy(pubSecp256k1[:], pub.SerializeCompressed())
-	return pubSecp256k1
+
+	option := initBtcSignOption(priv.key[:])
+	applySignOption(option, opts...)
+	return pubKeyBtcScript(common.Sha256(option.lockScript))
 }
 
 //Equals 私钥是否相等
@@ -97,11 +83,11 @@ func (priv privKeyBtcScript) String() string {
 
 //pubKeyBtcScript Compressed pubkey (just the x-cord),
 // prefixed with 0x02 or 0x03, depending on the y-cord.
-type pubKeyBtcScript [33]byte
+type pubKeyBtcScript []byte
 
 //Bytes 字节格式
 func (pubKey pubKeyBtcScript) Bytes() []byte {
-	s := make([]byte, 33)
+	s := make([]byte, len(pubKey))
 	copy(s, pubKey[:])
 	return s
 }
