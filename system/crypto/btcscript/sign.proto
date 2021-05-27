@@ -7,6 +7,6 @@ syntax = "proto3";
 package btcscript;
 
 message Signature {
-    bytes lockScript       = 1;
-    bytes unlockScript       = 2;
+    bytes lockScript   = 1;
+    bytes unlockScript = 2;
 }
