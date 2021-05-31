@@ -133,14 +133,17 @@ func (chain *BlockChain) blockExists(hash []byte) bool {
 	}
 
 	// 检测数据库中是否存在，通过hash获取blockheader，不存在就返回false。
-	//主链或侧链都会保存hash key，如果侧链重新变回主链，会重组(connect执行)之前侧链所有区块
-	//如果只判断主链是否存在此hash, 被回滚的区块重新被广播到，而且系统重启之后，index里面没有缓存，就会认为此hash不存在，
-	//而执行dbMaybeStoreBlock, 导致receipts等信息丢失。
 	blockheader, err := chain.blockStore.GetBlockHeaderByHash(hash)
 	if blockheader == nil || err != nil {
 		return false
 	}
-	return true
+	//block存在数据库中时，需要进一步确认是否在主链上。不在主链上返回false
+	//因为maybeAccept会存header,但是如果还没connect执行就重启了，也不能认为存在，需要执行此区块
+	height, err := chain.blockStore.GetHeightByBlockHash(hash)
+	if err != nil {
+		return false
+	}
+	return height != -1
 }
 
 // 尝试接受此block
