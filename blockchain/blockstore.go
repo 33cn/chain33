@@ -900,7 +900,7 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	// 对于2，被回滚的区块重新被广播到，而且系统重启之后，index里面没有缓存，blockExists就会认为此hash不存在，而执行dbMaybeStoreBlock, 导致receipts等信息丢失
 	blockheader, _ := bs.GetBlockHeaderByHash(hash)
 	if blockheader != nil {
-		chainlog.Info("dbMaybeStoreBlock block header existed hash=%s", common.ToHex(hash))
+		chainlog.Info("dbMaybeStoreBlock block header existed", "hash", common.ToHex(hash))
 		return nil
 	}
 
