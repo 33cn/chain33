@@ -59,7 +59,7 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 //Start  the dht
 func (d *Discovery) Start() {
 	//连接内置种子，以及addrbook存储的节点
-	initInnerPeers(d.host, d.bootstraps, d.subCfg)
+	go initInnerPeers(d.host, d.bootstraps, d.subCfg)
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
 	if err := d.kademliaDHT.Bootstrap(d.ctx); err != nil {
