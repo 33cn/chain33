@@ -8,6 +8,7 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/network"
+	kbt "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -127,8 +128,19 @@ func (p *Protocol) handleStreamVersionOld(stream network.Stream) {
 }
 
 func (p *Protocol) handleEventPeerInfo(msg *queue.Message) {
-	peers := p.PeerInfoManager.FetchAll()
-	msg.Reply(p.QueueClient.NewMessage("blockchain", types.EventPeerList, &types.PeerList{Peers: peers}))
+	// no more than 30 peers
+	peers := p.RoutingTable.NearestPeers(kbt.ConvertPeerID(p.Host.ID()), maxPeers)
+	var peerList types.PeerList
+	for _, pid := range peers {
+		if info := p.PeerInfoManager.Fetch(pid); info != nil {
+			peerList.Peers = append(peerList.Peers, info)
+		}
+	}
+	// add self at last
+	if info := p.PeerInfoManager.Fetch(p.Host.ID()); info != nil {
+		peerList.Peers = append(peerList.Peers, info)
+	}
+	msg.Reply(p.QueueClient.NewMessage("blockchain", types.EventPeerList, &peerList))
 }
 
 func (p *Protocol) handleEventNetProtocols(msg *queue.Message) {
