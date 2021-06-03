@@ -19,6 +19,7 @@ import (
 )
 
 const diffHeightValue = 512
+const maxPeers = 30
 
 func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	msg := p.QueueClient.NewMessage(mempool, types.EventGetMempoolSize, nil)
@@ -26,7 +27,7 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	if err != nil {
 		return nil
 	}
-	resp, err := p.QueueClient.WaitTimeout(msg, time.Second*10)
+	resp, err := p.QueueClient.WaitTimeout(msg, time.Second*5)
 	if err != nil {
 		log.Error("getLocalPeerInfo", "mempool WaitTimeout", err)
 		return nil
@@ -63,7 +64,7 @@ func (p *Protocol) refreshSelf() {
 	}
 }
 
-func (p *Protocol) refreshPeerInfo() {
+func (p *Protocol) refreshPeerInfo(peers []peer.ID) {
 	if !atomic.CompareAndSwapInt32(&p.refreshing, 0, 1) {
 		return
 	}
@@ -71,7 +72,7 @@ func (p *Protocol) refreshPeerInfo() {
 	var wg sync.WaitGroup
 	// 限制最大并发数量为20
 	ch := make(chan struct{}, 20)
-	for _, remoteID := range p.RoutingTable.ListPeers() {
+	for _, remoteID := range peers {
 		if p.checkDone() {
 			log.Warn("getPeerInfo", "process", "done+++++++")
 			return

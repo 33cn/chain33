@@ -8,12 +8,13 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
+	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
 	// Deprecated: old version, use peerInfo instead
-	peerInfoOld = "/chain33/peerinfoReq/1.0.0"
-	peerInfo    = "/chain33/peer-info/1.0.0" //老版本
+	peerInfoOld = "/chain33/peerinfoReq/1.0.0" //老版本
+	peerInfo    = "/chain33/peer-info/1.0.0"
 	// Deprecated: old version, use peerVersion instead
 	peerVersionOld = "/chain33/peerVersion/1.0.0"
 	peerVersion    = "/chain33/peer-version/1.0.0"
@@ -90,6 +91,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 		defer ticker.Stop()
 		ticker2 := time.NewTicker(time.Minute * 5)
 		defer ticker2.Stop()
+		ticker3 := time.NewTicker(time.Minute * 10)
+		defer ticker3.Stop()
 
 		for {
 			select {
@@ -98,6 +101,13 @@ func InitProtocol(env *protocol.P2PEnv) {
 			case <-ticker.C:
 				p.refreshSelf()
 			case <-ticker2.C:
+				peers := p.RoutingTable.ListPeers()
+				if len(peers) <= maxPeers {
+					break
+				}
+				p.refreshPeerInfo(peers[:len(peers)-maxPeers])
+
+			case <-ticker3.C:
 				p.checkOutBound(p.PeerInfoManager.Fetch(p.Host.ID()).GetHeader().GetHeight())
 			}
 		}
@@ -114,7 +124,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 			case <-p.Ctx.Done():
 				return
 			case <-ticker1.C:
-				p.refreshPeerInfo()
+				p.refreshPeerInfo(p.RoutingTable.NearestPeers(kbt.ConvertPeerID(p.Host.ID()), maxPeers))
 			}
 		}
 	}()
