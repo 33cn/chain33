@@ -29,7 +29,7 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 
 	for _, node := range cfg.BootStraps {
 		info := genAddrInfo(node)
-		if info == nil || info.ID == host.ID() {
+		if info == nil || len(info.Addrs) == 0 || info.ID == host.ID() {
 			continue
 		}
 		host.Peerstore().AddAddrs(info.ID, info.Addrs, peerstore.PermanentAddrTTL)
