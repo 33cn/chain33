@@ -149,6 +149,12 @@ func (s *ConnManager) printMonitorInfo() {
 }
 
 func (s *ConnManager) procConnections() {
+	for _, conn := range s.host.Network().Conns() {
+		remotePeer := conn.RemotePeer()
+		if s.routingTable.Find(remotePeer) == "" {
+			_, _ = s.routingTable.Update(remotePeer)
+		}
+	}
 	//处理当前连接的节点问题
 	_, outBoundSize := s.BoundSize()
 	if outBoundSize > maxOutBounds || s.Size() > maxBounds {
