@@ -235,7 +235,12 @@ message P2PRequest {
         ReqBlocks       reqBlocks       = 5;
         //新的协议可以继续添加request类型
         ReqPeers reqPeers = 6;
+        string pid = 7;
     }
+}
+
+message PeerIDList {
+	repeated string peers = 1;
 }
 
 message ReqPeers {
@@ -261,7 +266,8 @@ message P2PResponse {
         ChunkRecords chunkRecords = 7;
         //新的协议可以继续添加response类型
         NodeInfo nodeInfo = 8;
-        // Reply reply = 8;
+        PeerInfo peerInfo = 9;
+        PeerIDList peers = 10;
     }
 }
 
