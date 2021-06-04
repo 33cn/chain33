@@ -239,10 +239,6 @@ message P2PRequest {
     }
 }
 
-message PeerIDList {
-	repeated string peers = 1;
-}
-
 message ReqPeers {
     bytes referKey = 1;
     int32 count    = 2;
@@ -267,7 +263,7 @@ message P2PResponse {
         //新的协议可以继续添加response类型
         NodeInfo nodeInfo = 8;
         PeerInfo peerInfo = 9;
-        PeerIDList peers = 10;
+        PeerInfoList peerInfos = 10;
     }
 }
 
@@ -279,6 +275,10 @@ message NodeInfo {
 message PeerInfo {
     bytes    ID              = 1;
     repeated bytes MultiAddr = 2;
+}
+
+message PeerInfoList {
+    repeated PeerInfo peerInfos = 1;
 }
 
 /**
