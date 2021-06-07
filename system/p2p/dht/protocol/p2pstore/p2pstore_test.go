@@ -19,24 +19,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
 
 const dataDir = "./datadir"
-
-func TestUpdateChunkWhiteList(t *testing.T) {
-	p := &Protocol{}
-
-	p.chunkWhiteList.Store("test1", time.Now())
-	p.chunkWhiteList.Store("test2", time.Now().Add(-time.Minute*11))
-	p.updateChunkWhiteList()
-	_, ok := p.chunkWhiteList.Load("test1")
-	require.True(t, ok)
-	_, ok = p.chunkWhiteList.Load("test2")
-	require.False(t, ok)
-}
 
 //HOST1 ID: Qma91H212PWtAFcioW7h9eKiosJtwHsb9x3RmjqRWTwciZ
 //HOST2 ID: QmbazrBU4HthhnQWcUTiJLnj5ihbFHXsAkGAG6QfmrqJDs
@@ -66,14 +53,19 @@ func TestInit(t *testing.T) {
 	})
 	require.False(t, msg.Data.(*types.Reply).IsOk, msg)
 
+	// 通知host1保存数据
+	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test0"),
+		Start:     0,
+		End:       999,
+	})
 	// 通知host2保存数据
 	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
 		Start:     0,
 		End:       999,
 	})
-	time.Sleep(time.Second / 2)
-	p2.republish()
+
 	//数据保存之后应该可以查到数据了
 	time.Sleep(time.Second / 2)
 
@@ -146,47 +138,21 @@ func TestInit(t *testing.T) {
 	msg = <-msgCh
 	require.Equal(t, 11, len(msg.Data.(*types.ChunkRecords).Infos))
 
-	//保存4000~4999的block,会检查0~3999的blockchunk是否能查到
 	// 通知host1保存数据
 	testStoreChunk(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test4"),
-		Start:     4000,
-		End:       4999,
-	})
-	time.Sleep(time.Second / 2)
-	//数据保存之后应该可以查到数据了
-
-	//向host1请求BlockBody
-	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test2"),
-		Start:     2000,
-		End:       2999,
-	})
-	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
-	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test1"),
 		Start:     1000,
 		End:       1999,
 	})
-	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
-	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test2"),
-		Start:     2000,
-		End:       2999,
+	// 通知host2保存数据
+	testStoreChunk(t, client, "p2p2", &types.ChunkInfoMsg{
+		ChunkHash: []byte("test1"),
+		Start:     1000,
+		End:       1999,
 	})
-	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
-	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test3"),
-		Start:     3000,
-		End:       3999,
-	})
-	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
-	msg = testGetBody(t, client, "p2p", &types.ChunkInfoMsg{
-		ChunkHash: []byte("test4"),
-		Start:     4000,
-		End:       4999,
-	})
-	require.Equal(t, 1000, len(msg.Data.(*types.BlockBodys).Items))
+
+	time.Sleep(time.Second / 2)
+
 	//向host2请求BlockBody
 	msg = testGetBody(t, client, "p2p2", &types.ChunkInfoMsg{
 		ChunkHash: []byte("test1"),
@@ -473,22 +439,22 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		DB:               dbm.NewDB("p2pstore2", "leveldb", dataDir, 128),
 	}
 	p2 := &Protocol{
-		P2PEnv:                   &env2,
-		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env2.Host.ID()), time.Minute, env2.Host.Peerstore()),
-		localChunkInfo:           make(map[string]LocalChunkInfo),
-		notifyingQueue:           make(chan *types.ChunkInfoMsg, 100),
+		P2PEnv:         &env2,
+		localChunkInfo: make(map[string]LocalChunkInfo),
+		chunkToSync:    make(chan *types.ChunkInfoMsg, 100),
+		chunkToDelete:  make(chan *types.ChunkInfoMsg, 100),
 	}
-	go p2.updateShardHealthyRoutingTableRoutine()
+	go p2.updateRoutine()
+	go p2.refreshRoutine()
+	go p2.processLocalChunk()
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p2.Host, getHeaderOld, p2.handleStreamGetHeaderOld)
 	protocol.RegisterStreamHandler(p2.Host, fetchShardPeer, protocol.HandlerWithRW(p2.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p2.Host, fullNode, protocol.HandlerWithWrite(p2.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p2.Host, fetchChunk, p2.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p2.Host, storeChunk, protocol.HandlerWithAuth(p2.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p2.Host, getHeader, protocol.HandlerWithAuthAndSign(p2.handleStreamGetHeader))
 	protocol.RegisterStreamHandler(p2.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p2.handleStreamGetChunkRecord))
 
-	go p2.syncRoutine()
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
 	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
 	err = host2.Connect(context.Background(), *peerinfo)
@@ -603,20 +569,18 @@ func initFullNode(t *testing.T, q queue.Queue) *Protocol {
 		DB:               dbm.NewDB("p2pstore3", "leveldb", dataDir, 128),
 	}
 	p3 := &Protocol{
-		P2PEnv:                   &env3,
-		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue, kb.ConvertPeerID(env3.Host.ID()), time.Minute, env3.Host.Peerstore()),
-		localChunkInfo:           make(map[string]LocalChunkInfo),
-		notifyingQueue:           make(chan *types.ChunkInfoMsg, 100),
+		P2PEnv:         &env3,
+		localChunkInfo: make(map[string]LocalChunkInfo),
+		chunkToSync:    make(chan *types.ChunkInfoMsg, 100),
 	}
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p3.Host, getHeaderOld, p3.handleStreamGetHeaderOld)
+	protocol.RegisterStreamHandler(p3.Host, fetchActivePeer, protocol.HandlerWithWrite(p3.handleStreamFetchActivePeer))
 	protocol.RegisterStreamHandler(p3.Host, fetchShardPeer, protocol.HandlerWithRW(p3.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p3.Host, fullNode, protocol.HandlerWithWrite(p3.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p3.Host, fetchChunk, p3.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p3.Host, storeChunk, protocol.HandlerWithAuth(p3.handleStreamStoreChunks))
 	protocol.RegisterStreamHandler(p3.Host, getHeader, protocol.HandlerWithAuthAndSign(p3.handleStreamGetHeader))
 	protocol.RegisterStreamHandler(p3.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p3.handleStreamGetChunkRecord))
-	go p3.syncRoutine()
 	discovery.Advertise(context.Background(), p3.RoutingDiscovery, fullNode)
 
 	client1.Sub("p2p")
