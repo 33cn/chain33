@@ -58,7 +58,7 @@ func (p *Protocol) deleteChunkBlock(hash []byte) error {
 	if err != nil {
 		return err
 	}
-	batch := p.DB.NewBatch(false)
+	batch := p.DB.NewBatch(true)
 	it := p.DB.Iterator(hash, append(hash, ':'+1), false)
 	defer it.Close()
 	for it.Next(); it.Valid(); it.Next() {
@@ -68,10 +68,6 @@ func (p *Protocol) deleteChunkBlock(hash []byte) error {
 }
 
 // 获取本地chunk数据
-//	本地不存在，返回not found
-//  本地存在：
-//		数据未过期：返回数据
-//		数据已过期：返回数据,然后从数据库删除该数据
 func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
 
 	if _, ok := p.getChunkInfoByHash(req.ChunkHash); !ok {

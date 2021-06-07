@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net"
 	"strings"
 	"time"
@@ -19,8 +18,40 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-func (p *Protocol) fetchCloserPeers(key []byte, count int, pid peer.ID) ([]peer.ID, error) {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
+func (p *Protocol) fetchActivePeers(pid peer.ID, saveAddr bool) ([]peer.ID, error) {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	defer cancel()
+	p.Host.ConnManager().Protect(pid, fetchActivePeer)
+	defer p.Host.ConnManager().Unprotect(pid, fetchActivePeer)
+	stream, err := p.Host.NewStream(ctx, pid, fetchActivePeer)
+	if err != nil {
+		return nil, err
+	}
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
+	defer protocol.CloseStream(stream)
+
+	var resp types.P2PResponse
+	if err = protocol.ReadStream(&resp, stream); err != nil {
+		return nil, err
+	}
+	data, ok := resp.Response.(*types.P2PResponse_PeerInfos)
+	if !ok {
+		return nil, types2.ErrInvalidMessageType
+	}
+
+	if saveAddr {
+		return saveCloserPeers(data.PeerInfos.PeerInfos, p.Host.Peerstore()), nil
+	}
+
+	var peers []peer.ID
+	for _, info := range data.PeerInfos.PeerInfos {
+		peers = append(peers, peer.ID(info.ID))
+	}
+	return peers, nil
+}
+
+func (p *Protocol) fetchShardPeers(key []byte, count int, pid peer.ID) ([]peer.ID, error) {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, fetchShardPeer)
 	defer p.Host.ConnManager().Unprotect(pid, fetchShardPeer)
@@ -60,7 +91,7 @@ func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID
 		return bodys, p.Host.ID(), nil
 	}
 	//本地数据不存在或已过期，则向临近节点查询
-	return p.mustFetchChunk(p.Ctx, req, true)
+	return p.mustFetchChunk(req)
 }
 
 func (p *Protocol) getHeadersOld(param *types.ReqBlocks) (*types.Headers, peer.ID) {
@@ -173,7 +204,7 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 	// 从多个节点请求ChunkRecords, 并从中选择多数节点返回的数据
 	recordsCache := make(map[string]*types.ChunkRecords)
 	recordsCount := make(map[string]int)
-	for i, pid := range p.ShardHealthyRoutingTable.ListPeers() {
+	for i, pid := range p.RoutingTable.ListPeers() {
 		records, err := p.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
 			log.Error("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
@@ -231,16 +262,16 @@ func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid pee
 }
 
 //若网络中有节点保存了该chunk，该方法可以保证查询到
-func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg, queryFull bool) (*types.BlockBodys, peer.ID, error) {
-	//递归查询时间上限一小时
-	ctx, cancel := context.WithTimeout(pctx, time.Minute*5)
+func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID, error) {
+	//递归查询时间上限5分钟
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute*5)
 	defer cancel()
 
 	//保存查询过的节点，防止重复查询
 	searchedPeers := make(map[peer.ID]struct{})
 	searchedPeers[p.Host.ID()] = struct{}{}
-	peers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
-	log.Info("into mustFetchChunk", "shard healthy peers len", p.ShardHealthyRoutingTable.Size(), "start", req.Start, "end", req.End)
+	peers := p.RoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
+	log.Info("into mustFetchChunk", "start", req.Start, "end", req.End)
 	for len(peers) != 0 {
 		var nearerPeers []peer.ID
 		var bodys *types.BlockBodys
@@ -250,10 +281,6 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 				continue
 			}
 			searchedPeers[pid] = struct{}{}
-			// 检查其他节点上是否有该分片数据时，忽略无法通过外网连接的节点
-			if !queryFull && !p.canConnect(pid) {
-				continue
-			}
 			start := time.Now()
 			bodys, nearerPeers, err = p.fetchChunkFromPeer(ctx, req, pid)
 			if err != nil {
@@ -269,9 +296,7 @@ func (p *Protocol) mustFetchChunk(pctx context.Context, req *types.ChunkInfoMsg,
 	}
 
 	log.Error("mustFetchChunk not found", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
-	if !queryFull {
-		return nil, "", types2.ErrNotFound
-	}
+
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
 	ctx2, cancel2 := context.WithTimeout(ctx, time.Minute*3)
 	defer cancel2()
@@ -367,21 +392,6 @@ func (p *Protocol) fetchChunkFromFullPeer(ctx context.Context, params *types.Chu
 	return nil, ""
 }
 
-func (p *Protocol) checkChunkInNetwork(req *types.ChunkInfoMsg) (peer.ID, bool) {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*10)
-	defer cancel()
-	rand.Seed(time.Now().UnixNano())
-	random := rand.Int63n(req.End-req.Start+1) + req.Start
-	req2 := &types.ChunkInfoMsg{
-		ChunkHash: req.ChunkHash,
-		Start:     random,
-		End:       random,
-	}
-	//query a random block of the chunk, to make sure that the chunk exists in the extension.
-	_, pid, err := p.mustFetchChunk(ctx, req2, false)
-	return pid, err == nil
-}
-
 func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
 
 	//如果p2pStore已保存数据，只更新时间即可
@@ -398,30 +408,6 @@ func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
 		return err
 	}
 	return nil
-}
-
-func (p *Protocol) checkNetworkAndStoreChunk(req *types.ChunkInfoMsg) error {
-	//先检查之前的chunk是否以在网络中查到
-	infos := p.getHistoryChunkInfos(req, 3)
-	for i := len(infos) - 1; i >= 0; i-- {
-		info := infos[i]
-		if _, ok := p.checkChunkInNetwork(info); ok {
-			infos = infos[i+1:]
-			break
-		}
-	}
-	infos = append(infos, req)
-	var err error
-	for _, info := range infos {
-		log.Info("checkNetworkAndStoreChunk storing", "chunk hash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
-		if err = p.storeChunk(info); err != nil {
-			log.Error("checkNetworkAndStoreChunk", "store chunk error", err, "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
-			continue
-		}
-		//本地存储之后立即到其他节点做一次备份
-		p.notifyStoreChunk(req)
-	}
-	return err
 }
 
 func (p *Protocol) getChunkFromBlockchain(param *types.ChunkInfoMsg) (*types.BlockBodys, error) {
@@ -463,33 +449,33 @@ func (p *Protocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords) (*ty
 	return nil, types2.ErrNotFound
 }
 
-func (p *Protocol) getHistoryChunkInfos(in *types.ChunkInfoMsg, count int64) []*types.ChunkInfoMsg {
-	chunkLen := in.End - in.Start + 1
-	req := &types.ReqChunkRecords{
-		Start: in.Start/chunkLen - count,
-		End:   in.Start/chunkLen - 1,
-	}
-	if req.End < 0 {
-		return nil
-	}
-	if req.Start < 0 {
-		req.Start = 0
-	}
-	records, err := p.getChunkRecordFromBlockchain(req)
+func (p *Protocol) queryAddrInfo(pid peer.ID, queryPeer peer.ID) (*types.PeerInfo, error) {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	defer cancel()
+	stream, err := p.Host.NewStream(ctx, queryPeer, fetchPeerAddr)
 	if err != nil {
-		log.Error("getHistoryChunkRecords", "getChunkRecordFromBlockchain error", err, "start", req.Start, "end", req.End, "records", records)
-		return nil
+		return nil, err
 	}
-	var chunkInfos []*types.ChunkInfoMsg
-	for _, info := range records.Infos {
-		chunkInfos = append(chunkInfos, &types.ChunkInfoMsg{
-			ChunkHash: info.ChunkHash,
-			Start:     info.Start,
-			End:       info.End,
-		})
+	defer protocol.CloseStream(stream)
+	req := types.P2PRequest{
+		Request: &types.P2PRequest_Pid{
+			Pid: string(pid),
+		},
 	}
-
-	return chunkInfos
+	err = protocol.WriteStream(&req, stream)
+	if err != nil {
+		return nil, err
+	}
+	var resp types.P2PResponse
+	err = protocol.ReadStream(&resp, stream)
+	if err != nil {
+		return nil, err
+	}
+	data, ok := resp.Response.(*types.P2PResponse_PeerInfo)
+	if !ok {
+		return nil, types2.ErrInvalidMessageType
+	}
+	return data.PeerInfo, nil
 }
 
 func (p *Protocol) canConnect(pid peer.ID) bool {
@@ -503,7 +489,7 @@ func (p *Protocol) canConnect(pid peer.ID) bool {
 		if !isPublicIP(ip) {
 			continue
 		}
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", ip, port), time.Second/10)
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", ip, port), time.Second/2)
 		if err != nil {
 			continue
 		}
@@ -555,7 +541,7 @@ func saveCloserPeers(peerInfos []*types.PeerInfo, store peerstore.Peerstore) []p
 			maddrs = append(maddrs, maddr)
 		}
 		pid := peer.ID(peerInfo.ID)
-		store.AddAddrs(pid, maddrs, time.Minute*30)
+		store.AddAddrs(pid, maddrs, time.Hour*24)
 		peers = append(peers, pid)
 	}
 	return peers

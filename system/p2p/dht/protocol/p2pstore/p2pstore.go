@@ -11,18 +11,18 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/discovery"
-	"github.com/libp2p/go-libp2p-core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kb "github.com/libp2p/go-libp2p-kbucket"
+	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
-	fetchShardPeer = "/chain33/fetch-shard-peer/1.0.0"
-	fetchChunk     = "/chain33/fetch-chunk/1.0.0"
-	storeChunk     = "/chain33/store-chunk/1.0.0"
-	getHeader      = "/chain33/headers/1.0.0"
-	getChunkRecord = "/chain33/chunk-record/1.0.0"
-	fullNode       = "/chain33/full-node/1.0.0"
+	fetchActivePeer = "/chain33/fetch-active-peer/1.0.0"
+	fetchShardPeer  = "/chain33/fetch-shard-peer/1.0.0"
+	fetchChunk      = "/chain33/fetch-chunk/1.0.0"
+	storeChunk      = "/chain33/store-chunk/1.0.0"
+	getHeader       = "/chain33/headers/1.0.0"
+	getChunkRecord  = "/chain33/chunk-record/1.0.0"
+	fullNode        = "/chain33/full-node/1.0.0"
+	fetchPeerAddr   = "/chain33/fetch-peer-addr/1.0.0"
 	// Deprecated: old version, use getHeader instead
 	getHeaderOld = "/chain33/headerinfoReq/1.0.0"
 )
@@ -36,15 +36,8 @@ var backup = 20
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
-	//cache the notify message when other peers notify this node to store chunk.
-	notifying sync.Map
-	//send the message in <notifying> to this queue if chunk does not exist.
-	notifyingQueue chan *types.ChunkInfoMsg
-	//chunks that full node can provide without checking.
-	chunkWhiteList sync.Map
-
-	//a child table of healthy routing table without full nodes
-	ShardHealthyRoutingTable *kb.RoutingTable
+	chunkToSync   chan *types.ChunkInfoMsg
+	chunkToDelete chan *types.ChunkInfoMsg
 
 	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
@@ -52,9 +45,9 @@ type Protocol struct {
 
 	concurrency int64
 
-	// 增加一个扩展路由表的缓存，每小时最多生成一次
-	extendShardHealthyRoutingTable *kb.RoutingTable
-	refreshedTime                  time.Time
+	// 扩展路由表，每小时更新一次
+	extendRoutingTable *kbt.RoutingTable
+	ertLock            sync.Mutex
 }
 
 func init() {
@@ -64,9 +57,9 @@ func init() {
 //InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
-		P2PEnv:                   env,
-		ShardHealthyRoutingTable: kb.NewRoutingTable(dht.KValue*2, kb.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
-		notifyingQueue:           make(chan *types.ChunkInfoMsg, 1024),
+		P2PEnv:        env,
+		chunkToSync:   make(chan *types.ChunkInfoMsg, 1024),
+		chunkToDelete: make(chan *types.ChunkInfoMsg, 1024),
 	}
 	//
 	if env.SubConfig.Backup > 1 {
@@ -82,21 +75,16 @@ func InitProtocol(env *protocol.P2PEnv) {
 		env.SubConfig.MaxExtendRoutingTableSize = env.SubConfig.MinExtendRoutingTableSize
 	}
 
-	// RoutingTable更新时同时更新ShardHealthyRoutingTable
-	p.RoutingTable.PeerRemoved = func(id peer.ID) {
-		p.ShardHealthyRoutingTable.Remove(id)
-	}
-	go p.updateShardHealthyRoutingTableRoutine()
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p.Host, fetchActivePeer, protocol.HandlerWithWrite(p.handleStreamFetchActivePeer))
 	protocol.RegisterStreamHandler(p.Host, fetchShardPeer, protocol.HandlerWithRW(p.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p.Host, getHeaderOld, p.handleStreamGetHeaderOld)
 	protocol.RegisterStreamHandler(p.Host, getHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
 	if !p.SubConfig.DisableShard {
 		protocol.RegisterStreamHandler(p.Host, fullNode, protocol.HandlerWithWrite(p.handleStreamIsFullNode))
 		protocol.RegisterStreamHandler(p.Host, fetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-		protocol.RegisterStreamHandler(p.Host, storeChunk, protocol.HandlerWithAuth(p.handleStreamStoreChunks))
 		protocol.RegisterStreamHandler(p.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
 	}
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
@@ -106,41 +94,37 @@ func InitProtocol(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventGetChunkRecord, p.handleEventGetChunkRecord)
 	protocol.RegisterEventHandler(types.EventFetchBlockHeaders, p.handleEventGetHeaders)
 
-	go p.syncRoutine()
+	go p.processLocalChunk()
+	go p.updateRoutine()
+	go p.refreshRoutine()
 	go func() {
-		ticker1 := time.NewTicker(time.Minute)
-		defer ticker1.Stop()
-		ticker2 := time.NewTicker(types2.RefreshInterval)
-		defer ticker2.Stop()
-		ticker4 := time.NewTicker(time.Hour)
-		defer ticker4.Stop()
+		// TODO: debug, to delete soon
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
 
 		for {
 			select {
 			case <-p.Ctx.Done():
 				return
-			case <-ticker1.C:
-				p.updateChunkWhiteList()
-				p.advertiseFullNode()
-			case <-ticker2.C:
-				p.republish()
-			case <-ticker4.C:
+			case <-ticker.C:
 				//debug info
 				p.localChunkInfoMutex.Lock()
 				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
 				p.localChunkInfoMutex.Unlock()
 				p.debugFullNode()
 				log.Info("debug rt peers", "======== amount", p.RoutingTable.Size())
-				log.Info("debug shard healthy peers", "======== amount", p.ShardHealthyRoutingTable.Size())
-				log.Info("debug length", "notifying msg len", len(p.notifyingQueue))
+				log.Info("debug length", "notifying msg len", len(p.chunkToSync))
 				log.Info("debug peers and conns", "peers len", len(p.Host.Network().Peers()), "conns len", len(p.Host.Network().Conns()))
-				//for _, conn := range p.Host.Network().Conns() {
-				//	streams := conn.GetStreams()
-				//	log.Info("debug new conn", "remote peer", conn.RemotePeer(), "len streams", len(streams))
-				//	for _, s := range streams {
-				//		log.Info("debug new stream", "protocol id", s.Protocol())
-				//	}
-				//}
+				var streamCount int
+				for _, conn := range p.Host.Network().Conns() {
+					streams := conn.GetStreams()
+					streamCount += len(streams)
+					log.Info("debug new conn", "remote peer", conn.RemotePeer(), "len streams", len(streams))
+					for _, s := range streams {
+						log.Info("debug new stream", "protocol id", s.Protocol())
+					}
+				}
+				log.Info("debug all stream", "count", streamCount)
 				p.localChunkInfoMutex.RLock()
 				for hash, info := range p.localChunkInfo {
 					log.Info("localChunkInfo", "hash", hash, "start", info.Start, "end", info.End)
@@ -151,14 +135,70 @@ func InitProtocol(env *protocol.P2PEnv) {
 	}()
 }
 
-func (p *Protocol) syncRoutine() {
+func (p *Protocol) refreshRoutine() {
+	ticker := time.NewTicker(types2.RefreshInterval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-p.Ctx.Done():
 			return
-		case info := <-p.notifyingQueue:
+		case <-ticker.C:
+			p.refreshLocalChunk()
+		}
+	}
+}
+
+func (p *Protocol) updateRoutine() {
+	ticker1 := time.NewTicker(time.Minute)
+	defer ticker1.Stop()
+	ticker2 := time.NewTicker(time.Minute * 5)
+	defer ticker2.Stop()
+	ticker3 := time.NewTicker(time.Hour)
+	defer ticker3.Stop()
+
+	p.updateExtendRoutingTable()
+	for {
+		select {
+		case <-p.Ctx.Done():
+			return
+
+		case <-ticker1.C:
+			p.advertiseFullNode()
+
+		case <-ticker2.C:
+			// update peer addr
+			for _, pid := range p.RoutingTable.ListPeers() {
+				if len(p.Host.Peerstore().Addrs(pid)) != 0 {
+					continue
+				}
+				for _, queryPeer := range p.RoutingTable.NearestPeers(kbt.ConvertPeerID(pid), 30) {
+					if info, _ := p.queryAddrInfo(pid, queryPeer); info != nil {
+						_ = saveCloserPeers([]*types.PeerInfo{info}, p.Host.Peerstore())
+						break
+					}
+				}
+			}
+
+		case <-ticker3.C:
+			p.updateExtendRoutingTable()
+
+		}
+	}
+}
+
+func (p *Protocol) processLocalChunk() {
+	for {
+		select {
+		case <-p.Ctx.Done():
+			return
+		case info := <-p.chunkToSync:
 			p.syncChunk(info)
-			p.notifying.Delete(hex.EncodeToString(info.ChunkHash))
+		case info := <-p.chunkToDelete:
+			if info, ok := p.getChunkInfoByHash(info.ChunkHash); ok && time.Since(info.Time) > types2.RefreshInterval*3 {
+				if err := p.deleteChunkBlock(info.ChunkHash); err != nil {
+					log.Error("refreshRoutine", "deleteChunkBlock error", err, "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
+				}
+			}
 		}
 	}
 }
@@ -173,7 +213,7 @@ func (p *Protocol) syncChunk(info *types.ChunkInfoMsg) {
 	bodys, _ = p.getChunkFromBlockchain(info)
 	if bodys == nil {
 		//blockchain模块没有数据，从网络中搜索数据
-		bodys, _, _ = p.mustFetchChunk(p.Ctx, info, true)
+		bodys, _, _ = p.mustFetchChunk(info)
 	}
 	if bodys == nil {
 		log.Error("syncChunk error", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
@@ -184,16 +224,6 @@ func (p *Protocol) syncChunk(info *types.ChunkInfoMsg) {
 		return
 	}
 	log.Info("syncChunk", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
-}
-
-func (p *Protocol) updateChunkWhiteList() {
-	p.chunkWhiteList.Range(func(k, v interface{}) bool {
-		t := v.(time.Time)
-		if time.Since(t) > time.Minute*10 {
-			p.chunkWhiteList.Delete(k)
-		}
-		return true
-	})
 }
 
 func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
@@ -227,54 +257,4 @@ func (p *Protocol) debugFullNode() {
 		log.Info("debugFullNode", "ID", peerInfo.ID, "maddrs", peerInfo.Addrs)
 	}
 	log.Info("debugFullNode", "total count", count)
-}
-
-func (p *Protocol) updateShardHealthyRoutingTableRoutine() {
-	for p.RoutingTable.Size() == 0 {
-		time.Sleep(time.Second)
-	}
-	updateFunc := func() {
-		for _, pid := range p.RoutingTable.ListPeers() {
-			ok, height, err := p.queryFull(pid)
-			if err != nil || ok {
-				continue
-			}
-			if height > p.PeerInfoManager.PeerMaxHeight()-512 || height > p.PeerInfoManager.PeerHeight(p.Host.ID())+1024 {
-				_, _ = p.ShardHealthyRoutingTable.Update(pid)
-			}
-		}
-	}
-	for i := 0; i < 3; i++ {
-		updateFunc()
-		time.Sleep(time.Second)
-	}
-	ticker := time.NewTicker(time.Minute * 5)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-p.Ctx.Done():
-			return
-		case <-ticker.C:
-			updateFunc()
-		}
-	}
-}
-
-func (p *Protocol) queryFull(pid peer.ID) (bool, int64, error) {
-	stream, err := p.Host.NewStream(p.Ctx, pid, fullNode)
-	if err != nil {
-		return false, -1, err
-	}
-	defer protocol.CloseStream(stream)
-	var resp types.P2PResponse
-	err = protocol.ReadStream(&resp, stream)
-	if err != nil {
-		return false, -1, err
-	}
-	if reply, ok := resp.Response.(*types.P2PResponse_NodeInfo); ok {
-		return reply.NodeInfo.Answer, reply.NodeInfo.Height, nil
-	}
-
-	return false, -1, types2.ErrInvalidResponse
 }
