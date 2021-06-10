@@ -236,6 +236,8 @@ message P2PRequest {
         //新的协议可以继续添加request类型
         ReqPeers reqPeers = 6;
         string pid = 7;
+        PeerInfo peerInfo = 8;
+        ChunkProvider provider = 9;
     }
 }
 
@@ -275,6 +277,11 @@ message NodeInfo {
 message PeerInfo {
     bytes    ID              = 1;
     repeated bytes MultiAddr = 2;
+}
+
+message ChunkProvider {
+    bytes chunkHash = 1;
+    repeated PeerInfo peerInfos = 2;
 }
 
 message PeerInfoList {
