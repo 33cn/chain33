@@ -14,6 +14,170 @@ import (
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
+func (p *Protocol) handleStreamRequestPeerInfoForChunk(stream network.Stream) {
+	remotePid := stream.Conn().RemotePeer()
+	localAddr := stream.Conn().LocalMultiaddr()
+	var req types.P2PRequest
+	err := protocol.ReadStream(&req, stream)
+	protocol.CloseStream(stream)
+	if err != nil {
+		log.Error("handleStreamRequestPeerInfoForChunk", "ReadStream error", err)
+		return
+	}
+
+	msg := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
+
+	/*
+		1. check local storage
+		2. check chunk provider cache
+		3. query the closer peers
+	*/
+	if _, ok := p.getChunkInfoByHash(msg.ChunkHash); ok {
+		var addrs [][]byte
+		for _, addr := range p.Host.Peerstore().Addrs(p.Host.ID()) {
+			addrs = append(addrs, addr.Bytes())
+		}
+		if len(addrs) == 0 {
+			log.Error("handleStreamRequestPeerInfoForChunk", "error", "no self addr", "conn local addr", localAddr)
+			addrs = append(addrs, localAddr.Bytes())
+		}
+		info := types.PeerInfo{
+			ID:        []byte(p.Host.ID()),
+			MultiAddr: addrs,
+		}
+		if err := p.responsePeerInfoForChunk(&types.ChunkProvider{
+			ChunkHash: msg.ChunkHash,
+			PeerInfos: []*types.PeerInfo{&info},
+		}, remotePid); err != nil {
+			log.Error("handleStreamRequestPeerInfoForChunk", "responsePeerInfoForChunk error", err)
+		}
+	} else if peers := p.getChunkProviderCache(msg.ChunkHash); len(peers) != 0 {
+		var infos []*types.PeerInfo
+		for _, pid := range peers {
+			var addrs [][]byte
+			for _, addr := range p.Host.Peerstore().Addrs(pid) {
+				addrs = append(addrs, addr.Bytes())
+			}
+			infos = append(infos, &types.PeerInfo{ID: []byte(pid), MultiAddr: addrs})
+		}
+		if err := p.responsePeerInfoForChunk(&types.ChunkProvider{
+			ChunkHash: msg.ChunkHash,
+			PeerInfos: infos,
+		}, remotePid); err != nil {
+			log.Error("handleStreamRequestPeerInfoForChunk", "responsePeerInfoForChunk error", err)
+		}
+	} else if exist := p.addChunkRequestTrace(msg.ChunkHash, remotePid); !exist {
+		for _, remotePid := range p.RoutingTable.NearestPeers(genDHTID(msg.ChunkHash), AlphaValue) {
+			err := p.requestPeerInfoForChunk(msg, remotePid)
+			if err != nil {
+				log.Error("handleStreamPeerAddrAsync", "requestPeerAddr error", err)
+			}
+		}
+	}
+}
+
+func (p *Protocol) handleStreamResponsePeerInfoForChunk(stream network.Stream) {
+	var req types.P2PRequest
+	err := protocol.ReadStream(&req, stream)
+	protocol.CloseStream(stream)
+	if err != nil {
+		log.Error("handleStreamResponsePeerInfoForChunk", "ReadStream error", err)
+		return
+	}
+
+	provider := req.Request.(*types.P2PRequest_Provider).Provider
+
+	// add provider cache
+	savePeers(provider.PeerInfos, p.Host.Peerstore())
+	for _, info := range provider.PeerInfos {
+		p.addChunkProviderCache(provider.ChunkHash, peer.ID(info.ID))
+	}
+
+	p.wakeupMutex.Lock()
+	if ch, ok := p.wakeup[hex.EncodeToString(provider.ChunkHash)]; ok {
+		ch <- struct{}{}
+		delete(p.wakeup, hex.EncodeToString(provider.ChunkHash))
+	}
+	p.wakeupMutex.Unlock()
+
+	p.chunkStatusCacheMutex.Lock()
+	if cs, ok := p.chunkStatusCache[hex.EncodeToString(provider.ChunkHash)]; ok {
+		// 防止重复下载
+		if cs.status == Waiting {
+			select {
+			case p.chunkToDownload <- cs.info:
+				cs.status = ToDownload
+				p.chunkStatusCache[hex.EncodeToString(provider.ChunkHash)] = cs
+			default:
+				log.Error("handleStreamResponsePeerInfoForChunk", "error", "chunkToDownload channel is full")
+			}
+		}
+	}
+	p.chunkStatusCacheMutex.Unlock()
+
+	// check trace and response
+	for _, pid := range p.getChunkRequestTrace(provider.ChunkHash) {
+		// delete trace and response
+		p.removeChunkRequestTrace(provider.ChunkHash, pid)
+		//TODO: retry when error occurs
+		if err := p.responsePeerInfoForChunk(provider, pid); err != nil {
+			log.Error("handleStreamResponsePeerInfoForChunk", "responsePeerInfoForChunk error", err, "pid", pid)
+		}
+	}
+}
+
+func (p *Protocol) handleStreamRequestPeerAddr(stream network.Stream) {
+	remotePid := stream.Conn().RemotePeer()
+	var req types.P2PRequest
+	err := protocol.ReadStream(&req, stream)
+	protocol.CloseStream(stream)
+	if err != nil {
+		log.Error("handleStreamRequestPeerAddr", "ReadStream error", err)
+		return
+	}
+
+	pid := req.GetRequest().(*types.P2PRequest_Pid).Pid
+	var addrs [][]byte
+	for _, addr := range p.Host.Peerstore().Addrs(peer.ID(pid)) {
+		addrs = append(addrs, addr.Bytes())
+	}
+	if len(addrs) != 0 {
+		// response
+		err := p.responsePeerAddr(&types.PeerInfo{ID: []byte(pid), MultiAddr: addrs}, remotePid)
+		if err != nil {
+			log.Error("handleStreamRequestPeerAddr", "responsePeerAddr error", err)
+		}
+	} else if exist := p.addPeerAddrRequestTrace(peer.ID(pid), remotePid); !exist {
+		for _, remotePid := range p.RoutingTable.NearestPeers(kb.ConvertPeerID(peer.ID(pid)), AlphaValue) {
+			err := p.requestPeerAddr(peer.ID(pid), remotePid)
+			if err != nil {
+				log.Error("handleStreamRequestPeerAddr", "requestPeerAddr error", err)
+			}
+		}
+	}
+}
+
+func (p *Protocol) handleStreamResponsePeerAddr(stream network.Stream) {
+	var req types.P2PRequest
+	err := protocol.ReadStream(&req, stream)
+	protocol.CloseStream(stream)
+	if err != nil {
+		log.Error("handleStreamResponsePeerAddr", "ReadStream error", err)
+		return
+	}
+
+	info := req.GetRequest().(*types.P2PRequest_PeerInfo).PeerInfo
+	savePeers([]*types.PeerInfo{info}, p.Host.Peerstore())
+
+	// response and delete trace
+	for _, pid := range p.getPeerAddrRequestTrace(peer.ID(info.ID)) {
+		p.removePeerAddrRequestTrace(peer.ID(info.ID), pid)
+		if err := p.responsePeerAddr(info, pid); err != nil {
+			log.Error("handleStreamRequestPeerAddr", "responsePeerAddr error", err)
+		}
+	}
+}
+
 func (p *Protocol) handleStreamFetchActivePeer(res *types.P2PResponse) error {
 	var peerInfos []*types.PeerInfo
 	for _, pid := range p.RoutingTable.ListPeers() {
