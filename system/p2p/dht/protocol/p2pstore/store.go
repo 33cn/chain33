@@ -54,9 +54,12 @@ func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
 }
 
 func (p *Protocol) deleteChunkBlock(hash []byte) error {
-	err := p.deleteLocalChunkInfo(hash)
+	exist, err := p.deleteLocalChunkInfo(hash)
 	if err != nil {
 		return err
+	}
+	if !exist {
+		return nil
 	}
 	batch := p.DB.NewBatch(true)
 	it := p.DB.Iterator(hash, append(hash, ':'+1), false)
@@ -102,11 +105,14 @@ func (p *Protocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
 	return p.saveLocalChunkInfoMap(p.localChunkInfo)
 }
 
-func (p *Protocol) deleteLocalChunkInfo(hash []byte) error {
+func (p *Protocol) deleteLocalChunkInfo(hash []byte) (bool, error) {
 	p.localChunkInfoMutex.Lock()
 	defer p.localChunkInfoMutex.Unlock()
+	if _, exist := p.localChunkInfo[hex.EncodeToString(hash)]; !exist {
+		return false, nil
+	}
 	delete(p.localChunkInfo, hex.EncodeToString(hash))
-	return p.saveLocalChunkInfoMap(p.localChunkInfo)
+	return true, p.saveLocalChunkInfoMap(p.localChunkInfo)
 }
 
 func (p *Protocol) initLocalChunkInfoMap() {
