@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"net"
-	"strings"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -17,6 +15,82 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 )
+
+func (p *Protocol) requestPeerInfoForChunk(msg *types.ChunkInfoMsg, pid peer.ID) error {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	defer cancel()
+	stream, err := p.Host.NewStream(ctx, pid, requestPeerInfoForChunk)
+	if err != nil {
+		return err
+	}
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
+	defer protocol.CloseStream(stream)
+
+	req := types.P2PRequest{
+		Request: &types.P2PRequest_ChunkInfoMsg{
+			ChunkInfoMsg: msg,
+		},
+	}
+
+	return protocol.WriteStream(&req, stream)
+}
+
+func (p *Protocol) responsePeerInfoForChunk(provider *types.ChunkProvider, pid peer.ID) error {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	defer cancel()
+	stream, err := p.Host.NewStream(ctx, pid, responsePeerInfoForChunk)
+	if err != nil {
+		return err
+	}
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
+	defer protocol.CloseStream(stream)
+
+	req := types.P2PRequest{
+		Request: &types.P2PRequest_Provider{
+			Provider: provider,
+		},
+	}
+
+	return protocol.WriteStream(&req, stream)
+}
+
+func (p *Protocol) requestPeerAddr(keyPid, remotePid peer.ID) error {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	defer cancel()
+	stream, err := p.Host.NewStream(ctx, remotePid, requestPeerAddr)
+	if err != nil {
+		return err
+	}
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
+	defer protocol.CloseStream(stream)
+
+	req := types.P2PRequest{
+		Request: &types.P2PRequest_Pid{
+			Pid: string(keyPid),
+		},
+	}
+
+	return protocol.WriteStream(&req, stream)
+}
+
+func (p *Protocol) responsePeerAddr(info *types.PeerInfo, remotePid peer.ID) error {
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	defer cancel()
+	stream, err := p.Host.NewStream(ctx, remotePid, responsePeerAddr)
+	if err != nil {
+		return err
+	}
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
+	defer protocol.CloseStream(stream)
+
+	req := types.P2PRequest{
+		Request: &types.P2PRequest_PeerInfo{
+			PeerInfo: info,
+		},
+	}
+
+	return protocol.WriteStream(&req, stream)
+}
 
 func (p *Protocol) fetchActivePeers(pid peer.ID, saveAddr bool) ([]peer.ID, error) {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
@@ -40,7 +114,7 @@ func (p *Protocol) fetchActivePeers(pid peer.ID, saveAddr bool) ([]peer.ID, erro
 	}
 
 	if saveAddr {
-		return saveCloserPeers(data.PeerInfos.PeerInfos, p.Host.Peerstore()), nil
+		return savePeers(data.PeerInfos.PeerInfos, p.Host.Peerstore()), nil
 	}
 
 	var peers []peer.ID
@@ -76,8 +150,66 @@ func (p *Protocol) fetchShardPeers(key []byte, count int, pid peer.ID) ([]peer.I
 	if err = protocol.ReadStream(&resp, stream); err != nil {
 		return nil, err
 	}
-	closerPeers := saveCloserPeers(resp.CloserPeers, p.Host.Peerstore())
+	closerPeers := savePeers(resp.CloserPeers, p.Host.Peerstore())
 	return closerPeers, nil
+}
+
+// findChunk
+//	1. 检查本地
+//  2. 检查缓存中记录的提供数据的节点
+//  3. 异步获取数据
+func (p *Protocol) findChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID, error) {
+	//优先获取本地p2pStore数据
+	bodys, _ := p.getChunkBlock(req)
+	if bodys != nil {
+		return bodys, p.Host.ID(), nil
+	}
+	//检查缓存
+	for _, pid := range p.getChunkProviderCache(req.ChunkHash) {
+		if bodys, _, _ := p.fetchChunkFromPeer(p.Ctx, req, pid); bodys != nil {
+			return bodys, pid, nil
+		}
+	}
+	// 异步获取数据
+	return p.findChunkAsync(req)
+}
+
+func (p *Protocol) findChunkAsync(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID, error) {
+	wakeupCh := make(chan struct{}, 1)
+	p.wakeupMutex.Lock()
+	p.wakeup[hex.EncodeToString(req.ChunkHash)] = wakeupCh
+	p.wakeupMutex.Unlock()
+
+	// 发起异步请求
+	for _, pid := range p.RoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue) {
+		if err := p.requestPeerInfoForChunk(req, pid); err != nil {
+			log.Error("findChunkAsync", "requestPeerInfoForChunk error", err, "pid", pid)
+		}
+	}
+
+	// 等待异步消息
+	select {
+	case <-wakeupCh:
+		for _, pid := range p.getChunkProviderCache(req.ChunkHash) {
+			bodys, _, err := p.fetchChunkFromPeer(p.Ctx, req, pid)
+			if err != nil {
+				log.Error("findChunkAsync", "fetchChunkFromPeer error", err, "pid", pid)
+				continue
+			}
+			if bodys != nil {
+				return bodys, pid, nil
+			}
+		}
+
+	case <-time.After(time.Minute * 3):
+		p.wakeupMutex.Lock()
+		delete(p.wakeup, hex.EncodeToString(req.ChunkHash))
+		p.wakeupMutex.Unlock()
+		log.Error("findChunkAsync", "error", "timeout")
+		break
+	}
+
+	return nil, "", types2.ErrNotFound
 }
 
 //getChunk gets chunk data from p2pStore or other peers.
@@ -357,7 +489,7 @@ func (p *Protocol) fetchChunkFromPeer(ctx context.Context, params *types.ChunkIn
 		}
 		bodys = append(bodys, body.BlockBody)
 	}
-	closerPeers := saveCloserPeers(res.CloserPeers, p.Host.Peerstore())
+	closerPeers := savePeers(res.CloserPeers, p.Host.Peerstore())
 	if int64(len(bodys)) == params.End-params.Start+1 {
 		return &types.BlockBodys{
 			Items: bodys,
@@ -449,6 +581,7 @@ func (p *Protocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords) (*ty
 	return nil, types2.ErrNotFound
 }
 
+//TODO: 备用
 func (p *Protocol) queryAddrInfo(pid peer.ID, queryPeer peer.ID) (*types.PeerInfo, error) {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
@@ -478,55 +611,55 @@ func (p *Protocol) queryAddrInfo(pid peer.ID, queryPeer peer.ID) (*types.PeerInf
 	return data.PeerInfo, nil
 }
 
-func (p *Protocol) canConnect(pid peer.ID) bool {
-	addrs := p.Host.Peerstore().Addrs(pid)
-	for _, addr := range addrs {
-		data := strings.Split(addr.String(), "/")
-		if len(data) < 5 {
-			continue
-		}
-		ip, port := data[2], data[4]
-		if !isPublicIP(ip) {
-			continue
-		}
-		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", ip, port), time.Second/2)
-		if err != nil {
-			continue
-		}
-		_ = conn.Close()
-		return true
-	}
+//func (p *Protocol) canConnect(pid peer.ID) bool {
+//	addrs := p.Host.Peerstore().Addrs(pid)
+//	for _, addr := range addrs {
+//		data := strings.Split(addr.String(), "/")
+//		if len(data) < 5 {
+//			continue
+//		}
+//		ip, port := data[2], data[4]
+//		if !isPublicIP(ip) {
+//			continue
+//		}
+//		conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%s", ip, port), time.Second/2)
+//		if err != nil {
+//			continue
+//		}
+//		_ = conn.Close()
+//		return true
+//	}
+//
+//	return false
+//}
+//
+///*
+//tcp/ip协议中，专门保留了三个IP地址区域作为私有地址，其地址范围如下：
+//10.0.0.0/8：10.0.0.0～10.255.255.255
+//172.16.0.0/12：172.16.0.0～172.31.255.255
+//192.168.0.0/16：192.168.0.0～192.168.255.255
+//*/
+//func isPublicIP(ip string) bool {
+//	IP := net.ParseIP(ip)
+//	if IP == nil || IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
+//		return false
+//	}
+//	if ip4 := IP.To4(); ip4 != nil {
+//		switch true {
+//		case ip4[0] == 10:
+//			return false
+//		case ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31:
+//			return false
+//		case ip4[0] == 192 && ip4[1] == 168:
+//			return false
+//		default:
+//			return true
+//		}
+//	}
+//	return false
+//}
 
-	return false
-}
-
-/*
-tcp/ip协议中，专门保留了三个IP地址区域作为私有地址，其地址范围如下：
-10.0.0.0/8：10.0.0.0～10.255.255.255
-172.16.0.0/12：172.16.0.0～172.31.255.255
-192.168.0.0/16：192.168.0.0～192.168.255.255
-*/
-func isPublicIP(ip string) bool {
-	IP := net.ParseIP(ip)
-	if IP == nil || IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
-		return false
-	}
-	if ip4 := IP.To4(); ip4 != nil {
-		switch true {
-		case ip4[0] == 10:
-			return false
-		case ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31:
-			return false
-		case ip4[0] == 192 && ip4[1] == 168:
-			return false
-		default:
-			return true
-		}
-	}
-	return false
-}
-
-func saveCloserPeers(peerInfos []*types.PeerInfo, store peerstore.Peerstore) []peer.ID {
+func savePeers(peerInfos []*types.PeerInfo, store peerstore.Peerstore) []peer.ID {
 	var peers []peer.ID
 	for _, peerInfo := range peerInfos {
 		if peerInfo == nil {

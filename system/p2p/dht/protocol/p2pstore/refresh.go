@@ -1,6 +1,7 @@
 package p2pstore
 
 import (
+	"encoding/hex"
 	"time"
 
 	"github.com/33cn/chain33/types"
@@ -10,12 +11,16 @@ import (
 )
 
 func (p *Protocol) refreshLocalChunk() {
+	//优先处理同步任务
+	if reply, err := p.API.IsSync(); err != nil || !reply.IsOk {
+		return
+	}
 	start := time.Now()
 	var saveNum, deleteNum int
 	for chunkNum := int64(0); ; chunkNum++ {
 		records, err := p.getChunkRecordFromBlockchain(&types.ReqChunkRecords{Start: chunkNum, End: chunkNum})
 		if err != nil || len(records.Infos) != 1 {
-			log.Info("refreshLocalChunk", "break at chunk num", chunkNum)
+			log.Info("refreshLocalChunk", "break at chunk num", chunkNum, "error", err)
 			break
 		}
 		info := records.Infos[0]
@@ -25,14 +30,28 @@ func (p *Protocol) refreshLocalChunk() {
 			End:       info.End,
 		}
 		if p.shouldSave(info.ChunkHash) {
-			p.chunkToSync <- msg
 			saveNum++
+			// 本地处理
+			// 1. p2pStore已保存数据则直接更新p2pStore
+			// 2. p2pStore未保存数据则从blockchain获取数据
+			if err := p.storeChunk(msg); err == nil {
+				continue
+			}
+
+			// 通过网络从其他节点获取数据
+			p.chunkStatusCacheMutex.Lock()
+			if _, ok := p.chunkStatusCache[hex.EncodeToString(info.ChunkHash)]; ok {
+				continue
+			}
+			p.chunkStatusCache[hex.EncodeToString(info.ChunkHash)] = ChunkStatus{info: msg, status: Waiting}
+			p.chunkStatusCacheMutex.Unlock()
+			p.chunkToSync <- msg
 		} else {
-			p.chunkToDelete <- msg
 			deleteNum++
+			p.chunkToDelete <- msg
 		}
 	}
-	log.Info("refreshLocalChunk", "save num", saveNum, "delete num", deleteNum, "time cost", time.Since(start))
+	log.Info("refreshLocalChunk", "save num", saveNum, "delete num", deleteNum, "time cost", time.Since(start), "exRT size", p.getExtendRoutingTable().Size())
 }
 
 func (p *Protocol) shouldSave(chunkHash []byte) bool {
@@ -40,15 +59,15 @@ func (p *Protocol) shouldSave(chunkHash []byte) bool {
 		return true
 	}
 	pids := p.getExtendRoutingTable().NearestPeers(genDHTID(chunkHash), backup)
-	if len(pids) >= backup && kbt.Closer(pids[backup-1], p.Host.ID(), genChunkNameSpaceKey(chunkHash)) {
+	if len(pids) < backup || kbt.Closer(p.Host.ID(), pids[backup-1], genChunkNameSpaceKey(chunkHash)) {
 		return true
 	}
 	return false
 }
 
 func (p *Protocol) getExtendRoutingTable() *kbt.RoutingTable {
-	p.ertLock.Lock()
-	defer p.ertLock.Unlock()
+	p.exRTLock.Lock()
+	defer p.exRTLock.Unlock()
 	return p.extendRoutingTable
 }
 
@@ -108,7 +127,7 @@ func (p *Protocol) updateExtendRoutingTable() {
 		}
 	}
 	log.Info("updateExtendRoutingTable", "local peers count", p.RoutingTable.Size(), "extendRoutingTable peer count", extendRoutingTable.Size(), "time cost", time.Since(start), "origin count", count)
-	p.ertLock.Lock()
+	p.exRTLock.Lock()
 	p.extendRoutingTable = extendRoutingTable
-	p.ertLock.Unlock()
+	p.exRTLock.Unlock()
 }

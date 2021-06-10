@@ -1,7 +1,6 @@
 package p2pstore
 
 import (
-	"context"
 	"encoding/hex"
 	"sync"
 	"time"
@@ -10,7 +9,7 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/discovery"
+	"github.com/libp2p/go-libp2p-core/peer"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -25,6 +24,22 @@ const (
 	fetchPeerAddr   = "/chain33/fetch-peer-addr/1.0.0"
 	// Deprecated: old version, use getHeader instead
 	getHeaderOld = "/chain33/headerinfoReq/1.0.0"
+
+	// 异步接口
+	requestPeerAddr          = "/chain33/request-peer-addr/1.0.0"
+	responsePeerAddr         = "/chain33/response-peer-addr/1.0.0"
+	requestPeerInfoForChunk  = "/chain33/request-peer-info-for-chunk/1.0.0"
+	responsePeerInfoForChunk = "/chain33/response-peer-info-for-chunk/1.0.0"
+)
+
+type ChunkStatus struct {
+	info   *types.ChunkInfoMsg
+	status int
+}
+
+const (
+	Waiting    = iota // refreshing p2pStore and waiting peer addr
+	ToDownload        // having got peer addr and waiting to download
 )
 
 const maxConcurrency = 10
@@ -36,8 +51,15 @@ var backup = 20
 type Protocol struct {
 	*protocol.P2PEnv //协议共享接口变量
 
-	chunkToSync   chan *types.ChunkInfoMsg
-	chunkToDelete chan *types.ChunkInfoMsg
+	chunkToSync     chan *types.ChunkInfoMsg
+	chunkToDelete   chan *types.ChunkInfoMsg
+	chunkToDownload chan *types.ChunkInfoMsg
+
+	wakeup      map[string]chan struct{}
+	wakeupMutex sync.Mutex
+
+	chunkStatusCache      map[string]ChunkStatus
+	chunkStatusCacheMutex sync.Mutex
 
 	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
@@ -47,7 +69,16 @@ type Protocol struct {
 
 	// 扩展路由表，每小时更新一次
 	extendRoutingTable *kbt.RoutingTable
-	ertLock            sync.Mutex
+	exRTLock           sync.Mutex
+
+	peerAddrRequestTrace      map[peer.ID]map[peer.ID]time.Time // peerID requested ==>
+	peerAddrRequestTraceMutex sync.RWMutex
+
+	chunkRequestTrace      map[string]map[peer.ID]time.Time // chunkHash ==> request peers
+	chunkRequestTraceMutex sync.RWMutex
+
+	chunkProviderCache      map[string]map[peer.ID]time.Time // chunkHash ==> provider peers
+	chunkProviderCacheMutex sync.RWMutex
 }
 
 func init() {
@@ -57,9 +88,15 @@ func init() {
 //InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
 	p := &Protocol{
-		P2PEnv:        env,
-		chunkToSync:   make(chan *types.ChunkInfoMsg, 1024),
-		chunkToDelete: make(chan *types.ChunkInfoMsg, 1024),
+		P2PEnv:               env,
+		chunkToSync:          make(chan *types.ChunkInfoMsg, 1024),
+		chunkToDelete:        make(chan *types.ChunkInfoMsg, 1024),
+		chunkToDownload:      make(chan *types.ChunkInfoMsg, 1024),
+		wakeup:               make(map[string]chan struct{}),
+		chunkStatusCache:     make(map[string]ChunkStatus),
+		peerAddrRequestTrace: make(map[peer.ID]map[peer.ID]time.Time),
+		chunkRequestTrace:    make(map[string]map[peer.ID]time.Time),
+		chunkProviderCache:   make(map[string]map[peer.ID]time.Time),
 	}
 	//
 	if env.SubConfig.Backup > 1 {
@@ -78,6 +115,12 @@ func InitProtocol(env *protocol.P2PEnv) {
 	p.initLocalChunkInfoMap()
 
 	//注册p2p通信协议，用于处理节点之间请求
+	protocol.RegisterStreamHandler(p.Host, requestPeerInfoForChunk, p.handleStreamRequestPeerInfoForChunk)
+	protocol.RegisterStreamHandler(p.Host, responsePeerInfoForChunk, p.handleStreamResponsePeerInfoForChunk)
+	protocol.RegisterStreamHandler(p.Host, requestPeerAddr, p.handleStreamRequestPeerAddr)
+	protocol.RegisterStreamHandler(p.Host, responsePeerAddr, p.handleStreamResponsePeerAddr)
+
+	protocol.RegisterStreamHandler(p.Host, fetchPeerAddr, protocol.HandlerWithRW(p.handleStreamPeerAddr))
 	protocol.RegisterStreamHandler(p.Host, fetchActivePeer, protocol.HandlerWithWrite(p.handleStreamFetchActivePeer))
 	protocol.RegisterStreamHandler(p.Host, fetchShardPeer, protocol.HandlerWithRW(p.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p.Host, getHeaderOld, p.handleStreamGetHeaderOld)
@@ -97,53 +140,23 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.processLocalChunk()
 	go p.updateRoutine()
 	go p.refreshRoutine()
-	go func() {
-		// TODO: debug, to delete soon
-		ticker := time.NewTicker(time.Minute)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-p.Ctx.Done():
-				return
-			case <-ticker.C:
-				//debug info
-				p.localChunkInfoMutex.Lock()
-				log.Info("debugLocalChunk", "local chunk hash len", len(p.localChunkInfo))
-				p.localChunkInfoMutex.Unlock()
-				p.debugFullNode()
-				log.Info("debug rt peers", "======== amount", p.RoutingTable.Size())
-				log.Info("debug length", "notifying msg len", len(p.chunkToSync))
-				log.Info("debug peers and conns", "peers len", len(p.Host.Network().Peers()), "conns len", len(p.Host.Network().Conns()))
-				var streamCount int
-				for _, conn := range p.Host.Network().Conns() {
-					streams := conn.GetStreams()
-					streamCount += len(streams)
-					log.Info("debug new conn", "remote peer", conn.RemotePeer(), "len streams", len(streams))
-					for _, s := range streams {
-						log.Info("debug new stream", "protocol id", s.Protocol())
-					}
-				}
-				log.Info("debug all stream", "count", streamCount)
-				p.localChunkInfoMutex.RLock()
-				for hash, info := range p.localChunkInfo {
-					log.Info("localChunkInfo", "hash", hash, "start", info.Start, "end", info.End)
-				}
-				p.localChunkInfoMutex.RUnlock()
-			}
-		}
-	}()
+	go p.debugLog()
 }
 
 func (p *Protocol) refreshRoutine() {
 	ticker := time.NewTicker(types2.RefreshInterval)
 	defer ticker.Stop()
+	ticker2 := time.NewTicker(time.Minute * 3)
+	defer ticker2.Stop()
 	for {
 		select {
 		case <-p.Ctx.Done():
 			return
 		case <-ticker.C:
 			p.refreshLocalChunk()
+			p.cleanCache()
+		case <-ticker2.C:
+			p.cleanTrace()
 		}
 	}
 }
@@ -151,10 +164,8 @@ func (p *Protocol) refreshRoutine() {
 func (p *Protocol) updateRoutine() {
 	ticker1 := time.NewTicker(time.Minute)
 	defer ticker1.Stop()
-	ticker2 := time.NewTicker(time.Minute * 5)
+	ticker2 := time.NewTicker(time.Minute * 30)
 	defer ticker2.Stop()
-	ticker3 := time.NewTicker(time.Hour)
-	defer ticker3.Stop()
 
 	p.updateExtendRoutingTable()
 	for {
@@ -166,20 +177,6 @@ func (p *Protocol) updateRoutine() {
 			p.advertiseFullNode()
 
 		case <-ticker2.C:
-			// update peer addr
-			for _, pid := range p.RoutingTable.ListPeers() {
-				if len(p.Host.Peerstore().Addrs(pid)) != 0 {
-					continue
-				}
-				for _, queryPeer := range p.RoutingTable.NearestPeers(kbt.ConvertPeerID(pid), 30) {
-					if info, _ := p.queryAddrInfo(pid, queryPeer); info != nil {
-						_ = saveCloserPeers([]*types.PeerInfo{info}, p.Host.Peerstore())
-						break
-					}
-				}
-			}
-
-		case <-ticker3.C:
 			p.updateExtendRoutingTable()
 
 		}
@@ -192,69 +189,58 @@ func (p *Protocol) processLocalChunk() {
 		case <-p.Ctx.Done():
 			return
 		case info := <-p.chunkToSync:
-			p.syncChunk(info)
+			for _, pid := range p.RoutingTable.NearestPeers(genDHTID(info.ChunkHash), AlphaValue) {
+				if err := p.requestPeerInfoForChunk(info, pid); err != nil {
+					log.Error("processLocalChunk", "requestPeerInfoForChunk error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
+				}
+			}
 		case info := <-p.chunkToDelete:
 			if info, ok := p.getChunkInfoByHash(info.ChunkHash); ok && time.Since(info.Time) > types2.RefreshInterval*3 {
 				if err := p.deleteChunkBlock(info.ChunkHash); err != nil {
-					log.Error("refreshRoutine", "deleteChunkBlock error", err, "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
+					log.Error("processLocalChunk", "deleteChunkBlock error", err, "chunkHash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 				}
 			}
+		case info := <-p.chunkToDownload:
+			//TODO: 1.根据节点时延排序 2.并发获取数据 3.把一个chunk分成多份分别到多个节点上去获取数据
+			for _, pid := range p.getChunkProviderCache(info.ChunkHash) {
+				bodys, _, err := p.fetchChunkFromPeer(p.Ctx, info, pid)
+				if err != nil {
+					log.Error("processLocalChunk", "fetchChunkFromPeer error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
+					continue
+				}
+				if err := p.addChunkBlock(info, bodys); err != nil {
+					log.Error("processLocalChunk", "addChunkBlock error", err)
+					continue
+				}
+				break
+			}
+			p.chunkStatusCacheMutex.Lock()
+			delete(p.chunkStatusCache, hex.EncodeToString(info.ChunkHash))
+			p.chunkStatusCacheMutex.Unlock()
+
 		}
 	}
 }
 
-func (p *Protocol) syncChunk(info *types.ChunkInfoMsg) {
-	//检查本地 p2pStore，如果已存在数据则直接更新
-	if err := p.updateChunk(info); err == nil {
-		return
-	}
-
-	var bodys *types.BlockBodys
-	bodys, _ = p.getChunkFromBlockchain(info)
-	if bodys == nil {
-		//blockchain模块没有数据，从网络中搜索数据
-		bodys, _, _ = p.mustFetchChunk(info)
-	}
-	if bodys == nil {
-		log.Error("syncChunk error", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
-		return
-	}
-	if err := p.addChunkBlock(info, bodys); err != nil {
-		log.Error("syncChunk", "addChunkBlock error", err)
-		return
-	}
-	log.Info("syncChunk", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
-}
-
-func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
-	if !p.SubConfig.IsFullNode {
-		return
-	}
-	reply, err := p.API.IsSync()
-	if err != nil || !reply.IsOk {
-		// 没有同步完，不进行Advertise操作
-		return
-	}
-	_, err = p.Advertise(p.Ctx, fullNode, opts...)
-	if err != nil {
-		log.Error("advertiseFullNode", "error", err)
-	}
-}
-
-//TODO
-//debug info, to delete soon
-func (p *Protocol) debugFullNode() {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
-	defer cancel()
-	peerInfos, err := p.FindPeers(ctx, fullNode)
-	if err != nil {
-		log.Error("debugFullNode", "FindPeers error", err)
-		return
-	}
-	var count int
-	for peerInfo := range peerInfos {
-		count++
-		log.Info("debugFullNode", "ID", peerInfo.ID, "maddrs", peerInfo.Addrs)
-	}
-	log.Info("debugFullNode", "total count", count)
-}
+//func (p *Protocol) syncChunk(info *types.ChunkInfoMsg) {
+//	//检查本地 p2pStore，如果已存在数据则直接更新
+//	if err := p.updateChunk(info); err == nil {
+//		return
+//	}
+//
+//	var bodys *types.BlockBodys
+//	bodys, _ = p.getChunkFromBlockchain(info)
+//	if bodys == nil {
+//		//blockchain模块没有数据，从网络中搜索数据
+//		bodys, _, _ = p.mustFetchChunk(info)
+//	}
+//	if bodys == nil {
+//		log.Error("syncChunk error", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
+//		return
+//	}
+//	if err := p.addChunkBlock(info, bodys); err != nil {
+//		log.Error("syncChunk", "addChunkBlock error", err)
+//		return
+//	}
+//	log.Info("syncChunk", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
+//}
