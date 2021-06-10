@@ -85,7 +85,7 @@ func (p *Protocol) handleStreamPeerInfoOld(stream network.Stream) {
 		Message: pInfo,
 	}, stream)
 	if err != nil {
-		log.Error("handleStreamPeerInfo", "WriteStream error", err)
+		log.Error("handleStreamPeerInfoOld", "WriteStream error", err)
 		return
 	}
 }

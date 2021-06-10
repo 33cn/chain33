@@ -207,7 +207,7 @@ func TestPeerInfoHandler(t *testing.T) {
 	t.Log(p.getExternalAddr(), p.getPublicIP())
 
 	p.refreshSelf()
-	p.refreshPeerInfo()
+	p.refreshPeerInfo(p.RoutingTable.ListPeers())
 	time.Sleep(time.Second)
 	fmt.Println(p.PeerInfoManager.FetchAll())
 	fmt.Println(p.Host.ID())
