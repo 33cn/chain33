@@ -10,6 +10,7 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -71,7 +72,6 @@ type Protocol struct {
 
 	// 扩展路由表，每小时更新一次
 	extendRoutingTable *kbt.RoutingTable
-	exRTLock           sync.Mutex
 
 	peerAddrRequestTrace      map[peer.ID]map[peer.ID]time.Time // peerID requested ==>
 	peerAddrRequestTraceMutex sync.RWMutex
@@ -99,6 +99,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 		peerAddrRequestTrace: make(map[peer.ID]map[peer.ID]time.Time),
 		chunkRequestTrace:    make(map[string]map[peer.ID]time.Time),
 		chunkProviderCache:   make(map[string]map[peer.ID]time.Time),
+		extendRoutingTable:   kbt.NewRoutingTable(dht.KValue, kbt.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
 	}
 	//
 	if env.SubConfig.Backup > 1 {
@@ -167,6 +168,9 @@ func (p *Protocol) updateRoutine() {
 	ticker1 := time.NewTicker(time.Minute)
 	defer ticker1.Stop()
 	ticker2 := time.NewTicker(time.Minute * 30)
+	if p.ChainCfg.IsTestNet() {
+		ticker2 = time.NewTicker(time.Second)
+	}
 	defer ticker2.Stop()
 
 	p.updateExtendRoutingTable()
@@ -197,9 +201,9 @@ func (p *Protocol) processLocalChunk() {
 				}
 			}
 		case info := <-p.chunkToDelete:
-			if info, ok := p.getChunkInfoByHash(info.ChunkHash); ok && time.Since(info.Time) > types2.RefreshInterval*3 {
-				if err := p.deleteChunkBlock(info.ChunkHash); err != nil {
-					log.Error("processLocalChunk", "deleteChunkBlock error", err, "chunkHash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
+			if localInfo, ok := p.getChunkInfoByHash(info.ChunkHash); ok && time.Since(localInfo.Time) > types2.RefreshInterval*3 {
+				if err := p.deleteChunkBlock(localInfo.ChunkHash); err != nil {
+					log.Error("processLocalChunk", "deleteChunkBlock error", err, "chunkHash", hex.EncodeToString(localInfo.ChunkHash), "start", localInfo.Start)
 				}
 			}
 		case info := <-p.chunkToDownload:
