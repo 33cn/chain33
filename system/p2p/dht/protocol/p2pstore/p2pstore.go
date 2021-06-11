@@ -17,11 +17,11 @@ const (
 	fetchActivePeer = "/chain33/fetch-active-peer/1.0.0"
 	fetchShardPeer  = "/chain33/fetch-shard-peer/1.0.0"
 	fetchChunk      = "/chain33/fetch-chunk/1.0.0"
-	storeChunk      = "/chain33/store-chunk/1.0.0"
-	getHeader       = "/chain33/headers/1.0.0"
-	getChunkRecord  = "/chain33/chunk-record/1.0.0"
-	fullNode        = "/chain33/full-node/1.0.0"
-	fetchPeerAddr   = "/chain33/fetch-peer-addr/1.0.0"
+	//storeChunk      = "/chain33/store-chunk/1.0.0"
+	getHeader      = "/chain33/headers/1.0.0"
+	getChunkRecord = "/chain33/chunk-record/1.0.0"
+	fullNode       = "/chain33/full-node/1.0.0"
+	fetchPeerAddr  = "/chain33/fetch-peer-addr/1.0.0"
 	// Deprecated: old version, use getHeader instead
 	getHeaderOld = "/chain33/headerinfoReq/1.0.0"
 
@@ -32,11 +32,13 @@ const (
 	responsePeerInfoForChunk = "/chain33/response-peer-info-for-chunk/1.0.0"
 )
 
+// ChunkStatus ...
 type ChunkStatus struct {
 	info   *types.ChunkInfoMsg
 	status int
 }
 
+// status of ChunkStatus
 const (
 	Waiting    = iota // refreshing p2pStore and waiting peer addr
 	ToDownload        // having got peer addr and waiting to download
