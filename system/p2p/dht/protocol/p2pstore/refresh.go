@@ -39,10 +39,11 @@ func (p *Protocol) refreshLocalChunk() {
 
 			// 通过网络从其他节点获取数据
 			p.chunkStatusCacheMutex.Lock()
+			chunkHash := hex.EncodeToString(info.ChunkHash)
 			if _, ok := p.chunkStatusCache[hex.EncodeToString(info.ChunkHash)]; ok {
 				continue
 			}
-			p.chunkStatusCache[hex.EncodeToString(info.ChunkHash)] = ChunkStatus{info: msg, status: Waiting}
+			p.chunkStatusCache[chunkHash] = ChunkStatus{info: msg, status: Waiting}
 			p.chunkStatusCacheMutex.Unlock()
 			syncNum++
 			p.chunkToSync <- msg

@@ -86,6 +86,7 @@ func (p *Protocol) handleStreamResponsePeerInfoForChunk(stream network.Stream) {
 	}
 
 	provider := req.Request.(*types.P2PRequest_Provider).Provider
+	chunkHash := hex.EncodeToString(provider.ChunkHash)
 
 	// add provider cache
 	savePeers(provider.PeerInfos, p.Host.Peerstore())
@@ -94,20 +95,20 @@ func (p *Protocol) handleStreamResponsePeerInfoForChunk(stream network.Stream) {
 	}
 
 	p.wakeupMutex.Lock()
-	if ch, ok := p.wakeup[hex.EncodeToString(provider.ChunkHash)]; ok {
+	if ch, ok := p.wakeup[chunkHash]; ok {
 		ch <- struct{}{}
-		delete(p.wakeup, hex.EncodeToString(provider.ChunkHash))
+		delete(p.wakeup, chunkHash)
 	}
 	p.wakeupMutex.Unlock()
 
 	p.chunkStatusCacheMutex.Lock()
-	if cs, ok := p.chunkStatusCache[hex.EncodeToString(provider.ChunkHash)]; ok {
+	if cs, ok := p.chunkStatusCache[chunkHash]; ok {
 		// 防止重复下载
 		if cs.status == Waiting {
 			select {
 			case p.chunkToDownload <- cs.info:
 				cs.status = ToDownload
-				p.chunkStatusCache[hex.EncodeToString(provider.ChunkHash)] = cs
+				p.chunkStatusCache[chunkHash] = cs
 			default:
 				log.Error("handleStreamResponsePeerInfoForChunk", "error", "chunkToDownload channel is full")
 			}
