@@ -3,8 +3,9 @@ package p2pstore
 // TODO: debug, to delete soon
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/discovery"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/discovery"
 )
 
 func (p *Protocol) debugLog() {
