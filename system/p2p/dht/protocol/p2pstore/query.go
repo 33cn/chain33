@@ -175,9 +175,10 @@ func (p *Protocol) findChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.I
 }
 
 func (p *Protocol) findChunkAsync(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID, error) {
+	chunkHash := hex.EncodeToString(req.ChunkHash)
 	wakeupCh := make(chan struct{}, 1)
 	p.wakeupMutex.Lock()
-	p.wakeup[hex.EncodeToString(req.ChunkHash)] = wakeupCh
+	p.wakeup[chunkHash] = wakeupCh
 	p.wakeupMutex.Unlock()
 
 	// 发起异步请求
@@ -203,9 +204,9 @@ func (p *Protocol) findChunkAsync(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 
 	case <-time.After(time.Minute * 3):
 		p.wakeupMutex.Lock()
-		delete(p.wakeup, hex.EncodeToString(req.ChunkHash))
+		delete(p.wakeup, chunkHash)
 		p.wakeupMutex.Unlock()
-		log.Error("findChunkAsync", "error", "timeout")
+		log.Error("findChunkAsync", "error", "timeout", "chunkHash", chunkHash)
 		break
 	}
 
@@ -399,6 +400,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute*5)
 	defer cancel()
 
+	chunkHash := hex.EncodeToString(req.ChunkHash)
 	//保存查询过的节点，防止重复查询
 	searchedPeers := make(map[peer.ID]struct{})
 	searchedPeers[p.Host.ID()] = struct{}{}
@@ -419,7 +421,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 				continue
 			}
 			if bodys != nil {
-				log.Info("mustFetchChunk found", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "pid", pid, "maddrs", p.Host.Peerstore().Addrs(pid), "time cost", time.Since(start))
+				log.Info("mustFetchChunk found", "chunk hash", chunkHash, "start", req.Start, "pid", pid, "maddrs", p.Host.Peerstore().Addrs(pid), "time cost", time.Since(start))
 				return bodys, pid, nil
 			}
 			break
@@ -427,7 +429,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 		peers = nearerPeers
 	}
 
-	log.Error("mustFetchChunk not found", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "error", types2.ErrNotFound)
+	log.Error("mustFetchChunk not found", "chunk hash", chunkHash, "start", req.Start, "error", types2.ErrNotFound)
 
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
 	ctx2, cancel2 := context.WithTimeout(ctx, time.Minute*3)
@@ -445,10 +447,10 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 		log.Info("mustFetchChunk", "pid", addrInfo.ID, "addrs", addrInfo.Addrs)
 		bodys, pid := p.fetchChunkFromFullPeer(ctx, req, addrInfo.ID)
 		if bodys == nil {
-			log.Error("mustFetchChunk from full node failed", "pid", addrInfo.ID, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
+			log.Error("mustFetchChunk from full node failed", "pid", addrInfo.ID, "chunk hash", chunkHash, "start", req.Start)
 			continue
 		}
-		log.Info("mustFetchChunk from full node succeed", "pid", addrInfo.ID, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start)
+		log.Info("mustFetchChunk from full node succeed", "pid", addrInfo.ID, "chunk hash", chunkHash, "start", req.Start)
 		return bodys, pid, nil
 	}
 
