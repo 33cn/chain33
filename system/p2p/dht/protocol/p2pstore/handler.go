@@ -67,7 +67,7 @@ func (p *Protocol) handleStreamRequestPeerInfoForChunk(stream network.Stream) {
 			log.Error("handleStreamRequestPeerInfoForChunk", "responsePeerInfoForChunk error", err)
 		}
 	} else if exist := p.addChunkRequestTrace(msg.ChunkHash, remotePid); !exist {
-		for _, remotePid := range p.RoutingTable.NearestPeers(genDHTID(msg.ChunkHash), AlphaValue) {
+		for _, remotePid := range p.RoutingTable.NearestPeers(genDHTID(msg.ChunkHash), AlphaValue-1) {
 			err := p.requestPeerInfoForChunk(msg, remotePid)
 			if err != nil {
 				log.Error("handleStreamPeerAddrAsync", "requestPeerAddr error", err)
@@ -149,7 +149,7 @@ func (p *Protocol) handleStreamRequestPeerAddr(stream network.Stream) {
 			log.Error("handleStreamRequestPeerAddr", "responsePeerAddr error", err)
 		}
 	} else if exist := p.addPeerAddrRequestTrace(peer.ID(pid), remotePid); !exist {
-		for _, remotePid := range p.RoutingTable.NearestPeers(kb.ConvertPeerID(peer.ID(pid)), AlphaValue) {
+		for _, remotePid := range p.RoutingTable.NearestPeers(kb.ConvertPeerID(peer.ID(pid)), AlphaValue-1) {
 			err := p.requestPeerAddr(peer.ID(pid), remotePid)
 			if err != nil {
 				log.Error("handleStreamRequestPeerAddr", "requestPeerAddr error", err)
