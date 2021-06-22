@@ -632,7 +632,7 @@ func (push *Push) getEVMEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 			if !strings.Contains(string(tx.Execer), "evm") {
 				continue
 			}
-			var evmAction types.EVMContractAction
+			var evmAction types.EVMContractAction4Chain33
 			err := types.Decode(tx.Payload, &evmAction)
 			if nil != err {
 				chainlog.Error("getEVMEvent", "Failed to decode EVMContractAction for evm tx with hash:", common.ToHex(tx.Hash()))
