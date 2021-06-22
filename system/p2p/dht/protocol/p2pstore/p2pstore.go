@@ -220,7 +220,6 @@ func (p *Protocol) processLocalChunk() {
 			p.chunkStatusCacheMutex.Lock()
 			delete(p.chunkStatusCache, hex.EncodeToString(info.ChunkHash))
 			p.chunkStatusCacheMutex.Unlock()
-
 		}
 	}
 }
