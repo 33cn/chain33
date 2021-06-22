@@ -90,7 +90,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	if err != nil {
 		t.Fatal("connect error", err)
 	}
-	_, err = kademliaDHT2.RoutingTable().Update(host1.ID())
+	_, err = kademliaDHT2.RoutingTable().TryAddPeer(host1.ID(), true, true)
 	require.Nil(t, err)
 	ps2, err := extension.NewPubSub(ctx, host2, &p2pty.PubSubConfig{})
 	if err != nil {
