@@ -1,5 +1,5 @@
 syntax = "proto3";
-package ticket;
+package mavlticket;
 
 message Ticket {
     string ticketId = 1;

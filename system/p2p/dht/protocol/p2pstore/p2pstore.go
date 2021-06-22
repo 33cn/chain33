@@ -10,7 +10,6 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -89,6 +88,7 @@ func init() {
 
 //InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
+	exRT, _ := kbt.NewRoutingTable(20, kbt.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore(), time.Hour, nil)
 	p := &Protocol{
 		P2PEnv:               env,
 		chunkToSync:          make(chan *types.ChunkInfoMsg, 1024),
@@ -99,7 +99,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 		peerAddrRequestTrace: make(map[peer.ID]map[peer.ID]time.Time),
 		chunkRequestTrace:    make(map[string]map[peer.ID]time.Time),
 		chunkProviderCache:   make(map[string]map[peer.ID]time.Time),
-		extendRoutingTable:   kbt.NewRoutingTable(dht.KValue, kbt.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore()),
+		extendRoutingTable:   exRT,
 	}
 	//
 	if env.SubConfig.Backup > 1 {
@@ -168,9 +168,6 @@ func (p *Protocol) updateRoutine() {
 	ticker1 := time.NewTicker(time.Minute)
 	defer ticker1.Stop()
 	ticker2 := time.NewTicker(time.Minute * 30)
-	if p.ChainCfg.IsTestNet() {
-		ticker2 = time.NewTicker(time.Second)
-	}
 	defer ticker2.Stop()
 
 	p.updateExtendRoutingTable()

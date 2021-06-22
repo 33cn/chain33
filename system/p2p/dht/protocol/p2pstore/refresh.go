@@ -79,12 +79,12 @@ func (p *Protocol) updateExtendRoutingTable() {
 	start := time.Now()
 	for _, pid := range p.extendRoutingTable.ListPeers() {
 		if p.RoutingTable.Find(pid) == "" {
-			p.extendRoutingTable.Remove(pid)
+			p.extendRoutingTable.RemovePeer(pid)
 		}
 	}
 	peers := p.RoutingTable.ListPeers()
 	for _, pid := range peers {
-		_, _ = p.extendRoutingTable.Update(pid)
+		_, _ = p.extendRoutingTable.TryAddPeer(pid, true, true)
 	}
 	if key != nil {
 		peers = p.RoutingTable.NearestPeers(genDHTID(key), backup-1)
@@ -106,7 +106,7 @@ func (p *Protocol) updateExtendRoutingTable() {
 			if cPid == p.Host.ID() {
 				continue
 			}
-			_, _ = p.extendRoutingTable.Update(cPid)
+			_, _ = p.extendRoutingTable.TryAddPeer(cPid, true, true)
 		}
 	}
 
@@ -128,9 +128,9 @@ func (p *Protocol) updateExtendRoutingTable() {
 				if cPid == p.Host.ID() {
 					continue
 				}
-				_, _ = p.extendRoutingTable.Update(cPid)
+				_, _ = p.extendRoutingTable.TryAddPeer(cPid, true, true)
 			}
 		}
 	}
-	log.Info("updateExtendRoutingTable", "local peers count", p.RoutingTable.Size(), "extendRoutingTable peer count", p.extendRoutingTable.Size(), "time cost", time.Since(start), "origin count", count)
+	log.Info("updateExtendRoutingTable", "pid", p.Host.ID(), "local peers count", p.RoutingTable.Size(), "extendRoutingTable peer count", p.extendRoutingTable.Size(), "time cost", time.Since(start), "origin count", count)
 }
