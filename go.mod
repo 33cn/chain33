@@ -1,6 +1,6 @@
 module github.com/33cn/chain33
 
-go 1.13
+go 1.14
 
 require (
 	github.com/BurntSushi/toml v0.3.1

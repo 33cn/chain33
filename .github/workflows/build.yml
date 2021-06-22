@@ -8,7 +8,7 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.14
         id: go
       - name: checkout
         uses: actions/checkout@v2
@@ -39,7 +39,7 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.14
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
@@ -55,7 +55,7 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.14
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
@@ -74,7 +74,7 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.14
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
