@@ -116,6 +116,7 @@ func (p *broadcastProtocol) broadcastV1(peerCtx context.Context, pid peer.ID) {
 
 			err = prototypes.WriteStream(broadData, stream)
 			if err != nil {
+				prototypes.CloseStream(stream)
 				log.Error("broadcastV1", "pid", sPid, "WriteStream err", err)
 				return
 			}

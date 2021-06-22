@@ -2,7 +2,9 @@ package protocol
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"runtime"
 	"time"
@@ -12,7 +14,6 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/helpers"
 	"github.com/libp2p/go-libp2p-core/network"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
 )
@@ -50,8 +51,9 @@ func CloseStream(stream network.Stream) {
 	if stream == nil {
 		return
 	}
+	_ = stream.CloseWrite()
 	go func() {
-		err := helpers.FullClose(stream)
+		err := AwaitEOF(stream)
 		if err != nil {
 			//just log it because it dose not matter
 			log.Debug("CloseStream", "err", err, "protocol ID", stream.Protocol())
@@ -316,4 +318,36 @@ func panicTrace(kb int) []byte {
 	}
 	stack = bytes.TrimRight(stack, "\n")
 	return stack
+}
+
+// EOFTimeout is the maximum amount of time to wait to successfully observe an
+// EOF on the stream. Defaults to 60 seconds.
+var EOFTimeout = time.Second * 60
+
+// ErrExpectedEOF is returned when we read data while expecting an EOF.
+var ErrExpectedEOF = errors.New("read data when expecting EOF")
+
+// AwaitEOF waits for an EOF on the given stream, returning an error if that
+// fails. It waits at most EOFTimeout (defaults to 1 minute) after which it
+// resets the stream.
+func AwaitEOF(s network.Stream) error {
+	// So we don't wait forever
+	_ = s.SetDeadline(time.Now().Add(EOFTimeout))
+
+	// We *have* to observe the EOF. Otherwise, we leak the stream.
+	// Now, technically, we should do this *before*
+	// returning from SendMessage as the message
+	// hasn't really been sent yet until we see the
+	// EOF but we don't actually *know* what
+	// protocol the other side is speaking.
+	n, err := s.Read([]byte{0})
+	if n > 0 || err == nil {
+		_ = s.Reset()
+		return ErrExpectedEOF
+	}
+	if err != io.EOF {
+		_ = s.Reset()
+		return err
+	}
+	return nil
 }

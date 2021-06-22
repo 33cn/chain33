@@ -152,7 +152,7 @@ func (s *ConnManager) procConnections() {
 	for _, conn := range s.host.Network().Conns() {
 		remotePeer := conn.RemotePeer()
 		if s.routingTable.Find(remotePeer) == "" {
-			_, _ = s.routingTable.Update(remotePeer)
+			_, _ = s.routingTable.TryAddPeer(remotePeer, true, true)
 		}
 	}
 	//处理当前连接的节点问题
@@ -217,7 +217,7 @@ func (s *ConnManager) IsNeighbors(pid peer.ID) bool {
 // Delete delete peer by id
 func (s *ConnManager) Delete(pid peer.ID) {
 	_ = s.host.Network().ClosePeer(pid)
-	s.routingTable.Remove(pid)
+	s.routingTable.RemovePeer(pid)
 }
 
 // FetchNearestPeers fetch nearest peer ids

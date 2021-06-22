@@ -19,6 +19,8 @@ import (
 func (p *Protocol) requestPeerInfoForChunk(msg *types.ChunkInfoMsg, pid peer.ID) error {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, requestPeerInfoForChunk)
+	defer p.Host.ConnManager().Unprotect(pid, requestPeerInfoForChunk)
 	stream, err := p.Host.NewStream(ctx, pid, requestPeerInfoForChunk)
 	if err != nil {
 		return err
@@ -38,6 +40,8 @@ func (p *Protocol) requestPeerInfoForChunk(msg *types.ChunkInfoMsg, pid peer.ID)
 func (p *Protocol) responsePeerInfoForChunk(provider *types.ChunkProvider, pid peer.ID) error {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, responsePeerInfoForChunk)
+	defer p.Host.ConnManager().Unprotect(pid, responsePeerInfoForChunk)
 	stream, err := p.Host.NewStream(ctx, pid, responsePeerInfoForChunk)
 	if err != nil {
 		return err
@@ -57,6 +61,8 @@ func (p *Protocol) responsePeerInfoForChunk(provider *types.ChunkProvider, pid p
 func (p *Protocol) requestPeerAddr(keyPid, remotePid peer.ID) error {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
+	p.Host.ConnManager().Protect(remotePid, requestPeerAddr)
+	defer p.Host.ConnManager().Unprotect(remotePid, requestPeerAddr)
 	stream, err := p.Host.NewStream(ctx, remotePid, requestPeerAddr)
 	if err != nil {
 		return err
@@ -76,6 +82,8 @@ func (p *Protocol) requestPeerAddr(keyPid, remotePid peer.ID) error {
 func (p *Protocol) responsePeerAddr(info *types.PeerInfo, remotePid peer.ID) error {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
+	p.Host.ConnManager().Protect(remotePid, responsePeerAddr)
+	defer p.Host.ConnManager().Unprotect(remotePid, responsePeerAddr)
 	stream, err := p.Host.NewStream(ctx, remotePid, responsePeerAddr)
 	if err != nil {
 		return err
@@ -102,7 +110,7 @@ func (p *Protocol) fetchActivePeers(pid peer.ID, saveAddr bool) ([]peer.ID, erro
 		return nil, err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 
 	var resp types.P2PResponse
 	if err = protocol.ReadStream(&resp, stream); err != nil {
@@ -134,7 +142,7 @@ func (p *Protocol) fetchShardPeers(key []byte, count int, pid peer.ID) ([]peer.I
 		return nil, err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	req := types.P2PRequest{
 		Request: &types.P2PRequest_ReqPeers{
 			ReqPeers: &types.ReqPeers{
@@ -254,7 +262,7 @@ func (p *Protocol) getHeadersFromPeerOld(req *types.P2PGetHeaders, pid peer.ID) 
 	if err != nil {
 		return nil, err
 	}
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	err = protocol.WriteStream(&types.MessageHeaderReq{
 		Message: req,
 	}, stream)
@@ -311,7 +319,7 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 	if err != nil {
 		return nil, err
 	}
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ReqBlocks{
 			ReqBlocks: param,
@@ -371,7 +379,7 @@ func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid pee
 	if err != nil {
 		return nil, err
 	}
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ReqChunkRecords{
 			ReqChunkRecords: param,
@@ -467,7 +475,7 @@ func (p *Protocol) fetchChunkFromPeer(ctx context.Context, params *types.ChunkIn
 		log.Error("fetchChunkFromPeer", "error", err)
 		return nil, nil, err
 	}
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ChunkInfoMsg{
 			ChunkInfoMsg: params,
@@ -591,7 +599,7 @@ func (p *Protocol) queryAddrInfo(pid peer.ID, queryPeer peer.ID) (*types.PeerInf
 	if err != nil {
 		return nil, err
 	}
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	req := types.P2PRequest{
 		Request: &types.P2PRequest_Pid{
 			Pid: string(pid),

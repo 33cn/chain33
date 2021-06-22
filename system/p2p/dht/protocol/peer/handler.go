@@ -128,7 +128,7 @@ func (p *Protocol) handleStreamVersionOld(stream network.Stream) {
 }
 
 func (p *Protocol) handleEventPeerInfo(msg *queue.Message) {
-	// no more than 30 peers
+	// no more than 20 peers
 	peers := p.RoutingTable.NearestPeers(kbt.ConvertPeerID(p.Host.ID()), maxPeers)
 	var peerList types.PeerList
 	for _, pid := range peers {

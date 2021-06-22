@@ -15,7 +15,14 @@ func RegisterStreamHandler(h host.Host, p protocol.ID, handler network.StreamHan
 	if handler == nil {
 		panic(fmt.Sprintf("addEventHandler, handler is nil, protocol=%s", p))
 	}
-	h.SetStreamHandler(p, HandlerWithClose(handler))
+	f := func(s network.Stream) {
+		if h.ConnManager() != nil {
+			h.ConnManager().Protect(s.Conn().RemotePeer(), string(p))
+			defer h.ConnManager().Unprotect(s.Conn().RemotePeer(), string(p))
+		}
+		handler(s)
+	}
+	h.SetStreamHandler(p, HandlerWithClose(f))
 }
 
 //Initializer is a initial function which any protocol should have.
