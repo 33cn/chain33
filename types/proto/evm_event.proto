@@ -37,3 +37,23 @@ message EVMTxLogPerBlk {
 message EVMTxLogsInBlks {
     repeated EVMTxLogPerBlk logs4EVMPerBlk = 1;
 }
+
+// 创建/调用合约的请求结构
+message EVMContractAction {
+    // 转账金额
+    uint64 amount = 1;
+    // 消耗限制，默认为Transaction.Fee
+    uint64 gasLimit = 2;
+    // gas价格，默认为1
+    uint32 gasPrice = 3;
+    // 合约数据
+    bytes code = 4;
+    //交易参数
+    bytes para = 5;
+    // 合约别名，方便识别
+    string alias = 6;
+    // 交易备注
+    string note = 7;
+    // 调用合约地址
+    string contractAddr = 8;
+}

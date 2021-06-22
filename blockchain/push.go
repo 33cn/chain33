@@ -629,7 +629,16 @@ func (push *Push) getEVMEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 			"Receipts numbers:", len(detail.Receipts))
 		for txIndex, tx := range detail.Block.Txs {
 			//确认是订阅的交易类型
-			if strings.Contains(string(tx.Execer), "evm") && subscribe.Contract[tx.To] {
+			if !strings.Contains(string(tx.Execer), "evm") {
+				continue
+			}
+			var evmAction types.EVMContractAction
+			err := types.Decode(tx.Payload, &evmAction)
+			if nil != err {
+				chainlog.Error("getEVMEvent", "Failed to decode EVMContractAction for evm tx with hash:", common.ToHex(tx.Hash()))
+				continue
+			}
+			if subscribe.Contract[evmAction.ContractAddr] {
 				chainlog.Info("getEVMEvent", "txIndex:", txIndex)
 				//因为只有交易执行成功时，才会存证log信息，所以需要事先判断
 				if types.ExecOk != detail.Receipts[txIndex].Ty {
