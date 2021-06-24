@@ -357,9 +357,9 @@ var (
 		FNan:  proto.Float32(float32(math.NaN())),
 		FPinf: proto.Float32(float32(math.Inf(1))),
 		FNinf: proto.Float32(float32(math.Inf(-1))),
-		DNan:  proto.Float64(float64(math.NaN())),
-		DPinf: proto.Float64(float64(math.Inf(1))),
-		DNinf: proto.Float64(float64(math.Inf(-1))),
+		DNan:  proto.Float64(math.NaN()),
+		DPinf: proto.Float64(math.Inf(1)),
+		DNinf: proto.Float64(math.Inf(-1)),
 	}
 	nonFinitesJSON = `{` +
 		`"fNan":"NaN",` +
@@ -440,7 +440,7 @@ var marshalingTests = []struct {
 		&pb2.Maps{MBoolSimple: map[bool]*pb2.Simple{true: {OInt32: proto.Int32(1)}}},
 		`{"mBoolSimple":{"true":{"oInt32":1}}}`},
 	{"oneof, not set", marshaler, &pb2.MsgWithOneof{}, `{}`},
-	{"oneof, set", marshaler, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_Title{"Grand Poobah"}}, `{"title":"Grand Poobah"}`},
+	{"oneof, set", marshaler, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_Title{Title: "Grand Poobah"}}, `{"title":"Grand Poobah"}`},
 	{"force orig_name", Marshaler{OrigName: true}, &pb2.Simple{OInt32: proto.Int32(4)},
 		`{"o_int32":4}`},
 	{"proto2 extension", marshaler, realNumber, realNumberJSON},
@@ -461,32 +461,32 @@ var marshalingTests = []struct {
 	{"Duration min value", marshaler, &durpb.Duration{Seconds: -315576000000, Nanos: -999999999}, `"-315576000000.999999999s"`},
 	{"Struct", marshaler, &pb2.KnownTypes{St: &stpb.Struct{
 		Fields: map[string]*stpb.Value{
-			"one": {Kind: &stpb.Value_StringValue{"loneliest number"}},
-			"two": {Kind: &stpb.Value_NullValue{stpb.NullValue_NULL_VALUE}},
+			"one": {Kind: &stpb.Value_StringValue{StringValue: "loneliest number"}},
+			"two": {Kind: &stpb.Value_NullValue{NullValue: stpb.NullValue_NULL_VALUE}},
 		},
 	}}, `{"st":{"one":"loneliest number","two":null}}`},
 	{"empty ListValue", marshaler, &pb2.KnownTypes{Lv: &stpb.ListValue{}}, `{"lv":[]}`},
 	{"basic ListValue", marshaler, &pb2.KnownTypes{Lv: &stpb.ListValue{Values: []*stpb.Value{
-		{Kind: &stpb.Value_StringValue{"x"}},
+		{Kind: &stpb.Value_StringValue{StringValue: "x"}},
 		{Kind: &stpb.Value_NullValue{}},
-		{Kind: &stpb.Value_NumberValue{3}},
-		{Kind: &stpb.Value_BoolValue{true}},
+		{Kind: &stpb.Value_NumberValue{NumberValue: 3}},
+		{Kind: &stpb.Value_BoolValue{BoolValue: true}},
 	}}}, `{"lv":["x",null,3,true]}`},
 	{"Timestamp", marshaler, &pb2.KnownTypes{Ts: &tspb.Timestamp{Seconds: 14e8, Nanos: 21e6}}, `{"ts":"2014-05-13T16:53:20.021Z"}`},
 	{"Timestamp", marshaler, &pb2.KnownTypes{Ts: &tspb.Timestamp{Seconds: 14e8, Nanos: 0}}, `{"ts":"2014-05-13T16:53:20Z"}`},
-	{"number Value", marshaler, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_NumberValue{1}}}, `{"val":1}`},
-	{"null Value", marshaler, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_NullValue{stpb.NullValue_NULL_VALUE}}}, `{"val":null}`},
-	{"string number value", marshaler, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_StringValue{"9223372036854775807"}}}, `{"val":"9223372036854775807"}`},
+	{"number Value", marshaler, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_NumberValue{NumberValue: 1}}}, `{"val":1}`},
+	{"null Value", marshaler, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_NullValue{NullValue: stpb.NullValue_NULL_VALUE}}}, `{"val":null}`},
+	{"string number value", marshaler, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_StringValue{StringValue: "9223372036854775807"}}}, `{"val":"9223372036854775807"}`},
 	{"list of lists Value", marshaler, &pb2.KnownTypes{Val: &stpb.Value{
-		Kind: &stpb.Value_ListValue{&stpb.ListValue{
+		Kind: &stpb.Value_ListValue{ListValue: &stpb.ListValue{
 			Values: []*stpb.Value{
-				{Kind: &stpb.Value_StringValue{"x"}},
-				{Kind: &stpb.Value_ListValue{&stpb.ListValue{
+				{Kind: &stpb.Value_StringValue{StringValue: "x"}},
+				{Kind: &stpb.Value_ListValue{ListValue: &stpb.ListValue{
 					Values: []*stpb.Value{
-						{Kind: &stpb.Value_ListValue{&stpb.ListValue{
-							Values: []*stpb.Value{{Kind: &stpb.Value_StringValue{"y"}}},
+						{Kind: &stpb.Value_ListValue{ListValue: &stpb.ListValue{
+							Values: []*stpb.Value{{Kind: &stpb.Value_StringValue{StringValue: "y"}}},
 						}}},
-						{Kind: &stpb.Value_StringValue{"z"}},
+						{Kind: &stpb.Value_StringValue{StringValue: "z"}},
 					},
 				}}},
 			},
@@ -555,19 +555,19 @@ func TestMarshalIllegalTime(t *testing.T) {
 }
 
 func TestMarshalJSONPBMarshaler(t *testing.T) {
-	rawJson := `{ "foo": "bar", "baz": [0, 1, 2, 3] }`
-	msg := dynamicMessage{RawJson: rawJson}
+	rawJSON := `{ "foo": "bar", "baz": [0, 1, 2, 3] }`
+	msg := dynamicMessage{RawJSON: rawJSON}
 	str, err := new(Marshaler).MarshalToString(&msg)
 	if err != nil {
-		t.Errorf("an unexpected error while marshaling JSONPBMarshaler: %v", err)
+		t.Errorf("an unexpected error while marshaling JSONMarshaler: %v", err)
 	}
-	if str != rawJson {
-		t.Errorf("marshaling JSON produced incorrect output: got %s, wanted %s", str, rawJson)
+	if str != rawJSON {
+		t.Errorf("marshaling JSON produced incorrect output: got %s, wanted %s", str, rawJSON)
 	}
 }
 
 func TestMarshalAnyJSONPBMarshaler(t *testing.T) {
-	msg := dynamicMessage{RawJson: `{ "foo": "bar", "baz": [0, 1, 2, 3] }`}
+	msg := dynamicMessage{RawJSON: `{ "foo": "bar", "baz": [0, 1, 2, 3] }`}
 	a, err := ptypes.MarshalAny(&msg)
 	if err != nil {
 		t.Errorf("an unexpected error while marshaling to Any: %v", err)
@@ -585,7 +585,7 @@ func TestMarshalAnyJSONPBMarshaler(t *testing.T) {
 }
 
 func TestMarshalWithCustomValidation(t *testing.T) {
-	msg := dynamicMessage{RawJson: `{ "foo": "bar", "baz": [0, 1, 2, 3] }`, Dummy: &dynamicMessage{}}
+	msg := dynamicMessage{RawJSON: `{ "foo": "bar", "baz": [0, 1, 2, 3] }`, Dummy: &dynamicMessage{}}
 
 	js, err := new(Marshaler).MarshalToString(&msg)
 	if err != nil {
@@ -665,7 +665,7 @@ func TestMarshalUnsetRequiredFields(t *testing.T) {
 			desc:      "required inside oneof",
 			marshaler: &Marshaler{},
 			pb: &pb2.MsgWithOneof{
-				Union: &pb2.MsgWithOneof_MsgWithRequired{&pb2.MsgWithRequired{}},
+				Union: &pb2.MsgWithOneof_MsgWithRequired{MsgWithRequired: &pb2.MsgWithRequired{}},
 			},
 		},
 		{
@@ -733,11 +733,11 @@ var unmarshalingTests = []struct {
 	{"Any with WKT and indent", Unmarshaler{}, anyWellKnownPrettyJSON, anyWellKnown},
 	{"map<string, enum>", Unmarshaler{}, `{"enumy":{"XIV":"ROMAN"}}`, &pb2.Mappy{Enumy: map[string]pb2.Numeral{"XIV": pb2.Numeral_ROMAN}}},
 	{"map<string, enum as int>", Unmarshaler{}, `{"enumy":{"XIV":2}}`, &pb2.Mappy{Enumy: map[string]pb2.Numeral{"XIV": pb2.Numeral_ROMAN}}},
-	{"oneof", Unmarshaler{}, `{"salary":31000}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_Salary{31000}}},
-	{"oneof spec name", Unmarshaler{}, `{"Country":"Australia"}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_Country{"Australia"}}},
-	{"oneof orig_name", Unmarshaler{}, `{"Country":"Australia"}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_Country{"Australia"}}},
-	{"oneof spec name2", Unmarshaler{}, `{"homeAddress":"Australia"}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_HomeAddress{"Australia"}}},
-	{"oneof orig_name2", Unmarshaler{}, `{"home_address":"Australia"}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_HomeAddress{"Australia"}}},
+	{"oneof", Unmarshaler{}, `{"salary":31000}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_Salary{Salary: 31000}}},
+	{"oneof spec name", Unmarshaler{}, `{"Country":"Australia"}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_Country{Country: "Australia"}}},
+	{"oneof orig_name", Unmarshaler{}, `{"Country":"Australia"}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_Country{Country: "Australia"}}},
+	{"oneof spec name2", Unmarshaler{}, `{"homeAddress":"Australia"}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_HomeAddress{HomeAddress: "Australia"}}},
+	{"oneof orig_name2", Unmarshaler{}, `{"home_address":"Australia"}`, &pb2.MsgWithOneof{Union: &pb2.MsgWithOneof_HomeAddress{HomeAddress: "Australia"}}},
 	{"orig_name input", Unmarshaler{}, `{"o_bool":true}`, &pb2.Simple{OBool: proto.Bool(true)}},
 	{"camelName input", Unmarshaler{}, `{"oBool":true}`, &pb2.Simple{OBool: proto.Bool(true)}},
 
@@ -754,43 +754,43 @@ var unmarshalingTests = []struct {
 	{"null Struct", Unmarshaler{}, `{"st": null}`, &pb2.KnownTypes{St: nil}},
 	{"empty Struct", Unmarshaler{}, `{"st": {}}`, &pb2.KnownTypes{St: &stpb.Struct{}}},
 	{"basic Struct", Unmarshaler{}, `{"st": {"a": "x", "b": null, "c": 3, "d": true}}`, &pb2.KnownTypes{St: &stpb.Struct{Fields: map[string]*stpb.Value{
-		"a": {Kind: &stpb.Value_StringValue{"x"}},
+		"a": {Kind: &stpb.Value_StringValue{StringValue: "x"}},
 		"b": {Kind: &stpb.Value_NullValue{}},
-		"c": {Kind: &stpb.Value_NumberValue{3}},
-		"d": {Kind: &stpb.Value_BoolValue{true}},
+		"c": {Kind: &stpb.Value_NumberValue{NumberValue: 3}},
+		"d": {Kind: &stpb.Value_BoolValue{BoolValue: true}},
 	}}}},
 	{"nested Struct", Unmarshaler{}, `{"st": {"a": {"b": 1, "c": [{"d": true}, "f"]}}}`, &pb2.KnownTypes{St: &stpb.Struct{Fields: map[string]*stpb.Value{
-		"a": {Kind: &stpb.Value_StructValue{&stpb.Struct{Fields: map[string]*stpb.Value{
-			"b": {Kind: &stpb.Value_NumberValue{1}},
-			"c": {Kind: &stpb.Value_ListValue{&stpb.ListValue{Values: []*stpb.Value{
-				{Kind: &stpb.Value_StructValue{&stpb.Struct{Fields: map[string]*stpb.Value{"d": {Kind: &stpb.Value_BoolValue{true}}}}}},
-				{Kind: &stpb.Value_StringValue{"f"}},
+		"a": {Kind: &stpb.Value_StructValue{StructValue: &stpb.Struct{Fields: map[string]*stpb.Value{
+			"b": {Kind: &stpb.Value_NumberValue{NumberValue: 1}},
+			"c": {Kind: &stpb.Value_ListValue{ListValue: &stpb.ListValue{Values: []*stpb.Value{
+				{Kind: &stpb.Value_StructValue{StructValue: &stpb.Struct{Fields: map[string]*stpb.Value{"d": {Kind: &stpb.Value_BoolValue{BoolValue: true}}}}}},
+				{Kind: &stpb.Value_StringValue{StringValue: "f"}},
 			}}}},
 		}}}},
 	}}}},
 	{"null ListValue", Unmarshaler{}, `{"lv": null}`, &pb2.KnownTypes{Lv: nil}},
 	{"empty ListValue", Unmarshaler{}, `{"lv": []}`, &pb2.KnownTypes{Lv: &stpb.ListValue{}}},
 	{"basic ListValue", Unmarshaler{}, `{"lv": ["x", null, 3, true]}`, &pb2.KnownTypes{Lv: &stpb.ListValue{Values: []*stpb.Value{
-		{Kind: &stpb.Value_StringValue{"x"}},
+		{Kind: &stpb.Value_StringValue{StringValue: "x"}},
 		{Kind: &stpb.Value_NullValue{}},
-		{Kind: &stpb.Value_NumberValue{3}},
-		{Kind: &stpb.Value_BoolValue{true}},
+		{Kind: &stpb.Value_NumberValue{NumberValue: 3}},
+		{Kind: &stpb.Value_BoolValue{BoolValue: true}},
 	}}}},
-	{"number Value", Unmarshaler{}, `{"val":1}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_NumberValue{1}}}},
-	{"null Value", Unmarshaler{}, `{"val":null}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_NullValue{stpb.NullValue_NULL_VALUE}}}},
-	{"bool Value", Unmarshaler{}, `{"val":true}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_BoolValue{true}}}},
-	{"string Value", Unmarshaler{}, `{"val":"x"}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_StringValue{"x"}}}},
-	{"string number value", Unmarshaler{}, `{"val":"9223372036854775807"}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_StringValue{"9223372036854775807"}}}},
+	{"number Value", Unmarshaler{}, `{"val":1}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_NumberValue{NumberValue: 1}}}},
+	{"null Value", Unmarshaler{}, `{"val":null}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_NullValue{NullValue: stpb.NullValue_NULL_VALUE}}}},
+	{"bool Value", Unmarshaler{}, `{"val":true}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_BoolValue{BoolValue: true}}}},
+	{"string Value", Unmarshaler{}, `{"val":"x"}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_StringValue{StringValue: "x"}}}},
+	{"string number value", Unmarshaler{}, `{"val":"9223372036854775807"}`, &pb2.KnownTypes{Val: &stpb.Value{Kind: &stpb.Value_StringValue{StringValue: "9223372036854775807"}}}},
 	{"list of lists Value", Unmarshaler{}, `{"val":["x", [["y"], "z"]]}`, &pb2.KnownTypes{Val: &stpb.Value{
-		Kind: &stpb.Value_ListValue{&stpb.ListValue{
+		Kind: &stpb.Value_ListValue{ListValue: &stpb.ListValue{
 			Values: []*stpb.Value{
-				{Kind: &stpb.Value_StringValue{"x"}},
-				{Kind: &stpb.Value_ListValue{&stpb.ListValue{
+				{Kind: &stpb.Value_StringValue{StringValue: "x"}},
+				{Kind: &stpb.Value_ListValue{ListValue: &stpb.ListValue{
 					Values: []*stpb.Value{
-						{Kind: &stpb.Value_ListValue{&stpb.ListValue{
-							Values: []*stpb.Value{{Kind: &stpb.Value_StringValue{"y"}}},
+						{Kind: &stpb.Value_ListValue{ListValue: &stpb.ListValue{
+							Values: []*stpb.Value{{Kind: &stpb.Value_StringValue{StringValue: "y"}}},
 						}}},
-						{Kind: &stpb.Value_StringValue{"z"}},
+						{Kind: &stpb.Value_StringValue{StringValue: "z"}},
 					},
 				}}},
 			},
@@ -808,8 +808,8 @@ var unmarshalingTests = []struct {
 	{"StructValue containing StringValue's", Unmarshaler{}, `{"escaped": "a\/b", "unicode": "\u00004E16\u0000754C"}`,
 		&stpb.Struct{
 			Fields: map[string]*stpb.Value{
-				"escaped": {Kind: &stpb.Value_StringValue{"a/b"}},
-				"unicode": {Kind: &stpb.Value_StringValue{"\u00004E16\u0000754C"}},
+				"escaped": {Kind: &stpb.Value_StringValue{StringValue: "a/b"}},
+				"unicode": {Kind: &stpb.Value_StringValue{StringValue: "\u00004E16\u0000754C"}},
 			},
 		}},
 	{"BytesValue", Unmarshaler{}, `{"bytes":"0x776f77"}`, &pb2.KnownTypes{Bytes: &wpb.BytesValue{Value: []byte("wow")}}},
@@ -843,7 +843,7 @@ func TestUnmarshaling(t *testing.T) {
 		// For easier diffs, compare text strings of the protos.
 		exp := proto.MarshalTextString(tt.pb)
 		act := proto.MarshalTextString(p)
-		if string(exp) != string(act) {
+		if exp != act {
 			t.Errorf("%s: got [%s] want [%s]", tt.desc, act, exp)
 		}
 	}
@@ -893,7 +893,7 @@ func TestUnmarshalNext(t *testing.T) {
 		// For easier diffs, compare text strings of the protos.
 		exp := proto.MarshalTextString(tt.pb)
 		act := proto.MarshalTextString(p)
-		if string(exp) != string(act) {
+		if exp != act {
 			t.Errorf("%s: got [%s] want [%s]", tt.desc, act, exp)
 		}
 	}
@@ -992,20 +992,20 @@ func TestAnyWithCustomResolver(t *testing.T) {
 }
 
 func TestUnmarshalJSONPBUnmarshaler(t *testing.T) {
-	rawJson := `{ "foo": "bar", "baz": [0, 1, 2, 3] }`
+	rawJSON := `{ "foo": "bar", "baz": [0, 1, 2, 3] }`
 	var msg dynamicMessage
-	if err := Unmarshal(strings.NewReader(rawJson), &msg); err != nil {
-		t.Errorf("an unexpected error while parsing into JSONPBUnmarshaler: %v", err)
+	if err := Unmarshal(strings.NewReader(rawJSON), &msg); err != nil {
+		t.Errorf("an unexpected error while parsing into JSONUnmarshaler: %v", err)
 	}
-	if msg.RawJson != rawJson {
-		t.Errorf("message contents not set correctly after unmarshaling JSON: got %s, wanted %s", msg.RawJson, rawJson)
+	if msg.RawJSON != rawJSON {
+		t.Errorf("message contents not set correctly after unmarshaling JSON: got %s, wanted %s", msg.RawJSON, rawJSON)
 	}
 }
 
 func TestUnmarshalNullWithJSONPBUnmarshaler(t *testing.T) {
-	rawJson := `{"stringField":null}`
+	rawJSON := `{"stringField":null}`
 	var ptrFieldMsg ptrFieldMessage
-	if err := Unmarshal(strings.NewReader(rawJson), &ptrFieldMsg); err != nil {
+	if err := Unmarshal(strings.NewReader(rawJSON), &ptrFieldMsg); err != nil {
 		t.Errorf("unmarshal error: %v", err)
 	}
 
@@ -1016,13 +1016,13 @@ func TestUnmarshalNullWithJSONPBUnmarshaler(t *testing.T) {
 }
 
 func TestUnmarshalAnyJSONPBUnmarshaler(t *testing.T) {
-	rawJson := `{ "@type": "blah.com/` + dynamicMessageName + `", "foo": "bar", "baz": [0, 1, 2, 3] }`
+	rawJSON := `{ "@type": "blah.com/` + dynamicMessageName + `", "foo": "bar", "baz": [0, 1, 2, 3] }`
 	var got anypb.Any
-	if err := Unmarshal(strings.NewReader(rawJson), &got); err != nil {
-		t.Errorf("an unexpected error while parsing into JSONPBUnmarshaler: %v", err)
+	if err := Unmarshal(strings.NewReader(rawJSON), &got); err != nil {
+		t.Errorf("an unexpected error while parsing into JSONUnmarshaler: %v", err)
 	}
 
-	dm := &dynamicMessage{RawJson: `{"baz":[0,1,2,3],"foo":"bar"}`}
+	dm := &dynamicMessage{RawJSON: `{"baz":[0,1,2,3],"foo":"bar"}`}
 	var want anypb.Any
 	if b, err := proto.Marshal(dm); err != nil {
 		t.Errorf("an unexpected error while marshaling message: %v", err)
@@ -1089,9 +1089,9 @@ func (s *stringField) UnmarshalJSONPB(jum *Unmarshaler, js []byte) error {
 }
 
 // dynamicMessage implements protobuf.Message but is not a normal generated message type.
-// It provides implementations of JSONPBMarshaler and JSONPBUnmarshaler for JSON support.
+// It provides implementations of JSONMarshaler and JSONUnmarshaler for JSON support.
 type dynamicMessage struct {
-	RawJson string `protobuf:"bytes,1,opt,name=rawJson"`
+	RawJSON string `protobuf:"bytes,1,opt,name=rawJson"`
 
 	// an unexported nested message is present just to ensure that it
 	// won't result in a panic (see issue #509)
@@ -1099,11 +1099,11 @@ type dynamicMessage struct {
 }
 
 func (m *dynamicMessage) Reset() {
-	m.RawJson = "{}"
+	m.RawJSON = "{}"
 }
 
 func (m *dynamicMessage) String() string {
-	return m.RawJson
+	return m.RawJSON
 }
 
 func (m *dynamicMessage) ProtoMessage() {
@@ -1114,11 +1114,11 @@ func (m *dynamicMessage) Descriptor() ([]byte, []int) {
 }
 
 func (m *dynamicMessage) MarshalJSONPB(jm *Marshaler) ([]byte, error) {
-	return []byte(m.RawJson), nil
+	return []byte(m.RawJSON), nil
 }
 
 func (m *dynamicMessage) UnmarshalJSONPB(jum *Unmarshaler, js []byte) error {
-	m.RawJson = string(js)
+	m.RawJSON = string(js)
 	return nil
 }
 
