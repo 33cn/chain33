@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 
 	cert_util "github.com/33cn/chain33/system/crypto/common"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 // EncodeCertToSignature 证书编码进签名
