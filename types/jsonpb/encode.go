@@ -54,15 +54,15 @@ type Marshaler struct {
 	AnyResolver AnyResolver
 }
 
-// JSONPBMarshaler is implemented by protobuf messages that customize the
+// JSONMarshaler is implemented by protobuf messages that customize the
 // way they are marshaled to JSON. Messages that implement this should also
-// implement JSONPBUnmarshaler so that the custom format can be parsed.
+// implement JSONUnmarshaler so that the custom format can be parsed.
 //
 // The JSON marshaling must follow the proto to JSON specification:
 //	https://developers.google.com/protocol-buffers/docs/proto3#json
 //
 // Deprecated: Custom types should implement protobuf reflection instead.
-type JSONPBMarshaler interface {
+type JSONMarshaler interface {
 	MarshalJSONPB(*Marshaler) ([]byte, error)
 }
 
@@ -94,7 +94,7 @@ func (jm *Marshaler) marshal(m proto.Message) ([]byte, error) {
 
 	// Check for custom marshalers first since they may not properly
 	// implement protobuf reflection that the logic below relies on.
-	if jsm, ok := m.(JSONPBMarshaler); ok {
+	if jsm, ok := m.(JSONMarshaler); ok {
 		return jsm.MarshalJSONPB(jm)
 	}
 
@@ -109,17 +109,16 @@ func (jm *Marshaler) marshal(m proto.Message) ([]byte, error) {
 			opts.Resolver = anyResolver{jm.AnyResolver}
 		}
 		return opts.Marshal(proto.MessageReflect(m).Interface())
-	} else {
-		// Check for unpopulated required fields first.
-		m2 := proto.MessageReflect(m)
-		if err := protoV2.CheckInitialized(m2.Interface()); err != nil {
-			return nil, err
-		}
-
-		w := jsonWriter{Marshaler: jm}
-		err := w.marshalMessage(m2, "", "")
-		return w.buf, err
 	}
+	// Check for unpopulated required fields first.
+	m2 := proto.MessageReflect(m)
+	if err := protoV2.CheckInitialized(m2.Interface()); err != nil {
+		return nil, err
+	}
+
+	w := jsonWriter{Marshaler: jm}
+	err := w.marshalMessage(m2, "", "")
+	return w.buf, err
 }
 
 type jsonWriter struct {
@@ -132,7 +131,7 @@ func (w *jsonWriter) write(s string) {
 }
 
 func (w *jsonWriter) marshalMessage(m protoreflect.Message, indent, typeURL string) error {
-	if jsm, ok := proto.MessageV1(m.Interface()).(JSONPBMarshaler); ok {
+	if jsm, ok := proto.MessageV1(m.Interface()).(JSONMarshaler); ok {
 		b, err := jsm.MarshalJSONPB(w.Marshaler)
 		if err != nil {
 			return err
@@ -412,7 +411,7 @@ func (w *jsonWriter) marshalField(fd protoreflect.FieldDescriptor, v protoreflec
 		}
 		w.write(name)
 	default:
-		w.write(string(fd.JSONName()))
+		w.write(fd.JSONName())
 	}
 	w.write(`":`)
 	if w.Indent != "" {

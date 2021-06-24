@@ -53,15 +53,15 @@ type Unmarshaler struct {
 	AnyResolver AnyResolver
 }
 
-// JSONPBUnmarshaler is implemented by protobuf messages that customize the way
+// JSONUnmarshaler is implemented by protobuf messages that customize the way
 // they are unmarshaled from JSON. Messages that implement this should also
-// implement JSONPBMarshaler so that the custom format can be produced.
+// implement JSONMarshaler so that the custom format can be produced.
 //
 // The JSON unmarshaling must follow the JSON to proto specification:
 //	https://developers.google.com/protocol-buffers/docs/proto3#json
 //
 // Deprecated: Custom types should implement protobuf reflection instead.
-type JSONPBUnmarshaler interface {
+type JSONUnmarshaler interface {
 	UnmarshalJSONPB(*Unmarshaler, []byte) error
 }
 
@@ -84,7 +84,7 @@ func (u *Unmarshaler) UnmarshalNext(d *json.Decoder, m proto.Message) error {
 
 	// Check for custom unmarshalers first since they may not properly
 	// implement protobuf reflection that the logic below relies on.
-	if jsu, ok := m.(JSONPBUnmarshaler); ok {
+	if jsu, ok := m.(JSONUnmarshaler); ok {
 		return jsu.UnmarshalJSONPB(u, raw)
 	}
 
@@ -125,12 +125,12 @@ func (u *Unmarshaler) UnmarshalNext(d *json.Decoder, m proto.Message) error {
 			opts.Resolver = anyResolver{u.AnyResolver}
 		}
 		return opts.Unmarshal(raw, mr.Interface())
-	} else {
-		if err := u.unmarshalMessage(mr, raw); err != nil {
-			return err
-		}
-		return protoV2.CheckInitialized(mr.Interface())
 	}
+	if err := u.unmarshalMessage(mr, raw); err != nil {
+		return err
+	}
+	return protoV2.CheckInitialized(mr.Interface())
+
 }
 
 func (u *Unmarshaler) unmarshalMessage(m protoreflect.Message, in []byte) error {
@@ -141,7 +141,7 @@ func (u *Unmarshaler) unmarshalMessage(m protoreflect.Message, in []byte) error 
 		return nil
 	}
 
-	if jsu, ok := proto.MessageV1(m.Interface()).(JSONPBUnmarshaler); ok {
+	if jsu, ok := proto.MessageV1(m.Interface()).(JSONUnmarshaler); ok {
 		return jsu.UnmarshalJSONPB(u, in)
 	}
 
@@ -227,7 +227,7 @@ func (u *Unmarshaler) unmarshalMessage(m protoreflect.Message, in []byte) error 
 
 		sec := d.Nanoseconds() / 1e9
 		nsec := d.Nanoseconds() % 1e9
-		m.Set(fds.ByNumber(1), protoreflect.ValueOfInt64(int64(sec)))
+		m.Set(fds.ByNumber(1), protoreflect.ValueOfInt64(sec))
 		m.Set(fds.ByNumber(2), protoreflect.ValueOfInt32(int32(nsec)))
 		return nil
 	case "Timestamp":
@@ -242,7 +242,7 @@ func (u *Unmarshaler) unmarshalMessage(m protoreflect.Message, in []byte) error 
 
 		sec := t.Unix()
 		nsec := t.Nanosecond()
-		m.Set(fds.ByNumber(1), protoreflect.ValueOfInt64(int64(sec)))
+		m.Set(fds.ByNumber(1), protoreflect.ValueOfInt64(sec))
 		m.Set(fds.ByNumber(2), protoreflect.ValueOfInt32(int32(nsec)))
 		return nil
 	case "Value":
@@ -328,7 +328,7 @@ func (u *Unmarshaler) unmarshalMessage(m protoreflect.Message, in []byte) error 
 			delete(jsonObject, name)
 			raw = v
 		}
-		name = string(fd.JSONName())
+		name = fd.JSONName()
 		if v, ok := jsonObject[name]; ok {
 			delete(jsonObject, name)
 			raw = v
@@ -465,7 +465,7 @@ func (u *Unmarshaler) unmarshalSingularValue(v protoreflect.Value, in []byte, fd
 		return unmarshalValue(trimQuote(in), new(float32))
 	case protoreflect.DoubleKind:
 		if f, ok := nonFinite[string(in)]; ok {
-			return protoreflect.ValueOfFloat64(float64(f)), nil
+			return protoreflect.ValueOfFloat64(f), nil
 		}
 		return unmarshalValue(trimQuote(in), new(float64))
 	case protoreflect.StringKind:
