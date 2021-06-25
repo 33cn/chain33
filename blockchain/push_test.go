@@ -469,7 +469,7 @@ func Test_PostEVMEvent_Subscribe(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		tx := &types.Transaction{}
 		tx.Execer = []byte("evm")
-		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
+		tx.To = "19tjS51kjwrCoSQS13U3owe7gYBLfSfoFm"
 		txs = append(txs, tx)
 
 		topic, _ := common.FromHex("0x374449c83a37309524754bbdfc5b8306d3694b5d14609b8fbb1b50cc5c0319a7")
@@ -546,6 +546,12 @@ func Test_PostEVMEvent(t *testing.T) {
 		tx := &types.Transaction{}
 		tx.Execer = []byte("evm")
 		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
+
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
 		txs = append(txs, tx)
 
 		topic, _ := common.FromHex("0x374449c83a37309524754bbdfc5b8306d3694b5d14609b8fbb1b50cc5c0319a7")
@@ -567,10 +573,15 @@ func Test_PostEVMEvent(t *testing.T) {
 		}
 		receipts = append(receipts, receipt)
 	}
+	//将第一笔交易执行器设置为token
+	txs[0].Execer = []byte("token")
 	block := &types.Block{
 		Height: 1,
 		Txs:    txs,
 	}
+	//将第二笔交易的payload设置为不能反序列化的数据
+	txs[1].Payload = []byte{1, 2}
+
 	blockDetail := &types.BlockDetail{
 		Block:          block,
 		Receipts:       receipts,
@@ -586,7 +597,7 @@ func Test_PostEVMEvent(t *testing.T) {
 	subscribe.Name = "push-test-evm-event"
 	subscribe.URL = "http://localhost"
 	subscribe.Type = PushEVMEvent
-	subscribe.Encode = "json"
+	subscribe.Encode = "proto"
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
 
@@ -597,6 +608,10 @@ func Test_PostEVMEvent(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
 	assert.NotEqual(t, nil, data)
+	var evmlogs types.EVMTxLogsInBlks
+	_ = types.Decode(data, &evmlogs)
+	assert.Equal(t, 5, len(evmlogs.Logs4EVMPerBlk))
+	assert.Equal(t, 8, len(evmlogs.Logs4EVMPerBlk[0].TxAndLogs))
 
 	defer mock33.Close()
 }
@@ -621,6 +636,11 @@ func Test_PostEVMEvent_bigsize(t *testing.T) {
 		tx := &types.Transaction{}
 		tx.Execer = []byte("evm")
 		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
 		txs = append(txs, tx)
 
 		topic, _ := common.FromHex("0x374449c83a37309524754bbdfc5b8306d3694b5d14609b8fbb1b50cc5c0319a7")
@@ -695,6 +715,11 @@ func Test_PostEVMEvent_notJson(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		tx := &types.Transaction{}
 		tx.Execer = []byte("evm")
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
 		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
 		txs = append(txs, tx)
 
@@ -770,6 +795,11 @@ func Test_PostEVMEvent_badLog(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		tx := &types.Transaction{}
 		tx.Execer = []byte("evm")
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
 		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
 		txs = append(txs, tx)
 
@@ -840,6 +870,11 @@ func Test_PostEVMEvent_nil(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		tx := &types.Transaction{}
 		tx.Execer = []byte("evm")
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
 		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
 		txs = append(txs, tx)
 
