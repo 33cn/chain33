@@ -18,9 +18,7 @@ import (
 )
 
 const (
-	// Deprecated 老版本的协议，仅做兼容，TODO 后面升级后移除
-	classicDhtProtoID = "/ipfs/kad/%s/1.0.0/%d"
-	dhtProtoID        = "/%s-%d/kad/1.0.0" //title-channel/kad/1.0.0
+	dhtProtoID = "/%s-%d/kad/1.0.0" //title-channel/kad/1.0.0
 )
 
 // Discovery dht discovery
