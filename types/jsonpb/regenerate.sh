@@ -13,7 +13,8 @@
 #	protoc-gen-go: v1.3.2
 
 for X in $(find . -name "*.proto" | sed "s|^\./||"); do
-	protoc -I$(pwd) --go_out=paths=source_relative:. $X
+	# shellcheck disable=SC2046
+	protoc -I$(pwd) --go_out=paths=source_relative:. "$X"
 done
 
 # migrate from https://github.com/golang/protobuf/tree/v1.4.3/jsonpb
