@@ -19,7 +19,7 @@ import (
 )
 
 const diffHeightValue = 512
-const maxPeers = 30
+const maxPeers = 20
 
 func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	msg := p.QueueClient.NewMessage(mempool, types.EventGetMempoolSize, nil)
@@ -169,6 +169,8 @@ func (p *Protocol) detectNodeAddr() {
 func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, peerInfoOld)
+	defer p.Host.ConnManager().Unprotect(pid, peerInfoOld)
 	stream, err := p.Host.NewStream(ctx, pid, peerInfoOld)
 	if err != nil {
 		log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
@@ -204,13 +206,15 @@ func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
 func (p *Protocol) queryPeerInfo(pid peer.ID) (*types.Peer, error) {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, peerInfo)
+	defer p.Host.ConnManager().Unprotect(pid, peerInfo)
 	stream, err := p.Host.NewStream(ctx, pid, peerInfo)
 	if err != nil {
 		log.Error("refreshPeerInfo", "new stream error", err, "peer id", pid)
 		return nil, err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	var resp types.Peer
 	err = protocol.ReadStream(&resp, stream)
 	if err != nil {
@@ -222,6 +226,8 @@ func (p *Protocol) queryPeerInfo(pid peer.ID) (*types.Peer, error) {
 func (p *Protocol) queryVersionOld(pid peer.ID) error {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, peerVersionOld)
+	defer p.Host.ConnManager().Unprotect(pid, peerVersionOld)
 	stream, err := p.Host.NewStream(ctx, pid, peerVersionOld)
 	if err != nil {
 		log.Error("NewStream", "err", err, "remoteID", pid)
@@ -268,6 +274,8 @@ func (p *Protocol) queryVersionOld(pid peer.ID) error {
 func (p *Protocol) queryVersion(pid peer.ID) error {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, peerVersion)
+	defer p.Host.ConnManager().Unprotect(pid, peerVersion)
 	stream, err := p.Host.NewStream(ctx, pid, peerVersion)
 	if err != nil {
 		log.Error("NewStream", "err", err, "remoteID", pid)

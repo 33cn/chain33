@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/peer"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -79,24 +78,22 @@ func (p *Protocol) updateExtendRoutingTable() {
 	start := time.Now()
 	for _, pid := range p.extendRoutingTable.ListPeers() {
 		if p.RoutingTable.Find(pid) == "" {
-			p.extendRoutingTable.Remove(pid)
+			p.extendRoutingTable.RemovePeer(pid)
 		}
 	}
 	peers := p.RoutingTable.ListPeers()
 	for _, pid := range peers {
-		_, _ = p.extendRoutingTable.Update(pid)
+		_, _ = p.extendRoutingTable.TryAddPeer(pid, true, true)
 	}
 	if key != nil {
-		peers = p.RoutingTable.NearestPeers(genDHTID(key), backup-1)
+		peers = p.RoutingTable.NearestPeers(genDHTID(key), backup)
 	}
 
-	searchedPeers := make(map[peer.ID]struct{})
 	for i, pid := range peers {
-		// 保证 extendRoutingTable 至少有 300 个节点，且至少从 3 个节点上获取新节点，
+		// 至少从 3 个节点上获取新节点，
 		if i+1 > 3 && p.extendRoutingTable.Size() > p.SubConfig.MaxExtendRoutingTableSize {
 			break
 		}
-		searchedPeers[pid] = struct{}{}
 		extendPeers, err := p.fetchShardPeers(key, count, pid)
 		if err != nil {
 			log.Error("updateExtendRoutingTable", "fetchShardPeers error", err, "peer id", pid)
@@ -106,31 +103,8 @@ func (p *Protocol) updateExtendRoutingTable() {
 			if cPid == p.Host.ID() {
 				continue
 			}
-			_, _ = p.extendRoutingTable.Update(cPid)
+			_, _ = p.extendRoutingTable.TryAddPeer(cPid, true, true)
 		}
 	}
-
-	// 如果扩展路由表节点数小于200，则迭代查询增加节点
-	var lastSize int //如果经过一轮迭代节点数没有增加则结束迭代，防止节点数不到200导致无法退出
-	for p.extendRoutingTable.Size() < p.SubConfig.MinExtendRoutingTableSize && p.extendRoutingTable.Size() > lastSize {
-		lastSize = p.extendRoutingTable.Size()
-		for _, pid := range p.extendRoutingTable.ListPeers() {
-			if _, ok := searchedPeers[pid]; ok {
-				continue
-			}
-			searchedPeers[pid] = struct{}{}
-			closerPeers, err := p.fetchShardPeers(key, count, pid)
-			if err != nil {
-				log.Error("updateExtendRoutingTable", "fetchShardPeers error", err, "peer id", pid)
-				continue
-			}
-			for _, cPid := range closerPeers {
-				if cPid == p.Host.ID() {
-					continue
-				}
-				_, _ = p.extendRoutingTable.Update(cPid)
-			}
-		}
-	}
-	log.Info("updateExtendRoutingTable", "local peers count", p.RoutingTable.Size(), "extendRoutingTable peer count", p.extendRoutingTable.Size(), "time cost", time.Since(start), "origin count", count)
+	log.Info("updateExtendRoutingTable", "pid", p.Host.ID(), "local peers count", p.RoutingTable.Size(), "extendRoutingTable peer count", p.extendRoutingTable.Size(), "time cost", time.Since(start), "origin count", count)
 }

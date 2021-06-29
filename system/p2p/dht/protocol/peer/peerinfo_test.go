@@ -90,8 +90,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	if err != nil {
 		t.Fatal("connect error", err)
 	}
-	_, err = kademliaDHT2.RoutingTable().Update(host1.ID())
-	require.Nil(t, err)
+
 	ps2, err := extension.NewPubSub(ctx, host2, &p2pty.PubSubConfig{})
 	if err != nil {
 		t.Fatal(err)
@@ -183,7 +182,8 @@ func TestPeerInfoHandler(t *testing.T) {
 
 	testMempoolReq(q)
 	testBlockReq(q)
-	stream, err := p.Host.NewStream(p.Ctx, p.RoutingTable.ListPeers()[0], peerInfo)
+	remotePid := p.Host.Network().Conns()[0].RemotePeer()
+	stream, err := p.Host.NewStream(p.Ctx, remotePid, peerInfo)
 	require.Nil(t, err)
 	defer protocol.CloseStream(stream)
 	var resp types.Peer
@@ -191,7 +191,7 @@ func TestPeerInfoHandler(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, int32(10), resp.MempoolSize)
 
-	stream, err = p.Host.NewStream(p.Ctx, p.RoutingTable.ListPeers()[0], peerVersion)
+	stream, err = p.Host.NewStream(p.Ctx, remotePid, peerVersion)
 	require.Nil(t, err)
 	defer protocol.CloseStream(stream)
 	var version types.P2PVersion
@@ -201,13 +201,13 @@ func TestPeerInfoHandler(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, stream.Conn().LocalMultiaddr().String(), version.AddrRecv)
 
-	err = p.queryVersion(p.RoutingTable.ListPeers()[0])
+	err = p.queryVersion(remotePid)
 	require.Nil(t, err)
 
 	t.Log(p.getExternalAddr(), p.getPublicIP())
 
 	p.refreshSelf()
-	p.refreshPeerInfo(p.RoutingTable.ListPeers())
+	p.refreshPeerInfo([]peer.ID{remotePid})
 	time.Sleep(time.Second)
 	fmt.Println(p.PeerInfoManager.FetchAll())
 	fmt.Println(p.Host.ID())

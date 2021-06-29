@@ -107,7 +107,7 @@ func (privKey PrivKeySM2) Bytes() []byte {
 }
 
 //Sign 签名
-func (privKey PrivKeySM2) Sign(msg []byte) crypto.Signature {
+func (privKey PrivKeySM2) Sign(msg []byte, opts ...interface{}) crypto.Signature {
 	priv, _ := privKeyFromBytes(sm2.P256Sm2(), privKey[:])
 	r, s, err := sm2.Sm2Sign(priv, msg, nil)
 	if err != nil {
@@ -119,7 +119,7 @@ func (privKey PrivKeySM2) Sign(msg []byte) crypto.Signature {
 }
 
 //PubKey 私钥生成公钥
-func (privKey PrivKeySM2) PubKey() crypto.PubKey {
+func (privKey PrivKeySM2) PubKey(opts ...interface{}) crypto.PubKey {
 	_, pub := privKeyFromBytes(sm2.P256Sm2(), privKey[:])
 	var pubSM2 PubKeySM2
 	copy(pubSM2[:], sm2.Compress(pub))

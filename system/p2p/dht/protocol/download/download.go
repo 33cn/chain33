@@ -95,11 +95,13 @@ ReDownload:
 func (p *Protocol) downloadBlockFromPeer(height int64, pid peer.ID) (*types.Block, error) {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*10)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, downloadBlock)
+	defer p.Host.ConnManager().Unprotect(pid, downloadBlock)
 	stream, err := p.Host.NewStream(ctx, pid, downloadBlock)
 	if err != nil {
 		return nil, err
 	}
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	blockReq := &types.ReqBlocks{Start: height, End: height}
 	err = protocol.WriteStream(blockReq, stream)
 	if err != nil {
@@ -116,11 +118,13 @@ func (p *Protocol) downloadBlockFromPeer(height int64, pid peer.ID) (*types.Bloc
 func (p *Protocol) downloadBlockFromPeerOld(height int64, pid peer.ID) (*types.Block, error) {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*10)
 	defer cancel()
+	p.Host.ConnManager().Protect(pid, downloadBlockOld)
+	defer p.Host.ConnManager().Unprotect(pid, downloadBlockOld)
 	stream, err := p.Host.NewStream(ctx, pid, downloadBlockOld)
 	if err != nil {
 		return nil, err
 	}
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	blockReq := types.MessageGetBlocksReq{
 		Message: &types.P2PGetBlocks{
 			StartHeight: height,

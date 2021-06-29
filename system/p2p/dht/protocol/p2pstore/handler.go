@@ -15,11 +15,11 @@ import (
 )
 
 func (p *Protocol) handleStreamRequestPeerInfoForChunk(stream network.Stream) {
-	remotePid := stream.Conn().RemotePeer()
+	fromPid := stream.Conn().RemotePeer()
 	localAddr := stream.Conn().LocalMultiaddr()
 	var req types.P2PRequest
 	err := protocol.ReadStream(&req, stream)
-	protocol.CloseStream(stream)
+	_ = stream.Close()
 	if err != nil {
 		log.Error("handleStreamRequestPeerInfoForChunk", "ReadStream error", err)
 		return
@@ -48,7 +48,7 @@ func (p *Protocol) handleStreamRequestPeerInfoForChunk(stream network.Stream) {
 		if err := p.responsePeerInfoForChunk(&types.ChunkProvider{
 			ChunkHash: msg.ChunkHash,
 			PeerInfos: []*types.PeerInfo{&info},
-		}, remotePid); err != nil {
+		}, fromPid); err != nil {
 			log.Error("handleStreamRequestPeerInfoForChunk", "responsePeerInfoForChunk error", err)
 		}
 	} else if peers := p.getChunkProviderCache(msg.ChunkHash); len(peers) != 0 {
@@ -63,14 +63,22 @@ func (p *Protocol) handleStreamRequestPeerInfoForChunk(stream network.Stream) {
 		if err := p.responsePeerInfoForChunk(&types.ChunkProvider{
 			ChunkHash: msg.ChunkHash,
 			PeerInfos: infos,
-		}, remotePid); err != nil {
+		}, fromPid); err != nil {
 			log.Error("handleStreamRequestPeerInfoForChunk", "responsePeerInfoForChunk error", err)
 		}
-	} else if exist := p.addChunkRequestTrace(msg.ChunkHash, remotePid); !exist {
-		for _, remotePid := range p.RoutingTable.NearestPeers(genDHTID(msg.ChunkHash), AlphaValue) {
-			err := p.requestPeerInfoForChunk(msg, remotePid)
-			if err != nil {
+	} else if exist := p.addChunkRequestTrace(msg.ChunkHash, fromPid); !exist {
+		var count int
+		for _, pid := range p.RoutingTable.NearestPeers(genDHTID(msg.ChunkHash), AlphaValue*2) {
+			// 最多向 AlphaValue-1 个节点请求，请求失败的节点不计入
+			// 只向逻辑距离更小的节点转发请求
+			if count >= AlphaValue-1 || !kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(msg.ChunkHash)) {
+				break
+			}
+
+			if err := p.requestPeerInfoForChunk(msg, pid); err != nil {
 				log.Error("handleStreamPeerAddrAsync", "requestPeerAddr error", err)
+			} else {
+				count++
 			}
 		}
 	}
@@ -79,7 +87,7 @@ func (p *Protocol) handleStreamRequestPeerInfoForChunk(stream network.Stream) {
 func (p *Protocol) handleStreamResponsePeerInfoForChunk(stream network.Stream) {
 	var req types.P2PRequest
 	err := protocol.ReadStream(&req, stream)
-	protocol.CloseStream(stream)
+	_ = stream.Close()
 	if err != nil {
 		log.Error("handleStreamResponsePeerInfoForChunk", "ReadStream error", err)
 		return
@@ -128,31 +136,39 @@ func (p *Protocol) handleStreamResponsePeerInfoForChunk(stream network.Stream) {
 }
 
 func (p *Protocol) handleStreamRequestPeerAddr(stream network.Stream) {
-	remotePid := stream.Conn().RemotePeer()
+	fromPid := stream.Conn().RemotePeer()
 	var req types.P2PRequest
 	err := protocol.ReadStream(&req, stream)
-	protocol.CloseStream(stream)
+	_ = stream.Close()
 	if err != nil {
 		log.Error("handleStreamRequestPeerAddr", "ReadStream error", err)
 		return
 	}
 
-	pid := req.GetRequest().(*types.P2PRequest_Pid).Pid
+	keyPid := req.GetRequest().(*types.P2PRequest_Pid).Pid
 	var addrs [][]byte
-	for _, addr := range p.Host.Peerstore().Addrs(peer.ID(pid)) {
+	for _, addr := range p.Host.Peerstore().Addrs(peer.ID(keyPid)) {
 		addrs = append(addrs, addr.Bytes())
 	}
 	if len(addrs) != 0 {
 		// response
-		err := p.responsePeerAddr(&types.PeerInfo{ID: []byte(pid), MultiAddr: addrs}, remotePid)
+		err := p.responsePeerAddr(&types.PeerInfo{ID: []byte(keyPid), MultiAddr: addrs}, fromPid)
 		if err != nil {
 			log.Error("handleStreamRequestPeerAddr", "responsePeerAddr error", err)
 		}
-	} else if exist := p.addPeerAddrRequestTrace(peer.ID(pid), remotePid); !exist {
-		for _, remotePid := range p.RoutingTable.NearestPeers(kb.ConvertPeerID(peer.ID(pid)), AlphaValue) {
-			err := p.requestPeerAddr(peer.ID(pid), remotePid)
-			if err != nil {
+	} else if exist := p.addPeerAddrRequestTrace(peer.ID(keyPid), fromPid); !exist {
+		var count int
+		for _, pid := range p.RoutingTable.NearestPeers(kb.ConvertPeerID(peer.ID(keyPid)), AlphaValue*2) {
+			// 最多向 AlphaValue-1 个节点请求，请求失败的节点不计入
+			// 只向逻辑距离更小的节点转发请求
+			if count >= AlphaValue-1 || !kb.Closer(pid, p.Host.ID(), keyPid) {
+				break
+			}
+
+			if err := p.requestPeerAddr(peer.ID(keyPid), pid); err != nil {
 				log.Error("handleStreamRequestPeerAddr", "requestPeerAddr error", err)
+			} else {
+				count++
 			}
 		}
 	}
@@ -161,7 +177,7 @@ func (p *Protocol) handleStreamRequestPeerAddr(stream network.Stream) {
 func (p *Protocol) handleStreamResponsePeerAddr(stream network.Stream) {
 	var req types.P2PRequest
 	err := protocol.ReadStream(&req, stream)
-	protocol.CloseStream(stream)
+	_ = stream.Close()
 	if err != nil {
 		log.Error("handleStreamResponsePeerAddr", "ReadStream error", err)
 		return
