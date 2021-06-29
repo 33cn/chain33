@@ -8,7 +8,7 @@ require (
 	github.com/apache/thrift v0.0.0-20171203172758-327ebb6c2b6d // indirect
 	github.com/btcsuite/btcd v0.21.0-beta
 	github.com/decred/base58 v1.0.2
-	github.com/dgraph-io/badger v1.6.1
+	github.com/dgraph-io/badger v1.6.2
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.0
