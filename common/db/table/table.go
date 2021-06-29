@@ -567,8 +567,10 @@ func (table *Table) updateRow(row *Row) (kvs []*types.KeyValue, err error) {
 	// JoinData 为自定义的proto.Message而非protoc-gen-go生成的proto.Message
 	// 在旧版本的protobuf中直接使用proto.Equal(x, y Message)方法会返回false而在新版本中会返回true
 	// 因此此处对JoinData类型在判等时做一个特殊处理
-	if jd, ok := row.Data.(*JoinData); ok {
-		if oldJd, ok2 := row.old.(*JoinData); ok2 && proto.Equal(jd.Left, oldJd.Left) && proto.Equal(jd.Right, oldJd.Right) {
+	jd, ok := row.Data.(*JoinData)
+	oldJd, ok2 := row.old.(*JoinData)
+	if ok && ok2 {
+		if proto.Equal(jd.Left, oldJd.Left) && proto.Equal(jd.Right, oldJd.Right) {
 			return nil, nil
 		}
 	} else if proto.Equal(row.Data, row.old) {
