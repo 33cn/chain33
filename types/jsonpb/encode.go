@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/33cn/chain33/common"
 	"io"
 	"math"
 	"reflect"
@@ -17,6 +16,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/33cn/chain33/common"
 
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/encoding/protojson"

@@ -5,8 +5,9 @@ package ticket
 
 import (
 	fmt "fmt"
-	proto "github.com/golang/protobuf/proto"
 	math "math"
+
+	proto "github.com/golang/protobuf/proto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -134,7 +135,9 @@ func init() {
 	proto.RegisterType((*Ticket)(nil), "ticket.Ticket")
 }
 
-func init() { proto.RegisterFile("ticket.chain33.proto", fileDescriptor_f2d177ac8a0e6c77) }
+func init() {
+	proto.RegisterFile("ticket.chain33.proto", fileDescriptor_f2d177ac8a0e6c77)
+}
 
 var fileDescriptor_f2d177ac8a0e6c77 = []byte{
 	// 214 bytes of a gzipped FileDescriptorProto

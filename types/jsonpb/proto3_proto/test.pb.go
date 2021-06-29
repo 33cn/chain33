@@ -5,10 +5,11 @@ package proto3_proto
 
 import (
 	fmt "fmt"
+	math "math"
+
 	proto2_proto "github.com/33cn/chain33/types/jsonpb/proto2_proto"
 	proto "github.com/golang/protobuf/proto"
 	anypb "google.golang.org/protobuf/types/known/anypb"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
