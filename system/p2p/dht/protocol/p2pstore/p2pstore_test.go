@@ -293,30 +293,15 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		panic(err)
 	}
-	env1 := protocol.P2PEnv{
-		Ctx:              context.Background(),
-		ChainCfg:         cfg,
-		API:              mockAPI1,
-		QueueClient:      client1,
-		Host:             host1,
-		SubConfig:        mcfg,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
-		RoutingTable:     kademliaDHT1.RoutingTable(),
-		PeerInfoManager:  &peerInfoManager{},
-		DB:               dbm.NewDB("p2pstore1", "leveldb", dataDir, 128),
-	}
-	InitProtocol(&env1)
 
 	kademliaDHT2, err := dht.New(context.Background(), host2)
 	if err != nil {
 		panic(err)
 	}
-	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
+	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/p2p/%s", port1, host1.ID().Pretty()))
 	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
 	err = host2.Connect(context.Background(), *peerinfo)
 	require.Nil(t, err)
-	//err = kademliaDHT2.Bootstrap(context.Background())
-	//require.Nil(t, err)
 
 	mockAPI2, err := client.New(client2, nil)
 	if err != nil {
@@ -348,9 +333,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		chunkProviderCache:   make(map[string]map[peer.ID]time.Time),
 		extendRoutingTable:   exRT,
 	}
-	//go p2.updateRoutine()
-	go p2.refreshRoutine()
-	go p2.processLocalChunk()
+
 	//注册p2p通信协议，用于处理节点之间请求
 	protocol.RegisterStreamHandler(p2.Host, requestPeerInfoForChunk, p2.handleStreamRequestPeerInfoForChunk)
 	protocol.RegisterStreamHandler(p2.Host, responsePeerInfoForChunk, p2.handleStreamResponsePeerInfoForChunk)
@@ -387,13 +370,38 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		}
 	}()
 
-	_, _ = kademliaDHT1.RoutingTable().TryAddPeer(host2.ID(), true, false)
-	_, _ = kademliaDHT2.RoutingTable().TryAddPeer(host1.ID(), true, false)
-	fmt.Println("size1:", kademliaDHT1.RoutingTable().Size(), "size2:", kademliaDHT2.RoutingTable().Size())
-	time.Sleep(time.Second)
+	env1 := protocol.P2PEnv{
+		Ctx:              context.Background(),
+		ChainCfg:         cfg,
+		API:              mockAPI1,
+		QueueClient:      client1,
+		Host:             host1,
+		SubConfig:        mcfg,
+		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
+		RoutingTable:     kademliaDHT1.RoutingTable(),
+		PeerInfoManager:  &peerInfoManager{},
+		DB:               dbm.NewDB("p2pstore1", "leveldb", dataDir, 128),
+	}
+	InitProtocol(&env1)
+
+	go func() {
+		for {
+			if kademliaDHT1.RoutingTable().Size() == 0 {
+				ok, err := kademliaDHT1.RoutingTable().TryAddPeer(host2.ID(), true, false)
+				t.Log("host1 try add peer", ok, err)
+			}
+			if kademliaDHT2.RoutingTable().Size() == 0 {
+				ok, err := kademliaDHT2.RoutingTable().TryAddPeer(host1.ID(), true, false)
+				t.Log("host2 try add peer", ok, err)
+			}
+			time.Sleep(time.Second / 10)
+		}
+	}()
+	go p2.refreshRoutine()
+	go p2.processLocalChunk()
+
 	// 等待路由表节点稳定
-	for kademliaDHT1.RoutingTable().Size() == 0 {
-		_, _ = kademliaDHT1.RoutingTable().TryAddPeer(host2.ID(), true, false)
+	for kademliaDHT1.RoutingTable().Size() == 0 || kademliaDHT2.RoutingTable().Size() == 0 {
 		time.Sleep(time.Second)
 	}
 	// 等待数据过期
