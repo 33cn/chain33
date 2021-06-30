@@ -12,10 +12,10 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
-	discovery "github.com/libp2p/go-libp2p-discovery"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -34,7 +34,7 @@ type P2PEnv struct {
 	ConnBlackList   iLRU
 	Pubsub          *extension.PubSub
 	RoutingTable    *kbt.RoutingTable
-	*discovery.RoutingDiscovery
+	Discovery       discovery.Discovery
 }
 
 type iLRU interface {

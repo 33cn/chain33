@@ -25,6 +25,7 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	libp2pLog "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
@@ -33,8 +34,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/metrics"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	"github.com/multiformats/go-multiaddr"
-
-	libp2pLog "github.com/ipfs/go-log/v2"
 )
 
 var log = log15.New("module", p2pty.DHTTypeName)
@@ -170,20 +169,20 @@ func (p *P2P) StartP2P() {
 	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
 
 	env := &protocol.P2PEnv{
-		Ctx:              p.ctx,
-		ChainCfg:         p.chainCfg,
-		QueueClient:      p.client,
-		Host:             p.host,
-		P2PManager:       p.mgr,
-		SubConfig:        p.subCfg,
-		DB:               p.db,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(p.discovery.kademliaDHT),
-		RoutingTable:     p.discovery.RoutingTable(),
-		API:              p.api,
-		Pubsub:           p.pubsub,
-		PeerInfoManager:  p.peerInfoManager,
-		ConnManager:      p.connManager,
-		ConnBlackList:    p.blackCache,
+		Ctx:             p.ctx,
+		ChainCfg:        p.chainCfg,
+		QueueClient:     p.client,
+		Host:            p.host,
+		P2PManager:      p.mgr,
+		SubConfig:       p.subCfg,
+		DB:              p.db,
+		Discovery:       discovery.NewRoutingDiscovery(p.discovery.kademliaDHT),
+		RoutingTable:    p.discovery.RoutingTable(),
+		API:             p.api,
+		Pubsub:          p.pubsub,
+		PeerInfoManager: p.peerInfoManager,
+		ConnManager:     p.connManager,
+		ConnBlackList:   p.blackCache,
 	}
 	p.env = env
 	protocol.InitAllProtocol(env)
