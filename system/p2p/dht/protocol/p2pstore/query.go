@@ -442,7 +442,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
 	ctx2, cancel2 := context.WithTimeout(ctx, time.Minute*3)
 	defer cancel2()
-	peerInfos, err := p.FindPeers(ctx2, fullNode)
+	peerInfos, err := p.Discovery.FindPeers(ctx2, fullNode)
 	if err != nil {
 		log.Error("mustFetchChunk", "Find full peers error", err)
 		return nil, "", types2.ErrNotFound

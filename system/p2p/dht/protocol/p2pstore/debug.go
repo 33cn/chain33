@@ -49,7 +49,7 @@ func (p *Protocol) debugLog() {
 func (p *Protocol) debugFullNode() {
 	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
-	peerInfos, err := p.FindPeers(ctx, fullNode)
+	peerInfos, err := p.Discovery.FindPeers(ctx, fullNode)
 	if err != nil {
 		log.Error("debugFullNode", "FindPeers error", err)
 		return
@@ -71,7 +71,7 @@ func (p *Protocol) advertiseFullNode(opts ...discovery.Option) {
 		// 没有同步完，不进行Advertise操作
 		return
 	}
-	_, err = p.Advertise(p.Ctx, fullNode, opts...)
+	_, err = p.Discovery.Advertise(p.Ctx, fullNode, opts...)
 	if err != nil {
 		log.Error("advertiseFullNode", "error", err)
 	}

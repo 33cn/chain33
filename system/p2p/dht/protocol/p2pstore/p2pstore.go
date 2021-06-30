@@ -51,7 +51,8 @@ var backup = 20
 
 //Protocol ...
 type Protocol struct {
-	*protocol.P2PEnv //协议共享接口变量
+	*protocol.P2PEnv
+	//协议共享接口变量
 
 	chunkToSync     chan *types.ChunkInfoMsg
 	chunkToDelete   chan *types.ChunkInfoMsg
