@@ -224,26 +224,3 @@ func (p *Protocol) processLocalChunk() {
 		}
 	}
 }
-
-//func (p *Protocol) syncChunk(info *types.ChunkInfoMsg) {
-//	//检查本地 p2pStore，如果已存在数据则直接更新
-//	if err := p.updateChunk(info); err == nil {
-//		return
-//	}
-//
-//	var bodys *types.BlockBodys
-//	bodys, _ = p.getChunkFromBlockchain(info)
-//	if bodys == nil {
-//		//blockchain模块没有数据，从网络中搜索数据
-//		bodys, _, _ = p.mustFetchChunk(info)
-//	}
-//	if bodys == nil {
-//		log.Error("syncChunk error", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
-//		return
-//	}
-//	if err := p.addChunkBlock(info, bodys); err != nil {
-//		log.Error("syncChunk", "addChunkBlock error", err)
-//		return
-//	}
-//	log.Info("syncChunk", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
-//}
