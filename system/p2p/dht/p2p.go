@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/33cn/chain33/common"
 	"math/rand"
 	"path/filepath"
 	"sync"
@@ -245,6 +246,15 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	}
 	if priv != nil {
 		options = append(options, libp2p.Identity(priv))
+	}
+
+	//enable private network,私有网络，拥有相同配置的节点才能连接进来。
+	if p.subCfg.PrivateNetwork != "" {
+		psk,err:=	common.FromHex(p.subCfg.PrivateNetwork)
+		if err!=nil{
+			panic("set psk"+err.Error())
+		}
+		options = append(options, libp2p.PrivateNetwork(psk))
 	}
 
 	options = append(options, libp2p.BandwidthReporter(bandwidthTracker))

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"net"
 	"os"
 	"path/filepath"
@@ -165,6 +166,80 @@ func newHost(subcfg *p2pty.P2PSubConfig, priv crypto.PrivKey, bandwidthTracker m
 		return nil
 	}
 	return h
+}
+func TestPrivateNetwork(t*testing.T){
+	r := rand.Reader
+	prvKey1, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	if err != nil {
+		panic(err)
+	}
+	r = rand.Reader
+	prvKey2, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	if err != nil {
+		panic(err)
+	}
+	var subcfg, subcfg2  p2pty.P2PSubConfig
+	subcfg.Port = 22345
+	subcfg2.Port = 22346
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg.Port))
+	if err != nil {
+		panic(err)
+	}
+
+	maddr2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg2.Port))
+	if err != nil {
+		panic(err)
+	}
+	testPSK := make([]byte, 32)
+	rand.Reader.Read(testPSK)
+	subcfg.PrivateNetwork=hex.EncodeToString(testPSK)
+	subcfg2.PrivateNetwork=subcfg.PrivateNetwork
+	h1 := newHost(&subcfg, prvKey1, nil, maddr)
+	h2 := newHost(&subcfg2, prvKey2, nil, maddr2)
+	h2info := peer.AddrInfo{
+		ID:    h2.ID(),
+		Addrs: h2.Addrs(),
+	}
+	err= h1.Connect(context.Background(),h2info)
+	//must be connect
+	assert.Nil(t, err)
+	t.Log("same privatenetwork test success")
+	h2.Close()
+	//h2 采用另外一种privatekey
+	var testPsk2 [32]byte
+	copy(testPsk2[:],testPSK)
+	testPsk2[0]=0x33
+	testPsk2[31]=0x34
+	subcfg2.PrivateNetwork=hex.EncodeToString(testPsk2[:])
+	h2 = newHost(&subcfg2, prvKey2, nil, maddr2)
+	h2info = peer.AddrInfo{
+		ID:    h2.ID(),
+		Addrs: h2.Addrs(),
+	}
+	ctx,cancel:=context.WithTimeout(context.Background(),time.Second)
+	defer cancel()
+	err= h1.Connect(ctx,h2info)
+	assert.NotNil(t, err)
+	//t.Log("err:",err)
+	t.Log("different privatenetwork test success")
+
+	//测试没有启用privatenetwork相连接
+	h1.Close()
+	h2.Close()
+	subcfg2.PrivateNetwork=""
+
+	h1 = newHost(&subcfg, prvKey1, nil, maddr)
+	h2 = newHost(&subcfg2, prvKey2, nil, maddr2)
+	h2info = peer.AddrInfo{
+		ID:    h2.ID(),
+		Addrs: h2.Addrs(),
+	}
+	err= h1.Connect(ctx,h2info)
+	assert.NotNil(t, err)
+	t.Log("disable privatenetwork test success")
+
+
+
 }
 
 func testStreamEOFReSet(t *testing.T) {
