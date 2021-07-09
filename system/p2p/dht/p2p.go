@@ -249,10 +249,13 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	}
 
 	//enable private network,私有网络，拥有相同配置的节点才能连接进来。
-	if p.subCfg.PrivateNetwork != "" {
-		psk,err:=	common.FromHex(p.subCfg.PrivateNetwork)
+	if p.subCfg.Psk != "" {
+		psk,err:=	common.FromHex(p.subCfg.Psk)
 		if err!=nil{
 			panic("set psk"+err.Error())
+		}
+		if len(psk)!=32{
+			panic("psk must 32 bytes")
 		}
 		options = append(options, libp2p.PrivateNetwork(psk))
 	}
