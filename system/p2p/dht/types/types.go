@@ -58,7 +58,7 @@ type P2PSubConfig struct {
 	// pubsub配置
 	PubSub PubSubConfig `json:"pubsub,omitempty"`
 	//启动私有网络，只有相同配置的节点才能连接，多用于联盟链需求，创建方式 hex.Encode([32]byte),32字节的十六进制编码字符串
-	PrivateNetwork string `json:"privateNetwork"`
+	Psk string `json:"psk"`
 }
 
 // PubSubConfig pubsub config
