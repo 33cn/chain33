@@ -9,12 +9,13 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/33cn/chain33/common"
 	"math/rand"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/common"
 
 	"github.com/33cn/chain33/client"
 	dbm "github.com/33cn/chain33/common/db"
