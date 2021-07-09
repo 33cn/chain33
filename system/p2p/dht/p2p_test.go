@@ -236,7 +236,17 @@ func TestPrivateNetwork(t*testing.T){
 	}
 	err= h1.Connect(ctx,h2info)
 	assert.NotNil(t, err)
+
+	h1info:=peer.AddrInfo{
+		ID:    h1.ID(),
+		Addrs: h1.Addrs(),
+	}
+
+	err= h2.Connect(ctx,h1info)
+	assert.NotNil(t, err)
 	t.Log("disable privatenetwork test success")
+
+
 
 
 
