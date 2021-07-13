@@ -47,7 +47,7 @@ const (
 const maxConcurrency = 10
 
 var log = log15.New("module", "protocol.p2pstore")
-var backup = 20
+var backup = 50
 
 //Protocol ...
 type Protocol struct {
@@ -57,6 +57,8 @@ type Protocol struct {
 	chunkToSync     chan *types.ChunkInfoMsg
 	chunkToDelete   chan *types.ChunkInfoMsg
 	chunkToDownload chan *types.ChunkInfoMsg
+
+	deleteNum int64
 
 	wakeup      map[string]chan struct{}
 	wakeupMutex sync.Mutex
@@ -200,8 +202,14 @@ func (p *Protocol) processLocalChunk() {
 			}
 		case info := <-p.chunkToDelete:
 			if localInfo, ok := p.getChunkInfoByHash(info.ChunkHash); ok && time.Since(localInfo.Time) > types2.RefreshInterval*3 {
+				p.deleteNum++
 				if err := p.deleteChunkBlock(localInfo.ChunkInfoMsg); err != nil {
 					log.Error("processLocalChunk", "deleteChunkBlock error", err, "chunkHash", hex.EncodeToString(localInfo.ChunkHash), "start", localInfo.Start)
+				}
+				// 删除chunk数量，累计到一定数量对数据库做一次compact
+				if p.deleteNum > 100 {
+					_ = p.DB.CompactRange(nil, nil)
+					p.deleteNum = 0
 				}
 			}
 		case info := <-p.chunkToDownload:
