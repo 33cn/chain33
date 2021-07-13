@@ -37,13 +37,9 @@ func (p *Protocol) refreshLocalChunk() {
 			}
 
 			// 通过网络从其他节点获取数据
-			p.chunkStatusCacheMutex.Lock()
-			chunkHash := hex.EncodeToString(info.ChunkHash)
-			if _, ok := p.chunkStatusCache[hex.EncodeToString(info.ChunkHash)]; ok {
+			if exist := p.addChunkStatus(ChunkStatus{info: msg, status: Waiting}); exist {
 				continue
 			}
-			p.chunkStatusCache[chunkHash] = ChunkStatus{info: msg, status: Waiting}
-			p.chunkStatusCacheMutex.Unlock()
 			syncNum++
 			p.chunkToSync <- msg
 		} else {
@@ -52,6 +48,18 @@ func (p *Protocol) refreshLocalChunk() {
 		}
 	}
 	log.Info("refreshLocalChunk", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "time cost", time.Since(start), "exRT size", p.getExtendRoutingTable().Size())
+}
+
+func (p *Protocol) addChunkStatus(status ChunkStatus) (exist bool) {
+	p.chunkStatusCacheMutex.Lock()
+	defer p.chunkStatusCacheMutex.Unlock()
+	chunkHash := hex.EncodeToString(status.info.ChunkHash)
+	if _, ok := p.chunkStatusCache[chunkHash]; ok {
+		exist = true
+		return
+	}
+	p.chunkStatusCache[chunkHash] = status
+	return
 }
 
 func (p *Protocol) shouldSave(chunkHash []byte) bool {
