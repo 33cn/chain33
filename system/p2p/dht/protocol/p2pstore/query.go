@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
@@ -342,32 +341,20 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 }
 
 func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRecords {
-	// 从多个节点请求ChunkRecords, 并从中选择多数节点返回的数据
-	recordsCache := make(map[string]*types.ChunkRecords)
-	recordsCount := make(map[string]int)
-	for i, pid := range p.RoutingTable.ListPeers() {
+	for _, sPid := range param.Pid {
+		pid, err := peer.Decode(sPid)
+		if err != nil {
+			continue
+		}
 		records, err := p.getChunkRecordsFromPeer(param, pid)
 		if err != nil {
 			log.Error("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
 			continue
 		}
-		sum := common.Sha256(types.Encode(records))
-		recordsCache[string(sum)] = records
-		recordsCount[string(sum)]++
-		log.Info("getChunkRecords", "peer", pid, "start", param.Start, "end", param.End, "addr", p.Host.Peerstore().Addrs(pid))
-		if i > 10 && len(recordsCount) != 0 {
-			break
-		}
+		log.Info("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
+		return records
 	}
-	var records *types.ChunkRecords
-	var maxCount int
-	for sum, count := range recordsCount {
-		if count > maxCount {
-			records = recordsCache[sum]
-		}
-	}
-
-	return records
+	return nil
 }
 
 func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid peer.ID) (*types.ChunkRecords, error) {
