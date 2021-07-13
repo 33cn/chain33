@@ -119,7 +119,11 @@ func TestInit(t *testing.T) {
 	require.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
 
 	// 删除数据后应该找不到数据
-	err = p2.deleteChunkBlock([]byte("test0"))
+	err = p2.deleteChunkBlock(&types.ChunkInfoMsg{
+		ChunkHash: []byte("test0"),
+		Start:	   0,
+		End:       999,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

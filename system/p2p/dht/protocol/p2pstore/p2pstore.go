@@ -200,7 +200,7 @@ func (p *Protocol) processLocalChunk() {
 			}
 		case info := <-p.chunkToDelete:
 			if localInfo, ok := p.getChunkInfoByHash(info.ChunkHash); ok && time.Since(localInfo.Time) > types2.RefreshInterval*3 {
-				if err := p.deleteChunkBlock(localInfo.ChunkHash); err != nil {
+				if err := p.deleteChunkBlock(localInfo.ChunkInfoMsg); err != nil {
 					log.Error("processLocalChunk", "deleteChunkBlock error", err, "chunkHash", hex.EncodeToString(localInfo.ChunkHash), "start", localInfo.Start)
 				}
 			}

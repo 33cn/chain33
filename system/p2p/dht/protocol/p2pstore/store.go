@@ -53,8 +53,8 @@ func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
 	return types2.ErrNotFound
 }
 
-func (p *Protocol) deleteChunkBlock(hash []byte) error {
-	exist, err := p.deleteLocalChunkInfo(hash)
+func (p *Protocol) deleteChunkBlock(msg *types.ChunkInfoMsg) error {
+	exist, err := p.deleteLocalChunkInfo(msg.ChunkHash)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (p *Protocol) deleteChunkBlock(hash []byte) error {
 		return nil
 	}
 	batch := p.DB.NewBatch(true)
-	it := p.DB.Iterator(hash, append(hash, ':'+1), false)
+	it := p.DB.Iterator(genChunkDBKey(msg.Start), genChunkDBKey(msg.End+1), false)
 	defer it.Close()
 	for it.Next(); it.Valid(); it.Next() {
 		batch.Delete(it.Key())
