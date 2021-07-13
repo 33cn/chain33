@@ -41,10 +41,18 @@ func (p *Protocol) refreshLocalChunk() {
 				continue
 			}
 			syncNum++
-			p.chunkToSync <- msg
+			select {
+			case p.chunkToSync <- msg:
+			default:
+			}
+
 		} else {
 			deleteNum++
-			p.chunkToDelete <- msg
+			select {
+			case p.chunkToDelete <- msg:
+			default:
+			}
+
 		}
 	}
 	log.Info("refreshLocalChunk", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "time cost", time.Since(start), "exRT size", p.getExtendRoutingTable().Size())
