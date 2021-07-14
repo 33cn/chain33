@@ -292,7 +292,7 @@ func makeProtocol(name string, q queue.Queue, h host.Host) *Protocol {
 		chunkToDelete:        make(chan *types.ChunkInfoMsg, 100),
 		chunkToDownload:      make(chan *types.ChunkInfoMsg, 1024),
 		wakeup:               make(map[string]chan struct{}),
-		chunkStatusCache:     make(map[string]ChunkStatus),
+		chunkInfoCache:       make(map[string]*types.ChunkInfoMsg),
 		peerAddrRequestTrace: make(map[peer.ID]map[peer.ID]time.Time),
 		chunkRequestTrace:    make(map[string]map[peer.ID]time.Time),
 		chunkProviderCache:   make(map[string]map[peer.ID]time.Time),
