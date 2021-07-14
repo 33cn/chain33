@@ -132,6 +132,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.updateRoutine()
 	go p.refreshRoutine()
 	go p.debugLog()
+	go p.processLocalChunkOldVersion()
 }
 
 func (p *Protocol) refreshRoutine() {
@@ -174,10 +175,11 @@ func (p *Protocol) updateRoutine() {
 	}
 }
 
-func (p *Protocol) processLocalChunk() {
+// TODO: to delete next version
+func (p *Protocol) processLocalChunkOldVersion() {
 	for {
 		select {
-		case <-p.Ctx.Done():
+		case <- p.Ctx.Done():
 			return
 		case info := <-p.chunkToSync:
 			bodys, _, err := p.mustFetchChunk(info)
@@ -190,12 +192,24 @@ func (p *Protocol) processLocalChunk() {
 				break
 			}
 			log.Info("processLocalChunk save chunk success")
-			// TODO: next version
-			//for _, pid := range p.RoutingTable.NearestPeers(genDHTID(info.ChunkHash), AlphaValue) {
-			//	if err := p.requestPeerInfoForChunk(info, pid); err != nil {
-			//		log.Error("processLocalChunk", "requestPeerInfoForChunk error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
-			//	}
-			//}
+		}
+	}
+}
+
+func (p *Protocol) processLocalChunk() {
+	for {
+		select {
+		case <-p.Ctx.Done():
+			return
+
+		// TODO: open in next version
+		//case info := <-p.chunkToSync:
+		//	for _, pid := range p.RoutingTable.NearestPeers(genDHTID(info.ChunkHash), AlphaValue) {
+		//		if err := p.requestPeerInfoForChunk(info, pid); err != nil {
+		//			log.Error("processLocalChunk", "requestPeerInfoForChunk error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
+		//		}
+		//	}
+
 		case info := <-p.chunkToDelete:
 			if localInfo, ok := p.getChunkInfoByHash(info.ChunkHash); ok && time.Since(localInfo.Time) > types2.RefreshInterval*3 {
 				if err := p.deleteChunkBlock(localInfo.ChunkInfoMsg); err != nil {

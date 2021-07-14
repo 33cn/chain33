@@ -30,13 +30,14 @@ func (p *Protocol) addChunkBlock(info *types.ChunkInfoMsg, bodys *types.BlockBod
 	if int64(len(bodys.Items)) != info.End-info.Start+1 {
 		return types2.ErrLength
 	}
+	p.addLocalChunkInfo(info)
 	for i := info.Start; i <= info.End; i++ {
 		key := genChunkDBKey(i)
 		if err := p.DB.Set(key, types.Encode(bodys.Items[i-info.Start])); err != nil {
 			return err
 		}
 	}
-	return p.addLocalChunkInfo(info)
+	return nil
 }
 
 // 更新本地chunk保存时间，只更新索引即可
@@ -54,11 +55,7 @@ func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
 }
 
 func (p *Protocol) deleteChunkBlock(msg *types.ChunkInfoMsg) error {
-	exist, err := p.deleteLocalChunkInfo(msg.ChunkHash)
-	if err != nil {
-		return err
-	}
-	if !exist {
+	if exist:= p.deleteLocalChunkInfo(msg.ChunkHash); !exist {
 		return nil
 	}
 	batch := p.DB.NewBatch(true)
@@ -97,7 +94,7 @@ func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, er
 }
 
 // 保存一个本地chunk hash列表，用于遍历本地数据
-func (p *Protocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
+func (p *Protocol) addLocalChunkInfo(info *types.ChunkInfoMsg) {
 	p.localChunkInfoMutex.Lock()
 	defer p.localChunkInfoMutex.Unlock()
 
@@ -105,38 +102,51 @@ func (p *Protocol) addLocalChunkInfo(info *types.ChunkInfoMsg) error {
 		ChunkInfoMsg: info,
 		Time:         time.Now(),
 	}
-	return p.saveLocalChunkInfoMap(p.localChunkInfo)
 }
 
-func (p *Protocol) deleteLocalChunkInfo(hash []byte) (bool, error) {
+func (p *Protocol) deleteLocalChunkInfo(hash []byte) bool {
 	p.localChunkInfoMutex.Lock()
 	defer p.localChunkInfoMutex.Unlock()
 	if _, exist := p.localChunkInfo[hex.EncodeToString(hash)]; !exist {
-		return false, nil
+		return false
 	}
 	delete(p.localChunkInfo, hex.EncodeToString(hash))
-	return true, p.saveLocalChunkInfoMap(p.localChunkInfo)
+	return true
 }
 
 func (p *Protocol) initLocalChunkInfoMap() {
-	p.localChunkInfoMutex.Lock()
-	defer p.localChunkInfoMutex.Unlock()
+	_ = p.DB.DeleteSync([]byte(LocalChunkInfoKey))
 	p.localChunkInfo = make(map[string]LocalChunkInfo)
-	value, err := p.DB.Get([]byte(LocalChunkInfoKey))
-	if err != nil {
-		log.Error("initLocalChunkInfoMap", "error", err)
-		return
-	}
-
-	err = json.Unmarshal(value, &p.localChunkInfo)
+	start := time.Now()
+	records, err := p.getChunkRecordFromBlockchain(&types.ReqChunkRecords{Start: 0, End: 0})
 	if err != nil {
 		panic(err)
 	}
-	for k, v := range p.localChunkInfo {
-		info := v
-		info.Time = time.Now()
-		p.localChunkInfo[k] = info
+	if records == nil || len(records.Infos) != 1 {
+		panic("invalid record")
 	}
+	chunkLen := records.Infos[0].End - records.Infos[0].Start + 1
+	for i := int64(0);;i++ {
+		records, err := p.getChunkRecordFromBlockchain(&types.ReqChunkRecords{Start: i, End: i})
+		if err != nil {
+			break
+		}
+		info := records.Infos[0]
+		key := genChunkDBKey(i*chunkLen)
+		if _, err := p.DB.Get(key); err == nil {
+			p.localChunkInfoMutex.Lock()
+			p.localChunkInfo[hex.EncodeToString(info.ChunkHash)] = LocalChunkInfo{
+				ChunkInfoMsg: &types.ChunkInfoMsg{
+					ChunkHash: info.ChunkHash,
+					Start: info.Start,
+					End: info.End,
+				},
+				Time: start,
+			}
+			p.localChunkInfoMutex.Unlock()
+		}
+	}
+	log.Info("initLocalChunkInfoMap", "time cost", time.Since(start), "len", len(p.localChunkInfo))
 }
 
 func (p *Protocol) saveLocalChunkInfoMap(m map[string]LocalChunkInfo) error {
