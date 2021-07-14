@@ -190,6 +190,7 @@ func (p *Protocol) processLocalChunk() {
 				break
 			}
 			log.Info("processLocalChunk save chunk success")
+			// TODO: next version
 			//for _, pid := range p.RoutingTable.NearestPeers(genDHTID(info.ChunkHash), AlphaValue) {
 			//	if err := p.requestPeerInfoForChunk(info, pid); err != nil {
 			//		log.Error("processLocalChunk", "requestPeerInfoForChunk error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
