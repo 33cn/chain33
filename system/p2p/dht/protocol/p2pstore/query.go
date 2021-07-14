@@ -354,6 +354,16 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 		log.Info("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
 		return records
 	}
+
+	for _, pid := range p.RoutingTable.ListPeers() {
+		records, err := p.getChunkRecordsFromPeer(param, pid)
+		if err != nil {
+			log.Error("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
+			continue
+		}
+		log.Info("getChunkRecords", "peer", pid, "error", err, "start", param.Start, "end", param.End)
+		return records
+	}
 	return nil
 }
 
