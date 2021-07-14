@@ -32,18 +32,6 @@ const (
 	responsePeerInfoForChunk = "/chain33/response-peer-info-for-chunk/1.0.0"
 )
 
-// ChunkStatus ...
-type ChunkStatus struct {
-	info   *types.ChunkInfoMsg
-	status int
-}
-
-// status of ChunkStatus
-const (
-	Waiting    = iota // refreshing p2pStore and waiting peer addr
-	ToDownload        // having got peer addr and waiting to download
-)
-
 const maxConcurrency = 10
 
 var log = log15.New("module", "protocol.p2pstore")
@@ -51,20 +39,17 @@ var backup = 50
 
 //Protocol ...
 type Protocol struct {
-	*protocol.P2PEnv
-	//协议共享接口变量
+	*protocol.P2PEnv //协议共享接口变量
 
 	chunkToSync     chan *types.ChunkInfoMsg
 	chunkToDelete   chan *types.ChunkInfoMsg
 	chunkToDownload chan *types.ChunkInfoMsg
 
-	deleteNum int64
-
 	wakeup      map[string]chan struct{}
 	wakeupMutex sync.Mutex
 
-	chunkStatusCache      map[string]ChunkStatus
-	chunkStatusCacheMutex sync.Mutex
+	chunkInfoCache      map[string]*types.ChunkInfoMsg
+	chunkInfoCacheMutex sync.Mutex
 
 	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
@@ -98,7 +83,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 		chunkToDelete:        make(chan *types.ChunkInfoMsg, 1024),
 		chunkToDownload:      make(chan *types.ChunkInfoMsg, 1024),
 		wakeup:               make(map[string]chan struct{}),
-		chunkStatusCache:     make(map[string]ChunkStatus),
+		chunkInfoCache:       make(map[string]*types.ChunkInfoMsg),
 		peerAddrRequestTrace: make(map[peer.ID]map[peer.ID]time.Time),
 		chunkRequestTrace:    make(map[string]map[peer.ID]time.Time),
 		chunkProviderCache:   make(map[string]map[peer.ID]time.Time),
@@ -195,21 +180,26 @@ func (p *Protocol) processLocalChunk() {
 		case <-p.Ctx.Done():
 			return
 		case info := <-p.chunkToSync:
-			for _, pid := range p.RoutingTable.NearestPeers(genDHTID(info.ChunkHash), AlphaValue) {
-				if err := p.requestPeerInfoForChunk(info, pid); err != nil {
-					log.Error("processLocalChunk", "requestPeerInfoForChunk error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
-				}
+			bodys, _, err := p.mustFetchChunk(info)
+			if err != nil {
+				log.Error("processLocalChunk", "mustFetchChunk error", err)
+				break
 			}
+			if err := p.addChunkBlock(info, bodys); err != nil {
+				log.Error("processLocalChunk", "addChunkBlock error", err)
+				break
+			}
+			log.Info("processLocalChunk save chunk success")
+			//for _, pid := range p.RoutingTable.NearestPeers(genDHTID(info.ChunkHash), AlphaValue) {
+			//	if err := p.requestPeerInfoForChunk(info, pid); err != nil {
+			//		log.Error("processLocalChunk", "requestPeerInfoForChunk error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
+			//	}
+			//}
 		case info := <-p.chunkToDelete:
 			if localInfo, ok := p.getChunkInfoByHash(info.ChunkHash); ok && time.Since(localInfo.Time) > types2.RefreshInterval*3 {
-				p.deleteNum++
 				if err := p.deleteChunkBlock(localInfo.ChunkInfoMsg); err != nil {
 					log.Error("processLocalChunk", "deleteChunkBlock error", err, "chunkHash", hex.EncodeToString(localInfo.ChunkHash), "start", localInfo.Start)
-				}
-				// 删除chunk数量，累计到一定数量对数据库做一次compact
-				if p.deleteNum > 100 {
-					_ = p.DB.CompactRange(nil, nil)
-					p.deleteNum = 0
+					break
 				}
 			}
 		case info := <-p.chunkToDownload:
@@ -220,15 +210,18 @@ func (p *Protocol) processLocalChunk() {
 					log.Error("processLocalChunk", "fetchChunkFromPeer error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
 					continue
 				}
+				if bodys == nil {
+					continue
+				}
 				if err := p.addChunkBlock(info, bodys); err != nil {
 					log.Error("processLocalChunk", "addChunkBlock error", err)
 					continue
 				}
 				break
 			}
-			p.chunkStatusCacheMutex.Lock()
-			delete(p.chunkStatusCache, hex.EncodeToString(info.ChunkHash))
-			p.chunkStatusCacheMutex.Unlock()
+			p.chunkInfoCacheMutex.Lock()
+			delete(p.chunkInfoCache, hex.EncodeToString(info.ChunkHash))
+			p.chunkInfoCacheMutex.Unlock()
 		}
 	}
 }

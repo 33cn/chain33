@@ -37,37 +37,20 @@ func (p *Protocol) refreshLocalChunk() {
 			}
 
 			// 通过网络从其他节点获取数据
-			if exist := p.addChunkStatus(ChunkStatus{info: msg, status: Waiting}); exist {
-				continue
-			}
+			p.chunkInfoCacheMutex.Lock()
+			p.chunkInfoCache[hex.EncodeToString(info.ChunkHash)] = msg
+			p.chunkInfoCacheMutex.Unlock()
 			syncNum++
-			select {
-			case p.chunkToSync <- msg:
-			default:
-			}
+			p.chunkToSync <- msg
+			log.Info("refreshLocalChunk sync", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "chunkHash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 
 		} else {
 			deleteNum++
-			select {
-			case p.chunkToDelete <- msg:
-			default:
-			}
-
+			p.chunkToDelete <- msg
+			log.Info("refreshLocalChunk delete", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "chunkHash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 		}
 	}
 	log.Info("refreshLocalChunk", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "time cost", time.Since(start), "exRT size", p.getExtendRoutingTable().Size())
-}
-
-func (p *Protocol) addChunkStatus(status ChunkStatus) (exist bool) {
-	p.chunkStatusCacheMutex.Lock()
-	defer p.chunkStatusCacheMutex.Unlock()
-	chunkHash := hex.EncodeToString(status.info.ChunkHash)
-	if _, ok := p.chunkStatusCache[chunkHash]; ok {
-		exist = true
-		return
-	}
-	p.chunkStatusCache[chunkHash] = status
-	return
 }
 
 func (p *Protocol) shouldSave(chunkHash []byte) bool {

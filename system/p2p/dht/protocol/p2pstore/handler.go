@@ -109,20 +109,15 @@ func (p *Protocol) handleStreamResponsePeerInfoForChunk(stream network.Stream) {
 	}
 	p.wakeupMutex.Unlock()
 
-	p.chunkStatusCacheMutex.Lock()
-	if cs, ok := p.chunkStatusCache[chunkHash]; ok {
-		// 防止重复下载
-		if cs.status == Waiting {
-			select {
-			case p.chunkToDownload <- cs.info:
-				cs.status = ToDownload
-				p.chunkStatusCache[chunkHash] = cs
-			default:
-				log.Error("handleStreamResponsePeerInfoForChunk", "error", "chunkToDownload channel is full")
-			}
+	p.chunkInfoCacheMutex.Lock()
+	if msg, ok := p.chunkInfoCache[chunkHash]; ok {
+		select {
+		case p.chunkToDownload <- msg:
+		default:
+			log.Error("handleStreamResponsePeerInfoForChunk", "error", "chunkToDownload channel is full")
 		}
 	}
-	p.chunkStatusCacheMutex.Unlock()
+	p.chunkInfoCacheMutex.Unlock()
 
 	// check trace and response
 	for _, pid := range p.getChunkRequestTrace(provider.ChunkHash) {
