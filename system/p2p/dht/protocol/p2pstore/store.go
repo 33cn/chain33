@@ -62,12 +62,15 @@ func (p *Protocol) deleteChunkBlock(msg *types.ChunkInfoMsg) error {
 		return nil
 	}
 	batch := p.DB.NewBatch(true)
-	it := p.DB.Iterator(genChunkDBKey(msg.Start), genChunkDBKey(msg.End+1), false)
+	start, end := genChunkDBKey(msg.Start), genChunkDBKey(msg.End+1)
+	it := p.DB.Iterator(start, end, false)
 	defer it.Close()
 	for it.Next(); it.Valid(); it.Next() {
 		batch.Delete(it.Key())
 	}
-	return batch.Write()
+	_ = batch.Write()
+	_ = p.DB.CompactRange(start, end)
+	return nil
 }
 
 // 获取本地chunk数据
