@@ -25,6 +25,7 @@ type Config struct {
 	Pprof            *Pprof         `json:"pprof,omitempty"`
 	Fork             *ForkList      `json:"fork,omitempty"`
 	Health           *HealthCheck   `json:"health,omitempty"`
+	CoinExec         string         `json:"coinExec,omitempty"`
 	CoinSymbol       string         `json:"coinSymbol,omitempty"`
 	DisableForkCheck bool           `json:"disableForkCheck,omitempty"`
 	EnableParaFork   bool           `json:"enableParaFork,omitempty"`

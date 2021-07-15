@@ -55,6 +55,7 @@ type Chain33Config struct {
 	mu               sync.Mutex
 	chainConfig      map[string]interface{}
 	mver             *mversion
+	coinExec         string
 	coinSymbol       string
 	forks            *Forks
 	disableCheckFork bool
@@ -121,6 +122,7 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 		minerExecs:       []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
 		title:            cfg.Title,
 		chainConfig:      make(map[string]interface{}),
+		coinExec:         "coins",
 		coinSymbol:       "bty",
 		forks:            &Forks{make(map[string]int64)},
 		chainID:          cfg.ChainID,
@@ -235,6 +237,16 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 			c.setMinerExecs(cfg.Consensus.MinerExecs)
 		}
 		c.setChainConfig("FixTime", cfg.FixTime)
+
+		//coinExec默认coins执行器, 如果配置了coinExec，必须是coins or coinsx
+		c.coinExec = DefaultCoinsExec
+		if len(cfg.CoinExec) > 0 {
+			if cfg.CoinExec != DefaultCoinsXExec && cfg.CoinExec != DefaultCoinsExec {
+				panic(fmt.Sprintf("config CoinExec must be %s or %s", DefaultCoinsXExec, DefaultCoinsExec))
+			}
+			c.coinExec = cfg.CoinExec
+		}
+
 		if cfg.CoinSymbol != "" {
 			if strings.Contains(cfg.CoinSymbol, "-") {
 				panic("config CoinSymbol must without '-'")
@@ -449,6 +461,13 @@ func (c *Chain33Config) GetCoinSymbol() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.coinSymbol
+}
+
+// GetCoinExec 获取 coin symbol
+func (c *Chain33Config) GetCoinExec() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.coinExec
 }
 
 func (c *Chain33Config) isLocal() bool {
