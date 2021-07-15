@@ -123,7 +123,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 		transfer.Value = v
 		transfer.Ty = cty.CoinsActionWithdraw
 	}
-	execer := []byte(getRealExecName(paraName, "coins"))
+	execer := []byte(getRealExecName(paraName, cfg.GetCoinExec()))
 	if paraName == "" {
 		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: to}
 	} else {
