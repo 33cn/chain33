@@ -134,7 +134,7 @@ func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, txH
 
 // CreateTxWithExecer ： Create Tx With Execer
 func CreateTxWithExecer(cfg *types.Chain33Config, priv crypto.PrivKey, execer string) *types.Transaction {
-	if execer == "coins" {
+	if execer == cfg.GetCoinExec() {
 		to, _ := Genaddress()
 		return CreateCoinsTx(cfg, priv, to, types.Coin)
 	}
@@ -197,7 +197,7 @@ func CreateCoinsTx(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amo
 }
 
 func createCoinsTx(cfg *types.Chain33Config, to string, amount int64) *types.Transaction {
-	exec := types.LoadExecutorType("coins")
+	exec := types.LoadExecutorType(cfg.GetCoinExec())
 	if exec == nil {
 		panic("unknow driver coins")
 	}
@@ -209,7 +209,7 @@ func createCoinsTx(cfg *types.Chain33Config, to string, amount int64) *types.Tra
 		panic(err)
 	}
 	tx.To = to
-	tx, err = types.FormatTx(cfg, "coins", tx)
+	tx, err = types.FormatTx(cfg, cfg.GetCoinExec(), tx)
 	if err != nil {
 		return nil
 	}
