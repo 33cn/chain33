@@ -291,7 +291,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, error) {
 
 	switch in.GetExecer() {
-	case "coins":
+	case types.DefaultCoinsExec, types.DefaultCoinsXExec:
 		addrs := in.GetAddresses()
 		var exaddrs []string
 		for _, addr := range addrs {
