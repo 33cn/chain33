@@ -122,8 +122,8 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 		minerExecs:       []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
 		title:            cfg.Title,
 		chainConfig:      make(map[string]interface{}),
-		coinExec:         "coins",
-		coinSymbol:       "bty",
+		coinExec:         DefaultCoinsExec,
+		coinSymbol:       DefaultCoinsSymbol,
 		forks:            &Forks{make(map[string]int64)},
 		chainID:          cfg.ChainID,
 		disableCheckFork: cfg.DisableForkCheck,
@@ -238,11 +238,11 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 		}
 		c.setChainConfig("FixTime", cfg.FixTime)
 
-		//coinExec默认coins执行器, 如果配置了coinExec，必须是coins or coinsx
+		//coinExec默认coins执行器, 如果配置了coinExec，用户必须实现相应的合约
 		c.coinExec = DefaultCoinsExec
 		if len(cfg.CoinExec) > 0 {
-			if cfg.CoinExec != DefaultCoinsXExec && cfg.CoinExec != DefaultCoinsExec {
-				panic(fmt.Sprintf("config CoinExec must be %s or %s", DefaultCoinsXExec, DefaultCoinsExec))
+			if strings.Contains(cfg.CoinExec, "-") {
+				panic("config CoinExec must without '-'")
 			}
 			c.coinExec = cfg.CoinExec
 		}

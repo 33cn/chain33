@@ -80,7 +80,7 @@ func TestConvertWalletTxDetailToJSON(t *testing.T) {
 	detail := &types.WalletTxDetail{Tx: tx, Receipt: receipt}
 	in := &types.WalletTxDetails{TxDetails: []*types.WalletTxDetail{detail}}
 	out := &WalletTxDetails{}
-	err := ConvertWalletTxDetailToJSON(in, out)
+	err := ConvertWalletTxDetailToJSON(in, out, "coins")
 	assert.NoError(t, err)
 
 	//test withdraw swap from to
@@ -89,7 +89,7 @@ func TestConvertWalletTxDetailToJSON(t *testing.T) {
 	assert.NoError(t, err)
 	tx.To = "to"
 	out = &WalletTxDetails{}
-	err = ConvertWalletTxDetailToJSON(in, out)
+	err = ConvertWalletTxDetailToJSON(in, out, "coins")
 	assert.NoError(t, err)
 	assert.Equal(t, "to", out.TxDetails[0].FromAddr)
 	assert.Equal(t, "from", detail.Tx.To)
