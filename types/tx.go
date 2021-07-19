@@ -22,9 +22,6 @@ import (
 )
 
 var (
-	bCoins = []byte("coins")
-	//coinsx 是代替coins的扩展执行器插件，在config文件配置
-	bCoinsx  = []byte("coinsx")
 	bToken   = []byte("token")
 	withdraw = "withdraw"
 	txCache  *lru.Cache
@@ -724,8 +721,8 @@ func (tx *Transaction) ActionName() string {
 }
 
 //IsWithdraw 判断交易是withdraw交易，需要做from和to地址的swap，方便上层客户理解
-func (tx *Transaction) IsWithdraw() bool {
-	if bytes.Equal(tx.GetExecer(), bCoins) || bytes.Equal(tx.GetExecer(), bCoinsx) || bytes.Equal(tx.GetExecer(), bToken) {
+func (tx *Transaction) IsWithdraw(coinExec string) bool {
+	if bytes.Equal(tx.GetExecer(), []byte(coinExec)) || bytes.Equal(tx.GetExecer(), bToken) {
 		if tx.ActionName() == withdraw {
 			return true
 		}

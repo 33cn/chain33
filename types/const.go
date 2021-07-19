@@ -40,7 +40,6 @@ const (
 //DefaultCoinsSymbol 默认的主币名称
 const (
 	DefaultCoinsExec   = "coins"
-	DefaultCoinsXExec  = "coinsx"
 	DefaultCoinsSymbol = "bty"
 )
 
