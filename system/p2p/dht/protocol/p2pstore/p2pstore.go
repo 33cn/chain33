@@ -35,7 +35,6 @@ const (
 const maxConcurrency = 10
 
 var log = log15.New("module", "protocol.p2pstore")
-var backup = 50
 
 //Protocol ...
 type Protocol struct {
@@ -90,8 +89,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 		extendRoutingTable:   exRT,
 	}
 	//
-	if env.SubConfig.Backup > 1 {
-		backup = env.SubConfig.Backup
+	if env.SubConfig.Percentage < types2.MinPercentage || env.SubConfig.Percentage > types2.MaxPercentage {
+		env.SubConfig.Percentage = types2.DefaultPercentage
 	}
 	if env.SubConfig.MinExtendRoutingTableSize == 0 {
 		env.SubConfig.MinExtendRoutingTableSize = types2.DefaultMinExtendRoutingTableSize
@@ -182,6 +181,9 @@ func (p *Protocol) processLocalChunkOldVersion() {
 		case <- p.Ctx.Done():
 			return
 		case info := <-p.chunkToSync:
+			if err := p.storeChunk(info); err == nil {
+				break
+			}
 			bodys, _, err := p.mustFetchChunk(info)
 			if err != nil {
 				log.Error("processLocalChunk", "mustFetchChunk error", err)

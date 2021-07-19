@@ -57,8 +57,12 @@ func (p *Protocol) shouldSave(chunkHash []byte) bool {
 	if p.SubConfig.IsFullNode {
 		return true
 	}
-	pids := p.getExtendRoutingTable().NearestPeers(genDHTID(chunkHash), backup)
-	if len(pids) < backup || kbt.Closer(p.Host.ID(), pids[backup-1], genChunkNameSpaceKey(chunkHash)) {
+	pids := p.getExtendRoutingTable().NearestPeers(genDHTID(chunkHash), 100)
+	size := len(pids)
+	if size == 0 {
+		return true
+	}
+	if kbt.Closer(p.Host.ID(), pids[size*p.SubConfig.Percentage/100], genChunkNameSpaceKey(chunkHash)) {
 		return true
 	}
 	return false
@@ -73,7 +77,7 @@ func (p *Protocol) getExtendRoutingTable() *kbt.RoutingTable {
 
 func (p *Protocol) updateExtendRoutingTable() {
 	key := []byte("temp")
-	count := 100
+	count := 200
 	start := time.Now()
 	for _, pid := range p.extendRoutingTable.ListPeers() {
 		if p.RoutingTable.Find(pid) == "" {
@@ -85,7 +89,7 @@ func (p *Protocol) updateExtendRoutingTable() {
 		_, _ = p.extendRoutingTable.TryAddPeer(pid, true, true)
 	}
 	if key != nil {
-		peers = p.RoutingTable.NearestPeers(genDHTID(key), backup)
+		peers = p.RoutingTable.NearestPeers(genDHTID(key), p.RoutingTable.Size())
 	}
 
 	for i, pid := range peers {
