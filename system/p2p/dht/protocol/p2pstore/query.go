@@ -577,7 +577,7 @@ func (p *Protocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords) (*ty
 	if err != nil {
 		return nil, err
 	}
-	resp, err := p.QueueClient.Wait(msg)
+	resp, err := p.QueueClient.WaitTimeout(msg, time.Second)
 	if err != nil {
 		return nil, err
 	}
