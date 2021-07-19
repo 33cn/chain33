@@ -120,7 +120,7 @@ func (p *Protocol) initLocalChunkInfoMap() {
 	start := time.Now()
 	records, err := p.getChunkRecordFromBlockchain(&types.ReqChunkRecords{Start: 0, End: 0})
 	if err != nil {
-		panic(err)
+		return
 	}
 	if records == nil || len(records.Infos) != 1 {
 		panic("invalid record")
