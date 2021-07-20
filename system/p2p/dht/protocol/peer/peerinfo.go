@@ -177,7 +177,7 @@ func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
 		return nil, err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	err = protocol.WriteStream(&types.MessagePeerInfoReq{}, stream)
 	if err != nil {
 		return nil, err
@@ -234,7 +234,7 @@ func (p *Protocol) queryVersionOld(pid peer.ID) error {
 		return err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 
 	req := types.MessageP2PVersionReq{
 		Message: &types.P2PVersion{
@@ -282,7 +282,7 @@ func (p *Protocol) queryVersion(pid peer.ID) error {
 		return err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 
 	req := &types.P2PVersion{
 		Version:  p.SubConfig.Channel,

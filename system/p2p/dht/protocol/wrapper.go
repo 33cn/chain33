@@ -52,6 +52,7 @@ func CloseStream(stream network.Stream) {
 		return
 	}
 	_ = stream.CloseWrite()
+	_ = stream.CloseRead()
 	go func() {
 		err := AwaitEOF(stream)
 		if err != nil {
@@ -349,5 +350,5 @@ func AwaitEOF(s network.Stream) error {
 		_ = s.Reset()
 		return err
 	}
-	return nil
+	return s.Close()
 }

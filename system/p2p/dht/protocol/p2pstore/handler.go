@@ -109,20 +109,15 @@ func (p *Protocol) handleStreamResponsePeerInfoForChunk(stream network.Stream) {
 	}
 	p.wakeupMutex.Unlock()
 
-	p.chunkStatusCacheMutex.Lock()
-	if cs, ok := p.chunkStatusCache[chunkHash]; ok {
-		// 防止重复下载
-		if cs.status == Waiting {
-			select {
-			case p.chunkToDownload <- cs.info:
-				cs.status = ToDownload
-				p.chunkStatusCache[chunkHash] = cs
-			default:
-				log.Error("handleStreamResponsePeerInfoForChunk", "error", "chunkToDownload channel is full")
-			}
+	p.chunkInfoCacheMutex.Lock()
+	if msg, ok := p.chunkInfoCache[chunkHash]; ok {
+		select {
+		case p.chunkToDownload <- msg:
+		default:
+			log.Error("handleStreamResponsePeerInfoForChunk", "error", "chunkToDownload channel is full")
 		}
 	}
-	p.chunkStatusCacheMutex.Unlock()
+	p.chunkInfoCacheMutex.Unlock()
 
 	// check trace and response
 	for _, pid := range p.getChunkRequestTrace(provider.ChunkHash) {
@@ -248,7 +243,7 @@ func (p *Protocol) handleStreamFetchShardPeers(req *types.P2PRequest, res *types
 	reqPeers := req.GetRequest().(*types.P2PRequest_ReqPeers).ReqPeers
 	count := int(reqPeers.Count)
 	if count <= 0 {
-		count = backup
+		count = 200
 	}
 	peers := p.RoutingTable.NearestPeers(genDHTID(reqPeers.ReferKey), p.RoutingTable.Size())
 	var activePeers []peer.ID
@@ -405,10 +400,10 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 		return
 	}
 
-	//如果本节点是扩展路由表中距离该chunk最近的 backup 个节点之一，则保存数据；否则不需要保存数据
+	//如果本节点是扩展路由表中距离该chunk最近的 `Percentage` 节点之一，则保存数据；否则不需要保存数据
 	extendRoutingTable := p.getExtendRoutingTable()
-	pids := extendRoutingTable.NearestPeers(genDHTID(req.ChunkHash), backup)
-	if len(pids) >= backup && kb.Closer(pids[backup-1], p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
+	pids := extendRoutingTable.NearestPeers(genDHTID(req.ChunkHash), 100)
+	if len(pids) > 0 && kb.Closer(pids[len(pids)*p.SubConfig.Percentage/100], p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}
 	log.Info("handleEventNotifyStoreChunk", "local nearest peer", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))

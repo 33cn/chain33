@@ -272,7 +272,7 @@ func testStreamEOFReSet(t *testing.T) {
 
 	var subcfg, subcfg2, subcfg3 p2pty.P2PSubConfig
 	subcfg.Port = 22345
-	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg.Port))
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg.Port))
 	if err != nil {
 		panic(err)
 	}
@@ -281,7 +281,7 @@ func testStreamEOFReSet(t *testing.T) {
 	//-------------------------
 
 	subcfg2.Port = 22346
-	maddr2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg2.Port))
+	maddr2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg2.Port))
 	if err != nil {
 		panic(err)
 	}
@@ -290,7 +290,7 @@ func testStreamEOFReSet(t *testing.T) {
 	//-------------------------------------
 
 	subcfg3.Port = 22347
-	maddr3, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg3.Port))
+	maddr3, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg3.Port))
 	if err != nil {
 		panic(err)
 	}
@@ -321,16 +321,13 @@ func testStreamEOFReSet(t *testing.T) {
 		Addrs: h2.Addrs(),
 	}
 	var retrycount int
-	for {
+	for retrycount < 3 {
 		err = h1.Connect(context.Background(), h2info)
 		if err != nil {
 			retrycount++
-			if retrycount > 3 {
-				break
-			}
+			time.Sleep(time.Second / 2)
 			continue
 		}
-
 		break
 	}
 
@@ -495,9 +492,6 @@ func Test_p2p(t *testing.T) {
 	t.Log("discovery update", err)
 	pinfo := dhtp2p.discovery.FindLocalPeers([]peer.ID{dhtp2p.host.ID()})
 	t.Log("findlocalPeers", pinfo)
-	//netw := swarmt.GenSwarm(t, context.Background())
-	//h2 := bhost.NewBlankHost(netw)
-	//dhtp2p.pruePeers(h2.ID(), true)
 	dhtp2p.discovery.Remove(dhtp2p.host.ID())
 	testP2PEvent(t, q.Client())
 

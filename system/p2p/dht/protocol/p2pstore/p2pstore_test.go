@@ -119,7 +119,11 @@ func TestInit(t *testing.T) {
 	require.Equal(t, 223, len(msg.Data.(*types.BlockBodys).Items))
 
 	// 删除数据后应该找不到数据
-	err = p2.deleteChunkBlock([]byte("test0"))
+	err = p2.deleteChunkBlock(&types.ChunkInfoMsg{
+		ChunkHash: []byte("test0"),
+		Start:     0,
+		End:       999,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -288,7 +292,7 @@ func makeProtocol(name string, q queue.Queue, h host.Host) *Protocol {
 		chunkToDelete:        make(chan *types.ChunkInfoMsg, 100),
 		chunkToDownload:      make(chan *types.ChunkInfoMsg, 1024),
 		wakeup:               make(map[string]chan struct{}),
-		chunkStatusCache:     make(map[string]ChunkStatus),
+		chunkInfoCache:       make(map[string]*types.ChunkInfoMsg),
 		peerAddrRequestTrace: make(map[peer.ID]map[peer.ID]time.Time),
 		chunkRequestTrace:    make(map[string]map[peer.ID]time.Time),
 		chunkProviderCache:   make(map[string]map[peer.ID]time.Time),
@@ -333,7 +337,6 @@ func makeProtocol(name string, q queue.Queue, h host.Host) *Protocol {
 
 func initEnv(t *testing.T, q queue.Queue) (*Protocol, *Protocol) {
 	port1, port2 := 13806, 13807
-	backup = 1
 	types2.RefreshInterval = time.Second
 	privkey1 := "080012a709308204a30201000282010100a28d698a090b02222f97c928b45e78821a87b6382b5057ec9cf12331da3fd8a1c6c71731a8075ae41383460908b483585676f4312249de6929423c2c5d7865bb28d50c5a57e7cad3cc7ca2ddcbc486ac0260fe68e4cdff7f86e46ac65403baf6a5ef50ce7cbb9d0f5f23b02fcc6d5211e2df2bf24fc84565ba5d0777458ad82b46579cba0a16c88ff946812e7f17ad85a2b35dc1bae732a74f83262358fefcc985a632aee8129a73d1d17aaceebd5bae9ffbeab6c5505e8eafd8af8448a6dd74d76885bc71c7d85bad761680bc7cdd04a99cb90d8c27467769c500e603677469a73cec7983a7dba6d7656ab241b4446355a89a267eeb72f0fd7c89c470d93a6302030100010282010002db797f73a93de05bf5cf136818410608715a42a280470b61b6db6784ee9a603d9e424a1d2a03eefe68d0525854d3fa398addbfff5a4d0e8c2b1de3a9c0f408d62ee888ae02e50dd40a5cd289426b1b9aef1989be7be081dd5d268355f6bad29b1819d3875dc4e500472051b6c6352b1b51d0f3f17313c536016ca02c18c4b3f6dba52c616f93bf831589d0dd2fc190f875e37a4e9654bd9e63e04fc5d9cea45664cd6d26c17659ee4b8c6837c6dfe86e4e6b8e17af332a736267ee5a68ac0b0c60ced47f1aaf7ec65547f664a9f1409e7d116ca325c29b1058e5892dc04c79337a15b875e7139bca7ddfb6c5c7f822adff8cd65f1dfa84d1b0f87166604c0102818100c5694c5a55465a068075e5274ca926615632ef710917f4a2ece4b4108041ea6dc99ee244d97d1a687c5f6879a97df6685346d7fff315bb3be008c787f67ad9934563127b07511f57ac72be2f7771a9e29b67a022e12567be3591c033a0202e44742429e3266709f17e79c1caa4618f0e5c37a6d3f238f92f33539be7aa5beee502818100d2cba3ec75b664129ecdbe29324b3fde83ddc7291fe3d6073ebb2db508632f370f54affae7c7ebbc143a5c07ac8f7734eb2f537d3662e4bc05d80eed942a94d5084683dac388cfcd601c9cd59330ff021cf18fa618b25e8a5351f2036f65007a8b4162058f2242d953379d349d9a484c800e8ae539f3e3cd4c6dc9c7b455a7a70281806d790a2d61f2a483cc831473a9b077a72cbd0c493bc8bc12099a7e3c5453b963ee961c561fe19f5e67f224a6ab163e29f65c67f5f8e0893717f2e66b8084f9d91076734e246d991aee77a6fdfd97dba4dd9726979111442997dd5e9f8261b626a1dd58192e379facfafd1c397ad4db17148e8c0626e1ef557c7a160fef4a11fd028180555c679e3ab0c8678ded4d034bbd93389d77b2cde17f16cdca466c24f227901820da2f855054f20e30b6cd4bc2423a88b07072c3b2c16b55049cd0b6be985bbac4e62140f68bb172be67f7ceb9134f40e0cda559228920a5ad45f2d61746f461ab80a79c0eb15616c18f34d6f8b7606db231b167500786893d58fc2c25c7c5e302818100ad587bed92aef2dedb19766c72e5caeadf1f7226d2c3ed0c6ffd1e885b665f55df63d54f91d2fb3f2c4e608bc16bc70eec6300ec5fe61cd31dd48c19544058d1fbb3e39e09117b6e8ab0cc832c481b1c364fbce5b07bf681a0af8e554bef3017dfd53197b87bcebf080fbaef42df5f51c900148499fa7be9e05640dc79d04ad8"
 	b1, _ := hex.DecodeString(privkey1)
