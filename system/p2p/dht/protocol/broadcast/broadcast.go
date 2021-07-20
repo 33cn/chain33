@@ -263,18 +263,11 @@ func (p *broadcastProtocol) postBlockChainV1(blockHash, pid string, block *types
 
 func (p *broadcastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {
 
-	// 非同步状态
-	if !p.getSyncStatus() && atomic.LoadInt64(&p.currHeight) <= block.GetHeight()-32 {
-		return nil
-	}
 	return p.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
 }
 
 func (p *broadcastProtocol) postMempool(txHash string, tx *types.Transaction) error {
 
-	if !p.getSyncStatus() {
-		return nil
-	}
 	return p.P2PManager.PubBroadCast(txHash, tx, types.EventTx)
 }
 

@@ -42,21 +42,21 @@ all: ## Builds for multiple platforms
 	@mv chain33* build/
 
 build: ## Build the binary file
-	@go build $(BUILD_FLAGS) -v -i -o  $(APP) $(SRC)
+	@go build $(BUILD_FLAGS) -v -o  $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/bityuan.toml build/
 
 release: ## Build the binary file
-	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC)
+	@go build -v -o $(APP) $(LDFLAGS) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/bityuan.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
 
 cli: ## Build cli binary
-	@go build -v -i -o $(CLI) $(SRC_CLI)
+	@go build -v -o $(CLI) $(SRC_CLI)
 
 execblock: ## Build cli binary
-	@go build -v -i -o build/execblock github.com/33cn/chain33/cmd/execblock
+	@go build -v -o build/execblock github.com/33cn/chain33/cmd/execblock
 
 
 para:
@@ -64,7 +64,7 @@ para:
 
 
 autotest:## build autotest binary
-	@go build -v -i -o $(AUTOTEST) $(SRC_AUTOTEST)
+	@go build -v -o $(AUTOTEST) $(SRC_AUTOTEST)
 	@if [ -n "$(dapp)" ]; then \
 		cd build/autotest && ./run.sh local $(dapp) && cd ../../; fi
 autotest_ci: autotest ## autotest jerkins ci
@@ -81,7 +81,7 @@ miner:
 	@cp cmd/miner_accounts/miner_accounts.toml build/
 
 build_ci: depends ## Build the binary file for CI
-	@go build -v -i -o $(CLI) $(SRC_CLI)
+	@go build -v -o $(CLI) $(SRC_CLI)
 	@go build  $(BUILD_FLAGS) -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
