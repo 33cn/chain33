@@ -55,7 +55,7 @@ func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
 }
 
 func (p *Protocol) deleteChunkBlock(msg *types.ChunkInfoMsg) error {
-	if exist:= p.deleteLocalChunkInfo(msg.ChunkHash); !exist {
+	if exist := p.deleteLocalChunkInfo(msg.ChunkHash); !exist {
 		return nil
 	}
 	batch := p.DB.NewBatch(true)
@@ -126,20 +126,20 @@ func (p *Protocol) initLocalChunkInfoMap() {
 		panic("invalid record")
 	}
 	chunkLen := records.Infos[0].End - records.Infos[0].Start + 1
-	for i := int64(0);;i++ {
+	for i := int64(0); ; i++ {
 		records, err := p.getChunkRecordFromBlockchain(&types.ReqChunkRecords{Start: i, End: i})
 		if err != nil {
 			break
 		}
 		info := records.Infos[0]
-		key := genChunkDBKey(i*chunkLen)
+		key := genChunkDBKey(i * chunkLen)
 		if _, err := p.DB.Get(key); err == nil {
 			p.localChunkInfoMutex.Lock()
 			p.localChunkInfo[hex.EncodeToString(info.ChunkHash)] = LocalChunkInfo{
 				ChunkInfoMsg: &types.ChunkInfoMsg{
 					ChunkHash: info.ChunkHash,
-					Start: info.Start,
-					End: info.End,
+					Start:     info.Start,
+					End:       info.End,
 				},
 				Time: start,
 			}

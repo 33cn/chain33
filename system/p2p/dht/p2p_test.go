@@ -325,7 +325,7 @@ func testStreamEOFReSet(t *testing.T) {
 		err = h1.Connect(context.Background(), h2info)
 		if err != nil {
 			retrycount++
-			time.Sleep(time.Second/2)
+			time.Sleep(time.Second / 2)
 			continue
 		}
 		break

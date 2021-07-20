@@ -178,7 +178,7 @@ func (p *Protocol) updateRoutine() {
 func (p *Protocol) processLocalChunkOldVersion() {
 	for {
 		select {
-		case <- p.Ctx.Done():
+		case <-p.Ctx.Done():
 			return
 		case info := <-p.chunkToSync:
 			if err := p.storeChunk(info); err == nil {

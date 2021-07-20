@@ -121,7 +121,7 @@ func TestInit(t *testing.T) {
 	// 删除数据后应该找不到数据
 	err = p2.deleteChunkBlock(&types.ChunkInfoMsg{
 		ChunkHash: []byte("test0"),
-		Start:	   0,
+		Start:     0,
 		End:       999,
 	})
 	if err != nil {
