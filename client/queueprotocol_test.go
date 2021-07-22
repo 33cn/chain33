@@ -1292,3 +1292,37 @@ func TestQueueProtocol_GetCryptoList(t *testing.T) {
 		require.Equal(t, crypto.GetName(id), driver.Name)
 	}
 }
+
+func TestQueueProtocol_SendDelayTx(t *testing.T) {
+	q := queue.New("delaytx")
+	defer q.Close()
+	api, err := client.New(q.Client(), nil)
+	require.Nil(t, err)
+	_, err = api.SendDelayTx(&types.DelayTx{})
+	require.Equal(t, types.ErrNilTransaction, err)
+	replyChan := make(chan interface{}, 1)
+	go func() {
+		cli := q.Client()
+		cli.Sub("mempool")
+		for msg := range cli.Recv() {
+			if msg.Ty == types.EventAddDelayTx {
+				replyMsg := cli.NewMessage("rpc", types.EventReply, nil)
+				replyMsg.Data = <-replyChan
+				msg.Reply(replyMsg)
+			}
+		}
+	}()
+
+	replyChan <- &types.ReqNil{}
+	_, err = api.SendDelayTx(&types.DelayTx{Tx: &types.Transaction{}})
+	require.Equal(t, types.ErrTypeAsset, err)
+	errMsg := "errMsg"
+	replyChan <- &types.Reply{Msg: []byte(errMsg)}
+	testDelayTx := &types.DelayTx{Tx: &types.Transaction{Payload: []byte("delaytx")}}
+	_, err = api.SendDelayTx(testDelayTx)
+	require.Equal(t, errMsg, err.Error())
+	replyChan <- &types.Reply{IsOk: true}
+	reply, err := api.SendDelayTx(testDelayTx)
+	require.Nil(t, err)
+	require.Equal(t, testDelayTx.GetTx().Hash(), reply.GetMsg())
+}

@@ -31,5 +31,11 @@ func (n *None) Exec_CommitDelayTx(commit *nty.CommitDelayTx, tx *types.Transacti
 	receipt.Logs = append(receipt.Logs,
 		&types.ReceiptLog{Ty: nty.TyCommitDelayTxLog, Log: types.Encode(delayInfo)})
 
+	// send delay tx to mempool
+	_, err := n.GetAPI().SendDelayTx(&types.DelayTx{Tx: commit.GetDelayTx(), EndDelayTime: delayInfo.EndDelayTime})
+	if err != nil {
+		eLog.Error("Exec_CommitDelayTx", "txHash", common.ToHex(tx.Hash()), "send delay tx err", err)
+		return nil, err
+	}
 	return receipt, nil
 }

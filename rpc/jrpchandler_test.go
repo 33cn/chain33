@@ -9,6 +9,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"encoding/hex"
 
 	"github.com/33cn/chain33/account"
@@ -1794,4 +1796,23 @@ func TestChain33_GetCryptoList(t *testing.T) {
 	api.On("GetCryptoList").Return(nil)
 	err := client.GetCryptoList(&types.ReqNil{}, &result)
 	assert.Nil(t, err)
+}
+
+func TestChain33_SendDelayTransaction(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	var result interface{}
+	testData := []byte("testTxHash")
+	api.On("SendDelayTx", mock.Anything).Return(&types.Reply{Msg: testData}, nil)
+	err := client.SendDelayTransaction(&types.ReqString{Data: "1234"}, &result)
+	require.NotNil(t, err)
+	err = client.SendDelayTransaction(
+		&types.ReqString{Data: common.ToHex(testData)}, &result)
+	require.NotNil(t, err)
+	err = client.SendDelayTransaction(
+		&types.ReqString{Data: common.ToHex(types.Encode(&types.DelayTx{}))}, &result)
+	require.Nil(t, err)
+	require.Equal(t, common.ToHex(testData), result.(string))
 }

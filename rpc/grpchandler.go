@@ -553,3 +553,8 @@ func (g *Grpc) GetServerTime(ctx context.Context, in *pb.ReqNil) (*pb.ServerTime
 func (g *Grpc) GetCryptoList(ctx context.Context, in *pb.ReqNil) (*pb.CryptoList, error) {
 	return g.cli.GetCryptoList(), nil
 }
+
+// SendDelayTransaction send delay tx
+func (g *Grpc) SendDelayTransaction(ctx context.Context, in *pb.DelayTx) (*pb.Reply, error) {
+	return g.cli.SendDelayTx(in)
+}

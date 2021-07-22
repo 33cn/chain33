@@ -6,6 +6,7 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -1056,4 +1057,28 @@ func (q *QueueProtocol) GetCryptoList() *types.CryptoList {
 		list.Cryptos[i] = &types.Crypto{Name: name, TypeID: ids[i]}
 	}
 	return list
+}
+
+// SendTx send delay transaction to mempool
+func (q *QueueProtocol) SendDelayTx(param *types.DelayTx) (*types.Reply, error) {
+	if param.GetTx() == nil {
+		err := types.ErrNilTransaction
+		log.Error("SendDelayTx", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(mempoolKey, types.EventAddDelayTx, param)
+	if err != nil {
+		log.Error("SendDelayTx", "Error", err.Error())
+		return nil, err
+	}
+	reply, ok := msg.GetData().(*types.Reply)
+	if !ok {
+		return nil, types.ErrTypeAsset
+	}
+
+	if !reply.GetIsOk() {
+		return nil, errors.New(string(reply.GetMsg()))
+	}
+	reply.Msg = param.GetTx().Hash()
+	return reply, err
 }
