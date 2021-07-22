@@ -1528,3 +1528,31 @@ func (c *Chain33) GetCryptoList(in *types.ReqNil, result *interface{}) error {
 	*result = c.cli.GetCryptoList()
 	return nil
 }
+
+// SendDelayTransaction send delay tx
+func (c *Chain33) SendDelayTransaction(in *types.ReqString, result *interface{}) error {
+
+	delayTx := &types.DelayTx{}
+	data, err := common.FromHex(in.Data)
+	if err != nil {
+		return err
+	}
+	err = types.Decode(data, delayTx)
+	if err != nil {
+		return err
+	}
+
+	var reply *types.Reply
+	//para chain, forward to main chain
+	cfg := c.cli.GetConfig()
+	if cfg.IsPara() {
+		reply, err = c.mainGrpcCli.SendDelayTransaction(context.Background(), delayTx)
+	} else {
+		reply, err = c.cli.SendDelayTx(delayTx)
+	}
+
+	if err == nil {
+		*result = common.ToHex(reply.GetMsg())
+	}
+	return err
+}

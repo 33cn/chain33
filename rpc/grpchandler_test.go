@@ -741,3 +741,9 @@ func TestGrpc_GetCryptoList(t *testing.T) {
 	_, err := g.GetCryptoList(getOkCtx(), nil)
 	assert.NoError(t, err)
 }
+
+func TestGrpc_SendDelayTransaction(t *testing.T) {
+	qapi.On("SendDelayTx").Return(nil, nil)
+	_, err := g.SendDelayTransaction(getOkCtx(), nil)
+	assert.NoError(t, err)
+}
