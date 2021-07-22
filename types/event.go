@@ -185,6 +185,9 @@ const (
 	EventCheckTxsExist = 357
 	//delete para blocks
 	EventDeleteParaBlocks = 358
+
+	//添加延时交易
+	EventAddDelayTx = 359
 )
 
 var eventName = map[int]string{

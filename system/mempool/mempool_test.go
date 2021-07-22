@@ -9,7 +9,9 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/util"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/golang/protobuf/proto"
 
@@ -34,8 +36,8 @@ import (
 //----------------------------- data for testing ---------------------------------
 var (
 	c, _       = crypto.New(types.GetSignName("", types.SECP256K1))
-	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-	a, _       = common.FromHex(hex)
+	hexPirv    = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+	a, _       = common.FromHex(hexPirv)
 	privKey, _ = c.PrivKeyFromBytes(a)
 	random     *rand.Rand
 	mainPriv   crypto.PrivKey
@@ -1337,4 +1339,33 @@ func TestCheckTxsExist(t *testing.T) {
 	replyData = reply.GetData().(*types.ReplyCheckTxsExist)
 	require.Equal(t, 0, len(replyData.ExistFlags))
 	require.Equal(t, 0, int(replyData.ExistCount))
+}
+
+func Test_pushDelayTxRoutine(t *testing.T) {
+
+	_, mem := initEnv(1)
+	mockAPI := &mocks.QueueProtocolAPI{}
+	mem.setAPI(mockAPI)
+	txChan := make(chan *types.Transaction, 0)
+
+	runFn := func(args mock.Arguments) {
+		tx := args.Get(0).(*types.Transaction)
+		txChan <- tx
+	}
+	mockAPI.On("SendTx", mock.Anything).Run(runFn).Return(nil, types.ErrMemFull).Once()
+	mem.delayTxListChan <- []*types.Transaction{tx1}
+	// push to mempool
+	tx := <-txChan
+	require.Equal(t, tx1.Hash(), tx.Hash())
+	mockAPI.On("SendTx", mock.Anything).Run(runFn).Return(nil, nil)
+	// retry push
+	tx = <-txChan
+	require.Equal(t, tx1.Hash(), tx.Hash())
+	mem.delayTxListChan <- []*types.Transaction{tx2}
+	tx = <-txChan
+	require.Equal(t, tx2.Hash(), tx.Hash())
+	close(mem.done)
+	mem.delayTxListChan <- nil
+	txs := <-mem.delayTxListChan
+	require.Equal(t, 0, len(txs))
 }

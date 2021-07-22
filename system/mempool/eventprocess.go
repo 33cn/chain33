@@ -97,6 +97,9 @@ func (mem *Mempool) eventProcess() {
 			mem.eventTxListByHash(msg)
 		case types.EventCheckTxsExist:
 			mem.eventCheckTxsExist(msg)
+		case types.EventAddDelayTx:
+			mem.eventAddDelayTx(msg)
+
 		default:
 		}
 		mlog.Debug("mempool", "cost", types.Since(beg), "msg", msgName)
@@ -156,6 +159,7 @@ func (mem *Mempool) eventTxList(msg *queue.Message) {
 func (mem *Mempool) eventAddBlock(msg *queue.Message) {
 	block := msg.GetData().(*types.BlockDetail).Block
 	height := mem.Height()
+	lastHeader := mem.GetHeader()
 	if block.Height > height || (block.Height == 0 && height == 0) {
 		header := &types.Header{}
 		header.BlockTime = block.BlockTime
@@ -168,6 +172,9 @@ func (mem *Mempool) eventAddBlock(msg *queue.Message) {
 		mem.RemoveTxsOfBlock(block)
 		mem.removeExpired()
 	}
+	delayTxList := mem.cache.delayCache.delExpiredTxs(
+		lastHeader.GetBlockTime(), block.GetBlockTime(), block.GetHeight())
+	mem.delayTxListChan <- delayTxList
 }
 
 // EventGetMempoolSize 获取mempool大小
@@ -249,4 +256,20 @@ func (mem *Mempool) eventCheckTxsExist(msg *queue.Message) {
 		}
 	}
 	msg.Reply(mem.client.NewMessage("", types.EventReply, reply))
+}
+
+// 添加延时交易
+func (mem *Mempool) eventAddDelayTx(msg *queue.Message) {
+
+	err := types.ErrInvalidParam
+	if delayTx, ok := msg.GetData().(*types.DelayTx); ok {
+		err = mem.cache.delayCache.addDelayTx(delayTx)
+	}
+	replyMsg := mem.client.NewMessage("rpc", types.EventReply, nil)
+	if err != nil {
+		replyMsg.Data = &types.Reply{Msg: []byte(err.Error())}
+	} else {
+		replyMsg.Data = &types.Reply{IsOk: true}
+	}
+	msg.Reply(replyMsg)
 }
