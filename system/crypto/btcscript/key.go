@@ -11,15 +11,14 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/gogo/protobuf/proto"
 )
 
 type btcSignOption struct {
 	prevSigScript []byte
 	lockScript    []byte
-	keys          map[string]*BtcAddr2Key
-	scripts       map[string]*BtcAddr2Script
+	keys          []*BtcAddr2Key
+	scripts       []*BtcAddr2Script
 	btcParams     *chaincfg.Params
 }
 
@@ -40,10 +39,10 @@ func (priv privKeyBtcScript) Sign(msg []byte, opts ...interface{}) crypto.Signat
 
 	option := initBtcSignOption(priv.key[:])
 	applySignOption(option, opts...)
-
-	unlockScript, err := GetBtcUnlockScript(msg, option.lockScript,
-		option.prevSigScript, txscript.SigHashAll, Chain33BtcParams,
-		mkGetKey(option.keys), mkGetScript(option.scripts))
+	btcTx := getBindBtcTx(msg)
+	unlockScript, err := GetBtcUnlockScript(btcTx, option.lockScript,
+		option.prevSigScript, Chain33BtcParams,
+		mkGetKey(option.keys...), mkGetScript(option.scripts...))
 
 	if err != nil {
 		panic("GetBtcUnlockScript err:" + err.Error())

@@ -12,8 +12,8 @@ import (
 	"github.com/33cn/chain33/common"
 
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/log"
 	secp256k1 "github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -22,6 +22,8 @@ const (
 	Name = "btcscript"
 	ID   = 11
 )
+
+var btcLog = log.New("module", "btcscript")
 
 func init() {
 	// 默认启用高度-1， 不开启
@@ -77,8 +79,7 @@ func (d Driver) Validate(msg, pk, sig []byte) error {
 		return errors.New("invalid lock Script")
 	}
 
-	if err := CheckBtcScript(msg, ssig.LockScript, ssig.UnlockScript,
-		txscript.StandardVerifyFlags); err != nil {
+	if err := CheckBtcScript(msg, ssig); err != nil {
 		return errors.New("invalid unlock Script, err:" + err.Error())
 	}
 	return nil

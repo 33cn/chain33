@@ -84,12 +84,11 @@ func getBtcAddr(scriptTy int32, pkScript []byte, params *chaincfg.Params) (btcut
 }
 
 // GetBtcUnlockScript 生成比特币解锁脚本
-func GetBtcUnlockScript(msg, pkScript, prevScript []byte, hashType txscript.SigHashType,
+func GetBtcUnlockScript(btcTx *wire.MsgTx, pkScript, prevScript []byte,
 	params *chaincfg.Params, kdb txscript.KeyDB, sdb txscript.ScriptDB) ([]byte, error) {
 
-	tx := getBindBtcTx(msg)
-	sigScript, err := txscript.SignTxOutput(params, tx, 0,
-		pkScript, hashType, kdb, sdb, prevScript)
+	sigScript, err := txscript.SignTxOutput(params, btcTx, 0,
+		pkScript, txscript.SigHashAll, kdb, sdb, prevScript)
 	if err != nil {
 		return nil, errors.New("sign btc tx output err:" + err.Error())
 	}
@@ -97,11 +96,11 @@ func GetBtcUnlockScript(msg, pkScript, prevScript []byte, hashType txscript.SigH
 }
 
 // CheckBtcScript check btc Script signature
-func CheckBtcScript(msg, lockScript, unlockScript []byte, flags txscript.ScriptFlags) error {
+func CheckBtcScript(msg []byte, sig *Signature) error {
 
 	tx := getBindBtcTx(msg)
-	tx.TxIn[0].SignatureScript = unlockScript
-	vm, err := txscript.NewEngine(lockScript, tx, 0, flags, nil, nil, 0)
+	setBtcTx(tx, sig.LockTime, sig.UtxoSequence, sig.UnlockScript)
+	vm, err := txscript.NewEngine(sig.LockScript, tx, 0, txscript.StandardVerifyFlags, nil, nil, 0)
 	if err != nil {
 		return errors.New("new Script engine err:" + err.Error())
 	}
@@ -122,35 +121,58 @@ func getBindBtcTx(msg []byte) *wire.MsgTx {
 	return tx
 }
 
-func mkGetKey(keys map[string]*BtcAddr2Key) txscript.KeyDB {
-	if keys == nil {
+// set btc tx
+func setBtcTx(tx *wire.MsgTx, lockTime, utxoSequence int64, sigScript []byte) {
+
+	if lockTime > 0 {
+		tx.LockTime = uint32(lockTime)
+	}
+	if utxoSequence > 0 {
+		tx.TxIn[0].Sequence = uint32(utxoSequence)
+	}
+	if len(sigScript) > 0 {
+		tx.TxIn[0].SignatureScript = sigScript
+	}
+}
+
+func mkGetKey(keyAddr ...*BtcAddr2Key) txscript.KeyDB {
+	if len(keyAddr) <= 0 {
 		return txscript.KeyClosure(func(addr btcutil.Address) (*btcec.PrivateKey,
 			bool, error) {
 			return nil, false, errors.New("mkGetKey:privKey not exist")
 		})
 	}
+	keys := make(map[string]*btcec.PrivateKey, len(keyAddr))
+	for _, key := range keyAddr {
+		keys[key.Addr] = key.Key
+	}
 	return txscript.KeyClosure(func(addr btcutil.Address) (*btcec.PrivateKey,
 		bool, error) {
-		a2k, ok := keys[addr.EncodeAddress()]
+		key, ok := keys[addr.EncodeAddress()]
 		if !ok {
 			return nil, false, errors.New("mkGetKey:privKey not exist")
 		}
-		return a2k.Key, true, nil
+		return key, true, nil
 	})
 }
 
-func mkGetScript(scripts map[string]*BtcAddr2Script) txscript.ScriptDB {
-	if scripts == nil {
+func mkGetScript(scriptArr ...*BtcAddr2Script) txscript.ScriptDB {
+
+	if len(scriptArr) <= 0 {
 		return txscript.ScriptClosure(func(addr btcutil.Address) ([]byte, error) {
 			return nil, errors.New("mkGetScript:Script not exist")
 		})
 	}
+	scripts := make(map[string][]byte, len(scriptArr))
+	for _, script := range scriptArr {
+		scripts[script.Addr] = script.Script
+	}
 	return txscript.ScriptClosure(func(addr btcutil.Address) ([]byte, error) {
-		a2s, ok := scripts[addr.EncodeAddress()]
+		script, ok := scripts[addr.EncodeAddress()]
 		if !ok {
 			return nil, errors.New("mkGetScript:Script not exist")
 		}
-		return a2s.Script, nil
+		return script, nil
 	})
 }
 
@@ -165,7 +187,7 @@ func WithBtcLockScript(lockScript []byte) SetSignOpt {
 func WithBtcPrivateKeys(keys ...*BtcAddr2Key) SetSignOpt {
 	return func(opt *btcSignOption) {
 		for _, key := range keys {
-			opt.keys[key.Addr] = key
+			opt.keys = append(opt.keys, key)
 		}
 	}
 }
@@ -174,7 +196,7 @@ func WithBtcPrivateKeys(keys ...*BtcAddr2Key) SetSignOpt {
 func WithBtcScripts(scripts ...*BtcAddr2Script) SetSignOpt {
 	return func(opt *btcSignOption) {
 		for _, script := range scripts {
-			opt.scripts[script.Addr] = script
+			opt.scripts = append(opt.scripts, script)
 		}
 	}
 }
@@ -201,8 +223,6 @@ func applySignOption(option *btcSignOption, opts ...interface{}) {
 func initBtcSignOption(privateKey []byte) *btcSignOption {
 
 	option := &btcSignOption{
-		keys:      make(map[string]*BtcAddr2Key),
-		scripts:   make(map[string]*BtcAddr2Script),
 		btcParams: Chain33BtcParams,
 	}
 
@@ -214,6 +234,6 @@ func initBtcSignOption(privateKey []byte) *btcSignOption {
 
 	option.lockScript = lockScript
 	ecAddr := addr.EncodeAddress()
-	option.keys[ecAddr] = &BtcAddr2Key{Addr: ecAddr, Key: priv}
+	option.keys = append(option.keys, &BtcAddr2Key{Addr: ecAddr, Key: priv})
 	return option
 }
