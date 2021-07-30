@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -72,7 +73,10 @@ type P2P struct {
 
 func setLibp2pLog(logFile, logLevel string) {
 
-	// set libp2p log
+	if _, err := os.Stat(logFile); os.IsNotExist(err) {
+		return
+	}
+
 	if logLevel == "" {
 		logLevel = "ERROR"
 	}
