@@ -1639,7 +1639,7 @@ func Test_fmtTxDetail(t *testing.T) {
 	detail.Tx.Payload, err = common.FromHex("0x180322301080c2d72f2205636f696e732a22314761485970576d71414a7371527772706f4e6342385676674b7453776a63487174")
 	assert.NoError(t, err)
 	tx.To = "to"
-	tran, err := fmtTxDetail(detail, false, "coins")
+	tran, err := fmtTxDetail(detail, false, "coins", types.DefaultCoinPrecision)
 	assert.NoError(t, err)
 	assert.Equal(t, "to", tran.Fromaddr)
 	assert.Equal(t, "from", tx.To)
@@ -1751,7 +1751,7 @@ func TestChain33_convertParaTxDetails(t *testing.T) {
 	assert.Nil(t, err)
 	detail.Header = &types.Header{Height: 555, BlockTime: 39169, TxHash: hashBs}
 	var rmsg rpctypes.ParaTxDetails
-	convertParaTxDetails(&details, &rmsg)
+	convertParaTxDetails(&details, &rmsg, types.DefaultCoinPrecision)
 	assert.Equal(t, 555, int(rmsg.Items[0].Header.Height))
 	assert.Equal(t, 39169, int(rmsg.Items[0].Header.BlockTime))
 	assert.Equal(t, txhash, rmsg.Items[0].Header.TxHash)

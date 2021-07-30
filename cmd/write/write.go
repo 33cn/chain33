@@ -176,7 +176,7 @@ func scanWrite(cfg *types.Chain33Config) {
 				continue
 			}
 			amount := transactionDetail.Amount
-			if amount < types.Coin {
+			if amount < cfg.GetCoinPrecision() {
 				fmt.Fprintln(os.Stderr, "not enough fee")
 				continue
 			}

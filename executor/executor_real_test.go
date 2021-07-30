@@ -63,14 +63,14 @@ func TestTxGroup(t *testing.T) {
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
 	acc := mock33.GetAccount(block.StateHash, mcfg.Consensus.Genesis)
-	assert.Equal(t, acc.Balance, 100000000*types.Coin)
+	assert.Equal(t, acc.Balance, 100000000*types.DefaultCoinPrecision)
 	var txs []*types.Transaction
 	addr2, priv2 := util.Genaddress()
 	addr3, priv3 := util.Genaddress()
 	addr4, _ := util.Genaddress()
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.Coin))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.DefaultCoinPrecision))
 	//执行三笔交易: 全部正确
 	feeRate := cfg.GetMinTxFeeRate()
 	txgroup, err := types.CreateTxGroup(txs, feeRate)
@@ -85,13 +85,13 @@ func TestTxGroup(t *testing.T) {
 	assert.Equal(t, mock33.GetAccount(block.StateHash, mock33.GetGenesisAddress()).Balance, int64(9999999899700000))
 	assert.Equal(t, mock33.GetAccount(block.StateHash, addr2).Balance, int64(0))
 	assert.Equal(t, mock33.GetAccount(block.StateHash, addr3).Balance, int64(0))
-	assert.Equal(t, mock33.GetAccount(block.StateHash, addr4).Balance, 1*types.Coin)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, addr4).Balance, 1*types.DefaultCoinPrecision)
 
 	//执行三笔交易：第一比错误
 	txs = nil
-	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, 2*types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.Coin))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, 2*types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.DefaultCoinPrecision))
 
 	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
@@ -104,9 +104,9 @@ func TestTxGroup(t *testing.T) {
 	assert.Nil(t, err)
 	//执行三笔交易：第二比错误
 	txs = nil
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr4, 2*types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.Coin))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr4, 2*types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.DefaultCoinPrecision))
 
 	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
@@ -119,9 +119,9 @@ func TestTxGroup(t *testing.T) {
 	assert.Nil(t, err)
 	//执行三笔交易: 第三比错误
 	txs = nil
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr4, 10*types.Coin))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr4, 10*types.DefaultCoinPrecision))
 
 	txgroup, err = types.CreateTxGroup(txs, feeRate)
 	assert.Nil(t, err)
@@ -134,9 +134,9 @@ func TestTxGroup(t *testing.T) {
 	assert.Nil(t, err)
 	//执行三笔交易：其中有一笔是user.xxx的执行器
 	txs = nil
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr4, 10*types.Coin))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr4, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr4, 10*types.DefaultCoinPrecision))
 	txs[2].Execer = []byte("user.xxx")
 	txs[2].To = address.ExecAddress("user.xxx")
 	txgroup, err = types.CreateTxGroup(txs, feeRate)
@@ -165,7 +165,7 @@ func TestExecAllow(t *testing.T) {
 	tx2 := util.CreateTxWithExecer(cfg, genkey, "coins")          //allow
 	tx3 := util.CreateTxWithExecer(cfg, genkey, "evmxx")          //not allow
 	tx4 := util.CreateTxWithExecer(cfg, genkey, "user.evmxx.xxx") //allow
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.Coin)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	txs := []*types.Transaction{tx1, tx2, tx3, tx4}
 	var err error
 	block, err = util.ExecAndCheckBlockCB(mock33.GetClient(), block, txs, func(index int, receipt *types.ReceiptData) error {
@@ -194,7 +194,7 @@ func TestExecBlock2(t *testing.T) {
 	genaddr := mock33.GetGenesisAddress()
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.Coin)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	txs := util.GenCoinsTxs(cfg, genkey, 2)
 
 	block2 := util.CreateNewBlock(cfg, block, txs)
@@ -402,10 +402,10 @@ func TestExecLocalSameTime1(t *testing.T) {
 	genaddr := mock33.GetGenesisAddress()
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.Coin)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	var txs []*types.Transaction
 	addr1, priv1 := util.Genaddress()
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr1, 1e8))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr1, types.DefaultCoinPrecision))
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	block2 := util.CreateNewBlock(cfg, block, txs)
@@ -432,10 +432,10 @@ func TestExecLocalSameTime0(t *testing.T) {
 	genaddr := mock33.GetGenesisAddress()
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.Coin)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	var txs []*types.Transaction
 	addr1, priv1 := util.Genaddress()
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr1, 1e8))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr1, types.DefaultCoinPrecision))
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	block2 := util.CreateNewBlock(cfg, block, txs)
@@ -463,10 +463,10 @@ func TestExecLocalSameTimeSetErrKey(t *testing.T) {
 	genaddr := mock33.GetGenesisAddress()
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.Coin)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	var txs []*types.Transaction
 	addr1, priv1 := util.Genaddress()
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr1, 1e8))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr1, types.DefaultCoinPrecision))
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	txs = append(txs, util.CreateTxWithExecer(cfg, priv1, "demo2"))
 	block2 := util.CreateNewBlock(cfg, block, txs)

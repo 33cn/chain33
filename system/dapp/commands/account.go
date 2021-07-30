@@ -7,7 +7,6 @@ package commands
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/rpc/jsonclient"
@@ -83,16 +82,22 @@ func listAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.WalletAccounts
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAccounts", nil, &res)
-	ctx.SetResultCb(parseListAccountRes)
-	ctx.Run()
+	ctx.SetResultCbExt(parseListAccountRes)
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	ctx.RunExt(cfg)
 }
 
-func parseListAccountRes(arg interface{}) (interface{}, error) {
-	res := arg.(*rpctypes.WalletAccounts)
+func parseListAccountRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*rpctypes.WalletAccounts)
+	cfg := arg[1].(*types.Chain33Config)
 	var result commandtypes.AccountsResult
 	for _, r := range res.Wallets {
-		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance/types.Int1E4)/types.Float1E4, 'f', 4, 64)
-		frozenResult := strconv.FormatFloat(float64(r.Acc.Frozen/types.Int1E4)/types.Float1E4, 'f', 4, 64)
+		balanceResult := types.GetFormatFloat(r.Acc.Balance, cfg.GetCoinPrecision())
+		frozenResult := types.GetFormatFloat(r.Acc.Frozen, cfg.GetCoinPrecision())
 		accResult := &commandtypes.AccountResult{
 			Currency: r.Acc.Currency,
 			Addr:     r.Acc.Addr,
@@ -152,8 +157,13 @@ func balance(cmd *cobra.Command, args []string) {
 		req := types.ReqAllExecBalance{Addr: addr}
 		var res rpctypes.AllExecBalance
 		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
-		ctx.SetResultCb(parseGetAllBalanceRes)
-		ctx.Run()
+		ctx.SetResultCbExt(parseGetAllBalanceRes)
+		cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		ctx.RunExt(cfg)
 		return
 	}
 
@@ -179,8 +189,13 @@ func balance(cmd *cobra.Command, args []string) {
 		req := types.ReqAllExecBalance{Addr: addr, StateHash: stateHash}
 		var res rpctypes.AllExecBalance
 		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
-		ctx.SetResultCb(parseGetAllBalanceRes)
-		ctx.Run()
+		ctx.SetResultCbExt(parseGetAllBalanceRes)
+		cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		ctx.RunExt(cfg)
 		return
 	}
 
@@ -198,14 +213,20 @@ func balance(cmd *cobra.Command, args []string) {
 	}
 	var res []*rpctypes.Account
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
-	ctx.SetResultCb(parseGetBalanceRes)
-	ctx.Run()
+	ctx.SetResultCbExt(parseGetBalanceRes)
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	ctx.RunExt(cfg)
 }
 
-func parseGetBalanceRes(arg interface{}) (interface{}, error) {
-	res := *arg.(*[]*rpctypes.Account)
-	balanceResult := strconv.FormatFloat(float64(res[0].Balance/types.Int1E4)/types.Float1E4, 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res[0].Frozen/types.Int1E4)/types.Float1E4, 'f', 4, 64)
+func parseGetBalanceRes(arg ...interface{}) (interface{}, error) {
+	res := *arg[0].(*[]*rpctypes.Account)
+	cfg := arg[1].(*types.Chain33Config)
+	balanceResult := types.GetFormatFloat(res[0].Balance, cfg.GetCoinPrecision())
+	frozenResult := types.GetFormatFloat(res[0].Frozen, cfg.GetCoinPrecision())
 	result := &commandtypes.AccountResult{
 		Addr:     res[0].Addr,
 		Currency: res[0].Currency,
@@ -215,13 +236,14 @@ func parseGetBalanceRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-func parseGetAllBalanceRes(arg interface{}) (interface{}, error) {
-	res := *arg.(*rpctypes.AllExecBalance)
+func parseGetAllBalanceRes(arg ...interface{}) (interface{}, error) {
+	res := *arg[0].(*rpctypes.AllExecBalance)
+	cfg := arg[1].(*types.Chain33Config)
 	accs := res.ExecAccount
 	result := commandtypes.AllExecBalance{Addr: res.Addr}
 	for _, acc := range accs {
-		balanceResult := strconv.FormatFloat(float64(acc.Account.Balance/types.Int1E4)/types.Float1E4, 'f', 4, 64)
-		frozenResult := strconv.FormatFloat(float64(acc.Account.Frozen/types.Int1E4)/types.Float1E4, 'f', 4, 64)
+		balanceResult := types.GetFormatFloat(acc.Account.Balance, cfg.GetCoinPrecision())
+		frozenResult := types.GetFormatFloat(acc.Account.Frozen, cfg.GetCoinPrecision())
 		ar := &commandtypes.AccountResult{
 			Currency: acc.Account.Currency,
 			Balance:  balanceResult,
@@ -255,19 +277,26 @@ func importKey(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	key, _ := cmd.Flags().GetString("key")
 	label, _ := cmd.Flags().GetString("label")
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	params := types.ReqWalletImportPrivkey{
 		Privkey: key,
 		Label:   label,
 	}
 	var res types.WalletAccount
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkey", params, &res)
-	ctx.SetResultCb(parseImportKeyRes)
-	ctx.Run()
+	ctx.SetResultCbExt(parseImportKeyRes)
+	ctx.RunExt(cfg)
 }
 
-func parseImportKeyRes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.WalletAccount)
-	accResult := commandtypes.DecodeAccount(res.GetAcc(), types.Coin)
+func parseImportKeyRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*types.WalletAccount)
+	cfg := arg[1].(*types.Chain33Config)
+	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.GetCoinPrecision())
 	result := commandtypes.WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),
@@ -294,18 +323,25 @@ func addCreateAccountFlags(cmd *cobra.Command) {
 func createAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	label, _ := cmd.Flags().GetString("label")
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	params := types.ReqNewAccount{
 		Label: label,
 	}
 	var res types.WalletAccount
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewAccount", params, &res)
-	ctx.SetResultCb(parseCreateAccountRes)
-	ctx.Run()
+	ctx.SetResultCbExt(parseCreateAccountRes)
+	ctx.RunExt(cfg)
 }
 
-func parseCreateAccountRes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.WalletAccount)
-	accResult := commandtypes.DecodeAccount(res.GetAcc(), types.Coin)
+func parseCreateAccountRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*types.WalletAccount)
+	cfg := arg[1].(*types.Chain33Config)
+	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.GetCoinPrecision())
 	result := commandtypes.WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),
@@ -401,32 +437,46 @@ func addSetLabelFlags(cmd *cobra.Command) {
 func getAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	label, _ := cmd.Flags().GetString("label")
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	params := types.ReqGetAccount{
 		Label: label,
 	}
 	var res types.WalletAccount
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAccount", params, &res)
-	ctx.SetResultCb(parseSetLabelRes)
-	ctx.Run()
+	ctx.SetResultCbExt(parseSetLabelRes)
+	ctx.RunExt(cfg)
 }
 
 func setLabel(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
 	label, _ := cmd.Flags().GetString("label")
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	params := types.ReqWalletSetLabel{
 		Addr:  addr,
 		Label: label,
 	}
 	var res types.WalletAccount
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetLabl", params, &res)
-	ctx.SetResultCb(parseSetLabelRes)
-	ctx.Run()
+	ctx.SetResultCbExt(parseSetLabelRes)
+	ctx.RunExt(cfg)
 }
 
-func parseSetLabelRes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.WalletAccount)
-	accResult := commandtypes.DecodeAccount(res.GetAcc(), types.Coin)
+func parseSetLabelRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*types.WalletAccount)
+	cfg := arg[1].(*types.Chain33Config)
+	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.GetCoinPrecision())
 	result := commandtypes.WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),

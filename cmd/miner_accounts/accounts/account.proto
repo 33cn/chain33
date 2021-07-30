@@ -31,9 +31,10 @@ message MinerAccounts {
 }
 
 message Config {
-    repeated string whitelist    = 1;
-    string          jrpcBindAddr = 2;
-    string          dataDir      = 3;
-    repeated string minerAddr    = 4;
-    string          chain33host  = 5;
+    repeated string whitelist     = 1;
+    string          jrpcBindAddr  = 2;
+    string          dataDir       = 3;
+    repeated string minerAddr     = 4;
+    string          chain33host   = 5;
+    int64           coinPrecision = 6; // default 1e8
 }

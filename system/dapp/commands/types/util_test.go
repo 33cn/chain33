@@ -57,7 +57,7 @@ func TestDecodeTransaction(t *testing.T) {
 }
 
 func TestDecodeAccount(t *testing.T) {
-	precision := int64(1e8)
+	precision := int64(types.DefaultCoinPrecision)
 	acc := &types.Account{
 		Currency: 2,
 		Balance:  3 * precision,
@@ -93,17 +93,6 @@ func TestCreateRawTx(t *testing.T) {
 func TestGetExecAddr(t *testing.T) {
 	_, err := GetExecAddr("coins")
 	assert.Nil(t, err)
-}
-
-func TestFormatAmountValue2Display(t *testing.T) {
-	var amount int64 = 1e8
-	s := FormatAmountValue2Display(amount)
-	assert.Equal(t, "1.0000", s)
-}
-
-func TestGetAmountValue(t *testing.T) {
-	n := GetAmountValue(&cobra.Command{}, "")
-	assert.Equal(t, int64(0), n)
 }
 
 func TestGetRealExecName(t *testing.T) {

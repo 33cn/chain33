@@ -46,20 +46,20 @@ func GenerAccDb() (*DB, *DB) {
 func (acc *DB) GenerAccData() {
 	// 加入账户
 	account := &types.Account{
-		Balance: 1000 * 1e8,
+		Balance: 1000 * types.DefaultCoinPrecision,
 		Addr:    addr1,
 	}
 	acc.SaveAccount(account)
 
-	account.Balance = 900 * 1e8
+	account.Balance = 900 * types.DefaultCoinPrecision
 	account.Addr = addr2
 	acc.SaveAccount(account)
 
-	account.Balance = 800 * 1e8
+	account.Balance = 800 * types.DefaultCoinPrecision
 	account.Addr = addr3
 	acc.SaveAccount(account)
 
-	account.Balance = 700 * 1e8
+	account.Balance = 700 * types.DefaultCoinPrecision
 	account.Addr = addr4
 	acc.SaveAccount(account)
 }
@@ -69,10 +69,10 @@ func TestCheckTransfer(t *testing.T) {
 	accCoin.GenerAccData()
 	tokenCoin.GenerAccData()
 
-	err := accCoin.CheckTransfer(addr1, addr2, 10*1e8)
+	err := accCoin.CheckTransfer(addr1, addr2, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 
-	err = tokenCoin.CheckTransfer(addr3, addr4, 10*1e8)
+	err = tokenCoin.CheckTransfer(addr3, addr4, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 }
 
@@ -81,22 +81,22 @@ func TestTransfer(t *testing.T) {
 	accCoin.GenerAccData()
 	tokenCoin.GenerAccData()
 
-	_, err := accCoin.Transfer(addr1, addr2, 10*1e8)
+	_, err := accCoin.Transfer(addr1, addr2, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("Coin from addr balance [%d] to addr balance [%d]",
 		accCoin.LoadAccount(addr1).Balance,
 		accCoin.LoadAccount(addr2).Balance)
-	require.Equal(t, int64(1000*1e8-10*1e8), accCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(900*1e8+10*1e8), accCoin.LoadAccount(addr2).Balance)
+	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, int64(900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadAccount(addr2).Balance)
 
-	_, err = tokenCoin.Transfer(addr3, addr4, 10*1e8)
+	_, err = tokenCoin.Transfer(addr3, addr4, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 
 	t.Logf("token from addr balance [%d] to addr balance [%d]",
 		tokenCoin.LoadAccount(addr3).Balance,
 		tokenCoin.LoadAccount(addr4).Balance)
-	require.Equal(t, int64(800*1e8-10*1e8), tokenCoin.LoadAccount(addr3).Balance)
-	require.Equal(t, int64(700*1e8+10*1e8), tokenCoin.LoadAccount(addr4).Balance)
+	require.Equal(t, int64(800*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr3).Balance)
+	require.Equal(t, int64(700*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr4).Balance)
 }
 
 func TestDepositBalance(t *testing.T) {
@@ -104,15 +104,15 @@ func TestDepositBalance(t *testing.T) {
 	accCoin.GenerAccData()
 	tokenCoin.GenerAccData()
 
-	_, err := accCoin.depositBalance(addr1, 20*1e8)
+	_, err := accCoin.depositBalance(addr1, 20*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("Coin deposit balance [%d]", accCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(1000*1e8+20*1e8), accCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, int64(1000*types.DefaultCoinPrecision+20*types.DefaultCoinPrecision), accCoin.LoadAccount(addr1).Balance)
 
-	_, err = tokenCoin.depositBalance(addr1, 30*1e8)
+	_, err = tokenCoin.depositBalance(addr1, 30*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("token deposit balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(1000*1e8+30*1e8), tokenCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, int64(1000*types.DefaultCoinPrecision+30*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr1).Balance)
 }
 
 func initEnv() queue.Queue {
@@ -154,7 +154,7 @@ func storeProcess(q queue.Queue) {
 
 				values := make([][]byte, 2)
 				account := &types.Account{
-					Balance: 1000 * 1e8,
+					Balance: 1000 * types.DefaultCoinPrecision,
 					Addr:    addr1,
 				}
 				value := types.Encode(account)
@@ -591,18 +591,18 @@ func TestDB_Mint(t *testing.T) {
 	_, tokenCoin := GenerAccDb()
 	tokenCoin.GenerAccData()
 
-	_, err := tokenCoin.Mint(addr1, 10*1e8)
+	_, err := tokenCoin.Mint(addr1, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(1000*1e8+10*1e8), tokenCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, int64(1000*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr1).Balance)
 }
 
 func TestDB_Burn(t *testing.T) {
 	_, tokenCoin := GenerAccDb()
 	tokenCoin.GenerAccData()
 
-	_, err := tokenCoin.Burn(addr1, 10*1e8)
+	_, err := tokenCoin.Burn(addr1, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(1000*1e8-10*1e8), tokenCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr1).Balance)
 }

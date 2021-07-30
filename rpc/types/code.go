@@ -7,7 +7,6 @@ package types
 import (
 	"bytes"
 	"encoding/json"
-	"strconv"
 	"strings"
 
 	"github.com/33cn/chain33/common"
@@ -51,7 +50,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 }
 
 // ConvertWalletTxDetailToJSON conver the wallet tx detail to json
-func ConvertWalletTxDetailToJSON(in *types.WalletTxDetails, out *WalletTxDetails, coinExec string) error {
+func ConvertWalletTxDetailToJSON(in *types.WalletTxDetails, out *WalletTxDetails, coinExec string, coinPrecision int64) error {
 	if in == nil || out == nil {
 		return types.ErrInvalidParam
 	}
@@ -67,7 +66,7 @@ func ConvertWalletTxDetailToJSON(in *types.WalletTxDetails, out *WalletTxDetails
 		if err != nil {
 			continue
 		}
-		tran, err := DecodeTx(tx.GetTx())
+		tran, err := DecodeTx(tx.GetTx(), coinPrecision)
 		if err != nil {
 			continue
 		}
@@ -92,7 +91,7 @@ func ConvertWalletTxDetailToJSON(in *types.WalletTxDetails, out *WalletTxDetails
 }
 
 // DecodeTx docode transaction
-func DecodeTx(tx *types.Transaction) (*Transaction, error) {
+func DecodeTx(tx *types.Transaction, coinPrecision int64) (*Transaction, error) {
 	if tx == nil {
 		return nil, types.ErrEmpty
 	}
@@ -133,7 +132,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Hash:       common.ToHex(tx.Hash()),
 		ChainID:    tx.ChainID,
 	}
-	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
+	feeResult := types.GetFormatFloat(tx.Fee, coinPrecision)
 	result.FeeFmt = feeResult
 	return result, nil
 }

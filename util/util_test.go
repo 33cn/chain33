@@ -283,7 +283,7 @@ func TestExecBlock(t *testing.T) {
 	client.On("GetConfig", mock.Anything).Return(cfg)
 	var txs []*types.Transaction
 	addr, priv := Genaddress()
-	tx := CreateCoinsTx(cfg, priv, addr, types.Coin)
+	tx := CreateCoinsTx(cfg, priv, addr, types.DefaultCoinPrecision)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 	//EventExecTxList returned 2 txs' receipt
@@ -299,7 +299,7 @@ func TestExecBlockUpgrade(t *testing.T) {
 	client.On("GetConfig", mock.Anything).Return(cfg)
 	var txs []*types.Transaction
 	addr, priv := Genaddress()
-	tx := CreateCoinsTx(cfg, priv, addr, types.Coin)
+	tx := CreateCoinsTx(cfg, priv, addr, types.DefaultCoinPrecision)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 	err := ExecBlockUpgrade(client, nil, &types.Block{Txs: txs}, false)
@@ -312,9 +312,9 @@ func TestExecAndCheckBlock(t *testing.T) {
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)
 	client.On("GetConfig", mock.Anything).Return(cfg)
 	addr, priv := Genaddress()
-	tx := CreateCoinsTx(cfg, priv, addr, types.Coin)
+	tx := CreateCoinsTx(cfg, priv, addr, types.DefaultCoinPrecision)
 	tx.Sign(types.SECP256K1, priv)
-	tx2 := CreateCoinsTx(cfg, priv, addr, 2*types.Coin)
+	tx2 := CreateCoinsTx(cfg, priv, addr, 2*types.DefaultCoinPrecision)
 	tx2.Sign(types.SECP256K1, priv)
 	var txs []*types.Transaction
 	txs = append(txs, tx)
@@ -344,7 +344,7 @@ func TestCheckDupTx(t *testing.T) {
 	client.On("GetConfig", mock.Anything).Return(cfg)
 	var txs []*types.Transaction
 	addr, priv := Genaddress()
-	tx := CreateCoinsTx(cfg, priv, addr, types.Coin)
+	tx := CreateCoinsTx(cfg, priv, addr, types.DefaultCoinPrecision)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 	_, err := CheckDupTx(client, txs, 1)

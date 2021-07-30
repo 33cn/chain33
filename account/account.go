@@ -101,7 +101,7 @@ func (acc *DB) LoadAccount(addr string) *types.Account {
 
 // CheckTransfer 检查交易
 func (acc *DB) CheckTransfer(from, to string, amount int64) error {
-	if !types.CheckAmount(amount) {
+	if !types.CheckAmount(amount, acc.cfg.GetCoinPrecision()) {
 		return types.ErrAmount
 	}
 	accFrom := acc.LoadAccount(from)
@@ -114,7 +114,7 @@ func (acc *DB) CheckTransfer(from, to string, amount int64) error {
 
 // Transfer 执行交易
 func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
-	if !types.CheckAmount(amount) {
+	if !types.CheckAmount(amount, acc.cfg.GetCoinPrecision()) {
 		return nil, types.ErrAmount
 	}
 	accFrom := acc.LoadAccount(from)
@@ -148,7 +148,7 @@ func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 }
 
 func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, error) {
-	if !types.CheckAmount(amount) {
+	if !types.CheckAmount(amount, acc.cfg.GetCoinPrecision()) {
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadAccount(execaddr)
@@ -446,7 +446,7 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 
 // Mint 铸币
 func (acc *DB) Mint(addr string, amount int64) (*types.Receipt, error) {
-	if !types.CheckAmount(amount) {
+	if !types.CheckAmount(amount, acc.cfg.GetCoinPrecision()) {
 		return nil, types.ErrAmount
 	}
 
@@ -484,7 +484,7 @@ func (acc *DB) mintReceipt(kv []*types.KeyValue, receipt proto.Message) *types.R
 
 // Burn 然收
 func (acc *DB) Burn(addr string, amount int64) (*types.Receipt, error) {
-	if !types.CheckAmount(amount) {
+	if !types.CheckAmount(amount, acc.cfg.GetCoinPrecision()) {
 		return nil, types.ErrAmount
 	}
 
