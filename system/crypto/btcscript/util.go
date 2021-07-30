@@ -205,18 +205,14 @@ func WithBtcLockScript(lockScript []byte) SetSignOpt {
 // WithBtcPrivateKeys 指定私钥对应的编码地址，用于比特币签名kdb索引
 func WithBtcPrivateKeys(keys ...*BtcAddr2Key) SetSignOpt {
 	return func(opt *btcSignOption) {
-		for _, key := range keys {
-			opt.keys = append(opt.keys, key)
-		}
+		opt.keys = append(opt.keys, keys...)
 	}
 }
 
 // WithBtcScripts 指定脚本对应的编码地址，用于比特币签名sdb索引
 func WithBtcScripts(scripts ...*BtcAddr2Script) SetSignOpt {
 	return func(opt *btcSignOption) {
-		for _, script := range scripts {
-			opt.scripts = append(opt.scripts, script)
-		}
+		opt.scripts = append(opt.scripts, scripts...)
 	}
 }
 
