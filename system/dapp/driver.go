@@ -228,6 +228,11 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 		return nil, types.ErrActionNotSupport
 	}
 
+	// 除了none合约自定义的交易类型，其他的交易仅做存证，不执行
+	if nonetypes.NoneX == d.GetName() && d.ety.ActionName(tx) == nonetypes.UnknownActionName {
+		return &types.LocalDBSet{}, nil
+	}
+
 	if d.child.CheckReceiptExecOk() {
 		if receipt.GetTy() != types.ExecOk {
 			return &types.LocalDBSet{}, nil
