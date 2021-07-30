@@ -7,6 +7,8 @@ package btcscript
 import (
 	"errors"
 
+	"github.com/golang/protobuf/proto"
+
 	"github.com/33cn/chain33/common"
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -84,11 +86,11 @@ func getBtcAddr(scriptTy int32, pkScript []byte, params *chaincfg.Params) (btcut
 }
 
 // GetBtcUnlockScript 生成比特币解锁脚本
-func GetBtcUnlockScript(btcTx *wire.MsgTx, pkScript, prevScript []byte,
+func GetBtcUnlockScript(btcTx *wire.MsgTx, lockScript, prevScript []byte,
 	params *chaincfg.Params, kdb txscript.KeyDB, sdb txscript.ScriptDB) ([]byte, error) {
 
 	sigScript, err := txscript.SignTxOutput(params, btcTx, 0,
-		pkScript, txscript.SigHashAll, kdb, sdb, prevScript)
+		lockScript, txscript.SigHashAll, kdb, sdb, prevScript)
 	if err != nil {
 		return nil, errors.New("sign btc tx output err:" + err.Error())
 	}
@@ -112,11 +114,28 @@ func CheckBtcScript(msg []byte, sig *Signature) error {
 	return nil
 }
 
+// NewBtcScriptSig new btc script signature
+func NewBtcScriptSig(lockScript, unlockScript []byte, lockTime, utxoSeq int64) ([]byte, error) {
+	sig := &Signature{
+		LockScript:   lockScript,
+		UnlockScript: unlockScript,
+		LockTime:     lockTime,
+		UtxoSequence: utxoSeq,
+	}
+
+	return proto.Marshal(sig)
+}
+
+// Script2PubKey transform script to fixed length public key
+func Script2PubKey(lockScript []byte) []byte {
+	return common.Sha256(lockScript)
+}
+
 // 比特币脚本签名依赖原生交易结构，这里构造一个带一个输入的伪交易
 // HACK: 通过构造临时比特币交易，将第一个输入的chainHash设为签名数据的哈希，完成绑定关系
 func getBindBtcTx(msg []byte) *wire.MsgTx {
 
-	tx := &wire.MsgTx{TxIn: []*wire.TxIn{{}}}
+	tx := &wire.MsgTx{Version: ID, TxIn: []*wire.TxIn{{}}}
 	_ = tx.TxIn[0].PreviousOutPoint.Hash.SetBytes(common.Sha256(msg)[:chainhash.HashSize])
 	return tx
 }

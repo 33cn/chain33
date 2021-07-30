@@ -14,7 +14,7 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/log"
 	secp256k1 "github.com/btcsuite/btcd/btcec"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 //const
@@ -78,6 +78,9 @@ func (d Driver) Validate(msg, pk, sig []byte) error {
 	if !bytes.Equal(pk, common.Sha256(ssig.LockScript)) {
 		return errors.New("invalid lock Script")
 	}
+
+	// scriptLockTime <= lockTime <= blockTime
+	// scriptSequence <= utxoSeq <= block delay time
 
 	if err := CheckBtcScript(msg, ssig); err != nil {
 		return errors.New("invalid unlock Script, err:" + err.Error())
