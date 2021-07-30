@@ -16,8 +16,8 @@ message serverTime {
 }
 
 message crypto { // 数字签名加密算法类型
-    stringname   = 1;
-    int32typeID = 2;
+    string name   = 1;
+    int32  typeID = 2;
 }
 
 message cryptoList {
@@ -25,8 +25,8 @@ message cryptoList {
 }
 
 message delayTx { // 延时交易
-    Transactiontx           = 1;
-    int64endDelayTime = 2;
+    Transaction tx           = 1;
+    int64       endDelayTime = 2;
 }
 
 service chain33 {

@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/33cn/chain33/common"
+
 	"github.com/33cn/chain33/common/crypto"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -1060,15 +1062,27 @@ func (q *QueueProtocol) GetCryptoList() *types.CryptoList {
 }
 
 // SendDelayTx send delay transaction to mempool
-func (q *QueueProtocol) SendDelayTx(param *types.DelayTx) (*types.Reply, error) {
+func (q *QueueProtocol) SendDelayTx(param *types.DelayTx, waitReply bool) (*types.Reply, error) {
 	if param.GetTx() == nil {
 		err := types.ErrNilTransaction
 		log.Error("SendDelayTx", "Error", err)
 		return nil, err
 	}
+	// 不需要阻塞等待
+	if !waitReply {
+		err := q.client.SendTimeout(
+			q.client.NewMessage(mempoolKey, types.EventAddDelayTx, param),
+			true, q.option.SendTimeout)
+		if err != nil {
+			log.Error("SendDelayTx", "txHash", common.ToHex(param.GetTx().Hash()), "send msg err", err.Error())
+			return nil, err
+		}
+		return nil, nil
+	}
+
 	msg, err := q.send(mempoolKey, types.EventAddDelayTx, param)
 	if err != nil {
-		log.Error("SendDelayTx", "Error", err.Error())
+		log.Error("SendDelayTx", "txHash", common.ToHex(param.GetTx().Hash()), "send msg err", err.Error())
 		return nil, err
 	}
 	reply, ok := msg.GetData().(*types.Reply)

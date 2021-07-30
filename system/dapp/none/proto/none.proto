@@ -7,7 +7,7 @@ option go_package = "../types";
 
 message NoneAction {
     oneof value {
-        CommitDelayTx commitDelay = 1;
+        CommitDelayTx commitDelayTx = 1;
     }
     int32 Ty = 2;
 }

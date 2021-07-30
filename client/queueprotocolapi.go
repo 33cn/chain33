@@ -138,5 +138,5 @@ type QueueProtocolAPI interface {
 	GetCryptoList() *types.CryptoList
 
 	// send delay tx
-	SendDelayTx(param *types.DelayTx) (*types.Reply, error)
+	SendDelayTx(param *types.DelayTx, waitReply bool) (*types.Reply, error)
 }

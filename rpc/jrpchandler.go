@@ -1548,7 +1548,7 @@ func (c *Chain33) SendDelayTransaction(in *types.ReqString, result *interface{})
 	if cfg.IsPara() {
 		reply, err = c.mainGrpcCli.SendDelayTransaction(context.Background(), delayTx)
 	} else {
-		reply, err = c.cli.SendDelayTx(delayTx)
+		reply, err = c.cli.SendDelayTx(delayTx, true)
 	}
 
 	if err == nil {
