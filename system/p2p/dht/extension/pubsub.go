@@ -15,6 +15,8 @@ import (
 
 var log = log15.New("module", "pubsub")
 
+var setOnce sync.Once
+
 // TopicMap topic map
 type TopicMap map[string]*topicinfo
 
@@ -76,12 +78,17 @@ func setPubSubParameters(psConf *p2ptypes.PubSubConfig) {
 	if psConf.GossipSubDlo > psConf.GossipSubD || psConf.GossipSubD > psConf.GossipSubDhi {
 		panic("setPubSubParameters, must GossipSubDlo <= GossipSubD <= GossipSubDhi")
 	}
-	pubsub.GossipSubDlo = psConf.GossipSubDlo
-	pubsub.GossipSubD = psConf.GossipSubD
-	pubsub.GossipSubDhi = psConf.GossipSubDhi
-	pubsub.GossipSubHeartbeatInterval = time.Duration(psConf.GossipSubHeartbeatInterval) * time.Millisecond
-	pubsub.GossipSubHistoryGossip = psConf.GossipSubHistoryGossip
-	pubsub.GossipSubHistoryLength = psConf.GossipSubHistoryLength
+
+	// libp2p库内部全局变量暂不支持接口访问，强制只设置一次，主要是避免单元测试datarace，不影响常规执行
+	setOnce.Do(func() {
+
+		pubsub.GossipSubDlo = psConf.GossipSubDlo
+		pubsub.GossipSubD = psConf.GossipSubD
+		pubsub.GossipSubDhi = psConf.GossipSubDhi
+		pubsub.GossipSubHeartbeatInterval = time.Duration(psConf.GossipSubHeartbeatInterval) * time.Millisecond
+		pubsub.GossipSubHistoryGossip = psConf.GossipSubHistoryGossip
+		pubsub.GossipSubHistoryLength = psConf.GossipSubHistoryLength
+	})
 
 }
 
