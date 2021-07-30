@@ -10,7 +10,7 @@ var (
 	//keyPrefixStateDB state db key必须前缀
 	keyPrefixStateDB = "mavl-none-"
 	//keyPrefixLocalDB local db的key必须前缀
-	keyPrefixLocalDB = "LODB-none-"
+	//keyPrefixLocalDB = "LODB-none-"
 )
 
 // delay transaction hash key
