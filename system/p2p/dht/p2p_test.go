@@ -182,12 +182,12 @@ func TestPrivateNetwork(t *testing.T) {
 	var subcfg, subcfg2 p2pty.P2PSubConfig
 	subcfg.Port = 22345
 	subcfg2.Port = 22346
-	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg.Port))
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg.Port))
 	if err != nil {
 		panic(err)
 	}
 
-	maddr2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", subcfg2.Port))
+	maddr2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg2.Port))
 	if err != nil {
 		panic(err)
 	}
