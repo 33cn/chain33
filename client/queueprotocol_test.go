@@ -1298,7 +1298,7 @@ func TestQueueProtocol_SendDelayTx(t *testing.T) {
 	defer q.Close()
 	api, err := client.New(q.Client(), nil)
 	require.Nil(t, err)
-	_, err = api.SendDelayTx(&types.DelayTx{})
+	_, err = api.SendDelayTx(&types.DelayTx{}, true)
 	require.Equal(t, types.ErrNilTransaction, err)
 	replyChan := make(chan interface{}, 1)
 	go func() {
@@ -1314,15 +1314,18 @@ func TestQueueProtocol_SendDelayTx(t *testing.T) {
 	}()
 
 	replyChan <- &types.ReqNil{}
-	_, err = api.SendDelayTx(&types.DelayTx{Tx: &types.Transaction{}})
+	_, err = api.SendDelayTx(&types.DelayTx{Tx: &types.Transaction{}}, true)
 	require.Equal(t, types.ErrTypeAsset, err)
 	errMsg := "errMsg"
 	replyChan <- &types.Reply{Msg: []byte(errMsg)}
 	testDelayTx := &types.DelayTx{Tx: &types.Transaction{Payload: []byte("delaytx")}}
-	_, err = api.SendDelayTx(testDelayTx)
+	_, err = api.SendDelayTx(testDelayTx, true)
 	require.Equal(t, errMsg, err.Error())
 	replyChan <- &types.Reply{IsOk: true}
-	reply, err := api.SendDelayTx(testDelayTx)
+	reply, err := api.SendDelayTx(testDelayTx, true)
 	require.Nil(t, err)
 	require.Equal(t, testDelayTx.GetTx().Hash(), reply.GetMsg())
+	reply, err = api.SendDelayTx(testDelayTx, false)
+	require.Nil(t, err)
+	require.Nil(t, reply)
 }

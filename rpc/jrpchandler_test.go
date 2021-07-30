@@ -1805,7 +1805,7 @@ func TestChain33_SendDelayTransaction(t *testing.T) {
 	client := newTestChain33(api)
 	var result interface{}
 	testData := []byte("testTxHash")
-	api.On("SendDelayTx", mock.Anything).Return(&types.Reply{Msg: testData}, nil)
+	api.On("SendDelayTx", mock.Anything, true).Return(&types.Reply{Msg: testData}, nil)
 	err := client.SendDelayTransaction(&types.ReqString{Data: "1234"}, &result)
 	require.NotNil(t, err)
 	err = client.SendDelayTransaction(
