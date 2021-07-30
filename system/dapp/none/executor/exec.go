@@ -14,7 +14,7 @@ import (
 func (n *None) Exec_CommitDelayTx(commit *nty.CommitDelayTx, tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	receipt := &types.Receipt{Ty: types.ExecOk}
-	delayInfo := &nty.CommitDelayLog{}
+	delayInfo := &nty.CommitDelayTxLog{}
 
 	delayTxHash := commit.GetDelayTx().Hash()
 	if commit.IsBlockHeightDelayTime {

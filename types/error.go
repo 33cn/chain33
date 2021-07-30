@@ -168,6 +168,7 @@ var (
 	ErrNotAllowMemSetKey          = errors.New("ErrNotAllowMemSetKey")
 	ErrNotAllowMemSetLocalKey     = errors.New("ErrNotAllowMemSetLocalKey")
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
+	ErrGetStateDB                 = errors.New("ErrGetStateDB")
 	ErrIndex                      = errors.New("ErrIndex")
 	ErrTxGroupParaCount           = errors.New("ErrTxGroupParaCount")
 	ErrTxGroupParaMainMixed       = errors.New("ErrTxGroupParaMainMixed")
