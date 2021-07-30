@@ -47,9 +47,9 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	addr3, priv3 := util.Genaddress()
 	addr4, _ := util.Genaddress()
 	genkey := util.TestPrivkeyList[0]
-	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.Coin))
-	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.Coin))
+	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr2, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv2, addr3, types.DefaultCoinPrecision))
+	txs = append(txs, util.CreateCoinsTx(cfg, priv3, addr4, types.DefaultCoinPrecision))
 	//执行三笔交易: 全部正确
 	txgroup, err := types.CreateTxGroup(txs, cfg.GetMinTxFeeRate())
 	if err != nil {
@@ -293,10 +293,10 @@ func TestCheckTx(t *testing.T) {
 
 	addr, priv := util.Genaddress()
 
-	tx := util.CreateCoinsTx(cfg, priv, addr, types.Coin)
+	tx := util.CreateCoinsTx(cfg, priv, addr, types.DefaultCoinPrecision)
 	tx.Execer = []byte("user.xxx")
 	tx.To = address.ExecAddress("user.xxx")
-	tx.Fee = 2 * types.Coin
+	tx.Fee = 2 * types.DefaultCoinPrecision
 	tx.Sign(types.SECP256K1, priv)
 
 	var txs []*types.Transaction

@@ -63,7 +63,7 @@ func TestConfigNoInit(t *testing.T) {
 	// tx fee config
 	assert.Equal(t, int64(1e8), cfg.GetMaxTxFee())
 	assert.Equal(t, int64(1e6), cfg.GetMaxTxFeeRate())
-	assert.Equal(t, int64(1e4), cfg.GetMinTxFeeRate())
+	assert.Equal(t, int64(1e5), cfg.GetMinTxFeeRate())
 	cfg.SetTxFeeConfig(1e9, 1e9, 1e9)
 	assert.True(t, int64(1e9) == cfg.GetMinTxFeeRate() && cfg.GetMaxTxFeeRate() == cfg.GetMaxTxFee())
 }

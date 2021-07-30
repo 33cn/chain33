@@ -10,9 +10,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -45,6 +49,20 @@ func (c *Chain33Config) ExecName(name string) string {
 		return c.GetTitle() + name
 	}
 	return name
+}
+
+//GetExecName 根据paraName 获取exec name
+func GetExecName(exec, paraName string) string {
+	if len(exec) > 1 && exec[0] == '#' {
+		return exec[1:]
+	}
+	if IsParaExecName(exec) {
+		return exec
+	}
+	if len(paraName) > 0 {
+		return paraName + exec
+	}
+	return exec
 }
 
 //IsAllowExecName 默认的allow 规则->根据 GetRealExecName 来判断
@@ -253,8 +271,8 @@ func NewErrReceipt(err error) *Receipt {
 }
 
 //CheckAmount  检测转账金额
-func CheckAmount(amount int64) bool {
-	if amount <= 0 || amount >= MaxCoin {
+func CheckAmount(amount, coinPrecision int64) bool {
+	if amount <= 0 || amount >= MaxCoin*coinPrecision {
 		return false
 	}
 	return true
@@ -636,4 +654,68 @@ func (hashes *ReplyHashes) Hash() []byte {
 		panic(err)
 	}
 	return common.Sha256(data)
+}
+
+//GetFormatFloat 对val按精度取浮点字符串
+//strconv.FormatFloat(float64(val/types.Int1E4)/types.Float1E4, 'f', 4, 64) 的方法在val很大的时候会丢失精度
+//比如在9001234567812345678时候，float64 最大精度只能在900123456781234的大小，decimal处理可以完整保持精度
+//另外在coinPrecision支持可配时候，对不同精度统一处理,而不是限定在1e4
+func GetFormatFloat(val, coinPrecision int64) string {
+	n := int64(math.Log10(float64(coinPrecision)))
+	diff := int(math.Abs(float64(n - ShowPrecision)))
+
+	d := decimal.NewFromInt(val)
+	r := d.Div(decimal.NewFromFloat(float64(coinPrecision)))
+
+	//n:5~8
+	//n=7,ShowPrecision=4,diff=7-4=3
+	//0.12345678 diff=3 => 0.12345
+	if n > ShowPrecision {
+		return r.String()[:len(r.String())-diff]
+	}
+
+	//n:1~4
+	//n=1,ShowPrecision=4,diff=1-4=3
+	if n > 0 {
+		return r.String() + strings.Repeat("0", diff)
+	}
+
+	//n=0,decimalPrecision=4,diff=0-4=4
+	return r.String() + "." + strings.Repeat("0", diff)
+}
+
+//TransferFloat 对浮点数按精度扩展，小数点后精度只保留4位
+//浮点数算上浮点能表达最大16位长的数字(9512345678.1234xxxx)
+//本函数首先限定整数不能超过1e9,然后小数位部分可以精确6位，但是取小数位4位
+func TransferFloat(val float64, coinPrecision int64) (int64, error) {
+	max := decimal.NewFromInt(MaxCoin)
+	f := decimal.NewFromFloat(val)
+	strVal := f.String()
+
+	if len(strVal) <= 0 {
+		return 0, errors.Wrapf(ErrInvalidParam, "input=%f", val)
+	}
+	//因为float精度原因，限制单次值不大于1e9，小数位精确到后四位
+	if f.GreaterThan(max) {
+		return 0, errors.Wrapf(ErrInvalidParam, "input=%f great than %v", val, MaxCoin)
+	}
+
+	//小数位输入不能超过配置小数位精度
+	coinPrecisionNum := int(math.Log10(float64(coinPrecision)))
+	i := strings.Index(f.String(), ".")
+	if i > 0 && len(strVal)-i-1 > coinPrecisionNum {
+		return 0, errors.Wrapf(ErrInvalidParam, "input decimalpoint num=%d great than config coinPrecision=%d", len(strVal)-i-1, coinPrecisionNum)
+	}
+
+	//如果配置精度超过4位，小数位只精确到后4位
+	if int64(coinPrecisionNum) > ShowPrecision {
+		diff := math.Pow10(coinPrecisionNum - int(ShowPrecision))
+		//截取4位显示精度
+		a := f.Mul(decimal.NewFromFloat(math.Pow10(int(ShowPrecision)))).IntPart()
+		//多余位补0
+		return decimal.NewFromInt(a).Mul(decimal.NewFromFloat(diff)).IntPart(), nil
+	}
+	//如果配置精度小于4位，乘精度
+	return f.Mul(decimal.NewFromInt(coinPrecision)).IntPart(), nil
+
 }

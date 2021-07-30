@@ -17,15 +17,15 @@ import (
 func (acc *DB) GenerExecAccData(execaddr string) {
 	// 加入账户
 	account := &types.Account{
-		Balance: 1000 * 1e8,
-		Frozen:  20 * 1e8,
+		Balance: 1000 * types.DefaultCoinPrecision,
+		Frozen:  20 * types.DefaultCoinPrecision,
 		Addr:    addr1,
 	}
 	acc.SaveExecAccount(execaddr, account)
 	acc.SaveAccount(account)
 
-	account.Balance = 900 * 1e8
-	account.Frozen = 20 * 1e8
+	account.Balance = 900 * types.DefaultCoinPrecision
+	account.Frozen = 20 * types.DefaultCoinPrecision
 	account.Addr = addr2
 	acc.SaveExecAccount(execaddr, account)
 	acc.SaveAccount(account)
@@ -52,13 +52,13 @@ func TestTransferToExec(t *testing.T) {
 
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerAccData()
-	_, err := accCoin.TransferToExec(addr1, addr2, 10*1e8)
+	_, err := accCoin.TransferToExec(addr1, addr2, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("TransferToExec from addr balance [%d] to addr balance [%d]",
 		accCoin.LoadAccount(addr1).Balance,
 		accCoin.LoadAccount(addr2).Balance)
-	require.Equal(t, int64(1000*1e8-10*1e8), accCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(900*1e8+10*1e8), accCoin.LoadAccount(addr2).Balance)
+	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, int64(900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadAccount(addr2).Balance)
 }
 
 func TestTransferWithdraw(t *testing.T) {
@@ -70,7 +70,7 @@ func TestTransferWithdraw(t *testing.T) {
 	execaddr := address.ExecAddress("coins")
 
 	account := &types.Account{
-		Balance: 1000 * 1e8,
+		Balance: 1000 * types.DefaultCoinPrecision,
 		Frozen:  0,
 		Addr:    execaddr,
 	}
@@ -81,7 +81,7 @@ func TestTransferWithdraw(t *testing.T) {
 	account.Addr = addr1
 	accCoin.SaveExecAccount(execaddr, account)
 
-	_, err := accCoin.TransferWithdraw(addr1, execaddr, 10*1e8)
+	_, err := accCoin.TransferWithdraw(addr1, execaddr, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("TransferWithdraw [%d]___[%d]",
 		accCoin.LoadAccount(execaddr).Balance,
@@ -96,15 +96,15 @@ func TestExecFrozen(t *testing.T) {
 	execaddress := address.ExecAddress("coins")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
-	_, err := accCoin.ExecFrozen(addr1, execaddress, 10*1e8)
+	_, err := accCoin.ExecFrozen(addr1, execaddress, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 
 	t.Logf("ExecFrozen [%d]___[%d]",
 		accCoin.LoadExecAccount(addr1, execaddress).Balance,
 		accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 
-	require.Equal(t, int64(1000*1e8-10*1e8), accCoin.LoadExecAccount(addr1, execaddress).Balance)
-	require.Equal(t, int64(20*1e8+10*1e8), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
+	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Balance)
+	require.Equal(t, int64(20*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 }
 
 func TestExecActive(t *testing.T) {
@@ -115,15 +115,15 @@ func TestExecActive(t *testing.T) {
 	execaddress := address.ExecAddress("coins")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
-	_, err := accCoin.ExecActive(addr1, execaddress, 10*1e8)
+	_, err := accCoin.ExecActive(addr1, execaddress, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 
 	t.Logf("ExecActive [%d]___[%d]",
 		accCoin.LoadExecAccount(addr1, execaddress).Balance,
 		accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 
-	require.Equal(t, int64(1000*1e8+10*1e8), accCoin.LoadExecAccount(addr1, execaddress).Balance)
-	require.Equal(t, int64(20*1e8-10*1e8), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
+	require.Equal(t, int64(1000*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Balance)
+	require.Equal(t, int64(20*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 }
 
 func TestExecTransfer(t *testing.T) {
@@ -134,13 +134,13 @@ func TestExecTransfer(t *testing.T) {
 	execaddress := address.ExecAddress("coins")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
-	_, err := accCoin.ExecTransfer(addr1, addr2, execaddress, 10*1e8)
+	_, err := accCoin.ExecTransfer(addr1, addr2, execaddress, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("ExecActive [%d]___[%d]",
 		accCoin.LoadExecAccount(addr1, execaddress).Balance,
 		accCoin.LoadExecAccount(addr2, execaddress).Balance)
-	require.Equal(t, int64(1000*1e8-10*1e8), accCoin.LoadExecAccount(addr1, execaddress).Balance)
-	require.Equal(t, int64(900*1e8+10*1e8), accCoin.LoadExecAccount(addr2, execaddress).Balance)
+	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Balance)
+	require.Equal(t, int64(900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr2, execaddress).Balance)
 }
 
 func TestExecTransferFrozen(t *testing.T) {
@@ -151,13 +151,13 @@ func TestExecTransferFrozen(t *testing.T) {
 	execaddress := address.ExecAddress("coins")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
-	_, err := accCoin.ExecTransferFrozen(addr1, addr2, execaddress, 10*1e8)
+	_, err := accCoin.ExecTransferFrozen(addr1, addr2, execaddress, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("TransferFrozen [%d]___[%d]",
 		accCoin.LoadExecAccount(addr1, execaddress).Frozen,
 		accCoin.LoadExecAccount(addr2, execaddress).Balance)
-	require.Equal(t, int64(20*1e8-10*1e8), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
-	require.Equal(t, int64(900*1e8+10*1e8), accCoin.LoadExecAccount(addr2, execaddress).Balance)
+	require.Equal(t, int64(20*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
+	require.Equal(t, int64(900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr2, execaddress).Balance)
 }
 
 func TestExecDepositFrozen(t *testing.T) {
@@ -168,11 +168,11 @@ func TestExecDepositFrozen(t *testing.T) {
 	execaddress := address.ExecAddress("ticket")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
-	_, err := accCoin.ExecDepositFrozen(addr1, execaddress, 25*1e8)
+	_, err := accCoin.ExecDepositFrozen(addr1, execaddress, 25*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("ExecDepositFrozen [%d]",
 		accCoin.LoadExecAccount(addr1, execaddress).Frozen)
-	require.Equal(t, int64(20*1e8+25*1e8), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
+	require.Equal(t, int64(20*types.DefaultCoinPrecision+25*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 }
 
 func TestExecIssueCoins(t *testing.T) {
@@ -182,16 +182,16 @@ func TestExecIssueCoins(t *testing.T) {
 	storeProcess(q)
 	accCoin, _ := GenerAccDb()
 	execaddress := address.ExecAddress("token")
-	_, err := accCoin.ExecIssueCoins(execaddress, 25*1e8)
+	_, err := accCoin.ExecIssueCoins(execaddress, 25*types.DefaultCoinPrecision)
 	require.Equal(t, types.ErrNotAllowDeposit, err)
 	require.Zero(t, accCoin.LoadAccount(execaddress).Balance)
 	execaddress = address.ExecAddress("user.p.para.ticket")
-	_, err = accCoin.ExecIssueCoins(execaddress, 25*1e8)
+	_, err = accCoin.ExecIssueCoins(execaddress, 25*types.DefaultCoinPrecision)
 	require.Equal(t, types.ErrNotAllowDeposit, err)
 	execaddress = address.ExecAddress("ticket")
-	_, err = accCoin.ExecIssueCoins(execaddress, 25*1e8)
+	_, err = accCoin.ExecIssueCoins(execaddress, 25*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("ExecIssueCoins [%d]",
 		accCoin.LoadAccount(execaddress).Balance)
-	require.Equal(t, int64(25*1e8), accCoin.LoadAccount(execaddress).Balance)
+	require.Equal(t, int64(25*types.DefaultCoinPrecision), accCoin.LoadAccount(execaddress).Balance)
 }

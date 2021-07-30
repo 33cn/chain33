@@ -6,6 +6,9 @@ package account
 
 import (
 	"testing"
+
+	"github.com/33cn/chain33/types"
+
 	//"fmt"
 	"github.com/33cn/chain33/common/address"
 	"github.com/stretchr/testify/require"
@@ -14,7 +17,7 @@ import (
 func TestGenesisInit(t *testing.T) {
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerAccData()
-	_, err := accCoin.GenesisInit(addr1, 100*1e8)
+	_, err := accCoin.GenesisInit(addr1, 100*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	//t.Logf("GenesisInit is %v", recp)
 	t.Logf("GenesisInit [%d]",
@@ -24,12 +27,12 @@ func TestGenesisInit(t *testing.T) {
 func TestGenesisInitExec(t *testing.T) {
 	accCoin, _ := GenerAccDb()
 	execaddr := address.ExecAddress("coins")
-	_, err := accCoin.GenesisInitExec(addr1, 10*1e8, execaddr)
+	_, err := accCoin.GenesisInitExec(addr1, 10*types.DefaultCoinPrecision, execaddr)
 	require.NoError(t, err)
 	//t.Logf("GenesisInitExec Receipt is %v", Receipt)
 	t.Logf("GenesisInitExec [%d]___[%d]",
 		accCoin.LoadExecAccount(addr1, execaddr).Balance,
 		accCoin.LoadAccount(execaddr).Balance)
-	require.Equal(t, int64(10*1e8), accCoin.LoadExecAccount(addr1, execaddr).Balance)
-	require.Equal(t, int64(10*1e8), accCoin.LoadAccount(execaddr).Balance)
+	require.Equal(t, int64(10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddr).Balance)
+	require.Equal(t, int64(10*types.DefaultCoinPrecision), accCoin.LoadAccount(execaddr).Balance)
 }

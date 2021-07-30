@@ -27,6 +27,7 @@ type Config struct {
 	Health           *HealthCheck   `json:"health,omitempty"`
 	CoinExec         string         `json:"coinExec,omitempty"`
 	CoinSymbol       string         `json:"coinSymbol,omitempty"`
+	CoinPrecision    string         `json:"coinPrecision,omitempty"`
 	DisableForkCheck bool           `json:"disableForkCheck,omitempty"`
 	EnableParaFork   bool           `json:"enableParaFork,omitempty"`
 	Metrics          *Metrics       `json:"metrics,omitempty"`

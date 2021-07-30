@@ -670,3 +670,111 @@ func BenchmarkStr2Bytes(b *testing.B) {
 	})
 	assert.Equal(b, []byte(s), buf)
 }
+
+func TestGetFormatFloat(t *testing.T) {
+	r := GetFormatFloat(1, DefaultCoinPrecision)
+	assert.Equal(t, r, "0.0000")
+
+	r = GetFormatFloat(12345678, DefaultCoinPrecision)
+	assert.Equal(t, r, "0.1234")
+
+	r = GetFormatFloat(1234567812345678, DefaultCoinPrecision)
+	assert.Equal(t, r, "12345678.1234")
+
+	r = GetFormatFloat(9001234567812345678, DefaultCoinPrecision)
+	assert.Equal(t, r, "90012345678.1234")
+
+	r = GetFormatFloat(12345678, 1)
+	assert.Equal(t, r, "12345678.0000")
+
+	r = GetFormatFloat(9001234567812345678, 1)
+	assert.Equal(t, r, "9001234567812345678.0000")
+
+	r = GetFormatFloat(1234567812345678, 10)
+	assert.Equal(t, r, "123456781234567.8000")
+
+	r = GetFormatFloat(9001234567812345678, 10)
+	assert.Equal(t, r, "900123456781234567.8000")
+
+}
+
+func TestTransferFloat(t *testing.T) {
+	//f:=decimal.NewFromFloat(9999999999.12347883)
+	//fmt.Println("f=",f.String())
+	//f=decimal.NewFromFloat(9612345678.12347883)
+	//fmt.Println("f=",f.String())
+	//f=decimal.NewFromFloat(9512345678.67896789)
+	//fmt.Println("f=",f.String())
+	//f=decimal.NewFromFloat(112345678.67896789)
+	//fmt.Println("f=",f.String())
+	//f=decimal.NewFromFloat(1000000000.67896789)
+	//fmt.Println("f=",f.String())
+
+	//超过最大maxCoin
+	in := float64(9512345678.12347734)
+	_, err := TransferFloat(in, DefaultCoinPrecision)
+	fmt.Println("err=", err)
+	assert.NotNil(t, err)
+
+	//小数位超过配置精度
+	in = float64(1123456.123456781)
+	_, err = TransferFloat(in, DefaultCoinPrecision)
+	fmt.Println("err=", err)
+	assert.NotNil(t, err)
+
+	//小数位超过配置精度
+	in = float64(112345678.12345)
+	_, err = TransferFloat(in, 1e4)
+	fmt.Println("err=", err)
+	assert.NotNil(t, err)
+
+	//没有小数位，按精度扩展
+	in = float64(112345678)
+	v, err := TransferFloat(in, 1e4)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1123456780000), v)
+
+	//有小数位扩展
+	in = float64(112345678.12)
+	v, err = TransferFloat(in, 1e4)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1123456781200), v)
+
+	//最大小数位扩展
+	in = float64(MaxCoin)
+	v, err = TransferFloat(in, DefaultCoinPrecision)
+	fmt.Println("v=", v)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(MaxCoin*100000000), v)
+
+	in = float64(0)
+	v, err = TransferFloat(in, DefaultCoinPrecision)
+	fmt.Println("v=", v)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), v)
+
+	//测试小数位扩展
+	in = float64(0.1)
+	v, err = TransferFloat(in, 1e4)
+	fmt.Println("v=", v)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1000), v)
+
+	in = float64(99999999.1234567)
+	v, err = TransferFloat(in, DefaultCoinPrecision)
+	fmt.Println("v=", v)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(9999999912340000), v)
+
+	in = float64(999999999.1)
+	v, err = TransferFloat(in, 1e5)
+	fmt.Println("v=", v)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(99999999910000), v)
+
+	in = float64(999999999)
+	v, err = TransferFloat(in, 1e5)
+	fmt.Println("v=", v)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(99999999900000), v)
+}

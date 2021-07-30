@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,14 +35,14 @@ var (
 
 // coin conversation
 const (
-	Coin            int64 = 1e8
-	MaxCoin         int64 = 1e17
+	ShowPrecision   int64 = 4      //cli命令显示保留4位
+	MaxCoin         int64 = 1e9    // 1e17/1e8
 	MaxTxSize             = 100000 //100K
 	MaxTxGroupSize  int32 = 20
 	MaxBlockSize          = 20000000 //20M
 	MaxTxsPerBlock        = 100000
 	TokenPrecision  int64 = 1e8
-	MaxTokenBalance int64 = 900 * 1e8 * TokenPrecision //900亿
+	MaxTokenBalance int64 = 900 * 1e8 * DefaultCoinPrecision //缺省900亿，小数位精度为1e8, 900*1e16 大约为int64最大可表示范围
 	DefaultMinFee   int64 = 1e5
 )
 
@@ -57,6 +58,7 @@ type Chain33Config struct {
 	mver             *mversion
 	coinExec         string
 	coinSymbol       string
+	coinPrecision    int64
 	forks            *Forks
 	disableCheckFork bool
 	chainID          int32
@@ -124,6 +126,7 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 		chainConfig:      make(map[string]interface{}),
 		coinExec:         DefaultCoinsExec,
 		coinSymbol:       DefaultCoinsSymbol,
+		coinPrecision:    DefaultCoinPrecision,
 		forks:            &Forks{make(map[string]int64)},
 		chainID:          cfg.ChainID,
 		disableCheckFork: cfg.DisableForkCheck,
@@ -259,6 +262,19 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 				c.coinSymbol = DefaultCoinsSymbol
 			}
 		}
+
+		//配置coinPrecision支持0~8, 最大8,也就是1e8
+		if len(cfg.CoinPrecision) > 0 {
+			n, err := strconv.ParseInt(cfg.CoinPrecision, 10, 64)
+			if err != nil {
+				panic(fmt.Sprintf("config.CoinPrecision=%s,err=%s", cfg.CoinPrecision, err.Error()))
+			}
+			if n < 0 || n > int64(math.Log10(DefaultCoinPrecision)) {
+				panic(fmt.Sprintf("config coinPrecision=%d not in 0~8", n))
+			}
+			c.coinPrecision = int64(math.Pow10(int(n)))
+		}
+		println("coin precision=", c.coinPrecision)
 		//TxHeight
 		c.setChainConfig("TxHeight", cfg.TxHeight)
 	}
@@ -468,6 +484,13 @@ func (c *Chain33Config) GetCoinExec() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.coinExec
+}
+
+// GetCoinPrecision 获取 coin 精度，缺省小数点后8位， 1e8
+func (c *Chain33Config) GetCoinPrecision() int64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.coinPrecision
 }
 
 func (c *Chain33Config) isLocal() bool {
