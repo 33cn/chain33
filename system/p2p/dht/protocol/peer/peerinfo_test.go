@@ -21,7 +21,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
-	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
@@ -67,16 +66,15 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	}
 
 	env1 := protocol.P2PEnv{
-		Ctx:              ctx,
-		ChainCfg:         cfg,
-		QueueClient:      client1,
-		Host:             host1,
-		SubConfig:        mcfg,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT1),
-		RoutingTable:     kademliaDHT1.RoutingTable(),
-		PeerInfoManager:  &peerInfoManager{},
-		ConnManager:      &connManager{},
-		Pubsub:           ps1,
+		Ctx:             ctx,
+		ChainCfg:        cfg,
+		QueueClient:     client1,
+		Host:            host1,
+		SubConfig:       mcfg,
+		RoutingTable:    kademliaDHT1.RoutingTable(),
+		PeerInfoManager: &peerInfoManager{},
+		ConnManager:     &connManager{},
+		Pubsub:          ps1,
 	}
 	InitProtocol(&env1)
 
@@ -97,16 +95,15 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	}
 
 	env2 := protocol.P2PEnv{
-		Ctx:              ctx,
-		ChainCfg:         cfg,
-		QueueClient:      client2,
-		Host:             host2,
-		SubConfig:        mcfg,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(kademliaDHT2),
-		RoutingTable:     kademliaDHT2.RoutingTable(),
-		PeerInfoManager:  &peerInfoManager{},
-		ConnManager:      &connManager{},
-		Pubsub:           ps2,
+		Ctx:             ctx,
+		ChainCfg:        cfg,
+		QueueClient:     client2,
+		Host:            host2,
+		SubConfig:       mcfg,
+		RoutingTable:    kademliaDHT2.RoutingTable(),
+		PeerInfoManager: &peerInfoManager{},
+		ConnManager:     &connManager{},
+		Pubsub:          ps2,
 	}
 	p2 := &Protocol{
 		P2PEnv: &env2,

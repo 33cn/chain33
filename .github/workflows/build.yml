@@ -46,7 +46,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: unit-test
-        run: make test
+        run: |
+          sudo sysctl -w net.core.rmem_max=2500000
+          make test
 
   coverage:
     name: coverage
@@ -62,7 +64,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: ut coverage
-        run: make coverage
+        run: |
+          sudo sysctl -w net.core.rmem_max=2500000
+          make coverage
       - name: cover report
         if: success()
         run: bash <(curl -s https://codecov.io/bash)

@@ -125,9 +125,3 @@ func (p *Protocol) getChunkProviderCache(chunkHash []byte) []peer.ID {
 	p.chunkProviderCacheMutex.RUnlock()
 	return peers
 }
-
-func (p *Protocol) removeChunkProviderCache(chunkHash []byte, provider peer.ID) {
-	p.chunkProviderCacheMutex.Lock()
-	delete(p.chunkProviderCache[string(chunkHash)], provider)
-	p.chunkProviderCacheMutex.Unlock()
-}

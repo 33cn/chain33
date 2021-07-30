@@ -182,7 +182,7 @@ func (c *Chain33) QueryTransaction(in rpctypes.QueryParm, result *interface{}) e
 		return err
 	}
 
-	transDetail, err := fmtTxDetail(reply, false)
+	transDetail, err := fmtTxDetail(reply, false, c.cli.GetConfig().GetCoinExec())
 	if err != nil {
 		return err
 	}
@@ -291,7 +291,7 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	var txdetails rpctypes.TransactionDetails
 	if 0 != len(txs) {
 		for _, tx := range txs {
-			txDetail, err := fmtTxDetail(tx, in.DisableDetail)
+			txDetail, err := fmtTxDetail(tx, in.DisableDetail, c.cli.GetConfig().GetCoinExec())
 			if err != nil {
 				return err
 			}
@@ -302,7 +302,7 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	return nil
 }
 
-func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.TransactionDetail, error) {
+func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool, coinExec string) (*rpctypes.TransactionDetail, error) {
 	//增加判断，上游接口可能返回空指针
 	if tx == nil || tx.GetTx() == nil {
 		//参数中hash和返回的detail一一对应，顺序一致
@@ -344,7 +344,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool) (*rpctypes.Tra
 		tran.AmountFmt = strconv.FormatFloat(float64(tran.Amount)/float64(types.Coin), 'f', 4, 64)
 	}
 	// swap from with to
-	if tx.GetTx().IsWithdraw() {
+	if tx.GetTx().IsWithdraw(coinExec) {
 		tx.Fromaddr, tx.Tx.To = tx.Tx.To, tx.Fromaddr
 		tran.To = tx.Tx.GetRealToAddr()
 	}
@@ -458,7 +458,7 @@ func (c *Chain33) WalletTxList(in rpctypes.ReqWalletTransactionList, result *int
 	}
 	{
 		var txdetails rpctypes.WalletTxDetails
-		err := rpctypes.ConvertWalletTxDetailToJSON(reply.(*types.WalletTxDetails), &txdetails)
+		err := rpctypes.ConvertWalletTxDetailToJSON(reply.(*types.WalletTxDetails), &txdetails, c.cli.GetConfig().GetCoinExec())
 		if err != nil {
 			return err
 		}
