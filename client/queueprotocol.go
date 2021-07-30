@@ -1059,7 +1059,7 @@ func (q *QueueProtocol) GetCryptoList() *types.CryptoList {
 	return list
 }
 
-// SendTx send delay transaction to mempool
+// SendDelayTx send delay transaction to mempool
 func (q *QueueProtocol) SendDelayTx(param *types.DelayTx) (*types.Reply, error) {
 	if param.GetTx() == nil {
 		err := types.ErrNilTransaction

@@ -542,6 +542,7 @@ func (mem *Mempool) pushDelayTxRoutine() {
 
 		select {
 		case <-mem.done:
+			ticker.Stop()
 			return
 		case delayList := <-mem.delayTxListChan:
 			for _, tx := range delayList {

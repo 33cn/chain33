@@ -1346,7 +1346,7 @@ func Test_pushDelayTxRoutine(t *testing.T) {
 	_, mem := initEnv(1)
 	mockAPI := &mocks.QueueProtocolAPI{}
 	mem.setAPI(mockAPI)
-	txChan := make(chan *types.Transaction, 0)
+	txChan := make(chan *types.Transaction)
 
 	runFn := func(args mock.Arguments) {
 		tx := args.Get(0).(*types.Transaction)
