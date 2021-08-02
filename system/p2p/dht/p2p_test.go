@@ -13,6 +13,9 @@ import (
 	"testing"
 	"time"
 
+	core "github.com/libp2p/go-libp2p-core"
+	"github.com/libp2p/go-libp2p-core/network"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/33cn/chain33/client"
@@ -24,7 +27,6 @@ import (
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
@@ -127,7 +129,21 @@ func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	p2p.StartP2P()
 	return p2p
 }
-
+func newStream(host host.Host, pid peer.ID, proto protocol.ID) (network.Stream, error) {
+	var i = 10
+	var streamErr error
+	for i > 0 {
+		stream, err := host.NewStream(context.Background(), pid, proto)
+		if err != nil {
+			i--
+			streamErr = err
+			time.Sleep(time.Millisecond * 300)
+			continue
+		}
+		return stream, nil
+	}
+	return nil, streamErr
+}
 func testP2PEvent(t *testing.T, qcli queue.Client) {
 
 	msg := qcli.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{})
@@ -251,51 +267,16 @@ func TestPrivateNetwork(t *testing.T) {
 
 func testStreamEOFReSet(t *testing.T) {
 
-	r := rand.Reader
-	prvKey1, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-	r = rand.Reader
-	prvKey2, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
+	hosts := getNetHosts(context.Background(), 3, t)
+	msgID := "/streamTest/1.0"
+	h1 := hosts[0]
+	h2 := hosts[1]
+	h3 := hosts[2]
+	t.Log("h1", h1.ID(), "h1.addr", h1.Addrs())
+	t.Log("h2:", h2.ID(), "h2.addr", h2.Addrs())
+	t.Log("h3:", h3.ID(), "h3.addr", h3.Addrs())
 
-	r = rand.Reader
-	prvKey3, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-
-	msgID := "/streamTest"
-
-	var subcfg, subcfg2, subcfg3 p2pty.P2PSubConfig
-	subcfg.Port = 22345
-	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg.Port))
-	if err != nil {
-		panic(err)
-	}
-	h1 := newHost(&subcfg, prvKey1, nil, maddr)
-	t.Log("h1", h1.ID())
-	//-------------------------
-
-	subcfg2.Port = 22346
-	maddr2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg2.Port))
-	if err != nil {
-		panic(err)
-	}
-	h2 := newHost(&subcfg2, prvKey2, nil, maddr2)
-	t.Log("h2", h2.ID())
-	//-------------------------------------
-
-	subcfg3.Port = 22347
-	maddr3, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg3.Port))
-	if err != nil {
-		panic(err)
-	}
-	h3 := newHost(&subcfg3, prvKey3, nil, maddr3)
-	t.Log("h3", h3.ID())
+	var err error
 	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("Meow! It worked!")
 		var buf []byte
@@ -320,20 +301,9 @@ func testStreamEOFReSet(t *testing.T) {
 		ID:    h2.ID(),
 		Addrs: h2.Addrs(),
 	}
-	var retrycount int
-	for retrycount < 3 {
-		err = h1.Connect(context.Background(), h2info)
-		if err != nil {
-			retrycount++
-			time.Sleep(time.Second / 2)
-			continue
-		}
-		break
-	}
-
+	err = h1.Connect(context.Background(), h2info)
 	require.NoError(t, err)
-
-	s, err := h1.NewStream(context.Background(), h2.ID(), protocol.ID(msgID))
+	s, err := newStream(h1, h2.ID(), protocol.ID(msgID))
 	require.NoError(t, err)
 
 	s.Write([]byte("hello"))
@@ -346,15 +316,18 @@ func testStreamEOFReSet(t *testing.T) {
 		require.Equal(t, err.Error(), "EOF")
 	}
 
-	h3info := peer.AddrInfo{
+	err = h1.Connect(context.Background(), peer.AddrInfo{
 		ID:    h3.ID(),
 		Addrs: h3.Addrs(),
-	}
+	})
+	require.NoError(t, err)
 
-	err = h1.Connect(context.Background(), h3info)
-	require.NoError(t, err)
-	s, err = h1.NewStream(context.Background(), h3.ID(), protocol.ID(msgID))
-	require.NoError(t, err)
+	s, err = newStream(h1, h3.ID(), protocol.ID(msgID)) //h1.NewStream(context.Background(), h3.ID(), protocol.ID(msgID))
+	if err != nil {
+		t.Log("err:", err.Error())
+		require.Equal(t, err.Error(), "stream reset")
+		return
+	}
 
 	s.Write([]byte("hello"))
 	_, err = s.Read(buf)
@@ -365,6 +338,9 @@ func testStreamEOFReSet(t *testing.T) {
 		require.Equal(t, err.Error(), "stream reset")
 	}
 
+	h1.Close()
+	h2.Close()
+	h3.Close()
 }
 
 func Test_pubkey(t *testing.T) {
