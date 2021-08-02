@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"reflect"
 	"testing"
 
@@ -672,7 +673,10 @@ func BenchmarkStr2Bytes(b *testing.B) {
 }
 
 func TestGetFormatFloat(t *testing.T) {
-	r := GetFormatFloat(1, DefaultCoinPrecision)
+	r := GetFormatFloat(0, DefaultCoinPrecision)
+	assert.Equal(t, r, "0.0000")
+
+	r = GetFormatFloat(1, DefaultCoinPrecision)
 	assert.Equal(t, r, "0.0000")
 
 	r = GetFormatFloat(12345678, DefaultCoinPrecision)
@@ -685,47 +689,42 @@ func TestGetFormatFloat(t *testing.T) {
 	assert.Equal(t, r, "90012345678.1234")
 
 	r = GetFormatFloat(12345678, 1)
-	assert.Equal(t, r, "12345678.0000")
+	assert.Equal(t, r, "12345678")
+
+	r = GetFormatFloat(0, 1)
+	assert.Equal(t, r, "0")
 
 	r = GetFormatFloat(9001234567812345678, 1)
-	assert.Equal(t, r, "9001234567812345678.0000")
+	assert.Equal(t, r, "9001234567812345678")
 
 	r = GetFormatFloat(1234567812345678, 10)
-	assert.Equal(t, r, "123456781234567.8000")
+	assert.Equal(t, r, "123456781234567.8")
 
 	r = GetFormatFloat(9001234567812345678, 10)
-	assert.Equal(t, r, "900123456781234567.8000")
+	assert.Equal(t, r, "900123456781234567.8")
+
+	r = GetFormatFloat(0, 10)
+	assert.Equal(t, r, "0.0")
+
+	r = GetFormatFloat(100000000, DefaultCoinPrecision)
+	assert.Equal(t, r, "1.0000")
 
 }
 
 func TestTransferFloat(t *testing.T) {
-	//f:=decimal.NewFromFloat(9999999999.12347883)
-	//fmt.Println("f=",f.String())
-	//f=decimal.NewFromFloat(9612345678.12347883)
-	//fmt.Println("f=",f.String())
-	//f=decimal.NewFromFloat(9512345678.67896789)
-	//fmt.Println("f=",f.String())
-	//f=decimal.NewFromFloat(112345678.67896789)
-	//fmt.Println("f=",f.String())
-	//f=decimal.NewFromFloat(1000000000.67896789)
-	//fmt.Println("f=",f.String())
-
 	//超过最大maxCoin
 	in := float64(9512345678.12347734)
 	_, err := TransferFloat(in, DefaultCoinPrecision)
-	fmt.Println("err=", err)
 	assert.NotNil(t, err)
 
 	//小数位超过配置精度
 	in = float64(1123456.123456781)
 	_, err = TransferFloat(in, DefaultCoinPrecision)
-	fmt.Println("err=", err)
 	assert.NotNil(t, err)
 
 	//小数位超过配置精度
 	in = float64(112345678.12345)
 	_, err = TransferFloat(in, 1e4)
-	fmt.Println("err=", err)
 	assert.NotNil(t, err)
 
 	//没有小数位，按精度扩展
@@ -743,38 +742,54 @@ func TestTransferFloat(t *testing.T) {
 	//最大小数位扩展
 	in = float64(MaxCoin)
 	v, err = TransferFloat(in, DefaultCoinPrecision)
-	fmt.Println("v=", v)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(MaxCoin*100000000), v)
 
 	in = float64(0)
 	v, err = TransferFloat(in, DefaultCoinPrecision)
-	fmt.Println("v=", v)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), v)
 
 	//测试小数位扩展
 	in = float64(0.1)
 	v, err = TransferFloat(in, 1e4)
-	fmt.Println("v=", v)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1000), v)
 
 	in = float64(99999999.1234567)
 	v, err = TransferFloat(in, DefaultCoinPrecision)
-	fmt.Println("v=", v)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(9999999912340000), v)
 
 	in = float64(999999999.1)
 	v, err = TransferFloat(in, 1e5)
-	fmt.Println("v=", v)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(99999999910000), v)
 
 	in = float64(999999999)
 	v, err = TransferFloat(in, 1e5)
-	fmt.Println("v=", v)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(99999999900000), v)
+}
+
+func TestGetFormatFloat2(t *testing.T) {
+	a := decimal.NewFromInt(1).Shift(-8)
+	fmt.Println("a=", a.String())
+	a = decimal.NewFromInt(9001234567812345678).Shift(-8)
+	fmt.Println("a=", a.String())
+
+	b := decimal.NewFromInt(0).Shift(-8)
+	fmt.Println("a=", b.String())
+
+	c := decimal.NewFromFloat(1.2345678).StringFixed(2)
+	fmt.Println("c=", c)
+	c = decimal.NewFromFloat(1.2345678).StringFixed(3)
+	fmt.Println("c=", c)
+	c = decimal.NewFromFloat(1.2345678).StringFixed(4)
+	fmt.Println("c=", c)
+
+	//a=decimal.NewFromInt(1).Shift(8)
+	//fmt.Println("a=",a.String())
+	//a=decimal.NewFromInt(0).Shift(8)
+	//fmt.Println("a=",a.String())
 }

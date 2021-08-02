@@ -198,10 +198,10 @@ func walletListTxs(cmd *cobra.Command, args []string) {
 
 func parseWalletTxListRes(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*rpctypes.WalletTxDetails)
-	cfg := arg[1].(*types.Chain33Config)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
 	var result commandtypes.WalletTxDetailsResult
 	for _, v := range res.TxDetails {
-		amountResult := types.GetFormatFloat(v.Amount, cfg.GetCoinPrecision())
+		amountResult := types.GetFormatFloat(v.Amount, cfg.CoinPrecision)
 		wtxd := &commandtypes.WalletTxDetailResult{
 			Tx:         commandtypes.DecodeTransaction(v.Tx),
 			Receipt:    v.Receipt,

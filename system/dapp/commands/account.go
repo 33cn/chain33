@@ -93,11 +93,11 @@ func listAccount(cmd *cobra.Command, args []string) {
 
 func parseListAccountRes(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*rpctypes.WalletAccounts)
-	cfg := arg[1].(*types.Chain33Config)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
 	var result commandtypes.AccountsResult
 	for _, r := range res.Wallets {
-		balanceResult := types.GetFormatFloat(r.Acc.Balance, cfg.GetCoinPrecision())
-		frozenResult := types.GetFormatFloat(r.Acc.Frozen, cfg.GetCoinPrecision())
+		balanceResult := types.GetFormatFloat(r.Acc.Balance, cfg.CoinPrecision)
+		frozenResult := types.GetFormatFloat(r.Acc.Frozen, cfg.CoinPrecision)
 		accResult := &commandtypes.AccountResult{
 			Currency: r.Acc.Currency,
 			Addr:     r.Acc.Addr,
@@ -224,9 +224,9 @@ func balance(cmd *cobra.Command, args []string) {
 
 func parseGetBalanceRes(arg ...interface{}) (interface{}, error) {
 	res := *arg[0].(*[]*rpctypes.Account)
-	cfg := arg[1].(*types.Chain33Config)
-	balanceResult := types.GetFormatFloat(res[0].Balance, cfg.GetCoinPrecision())
-	frozenResult := types.GetFormatFloat(res[0].Frozen, cfg.GetCoinPrecision())
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	balanceResult := types.GetFormatFloat(res[0].Balance, cfg.CoinPrecision)
+	frozenResult := types.GetFormatFloat(res[0].Frozen, cfg.CoinPrecision)
 	result := &commandtypes.AccountResult{
 		Addr:     res[0].Addr,
 		Currency: res[0].Currency,
@@ -238,12 +238,12 @@ func parseGetBalanceRes(arg ...interface{}) (interface{}, error) {
 
 func parseGetAllBalanceRes(arg ...interface{}) (interface{}, error) {
 	res := *arg[0].(*rpctypes.AllExecBalance)
-	cfg := arg[1].(*types.Chain33Config)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
 	accs := res.ExecAccount
 	result := commandtypes.AllExecBalance{Addr: res.Addr}
 	for _, acc := range accs {
-		balanceResult := types.GetFormatFloat(acc.Account.Balance, cfg.GetCoinPrecision())
-		frozenResult := types.GetFormatFloat(acc.Account.Frozen, cfg.GetCoinPrecision())
+		balanceResult := types.GetFormatFloat(acc.Account.Balance, cfg.CoinPrecision)
+		frozenResult := types.GetFormatFloat(acc.Account.Frozen, cfg.CoinPrecision)
 		ar := &commandtypes.AccountResult{
 			Currency: acc.Account.Currency,
 			Balance:  balanceResult,
@@ -293,10 +293,10 @@ func importKey(cmd *cobra.Command, args []string) {
 	ctx.RunExt(cfg)
 }
 
-func parseImportKeyRes(arg ...interface{}) (interface{}, error) {
-	res := arg[0].(*types.WalletAccount)
-	cfg := arg[1].(*types.Chain33Config)
-	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.GetCoinPrecision())
+func parseImportKeyRes(args ...interface{}) (interface{}, error) {
+	res := args[0].(*types.WalletAccount)
+	cfg := args[1].(*rpctypes.ChainConfigInfo)
+	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.CoinPrecision)
 	result := commandtypes.WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),
@@ -340,8 +340,8 @@ func createAccount(cmd *cobra.Command, args []string) {
 
 func parseCreateAccountRes(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*types.WalletAccount)
-	cfg := arg[1].(*types.Chain33Config)
-	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.GetCoinPrecision())
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.CoinPrecision)
 	result := commandtypes.WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),
@@ -475,8 +475,8 @@ func setLabel(cmd *cobra.Command, args []string) {
 
 func parseSetLabelRes(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*types.WalletAccount)
-	cfg := arg[1].(*types.Chain33Config)
-	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.GetCoinPrecision())
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.CoinPrecision)
 	result := commandtypes.WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),

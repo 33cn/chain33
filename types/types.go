@@ -662,31 +662,21 @@ func (hashes *ReplyHashes) Hash() []byte {
 //另外在coinPrecision支持可配时候，对不同精度统一处理,而不是限定在1e4
 func GetFormatFloat(val, coinPrecision int64) string {
 	n := int64(math.Log10(float64(coinPrecision)))
-	diff := int(math.Abs(float64(n - ShowPrecision)))
+	//小数左移n位，0保持不变
+	d := decimal.NewFromInt(val).Shift(int32(-n))
 
-	d := decimal.NewFromInt(val)
-	r := d.Div(decimal.NewFromFloat(float64(coinPrecision)))
-
-	//n:5~8
-	//n=7,ShowPrecision=4,diff=7-4=3
-	//0.12345678 diff=3 => 0.12345
+	//coinPrecision:5~8
+	//v=99.12345678  => 99.1234,需要先truncate掉，不然5678会round到前一位也就是99.1235
 	if n > ShowPrecision {
-		return r.String()[:len(r.String())-diff]
+		return d.Truncate(int32(ShowPrecision)).StringFixedBank(int32(ShowPrecision))
 	}
 
-	//n:1~4
-	//n=1,ShowPrecision=4,diff=1-4=3
-	if n > 0 {
-		return r.String() + strings.Repeat("0", diff)
-	}
-
-	//n=0,decimalPrecision=4,diff=0-4=4
-	return r.String() + "." + strings.Repeat("0", diff)
+	return d.StringFixedBank(int32(n))
 }
 
-//TransferFloat 对浮点数按精度扩展，小数点后精度只保留4位
+//TransferFloat 对浮点数乘以精度，小数点后精度只保留4位
 //浮点数算上浮点能表达最大16位长的数字(9512345678.1234xxxx)
-//本函数首先限定整数不能超过1e9,然后小数位部分可以精确6位，但是取小数位4位
+//本函数首先限定整数不能超过1e9,然后小数位只精确到4位，后面补0
 func TransferFloat(val float64, coinPrecision int64) (int64, error) {
 	max := decimal.NewFromInt(MaxCoin)
 	f := decimal.NewFromFloat(val)
@@ -709,13 +699,9 @@ func TransferFloat(val float64, coinPrecision int64) (int64, error) {
 
 	//如果配置精度超过4位，小数位只精确到后4位
 	if int64(coinPrecisionNum) > ShowPrecision {
-		diff := math.Pow10(coinPrecisionNum - int(ShowPrecision))
-		//截取4位显示精度
-		a := f.Mul(decimal.NewFromFloat(math.Pow10(int(ShowPrecision)))).IntPart()
-		//多余位补0
-		return decimal.NewFromInt(a).Mul(decimal.NewFromFloat(diff)).IntPart(), nil
+		return f.Truncate(int32(ShowPrecision)).Shift(int32(coinPrecisionNum)).IntPart(), nil
 	}
 	//如果配置精度小于4位，乘精度
-	return f.Mul(decimal.NewFromInt(coinPrecision)).IntPart(), nil
+	return f.Shift(int32(coinPrecisionNum)).IntPart(), nil
 
 }

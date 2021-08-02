@@ -6,6 +6,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"os"
 	"strings"
 
@@ -173,8 +174,8 @@ func queryTx(cmd *cobra.Command, args []string) {
 
 func parseQueryTxRes(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*rpctypes.TransactionDetail)
-	cfg := arg[1].(*types.Chain33Config)
-	amountResult := types.GetFormatFloat(res.Amount, cfg.GetCoinPrecision())
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	amountResult := types.GetFormatFloat(res.Amount, cfg.CoinPrecision)
 	result := commandtypes.TxDetailResult{
 		Tx:         commandtypes.DecodeTransaction(res.Tx),
 		Receipt:    res.Receipt,
@@ -212,6 +213,13 @@ func getTxsByHashes(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	hashes, _ := cmd.Flags().GetString("hashes")
 	hashesArr := strings.Split(hashes, " ")
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
+		return
+	}
+
 	params := rpctypes.ReqHashes{
 		Hashes: hashesArr,
 	}
@@ -219,25 +227,19 @@ func getTxsByHashes(cmd *cobra.Command, args []string) {
 	var res rpctypes.TransactionDetails
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetTxByHashes", params, &res)
 	ctx.SetResultCbExt(parseQueryTxsByHashesRes)
-
-	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
 	ctx.RunExt(cfg)
 }
 
 func parseQueryTxsByHashesRes(arg ...interface{}) (interface{}, error) {
 	var result commandtypes.TxDetailsResult
 	details := arg[0].(*rpctypes.TransactionDetails)
-	cfg := arg[1].(*types.Chain33Config)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
 	for _, v := range details.Txs {
 		if v == nil {
 			result.Txs = append(result.Txs, nil)
 			continue
 		}
-		amountResult := types.GetFormatFloat(v.Amount, cfg.GetCoinPrecision())
+		amountResult := types.GetFormatFloat(v.Amount, cfg.CoinPrecision)
 		td := commandtypes.TxDetailResult{
 			Tx:         commandtypes.DecodeTransaction(v.Tx),
 			Receipt:    v.Receipt,
@@ -357,9 +359,9 @@ func viewAddress(cmd *cobra.Command, args []string) {
 
 func parseAddrOverview(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*types.AddrOverview)
-	cfg := arg[1].(*types.Chain33Config)
-	balance := types.GetFormatFloat(res.GetBalance(), cfg.GetCoinPrecision())
-	receiver := types.GetFormatFloat(res.GetReciver(), cfg.GetCoinPrecision())
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	balance := types.GetFormatFloat(res.GetBalance(), cfg.CoinPrecision)
+	receiver := types.GetFormatFloat(res.GetReciver(), cfg.CoinPrecision)
 	addrOverview := &commandtypes.AddrOverviewResult{
 		Balance:  balance,
 		Receiver: receiver,
