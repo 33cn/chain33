@@ -104,6 +104,8 @@ func (s *ConnManager) MonitorAllPeers() {
 	defer ticker1.Stop()
 	ticker2 := time.NewTicker(time.Minute * 2)
 	defer ticker2.Stop()
+	ticker3 := time.NewTicker(time.Second * 5)
+	defer ticker3.Stop()
 
 	for {
 		select {
@@ -113,6 +115,8 @@ func (s *ConnManager) MonitorAllPeers() {
 			s.printMonitorInfo()
 		case <-ticker2.C:
 			s.procConnections()
+		case <- ticker3.C:
+			s.procRoutingTable()
 		}
 	}
 }
@@ -149,12 +153,6 @@ func (s *ConnManager) printMonitorInfo() {
 }
 
 func (s *ConnManager) procConnections() {
-	for _, conn := range s.host.Network().Conns() {
-		remotePeer := conn.RemotePeer()
-		if s.routingTable.Find(remotePeer) == "" {
-			_, _ = s.routingTable.TryAddPeer(remotePeer, true, true)
-		}
-	}
 	//处理当前连接的节点问题
 	_, outBoundSize := s.BoundSize()
 	if outBoundSize > maxOutBounds || s.Size() > maxBounds {
@@ -189,7 +187,15 @@ func (s *ConnManager) procConnections() {
 			}
 		}
 	}
+}
 
+func (s *ConnManager) procRoutingTable() {
+	if s.routingTable.Size() > len(s.host.Network().Peers())*4/5 {
+		return
+	}
+	for _, pid := range s.host.Network().Peers() {
+		_, _ = s.routingTable.TryAddPeer(pid, true, true)
+	}
 }
 
 func genAddrInfo(addr string) (*peer.AddrInfo, error) {
