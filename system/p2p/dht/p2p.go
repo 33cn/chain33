@@ -204,7 +204,7 @@ func (p *P2P) CloseP2P() {
 
 	protocol.ClearEventHandler()
 	if !p.isRestart() {
-		p.mgr.PubSub.Unsub(p.subChan)
+		p.mgr.PubSub.Shutdown()
 
 	}
 	p.host.Close()
