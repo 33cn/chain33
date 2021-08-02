@@ -172,9 +172,28 @@ func (mem *Mempool) eventAddBlock(msg *queue.Message) {
 		mem.RemoveTxsOfBlock(block)
 		mem.removeExpired()
 	}
-	delayTxList := mem.cache.delayCache.delExpiredTxs(
-		lastHeader.GetBlockTime(), block.GetBlockTime(), block.GetHeight())
-	mem.delayTxListChan <- delayTxList
+
+	// 添加区块，推送延时到期的延时交易
+	mem.pushDelayTx(mem.cache.delayCache, lastHeader.GetBlockTime(),
+		block.GetBlockTime(), block.GetHeight())
+
+}
+
+func (mem *Mempool) pushDelayTx(delayCache *delayTxCache, lastBlockTime,
+	currBlockTime, currBlockHeight int64) {
+
+	delayTxList := delayCache.delExpiredTxs(
+		lastBlockTime, currBlockTime, currBlockHeight)
+	if len(delayTxList) <= 0 {
+		return
+	}
+
+	// 阻塞时异步发送，避免mempool消息处理死锁, 延时交易属于低频操作，阻塞时协程开销不会很大
+	select {
+	case mem.delayTxListChan <- delayTxList:
+	default:
+		go func() { mem.delayTxListChan <- delayTxList }()
+	}
 }
 
 // EventGetMempoolSize 获取mempool大小
