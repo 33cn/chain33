@@ -10,9 +10,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/shopspring/decimal"
 	"reflect"
 	"testing"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types/jsonpb"
