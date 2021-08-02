@@ -23,6 +23,8 @@ type RPCCtx struct {
 
 // Callback a callback function
 type Callback func(res interface{}) (interface{}, error)
+
+// CallbackExt an extension callback  function
 type CallbackExt func(res ...interface{}) (interface{}, error)
 
 // NewRPCCtx produce a object of rpcctx
@@ -40,7 +42,7 @@ func (c *RPCCtx) SetResultCb(cb Callback) {
 	c.cb = cb
 }
 
-// SetResultCb rpcctx callback
+// SetResultCbExt extension rpcctx  callback
 func (c *RPCCtx) SetResultCbExt(cb CallbackExt) {
 	c.cbExt = cb
 }
@@ -102,7 +104,7 @@ func (c *RPCCtx) RunWithoutMarshal() {
 	fmt.Println(res)
 }
 
-// RunResult  format rpc result
+// RunResultExt  format rpc result with ext cb func
 func (c *RPCCtx) RunResultExt(arg ...interface{}) (interface{}, error) {
 	rpc, err := NewJSONClient(c.Addr)
 	if err != nil {
@@ -116,7 +118,10 @@ func (c *RPCCtx) RunResultExt(arg ...interface{}) (interface{}, error) {
 	// maybe format rpc result
 	var result interface{}
 	if c.cbExt != nil {
-		result, err = c.cbExt(c.Res, arg)
+		var ints []interface{}
+		ints = append(ints, c.Res)
+		ints = append(ints, arg...)
+		result, err = c.cbExt(ints...)
 		if err != nil {
 			return nil, err
 		}
@@ -126,9 +131,9 @@ func (c *RPCCtx) RunResultExt(arg ...interface{}) (interface{}, error) {
 	return result, nil
 }
 
-// Run rpcctx to runresult
+// RunExt extension to run
 func (c *RPCCtx) RunExt(arg ...interface{}) {
-	result, err := c.RunResultExt(arg)
+	result, err := c.RunResultExt(arg...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

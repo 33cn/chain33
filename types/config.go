@@ -274,7 +274,6 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 			}
 			c.coinPrecision = int64(math.Pow10(int(n)))
 		}
-		println("coin precision=", c.coinPrecision)
 		//TxHeight
 		c.setChainConfig("TxHeight", cfg.TxHeight)
 	}
