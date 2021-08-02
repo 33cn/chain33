@@ -60,7 +60,7 @@ func Test_delDelayTx(t *testing.T) {
 	require.Equal(t, []byte("time0"), txList[0].Payload)
 	require.Equal(t, []byte("height1"), txList[5].Payload)
 
-	//del delay block time 13 14, block height 19
+	//del delay block time <= types.ExpireBount+100
 	txList = cache.delExpiredTxs(0, types.ExpireBound+100, 0)
 	require.Equal(t, 5, len(txList))
 	//check delay height=2, 5 tx
