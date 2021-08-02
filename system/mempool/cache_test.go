@@ -32,40 +32,41 @@ func Test_addDelayTx(t *testing.T) {
 	require.Equal(t, tx.EndDelayTime, delayTime)
 }
 
-func addDelayTxTest(c *delayTxCache, tx *types.Transaction, delayTime int64) error {
-	return c.addDelayTx(&types.DelayTx{Tx: tx, EndDelayTime: delayTime})
-}
-
 func Test_delDelayTx(t *testing.T) {
 
 	cache := newDelayTxCache(100)
-	//add delay time [10, 19]
-	for i := 0; i < 10; i++ {
-		err := addDelayTxTest(cache, &types.Transaction{Payload: []byte(fmt.Sprintf("test%d", i))}, int64(10+i))
-		require.Nil(t, err)
+	addFunc := func(payload string, delay int) {
+		err := cache.addDelayTx(&types.DelayTx{
+			Tx:           &types.Transaction{Payload: []byte(payload)},
+			EndDelayTime: int64(delay),
+		})
+		require.Nilf(t, err, "payload:%s, delay:%d", payload, delay)
 	}
-	_ = addDelayTxTest(cache, &types.Transaction{Payload: []byte("last")}, 19)
+	//add delay tx
+	for i := 0; i < 10; i++ {
+		addFunc(fmt.Sprintf("height%d", i), i)
+		addFunc(fmt.Sprintf("time%d", i), int(types.ExpireBound)+1+i)
+	}
 	//no match tx
-	txList := cache.delExpiredTxs(1, 2, 3)
+	txList := cache.delExpiredTxs(0, 0, -1)
 	require.Equal(t, 0, len(txList))
 	//del delay block height 10
-	txList = cache.delExpiredTxs(1, 2, 10)
+	txList = cache.delExpiredTxs(0, 0, 0)
 	require.Equal(t, 1, len(txList))
-	require.Equal(t, []byte("test0"), txList[0].Payload)
-	//del delay block time 11 12
-	txList = cache.delExpiredTxs(1, 12, 100)
-	require.Equal(t, 2, len(txList))
-	require.Equal(t, []byte("test1"), txList[0].Payload)
+	require.Equal(t, []byte("height0"), txList[0].Payload)
+	//del delay time <= expireBound+5, height=1
+	txList = cache.delExpiredTxs(0, types.ExpireBound+5, 1)
+	require.Equal(t, 6, len(txList))
+	require.Equal(t, []byte("time0"), txList[0].Payload)
+	require.Equal(t, []byte("height1"), txList[5].Payload)
 
 	//del delay block time 13 14, block height 19
-	txList = cache.delExpiredTxs(1, 14, 19)
-	require.Equal(t, 4, len(txList))
-	require.Equal(t, []byte("test3"), txList[0].Payload)
-	require.Equal(t, []byte("test4"), txList[1].Payload)
-	require.Equal(t, []byte("test9"), txList[2].Payload)
-	require.Equal(t, []byte("last"), txList[3].Payload)
-	//check delay time= 15 tx
-	delayTime, exist := cache.contains((&types.Transaction{Payload: []byte("test5")}).Hash())
+	txList = cache.delExpiredTxs(0, types.ExpireBound+100, 0)
+	require.Equal(t, 5, len(txList))
+	//check delay height=2, 5 tx
+	_, exist := cache.contains((&types.Transaction{Payload: []byte("height1")}).Hash())
+	require.False(t, exist)
+	delayTime, exist := cache.contains((&types.Transaction{Payload: []byte("height5")}).Hash())
 	require.True(t, exist)
-	require.Equal(t, int64(15), delayTime)
+	require.Equal(t, int64(5), delayTime)
 }
