@@ -77,7 +77,7 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	pool.poolHeader = make(chan struct{}, 2)
 	pool.removeBlockTicket = time.NewTicker(time.Minute)
 	pool.cache = newCache(cfg.MaxTxNumPerAccount, cfg.MaxTxLast, cfg.PoolCacheSize)
-	pool.delayTxListChan = make(chan []*types.Transaction, 1)
+	pool.delayTxListChan = make(chan []*types.Transaction, 16)
 	return pool
 }
 
@@ -529,7 +529,7 @@ func (mem *Mempool) pushDelayTxRoutine() {
 	push2Mempool := func(tx *types.Transaction) {
 		_, err := mem.getAPI().SendTx(tx)
 		if err != nil {
-			mlog.Error("pushDelayTxRoutine", "txHash", hex.EncodeToString(tx.Hash()), "err", err)
+			mlog.Error("pushDelayTxRoutine", "txHash", hex.EncodeToString(tx.Hash()), "send tx err", err)
 		}
 		// try later if mempool is full
 		if err == types.ErrMemFull {

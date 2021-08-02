@@ -6,6 +6,7 @@ package mempool
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -1368,4 +1369,34 @@ func Test_pushDelayTxRoutine(t *testing.T) {
 	mem.delayTxListChan <- nil
 	txs := <-mem.delayTxListChan
 	require.Equal(t, 0, len(txs))
+}
+
+func Test_pushDelayTx(t *testing.T) {
+
+	_, mem := initEnv(1)
+	mockAPI := &mocks.QueueProtocolAPI{}
+	mem.setAPI(mockAPI)
+
+	cache := newDelayTxCache(100)
+
+	txChan := make(chan *types.Transaction)
+
+	runFn := func(args mock.Arguments) {
+		tx := args.Get(0).(*types.Transaction)
+		txChan <- tx
+	}
+	mockAPI.On("SendTx", mock.Anything).Run(runFn).Return(nil, nil)
+	txList := make([]*types.Transaction, 100)
+	for i := 0; i < 100; i++ {
+		txList[i] = &types.Transaction{Payload: []byte(fmt.Sprintf("test%d", i))}
+		err := cache.addDelayTx(&types.DelayTx{
+			Tx:           txList[i],
+			EndDelayTime: int64(i)})
+		require.Nil(t, err)
+		mem.pushDelayTx(cache, 0, 0, int64(i))
+	}
+
+	for i := 0; i < 100; i++ {
+		<-txChan
+	}
 }
