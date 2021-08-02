@@ -34,7 +34,6 @@ func init() {
 // Protocol ...
 type Protocol struct {
 	*protocol.P2PEnv
-	refreshing int32
 
 	// "/ip4/{ip}/tcp/{port}"
 	externalAddr string
@@ -101,11 +100,11 @@ func InitProtocol(env *protocol.P2PEnv) {
 			case <-ticker.C:
 				p.refreshSelf()
 			case <-ticker2.C:
-				peers := p.RoutingTable.ListPeers()
+				peers := p.RoutingTable.NearestPeers(kbt.ConvertPeerID(p.Host.ID()), p.RoutingTable.Size())
 				if len(peers) <= maxPeers {
 					break
 				}
-				p.refreshPeerInfo(peers[:len(peers)-maxPeers])
+				p.refreshPeerInfo(peers[maxPeers:])
 
 			case <-ticker3.C:
 				p.checkOutBound(p.PeerInfoManager.Fetch(p.Host.ID()).GetHeader().GetHeight())
