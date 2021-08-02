@@ -184,7 +184,7 @@ func (mem *Mempool) pushDelayTx(delayCache *delayTxCache, lastBlockTime,
 
 	delayTxList := delayCache.delExpiredTxs(
 		lastBlockTime, currBlockTime, currBlockHeight)
-	if len(delayTxList) <= 0 {
+	if len(delayTxList) == 0 {
 		return
 	}
 
