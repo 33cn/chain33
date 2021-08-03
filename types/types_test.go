@@ -16,6 +16,7 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types/jsonpb"
 	proto "github.com/golang/protobuf/proto"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -13,6 +13,7 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
