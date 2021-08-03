@@ -35,15 +35,14 @@ var (
 
 // coin conversation
 const (
-	ShowPrecision   int64 = 4      //cli命令显示保留4位
-	MaxCoin         int64 = 1e9    // 1e17/1e8
-	MaxTxSize             = 100000 //100K
-	MaxTxGroupSize  int32 = 20
-	MaxBlockSize          = 20000000 //20M
-	MaxTxsPerBlock        = 100000
-	TokenPrecision  int64 = 1e8
-	MaxTokenBalance int64 = 900 * 1e8 * DefaultCoinPrecision //缺省900亿，小数位精度为1e8, 900*1e16 大约为int64最大可表示范围
-	DefaultMinFee   int64 = 1e5
+	ShowPrecisionNum int64 = 4      //cli命令显示保留4位
+	MaxCoin          int64 = 1e9    // 1e17/1e8
+	MaxTxSize              = 100000 //100K
+	MaxTxGroupSize   int32 = 20
+	MaxBlockSize           = 20000000 //20M
+	MaxTxsPerBlock         = 100000
+	MaxTokenBalance  int64 = 900 * 1e8 * DefaultCoinPrecision //缺省900亿，小数位精度为1e8, 900*1e16 大约为int64最大可表示范围
+	DefaultMinFee    int64 = 1e5
 )
 
 //Chain33Config ...
@@ -59,6 +58,7 @@ type Chain33Config struct {
 	coinExec         string
 	coinSymbol       string
 	coinPrecision    int64
+	tokenPrecision   int64
 	forks            *Forks
 	disableCheckFork bool
 	chainID          int32
@@ -127,6 +127,7 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 		coinExec:         DefaultCoinsExec,
 		coinSymbol:       DefaultCoinsSymbol,
 		coinPrecision:    DefaultCoinPrecision,
+		tokenPrecision:   DefaultCoinPrecision, //缺省和coinPrecision一致
 		forks:            &Forks{make(map[string]int64)},
 		chainID:          cfg.ChainID,
 		disableCheckFork: cfg.DisableForkCheck,
@@ -273,6 +274,17 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 				panic(fmt.Sprintf("config coinPrecision=%d not in 0~8", n))
 			}
 			c.coinPrecision = int64(math.Pow10(int(n)))
+		}
+
+		if len(cfg.TokenPrecision) > 0 {
+			n, err := strconv.ParseInt(cfg.TokenPrecision, 10, 64)
+			if err != nil {
+				panic(fmt.Sprintf("config.TokenPrecision=%s,err=%s", cfg.TokenPrecision, err.Error()))
+			}
+			if n < 0 || n > int64(math.Log10(DefaultCoinPrecision)) {
+				panic(fmt.Sprintf("config TokenPrecision=%d not in 0~8", n))
+			}
+			c.tokenPrecision = int64(math.Pow10(int(n)))
 		}
 		//TxHeight
 		c.setChainConfig("TxHeight", cfg.TxHeight)
@@ -490,6 +502,13 @@ func (c *Chain33Config) GetCoinPrecision() int64 {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.coinPrecision
+}
+
+// GetTokenPrecision 获取 token 精度，缺省小数点后8位， 1e8
+func (c *Chain33Config) GetTokenPrecision() int64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.tokenPrecision
 }
 
 func (c *Chain33Config) isLocal() bool {

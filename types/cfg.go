@@ -28,6 +28,7 @@ type Config struct {
 	CoinExec         string         `json:"coinExec,omitempty"`
 	CoinSymbol       string         `json:"coinSymbol,omitempty"`
 	CoinPrecision    string         `json:"coinPrecision,omitempty"`
+	TokenPrecision   string         `json:"tokenPrecision,omitempty"`
 	DisableForkCheck bool           `json:"disableForkCheck,omitempty"`
 	EnableParaFork   bool           `json:"enableParaFork,omitempty"`
 	Metrics          *Metrics       `json:"metrics,omitempty"`
