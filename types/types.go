@@ -660,15 +660,21 @@ func (hashes *ReplyHashes) Hash() []byte {
 //strconv.FormatFloat(float64(val/types.Int1E4)/types.Float1E4, 'f', 4, 64) 的方法在val很大的时候会丢失精度
 //比如在9001234567812345678时候，float64 最大精度只能在900123456781234的大小，decimal处理可以完整保持精度
 //另外在coinPrecision支持可配时候，对不同精度统一处理,而不是限定在1e4
-func GetFormatFloat(val, coinPrecision int64) string {
+func GetFormatFloat(val, coinPrecision int64, round bool) string {
 	n := int64(math.Log10(float64(coinPrecision)))
 	//小数左移n位，0保持不变
 	d := decimal.NewFromInt(val).Shift(int32(-n))
 
-	//coinPrecision:5~8
+	//coinPrecision:5~8,
 	//v=99.12345678  => 99.1234,需要先truncate掉，不然5678会round到前一位也就是99.1235
 	if n > ShowPrecision {
+		//有些需要圆整上来的,比如交易费,0.12345678,圆整为0.1235
+		if round {
+			return d.StringFixedBank(int32(ShowPrecision))
+		}
+		//有些需要直接truncate掉
 		return d.Truncate(int32(ShowPrecision)).StringFixedBank(int32(ShowPrecision))
+
 	}
 
 	return d.StringFixedBank(int32(n))

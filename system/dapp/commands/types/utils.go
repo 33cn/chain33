@@ -20,7 +20,6 @@ import (
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 
 	// TODO: 暂时将插件中的类型引用起来，后续需要修改
 
@@ -54,8 +53,8 @@ func DecodeTransaction(tx *rpctypes.Transaction) *TxResult {
 
 // DecodeAccount decode account func
 func DecodeAccount(acc *types.Account, precision int64) *AccountResult {
-	balanceResult := types.GetFormatFloat(acc.GetBalance(), precision)
-	frozenResult := types.GetFormatFloat(acc.GetFrozen(), precision)
+	balanceResult := types.GetFormatFloat(acc.GetBalance(), precision, true)
+	frozenResult := types.GetFormatFloat(acc.GetFrozen(), precision, true)
 	accResult := &AccountResult{
 		Addr:     acc.GetAddr(),
 		Currency: acc.GetCurrency(),
@@ -85,13 +84,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 }
 
 // CreateRawTx create rawtransaction func
-func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isWithdraw bool, tokenSymbol, execName string) (string, error) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	cfg, err := GetChainConfig(rpcLaddr)
-	if err != nil {
-		return "", err
-	}
-
+func CreateRawTx(paraName string, to string, amount float64, note string, isWithdraw bool, tokenSymbol, execName string, cfg *rpctypes.ChainConfigInfo) (string, error) {
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
@@ -104,7 +97,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 			return "", types.ErrInvalidAddress
 		}
 	}
-	paraName, _ := cmd.Flags().GetString("paraName")
+
 	amountInt64, err := types.TransferFloat(amount, cfg.CoinPrecision)
 	if err != nil {
 		return "", err
@@ -288,7 +281,7 @@ func CreateTxWithCert(signType string, privateKey crypto.PrivKey, hexTx string, 
 	return common.ToHex(types.Encode(&tx)), nil
 }
 
-//get last block header
+//GetChainConfig get system config parameters
 func GetChainConfig(rpcAddr string) (*rpctypes.ChainConfigInfo, error) {
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {

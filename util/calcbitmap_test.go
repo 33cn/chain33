@@ -21,7 +21,7 @@ func TestCalcByteBitMap(t *testing.T) {
 	cur := [][]byte{}
 	arry := []byte{3, 7, 8, 11, 15, 17}
 	for _, v := range arry {
-		cur = append(cur, common.Sha256([]byte(string(v))))
+		cur = append(cur, common.Sha256([]byte(fmt.Sprint(v))))
 	}
 
 	d0 := &types.ReceiptData{Ty: types.ExecOk}
@@ -49,7 +49,7 @@ func TestCalcSubBitMap(t *testing.T) {
 	sub := [][]byte{}
 	arry := []byte{0, 2, 4, 6, 7, 9}
 	for _, v := range arry {
-		sub = append(sub, common.Sha256([]byte(string(v))))
+		sub = append(sub, common.Sha256([]byte(fmt.Sprint(v))))
 	}
 
 	d0 := &types.ReceiptData{Ty: types.ExecOk}

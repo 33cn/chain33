@@ -9,7 +9,6 @@ import (
 
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -69,24 +68,27 @@ func TestDecodeAccount(t *testing.T) {
 }
 
 func TestCreateRawTx(t *testing.T) {
-	chain33Cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	types.SetCliSysParam(chain33Cfg.GetTitle(), chain33Cfg)
-
-	cmd := &cobra.Command{}
-	cmd.Flags().StringP("title", "t", chain33Cfg.GetTitle(), "for test")
+	paraName := ""
+	cfg := &rpctypes.ChainConfigInfo{
+		Title:         "chain33",
+		CoinExec:      types.DefaultCoinsExec,
+		CoinSymbol:    types.DefaultCoinsSymbol,
+		CoinPrecision: types.DefaultCoinPrecision,
+		IsPara:        false,
+	}
 
 	var err error
-	_, err = CreateRawTx(cmd, "", 0, "", false, "", "")
+	_, err = CreateRawTx(paraName, "", 0, "", false, "", "", cfg)
 	assert.Nil(t, err)
-	_, err = CreateRawTx(cmd, "", 0, "", false, "", "coins")
+	_, err = CreateRawTx(paraName, "", 0, "", false, "", "coins", cfg)
 	assert.Nil(t, err)
-	_, err = CreateRawTx(cmd, "", 0, "", true, "", "")
+	_, err = CreateRawTx(paraName, "", 0, "", true, "", "", cfg)
 	assert.Nil(t, err)
-	_, err = CreateRawTx(cmd, "", -1, "", false, "", "")
+	_, err = CreateRawTx(paraName, "", -1, "", false, "", "", cfg)
 	assert.Equal(t, types.ErrAmount, err)
-	_, err = CreateRawTx(cmd, "", 1e10, "", false, "", "")
+	_, err = CreateRawTx(paraName, "", 1e10, "", false, "", "", cfg)
 	assert.Equal(t, types.ErrAmount, err)
-	_, err = CreateRawTx(cmd, "", 0, "", false, "", "coins-")
+	_, err = CreateRawTx(paraName, "", 0, "", false, "", "coins-", cfg)
 	assert.Equal(t, types.ErrExecNameNotMatch, err)
 }
 

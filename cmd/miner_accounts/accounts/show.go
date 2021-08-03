@@ -174,9 +174,9 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 
 			m := &MinerAccount{
 				Addr:           k,
-				Total:          types.GetFormatFloat(total, coinPrecision),
-				Increase:       types.GetFormatFloat(increase, coinPrecision),
-				Frozen:         types.GetFormatFloat(v.curAcc.Frozen, coinPrecision),
+				Total:          types.GetFormatFloat(total, coinPrecision, true),
+				Increase:       types.GetFormatFloat(increase, coinPrecision, true),
+				Frozen:         types.GetFormatFloat(v.curAcc.Frozen, coinPrecision, true),
 				ExpectIncrease: strconv.FormatFloat(expectIncrease, 'f', int(types.ShowPrecision), 64),
 			}
 
@@ -197,7 +197,7 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 				m.MinerBtyDuring = "0.0000"
 			} else {
 				minerDelta := total - acc[0].Balance - acc[0].Frozen
-				m.MinerBtyDuring = types.GetFormatFloat(minerDelta, coinPrecision)
+				m.MinerBtyDuring = types.GetFormatFloat(minerDelta, coinPrecision, true)
 			}
 
 			miner.MinerAccounts = append(miner.MinerAccounts, m)
@@ -205,7 +205,7 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 			expectTotalIncrease += expectIncrease
 		}
 	}
-	miner.TotalIncrease = types.GetFormatFloat(totalIncrease, coinPrecision)
+	miner.TotalIncrease = types.GetFormatFloat(totalIncrease, coinPrecision, true)
 	miner.ExpectTotalIncrease = strconv.FormatFloat(expectTotalIncrease, 'f', int(types.ShowPrecision), 64)
 
 	return miner

@@ -132,7 +132,7 @@ func DecodeTx(tx *types.Transaction, coinPrecision int64) (*Transaction, error) 
 		Hash:       common.ToHex(tx.Hash()),
 		ChainID:    tx.ChainID,
 	}
-	feeResult := types.GetFormatFloat(tx.Fee, coinPrecision)
+	feeResult := types.GetFormatFloat(tx.Fee, coinPrecision, true)
 	result.FeeFmt = feeResult
 	return result, nil
 }

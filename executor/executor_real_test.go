@@ -165,7 +165,7 @@ func TestExecAllow(t *testing.T) {
 	tx2 := util.CreateTxWithExecer(cfg, genkey, "coins")          //allow
 	tx3 := util.CreateTxWithExecer(cfg, genkey, "evmxx")          //not allow
 	tx4 := util.CreateTxWithExecer(cfg, genkey, "user.evmxx.xxx") //allow
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, int64(100000000*types.DefaultCoinPrecision))
 	txs := []*types.Transaction{tx1, tx2, tx3, tx4}
 	var err error
 	block, err = util.ExecAndCheckBlockCB(mock33.GetClient(), block, txs, func(index int, receipt *types.ReceiptData) error {

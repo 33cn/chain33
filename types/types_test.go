@@ -13,8 +13,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/shopspring/decimal"
-
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types/jsonpb"
 	proto "github.com/golang/protobuf/proto"
@@ -674,40 +672,43 @@ func BenchmarkStr2Bytes(b *testing.B) {
 }
 
 func TestGetFormatFloat(t *testing.T) {
-	r := GetFormatFloat(0, DefaultCoinPrecision)
+	r := GetFormatFloat(0, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "0.0000")
 
-	r = GetFormatFloat(1, DefaultCoinPrecision)
+	r = GetFormatFloat(1, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "0.0000")
 
-	r = GetFormatFloat(12345678, DefaultCoinPrecision)
+	r = GetFormatFloat(12345678, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "0.1234")
 
-	r = GetFormatFloat(1234567812345678, DefaultCoinPrecision)
+	r = GetFormatFloat(12345678, DefaultCoinPrecision, true)
+	assert.Equal(t, r, "0.1235")
+
+	r = GetFormatFloat(1234567812345678, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "12345678.1234")
 
-	r = GetFormatFloat(9001234567812345678, DefaultCoinPrecision)
+	r = GetFormatFloat(9001234567812345678, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "90012345678.1234")
 
-	r = GetFormatFloat(12345678, 1)
+	r = GetFormatFloat(12345678, 1, false)
 	assert.Equal(t, r, "12345678")
 
-	r = GetFormatFloat(0, 1)
+	r = GetFormatFloat(0, 1, false)
 	assert.Equal(t, r, "0")
 
-	r = GetFormatFloat(9001234567812345678, 1)
+	r = GetFormatFloat(9001234567812345678, 1, false)
 	assert.Equal(t, r, "9001234567812345678")
 
-	r = GetFormatFloat(1234567812345678, 10)
+	r = GetFormatFloat(1234567812345678, 10, false)
 	assert.Equal(t, r, "123456781234567.8")
 
-	r = GetFormatFloat(9001234567812345678, 10)
+	r = GetFormatFloat(9001234567812345678, 10, false)
 	assert.Equal(t, r, "900123456781234567.8")
 
-	r = GetFormatFloat(0, 10)
+	r = GetFormatFloat(0, 10, false)
 	assert.Equal(t, r, "0.0")
 
-	r = GetFormatFloat(100000000, DefaultCoinPrecision)
+	r = GetFormatFloat(100000000, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "1.0000")
 
 }
@@ -744,7 +745,7 @@ func TestTransferFloat(t *testing.T) {
 	in = float64(MaxCoin)
 	v, err = TransferFloat(in, DefaultCoinPrecision)
 	assert.Nil(t, err)
-	assert.Equal(t, int64(MaxCoin*100000000), v)
+	assert.Equal(t, MaxCoin*100000000, v)
 
 	in = float64(0)
 	v, err = TransferFloat(in, DefaultCoinPrecision)
