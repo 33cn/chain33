@@ -11,14 +11,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ConfigCmd version command
-func ConfigCmd() *cobra.Command {
+// SystemCmd get system config command
+func SystemCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "system",
+		Short: "Get node system info",
+		Args:  cobra.MinimumNArgs(1),
+	}
+	cmd.AddCommand(
+		getConfigCmd(),
+	)
+	return cmd
+}
+
+// SystemCmd get system config command
+func getConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Get node system config",
+		Short: "Get node config",
 		Run:   config,
 	}
-
 	return cmd
 }
 
