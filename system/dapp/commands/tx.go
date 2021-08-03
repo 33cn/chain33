@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -176,7 +174,7 @@ func queryTx(cmd *cobra.Command, args []string) {
 func parseQueryTxRes(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*rpctypes.TransactionDetail)
 	cfg := arg[1].(*rpctypes.ChainConfigInfo)
-	amountResult := types.GetFormatFloat(res.Amount, cfg.CoinPrecision)
+	amountResult := types.GetFormatFloat(res.Amount, cfg.CoinPrecision, true)
 	result := commandtypes.TxDetailResult{
 		Tx:         commandtypes.DecodeTransaction(res.Tx),
 		Receipt:    res.Receipt,
@@ -240,7 +238,7 @@ func parseQueryTxsByHashesRes(arg ...interface{}) (interface{}, error) {
 			result.Txs = append(result.Txs, nil)
 			continue
 		}
-		amountResult := types.GetFormatFloat(v.Amount, cfg.CoinPrecision)
+		amountResult := types.GetFormatFloat(v.Amount, cfg.CoinPrecision, true)
 		td := commandtypes.TxDetailResult{
 			Tx:         commandtypes.DecodeTransaction(v.Tx),
 			Receipt:    v.Receipt,
@@ -361,8 +359,8 @@ func viewAddress(cmd *cobra.Command, args []string) {
 func parseAddrOverview(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*types.AddrOverview)
 	cfg := arg[1].(*rpctypes.ChainConfigInfo)
-	balance := types.GetFormatFloat(res.GetBalance(), cfg.CoinPrecision)
-	receiver := types.GetFormatFloat(res.GetReciver(), cfg.CoinPrecision)
+	balance := types.GetFormatFloat(res.GetBalance(), cfg.CoinPrecision, true)
+	receiver := types.GetFormatFloat(res.GetReciver(), cfg.CoinPrecision, true)
 	addrOverview := &commandtypes.AddrOverviewResult{
 		Balance:  balance,
 		Receiver: receiver,

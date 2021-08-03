@@ -201,7 +201,7 @@ func parseWalletTxListRes(arg ...interface{}) (interface{}, error) {
 	cfg := arg[1].(*rpctypes.ChainConfigInfo)
 	var result commandtypes.WalletTxDetailsResult
 	for _, v := range res.TxDetails {
-		amountResult := types.GetFormatFloat(v.Amount, cfg.CoinPrecision)
+		amountResult := types.GetFormatFloat(v.Amount, cfg.CoinPrecision, true)
 		wtxd := &commandtypes.WalletTxDetailResult{
 			Tx:         commandtypes.DecodeTransaction(v.Tx),
 			Receipt:    v.Receipt,
