@@ -115,7 +115,7 @@ func (s *ConnManager) MonitorAllPeers() {
 			s.printMonitorInfo()
 		case <-ticker2.C:
 			s.procConnections()
-		case <- ticker3.C:
+		case <-ticker3.C:
 			s.procRoutingTable()
 		}
 	}
