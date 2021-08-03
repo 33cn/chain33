@@ -15,9 +15,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/33cn/chain33/common"
-
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2p"
@@ -34,6 +33,7 @@ import (
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	"github.com/multiformats/go-multiaddr"
 )
@@ -266,7 +266,7 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	if p.subCfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
 		var maxconnect = int(p.subCfg.MaxConnectNum)
 		minconnect := maxconnect - int(manage.CacheLimit) //调整为不超过配置的上限
-		if minconnect < 0 {
+		if minconnect <= 0 {
 			minconnect = maxconnect / 2
 		}
 		//2分钟的宽限期,定期清理
@@ -290,9 +290,15 @@ func (p *P2P) managePeers() {
 			return
 		case <-time.After(time.Minute * 10):
 			//Refresh addr book
-			peersInfo := p.discovery.FindLocalPeers(p.connManager.FetchNearestPeers(50))
+			var peersInfo []peer.AddrInfo
+			for _, pid := range p.connManager.FetchNearestPeers(50) {
+				info := p.discovery.FindLocalPeer(pid)
+				if len(info.Addrs) != 0 {
+					peersInfo = append(peersInfo, info)
+				}
+			}
 			if len(peersInfo) != 0 {
-				p.addrBook.SaveAddr(peersInfo)
+				_ = p.addrBook.SaveAddr(peersInfo)
 			}
 		}
 	}
