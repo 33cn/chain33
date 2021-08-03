@@ -5,6 +5,7 @@ FixTime=false
 CoinSymbol="bty"
 #配置小数点后的精度，范围为0~8，缺省8，也就是1e8
 #CoinPrecision="8"
+#TokenPrecision="8"
 TxHeight=true
 ChainID=0
 AddrVer=0

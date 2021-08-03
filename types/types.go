@@ -667,13 +667,13 @@ func GetFormatFloat(val, coinPrecision int64, round bool) string {
 
 	//coinPrecision:5~8,
 	//v=99.12345678  => 99.1234,需要先truncate掉，不然5678会round到前一位也就是99.1235
-	if n > ShowPrecision {
+	if n > ShowPrecisionNum {
 		//有些需要圆整上来的,比如交易费,0.12345678,圆整为0.1235
 		if round {
-			return d.StringFixedBank(int32(ShowPrecision))
+			return d.StringFixedBank(int32(ShowPrecisionNum))
 		}
 		//有些需要直接truncate掉
-		return d.Truncate(int32(ShowPrecision)).StringFixedBank(int32(ShowPrecision))
+		return d.Truncate(int32(ShowPrecisionNum)).StringFixedBank(int32(ShowPrecisionNum))
 
 	}
 
@@ -704,8 +704,8 @@ func TransferFloat(val float64, coinPrecision int64) (int64, error) {
 	}
 
 	//如果配置精度超过4位，小数位只精确到后4位
-	if int64(coinPrecisionNum) > ShowPrecision {
-		return f.Truncate(int32(ShowPrecision)).Shift(int32(coinPrecisionNum)).IntPart(), nil
+	if int64(coinPrecisionNum) > ShowPrecisionNum {
+		return f.Truncate(int32(ShowPrecisionNum)).Shift(int32(coinPrecisionNum)).IntPart(), nil
 	}
 	//如果配置精度小于4位，乘精度
 	return f.Shift(int32(coinPrecisionNum)).IntPart(), nil

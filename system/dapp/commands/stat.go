@@ -140,7 +140,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		}
 
 		totalAmount = res.Total
-		resp.TotalAmount = types.GetFormatFloat(totalAmount, types.TokenPrecision, true)
+		resp.TotalAmount = types.GetFormatFloat(totalAmount, cfg.TokenPrecision, true)
 	}
 
 	if actual != "" {
@@ -175,8 +175,8 @@ func totalCoins(cmd *cobra.Command, args []string) {
 			resp.ActualAmount = types.GetFormatFloat(actualAmount, cfg.CoinPrecision, true)
 			resp.DifferenceAmount = types.GetFormatFloat(totalAmount-actualAmount, cfg.CoinPrecision, true)
 		} else {
-			resp.ActualAmount = types.GetFormatFloat(actualAmount, types.TokenPrecision, true)
-			resp.DifferenceAmount = types.GetFormatFloat(totalAmount-actualAmount, types.TokenPrecision, true)
+			resp.ActualAmount = types.GetFormatFloat(actualAmount, cfg.TokenPrecision, true)
+			resp.DifferenceAmount = types.GetFormatFloat(totalAmount-actualAmount, cfg.TokenPrecision, true)
 		}
 
 	}
@@ -314,7 +314,7 @@ func execBalance(cmd *cobra.Command, args []string) {
 	if symbol == "bty" {
 		convertReplyToResult(&replys, &resp, cfg.CoinPrecision)
 	} else {
-		convertReplyToResult(&replys, &resp, types.TokenPrecision)
+		convertReplyToResult(&replys, &resp, cfg.TokenPrecision)
 	}
 
 	data, err := json.MarshalIndent(resp, "", "    ")

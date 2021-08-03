@@ -177,7 +177,7 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 				Total:          types.GetFormatFloat(total, coinPrecision, true),
 				Increase:       types.GetFormatFloat(increase, coinPrecision, true),
 				Frozen:         types.GetFormatFloat(v.curAcc.Frozen, coinPrecision, true),
-				ExpectIncrease: strconv.FormatFloat(expectIncrease, 'f', int(types.ShowPrecision), 64),
+				ExpectIncrease: strconv.FormatFloat(expectIncrease, 'f', int(types.ShowPrecisionNum), 64),
 			}
 
 			//if m.Addr == "1Lw6QLShKVbKM6QvMaCQwTh5Uhmy4644CG" {
@@ -191,7 +191,7 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 			expectMinerInterval := float64(miner.Seconds/secondsPerBlock) / expectBlocks // 预期多少秒可以挖一个块
 			moniterInterval := int64(2*expectMinerInterval) + 1
 
-			m.ExpectMinerBlocks = strconv.FormatFloat(expectBlocks, 'f', int(types.ShowPrecision), 64)
+			m.ExpectMinerBlocks = strconv.FormatFloat(expectBlocks, 'f', int(types.ShowPrecisionNum), 64)
 			_, acc, err := cache.getBalance([]string{m.Addr}, "ticket", header.Height-moniterInterval)
 			if err != nil || len(acc) == 0 {
 				m.MinerBtyDuring = "0.0000"
@@ -206,7 +206,7 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpctypes.Account, header *
 		}
 	}
 	miner.TotalIncrease = types.GetFormatFloat(totalIncrease, coinPrecision, true)
-	miner.ExpectTotalIncrease = strconv.FormatFloat(expectTotalIncrease, 'f', int(types.ShowPrecision), 64)
+	miner.ExpectTotalIncrease = strconv.FormatFloat(expectTotalIncrease, 'f', int(types.ShowPrecisionNum), 64)
 
 	return miner
 
