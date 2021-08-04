@@ -294,10 +294,7 @@ func testStreamEOFReSet(t *testing.T) {
 	require.NoError(t, err)
 
 	s,err:=h1.NewStream(context.Background(),h2.ID(),protocol.ID(msgID))
-
 	require.NoError(t, err)
-	s.Write([]byte("hello"))
-
 	var buf = make([]byte, 128)
 	_, err = s.Read(buf)
 	require.True(t, err != nil)
