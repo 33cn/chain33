@@ -252,6 +252,7 @@ func TestPrivateNetwork(t *testing.T) {
 
 }
 
+
 func testStreamEOFReSet(t *testing.T) {
 	hosts := getNetHosts(context.Background(), 3, t)
 	msgID := "/streamTest/1.0"
@@ -324,9 +325,11 @@ func testStreamEOFReSet(t *testing.T) {
 	err = cprotocol.ReadStream(&resp, s)
 	require.True(t, err != nil)
 	if err != nil {
-		//在连接断开的时候，返回 stream reset
+		//服务端close connect 之后，客户端会触发：Application error 0x0 或者stream reset
 		t.Log("readStream from H3 Err:", err)
-		require.Equal(t, err.Error(), "stream reset")
+		if err.Error() != "Application error 0x0" {
+			require.Equal(t, err.Error(), "stream reset")
+		}
 	}
 
 	h1.Close()
