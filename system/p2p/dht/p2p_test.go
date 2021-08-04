@@ -6,33 +6,31 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/network"
-	"net"
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/stretchr/testify/assert"
-
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
+	cprotocol "github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
 	"github.com/libp2p/go-libp2p"
+	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
 )
 
 func init() {
@@ -128,21 +126,7 @@ func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	p2p.StartP2P()
 	return p2p
 }
-func newStream(host host.Host,pid peer.ID,proto protocol.ID)(network.Stream,error){
-	var i=10
-	var streamErr error
-	for i>0{
-		stream,err:= host.NewStream(context.Background(), pid, proto)
-		if err!=nil{
-			i--
-			streamErr=err
-			time.Sleep(time.Millisecond*300)
-			continue
-		}
-		return stream,nil
-	}
-	return nil,streamErr
-}
+
 func testP2PEvent(t *testing.T, qcli queue.Client) {
 
 	msg := qcli.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{})
@@ -278,11 +262,6 @@ func testStreamEOFReSet(t *testing.T) {
 	var err error
 	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("Meow! It worked!")
-		var buf []byte
-		_, err := s.Read(buf)
-		if err != nil {
-			t.Log("readStreamErr", err)
-		}
 		s.Close()
 	})
 
@@ -293,6 +272,12 @@ func testStreamEOFReSet(t *testing.T) {
 
 	h3.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("H3 Stream! It worked!")
+		var req types.ReqNil
+		err:=cprotocol.ReadStream(&req,s)
+		if err!=nil{
+			t.Log("readstream:",err)
+		}
+		require.NoError(t, err)
 		s.Conn().Close()
 	})
 
@@ -302,10 +287,10 @@ func testStreamEOFReSet(t *testing.T) {
 	}
 	err = h1.Connect(context.Background(), h2info)
 	require.NoError(t, err)
-	s, err := newStream(h1,h2.ID(),protocol.ID(msgID))
+	s,err:=h1.NewStream(context.Background(),h2.ID(),protocol.ID(msgID))
 	require.NoError(t, err)
-
 	s.Write([]byte("hello"))
+
 	var buf = make([]byte, 128)
 	_, err = s.Read(buf)
 	require.True(t, err != nil)
@@ -313,6 +298,7 @@ func testStreamEOFReSet(t *testing.T) {
 		//在stream关闭的时候返回EOF
 		t.Log("readStream from H2 Err", err)
 		require.Equal(t, err.Error(), "EOF")
+		s.Reset()
 	}
 
 
@@ -321,15 +307,17 @@ func testStreamEOFReSet(t *testing.T) {
 		Addrs: h3.Addrs(),
 	})
 	require.NoError(t, err)
-
-	s, err = newStream(h1,h3.ID(),protocol.ID(msgID))//h1.NewStream(context.Background(), h3.ID(), protocol.ID(msgID))
+	s,err=h1.NewStream(context.Background(),h3.ID(),protocol.ID(msgID))
 	if err!=nil{
-		t.Log("err:",err.Error())
-		require.Equal(t, err.Error(), "stream reset")
-		return
+		t.Log("newStream err:",err.Error())
 	}
+	require.NoError(t, err)
 
-	s.Write([]byte("hello"))
+	err= cprotocol.WriteStream(&types.ReqNil{},s)
+	if err!=nil{
+		t.Log("newStream Write err:",err.Error())
+	}
+	require.NoError(t, err)
 	_, err = s.Read(buf)
 	require.True(t, err != nil)
 	if err != nil {
