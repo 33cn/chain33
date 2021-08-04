@@ -131,7 +131,6 @@ func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	return p2p
 }
 
-
 func testP2PEvent(t *testing.T, qcli queue.Client) {
 
 	msg := qcli.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{})
@@ -278,9 +277,9 @@ func testStreamEOFReSet(t *testing.T) {
 	h3.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("H3 Stream! It worked!")
 		var req types.ReqNil
-		err:=cprotocol.ReadStream(&req,s)
-		if err!=nil{
-			t.Log("readstream:",err)
+		err := cprotocol.ReadStream(&req, s)
+		if err != nil {
+			t.Log("readstream:", err)
 		}
 		require.NoError(t, err)
 		s.Conn().Close()
@@ -293,7 +292,7 @@ func testStreamEOFReSet(t *testing.T) {
 	err = h1.Connect(context.Background(), h2info)
 	require.NoError(t, err)
 
-	s,err:=h1.NewStream(context.Background(),h2.ID(),protocol.ID(msgID))
+	s, err := h1.NewStream(context.Background(), h2.ID(), protocol.ID(msgID))
 
 	require.NoError(t, err)
 	s.Write([]byte("hello"))
@@ -313,16 +312,16 @@ func testStreamEOFReSet(t *testing.T) {
 		Addrs: h3.Addrs(),
 	})
 	require.NoError(t, err)
-	s,err=h1.NewStream(context.Background(),h3.ID(),protocol.ID(msgID))
-	if err!=nil{
-		t.Log("newStream err:",err.Error())
+	s, err = h1.NewStream(context.Background(), h3.ID(), protocol.ID(msgID))
+	if err != nil {
+		t.Log("newStream err:", err.Error())
 
 	}
 	require.NoError(t, err)
 
-	err= cprotocol.WriteStream(&types.ReqNil{},s)
-	if err!=nil{
-		t.Log("newStream Write err:",err.Error())
+	err = cprotocol.WriteStream(&types.ReqNil{}, s)
+	if err != nil {
+		t.Log("newStream Write err:", err.Error())
 	}
 	require.NoError(t, err)
 	_, err = s.Read(buf)
