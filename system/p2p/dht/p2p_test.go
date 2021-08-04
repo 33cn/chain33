@@ -254,7 +254,6 @@ func TestPrivateNetwork(t *testing.T) {
 }
 
 func testStreamEOFReSet(t *testing.T) {
-
 	hosts := getNetHosts(context.Background(), 3, t)
 	msgID := "/streamTest/1.0"
 	h1 := hosts[0]
@@ -294,8 +293,9 @@ func testStreamEOFReSet(t *testing.T) {
 
 	s,err:=h1.NewStream(context.Background(),h2.ID(),protocol.ID(msgID))
 	require.NoError(t, err)
-	var buf = make([]byte, 128)
-	_, err = s.Read(buf)
+
+	var resp types.ReqNil
+	err=cprotocol.ReadStream(&resp,s)
 	require.True(t, err != nil)
 	if err != nil {
 		//在stream关闭的时候返回EOF
@@ -304,15 +304,16 @@ func testStreamEOFReSet(t *testing.T) {
 		s.Reset()
 	}
 
+
 	err = h1.Connect(context.Background(), peer.AddrInfo{
 		ID:    h3.ID(),
 		Addrs: h3.Addrs(),
 	})
 	require.NoError(t, err)
+
 	s,err=h1.NewStream(context.Background(),h3.ID(),protocol.ID(msgID))
 	if err!=nil{
 		t.Log("newStream err:",err.Error())
-
 	}
 	require.NoError(t, err)
 
@@ -321,11 +322,12 @@ func testStreamEOFReSet(t *testing.T) {
 		t.Log("newStream Write err:",err.Error())
 	}
 	require.NoError(t, err)
-	_, err = s.Read(buf)
+
+	err=cprotocol.ReadStream(&resp,s)
 	require.True(t, err != nil)
 	if err != nil {
 		//在连接断开的时候，返回 stream reset
-		t.Log("readStream from H3 Err", err)
+		t.Log("readStream from H3 Err:", err)
 		require.Equal(t, err.Error(), "stream reset")
 	}
 
