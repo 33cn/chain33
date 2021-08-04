@@ -252,7 +252,6 @@ func TestPrivateNetwork(t *testing.T) {
 
 }
 
-
 func testStreamEOFReSet(t *testing.T) {
 	hosts := getNetHosts(context.Background(), 3, t)
 	msgID := "/streamTest/1.0"
