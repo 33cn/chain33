@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	cryptocli "github.com/33cn/chain33/common/crypto/client"
+
 	"github.com/33cn/chain33/p2p"
 
 	"github.com/33cn/chain33/account"
@@ -69,6 +71,7 @@ type Chain33Mock struct {
 	datadir  string
 	lastsend []byte
 	mu       sync.Mutex
+	crypto   queue.Module
 }
 
 //GetDefaultConfig :
@@ -99,7 +102,6 @@ func newWithConfig(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *C
 func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	mfg := cfg.GetModuleConfig()
 	sub := cfg.GetSubConfig()
-	crypto.Init(mfg.Crypto, sub.Crypto)
 	q := queue.New("channel")
 	q.SetConfig(cfg)
 	types.Debug = false
@@ -107,6 +109,8 @@ func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolA
 	mock := &Chain33Mock{cfg: mfg, sub: sub, q: q, datadir: datadir}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 
+	mock.crypto = cryptocli.New()
+	mock.crypto.SetQueueClient(q.Client())
 	mock.exec = executor.New(cfg)
 	mock.exec.SetQueueClient(q.Client())
 	lognode.Info("init exec")
@@ -322,6 +326,7 @@ func (mock *Chain33Mock) Close() {
 }
 
 func (mock *Chain33Mock) closeNoLock() {
+	mock.crypto.Close()
 	lognode.Info("network close")
 	mock.network.Close()
 	lognode.Info("network close")
