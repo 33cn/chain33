@@ -6,6 +6,18 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
+	"net"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+
+	core "github.com/libp2p/go-libp2p-core"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
@@ -16,21 +28,13 @@ import (
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net"
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
-	"time"
 )
 
 func init() {
@@ -126,6 +130,7 @@ func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	p2p.StartP2P()
 	return p2p
 }
+
 
 func testP2PEvent(t *testing.T, qcli queue.Client) {
 
@@ -250,14 +255,14 @@ func TestPrivateNetwork(t *testing.T) {
 
 func testStreamEOFReSet(t *testing.T) {
 
-	hosts:= getNetHosts(context.Background(),3,t)
+	hosts := getNetHosts(context.Background(), 3, t)
 	msgID := "/streamTest/1.0"
-	h1:=hosts[0]
-	h2:=hosts[1]
-	h3:=hosts[2]
-	t.Log("h1", h1.ID(),"h1.addr",h1.Addrs())
-	t.Log("h2:",h2.ID(),"h2.addr",h2.Addrs())
-	t.Log("h3:",h3.ID(),"h3.addr",h3.Addrs())
+	h1 := hosts[0]
+	h2 := hosts[1]
+	h3 := hosts[2]
+	t.Log("h1", h1.ID(), "h1.addr", h1.Addrs())
+	t.Log("h2:", h2.ID(), "h2.addr", h2.Addrs())
+	t.Log("h3:", h3.ID(), "h3.addr", h3.Addrs())
 
 	var err error
 	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
@@ -287,7 +292,9 @@ func testStreamEOFReSet(t *testing.T) {
 	}
 	err = h1.Connect(context.Background(), h2info)
 	require.NoError(t, err)
+
 	s,err:=h1.NewStream(context.Background(),h2.ID(),protocol.ID(msgID))
+
 	require.NoError(t, err)
 	s.Write([]byte("hello"))
 
@@ -301,7 +308,6 @@ func testStreamEOFReSet(t *testing.T) {
 		s.Reset()
 	}
 
-
 	err = h1.Connect(context.Background(), peer.AddrInfo{
 		ID:    h3.ID(),
 		Addrs: h3.Addrs(),
@@ -310,6 +316,7 @@ func testStreamEOFReSet(t *testing.T) {
 	s,err=h1.NewStream(context.Background(),h3.ID(),protocol.ID(msgID))
 	if err!=nil{
 		t.Log("newStream err:",err.Error())
+
 	}
 	require.NoError(t, err)
 
