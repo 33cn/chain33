@@ -264,7 +264,6 @@ func testStreamEOFReSet(t *testing.T) {
 	t.Log("h2:", h2.ID(), "h2.addr", h2.Addrs())
 	t.Log("h3:", h3.ID(), "h3.addr", h3.Addrs())
 
-	var err error
 	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("Meow! It worked!")
 		s.Close()
@@ -290,7 +289,7 @@ func testStreamEOFReSet(t *testing.T) {
 		ID:    h2.ID(),
 		Addrs: h2.Addrs(),
 	}
-	err = h1.Connect(context.Background(), h2info)
+	err := h1.Connect(context.Background(), h2info)
 	require.NoError(t, err)
 
 	s,err:=h1.NewStream(context.Background(),h2.ID(),protocol.ID(msgID))
