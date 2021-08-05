@@ -1,26 +1,13 @@
-package btcscript
+package script
 
 import (
-	"errors"
-
+	"github.com/33cn/chain33/common/log"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 )
 
 var (
-
-	// ErrInvalidMultiSigRequiredNum error required multi sig pub key num
-	ErrInvalidMultiSigRequiredNum = errors.New("ErrInvalidMultiSigRequiredNum")
-	// ErrInvalidBtcPubKey invalid bitcoin pubkey
-	ErrInvalidBtcPubKey = errors.New("ErrInvalidBtcPubKey")
-	// ErrBuildBtcScript build btc script error
-	ErrBuildBtcScript = errors.New("ErrBuildBtcScript")
-	// ErrNewBtcAddress new btc address pub key error
-	ErrNewBtcAddress = errors.New("ErrNewBtcAddress")
-	// ErrGetBtcTxInSig get btc tx input signature error
-	ErrGetBtcTxInSig = errors.New("ErrGetBtcTxInSig")
-	// ErrNewBtcScriptSig new btc script sig error
-	ErrNewBtcScriptSig = errors.New("ErrNewBtcScriptSig")
+	btcLog = log.New("module", "btc.script")
 )
 
 // NewMultiSigScript multi-sig pubKey script
@@ -106,7 +93,7 @@ func GetWalletRecoverySignature(isRetrieve bool, signMsg, privKey, walletRecover
 		return nil, nil, ErrBuildBtcScript
 	}
 
-	sig, err = NewBtcScriptSig(walletRecoverScript, unlockScript, 0, utxoSequence)
+	sig, err = newBtcScriptSig(walletRecoverScript, unlockScript, 0, utxoSequence)
 	if err != nil {
 		btcLog.Error("GetWalletRecoverySignature", "new btc script sig err", err)
 		return nil, nil, ErrNewBtcScriptSig

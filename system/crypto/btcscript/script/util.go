@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package btcscript
+package script
 
 import (
 	"errors"
@@ -25,6 +25,9 @@ const (
 	TyPay2PubKeyHash
 	// TyPay2ScriptHash Pay to Script Hash
 	TyPay2ScriptHash
+
+	// 比特币交易版本
+	btcTxVersion = 10
 )
 
 // Chain33BtcParams 比特币相关区块链参数
@@ -38,9 +41,6 @@ var Chain33BtcParams = &chaincfg.Params{
 	WitnessPubKeyHashAddrID: 0x06, // starts with p2
 	WitnessScriptHashAddrID: 0x0A, // starts with 7Xh
 }
-
-// SetSignOpt 设置签名参数
-type SetSignOpt func(*btcSignOption)
 
 // BtcAddr2Key 比特币编码地址及对应的私钥，用于签名KeyDB
 type BtcAddr2Key struct {
@@ -60,9 +60,9 @@ func NewBtcKeyFromBytes(priv []byte) (*btcec.PrivateKey, *btcec.PublicKey) {
 }
 
 // GetBtcLockScript 根据地址类型，生成锁定脚本
-func GetBtcLockScript(scriptTy int32, pkScript []byte, params *chaincfg.Params) (btcutil.Address, []byte, error) {
+func GetBtcLockScript(scriptTy int32, pkScript []byte) (btcutil.Address, []byte, error) {
 
-	btcAddr, err := getBtcAddr(scriptTy, pkScript, params)
+	btcAddr, err := getBtcAddr(scriptTy, pkScript, Chain33BtcParams)
 	if err != nil {
 		return nil, nil, errors.New("get btc Addr err:" + err.Error())
 	}
@@ -86,10 +86,11 @@ func getBtcAddr(scriptTy int32, pkScript []byte, params *chaincfg.Params) (btcut
 }
 
 // GetBtcUnlockScript 生成比特币解锁脚本
-func GetBtcUnlockScript(btcTx *wire.MsgTx, lockScript, prevScript []byte,
-	params *chaincfg.Params, kdb txscript.KeyDB, sdb txscript.ScriptDB) ([]byte, error) {
+func GetBtcUnlockScript(signMsg, lockScript, prevScript []byte,
+	kdb txscript.KeyDB, sdb txscript.ScriptDB) ([]byte, error) {
 
-	sigScript, err := txscript.SignTxOutput(params, btcTx, 0,
+	btcTx := getBindBtcTx(signMsg)
+	sigScript, err := txscript.SignTxOutput(Chain33BtcParams, btcTx, 0,
 		lockScript, txscript.SigHashAll, kdb, sdb, prevScript)
 	if err != nil {
 		return nil, errors.New("sign btc tx output err:" + err.Error())
@@ -115,7 +116,17 @@ func CheckBtcScript(msg []byte, sig *Signature) error {
 }
 
 // NewBtcScriptSig new btc script signature
-func NewBtcScriptSig(lockScript, unlockScript []byte, lockTime, utxoSeq int64) ([]byte, error) {
+func NewBtcScriptSig(lockScript, unlockScript []byte) ([]byte, error) {
+	return newBtcScriptSig(lockScript, unlockScript, 0, 0)
+}
+
+// NewBtcScriptSigWithDelay new btc script signature with lockTime or sequence
+func NewBtcScriptSigWithDelay(lockScript, unlockScript []byte, lockTime, utxoSeq int64) ([]byte, error) {
+	return newBtcScriptSig(lockScript, unlockScript, lockTime, utxoSeq)
+}
+
+// NewBtcScriptSig new btc script signature
+func newBtcScriptSig(lockScript, unlockScript []byte, lockTime, utxoSeq int64) ([]byte, error) {
 	sig := &Signature{
 		LockScript:   lockScript,
 		UnlockScript: unlockScript,
@@ -135,7 +146,7 @@ func Script2PubKey(lockScript []byte) []byte {
 // HACK: 通过构造临时比特币交易，将第一个输入的chainHash设为签名数据的哈希，完成绑定关系
 func getBindBtcTx(msg []byte) *wire.MsgTx {
 
-	tx := &wire.MsgTx{Version: ID, TxIn: []*wire.TxIn{{}}}
+	tx := &wire.MsgTx{Version: btcTxVersion, TxIn: []*wire.TxIn{{}}}
 	_ = tx.TxIn[0].PreviousOutPoint.Hash.SetBytes(common.Sha256(msg)[:chainhash.HashSize])
 	return tx
 }
@@ -154,11 +165,12 @@ func setBtcTx(tx *wire.MsgTx, lockTime, utxoSequence int64, sigScript []byte) {
 	}
 }
 
-func mkGetKey(keyAddr ...*BtcAddr2Key) txscript.KeyDB {
+// MakeKeyDB make btc script key db
+func MakeKeyDB(keyAddr ...*BtcAddr2Key) txscript.KeyDB {
 	if len(keyAddr) <= 0 {
 		return txscript.KeyClosure(func(addr btcutil.Address) (*btcec.PrivateKey,
 			bool, error) {
-			return nil, false, errors.New("mkGetKey:privKey not exist")
+			return nil, false, ErrBtcKeyNotExist
 		})
 	}
 	keys := make(map[string]*btcec.PrivateKey, len(keyAddr))
@@ -169,17 +181,18 @@ func mkGetKey(keyAddr ...*BtcAddr2Key) txscript.KeyDB {
 		bool, error) {
 		key, ok := keys[addr.EncodeAddress()]
 		if !ok {
-			return nil, false, errors.New("mkGetKey:privKey not exist")
+			return nil, false, ErrBtcKeyNotExist
 		}
 		return key, true, nil
 	})
 }
 
-func mkGetScript(scriptArr ...*BtcAddr2Script) txscript.ScriptDB {
+//  MakeScriptDB make btc script db
+func MakeScriptDB(scriptArr ...*BtcAddr2Script) txscript.ScriptDB {
 
 	if len(scriptArr) <= 0 {
 		return txscript.ScriptClosure(func(addr btcutil.Address) ([]byte, error) {
-			return nil, errors.New("mkGetScript:Script not exist")
+			return nil, ErrBtcScriptNotExist
 		})
 	}
 	scripts := make(map[string][]byte, len(scriptArr))
@@ -189,66 +202,8 @@ func mkGetScript(scriptArr ...*BtcAddr2Script) txscript.ScriptDB {
 	return txscript.ScriptClosure(func(addr btcutil.Address) ([]byte, error) {
 		script, ok := scripts[addr.EncodeAddress()]
 		if !ok {
-			return nil, errors.New("mkGetScript:Script not exist")
+			return nil, ErrBtcScriptNotExist
 		}
 		return script, nil
 	})
-}
-
-// WithBtcLockScript 指定比特币锁定脚本以及对应的脚本编码地址
-func WithBtcLockScript(lockScript []byte) SetSignOpt {
-	return func(opt *btcSignOption) {
-		opt.lockScript = lockScript
-	}
-}
-
-// WithBtcPrivateKeys 指定私钥对应的编码地址，用于比特币签名kdb索引
-func WithBtcPrivateKeys(keys ...*BtcAddr2Key) SetSignOpt {
-	return func(opt *btcSignOption) {
-		opt.keys = append(opt.keys, keys...)
-	}
-}
-
-// WithBtcScripts 指定脚本对应的编码地址，用于比特币签名sdb索引
-func WithBtcScripts(scripts ...*BtcAddr2Script) SetSignOpt {
-	return func(opt *btcSignOption) {
-		opt.scripts = append(opt.scripts, scripts...)
-	}
-}
-
-// WithPreviousSigScript 分步签名脚本聚合, 例如多重签名不同人依次签名
-func WithPreviousSigScript(prevScript []byte) SetSignOpt {
-	return func(opt *btcSignOption) {
-		opt.prevSigScript = prevScript
-	}
-}
-
-// 设置签名相关参数
-func applySignOption(option *btcSignOption, opts ...interface{}) {
-
-	for _, opt := range opts {
-		set, ok := opt.(SetSignOpt)
-		if ok {
-			set(option)
-		}
-	}
-}
-
-// 初始化默认参数，默认即采用Pay to PubKey
-func initBtcSignOption(privateKey []byte) *btcSignOption {
-
-	option := &btcSignOption{
-		btcParams: Chain33BtcParams,
-	}
-
-	priv, pub := btcec.PrivKeyFromBytes(btcec.S256(), privateKey)
-	addr, lockScript, err := GetBtcLockScript(TyPay2PubKey, pub.SerializeCompressed(), option.btcParams)
-	if err != nil {
-		panic("initBtcSignOption err: " + err.Error())
-	}
-
-	option.lockScript = lockScript
-	ecAddr := addr.EncodeAddress()
-	option.keys = append(option.keys, &BtcAddr2Key{Addr: ecAddr, Key: priv})
-	return option
 }

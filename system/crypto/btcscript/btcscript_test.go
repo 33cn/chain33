@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// btcscript_test btc script test example
-package btcscript_test
+// script_test btc script test example
+package btcscript
 
 import (
 	"testing"
@@ -11,70 +11,75 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 
-	"github.com/33cn/chain33/system/crypto/btcscript"
+	"github.com/33cn/chain33/system/crypto/btcscript/script"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/require"
 )
 
-// 转账到地址
+// 转账到公钥
 func Test_ExamplePay2PubKey(t *testing.T) {
 
-	d := btcscript.Driver{}
+	d := Driver{}
 	priv, err := d.GenKey()
 	require.Nil(t, err)
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	tx := util.CreateNoneTx(cfg, nil)
 	signMsg := types.Encode(tx)
-	// default sign
-	sig := priv.Sign(signMsg)
+
+	btcPriv, btcPub := script.NewBtcKeyFromBytes(priv.Bytes())
+
+	btcAddr, lockScript, err := script.GetBtcLockScript(script.TyPay2PubKey, btcPub.SerializeCompressed())
+	require.Nil(t, err)
+	unlockScript, err := script.GetBtcUnlockScript(signMsg, lockScript, nil,
+		script.MakeKeyDB(&script.BtcAddr2Key{
+			Addr: btcAddr.EncodeAddress(),
+			Key:  btcPriv,
+		}), nil)
+	require.Nil(t, err)
+	sig, err := script.NewBtcScriptSig(lockScript, unlockScript)
+	require.Nil(t, err)
 	tx.Signature = &types.Signature{
-		Ty:        btcscript.ID,
-		Signature: sig.Bytes(),
-		Pubkey:    priv.PubKey().Bytes(),
+		Ty:        ID,
+		Signature: sig,
+		Pubkey:    script.Script2PubKey(lockScript),
 	}
 
 	require.True(t, tx.CheckSign(0))
-	tx.Signature.Pubkey = []byte("invalid pub Key")
+	//invalid pub key
+	tx.Signature.Pubkey = priv.PubKey().Bytes()
 	require.False(t, tx.CheckSign(0))
-	// with pay2pubKey option
-	key, pk := btcscript.NewBtcKeyFromBytes(priv.Bytes())
-	addr, lockScript, err := btcscript.GetBtcLockScript(
-		btcscript.TyPay2PubKey, pk.SerializeCompressed(), btcscript.Chain33BtcParams)
-	require.Equal(t, nil, err)
-
-	signOpts := []interface{}{btcscript.WithBtcLockScript(lockScript),
-		btcscript.WithBtcPrivateKeys(&btcscript.BtcAddr2Key{Addr: addr.EncodeAddress(), Key: key})}
-	sig = priv.Sign(signMsg, signOpts...)
-	tx.Signature.Signature = sig.Bytes()
-	tx.Signature.Pubkey = priv.PubKey(signOpts...).Bytes()
-	require.True(t, tx.CheckSign(0))
 }
 
+// 转账到地址
 func Test_ExamplePay2PubKeyHash(t *testing.T) {
 
-	d := btcscript.Driver{}
+	d := Driver{}
 	priv, err := d.GenKey()
 	require.Nil(t, err)
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	tx := util.CreateNoneTx(cfg, nil)
 	signMsg := types.Encode(tx)
 
-	key, pk := btcscript.NewBtcKeyFromBytes(priv.Bytes())
-	addr, pkScript, err := btcscript.GetBtcLockScript(
-		btcscript.TyPay2PubKeyHash, pk.SerializeCompressed(), btcscript.Chain33BtcParams)
-	require.Equal(t, nil, err)
+	btcPriv, btcPub := script.NewBtcKeyFromBytes(priv.Bytes())
 
-	signOpts := []interface{}{btcscript.WithBtcLockScript(pkScript),
-		btcscript.WithBtcPrivateKeys(&btcscript.BtcAddr2Key{Addr: addr.EncodeAddress(), Key: key})}
-	sig := priv.Sign(signMsg, signOpts...)
+	btcAddr, lockScript, err := script.GetBtcLockScript(script.TyPay2PubKeyHash, btcPub.SerializeCompressed())
+	require.Nil(t, err)
+	unlockScript, err := script.GetBtcUnlockScript(signMsg, lockScript, nil,
+		script.MakeKeyDB(&script.BtcAddr2Key{
+			Addr: btcAddr.EncodeAddress(),
+			Key:  btcPriv,
+		}), nil)
+	require.Nil(t, err)
+	sig, err := script.NewBtcScriptSig(lockScript, unlockScript)
+	require.Nil(t, err)
 	tx.Signature = &types.Signature{
-		Ty:        btcscript.ID,
-		Signature: sig.Bytes(),
-		Pubkey:    priv.PubKey(signOpts...).Bytes(),
+		Ty:        ID,
+		Signature: sig,
+		Pubkey:    script.Script2PubKey(lockScript),
 	}
+
 	require.True(t, tx.CheckSign(0))
-	// invalid pub key
 	tx.Signature.Pubkey = priv.PubKey().Bytes()
 	require.False(t, tx.CheckSign(0))
 }
@@ -82,31 +87,39 @@ func Test_ExamplePay2PubKeyHash(t *testing.T) {
 // 转账到脚本
 func Test_ExamplePay2ScriptHash(t *testing.T) {
 
-	d := btcscript.Driver{}
+	d := Driver{}
 	priv, err := d.GenKey()
 	require.Nil(t, err)
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	tx := util.CreateNoneTx(cfg, nil)
 	signMsg := types.Encode(tx)
 
-	key, pk := btcscript.NewBtcKeyFromBytes(priv.Bytes())
-	addr, pkScript, err := btcscript.GetBtcLockScript(
-		btcscript.TyPay2PubKeyHash, pk.SerializeCompressed(), btcscript.Chain33BtcParams)
-	require.Equal(t, nil, err)
+	btcPriv, btcPub := script.NewBtcKeyFromBytes(priv.Bytes())
 
-	scriptAddr, lockScript, err := btcscript.GetBtcLockScript(
-		btcscript.TyPay2ScriptHash, pkScript, btcscript.Chain33BtcParams)
-	require.Equal(t, nil, err)
+	btcAddr, pkScript, err := script.GetBtcLockScript(script.TyPay2PubKeyHash, btcPub.SerializeCompressed())
+	require.Nil(t, err)
 
-	signOpts := []interface{}{btcscript.WithBtcLockScript(lockScript),
-		btcscript.WithBtcPrivateKeys(&btcscript.BtcAddr2Key{Addr: addr.EncodeAddress(), Key: key}),
-		btcscript.WithBtcScripts(&btcscript.BtcAddr2Script{Addr: scriptAddr.EncodeAddress(), Script: pkScript})}
-	sig := priv.Sign(signMsg, signOpts...)
+	scriptAddr, lockScript, err := script.GetBtcLockScript(script.TyPay2ScriptHash, pkScript)
+	require.Nil(t, err)
+
+	unlockScript, err := script.GetBtcUnlockScript(signMsg, lockScript, nil,
+		script.MakeKeyDB(&script.BtcAddr2Key{
+			Addr: btcAddr.EncodeAddress(),
+			Key:  btcPriv,
+		}), script.MakeScriptDB(&script.BtcAddr2Script{
+			Addr:   scriptAddr.EncodeAddress(),
+			Script: pkScript,
+		}))
+	require.Nil(t, err)
+
+	sig, err := script.NewBtcScriptSig(lockScript, unlockScript)
+	require.Nil(t, err)
 	tx.Signature = &types.Signature{
-		Ty:        btcscript.ID,
-		Signature: sig.Bytes(),
-		Pubkey:    priv.PubKey(signOpts...).Bytes(),
+		Ty:        ID,
+		Signature: sig,
+		Pubkey:    script.Script2PubKey(lockScript),
 	}
+
 	require.True(t, tx.CheckSign(0))
 	// invalid pub key
 	tx.Signature.Pubkey = priv.PubKey().Bytes()
@@ -116,7 +129,7 @@ func Test_ExamplePay2ScriptHash(t *testing.T) {
 // 多重签名
 func Test_ExampleMultiSig(t *testing.T) {
 
-	d := btcscript.Driver{}
+	d := Driver{}
 	priv1, err := d.GenKey()
 	require.Nil(t, err)
 	priv2, err := d.GenKey()
@@ -124,74 +137,73 @@ func Test_ExampleMultiSig(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	tx := util.CreateNoneTx(cfg, nil)
 	signMsg := types.Encode(tx)
-	key1, pk1 := btcscript.NewBtcKeyFromBytes(priv1.Bytes())
-	key2, pk2 := btcscript.NewBtcKeyFromBytes(priv2.Bytes())
-	addr1, err := btcutil.NewAddressPubKey(pk1.SerializeCompressed(), btcscript.Chain33BtcParams)
+	key1, pk1 := script.NewBtcKeyFromBytes(priv1.Bytes())
+	key2, pk2 := script.NewBtcKeyFromBytes(priv2.Bytes())
+	addr1, err := btcutil.NewAddressPubKey(pk1.SerializeCompressed(), script.Chain33BtcParams)
 	require.Nil(t, err)
 
-	addr2, err := btcutil.NewAddressPubKey(pk2.SerializeCompressed(), btcscript.Chain33BtcParams)
+	addr2, err := btcutil.NewAddressPubKey(pk2.SerializeCompressed(), script.Chain33BtcParams)
 	require.Nil(t, err)
 
 	pkScript, err := txscript.MultiSigScript([]*btcutil.AddressPubKey{addr1, addr2}, 2)
 	require.Nil(t, err)
 
-	scriptAddr, lockScript, err := btcscript.GetBtcLockScript(
-		btcscript.TyPay2ScriptHash, pkScript, btcscript.Chain33BtcParams)
+	scriptAddr, lockScript, err := script.GetBtcLockScript(script.TyPay2ScriptHash, pkScript)
 	require.Equal(t, nil, err)
 
 	// 只进行其中一个账户签名
-	signOpts := []interface{}{btcscript.WithBtcLockScript(lockScript),
-		btcscript.WithBtcPrivateKeys(&btcscript.BtcAddr2Key{
-			Addr: addr1.EncodeAddress(), Key: key1}),
-		btcscript.WithBtcScripts(&btcscript.BtcAddr2Script{
-			Addr: scriptAddr.EncodeAddress(), Script: pkScript}),
-	}
+	unlockScript, err := script.GetBtcUnlockScript(signMsg, lockScript, nil,
+		script.MakeKeyDB(&script.BtcAddr2Key{
+			Addr: addr1.EncodeAddress(),
+			Key:  key1,
+		}), script.MakeScriptDB(&script.BtcAddr2Script{
+			Addr:   scriptAddr.EncodeAddress(),
+			Script: pkScript,
+		}))
+	require.Nil(t, err)
 
-	sig1 := priv1.Sign(signMsg, signOpts...)
-
+	sig, err := script.NewBtcScriptSig(lockScript, unlockScript)
+	require.Nil(t, err)
 	tx.Signature = &types.Signature{
-		Ty:        btcscript.ID,
-		Signature: sig1.Bytes(),
-		Pubkey:    priv1.PubKey(signOpts...).Bytes(),
+		Ty:        ID,
+		Signature: sig,
+		Pubkey:    script.Script2PubKey(lockScript),
 	}
-	// 只进行了一个账户签名，验证失败
+	// 只进行了其中一个多签账户签名，不满足2:2要求，验证失败
 	require.False(t, tx.CheckSign(0))
 
 	// 在地址1基础上进行地址2的签名
-	ssig := &btcscript.Signature{}
-	err = types.Decode(sig1.Bytes(), ssig)
+	unlockScript, err = script.GetBtcUnlockScript(signMsg, lockScript, unlockScript,
+		script.MakeKeyDB(&script.BtcAddr2Key{
+			Addr: addr2.EncodeAddress(),
+			Key:  key2,
+		}), script.MakeScriptDB(&script.BtcAddr2Script{
+			Addr:   scriptAddr.EncodeAddress(),
+			Script: pkScript,
+		}))
 	require.Nil(t, err)
-
-	signOpts = []interface{}{
-		btcscript.WithPreviousSigScript(ssig.UnlockScript), //指定其中一个签名
-		btcscript.WithBtcLockScript(lockScript),
-		btcscript.WithBtcPrivateKeys(&btcscript.BtcAddr2Key{
-			Addr: addr2.EncodeAddress(), Key: key2}),
-		btcscript.WithBtcScripts(&btcscript.BtcAddr2Script{
-			Addr: scriptAddr.EncodeAddress(), Script: pkScript}),
-	}
-	sig2 := priv2.Sign(signMsg, signOpts...)
-	tx.Signature.Signature = sig2.Bytes()
-	tx.Signature.Pubkey = priv2.PubKey(signOpts...).Bytes()
+	sig, err = script.NewBtcScriptSig(lockScript, unlockScript)
+	require.Nil(t, err)
+	tx.Signature.Signature = sig
 	require.True(t, tx.CheckSign(0))
 
 	// 单步多签，多个私钥同时签名
-	signOpts = []interface{}{
-		btcscript.WithBtcLockScript(lockScript),
-		btcscript.WithBtcPrivateKeys(&btcscript.BtcAddr2Key{
-			Addr: addr1.EncodeAddress(), Key: key1}),
-		btcscript.WithBtcPrivateKeys(&btcscript.BtcAddr2Key{
-			Addr: addr2.EncodeAddress(), Key: key2}),
-		btcscript.WithBtcScripts(&btcscript.BtcAddr2Script{
-			Addr: scriptAddr.EncodeAddress(), Script: pkScript}),
-	}
-
-	sig := priv1.Sign(signMsg, signOpts...)
-	tx.Signature.Signature = sig.Bytes()
-	require.True(t, tx.CheckSign(0))
-
-	sig = priv2.Sign(signMsg, signOpts...)
-	tx.Signature.Signature = sig.Bytes()
+	unlockScript, err = script.GetBtcUnlockScript(signMsg, lockScript, nil,
+		script.MakeKeyDB(&script.BtcAddr2Key{
+			Addr: addr1.EncodeAddress(),
+			Key:  key1,
+		}, &script.BtcAddr2Key{
+			Addr: addr2.EncodeAddress(),
+			Key:  key2,
+		}),
+		script.MakeScriptDB(&script.BtcAddr2Script{
+			Addr:   scriptAddr.EncodeAddress(),
+			Script: pkScript,
+		}))
+	require.Nil(t, err)
+	sig, err = script.NewBtcScriptSig(lockScript, unlockScript)
+	require.Nil(t, err)
+	tx.Signature.Signature = sig
 	require.True(t, tx.CheckSign(0))
 
 	// invalid pub key
