@@ -270,7 +270,7 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 			if err != nil {
 				panic(fmt.Sprintf("config.CoinPrecision=%s,err=%s", cfg.CoinPrecision, err.Error()))
 			}
-			if n < 0 || n > int64(math.Log10(DefaultCoinPrecision)) {
+			if n < 0 || n > int64(math.Log10(float64(DefaultCoinPrecision))) {
 				panic(fmt.Sprintf("config coinPrecision=%d not in 0~8", n))
 			}
 			c.coinPrecision = int64(math.Pow10(int(n)))
@@ -281,7 +281,7 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 			if err != nil {
 				panic(fmt.Sprintf("config.TokenPrecision=%s,err=%s", cfg.TokenPrecision, err.Error()))
 			}
-			if n < 0 || n > int64(math.Log10(DefaultCoinPrecision)) {
+			if n < 0 || n > int64(math.Log10(float64(DefaultCoinPrecision))) {
 				panic(fmt.Sprintf("config TokenPrecision=%d not in 0~8", n))
 			}
 			c.tokenPrecision = int64(math.Pow10(int(n)))

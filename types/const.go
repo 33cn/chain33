@@ -41,7 +41,7 @@ const (
 const (
 	DefaultCoinsExec     = "coins"
 	DefaultCoinsSymbol   = "bty"
-	DefaultCoinPrecision = 1e8
+	DefaultCoinPrecision = int64(1e8)
 )
 
 //UserKeyX 用户自定义执行器前缀byte类型
