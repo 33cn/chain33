@@ -74,7 +74,7 @@ func TestNone_CheckTx(t *testing.T) {
 
 func TestNone_Exec_CommitDelayTx(t *testing.T) {
 
-	q, dbDir, n, cfg := initTestNone()
+	_, dbDir, n, cfg := initTestNone()
 	defer util.CloseTestDB(dbDir, n.GetStateDB().(db.DB))
 	addr, priv := util.Genaddress()
 	delayTx := util.CreateNoneTx(cfg, priv)
@@ -85,19 +85,7 @@ func TestNone_Exec_CommitDelayTx(t *testing.T) {
 	tx, err = types.FormatTx(cfg, driverName, tx)
 	require.Nil(t, err)
 	tx.Sign(int32(types.SECP256K1), priv)
-	done := make(chan struct{})
-	go func() {
-		cli := q.Client()
-		cli.Sub("mempool")
-		for msg := range cli.Recv() {
-			require.Equal(t, int64(types.EventAddDelayTx), msg.Ty)
-			tx, ok := msg.GetData().(*types.DelayTx)
-			require.True(t, ok)
-			require.Equal(t, delayTx.Hash(), tx.GetTx().Hash())
-			done <- struct{}{}
-			return
-		}
-	}()
+
 	recp, err := n.Exec(tx, 0)
 	require.Nil(t, err)
 	require.True(t, types.ExecOk == recp.Ty)
@@ -109,7 +97,6 @@ func TestNone_Exec_CommitDelayTx(t *testing.T) {
 	require.Equal(t, common.ToHex(delayTx.Hash()), info.DelayTxHash)
 	require.Equal(t, addr, info.Submitter)
 	require.True(t, 10 == info.EndDelayTime)
-	<-done
 }
 
 func TestNone_ExecLocal_CommitDelayTx(t *testing.T) {

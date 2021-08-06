@@ -1,7 +1,11 @@
 package mempool
 
 import (
+	"strings"
+
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
+	nty "github.com/33cn/chain33/system/dapp/none/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -172,14 +176,45 @@ func (mem *Mempool) eventAddBlock(msg *queue.Message) {
 		mem.RemoveTxsOfBlock(block)
 		mem.removeExpired()
 	}
-
-	// 添加区块，推送延时到期的延时交易
-	mem.pushDelayTx(mem.cache.delayCache, lastHeader.GetBlockTime(),
+	// 检测是否存在延时存证交易，并将其中的延时交易进行暂存
+	mem.addDelayTx(mem.cache.delayCache, block)
+	// 区块高度增长，推送延时到期的延时交易
+	mem.pushExpiredDelayTx(mem.cache.delayCache, lastHeader.GetBlockTime(),
 		block.GetBlockTime(), block.GetHeight())
 
 }
 
-func (mem *Mempool) pushDelayTx(delayCache *delayTxCache, lastBlockTime,
+// add delay tx from new block
+func (mem *Mempool) addDelayTx(cache *delayTxCache, block *types.Block) {
+
+	// resolve commit delay tx type
+	for _, tx := range block.GetTxs() {
+
+		if !strings.Contains(string(tx.Execer), nty.NoneX) {
+			continue
+		}
+
+		action := &nty.NoneAction{}
+		if err := types.Decode(tx.Payload, action); err != nil || action.Ty != nty.TyCommitDelayTxAction ||
+			action.GetCommitDelayTx().GetDelayTx() == nil {
+			continue
+		}
+		commitInfo := action.GetCommitDelayTx()
+		delayTx := &types.DelayTx{}
+		delayTx.Tx = commitInfo.GetDelayTx()
+		delayTx.EndDelayTime = commitInfo.RelativeDelayTime + block.GetBlockTime()
+		if commitInfo.IsBlockHeightDelayTime {
+			delayTx.EndDelayTime = commitInfo.RelativeDelayTime + block.GetHeight()
+		}
+		if err := cache.addDelayTx(delayTx); err != nil {
+			mlog.Error("addDelayTx", "txHash", common.ToHex(tx.Hash()),
+				"delayTxHash", common.ToHex(delayTx.Tx.Hash()), "add delay tx cache error", err)
+		}
+	}
+}
+
+// push expired delay tx to mempool
+func (mem *Mempool) pushExpiredDelayTx(delayCache *delayTxCache, lastBlockTime,
 	currBlockTime, currBlockHeight int64) {
 
 	delayTxList := delayCache.delExpiredTxs(
