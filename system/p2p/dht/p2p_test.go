@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
 	"net"
 	"os"
 	"path/filepath"
@@ -13,18 +14,20 @@ import (
 	"testing"
 	"time"
 
+	core "github.com/libp2p/go-libp2p-core"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
+	cprotocol "github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/metrics"
@@ -250,59 +253,17 @@ func TestPrivateNetwork(t *testing.T) {
 }
 
 func testStreamEOFReSet(t *testing.T) {
+	hosts := getNetHosts(context.Background(), 3, t)
+	msgID := "/streamTest/1.0"
+	h1 := hosts[0]
+	h2 := hosts[1]
+	h3 := hosts[2]
+	t.Log("h1", h1.ID(), "h1.addr", h1.Addrs())
+	t.Log("h2:", h2.ID(), "h2.addr", h2.Addrs())
+	t.Log("h3:", h3.ID(), "h3.addr", h3.Addrs())
 
-	r := rand.Reader
-	prvKey1, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-	r = rand.Reader
-	prvKey2, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-
-	r = rand.Reader
-	prvKey3, _, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		panic(err)
-	}
-
-	msgID := "/streamTest"
-
-	var subcfg, subcfg2, subcfg3 p2pty.P2PSubConfig
-	subcfg.Port = 22345
-	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg.Port))
-	if err != nil {
-		panic(err)
-	}
-	h1 := newHost(&subcfg, prvKey1, nil, maddr)
-	t.Log("h1", h1.ID())
-	//-------------------------
-
-	subcfg2.Port = 22346
-	maddr2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg2.Port))
-	if err != nil {
-		panic(err)
-	}
-	h2 := newHost(&subcfg2, prvKey2, nil, maddr2)
-	t.Log("h2", h2.ID())
-	//-------------------------------------
-
-	subcfg3.Port = 22347
-	maddr3, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", subcfg3.Port))
-	if err != nil {
-		panic(err)
-	}
-	h3 := newHost(&subcfg3, prvKey3, nil, maddr3)
-	t.Log("h3", h3.ID())
 	h1.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("Meow! It worked!")
-		var buf []byte
-		_, err := s.Read(buf)
-		if err != nil {
-			t.Log("readStreamErr", err)
-		}
 		s.Close()
 	})
 
@@ -313,6 +274,12 @@ func testStreamEOFReSet(t *testing.T) {
 
 	h3.SetStreamHandler(protocol.ID(msgID), func(s core.Stream) {
 		t.Log("H3 Stream! It worked!")
+		var req types.ReqNil
+		err := cprotocol.ReadStream(&req, s)
+		if err != nil {
+			t.Log("readstream:", err)
+		}
+		require.NoError(t, err)
 		s.Conn().Close()
 	})
 
@@ -320,51 +287,53 @@ func testStreamEOFReSet(t *testing.T) {
 		ID:    h2.ID(),
 		Addrs: h2.Addrs(),
 	}
-	var retrycount int
-	for retrycount < 3 {
-		err = h1.Connect(context.Background(), h2info)
-		if err != nil {
-			retrycount++
-			time.Sleep(time.Second / 2)
-			continue
-		}
-		break
-	}
-
+	err := h1.Connect(context.Background(), h2info)
 	require.NoError(t, err)
 
 	s, err := h1.NewStream(context.Background(), h2.ID(), protocol.ID(msgID))
 	require.NoError(t, err)
 
-	s.Write([]byte("hello"))
-	var buf = make([]byte, 128)
-	_, err = s.Read(buf)
+	var resp types.ReqNil
+	err = cprotocol.ReadStream(&resp, s)
 	require.True(t, err != nil)
 	if err != nil {
 		//在stream关闭的时候返回EOF
 		t.Log("readStream from H2 Err", err)
 		require.Equal(t, err.Error(), "EOF")
+		s.Reset()
 	}
 
-	h3info := peer.AddrInfo{
+	err = h1.Connect(context.Background(), peer.AddrInfo{
 		ID:    h3.ID(),
 		Addrs: h3.Addrs(),
-	}
-
-	err = h1.Connect(context.Background(), h3info)
+	})
 	require.NoError(t, err)
+
 	s, err = h1.NewStream(context.Background(), h3.ID(), protocol.ID(msgID))
+	if err != nil {
+		t.Log("newStream err:", err.Error())
+	}
 	require.NoError(t, err)
 
-	s.Write([]byte("hello"))
-	_, err = s.Read(buf)
+	err = cprotocol.WriteStream(&types.ReqNil{}, s)
+	if err != nil {
+		t.Log("newStream Write err:", err.Error())
+	}
+	require.NoError(t, err)
+
+	err = cprotocol.ReadStream(&resp, s)
 	require.True(t, err != nil)
 	if err != nil {
-		//在连接断开的时候，返回 stream reset
-		t.Log("readStream from H3 Err", err)
-		require.Equal(t, err.Error(), "stream reset")
+		//服务端close connect 之后，客户端会触发：Application error 0x0 或者stream reset
+		t.Log("readStream from H3 Err:", err)
+		if err.Error() != "Application error 0x0" {
+			require.Equal(t, err.Error(), "stream reset")
+		}
 	}
 
+	h1.Close()
+	h2.Close()
+	h3.Close()
 }
 
 func Test_pubkey(t *testing.T) {
