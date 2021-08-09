@@ -1816,3 +1816,13 @@ func TestChain33_SendDelayTransaction(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, common.ToHex(testData), result.(string))
 }
+
+func TestChain33_WalletRecoverScript(t *testing.T) {
+
+	chain33 := &Chain33{cli: channelClient{}}
+	var result interface{}
+	err := chain33.GetWalletRecoverAddress(nil, &result)
+	require.Equal(t, types.ErrInvalidParam, err)
+	err = chain33.SignWalletRecoverTx(nil, &result)
+	require.Equal(t, types.ErrInvalidParam, err)
+}

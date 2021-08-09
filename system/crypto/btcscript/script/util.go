@@ -187,7 +187,7 @@ func MakeKeyDB(keyAddr ...*BtcAddr2Key) txscript.KeyDB {
 	})
 }
 
-//  MakeScriptDB make btc script db
+// MakeScriptDB make btc script db
 func MakeScriptDB(scriptArr ...*BtcAddr2Script) txscript.ScriptDB {
 
 	if len(scriptArr) <= 0 {

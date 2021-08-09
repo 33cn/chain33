@@ -558,3 +558,13 @@ func (g *Grpc) GetCryptoList(ctx context.Context, in *pb.ReqNil) (*pb.CryptoList
 func (g *Grpc) SendDelayTransaction(ctx context.Context, in *pb.DelayTx) (*pb.Reply, error) {
 	return g.cli.SendDelayTx(in)
 }
+
+// GetWalletRecoverAddress get recover addr
+func (g *Grpc) GetWalletRecoverAddress(ctx context.Context, in *pb.ReqGetWalletRecoverAddr) (*pb.ReplyString, error) {
+	return g.cli.GetWalletRecoverAddr(in)
+}
+
+// SignWalletRecoverTx sign wallet recover tx
+func (g *Grpc) SignWalletRecoverTx(ctx context.Context, in *pb.ReqSignWalletRecoverTx) (*pb.ReplySignRawTx, error) {
+	return g.cli.SignWalletRecoverTx(in)
+}

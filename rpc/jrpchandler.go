@@ -1556,3 +1556,19 @@ func (c *Chain33) SendDelayTransaction(in *types.ReqString, result *interface{})
 	}
 	return err
 }
+
+// GetWalletRecoverAddress get wallet recover chain33 addr
+func (c *Chain33) GetWalletRecoverAddress(req *types.ReqGetWalletRecoverAddr, result *interface{}) error {
+
+	reply, err := c.cli.GetWalletRecoverAddr(req)
+	*result = reply.GetData()
+	return err
+}
+
+// SignWalletRecoverTx sign wallet recover transaction
+func (c *Chain33) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx, result *interface{}) error {
+
+	reply, err := c.cli.SignWalletRecoverTx(req)
+	*result = reply.GetTxHex()
+	return err
+}

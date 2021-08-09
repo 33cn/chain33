@@ -9,6 +9,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/util"
+	"github.com/stretchr/testify/require"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common/address"
@@ -433,4 +437,37 @@ func TestClientReWriteRawTx(t *testing.T) {
 			t.Error("TestClientReWriteRawTx Fee !=0")
 		}
 	}
+}
+
+func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
+	cli := &channelClient{}
+	req := &types.ReqGetWalletRecoverAddr{}
+	_, err := cli.GetWalletRecoverAddr(req)
+	require.Equal(t, types.ErrInvalidParam, err)
+
+	req.RelativeDelayTime = 10
+
+	_, priv1 := util.Genaddress()
+	_, priv2 := util.Genaddress()
+	req.CtrPubKey = priv1.PubKey().Bytes()
+	req.RecoverPubKey = priv2.PubKey().Bytes()
+	_, err = cli.GetWalletRecoverAddr(req)
+	require.Nil(t, err)
+
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	_, priv3 := util.Genaddress()
+	tx := util.CreateNoneTx(cfg, priv3)
+	req2 := &types.ReqSignWalletRecoverTx{
+		PrivKey:            priv1.Bytes(),
+		RawTx:              types.Encode(tx),
+		WalletRecoverParam: req,
+	}
+
+	reply, err := cli.SignWalletRecoverTx(req2)
+	require.Nil(t, err)
+	txByte, err := common.FromHex(reply.TxHex)
+	require.Nil(t, err)
+	err = types.Decode(txByte, tx)
+	require.Nil(t, err)
+	require.True(t, tx.CheckSign(0))
 }

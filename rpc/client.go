@@ -6,8 +6,12 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/hex"
 	"time"
+
+	"github.com/33cn/chain33/system/crypto/btcscript"
+	"github.com/33cn/chain33/system/crypto/btcscript/script"
 
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
@@ -413,4 +417,66 @@ func (c *channelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.Repl
 		return nil, err
 	}
 	return resp, nil
+}
+
+// GetWalletRecoverAddr get wallet recover chain33 address
+func (c *channelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr) (*types.ReplyString, error) {
+
+	if len(req.GetCtrPubKey()) <= 0 || len(req.GetRecoverPubKey()) <= 0 ||
+		req.GetRelativeDelayTime() <= 0 {
+		log.Error("GetWalletRecoverAddr", "invalid req", req.String())
+		return nil, types.ErrInvalidParam
+	}
+	pkScript, err := script.NewWalletRecoveryScript(req.GetCtrPubKey(), req.GetRecoverPubKey(), req.GetRelativeDelayTime())
+	if err != nil {
+		log.Error("GetWalletRecoverAddr", "new wallet recover scirpt err", err)
+		return nil, err
+	}
+	reply := &types.ReplyString{}
+	reply.Data = address.PubKeyToAddr(script.Script2PubKey(pkScript))
+	return reply, nil
+}
+
+// SignWalletRecoverTx sign wallet recover transaction
+func (c *channelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (*types.ReplySignRawTx, error) {
+
+	if len(req.GetPrivKey()) <= 0 || len(req.GetRawTx()) <= 0 ||
+		req.GetWalletRecoverParam() == nil {
+		log.Error("SignWalletRecoverTx", "invalid req", req.String())
+		return nil, types.ErrInvalidParam
+	}
+
+	wrScript, err := script.NewWalletRecoveryScript(req.GetWalletRecoverParam().GetCtrPubKey(),
+		req.GetWalletRecoverParam().GetRecoverPubKey(), req.GetWalletRecoverParam().GetRelativeDelayTime())
+	if err != nil {
+		log.Error("SignWalletRecoverTx", "new wallet recover scirpt err", err)
+		return nil, err
+	}
+	tx := &types.Transaction{}
+	err = types.Decode(req.GetRawTx(), tx)
+	if err != nil {
+		log.Error("SignWalletRecoverTx", "rawTx", hex.EncodeToString(req.GetRawTx()), "decode raw tx err", err)
+		return nil, types.ErrDecode
+	}
+	tx.Signature = nil
+	signMsg := types.Encode(tx)
+	_, pk := script.NewBtcKeyFromBytes(req.GetPrivKey())
+	// if wallet recover with recover addr
+	isRetrive := bytes.Equal(pk.SerializeCompressed(), req.GetWalletRecoverParam().GetRecoverPubKey())
+
+	sig, pubKey, err := script.GetWalletRecoverySignature(isRetrive, signMsg, req.GetPrivKey(),
+		wrScript, req.GetWalletRecoverParam().GetRelativeDelayTime())
+	if err != nil {
+		log.Error("SignWalletRecoverTx", "get wallet recover sig err", err)
+		return nil, err
+	}
+
+	tx.Signature = &types.Signature{
+		Ty:        btcscript.ID,
+		Signature: sig,
+		Pubkey:    pubKey,
+	}
+	reply := &types.ReplySignRawTx{}
+	reply.TxHex = hex.EncodeToString(types.Encode(tx))
+	return reply, nil
 }
