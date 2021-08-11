@@ -28,6 +28,7 @@ func TxCmd() *cobra.Command {
 	cmd.AddCommand(
 		QueryTxCmd(),
 		QueryTxByAddrCmd(),
+		QueryTxFeeByAddrCmd(),
 		QueryTxsByHashesCmd(),
 		GetRawTxCmd(),
 		DecodeTxCmd(),
@@ -55,7 +56,7 @@ func addQueryTxByAddrFlags(cmd *cobra.Command) {
 
 	cmd.Flags().Int32P("flag", "f", 0, "transaction type(0: all txs relevant to addr, 1: addr as sender, 2: addr as receiver) (default 0)")
 	cmd.Flags().Int32P("count", "c", 10, "maximum return number of transactions")
-	cmd.Flags().Int32P("direction", "d", 0, "query direction from height:index(0: positive order -1:negative order) (default 0)")
+	cmd.Flags().Int32P("direction", "d", 0, "query direction from height:index(1: positive order 0:negative order) (default 0)")
 	cmd.Flags().Int64P("height", "t", -1, "transaction's block height(-1: from latest txs, >=0: query from height)")
 	cmd.Flags().Int64P("index", "i", 0, "query from index of tx in block height[0-100000] (default 0)")
 }
@@ -78,6 +79,58 @@ func queryTxByAddr(cmd *cobra.Command, args []string) {
 	}
 	var res rpctypes.ReplyTxInfos
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
+	ctx.Run()
+}
+
+// QueryTxFeeByAddrCmd get tx by address
+func QueryTxFeeByAddrCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "query_fee",
+		Short: "Query transactions fee by account address",
+		Run:   queryTxFeeByAddr,
+	}
+	addQueryTxFeeByAddrFlags(cmd)
+	return cmd
+}
+
+func addQueryTxFeeByAddrFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "account address")
+	cmd.MarkFlagRequired("addr")
+
+	cmd.Flags().Int32P("flag", "f", 0, "transaction type(0: all txs relevant to addr, 1: addr as sender, 2: addr as receiver) (default 0)")
+	cmd.Flags().Int32P("count", "c", 10, "maximum return number of transactions")
+	cmd.Flags().Int32P("direction", "d", 0, "query direction from height:index(1: asc order 0:des order) (default 0)")
+	cmd.Flags().Int64P("height", "t", -1, "transaction's block height(-1: from latest txs, >=0: query from height)")
+	cmd.Flags().Int64P("end", "e", -1, "transaction's block end height(-1: from latest txs, >=0: query to height)")
+	cmd.Flags().Int64P("index", "i", 0, "query from index of tx in block height[0-100000] (default 0)")
+}
+
+func queryTxFeeByAddr(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+	flag, _ := cmd.Flags().GetInt32("flag")
+	count, _ := cmd.Flags().GetInt32("count")
+	direction, _ := cmd.Flags().GetInt32("direction")
+	height, _ := cmd.Flags().GetInt64("height")
+	end, _ := cmd.Flags().GetInt64("end")
+	index, _ := cmd.Flags().GetInt64("index")
+	req := &types.ReqAddr{
+		Addr:      addr,
+		Flag:      flag,
+		Count:     count,
+		Direction: direction,
+		Height:    height,
+		HeightEnd: end,
+		Index:     index,
+	}
+
+	var params rpctypes.Query4Jrpc
+	params.Execer = "coins"
+	params.FuncName = "GetTxsFeeByAddr"
+	params.Payload = types.MustPBToJSON(req)
+
+	var res types.AddrTxFeeInfos
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.Run()
 }
 

@@ -52,6 +52,14 @@ func (p *addrindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail)
 				set.KV = append(set.KV, kv)
 			}
 		}
+
+		txFeeIndex := getTxFeeIndex(executor, tx, receipt, i)
+		txFeeInfoByte := types.Encode(txFeeIndex.index)
+		if len(txFeeIndex.from) != 0 {
+			txFeeKey := types.CalcTxFeeAddrDirHashKey(txFeeIndex.from, drivers.TxIndexFrom, txFeeIndex.heightstr)
+			set.KV = append(set.KV, &types.KeyValue{Key: txFeeKey, Value: txFeeInfoByte})
+		}
+
 	}
 	return set.KV, nil
 }
@@ -83,6 +91,12 @@ func (p *addrindexPlugin) ExecDelLocal(executor *executor, data *types.BlockDeta
 			if err == nil && kv != nil {
 				set.KV = append(set.KV, kv)
 			}
+		}
+
+		txFeeIndex := getTxFeeIndex(executor, tx, receipt, i)
+		if len(txFeeIndex.from) != 0 {
+			txFeeKey := types.CalcTxFeeAddrDirHashKey(txFeeIndex.from, drivers.TxIndexFrom, txFeeIndex.heightstr)
+			set.KV = append(set.KV, &types.KeyValue{Key: txFeeKey, Value: nil})
 		}
 	}
 	return set.KV, nil

@@ -12,6 +12,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/33cn/chain33/wallet/bipwallet"
+	"github.com/pkg/errors"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -443,6 +446,33 @@ func (c *Chain33) NewAccount(in types.ReqNewAccount, result *interface{}) error 
 	}
 
 	*result = reply
+	return nil
+}
+
+// NewRandAccount rand new a account
+func (c *Chain33) NewRandAccount(in types.GenSeedLang, result *interface{}) error {
+	reply, err := c.cli.ExecWalletFunc("wallet", "NewRandAccount", &in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
+
+func (c *Chain33) PubKeyToAddr(in types.ReqString, result *interface{}) error {
+	pub, err := common.FromHex(in.Data)
+	if err != nil {
+		return errors.Wrapf(err, "fromHex=%s", in.Data)
+	}
+	addr, err := bipwallet.PubToAddress(pub)
+	if err != nil {
+		return errors.Wrapf(err, "pub2Addr")
+	}
+
+	var rep types.ReplyString
+	rep.Data = addr
+	*result = rep
 	return nil
 }
 

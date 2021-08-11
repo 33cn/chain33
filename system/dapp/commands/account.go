@@ -31,6 +31,8 @@ func AccountCmd() *cobra.Command {
 		GetBalanceCmd(),
 		ImportKeyCmd(),
 		NewAccountCmd(),
+		NewRandAccountCmd(),
+		PubKeyToAddrCmd(),
 		SetLabelCmd(),
 		DumpKeysFileCmd(),
 		ImportKeysFileCmd(),
@@ -309,6 +311,58 @@ func parseCreateAccountRes(arg interface{}) (interface{}, error) {
 		Label: res.GetLabel(),
 	}
 	return result, nil
+}
+
+//NewRandAccountCmd get rand account
+func NewRandAccountCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "rand",
+		Short: "Get account by label",
+		Run:   getRandAccount,
+	}
+	addRandAccountFlags(cmd)
+	return cmd
+}
+func addRandAccountFlags(cmd *cobra.Command) {
+	cmd.Flags().Int32P("lang", "l", 0, "seed language(0:English, 1:简体中文)")
+	cmd.MarkFlagRequired("lang")
+}
+func getRandAccount(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	lang, _ := cmd.Flags().GetInt32("lang")
+
+	params := types.GenSeedLang{
+		Lang: lang,
+	}
+	var res types.AccountInfo
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewRandAccount", params, &res)
+	ctx.Run()
+}
+
+//PubKeyToAddrCmd get rand account
+func PubKeyToAddrCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "p2addr",
+		Short: "Get addr by pubkey",
+		Run:   getPubToAddr,
+	}
+	addPubKeyFlags(cmd)
+	return cmd
+}
+func addPubKeyFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("pub", "p", "", "pub key string")
+	cmd.MarkFlagRequired("pub")
+}
+func getPubToAddr(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	pub, _ := cmd.Flags().GetString("pub")
+
+	params := types.ReqString{
+		Data: pub,
+	}
+	var res types.ReplyString
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.PubKeyToAddr", params, &res)
+	ctx.Run()
 }
 
 //GetAccountCmd get account by label

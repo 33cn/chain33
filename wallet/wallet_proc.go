@@ -14,6 +14,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/pkg/errors"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -369,6 +371,48 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	}
 
 	return &walletAccount, nil
+}
+
+func (wallet *Wallet) ProcNewRandAccount(req *types.GenSeedLang) (*types.AccountInfo, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	seed, err := wallet.genSeed(req.Lang)
+	if err != nil {
+		return nil, errors.Wrapf(err, "genSeed")
+	}
+
+	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed.Seed, 0, wallet.SignType, wallet.CoinType)
+	if err != nil {
+		walletlog.Error("ProcCreateNewAccount", "GetPrivkeyBySeed err", err)
+		return nil, errors.Wrapf(err, "GetPrivkeyBySeed")
+	}
+
+	privkeybyte, err := common.FromHex(privkeyhex)
+	if err != nil || len(privkeybyte) == 0 {
+		walletlog.Error("ProcCreateNewAccount", "FromHex err", err)
+		return nil, errors.Wrapf(err, "transfer privkey")
+	}
+
+	pub, err := bipwallet.PrivkeyToPub(wallet.CoinType, uint32(wallet.SignType), privkeybyte)
+	if err != nil {
+		seedlog.Error("ProcCreateNewAccount PrivkeyToPub", "err", err)
+		return nil, types.ErrPrivkeyToPub
+	}
+
+	addr, err := bipwallet.PubToAddress(pub)
+	if err != nil {
+		seedlog.Error("ProcCreateNewAccount PubToAddress", "err", err)
+		return nil, types.ErrPrivkeyToPub
+	}
+
+	return &types.AccountInfo{
+		Addr:       addr,
+		PrivateKey: privkeyhex,
+		PubKey:     hex.EncodeToString(pub),
+		Seed:       seed.GetSeed(),
+	}, nil
+
 }
 
 // ProcWalletTxList 处理获取钱包交易列表
