@@ -195,14 +195,14 @@ message ReplyTxInfos {
 
 //根据Addr查询和此Addr相关的交易费交易记录
 message AddrTxFeeInfo {
-    string fromAddr  = 1;
-    string toAddr    = 2;
-    string txHash    = 3;
-    string exec      = 4;
-    int64  fee       = 5;
-    int64  height    = 6;
-    int64  index     = 7;
-    int32  txStatus  = 8;
+    string fromAddr = 1;
+    string toAddr   = 2;
+    string txHash   = 3;
+    string exec     = 4;
+    int64  fee      = 5;
+    int64  height   = 6;
+    int64  index    = 7;
+    int32  txStatus = 8;
 }
 
 message AddrTxFeeInfos {
