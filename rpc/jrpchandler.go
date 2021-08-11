@@ -460,6 +460,7 @@ func (c *Chain33) NewRandAccount(in types.GenSeedLang, result *interface{}) erro
 	return nil
 }
 
+// PubKeyToAddr pubkey to addr
 func (c *Chain33) PubKeyToAddr(in types.ReqString, result *interface{}) error {
 	pub, err := common.FromHex(in.Data)
 	if err != nil {
