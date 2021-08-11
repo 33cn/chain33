@@ -32,6 +32,13 @@ const (
 	NameCommitDelayTxLog = "CommitDelayTxLog"
 )
 
+// query func name
+const (
+
+	// QueryGetDelayBeginTime query func name
+	QueryGetDelayBeginTime = "GetDelayBeginTime"
+)
+
 var (
 	// NoneX driver name
 	NoneX      = "none"

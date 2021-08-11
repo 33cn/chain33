@@ -11,8 +11,8 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-// Query_GetEndDelayTime query delay tx end delay time
-func (n *None) Query_GetEndDelayTime(req *types.ReqBytes) (types.Message, error) {
+// Query_GetDelayBeginTime query delay tx delay begin time
+func (n *None) Query_GetDelayBeginTime(req *types.ReqBytes) (types.Message, error) {
 
 	if len(req.GetData()) == 0 {
 		return nil, types.ErrInvalidParam
@@ -30,5 +30,5 @@ func (n *None) Query_GetEndDelayTime(req *types.ReqBytes) (types.Message, error)
 		eLog.Error("Query_GetEndDelayTime", "txHash", hex.EncodeToString(req.GetData()), "get db err", err)
 		return nil, types.ErrDecode
 	}
-	return &types.Int64{Data: info.EndDelayTime}, nil
+	return &types.Int64{Data: info.DelayBeginTime}, nil
 }

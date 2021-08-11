@@ -195,13 +195,22 @@ func (mem *Mempool) addDelayTx(cache *delayTxCache, block *types.Block) {
 		}
 
 		action := &nty.NoneAction{}
-		if err := types.Decode(tx.Payload, action); err != nil || action.Ty != nty.TyCommitDelayTxAction ||
-			action.GetCommitDelayTx().GetDelayTx() == nil {
+		if err := types.Decode(tx.Payload, action); err != nil ||
+			action.Ty != nty.TyCommitDelayTxAction ||
+			len(action.GetCommitDelayTx().GetDelayTx()) <= 0 {
 			continue
 		}
 		commitInfo := action.GetCommitDelayTx()
+		tx := &types.Transaction{}
+		txByte, err := common.FromHex(commitInfo.GetDelayTx())
+		if err != nil || types.Decode(txByte, tx) != nil {
+			mlog.Error("addDelayTx", "txHash", common.ToHex(tx.Hash()),
+				"decode delay tx err", err)
+			continue
+		}
+
 		delayTx := &types.DelayTx{}
-		delayTx.Tx = commitInfo.GetDelayTx()
+		delayTx.Tx = tx
 		delayTx.EndDelayTime = commitInfo.RelativeDelayTime + block.GetBlockTime()
 		if commitInfo.IsBlockHeightDelayTime {
 			delayTx.EndDelayTime = commitInfo.RelativeDelayTime + block.GetHeight()

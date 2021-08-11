@@ -13,6 +13,7 @@ var (
 	errNilDelayTx        = errors.New("errNilDelayTx")
 	errDuplicateDelayTx  = errors.New("errDuplicateDelayTx")
 	errNegativeDelayTime = errors.New("errNegativeDelayTime")
+	errDecodeDelayTx     = errors.New("errDecodeDelayTx")
 )
 
 // CheckTx 实现自定义检验交易接口，供框架调用
@@ -45,7 +46,12 @@ func (n *None) CheckTx(tx *types.Transaction, index int) error {
 
 func (n *None) checkCommitDelayTx(tx *types.Transaction, commit *nty.CommitDelayTx, index int) error {
 
-	if commit.GetDelayTx().GetSignature() == nil {
+	delayTx := &types.Transaction{}
+	txByte, err := common.FromHex(commit.GetDelayTx())
+	if err != nil || types.Decode(txByte, delayTx) != nil {
+		return errDecodeDelayTx
+	}
+	if delayTx.GetSignature() == nil {
 		return errNilDelayTx
 	}
 
@@ -53,8 +59,7 @@ func (n *None) checkCommitDelayTx(tx *types.Transaction, commit *nty.CommitDelay
 		return errNegativeDelayTime
 	}
 
-	delayTxHash := commit.GetDelayTx().Hash()
-	_, err := n.GetStateDB().Get(formatDelayTxKey(delayTxHash))
+	_, err = n.GetStateDB().Get(formatDelayTxKey(delayTx.Hash()))
 	if err == nil {
 		return errDuplicateDelayTx
 	}

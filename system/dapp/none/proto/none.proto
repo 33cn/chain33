@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "transaction.proto";
-
 package types;
 option go_package = "../types";
 
@@ -15,14 +13,14 @@ message NoneAction {
 // 提交延时交易类型
 message CommitDelayTx {
 
-    Transaction delayTx                = 1; //延时交易
-    int64       relativeDelayTime      = 2; //相对延时时长，相对区块高度/相对时间(秒)
-    bool        isBlockHeightDelayTime = 3; // 延时时间类型是否为区块高度
+    string      delayTx                = 1;     //延时交易, 16进制格式
+    int64       relativeDelayTime      = 2;     //相对延时时长，相对区块高度/相对时间(秒)
+    bool        isBlockHeightDelayTime = 3;     // 延时时间类型是否为区块高度
 }
 
 // 提交延时交易回执
 message CommitDelayTxLog {
     string submitter    = 1; // 提交者
     string delayTxHash  = 2; // 延时交易哈希
-    int64  endDelayTime = 3; // 延时终止时刻，区块高度或区块时间
+    int64  delayBeginTime = 3; // 延时开始时刻，区块高度或区块时间
 }
