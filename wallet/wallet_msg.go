@@ -46,6 +46,15 @@ func (wallet *Wallet) On_NewAccount(req *types.ReqNewAccount) (types.Message, er
 	return reply, err
 }
 
+// On_NewRandAccount 响应新建随机账号
+func (wallet *Wallet) On_NewRandAccount(req *types.GenSeedLang) (types.Message, error) {
+	reply, err := wallet.ProcNewRandAccount(req)
+	if err != nil {
+		walletlog.Error("onNewAccount", "err", err.Error())
+	}
+	return reply, err
+}
+
 // On_WalletTransactionList 响应获取钱包交易列表
 func (wallet *Wallet) On_WalletTransactionList(req *types.ReqWalletTransactionList) (types.Message, error) {
 	reply, err := wallet.ProcWalletTxList(req)

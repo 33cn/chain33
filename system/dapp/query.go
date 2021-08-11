@@ -5,11 +5,11 @@
 package dapp
 
 import (
-	"errors"
 	"reflect"
 
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // GetTxsByAddr find all transactions in this address by the addr prefix
@@ -64,6 +64,62 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		replyTxInfos.TxInfos[index] = &replyTxInfo
 	}
 	return &replyTxInfos, nil
+}
+
+// GetTxsFeeByAddr find all transactions in this address by the addr prefix
+func (d *DriverBase) GetTxsFeeByAddr(addr *types.ReqAddr) (types.Message, error) {
+	db := d.GetLocalDB()
+	var prefix []byte
+	var txinfos [][]byte
+	var err error
+	//取最新的交易hash列表
+	prefix = types.CalcTxFeeAddrDirHashKey(addr.GetAddr(), TxIndexFrom, "")
+	if addr.GetHeight() == -1 {
+		txinfos, err = db.List(prefix, nil, addr.Count, addr.GetDirection())
+		if err != nil {
+			return nil, err
+		}
+		if len(txinfos) == 0 {
+			return nil, errors.New("tx does not exist")
+		}
+	} else { //翻页查找指定的txhash列表
+		direction := addr.Direction
+		count := addr.Count
+		if addr.HeightEnd > 0 {
+			if addr.HeightEnd < addr.Height {
+				return nil, errors.Wrapf(types.ErrInvalidParam, "height end=%d < height start=%d", addr.HeightEnd, addr.Height)
+			}
+			//有结束高度时候，强制升序
+			direction = 1
+			//每次获取最大数量，不重复获取
+			count = int32(types.MaxBlockCountPerTime)
+		}
+		heightstr := HeightIndexStr(addr.GetHeight(), addr.GetIndex())
+		key := types.CalcTxFeeAddrDirHashKey(addr.GetAddr(), TxIndexFrom, heightstr)
+		txinfos, err = db.List(prefix, key, count, direction)
+		if err != nil {
+			return nil, err
+		}
+		if len(txinfos) == 0 {
+			return nil, errors.New("tx does not exist")
+		}
+	}
+	var txsFeeInfos types.AddrTxFeeInfos
+	//txsFeeInfos.TxInfos = make([]*types.AddrTxFeeInfo,0)
+	for _, txinfobyte := range txinfos {
+		var txFeeInfo types.AddrTxFeeInfo
+		err := types.Decode(txinfobyte, &txFeeInfo)
+		if err != nil {
+			return nil, err
+		}
+		//只有end height设置时候检查
+		if addr.HeightEnd > 0 && txFeeInfo.Height > addr.HeightEnd {
+			break
+		}
+		//txsFeeInfos.TxInfos[index] = &txFeeInfo
+		txsFeeInfos.TxInfos = append(txsFeeInfos.TxInfos, &txFeeInfo)
+	}
+	return &txsFeeInfos, nil
 }
 
 // GetPrefixCount query the number keys of the specified prefix, for statistical
