@@ -373,6 +373,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	return &walletAccount, nil
 }
 
+// ProcNewRandAccount 随机创建新账号
 func (wallet *Wallet) ProcNewRandAccount(req *types.GenSeedLang) (*types.AccountInfo, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
