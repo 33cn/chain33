@@ -42,7 +42,8 @@ type DB struct {
 
 // NewCoinsAccount 新建账户
 func NewCoinsAccount(cfg *types.Chain33Config) *DB {
-	prefix := "mavl-coins-" + cfg.GetCoinSymbol() + "-"
+	//缺省"coins"，支持coinsx扩展
+	prefix := "mavl-" + cfg.GetCoinExec() + "-" + cfg.GetCoinSymbol() + "-"
 	return newAccountDB(cfg, prefix)
 }
 

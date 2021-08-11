@@ -120,12 +120,10 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 	}
 
 	//删除超过100个chunk则进行数据库压缩
-	if atomic.LoadInt64(&chain.deleteChunkCount) >= 100 {
+	if atomic.LoadInt64(&chain.deleteChunkCount) >= onceDelChunkNum {
 		now := time.Now()
-		start := []byte("CHAIN-body-body-")
-		limit := make([]byte, len(start))
-		copy(limit, start)
-		limit[len(limit)-1]++
+		start := []byte("CHAIN-body-body-d-" + fmt.Sprintf("%012d", chain.cfg.ChunkblockNum*(toDelete-atomic.LoadInt64(&chain.deleteChunkCount))))
+		limit := []byte("CHAIN-body-body-d-" + fmt.Sprintf("%012d", chain.cfg.ChunkblockNum*toDelete))
 		if err := chain.blockStore.db.CompactRange(start, limit); err != nil {
 			chainlog.Error("walkOverDeleteChunk", "CompactRange error", err)
 			return

@@ -29,7 +29,7 @@ func init() {
 			pointerLen := len(globalPointerMap)
 			gloabalMu.Unlock()
 			if pointerLen > 10 {
-				println("<==>global pointer count = ", len(globalPointerMap))
+				println("<==>global pointer count = ", pointerLen)
 			}
 		}
 	}()

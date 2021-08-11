@@ -51,7 +51,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 }
 
 // ConvertWalletTxDetailToJSON conver the wallet tx detail to json
-func ConvertWalletTxDetailToJSON(in *types.WalletTxDetails, out *WalletTxDetails) error {
+func ConvertWalletTxDetailToJSON(in *types.WalletTxDetails, out *WalletTxDetails, coinExec string) error {
 	if in == nil || out == nil {
 		return types.ErrInvalidParam
 	}
@@ -71,7 +71,7 @@ func ConvertWalletTxDetailToJSON(in *types.WalletTxDetails, out *WalletTxDetails
 		if err != nil {
 			continue
 		}
-		if tx.Tx.IsWithdraw() {
+		if tx.Tx.IsWithdraw(coinExec) {
 			//swap from and to
 			tx.Fromaddr, tx.Tx.To = tx.Tx.To, tx.Fromaddr
 			tran.To = tx.Tx.GetRealToAddr()

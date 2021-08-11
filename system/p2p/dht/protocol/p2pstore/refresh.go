@@ -37,18 +37,17 @@ func (p *Protocol) refreshLocalChunk() {
 			}
 
 			// 通过网络从其他节点获取数据
-			p.chunkStatusCacheMutex.Lock()
-			chunkHash := hex.EncodeToString(info.ChunkHash)
-			if _, ok := p.chunkStatusCache[hex.EncodeToString(info.ChunkHash)]; ok {
-				continue
-			}
-			p.chunkStatusCache[chunkHash] = ChunkStatus{info: msg, status: Waiting}
-			p.chunkStatusCacheMutex.Unlock()
+			p.chunkInfoCacheMutex.Lock()
+			p.chunkInfoCache[hex.EncodeToString(info.ChunkHash)] = msg
+			p.chunkInfoCacheMutex.Unlock()
 			syncNum++
 			p.chunkToSync <- msg
+			log.Info("refreshLocalChunk sync", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "chunkHash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
+
 		} else {
 			deleteNum++
 			p.chunkToDelete <- msg
+			log.Info("refreshLocalChunk delete", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "chunkHash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 		}
 	}
 	log.Info("refreshLocalChunk", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "time cost", time.Since(start), "exRT size", p.getExtendRoutingTable().Size())
@@ -58,8 +57,12 @@ func (p *Protocol) shouldSave(chunkHash []byte) bool {
 	if p.SubConfig.IsFullNode {
 		return true
 	}
-	pids := p.getExtendRoutingTable().NearestPeers(genDHTID(chunkHash), backup)
-	if len(pids) < backup || kbt.Closer(p.Host.ID(), pids[backup-1], genChunkNameSpaceKey(chunkHash)) {
+	pids := p.getExtendRoutingTable().NearestPeers(genDHTID(chunkHash), 100)
+	size := len(pids)
+	if size == 0 {
+		return true
+	}
+	if kbt.Closer(p.Host.ID(), pids[size*p.SubConfig.Percentage/100], genChunkNameSpaceKey(chunkHash)) {
 		return true
 	}
 	return false
@@ -74,7 +77,7 @@ func (p *Protocol) getExtendRoutingTable() *kbt.RoutingTable {
 
 func (p *Protocol) updateExtendRoutingTable() {
 	key := []byte("temp")
-	count := 100
+	count := 200
 	start := time.Now()
 	for _, pid := range p.extendRoutingTable.ListPeers() {
 		if p.RoutingTable.Find(pid) == "" {
@@ -86,7 +89,7 @@ func (p *Protocol) updateExtendRoutingTable() {
 		_, _ = p.extendRoutingTable.TryAddPeer(pid, true, true)
 	}
 	if key != nil {
-		peers = p.RoutingTable.NearestPeers(genDHTID(key), backup)
+		peers = p.RoutingTable.NearestPeers(genDHTID(key), p.RoutingTable.Size())
 	}
 
 	for i, pid := range peers {

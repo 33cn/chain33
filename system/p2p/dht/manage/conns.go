@@ -104,6 +104,8 @@ func (s *ConnManager) MonitorAllPeers() {
 	defer ticker1.Stop()
 	ticker2 := time.NewTicker(time.Minute * 2)
 	defer ticker2.Stop()
+	ticker3 := time.NewTicker(time.Second * 5)
+	defer ticker3.Stop()
 
 	for {
 		select {
@@ -113,6 +115,8 @@ func (s *ConnManager) MonitorAllPeers() {
 			s.printMonitorInfo()
 		case <-ticker2.C:
 			s.procConnections()
+		case <-ticker3.C:
+			s.procRoutingTable()
 		}
 	}
 }
@@ -149,12 +153,6 @@ func (s *ConnManager) printMonitorInfo() {
 }
 
 func (s *ConnManager) procConnections() {
-	for _, conn := range s.host.Network().Conns() {
-		remotePeer := conn.RemotePeer()
-		if s.routingTable.Find(remotePeer) == "" {
-			_, _ = s.routingTable.TryAddPeer(remotePeer, true, true)
-		}
-	}
 	//处理当前连接的节点问题
 	_, outBoundSize := s.BoundSize()
 	if outBoundSize > maxOutBounds || s.Size() > maxBounds {
@@ -189,7 +187,15 @@ func (s *ConnManager) procConnections() {
 			}
 		}
 	}
+}
 
+func (s *ConnManager) procRoutingTable() {
+	if s.routingTable.Size() > len(s.host.Network().Peers())*4/5 {
+		return
+	}
+	for _, pid := range s.host.Network().Peers() {
+		_, _ = s.routingTable.TryAddPeer(pid, true, true)
+	}
 }
 
 func genAddrInfo(addr string) (*peer.AddrInfo, error) {
@@ -271,22 +277,22 @@ func (s *ConnManager) CheckDirection(pid peer.ID) network.Direction {
 }
 
 // OutBounds get out bounds conn peers
-func (s *ConnManager) OutBounds() []peer.ID {
-	var peers []peer.ID
+func (s *ConnManager) OutBounds() map[peer.ID][]network.Conn {
+	var peers = make(map[peer.ID][]network.Conn)
 	for _, con := range s.host.Network().Conns() {
 		if con.Stat().Direction == network.DirOutbound {
-			peers = append(peers, con.RemotePeer())
+			peers[con.RemotePeer()] = append(peers[con.RemotePeer()], con)
 		}
 	}
 	return peers
 }
 
 // InBounds get in bounds conn peers
-func (s *ConnManager) InBounds() []peer.ID {
-	var peers []peer.ID
+func (s *ConnManager) InBounds() map[peer.ID][]network.Conn {
+	var peers = make(map[peer.ID][]network.Conn)
 	for _, con := range s.host.Network().Conns() {
 		if con.Stat().Direction == network.DirInbound {
-			peers = append(peers, con.RemotePeer())
+			peers[con.RemotePeer()] = append(peers[con.RemotePeer()], con)
 		}
 	}
 	return peers
@@ -294,15 +300,19 @@ func (s *ConnManager) InBounds() []peer.ID {
 
 // BoundSize get in out conn bound size
 func (s *ConnManager) BoundSize() (insize int, outsize int) {
+	var outBounds = make(map[peer.ID][]network.Conn)
+	var inBounds = make(map[peer.ID][]network.Conn)
 	for _, con := range s.host.Network().Conns() {
 		if con.Stat().Direction == network.DirOutbound {
-			outsize++
+			outBounds[con.RemotePeer()] = append(outBounds[con.RemotePeer()], con)
 		}
 		if con.Stat().Direction == network.DirInbound {
-			insize++
+			inBounds[con.RemotePeer()] = append(inBounds[con.RemotePeer()], con)
 		}
 	}
-	return insize, outsize
+	insize = len(inBounds)
+	outsize = len(outBounds)
+	return
 }
 
 // GetNetRate get rateinfo

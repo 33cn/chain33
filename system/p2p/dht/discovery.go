@@ -39,7 +39,7 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 	//如果不修改DHTProto 则有可能会连入IPFS网络，dhtproto=/ipfs/kad/1.0.0
 	d := new(Discovery)
 
-	kademliaDHT, err := dht.New(ctx, host, dht.V1ProtocolOverride(protocol.ID(fmt.Sprintf(dhtProtoID, chainCfg.GetTitle(), subCfg.Channel))))
+	kademliaDHT, err := dht.New(ctx, host, dht.V1ProtocolOverride(protocol.ID(fmt.Sprintf(dhtProtoID, chainCfg.GetTitle(), subCfg.Channel))), dht.BootstrapPeers(peersInfo...), dht.DisableAutoRefresh())
 	if err != nil {
 		panic(err)
 	}

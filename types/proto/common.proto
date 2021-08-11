@@ -39,6 +39,10 @@ message ReplyHash {
 
 message ReqNil {}
 
+message ReqBytes {
+    bytes data = 1;
+}
+
 message ReqHashes {
     repeated bytes hashes = 1;
 }

@@ -32,22 +32,9 @@ const (
 	responsePeerInfoForChunk = "/chain33/response-peer-info-for-chunk/1.0.0"
 )
 
-// ChunkStatus ...
-type ChunkStatus struct {
-	info   *types.ChunkInfoMsg
-	status int
-}
-
-// status of ChunkStatus
-const (
-	Waiting    = iota // refreshing p2pStore and waiting peer addr
-	ToDownload        // having got peer addr and waiting to download
-)
-
 const maxConcurrency = 10
 
 var log = log15.New("module", "protocol.p2pstore")
-var backup = 20
 
 //Protocol ...
 type Protocol struct {
@@ -60,8 +47,8 @@ type Protocol struct {
 	wakeup      map[string]chan struct{}
 	wakeupMutex sync.Mutex
 
-	chunkStatusCache      map[string]ChunkStatus
-	chunkStatusCacheMutex sync.Mutex
+	chunkInfoCache      map[string]*types.ChunkInfoMsg
+	chunkInfoCacheMutex sync.Mutex
 
 	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
@@ -95,15 +82,15 @@ func InitProtocol(env *protocol.P2PEnv) {
 		chunkToDelete:        make(chan *types.ChunkInfoMsg, 1024),
 		chunkToDownload:      make(chan *types.ChunkInfoMsg, 1024),
 		wakeup:               make(map[string]chan struct{}),
-		chunkStatusCache:     make(map[string]ChunkStatus),
+		chunkInfoCache:       make(map[string]*types.ChunkInfoMsg),
 		peerAddrRequestTrace: make(map[peer.ID]map[peer.ID]time.Time),
 		chunkRequestTrace:    make(map[string]map[peer.ID]time.Time),
 		chunkProviderCache:   make(map[string]map[peer.ID]time.Time),
 		extendRoutingTable:   exRT,
 	}
 	//
-	if env.SubConfig.Backup > 1 {
-		backup = env.SubConfig.Backup
+	if env.SubConfig.Percentage < types2.MinPercentage || env.SubConfig.Percentage > types2.MaxPercentage {
+		env.SubConfig.Percentage = types2.DefaultPercentage
 	}
 	if env.SubConfig.MinExtendRoutingTableSize == 0 {
 		env.SubConfig.MinExtendRoutingTableSize = types2.DefaultMinExtendRoutingTableSize
@@ -144,6 +131,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.updateRoutine()
 	go p.refreshRoutine()
 	go p.debugLog()
+	go p.processLocalChunkOldVersion()
 }
 
 func (p *Protocol) refreshRoutine() {
@@ -186,21 +174,49 @@ func (p *Protocol) updateRoutine() {
 	}
 }
 
-func (p *Protocol) processLocalChunk() {
+// TODO: to delete next version
+func (p *Protocol) processLocalChunkOldVersion() {
 	for {
 		select {
 		case <-p.Ctx.Done():
 			return
 		case info := <-p.chunkToSync:
-			for _, pid := range p.RoutingTable.NearestPeers(genDHTID(info.ChunkHash), AlphaValue) {
-				if err := p.requestPeerInfoForChunk(info, pid); err != nil {
-					log.Error("processLocalChunk", "requestPeerInfoForChunk error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
-				}
+			if err := p.storeChunk(info); err == nil {
+				break
 			}
+			bodys, _, err := p.mustFetchChunk(info)
+			if err != nil {
+				log.Error("processLocalChunk", "mustFetchChunk error", err)
+				break
+			}
+			if err := p.addChunkBlock(info, bodys); err != nil {
+				log.Error("processLocalChunk", "addChunkBlock error", err)
+				break
+			}
+			log.Info("processLocalChunk save chunk success")
+		}
+	}
+}
+
+func (p *Protocol) processLocalChunk() {
+	for {
+		select {
+		case <-p.Ctx.Done():
+			return
+
+		// TODO: open in next version
+		//case info := <-p.chunkToSync:
+		//	for _, pid := range p.RoutingTable.NearestPeers(genDHTID(info.ChunkHash), AlphaValue) {
+		//		if err := p.requestPeerInfoForChunk(info, pid); err != nil {
+		//			log.Error("processLocalChunk", "requestPeerInfoForChunk error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
+		//		}
+		//	}
+
 		case info := <-p.chunkToDelete:
 			if localInfo, ok := p.getChunkInfoByHash(info.ChunkHash); ok && time.Since(localInfo.Time) > types2.RefreshInterval*3 {
-				if err := p.deleteChunkBlock(localInfo.ChunkHash); err != nil {
+				if err := p.deleteChunkBlock(localInfo.ChunkInfoMsg); err != nil {
 					log.Error("processLocalChunk", "deleteChunkBlock error", err, "chunkHash", hex.EncodeToString(localInfo.ChunkHash), "start", localInfo.Start)
+					break
 				}
 			}
 		case info := <-p.chunkToDownload:
@@ -211,38 +227,18 @@ func (p *Protocol) processLocalChunk() {
 					log.Error("processLocalChunk", "fetchChunkFromPeer error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
 					continue
 				}
+				if bodys == nil {
+					continue
+				}
 				if err := p.addChunkBlock(info, bodys); err != nil {
 					log.Error("processLocalChunk", "addChunkBlock error", err)
 					continue
 				}
 				break
 			}
-			p.chunkStatusCacheMutex.Lock()
-			delete(p.chunkStatusCache, hex.EncodeToString(info.ChunkHash))
-			p.chunkStatusCacheMutex.Unlock()
+			p.chunkInfoCacheMutex.Lock()
+			delete(p.chunkInfoCache, hex.EncodeToString(info.ChunkHash))
+			p.chunkInfoCacheMutex.Unlock()
 		}
 	}
 }
-
-//func (p *Protocol) syncChunk(info *types.ChunkInfoMsg) {
-//	//检查本地 p2pStore，如果已存在数据则直接更新
-//	if err := p.updateChunk(info); err == nil {
-//		return
-//	}
-//
-//	var bodys *types.BlockBodys
-//	bodys, _ = p.getChunkFromBlockchain(info)
-//	if bodys == nil {
-//		//blockchain模块没有数据，从网络中搜索数据
-//		bodys, _, _ = p.mustFetchChunk(info)
-//	}
-//	if bodys == nil {
-//		log.Error("syncChunk error", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
-//		return
-//	}
-//	if err := p.addChunkBlock(info, bodys); err != nil {
-//		log.Error("syncChunk", "addChunkBlock error", err)
-//		return
-//	}
-//	log.Info("syncChunk", "chunkhash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
-//}

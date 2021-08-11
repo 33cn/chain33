@@ -23,6 +23,13 @@ const (
 	DefaultMinExtendRoutingTableSize = 200
 	// DefaultMaxExtendRoutingTableSize ...
 	DefaultMaxExtendRoutingTableSize = 300
+
+	// MinPercentage ...
+	MinPercentage = 10
+	// MaxPercentage ...
+	MaxPercentage = 100
+	// DefaultPercentage ...
+	DefaultPercentage = 30
 )
 
 var (

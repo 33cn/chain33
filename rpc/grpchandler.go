@@ -556,7 +556,7 @@ func (g *Grpc) GetCryptoList(ctx context.Context, in *pb.ReqNil) (*pb.CryptoList
 
 // SendDelayTransaction send delay tx
 func (g *Grpc) SendDelayTransaction(ctx context.Context, in *pb.DelayTx) (*pb.Reply, error) {
-	return g.cli.SendDelayTx(in)
+	return g.cli.SendDelayTx(in, true)
 }
 
 // GetWalletRecoverAddress get recover addr

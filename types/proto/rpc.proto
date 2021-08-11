@@ -15,8 +15,7 @@ message serverTime {
     int64 currentTimestamp = 1;
 }
 
-// 数字签名加密算法类型
-message crypto {
+message crypto { // 数字签名加密算法类型
     string name   = 1;
     int32  typeID = 2;
 }

@@ -32,7 +32,7 @@ func (n *None) CheckTx(tx *types.Transaction, index int) error {
 
 	// 根据定义的交易类型进行相关判定
 	if action.Ty == nty.TyCommitDelayTxAction {
-		err = n.checkCommitDelayTx(tx, action.GetCommitDelay(), index)
+		err = n.checkCommitDelayTx(tx, action.GetCommitDelayTx(), index)
 	}
 
 	if err != nil {

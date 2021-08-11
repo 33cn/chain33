@@ -13,7 +13,6 @@ import (
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -225,7 +224,9 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 		TokenSymbol: tokenSymbol,
 	}
 
-	exec := cty.CoinsX
+	cfg := wallet.client.GetConfig()
+
+	exec := cfg.GetCoinExec()
 	//历史原因，token是作为系统合约的,但是改版后，token变成非系统合约
 	//这样的情况下，的方案是做一些特殊的处理
 	if create.IsToken {
@@ -239,7 +240,7 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 	if err != nil {
 		return nil, err
 	}
-	cfg := wallet.client.GetConfig()
+
 	tx.SetExpire(cfg, time.Second*120)
 	proper, err := wallet.api.GetProperFee(nil)
 	if err != nil {
@@ -290,7 +291,7 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, error) {
 
 	switch in.GetExecer() {
-	case "coins":
+	case wallet.GetAPI().GetConfig().GetCoinExec():
 		addrs := in.GetAddresses()
 		var exaddrs []string
 		for _, addr := range addrs {

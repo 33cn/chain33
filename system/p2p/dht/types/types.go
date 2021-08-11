@@ -33,8 +33,8 @@ type P2PSubConfig struct {
 	DisableFindLANPeers bool   `protobuf:"varint,11,opt,name=disableFindLANPeers" json:"disableFindLANPeers,omitempty"`
 	DHTDataPath         string `protobuf:"bytes,12,opt,name=DHTDataPath" json:"DHTDataPath,omitempty"`
 	DHTDataCache        int32  `protobuf:"varint,13,opt,name=DHTDataCache" json:"DHTDataCache,omitempty"`
-	// 分片数据备份节点数
-	Backup int `protobuf:"varint,14,opt,name=backup" json:"backup,omitempty"`
+	// 分片数据保存比例
+	Percentage int `protobuf:"varint,14,opt,name=percentage" json:"percentage,omitempty"`
 	//是否开启全节点模式
 	IsFullNode bool `protobuf:"varint,15,opt,name=isFullNode" json:"isFullNode,omitempty"`
 	//老版本最大广播节点数
@@ -57,6 +57,8 @@ type P2PSubConfig struct {
 
 	// pubsub配置
 	PubSub PubSubConfig `json:"pubsub,omitempty"`
+	//启动私有网络，只有相同配置的节点才能连接，多用于联盟链需求，创建方式 hex.Encode([32]byte),32字节的十六进制编码字符串
+	Psk string `json:"psk"`
 }
 
 // PubSubConfig pubsub config

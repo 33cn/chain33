@@ -743,10 +743,11 @@ func TestGrpc_GetCryptoList(t *testing.T) {
 }
 
 func TestGrpc_SendDelayTransaction(t *testing.T) {
-	qapi.On("SendDelayTx").Return(nil, nil)
+	qapi.On("SendDelayTx", mock.Anything, mock.Anything).Return(nil, nil)
 	_, err := g.SendDelayTransaction(getOkCtx(), nil)
 	assert.NoError(t, err)
 }
+
 
 func TestGrpc_WalletRecoverScript(t *testing.T) {
 	_, err := g.GetWalletRecoverAddress(getOkCtx(), nil)

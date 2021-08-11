@@ -1639,7 +1639,7 @@ func Test_fmtTxDetail(t *testing.T) {
 	detail.Tx.Payload, err = common.FromHex("0x180322301080c2d72f2205636f696e732a22314761485970576d71414a7371527772706f4e6342385676674b7453776a63487174")
 	assert.NoError(t, err)
 	tx.To = "to"
-	tran, err := fmtTxDetail(detail, false)
+	tran, err := fmtTxDetail(detail, false, "coins")
 	assert.NoError(t, err)
 	assert.Equal(t, "to", tran.Fromaddr)
 	assert.Equal(t, "from", tx.To)
@@ -1805,7 +1805,7 @@ func TestChain33_SendDelayTransaction(t *testing.T) {
 	client := newTestChain33(api)
 	var result interface{}
 	testData := []byte("testTxHash")
-	api.On("SendDelayTx", mock.Anything).Return(&types.Reply{Msg: testData}, nil)
+	api.On("SendDelayTx", mock.Anything, true).Return(&types.Reply{Msg: testData}, nil)
 	err := client.SendDelayTransaction(&types.ReqString{Data: "1234"}, &result)
 	require.NotNil(t, err)
 	err = client.SendDelayTransaction(

@@ -7,7 +7,7 @@ option go_package = "../types";
 
 message NoneAction {
     oneof value {
-        CommitDelayTx commitDelay = 1;
+        CommitDelayTx commitDelayTx = 1;
     }
     int32 Ty = 2;
 }
@@ -21,7 +21,7 @@ message CommitDelayTx {
 }
 
 // 提交延时交易回执
-message CommitDelayLog {
+message CommitDelayTxLog {
     string submitter    = 1; // 提交者
     string delayTxHash  = 2; // 延时交易哈希
     int64  endDelayTime = 3; // 延时终止时刻，区块高度或区块时间

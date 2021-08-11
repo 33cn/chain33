@@ -10,12 +10,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2p"
@@ -25,16 +27,16 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	libp2pLog "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	"github.com/multiformats/go-multiaddr"
-
-	libp2pLog "github.com/ipfs/go-log/v2"
 )
 
 var log = log15.New("module", p2pty.DHTTypeName)
@@ -71,7 +73,10 @@ type P2P struct {
 
 func setLibp2pLog(logFile, logLevel string) {
 
-	// set libp2p log
+	if _, err := os.Stat(logFile); os.IsNotExist(err) {
+		return
+	}
+
 	if logLevel == "" {
 		logLevel = "ERROR"
 	}
@@ -170,20 +175,20 @@ func (p *P2P) StartP2P() {
 	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
 
 	env := &protocol.P2PEnv{
-		Ctx:              p.ctx,
-		ChainCfg:         p.chainCfg,
-		QueueClient:      p.client,
-		Host:             p.host,
-		P2PManager:       p.mgr,
-		SubConfig:        p.subCfg,
-		DB:               p.db,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(p.discovery.kademliaDHT),
-		RoutingTable:     p.discovery.RoutingTable(),
-		API:              p.api,
-		Pubsub:           p.pubsub,
-		PeerInfoManager:  p.peerInfoManager,
-		ConnManager:      p.connManager,
-		ConnBlackList:    p.blackCache,
+		Ctx:             p.ctx,
+		ChainCfg:        p.chainCfg,
+		QueueClient:     p.client,
+		Host:            p.host,
+		P2PManager:      p.mgr,
+		SubConfig:       p.subCfg,
+		DB:              p.db,
+		Discovery:       discovery.NewRoutingDiscovery(p.discovery.kademliaDHT),
+		RoutingTable:    p.discovery.RoutingTable(),
+		API:             p.api,
+		Pubsub:          p.pubsub,
+		PeerInfoManager: p.peerInfoManager,
+		ConnManager:     p.connManager,
+		ConnBlackList:   p.blackCache,
 	}
 	p.env = env
 	protocol.InitAllProtocol(env)
@@ -203,7 +208,7 @@ func (p *P2P) CloseP2P() {
 
 	protocol.ClearEventHandler()
 	if !p.isRestart() {
-		p.mgr.PubSub.Unsub(p.subChan)
+		p.mgr.PubSub.Shutdown()
 
 	}
 	p.host.Close()
@@ -248,12 +253,24 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 		options = append(options, libp2p.Identity(priv))
 	}
 
+	//enable private network,私有网络，拥有相同配置的节点才能连接进来。
+	if p.subCfg.Psk != "" {
+		psk, err := common.FromHex(p.subCfg.Psk)
+		if err != nil {
+			panic("set psk" + err.Error())
+		}
+		if len(psk) != 32 {
+			panic("psk must 32 bytes")
+		}
+		options = append(options, libp2p.PrivateNetwork(psk))
+	}
+
 	options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
 
 	if p.subCfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
 		var maxconnect = int(p.subCfg.MaxConnectNum)
 		minconnect := maxconnect - int(manage.CacheLimit) //调整为不超过配置的上限
-		if minconnect < 0 {
+		if minconnect <= 0 {
 			minconnect = maxconnect / 2
 		}
 		//2分钟的宽限期,定期清理
@@ -277,9 +294,15 @@ func (p *P2P) managePeers() {
 			return
 		case <-time.After(time.Minute * 10):
 			//Refresh addr book
-			peersInfo := p.discovery.FindLocalPeers(p.connManager.FetchNearestPeers(50))
+			var peersInfo []peer.AddrInfo
+			for _, pid := range p.connManager.FetchNearestPeers(50) {
+				info := p.discovery.FindLocalPeer(pid)
+				if len(info.Addrs) != 0 {
+					peersInfo = append(peersInfo, info)
+				}
+			}
 			if len(peersInfo) != 0 {
-				p.addrBook.SaveAddr(peersInfo)
+				_ = p.addrBook.SaveAddr(peersInfo)
 			}
 		}
 	}
