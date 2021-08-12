@@ -445,12 +445,12 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 	_, err := cli.GetWalletRecoverAddr(req)
 	require.Equal(t, types.ErrInvalidParam, err)
 
-	req.RelativeDelayTime = 10
+	req.RelativeDelayHeight = 10
 
 	_, priv1 := util.Genaddress()
 	_, priv2 := util.Genaddress()
-	req.CtrPubKey = priv1.PubKey().Bytes()
-	req.RecoverPubKey = priv2.PubKey().Bytes()
+	req.CtrPubKey = hex.EncodeToString(priv1.PubKey().Bytes())
+	req.RecoverPubKey = hex.EncodeToString(priv2.PubKey().Bytes())
 	_, err = cli.GetWalletRecoverAddr(req)
 	require.Nil(t, err)
 
@@ -458,8 +458,8 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 	_, priv3 := util.Genaddress()
 	tx := util.CreateNoneTx(cfg, priv3)
 	req2 := &types.ReqSignWalletRecoverTx{
-		PrivKey:            priv1.Bytes(),
-		RawTx:              types.Encode(tx),
+		PrivKey:            hex.EncodeToString(priv1.Bytes()),
+		RawTx:              hex.EncodeToString(types.Encode(tx)),
 		WalletRecoverParam: req,
 	}
 
