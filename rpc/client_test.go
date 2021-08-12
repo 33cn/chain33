@@ -449,8 +449,8 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 
 	_, priv1 := util.Genaddress()
 	_, priv2 := util.Genaddress()
-	req.CtrPubKey = hex.EncodeToString(priv1.PubKey().Bytes())
-	req.RecoverPubKey = hex.EncodeToString(priv2.PubKey().Bytes())
+	req.CtrPubKey = common.ToHex(priv1.PubKey().Bytes())
+	req.RecoverPubKey = common.ToHex(priv2.PubKey().Bytes())
 	_, err = cli.GetWalletRecoverAddr(req)
 	require.Nil(t, err)
 

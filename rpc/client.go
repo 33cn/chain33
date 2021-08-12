@@ -6,6 +6,7 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/hex"
 	"time"
 
@@ -417,26 +418,26 @@ func (c *channelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.Repl
 	return resp, nil
 }
 
-func (c *channelClient) getWalletRecoverAddr(param *types.ReqGetWalletRecoverAddr) ([]byte, error) {
+func (c *channelClient) getWalletRecoverAddr(param *types.ReqGetWalletRecoverAddr) ([]byte, []byte, error) {
 
 	ctrPub, err := common.FromHex(param.GetCtrPubKey())
 	if err != nil {
 		log.Error("getWalletRecoverAddr", "control pubKey", param.GetCtrPubKey(), "from hex err", err)
-		return nil, types.ErrFromHex
+		return nil, nil, types.ErrFromHex
 	}
 
 	recoverPub, err := common.FromHex(param.GetRecoverPubKey())
 	if err != nil {
 		log.Error("getWalletRecoverAddr", "recover pubKey", param.GetCtrPubKey(), "from hex err", err)
-		return nil, types.ErrFromHex
+		return nil, nil, types.ErrFromHex
 	}
 
 	pkScript, err := script.NewWalletRecoveryScript(ctrPub, recoverPub, param.GetRelativeDelayHeight())
 	if err != nil {
 		log.Error("getWalletRecoverAddr", "new wallet recover scirpt err", err)
-		return nil, err
+		return nil, nil, err
 	}
-	return pkScript, nil
+	return recoverPub, pkScript, nil
 }
 
 // GetWalletRecoverAddr get wallet recover chain33 address
@@ -447,7 +448,7 @@ func (c *channelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr)
 		log.Error("GetWalletRecoverAddr", "invalid req", req.String())
 		return nil, types.ErrInvalidParam
 	}
-	pkScript, err := c.getWalletRecoverAddr(req)
+	_, pkScript, err := c.getWalletRecoverAddr(req)
 	if err != nil {
 		log.Error("GetWalletRecoverAddr", "getWalletRecoverAddr err", err)
 		return nil, err
@@ -466,7 +467,7 @@ func (c *channelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 		return nil, types.ErrInvalidParam
 	}
 
-	wrScript, err := c.getWalletRecoverAddr(req.GetWalletRecoverParam())
+	recoverPub, wrScript, err := c.getWalletRecoverAddr(req.GetWalletRecoverParam())
 	if err != nil {
 		log.Error("SignWalletRecoverTx", "getWalletRecoverAddr err", err)
 		return nil, err
@@ -486,7 +487,7 @@ func (c *channelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 	}
 	_, pk := script.NewBtcKeyFromBytes(privKey)
 	// if wallet recover with recover addr
-	isRetrive := hex.EncodeToString(pk.SerializeCompressed()) == req.GetWalletRecoverParam().GetRecoverPubKey()
+	isRetrive := bytes.Equal(pk.SerializeCompressed(), recoverPub)
 	sig, pubKey, err := script.GetWalletRecoverySignature(isRetrive, signMsg, privKey,
 		wrScript, req.GetWalletRecoverParam().GetRelativeDelayHeight())
 	if err != nil {
