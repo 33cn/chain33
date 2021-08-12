@@ -1157,6 +1157,36 @@ func (_m *Chain33Client) GetTransactionByHashes(ctx context.Context, in *types.R
 	return r0, r1
 }
 
+// GetWalletRecoverAddress provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetWalletRecoverAddress(ctx context.Context, in *types.ReqGetWalletRecoverAddr, opts ...grpc.CallOption) (*types.ReplyString, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.ReplyString
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqGetWalletRecoverAddr, ...grpc.CallOption) *types.ReplyString); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyString)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqGetWalletRecoverAddr, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetWalletStatus provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetWalletStatus(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.WalletStatus, error) {
 	_va := make([]interface{}, len(opts))
@@ -1839,6 +1869,36 @@ func (_m *Chain33Client) SignRawTx(ctx context.Context, in *types.ReqSignRawTx, 
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqSignRawTx, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SignWalletRecoverTx provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) SignWalletRecoverTx(ctx context.Context, in *types.ReqSignWalletRecoverTx, opts ...grpc.CallOption) (*types.ReplySignRawTx, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.ReplySignRawTx
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqSignWalletRecoverTx, ...grpc.CallOption) *types.ReplySignRawTx); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplySignRawTx)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqSignWalletRecoverTx, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
