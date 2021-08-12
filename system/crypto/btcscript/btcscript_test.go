@@ -268,9 +268,10 @@ var (
 	privHex1 = "0xf8e994ba1d3577ebbde5ae0264df830327eb3a4187277d62e3e580afef9102b3"
 	addr2    = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
 	privHex2 = "0xd165c84ed37c2a427fea487470ee671b7a0495d68d82607cafbc6348bf23bec5"
-	wrAddr   = "16zUnbHEFfEsHdsJj6FEHJ6f7dMowTBsBP"
+	//wrAddr   = "16zUnbHEFfEsHdsJj6FEHJ6f7dMowTBsBP"
 )
 
+// wallet recover transaction example
 func Test_wallet_recover_transaction(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping in short mode.")
@@ -285,7 +286,7 @@ func Test_wallet_recover_transaction(t *testing.T) {
 
 	delay := int64(10)
 	wrScript, err := script.NewWalletRecoveryScript(priv1.PubKey().Bytes(), priv2.PubKey().Bytes(), delay)
-
+	require.Nil(t, err)
 	//wrAddr := address.PubKeyToAddr(script.Script2PubKey(wrScript))
 	//println(wrAddr)
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
