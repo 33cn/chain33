@@ -9,6 +9,6 @@ package btcscript;
 message Signature {
     bytes lockScript   = 1;
     bytes unlockScript = 2;
-    int64 lockTime = 3;
+    int64 lockTime     = 3;
     int64 utxoSequence = 4;
 }
