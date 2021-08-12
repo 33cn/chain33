@@ -42,13 +42,11 @@ func New() queue.Module {
 func (m module) SetQueueClient(cli queue.Client) {
 
 	crypto.Init(cli.GetConfig().GetModuleConfig().Crypto, cli.GetConfig().GetSubConfig().Crypto)
-	var err error
-	lock.Lock()
-	ctx.API, err = client.New(cli, nil)
+	api, err := client.New(cli, nil)
 	if err != nil {
 		panic("crypto SetQueueClient, new client api err:" + err.Error())
 	}
-	lock.Unlock()
+	SetQueueAPI(api)
 	cli.Sub("crypto")
 	go func() {
 
@@ -58,10 +56,7 @@ func (m module) SetQueueClient(cli queue.Client) {
 			case msg := <-cli.Recv():
 				if msg.Ty == types.EventAddBlock {
 					if header, ok := msg.Data.(types.Header); ok {
-						lock.Lock()
-						ctx.CurrBlockHeight = header.Height
-						ctx.CurrBlockTime = header.BlockTime
-						lock.Unlock()
+						SetCurrentBlock(header.GetHeight(), header.GetBlockTime())
 					}
 
 				}
@@ -89,4 +84,19 @@ func GetCryptoContext() CryptoContext {
 	lock.RLock()
 	defer lock.RUnlock()
 	return *ctx
+}
+
+// SetQueueAPI set api
+func SetQueueAPI(api client.QueueProtocolAPI) {
+	lock.Lock()
+	defer lock.Unlock()
+	ctx.API = api
+}
+
+// SetCurrentBlock set block
+func SetCurrentBlock(blockHeight, blockTime int64) {
+	lock.Lock()
+	defer lock.Unlock()
+	ctx.CurrBlockHeight = blockHeight
+	ctx.CurrBlockTime = blockTime
 }
