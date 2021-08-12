@@ -6,7 +6,11 @@
 package btcscript
 
 import (
+	"encoding/hex"
 	"testing"
+
+	"github.com/33cn/chain33/common"
+	nty "github.com/33cn/chain33/system/dapp/none/types"
 
 	"github.com/33cn/chain33/client/mocks"
 	cryptocli "github.com/33cn/chain33/common/crypto/client"
@@ -16,6 +20,7 @@ import (
 	"github.com/btcsuite/btcutil"
 
 	"github.com/33cn/chain33/system/crypto/btcscript/script"
+	_ "github.com/33cn/chain33/system/dapp/init"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/require"
@@ -256,4 +261,75 @@ func TestDriver_Validate(t *testing.T) {
 	cryptocli.SetCurrentBlock(11, types.Now().Unix())
 	err = d.Validate(txMsg, pubKey, types.Encode(sig))
 	require.Equal(t, errInvalidBtcSignature, err)
+}
+
+var (
+	addr1    = "1MUnpSyvPuB1tie8hCGgWzjwVtHw7sNXRV"
+	privHex1 = "0xf8e994ba1d3577ebbde5ae0264df830327eb3a4187277d62e3e580afef9102b3"
+	addr2    = "1Ka7EPFRqs3v9yreXG6qA4RQbNmbPJCZPj"
+	privHex2 = "0xd165c84ed37c2a427fea487470ee671b7a0495d68d82607cafbc6348bf23bec5"
+	wrAddr   = "16zUnbHEFfEsHdsJj6FEHJ6f7dMowTBsBP"
+)
+
+func Test_wallet_recover_transaction(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping in short mode.")
+	}
+	privBytes1, _ := common.FromHex(privHex1)
+	privBytes2, _ := common.FromHex(privHex2)
+	d := Driver{}
+	priv1, err := d.PrivKeyFromBytes(privBytes1)
+	require.Nil(t, err)
+	priv2, err := d.PrivKeyFromBytes(privBytes2)
+	require.Nil(t, err)
+
+	delay := int64(10)
+	wrScript, err := script.NewWalletRecoveryScript(priv1.PubKey().Bytes(), priv2.PubKey().Bytes(), delay)
+
+	//wrAddr := address.PubKeyToAddr(script.Script2PubKey(wrScript))
+	//println(wrAddr)
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	tx1 := util.CreateCoinsTx(cfg, priv1, addr1, 9*types.Coin)
+	tx1.Signature = nil
+	tx1.ChainID = 0
+	tx1.Nonce = types.Now().UnixNano()
+	sig, pk, err := script.GetWalletRecoverySignature(false, types.Encode(tx1),
+		priv1.Bytes(), wrScript, delay)
+	require.Nil(t, err)
+	tx1.Signature = &types.Signature{
+		Ty:        ID,
+		Pubkey:    pk,
+		Signature: sig,
+	}
+
+	tx1Hex := hex.EncodeToString(types.Encode(tx1))
+	println("tx1: " + tx1Hex)
+
+	tx2 := util.CreateCoinsTx(cfg, priv1, addr2, 10*types.Coin)
+	tx2.Signature = nil
+	tx2.ChainID = 0
+	tx2.Nonce = types.Now().UnixNano()
+	sig, pk, err = script.GetWalletRecoverySignature(true, types.Encode(tx2),
+		priv2.Bytes(), wrScript, delay)
+	require.Nil(t, err)
+	tx2.Signature = &types.Signature{
+		Ty:        ID,
+		Pubkey:    pk,
+		Signature: sig,
+	}
+
+	tx2Hex := hex.EncodeToString(types.Encode(tx2))
+	println("tx2: " + tx2Hex)
+
+	tx3 := util.CreateNoneTx(cfg, priv1)
+	tx3.ChainID = 0
+	action := &nty.NoneAction{Ty: nty.TyCommitDelayTxAction}
+	action.Value = &nty.NoneAction_CommitDelayTx{CommitDelayTx: &nty.CommitDelayTx{
+		DelayTx:             tx2Hex,
+		RelativeDelayHeight: delay,
+	}}
+	tx3.Payload = types.Encode(action)
+	tx3.Sign(types.SECP256K1, priv1)
+	tx3Hex := hex.EncodeToString(types.Encode(tx3))
+	println("tx3: " + tx3Hex)
 }
