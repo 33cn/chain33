@@ -21,11 +21,7 @@ func (n *None) Exec_CommitDelayTx(commit *nty.CommitDelayTx, tx *types.Transacti
 		return nil, errDecodeDelayTx
 	}
 	delayTxHash := delayTx.Hash()
-	if commit.IsBlockHeightDelayTime {
-		delayInfo.DelayBeginTime = n.GetHeight()
-	} else {
-		delayInfo.DelayBeginTime = n.GetBlockTime()
-	}
+	delayInfo.DelayBeginHeight = n.GetHeight()
 	delayInfo.Submitter = tx.From()
 	receipt.KV = append(receipt.KV,
 		&types.KeyValue{Key: formatDelayTxKey(delayTxHash), Value: types.Encode(delayInfo)})

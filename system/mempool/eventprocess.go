@@ -211,10 +211,7 @@ func (mem *Mempool) addDelayTx(cache *delayTxCache, block *types.Block) {
 
 		delayTx := &types.DelayTx{}
 		delayTx.Tx = tx
-		delayTx.EndDelayTime = commitInfo.RelativeDelayTime + block.GetBlockTime()
-		if commitInfo.IsBlockHeightDelayTime {
-			delayTx.EndDelayTime = commitInfo.RelativeDelayTime + block.GetHeight()
-		}
+		delayTx.EndDelayTime = commitInfo.RelativeDelayHeight + block.GetHeight()
 		if err := cache.addDelayTx(delayTx); err != nil {
 			mlog.Error("addDelayTx", "txHash", common.ToHex(tx.Hash()),
 				"delayTxHash", common.ToHex(delayTx.Tx.Hash()), "add delay tx cache error", err)

@@ -35,8 +35,8 @@ const (
 // query func name
 const (
 
-	// QueryGetDelayBeginTime query func name
-	QueryGetDelayBeginTime = "GetDelayBeginTime"
+	// QueryGetDelayBegin query func name
+	QueryGetDelayBegin = "GetDelayBeginHeight"
 )
 
 var (

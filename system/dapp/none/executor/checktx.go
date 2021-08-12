@@ -55,7 +55,7 @@ func (n *None) checkCommitDelayTx(tx *types.Transaction, commit *nty.CommitDelay
 		return errNilDelayTx
 	}
 
-	if commit.GetRelativeDelayTime() < 0 {
+	if commit.GetRelativeDelayHeight() < 0 {
 		return errNegativeDelayTime
 	}
 
