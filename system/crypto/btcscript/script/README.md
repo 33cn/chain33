@@ -7,18 +7,18 @@
 
 > 获取钱包找回地址X
 - 已知钱包找回控制地址A，找回地址B，相对延时时长T
-- 调用接口获取获取钱包找回地址X，[相关rpc](README.md#chain33.GetWalletRecoverAddress)
+- 调用接口获取获取钱包找回地址X，[相关rpc](README.md#chain33getwalletrecoveraddress)
 - 用户使用链上转账功能，将需要被钱包找回控制的的资产转入到地址X
 - X对应的私钥未知，需要由地址A或B的私钥构造比特币脚本签名，进行资产操作
 
 > 控制地址提取X资产
 - 控制地址A可以随时对X的资产进行提取，即构造发送方为X的原始转账交易
-- 交易需要采用比特币脚本类型签名， [相关rpc](README.md#chain33.SignWalletRecoverTx)
+- 交易需要采用比特币脚本类型签名， [相关rpc](README.md#chain33signwalletrecovertx)
 - 发送交易到链上执行
 
 > 找回地址提取X资产
 - 找回地址B可以基于延时交易提取X的资产, 即构造发送方为X的原始转账交易tx1, 但tx1需要提交到链上并等待延时打包
-- 交易tx1需要采用比特币脚本类型签名, [相关rpc](README.md#chain33.SignWalletRecoverTx)
+- 交易tx1需要采用比特币脚本类型签名, [相关rpc](README.md#chain33signwalletrecovertx)
 - 基于tx1, 相对延时T, 构造延时存证交易tx2，[构造方法](../../../dapp/none/README.md#延时存证交易)
 - 将tx2签名并发送至链上执行，tx1将作为tx2的交易内容, 暂存于链上等待延时打包
 - 通过tx1哈希, 查询tx1是否被打包执行
