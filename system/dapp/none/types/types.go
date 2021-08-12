@@ -47,7 +47,7 @@ var (
 	}
 	logmap = map[int64]*types.LogInfo{
 
-		TyCommitDelayTxLog: {Ty: reflect.TypeOf(&CommitDelayTxLog{}), Name: NameCommitDelayTxLog},
+		TyCommitDelayTxLog: {Ty: reflect.TypeOf(CommitDelayTxLog{}), Name: NameCommitDelayTxLog},
 	}
 )
 
