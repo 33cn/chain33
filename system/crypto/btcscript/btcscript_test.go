@@ -8,6 +8,10 @@ package btcscript
 import (
 	"testing"
 
+	"github.com/33cn/chain33/client/mocks"
+	cryptocli "github.com/33cn/chain33/common/crypto/client"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 
@@ -209,4 +213,47 @@ func Test_ExampleMultiSig(t *testing.T) {
 	// invalid pub key
 	tx.Signature.Pubkey = priv1.PubKey().Bytes()
 	require.False(t, tx.CheckSign(1))
+}
+
+func TestDriver_Validate(t *testing.T) {
+
+	d := Driver{}
+	err := d.Validate(nil, nil, []byte("test"))
+	require.Equal(t, errDecodeBtcSignature, err)
+	sig := &script.Signature{}
+	sig.LockScript = []byte("testlockscript")
+	err = d.Validate(nil, []byte("testpub"), types.Encode(sig))
+	require.Equal(t, errInvalidLockScript, err)
+	sig.LockTime = 100
+	cryptocli.SetCurrentBlock(10, types.Now().Unix())
+	pubKey := script.Script2PubKey(sig.LockScript)
+	err = d.Validate(nil, pubKey, types.Encode(sig))
+	require.Equal(t, errInvalidLockTime, err)
+	sig.LockTime = 11
+	sig.UtxoSequence = 12
+
+	err = d.Validate([]byte("testmsg"), pubKey, types.Encode(sig))
+	require.Equal(t, errDecodeValidateTx, err)
+
+	api := &mocks.QueueProtocolAPI{}
+	cryptocli.SetQueueAPI(api)
+	txMsg := types.Encode(&types.Transaction{Execer: []byte("none")})
+	api.On("Query", mock.Anything, mock.Anything,
+		mock.Anything).Return(nil, errQueryDelayBeginTime).Once()
+	err = d.Validate(txMsg, pubKey, types.Encode(sig))
+	require.Equal(t, errQueryDelayBeginTime, err)
+
+	api.On("Query", mock.Anything, mock.Anything,
+		mock.Anything).Return(nil, nil).Once()
+	err = d.Validate(txMsg, pubKey, types.Encode(sig))
+	require.Equal(t, errInvalidUtxoSequence, err)
+
+	api.On("Query", mock.Anything, mock.Anything,
+		mock.Anything).Return(&types.Int64{}, nil)
+	err = d.Validate(txMsg, pubKey, types.Encode(sig))
+	require.Equal(t, errInvalidUtxoSequence, err)
+
+	cryptocli.SetCurrentBlock(11, types.Now().Unix())
+	err = d.Validate(txMsg, pubKey, types.Encode(sig))
+	require.Equal(t, errInvalidBtcSignature, err)
 }

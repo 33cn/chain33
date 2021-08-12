@@ -10,14 +10,14 @@ import (
 	"errors"
 
 	cryptocli "github.com/33cn/chain33/common/crypto/client"
-
 	"github.com/33cn/chain33/system/crypto/btcscript/script"
 	"github.com/33cn/chain33/system/crypto/secp256k1"
+	nty "github.com/33cn/chain33/system/dapp/none/types"
+	"github.com/33cn/chain33/types"
 
 	"github.com/33cn/chain33/common"
 
 	"github.com/33cn/chain33/common/crypto"
-	"github.com/golang/protobuf/proto"
 )
 
 //const
@@ -39,31 +39,54 @@ type Driver struct {
 // Validate validate msg and signature
 func (d Driver) Validate(msg, pk, sig []byte) error {
 	ssig := &script.Signature{}
-	err := proto.Unmarshal(sig, ssig)
+	err := types.Decode(sig, ssig)
 	if err != nil {
-		return err
+		return errDecodeBtcSignature
 	}
 
 	//需要验证公钥和锁定脚本是否一一对应
 	if !bytes.Equal(pk, common.Sha256(ssig.LockScript)) {
-		return ErrInvalidLockScript
+		return errInvalidLockScript
 	}
 
-	cryptocli.GetCryptoContext()
+	ctx := cryptocli.GetCryptoContext()
+	// check btc script lock time , lockTime <= blockHeight
+	if ssig.LockTime > ctx.CurrBlockHeight+1 {
+		return errInvalidLockTime
+	}
 
-	// scriptLockTime <= lockTime <= blockTime
-	// scriptSequence <= utxoSeq <= block delay time
+	// check btc script utxo sequence, delayBeginHeight+sequence <= blockHeight
+	if ssig.UtxoSequence > 0 {
+
+		tx := &types.Transaction{}
+		err = types.Decode(msg, tx)
+		if err != nil {
+			return errDecodeValidateTx
+		}
+		reply, err := ctx.API.Query(nty.NoneX, nty.QueryGetDelayBegin, &types.ReqBytes{Data: tx.Hash()})
+		if err != nil {
+			return errQueryDelayBeginTime
+		}
+
+		val, ok := reply.(*types.Int64)
+		if !ok || val.Data+ssig.UtxoSequence > ctx.CurrBlockHeight+1 {
+			return errInvalidUtxoSequence
+		}
+	}
 
 	if err := script.CheckBtcScript(msg, ssig); err != nil {
-		return ErrInvalidBtcSignature
+		return errInvalidBtcSignature
 	}
+
 	return nil
 }
 
 var (
-
-	// ErrInvalidLockScript invalid lock script
-	ErrInvalidLockScript = errors.New("ErrInvalidLockScript")
-	// ErrInvalidBtcSignature invalid btc signature
-	ErrInvalidBtcSignature = errors.New("ErrInvalidBtcSignature")
+	errInvalidLockScript   = errors.New("errInvalidLockScript")
+	errInvalidBtcSignature = errors.New("errInvalidBtcSignature")
+	errDecodeBtcSignature  = errors.New("errDecodeBtcSignature")
+	errDecodeValidateTx    = errors.New("errDecodeValidateTx")
+	errInvalidLockTime     = errors.New("errInvalidLockTime")
+	errQueryDelayBeginTime = errors.New("errQueryDelayBeginTime")
+	errInvalidUtxoSequence = errors.New("errInvalidUtxoSequence")
 )

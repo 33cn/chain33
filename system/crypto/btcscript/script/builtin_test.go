@@ -3,6 +3,11 @@ package script_test
 import (
 	"testing"
 
+	"github.com/33cn/chain33/client/mocks"
+	cryptocli "github.com/33cn/chain33/common/crypto/client"
+	nty "github.com/33cn/chain33/system/dapp/none/types"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/33cn/chain33/system/crypto/btcscript"
 
 	"github.com/33cn/chain33/system/crypto/btcscript/script"
@@ -37,6 +42,19 @@ func Test_WalletRecoveryScript(t *testing.T) {
 		Signature: sig,
 	}
 	require.True(t, tx.CheckSign(0))
+
+	api := new(mocks.QueueProtocolAPI)
+	cryptocli.SetQueueAPI(api)
+	cryptocli.SetCurrentBlock(delayTime-1, types.Now().Unix())
+	runFn := func(args mock.Arguments) {
+		execer := args.Get(0).(string)
+		require.Equal(t, nty.NoneX, execer)
+		funcName := args.Get(1).(string)
+		require.Equal(t, nty.QueryGetDelayBegin, funcName)
+		param := args.Get(2).(*types.ReqBytes)
+		require.Equal(t, tx.Hash(), param.Data)
+	}
+	api.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&types.Int64{}, nil).Run(runFn)
 
 	// withdraw wallet balance with recover address
 	sig, pubKey, err = script.GetWalletRecoverySignature(true, signMsg, recoverKey.Bytes(),
