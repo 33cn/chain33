@@ -434,7 +434,7 @@ func (c *channelClient) getWalletRecoverAddr(param *types.ReqGetWalletRecoverAdd
 
 	pkScript, err := script.NewWalletRecoveryScript(ctrPub, recoverPub, param.GetRelativeDelayHeight())
 	if err != nil {
-		log.Error("getWalletRecoverAddr", "new wallet recover scirpt err", err)
+		log.Error("getWalletRecoverAddr", "new wallet recover script err", err)
 		return nil, nil, err
 	}
 	return recoverPub, pkScript, nil
