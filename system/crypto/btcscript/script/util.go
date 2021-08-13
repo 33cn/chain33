@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	// TyPay2PubKey Pay to Pubkey
+	// TyPay2PubKey Pay to pub key
 	TyPay2PubKey = iota
-	// TyPay2PubKeyHash Pay to Pubkey Hash
+	// TyPay2PubKeyHash Pay to pub key Hash
 	TyPay2PubKeyHash
 	// TyPay2ScriptHash Pay to Script Hash
 	TyPay2ScriptHash
