@@ -1116,7 +1116,7 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 		txdetail.ActionName = txdetail.Tx.ActionName()
 		txdetail.Amount, Err = param.tx.Amount()
 		if Err != nil {
-			walletlog.Error("buildAndStoreWalletTxDetail Amount err", "Height", param.block.Block.Height, "index", param.index)
+			walletlog.Debug("buildAndStoreWalletTxDetail Amount err", "Height", param.block.Block.Height, "index", param.index)
 		}
 		txdetail.Fromaddr = param.senderRecver
 		//txdetail.Spendrecv = param.utxos
