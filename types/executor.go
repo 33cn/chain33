@@ -524,7 +524,8 @@ func (base *ExecTypeBase) decodePayloadValue(tx *Transaction) (string, reflect.V
 	}
 	action, err := base.child.DecodePayload(tx)
 	if err != nil || action == nil {
-		tlog.Error("DecodePayload", "err", err, "exec", string(tx.Execer))
+		// 目前存证交易会解析失败, 这个错误不会影响
+		tlog.Debug("DecodePayload", "err", err, "exec", string(tx.Execer))
 		return "", nilValue, err
 	}
 	name, ty, val, err := GetActionValue(action, base.child.GetFuncMap())
