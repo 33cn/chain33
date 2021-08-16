@@ -277,7 +277,8 @@ type Exec struct {
 	DisableAddrIndex bool     `json:"disableAddrIndex,omitempty"`
 	Alias            []string `json:"alias,omitempty"`
 	// 是否保存token交易信息
-	SaveTokenTxList bool `json:"saveTokenTxList,omitempty"`
+	SaveTokenTxList    bool `json:"saveTokenTxList,omitempty"`
+	EnableAddrFeeIndex bool `json:"enableAddrFeeIndex,omitempty"`
 }
 
 // Pprof 配置

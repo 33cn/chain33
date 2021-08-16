@@ -7,8 +7,6 @@ package executor
 import (
 	"fmt"
 
-	"github.com/33cn/chain33/common"
-
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/types"
 )
@@ -77,13 +75,6 @@ type txIndex struct {
 	index     *types.ReplyTxInfo
 }
 
-type txFeeIndex struct {
-	from      string
-	to        string
-	heightstr string
-	index     *types.AddrTxFeeInfo
-}
-
 //交易中 from/to 的索引
 func getTxIndex(executor *executor, tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
 	var txIndexInfo txIndex
@@ -108,26 +99,4 @@ func getTxIndex(executor *executor, tx *types.Transaction, receipt *types.Receip
 	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	txIndexInfo.to = tx.GetRealToAddr()
 	return &txIndexInfo
-}
-
-//交易中 from fee 的索引
-func getTxFeeIndex(executor *executor, tx *types.Transaction, receipt *types.ReceiptData, index int) *txFeeIndex {
-	var txFeeIndexInfo txFeeIndex
-	var txinf types.AddrTxFeeInfo
-	txinf.TxHash = common.ToHex(tx.Hash())
-	txinf.Height = executor.height
-	txinf.Index = int64(index)
-	txinf.Fee = tx.Fee
-	txinf.Exec = string(tx.Execer)
-	txinf.TxStatus = receipt.Ty
-	txinf.FromAddr = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	txinf.ToAddr = tx.GetRealToAddr()
-
-	txFeeIndexInfo.index = &txinf
-	heightstr := fmt.Sprintf("%018d", executor.height*types.MaxTxsPerBlock+int64(index))
-	txFeeIndexInfo.heightstr = heightstr
-
-	txFeeIndexInfo.from = txinf.FromAddr
-	txFeeIndexInfo.to = tx.GetRealToAddr()
-	return &txFeeIndexInfo
 }
