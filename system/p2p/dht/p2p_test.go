@@ -209,6 +209,7 @@ func TestPrivateNetwork(t *testing.T) {
 	assert.Nil(t, err)
 	t.Log("same privatenetwork test success")
 	h2.Close()
+	h1.Network().ClosePeer(h2.ID())
 	//h2 采用另外一种privatekey
 	var testPsk2 [32]byte
 	copy(testPsk2[:], testPSK)
