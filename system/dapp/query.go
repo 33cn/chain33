@@ -105,7 +105,6 @@ func (d *DriverBase) GetTxsFeeByAddr(addr *types.ReqAddr) (types.Message, error)
 		}
 	}
 	var txsFeeInfos types.AddrTxFeeInfos
-	//txsFeeInfos.TxInfos = make([]*types.AddrTxFeeInfo,0)
 	for _, txinfobyte := range txinfos {
 		var txFeeInfo types.AddrTxFeeInfo
 		err := types.Decode(txinfobyte, &txFeeInfo)
@@ -116,7 +115,6 @@ func (d *DriverBase) GetTxsFeeByAddr(addr *types.ReqAddr) (types.Message, error)
 		if addr.HeightEnd > 0 && txFeeInfo.Height > addr.HeightEnd {
 			break
 		}
-		//txsFeeInfos.TxInfos[index] = &txFeeInfo
 		txsFeeInfos.TxInfos = append(txsFeeInfos.TxInfos, &txFeeInfo)
 	}
 	return &txsFeeInfos, nil
