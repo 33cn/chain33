@@ -19,7 +19,7 @@ import (
 
 var (
 	//区块0产生的kv对数量
-	kvCount = 26
+	kvCount = 25
 )
 
 func TestReindex(t *testing.T) {
