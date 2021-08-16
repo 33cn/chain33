@@ -209,6 +209,7 @@ func TestPrivateNetwork(t *testing.T) {
 	assert.Nil(t, err)
 	t.Log("same privatenetwork test success")
 	h2.Close()
+	//断开与h2的网络连接
 	h1.Network().ClosePeer(h2.ID())
 	//h2 采用另外一种privatekey
 	var testPsk2 [32]byte
