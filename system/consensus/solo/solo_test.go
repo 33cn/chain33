@@ -184,17 +184,18 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 				panic(err.Error())
 			}
 			defer conn.Close()
-			gcli := types.NewChain33Client(conn)
-			//pub := mock33.GetGenesisKey().PubKey().Bytes()
+			//gcli := types.NewChain33Client(conn)
+			pub := mock33.GetGenesisKey().PubKey().Bytes()
 			for {
-				tx := util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), atomic.LoadInt64(&height)+types.LowAllowPackHeight/2)
+				//tx := util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), atomic.LoadInt64(&height)+types.LowAllowPackHeight/2)
 				//测试去签名情况
-				//tx := util.CreateNoneTxWithTxHeight(cfg, nil, 0)
-				//tx.Signature = &types.Signature{
-				//	Ty: none.ID,
-				//	Pubkey:pub,
-				//}
-				_, err := gcli.SendTransaction(context.Background(), tx)
+				tx := util.CreateNoneTxWithTxHeight(cfg, nil, 0)
+				tx.Signature = &types.Signature{
+					Ty: none.ID,
+					Pubkey:pub,
+				}
+				//_, err := gcli.SendTransaction(context.Background(), tx)
+				_, err := mock33.GetAPI().SendTx(tx)
 				if err != nil {
 					if strings.Contains(err.Error(), "ErrChannelClosed") {
 						return
