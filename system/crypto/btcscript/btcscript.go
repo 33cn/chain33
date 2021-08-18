@@ -14,7 +14,7 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 	secp256k1 "github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/txscript"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 //const
