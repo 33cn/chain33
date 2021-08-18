@@ -118,7 +118,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 			issueCoins = 22*2269999 + height*8
 		}
 		totalAmount = (317430000+issueCoins)*cfg.CoinPrecision - fee.Fee
-		resp.TotalAmount = types.GetFormatFloat(totalAmount, cfg.CoinPrecision, true)
+		resp.TotalAmount = types.FormatAmount2FloatDisplay(totalAmount, cfg.CoinPrecision, true)
 	} else {
 		var req types.ReqString
 		req.Data = symbol
@@ -140,7 +140,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		}
 
 		totalAmount = res.Total
-		resp.TotalAmount = types.GetFormatFloat(totalAmount, cfg.TokenPrecision, true)
+		resp.TotalAmount = types.FormatAmount2FloatDisplay(totalAmount, cfg.TokenPrecision, true)
 	}
 
 	if actual != "" {
@@ -172,11 +172,11 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		}
 
 		if symbol == "bty" {
-			resp.ActualAmount = types.GetFormatFloat(actualAmount, cfg.CoinPrecision, true)
-			resp.DifferenceAmount = types.GetFormatFloat(totalAmount-actualAmount, cfg.CoinPrecision, true)
+			resp.ActualAmount = types.FormatAmount2FloatDisplay(actualAmount, cfg.CoinPrecision, true)
+			resp.DifferenceAmount = types.FormatAmount2FloatDisplay(totalAmount-actualAmount, cfg.CoinPrecision, true)
 		} else {
-			resp.ActualAmount = types.GetFormatFloat(actualAmount, cfg.TokenPrecision, true)
-			resp.DifferenceAmount = types.GetFormatFloat(totalAmount-actualAmount, cfg.TokenPrecision, true)
+			resp.ActualAmount = types.FormatAmount2FloatDisplay(actualAmount, cfg.TokenPrecision, true)
+			resp.DifferenceAmount = types.FormatAmount2FloatDisplay(totalAmount-actualAmount, cfg.TokenPrecision, true)
 		}
 
 	}
@@ -327,15 +327,15 @@ func execBalance(cmd *cobra.Command, args []string) {
 }
 
 func convertReplyToResult(reply *types.ReplyGetExecBalance, result *commandtypes.GetExecBalanceResult, precision int64) {
-	result.Amount = types.GetFormatFloat(reply.Amount, precision, true)
-	result.AmountFrozen = types.GetFormatFloat(reply.AmountFrozen, precision, true)
-	result.AmountActive = types.GetFormatFloat(reply.AmountActive, precision, true)
+	result.Amount = types.FormatAmount2FloatDisplay(reply.Amount, precision, true)
+	result.AmountFrozen = types.FormatAmount2FloatDisplay(reply.AmountFrozen, precision, true)
+	result.AmountActive = types.FormatAmount2FloatDisplay(reply.AmountActive, precision, true)
 
 	for i := 0; i < len(reply.Items); i++ {
 		item := &commandtypes.ExecBalance{}
 		item.ExecAddr = string(reply.Items[i].ExecAddr)
-		item.Frozen = types.GetFormatFloat(reply.Items[i].Frozen, precision, true)
-		item.Active = types.GetFormatFloat(reply.Items[i].Active, precision, true)
+		item.Frozen = types.FormatAmount2FloatDisplay(reply.Items[i].Frozen, precision, true)
+		item.Active = types.FormatAmount2FloatDisplay(reply.Items[i].Active, precision, true)
 		result.ExecBalances = append(result.ExecBalances, item)
 	}
 }
@@ -405,7 +405,7 @@ func totalFee(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	resp := fmt.Sprintf(`{"startHeight":%d,"endHeight":%d, "totalFee":%s}`, start, end, types.GetFormatFloat(fee, cfg.CoinPrecision, true))
+	resp := fmt.Sprintf(`{"startHeight":%d,"endHeight":%d, "totalFee":%s}`, start, end, types.FormatAmount2FloatDisplay(fee, cfg.CoinPrecision, true))
 	buf := &bytes.Buffer{}
 	err = json.Indent(buf, []byte(resp), "", "    ")
 	if err != nil {

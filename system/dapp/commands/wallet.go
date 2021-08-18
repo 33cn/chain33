@@ -201,7 +201,7 @@ func parseWalletTxListRes(arg ...interface{}) (interface{}, error) {
 	cfg := arg[1].(*rpctypes.ChainConfigInfo)
 	var result commandtypes.WalletTxDetailsResult
 	for _, v := range res.TxDetails {
-		amountResult := types.GetFormatFloat(v.Amount, cfg.CoinPrecision, true)
+		amountResult := types.FormatAmount2FloatDisplay(v.Amount, cfg.CoinPrecision, true)
 		wtxd := &commandtypes.WalletTxDetailResult{
 			Tx:         commandtypes.DecodeTransaction(v.Tx),
 			Receipt:    v.Receipt,
@@ -421,7 +421,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	feeInt64, err := types.TransferFloat(fee, cfg.CoinPrecision)
+	feeInt64, err := types.FormatFloatDisplay2Value(fee, cfg.CoinPrecision)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -465,7 +465,7 @@ func setFee(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64, err := types.TransferFloat(amount, cfg.CoinPrecision)
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

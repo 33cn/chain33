@@ -672,110 +672,155 @@ func BenchmarkStr2Bytes(b *testing.B) {
 	assert.Equal(b, []byte(s), buf)
 }
 
-func TestGetFormatFloat(t *testing.T) {
-	r := GetFormatFloat(0, DefaultCoinPrecision, false)
+func TestFormatAmount2FloatDisplay(t *testing.T) {
+	//round example
+	//val := 90012345678
+	//roundnot :=strconv.FormatFloat(float64(val/1e4)/float64(1e4), 'f', 4, 64)
+	//round :=strconv.FormatFloat(float64(val)/float64(1e8), 'f', 4, 64)
+	//fmt.Println("notround=",roundnot,"round=",round)
+
+	r := FormatAmount2FloatDisplay(0, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "0.0000")
 
-	r = GetFormatFloat(1, DefaultCoinPrecision, false)
+	r = FormatAmount2FloatDisplay(1, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "0.0000")
 
-	r = GetFormatFloat(12345678, DefaultCoinPrecision, false)
+	r = FormatAmount2FloatDisplay(12345678, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "0.1234")
 
-	r = GetFormatFloat(12345678, DefaultCoinPrecision, true)
+	r = FormatAmount2FloatDisplay(12345678, DefaultCoinPrecision, true)
 	assert.Equal(t, r, "0.1235")
 
-	r = GetFormatFloat(1234567812345678, DefaultCoinPrecision, false)
+	r = FormatAmount2FloatDisplay(1234567812345678, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "12345678.1234")
 
-	r = GetFormatFloat(9001234567812345678, DefaultCoinPrecision, false)
+	r = FormatAmount2FloatDisplay(9001234567812345678, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "90012345678.1234")
 
-	r = GetFormatFloat(12345678, 1, false)
+	r = FormatAmount2FloatDisplay(12345678, 1, false)
 	assert.Equal(t, r, "12345678")
 
-	r = GetFormatFloat(0, 1, false)
+	r = FormatAmount2FloatDisplay(0, 1, false)
 	assert.Equal(t, r, "0")
 
-	r = GetFormatFloat(9001234567812345678, 1, false)
+	r = FormatAmount2FloatDisplay(9001234567812345678, 1, false)
 	assert.Equal(t, r, "9001234567812345678")
 
-	r = GetFormatFloat(1234567812345678, 10, false)
+	r = FormatAmount2FloatDisplay(1234567812345678, 10, false)
 	assert.Equal(t, r, "123456781234567.8")
 
-	r = GetFormatFloat(9001234567812345678, 10, false)
+	r = FormatAmount2FloatDisplay(9001234567812345678, 10, false)
 	assert.Equal(t, r, "900123456781234567.8")
 
-	r = GetFormatFloat(0, 10, false)
+	r = FormatAmount2FloatDisplay(0, 10, false)
 	assert.Equal(t, r, "0.0")
 
-	r = GetFormatFloat(100000000, DefaultCoinPrecision, false)
+	r = FormatAmount2FloatDisplay(100000000, DefaultCoinPrecision, false)
 	assert.Equal(t, r, "1.0000")
 
 }
 
-func TestTransferFloat(t *testing.T) {
+func TestFormatAmount2FixPrecisionDisplay(t *testing.T) {
+	r := FormatAmount2FixPrecisionDisplay(0, DefaultCoinPrecision)
+	assert.Equal(t, r, "0.00000000")
+
+	r = FormatAmount2FixPrecisionDisplay(1, DefaultCoinPrecision)
+	assert.Equal(t, r, "0.00000001")
+
+	r = FormatAmount2FixPrecisionDisplay(12345678, DefaultCoinPrecision)
+	assert.Equal(t, r, "0.12345678")
+
+	r = FormatAmount2FixPrecisionDisplay(1234567812345678, DefaultCoinPrecision)
+	assert.Equal(t, r, "12345678.12345678")
+
+	r = FormatAmount2FixPrecisionDisplay(9001234567812345678, DefaultCoinPrecision)
+	assert.Equal(t, r, "90012345678.12345678")
+
+	r = FormatAmount2FixPrecisionDisplay(12345678, 1)
+	assert.Equal(t, r, "12345678")
+
+	r = FormatAmount2FixPrecisionDisplay(0, 1)
+	assert.Equal(t, r, "0")
+
+	r = FormatAmount2FixPrecisionDisplay(9001234567812345678, 1)
+	assert.Equal(t, r, "9001234567812345678")
+
+	r = FormatAmount2FixPrecisionDisplay(1234567812345678, 10)
+	assert.Equal(t, r, "123456781234567.8")
+
+	r = FormatAmount2FixPrecisionDisplay(9001234567812345678, 10)
+	assert.Equal(t, r, "900123456781234567.8")
+
+	r = FormatAmount2FixPrecisionDisplay(0, 10)
+	assert.Equal(t, r, "0.0")
+
+	r = FormatAmount2FixPrecisionDisplay(100000000, DefaultCoinPrecision)
+	assert.Equal(t, r, "1.00000000")
+
+}
+
+func TestFormatFloatDisplay2Value(t *testing.T) {
 	//超过最大maxCoin
 	in := float64(9512345678.12347734)
-	_, err := TransferFloat(in, DefaultCoinPrecision)
+	_, err := FormatFloatDisplay2Value(in, DefaultCoinPrecision)
 	assert.NotNil(t, err)
 
 	//小数位超过配置精度
 	in = float64(1123456.123456781)
-	_, err = TransferFloat(in, DefaultCoinPrecision)
+	_, err = FormatFloatDisplay2Value(in, DefaultCoinPrecision)
 	assert.NotNil(t, err)
 
 	//小数位超过配置精度
 	in = float64(112345678.12345)
-	_, err = TransferFloat(in, 1e4)
+	_, err = FormatFloatDisplay2Value(in, 1e4)
 	assert.NotNil(t, err)
 
 	//没有小数位，按精度扩展
 	in = float64(112345678)
-	v, err := TransferFloat(in, 1e4)
+	v, err := FormatFloatDisplay2Value(in, 1e4)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1123456780000), v)
 
 	//有小数位扩展
 	in = float64(112345678.12)
-	v, err = TransferFloat(in, 1e4)
+	v, err = FormatFloatDisplay2Value(in, 1e4)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1123456781200), v)
 
 	//最大小数位扩展
 	in = float64(MaxCoin)
-	v, err = TransferFloat(in, DefaultCoinPrecision)
+	v, err = FormatFloatDisplay2Value(in, DefaultCoinPrecision)
 	assert.Nil(t, err)
 	assert.Equal(t, MaxCoin*100000000, v)
 
 	in = float64(0)
-	v, err = TransferFloat(in, DefaultCoinPrecision)
+	v, err = FormatFloatDisplay2Value(in, DefaultCoinPrecision)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), v)
 
 	//测试小数位扩展
 	in = float64(0.1)
-	v, err = TransferFloat(in, 1e4)
+	v, err = FormatFloatDisplay2Value(in, 1e4)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1000), v)
 
 	in = float64(99999999.1234567)
-	v, err = TransferFloat(in, DefaultCoinPrecision)
+	v, err = FormatFloatDisplay2Value(in, DefaultCoinPrecision)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(9999999912340000), v)
 
 	in = float64(999999999.1)
-	v, err = TransferFloat(in, 1e5)
+	v, err = FormatFloatDisplay2Value(in, 1e5)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(99999999910000), v)
 
 	in = float64(999999999)
-	v, err = TransferFloat(in, 1e5)
+	v, err = FormatFloatDisplay2Value(in, 1e5)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(99999999900000), v)
 }
 
-func TestGetFormatFloat2(t *testing.T) {
+func TestFormatAmount2FloatDisplay2(t *testing.T) {
 	a := decimal.NewFromInt(1).Shift(-8)
 	fmt.Println("a=", a.String())
 	a = decimal.NewFromInt(9001234567812345678).Shift(-8)
@@ -790,9 +835,4 @@ func TestGetFormatFloat2(t *testing.T) {
 	fmt.Println("c=", c)
 	c = decimal.NewFromFloat(1.2345678).StringFixed(4)
 	fmt.Println("c=", c)
-
-	//a=decimal.NewFromInt(1).Shift(8)
-	//fmt.Println("a=",a.String())
-	//a=decimal.NewFromInt(0).Shift(8)
-	//fmt.Println("a=",a.String())
 }

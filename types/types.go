@@ -656,14 +656,15 @@ func (hashes *ReplyHashes) Hash() []byte {
 	return common.Sha256(data)
 }
 
-//GetFormatFloat 对val按精度取浮点字符串
-//strconv.FormatFloat(float64(val/types.Int1E4)/types.Float1E4, 'f', 4, 64) 的方法在val很大的时候会丢失精度
+//FormatAmountValue2Display 将传输、计算的amount值按精度格式化成浮点显示值，支持精度可配置
+//strconv.FormatFloat(float64(amount/types.Int1E4)/types.Float1E4, 'f', 4, 64) 的方法在amount很大的时候会丢失精度
 //比如在9001234567812345678时候，float64 最大精度只能在900123456781234的大小，decimal处理可以完整保持精度
-//另外在coinPrecision支持可配时候，对不同精度统一处理,而不是限定在1e4
-func GetFormatFloat(val, coinPrecision int64, round bool) string {
+//在coinPrecision支持可配时候，对不同精度统一处理,而不是限定在1e4
+//round:是否需要对小数后四位值圆整，以912345678为例，912345678/1e8=9.1235, 非圆整例子:(912345678/1e4)/float(1e4)
+func FormatAmount2FloatDisplay(amount, coinPrecision int64, round bool) string {
 	n := int64(math.Log10(float64(coinPrecision)))
 	//小数左移n位，0保持不变
-	d := decimal.NewFromInt(val).Shift(int32(-n))
+	d := decimal.NewFromInt(amount).Shift(int32(-n))
 
 	//coinPrecision:5~8,
 	//v=99.12345678  => 99.1234,需要先truncate掉，不然5678会round到前一位也就是99.1235
@@ -680,10 +681,19 @@ func GetFormatFloat(val, coinPrecision int64, round bool) string {
 	return d.StringFixedBank(int32(n))
 }
 
-//TransferFloat 对浮点数乘以精度，小数点后精度只保留4位
+//FormatAmount2FixPrecisionDisplay 将传输、计算的amount值按配置精度格式化成浮点显示值，不设缺省精度
+func FormatAmount2FixPrecisionDisplay(amount, coinPrecision int64) string {
+	n := int64(math.Log10(float64(coinPrecision)))
+	//小数左移n位，0保持不变
+	d := decimal.NewFromInt(amount).Shift(int32(-n))
+
+	return d.StringFixedBank(int32(n))
+}
+
+//FormatFloatDisplay2Value 将显示、输入的float amount值按精度格式化成计算值，小数点后精度只保留4位
 //浮点数算上浮点能表达最大16位长的数字(9512345678.1234xxxx)
 //本函数首先限定整数不能超过1e9,然后小数位只精确到4位，后面补0
-func TransferFloat(val float64, coinPrecision int64) (int64, error) {
+func FormatFloatDisplay2Value(val float64, coinPrecision int64) (int64, error) {
 	max := decimal.NewFromInt(MaxCoin)
 	f := decimal.NewFromFloat(val)
 	strVal := f.String()

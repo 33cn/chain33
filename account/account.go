@@ -112,6 +112,13 @@ func (acc *DB) CheckTransfer(from, to string, amount int64) error {
 	return nil
 }
 
+func (acc *DB) CheckAmount(amount int64) error {
+	if !types.CheckAmount(amount, acc.cfg.GetCoinPrecision()) {
+		return types.ErrAmount
+	}
+	return nil
+}
+
 // Transfer 执行交易
 func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 	if !types.CheckAmount(amount, acc.cfg.GetCoinPrecision()) {

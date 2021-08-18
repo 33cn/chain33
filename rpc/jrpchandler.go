@@ -344,7 +344,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool, coinExec strin
 	//对Amount做格式化
 	if tx.Amount != 0 {
 		tran.Amount = tx.Amount
-		tran.AmountFmt = types.GetFormatFloat(tran.Amount, coinPrecision, true)
+		tran.AmountFmt = types.FormatAmount2FloatDisplay(tran.Amount, coinPrecision, true)
 	}
 	// swap from with to
 	if tx.GetTx().IsWithdraw(coinExec) {

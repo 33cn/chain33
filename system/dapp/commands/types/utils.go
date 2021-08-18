@@ -53,8 +53,8 @@ func DecodeTransaction(tx *rpctypes.Transaction) *TxResult {
 
 // DecodeAccount decode account func
 func DecodeAccount(acc *types.Account, precision int64) *AccountResult {
-	balanceResult := types.GetFormatFloat(acc.GetBalance(), precision, true)
-	frozenResult := types.GetFormatFloat(acc.GetFrozen(), precision, true)
+	balanceResult := types.FormatAmount2FloatDisplay(acc.GetBalance(), precision, true)
+	frozenResult := types.FormatAmount2FloatDisplay(acc.GetFrozen(), precision, true)
 	accResult := &AccountResult{
 		Addr:     acc.GetAddr(),
 		Currency: acc.GetCurrency(),
@@ -98,7 +98,7 @@ func CreateRawTx(paraName string, to string, amount float64, note string, isWith
 		}
 	}
 
-	amountInt64, err := types.TransferFloat(amount, cfg.CoinPrecision)
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
 	if err != nil {
 		return "", err
 	}
