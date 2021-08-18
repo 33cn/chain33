@@ -93,18 +93,18 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if unsigned.NewToAddr != "" {
 		tx.To = unsigned.NewToAddr
 	}
-	if unsigned.Fee != 0 {
-		tx.Fee = unsigned.Fee
-	} else {
-		//get proper fee if not set
-		proper, err := wallet.api.GetProperFee(nil)
-		if err != nil {
-			return "", err
-		}
-		fee, err := tx.GetRealFee(proper.ProperFee)
-		if err != nil {
-			return "", err
-		}
+
+	//To to set fee based on bigger of two fees, on is from sign request and the other is calculated based on tx size
+	tx.Fee = unsigned.Fee
+	proper, err := wallet.api.GetProperFee(nil)
+	if err != nil {
+		return "", err
+	}
+	fee, err := tx.GetRealFee(proper.ProperFee)
+	if err != nil {
+		return "", err
+	}
+	if fee > tx.Fee {
 		tx.Fee = fee
 	}
 
