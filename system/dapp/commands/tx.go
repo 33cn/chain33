@@ -175,7 +175,7 @@ func queryTx(cmd *cobra.Command, args []string) {
 func parseQueryTxRes(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*rpctypes.TransactionDetail)
 	cfg := arg[1].(*rpctypes.ChainConfigInfo)
-	amountResult := types.GetFormatFloat(res.Amount, cfg.CoinPrecision, true)
+	amountResult := types.FormatAmount2FloatDisplay(res.Amount, cfg.CoinPrecision, true)
 	result := commandtypes.TxDetailResult{
 		Tx:         commandtypes.DecodeTransaction(res.Tx),
 		Receipt:    res.Receipt,
@@ -239,7 +239,7 @@ func parseQueryTxsByHashesRes(arg ...interface{}) (interface{}, error) {
 			result.Txs = append(result.Txs, nil)
 			continue
 		}
-		amountResult := types.GetFormatFloat(v.Amount, cfg.CoinPrecision, true)
+		amountResult := types.FormatAmount2FloatDisplay(v.Amount, cfg.CoinPrecision, true)
 		td := commandtypes.TxDetailResult{
 			Tx:         commandtypes.DecodeTransaction(v.Tx),
 			Receipt:    v.Receipt,
@@ -360,8 +360,8 @@ func viewAddress(cmd *cobra.Command, args []string) {
 func parseAddrOverview(arg ...interface{}) (interface{}, error) {
 	res := arg[0].(*types.AddrOverview)
 	cfg := arg[1].(*rpctypes.ChainConfigInfo)
-	balance := types.GetFormatFloat(res.GetBalance(), cfg.CoinPrecision, true)
-	receiver := types.GetFormatFloat(res.GetReciver(), cfg.CoinPrecision, true)
+	balance := types.FormatAmount2FloatDisplay(res.GetBalance(), cfg.CoinPrecision, true)
+	receiver := types.FormatAmount2FloatDisplay(res.GetReciver(), cfg.CoinPrecision, true)
 	addrOverview := &commandtypes.AddrOverviewResult{
 		Balance:  balance,
 		Receiver: receiver,
@@ -412,7 +412,7 @@ func reWriteRawTx(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	feeInt64, err := types.TransferFloat(fee, cfg.CoinPrecision)
+	feeInt64, err := types.FormatFloatDisplay2Value(fee, cfg.CoinPrecision)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

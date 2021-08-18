@@ -135,7 +135,7 @@ func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
 
-	amountInt64, err := types.TransferFloat(amount, cfg.CoinPrecision)
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -181,7 +181,7 @@ func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64, err := types.TransferFloat(amount, cfg.CoinPrecision)
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -217,7 +217,7 @@ func CreateAssetTransfer(cmd *cobra.Command, args []string, fromExec string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	amountInt64, err := types.TransferFloat(amount, cfg.CoinPrecision)
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
