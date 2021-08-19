@@ -130,7 +130,7 @@ func CreateRawTx(paraName string, to string, amount float64, note string, isWith
 		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: address.ExecAddress(string(execer))}
 	}
 
-	tx, err = types.FormatTxExt(cfg.ChainID, paraName != "", cfg.MinTxFeeRate, string(execer), tx)
+	tx, err = types.FormatTxExt(cfg.ChainID, len(paraName) > 0, cfg.MinTxFeeRate, string(execer), tx)
 	if err != nil {
 		return "", err
 	}

@@ -265,26 +265,20 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 		}
 
 		//配置coinPrecision支持0~8, 最大8,也就是1e8
-		if len(cfg.CoinPrecision) > 0 {
-			n, err := strconv.ParseInt(cfg.CoinPrecision, 10, 64)
-			if err != nil {
-				panic(fmt.Sprintf("config.CoinPrecision=%s,err=%s", cfg.CoinPrecision, err.Error()))
+		c.coinPrecision = DefaultCoinPrecision
+		if cfg.CoinPrecision > 0 {
+			if !checkPrecision(cfg.CoinPrecision) {
+				panic(fmt.Sprintf("config coinPrecision=%d should be 1~100000000", cfg.CoinPrecision))
 			}
-			if n < 0 || n > int64(math.Log10(float64(DefaultCoinPrecision))) {
-				panic(fmt.Sprintf("config coinPrecision=%d not in 0~8", n))
-			}
-			c.coinPrecision = int64(math.Pow10(int(n)))
+			c.coinPrecision = cfg.CoinPrecision
 		}
 
-		if len(cfg.TokenPrecision) > 0 {
-			n, err := strconv.ParseInt(cfg.TokenPrecision, 10, 64)
-			if err != nil {
-				panic(fmt.Sprintf("config.TokenPrecision=%s,err=%s", cfg.TokenPrecision, err.Error()))
+		c.tokenPrecision = DefaultCoinPrecision
+		if cfg.TokenPrecision > 0 {
+			if !checkPrecision(cfg.TokenPrecision) {
+				panic(fmt.Sprintf("config tokenPrecision=%d should be 1~100000000", cfg.TokenPrecision))
 			}
-			if n < 0 || n > int64(math.Log10(float64(DefaultCoinPrecision))) {
-				panic(fmt.Sprintf("config TokenPrecision=%d not in 0~8", n))
-			}
-			c.tokenPrecision = int64(math.Pow10(int(n)))
+			c.tokenPrecision = cfg.TokenPrecision
 		}
 		//TxHeight
 		c.setChainConfig("TxHeight", cfg.TxHeight)
@@ -305,6 +299,16 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	if c.mver != nil {
 		c.mver.UpdateFork(c.forks)
 	}
+}
+
+func checkPrecision(precision int64) bool {
+	if precision > DefaultCoinPrecision {
+		return false
+	}
+	s := strconv.Itoa(int(precision))
+	n := strings.Count(s, "0")
+	calc := math.Pow10(n)
+	return precision == int64(calc)
 }
 
 func (c *Chain33Config) needSetForkZero() bool {

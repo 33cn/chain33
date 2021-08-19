@@ -90,3 +90,31 @@ func TestGetParaExecTitleName(t *testing.T) {
 	assert.Equal(t, true, exist)
 	assert.Equal(t, "user.p.guodux.", title)
 }
+
+func TestCheckPrecision(t *testing.T) {
+	var a int64
+	a = 11
+	r := checkPrecision(a)
+	assert.Equal(t, false, r)
+
+	a = 10
+	r = checkPrecision(a)
+	assert.Equal(t, true, r)
+
+	a = 1
+	r = checkPrecision(a)
+	assert.Equal(t, true, r)
+
+	a = 1e8
+	r = checkPrecision(a)
+	assert.Equal(t, true, r)
+
+	a = 1000000000
+	r = checkPrecision(a)
+	assert.Equal(t, false, r)
+
+	a = 110000000
+	r = checkPrecision(a)
+	assert.Equal(t, false, r)
+
+}
