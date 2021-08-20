@@ -1816,3 +1816,14 @@ func TestChain33_SendDelayTransaction(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, common.ToHex(testData), result.(string))
 }
+
+func TestChain33_GetChainConfig(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	var result interface{}
+	api.On("GetChainConfig").Return(nil)
+	err := client.GetChainConfig(&types.ReqNil{}, &result)
+	assert.Nil(t, err)
+}
