@@ -92,8 +92,7 @@ func TestGetParaExecTitleName(t *testing.T) {
 }
 
 func TestCheckPrecision(t *testing.T) {
-	var a int64
-	a = 11
+	a := int64(11)
 	r := checkPrecision(a)
 	assert.Equal(t, false, r)
 

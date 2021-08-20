@@ -112,6 +112,7 @@ func (acc *DB) CheckTransfer(from, to string, amount int64) error {
 	return nil
 }
 
+// CheckAmount acc db check amount
 func (acc *DB) CheckAmount(amount int64) bool {
 	return types.CheckAmount(amount, acc.cfg.GetCoinPrecision())
 }

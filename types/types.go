@@ -656,7 +656,7 @@ func (hashes *ReplyHashes) Hash() []byte {
 	return common.Sha256(data)
 }
 
-//FormatAmountValue2Display 将传输、计算的amount值按精度格式化成浮点显示值，支持精度可配置
+//FormatAmount2FloatDisplay 将传输、计算的amount值按精度格式化成浮点显示值，支持精度可配置
 //strconv.FormatFloat(float64(amount/types.Int1E4)/types.Float1E4, 'f', 4, 64) 的方法在amount很大的时候会丢失精度
 //比如在9001234567812345678时候，float64 最大精度只能在900123456781234的大小，decimal处理可以完整保持精度
 //在coinPrecision支持可配时候，对不同精度统一处理,而不是限定在1e4

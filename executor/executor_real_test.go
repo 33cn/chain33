@@ -63,7 +63,7 @@ func TestTxGroup(t *testing.T) {
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
 	acc := mock33.GetAccount(block.StateHash, mcfg.Consensus.Genesis)
-	assert.Equal(t, acc.Balance, int64(100000000*types.DefaultCoinPrecision))
+	assert.Equal(t, acc.Balance, 100000000*types.DefaultCoinPrecision)
 	var txs []*types.Transaction
 	addr2, priv2 := util.Genaddress()
 	addr3, priv3 := util.Genaddress()
@@ -85,7 +85,7 @@ func TestTxGroup(t *testing.T) {
 	assert.Equal(t, mock33.GetAccount(block.StateHash, mock33.GetGenesisAddress()).Balance, int64(9999999899700000))
 	assert.Equal(t, mock33.GetAccount(block.StateHash, addr2).Balance, int64(0))
 	assert.Equal(t, mock33.GetAccount(block.StateHash, addr3).Balance, int64(0))
-	assert.Equal(t, mock33.GetAccount(block.StateHash, addr4).Balance, int64(1*types.DefaultCoinPrecision))
+	assert.Equal(t, mock33.GetAccount(block.StateHash, addr4).Balance, 1*types.DefaultCoinPrecision)
 
 	//执行三笔交易：第一比错误
 	txs = nil
