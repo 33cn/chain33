@@ -112,7 +112,7 @@ func TestDepositBalance(t *testing.T) {
 	_, err = tokenCoin.depositBalance(addr1, 30*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("token deposit balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(1000*types.DefaultCoinPrecision+30*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, 1000*types.DefaultCoinPrecision+30*types.DefaultCoinPrecision, tokenCoin.LoadAccount(addr1).Balance)
 }
 
 func initEnv() queue.Queue {
@@ -594,7 +594,7 @@ func TestDB_Mint(t *testing.T) {
 	_, err := tokenCoin.Mint(addr1, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(1000*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, 1000*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision, tokenCoin.LoadAccount(addr1).Balance)
 }
 
 func TestDB_Burn(t *testing.T) {

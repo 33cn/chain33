@@ -139,8 +139,8 @@ func TestExecTransfer(t *testing.T) {
 	t.Logf("ExecActive [%d]___[%d]",
 		accCoin.LoadExecAccount(addr1, execaddress).Balance,
 		accCoin.LoadExecAccount(addr2, execaddress).Balance)
-	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Balance)
-	require.Equal(t, int64(900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr2, execaddress).Balance)
+	require.Equal(t, 1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr1, execaddress).Balance)
+	require.Equal(t, 900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr2, execaddress).Balance)
 }
 
 func TestExecTransferFrozen(t *testing.T) {
@@ -156,8 +156,8 @@ func TestExecTransferFrozen(t *testing.T) {
 	t.Logf("TransferFrozen [%d]___[%d]",
 		accCoin.LoadExecAccount(addr1, execaddress).Frozen,
 		accCoin.LoadExecAccount(addr2, execaddress).Balance)
-	require.Equal(t, int64(20*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
-	require.Equal(t, int64(900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr2, execaddress).Balance)
+	require.Equal(t, 20*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr1, execaddress).Frozen)
+	require.Equal(t, 900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr2, execaddress).Balance)
 }
 
 func TestExecDepositFrozen(t *testing.T) {
@@ -172,7 +172,7 @@ func TestExecDepositFrozen(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("ExecDepositFrozen [%d]",
 		accCoin.LoadExecAccount(addr1, execaddress).Frozen)
-	require.Equal(t, int64(20*types.DefaultCoinPrecision+25*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
+	require.Equal(t, 20*types.DefaultCoinPrecision+25*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 }
 
 func TestExecIssueCoins(t *testing.T) {
@@ -193,5 +193,5 @@ func TestExecIssueCoins(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("ExecIssueCoins [%d]",
 		accCoin.LoadAccount(execaddress).Balance)
-	require.Equal(t, int64(25*types.DefaultCoinPrecision), accCoin.LoadAccount(execaddress).Balance)
+	require.Equal(t, 25*types.DefaultCoinPrecision, accCoin.LoadAccount(execaddress).Balance)
 }
