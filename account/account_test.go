@@ -604,5 +604,5 @@ func TestDB_Burn(t *testing.T) {
 	_, err := tokenCoin.Burn(addr1, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, 1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision, tokenCoin.LoadAccount(addr1).Balance)
 }
