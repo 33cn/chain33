@@ -33,6 +33,6 @@ func TestGenesisInitExec(t *testing.T) {
 	t.Logf("GenesisInitExec [%d]___[%d]",
 		accCoin.LoadExecAccount(addr1, execaddr).Balance,
 		accCoin.LoadAccount(execaddr).Balance)
-	require.Equal(t, int64(10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddr).Balance)
-	require.Equal(t, int64(10*types.DefaultCoinPrecision), accCoin.LoadAccount(execaddr).Balance)
+	require.Equal(t, 10*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr1, execaddr).Balance)
+	require.Equal(t, 10*types.DefaultCoinPrecision, accCoin.LoadAccount(execaddr).Balance)
 }

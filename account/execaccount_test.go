@@ -57,8 +57,8 @@ func TestTransferToExec(t *testing.T) {
 	t.Logf("TransferToExec from addr balance [%d] to addr balance [%d]",
 		accCoin.LoadAccount(addr1).Balance,
 		accCoin.LoadAccount(addr2).Balance)
-	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadAccount(addr2).Balance)
+	require.Equal(t, 1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision, accCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, 900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision, accCoin.LoadAccount(addr2).Balance)
 }
 
 func TestTransferWithdraw(t *testing.T) {
@@ -103,8 +103,8 @@ func TestExecFrozen(t *testing.T) {
 		accCoin.LoadExecAccount(addr1, execaddress).Balance,
 		accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 
-	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Balance)
-	require.Equal(t, int64(20*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
+	require.Equal(t, 1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr1, execaddress).Balance)
+	require.Equal(t, 20*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 }
 
 func TestExecActive(t *testing.T) {
@@ -122,8 +122,8 @@ func TestExecActive(t *testing.T) {
 		accCoin.LoadExecAccount(addr1, execaddress).Balance,
 		accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 
-	require.Equal(t, int64(1000*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Balance)
-	require.Equal(t, int64(20*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadExecAccount(addr1, execaddress).Frozen)
+	require.Equal(t, 1000*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr1, execaddress).Balance)
+	require.Equal(t, 20*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision, accCoin.LoadExecAccount(addr1, execaddress).Frozen)
 }
 
 func TestExecTransfer(t *testing.T) {

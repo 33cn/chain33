@@ -16,7 +16,6 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types/jsonpb"
 	proto "github.com/golang/protobuf/proto"
-	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -760,7 +759,7 @@ func TestFormatAmount2FixPrecisionDisplay(t *testing.T) {
 }
 
 func TestFormatFloatDisplay2Value(t *testing.T) {
-	//超过最大maxCoin
+	//超过最大字符数
 	in := float64(9512345678.12347734)
 	_, err := FormatFloatDisplay2Value(in, DefaultCoinPrecision)
 	assert.NotNil(t, err)
@@ -780,6 +779,17 @@ func TestFormatFloatDisplay2Value(t *testing.T) {
 	v, err := FormatFloatDisplay2Value(in, 1e4)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1123456780000), v)
+
+	//最大值
+	in = float64(9999999999999.9)
+	v, err = FormatFloatDisplay2Value(in, 1e1)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(99999999999999), v)
+	//最大值
+	in = float64(999999999999999)
+	v, err = FormatFloatDisplay2Value(in, 1)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(999999999999999), v)
 
 	//有小数位扩展
 	in = float64(112345678.12)
@@ -804,10 +814,10 @@ func TestFormatFloatDisplay2Value(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1000), v)
 
-	in = float64(99999999.1234567)
+	in = float64(9999999.1234567)
 	v, err = FormatFloatDisplay2Value(in, DefaultCoinPrecision)
 	assert.Nil(t, err)
-	assert.Equal(t, int64(9999999912340000), v)
+	assert.Equal(t, int64(999999912340000), v)
 
 	in = float64(999999999.1)
 	v, err = FormatFloatDisplay2Value(in, 1e5)
@@ -818,21 +828,5 @@ func TestFormatFloatDisplay2Value(t *testing.T) {
 	v, err = FormatFloatDisplay2Value(in, 1e5)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(99999999900000), v)
-}
 
-func TestFormatAmount2FloatDisplay2(t *testing.T) {
-	a := decimal.NewFromInt(1).Shift(-8)
-	fmt.Println("a=", a.String())
-	a = decimal.NewFromInt(9001234567812345678).Shift(-8)
-	fmt.Println("a=", a.String())
-
-	b := decimal.NewFromInt(0).Shift(-8)
-	fmt.Println("a=", b.String())
-
-	c := decimal.NewFromFloat(1.2345678).StringFixed(2)
-	fmt.Println("c=", c)
-	c = decimal.NewFromFloat(1.2345678).StringFixed(3)
-	fmt.Println("c=", c)
-	c = decimal.NewFromFloat(1.2345678).StringFixed(4)
-	fmt.Println("c=", c)
 }

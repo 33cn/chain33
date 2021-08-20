@@ -37,6 +37,7 @@ var (
 const (
 	ShowPrecisionNum int64 = 4      //cli命令显示保留4位
 	MaxCoin          int64 = 1e9    // 1e17/1e8
+	MaxFloatCharNum  int   = 15     //float64最大可精确表示15个字符的浮点数，小数点占一位，小数点位置不确定，不好确定最大值
 	MaxTxSize              = 100000 //100K
 	MaxTxGroupSize   int32 = 20
 	MaxBlockSize           = 20000000 //20M
@@ -301,10 +302,8 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	}
 }
 
+//只检查是否是10的指数，不限制最大精度
 func checkPrecision(precision int64) bool {
-	if precision > DefaultCoinPrecision {
-		return false
-	}
 	s := strconv.Itoa(int(precision))
 	n := strings.Count(s, "0")
 	calc := math.Pow10(n)
