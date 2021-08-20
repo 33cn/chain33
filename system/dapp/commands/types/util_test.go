@@ -56,7 +56,7 @@ func TestDecodeTransaction(t *testing.T) {
 }
 
 func TestDecodeAccount(t *testing.T) {
-	precision := int64(types.DefaultCoinPrecision)
+	precision := types.DefaultCoinPrecision
 	acc := &types.Account{
 		Currency: 2,
 		Balance:  3 * precision,

@@ -182,8 +182,8 @@ function start() {
     echo "=========== check genesis hash ========== "
     ${CLI} block hash -t 0
     res=$(${CLI} block hash -t 0 | jq ".hash")
-    echo "$res"
-    if [ "$res" != "0xfd39dbdbd2cdeb9f34bcec3612735671b35e2e2dbf9a4e6e3ed0c34804a757bb" ]; then
+   count=$(echo "$res" | grep -c "0xfd39dbdbd2cdeb9f34bcec3612735671b35e2e2dbf9a4e6e3ed0c34804a757bb")
+    if [ "${count}" != 1 ]; then
         echo "genesis hash error!"
         exit 1
     fi
