@@ -747,3 +747,9 @@ func TestGrpc_SendDelayTransaction(t *testing.T) {
 	_, err := g.SendDelayTransaction(getOkCtx(), nil)
 	assert.NoError(t, err)
 }
+
+func TestGrpc_GetChainConfig(t *testing.T) {
+	cfg, err := g.GetChainConfig(getOkCtx(), nil)
+	assert.NoError(t, err)
+	assert.Equal(t, types.DefaultCoinPrecision, cfg.GetCoinPrecision())
+}
