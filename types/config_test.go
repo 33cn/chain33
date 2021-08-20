@@ -108,9 +108,10 @@ func TestCheckPrecision(t *testing.T) {
 	r = checkPrecision(a)
 	assert.Equal(t, true, r)
 
+	//大于1e8也允许
 	a = 1000000000
 	r = checkPrecision(a)
-	assert.Equal(t, false, r)
+	assert.Equal(t, true, r)
 
 	a = 110000000
 	r = checkPrecision(a)

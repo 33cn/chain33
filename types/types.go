@@ -691,29 +691,27 @@ func FormatAmount2FixPrecisionDisplay(amount, coinPrecision int64) string {
 }
 
 //FormatFloatDisplay2Value 将显示、输入的float amount值按精度格式化成计算值，小数点后精度只保留4位
-//浮点数算上浮点能表达最大16位长的数字(9512345678.1234xxxx)
-//本函数首先限定整数不能超过1e9,然后小数位只精确到4位，后面补0
-func FormatFloatDisplay2Value(val float64, coinPrecision int64) (int64, error) {
-	max := decimal.NewFromInt(MaxCoin)
-	f := decimal.NewFromFloat(val)
+//浮点数算上浮点能精确表达最大16位长的数字(1234567.12345678),考虑到16个9会被表示为1e16,这里限制最多15个字符
+//本函数然后小数位只精确到4位，后面补0
+func FormatFloatDisplay2Value(amount float64, coinPrecision int64) (int64, error) {
+	f := decimal.NewFromFloat(amount)
 	strVal := f.String()
-
 	if len(strVal) <= 0 {
-		return 0, errors.Wrapf(ErrInvalidParam, "input=%f", val)
+		return 0, errors.Wrapf(ErrInvalidParam, "input=%f", amount)
 	}
-	//因为float精度原因，限制单次值不大于1e9，小数位精确到后四位
-	if f.GreaterThan(max) {
-		return 0, errors.Wrapf(ErrInvalidParam, "input=%f great than %v", val, MaxCoin)
-	}
-
 	//小数位输入不能超过配置小数位精度
 	coinPrecisionNum := int(math.Log10(float64(coinPrecision)))
-	i := strings.Index(f.String(), ".")
+	i := strings.Index(strVal, ".")
 	if i > 0 && len(strVal)-i-1 > coinPrecisionNum {
 		return 0, errors.Wrapf(ErrInvalidParam, "input decimalpoint num=%d great than config coinPrecision=%d", len(strVal)-i-1, coinPrecisionNum)
 	}
 
-	//如果配置精度超过4位，小数位只精确到后4位
+	//因为float精度原因，限制输入浮点数最多字符数
+	if len(strVal) > MaxFloatCharNum {
+		return 0, errors.Wrapf(ErrInvalidParam, "input=%f,len=%d great than %v", amount, len(strVal), MaxFloatCharNum)
+	}
+
+	//如果配置精度超过4位，小数位只精确到后4位, 例如1.23456789 ->123450000
 	if int64(coinPrecisionNum) > ShowPrecisionNum {
 		return f.Truncate(int32(ShowPrecisionNum)).Shift(int32(coinPrecisionNum)).IntPart(), nil
 	}

@@ -86,8 +86,8 @@ func TestTransfer(t *testing.T) {
 	t.Logf("Coin from addr balance [%d] to addr balance [%d]",
 		accCoin.LoadAccount(addr1).Balance,
 		accCoin.LoadAccount(addr2).Balance)
-	require.Equal(t, int64(1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), accCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), accCoin.LoadAccount(addr2).Balance)
+	require.Equal(t, 1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision, accCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, 900*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision, accCoin.LoadAccount(addr2).Balance)
 
 	_, err = tokenCoin.Transfer(addr3, addr4, 10*types.DefaultCoinPrecision)
 	require.NoError(t, err)
@@ -95,8 +95,8 @@ func TestTransfer(t *testing.T) {
 	t.Logf("token from addr balance [%d] to addr balance [%d]",
 		tokenCoin.LoadAccount(addr3).Balance,
 		tokenCoin.LoadAccount(addr4).Balance)
-	require.Equal(t, int64(800*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr3).Balance)
-	require.Equal(t, int64(700*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision), tokenCoin.LoadAccount(addr4).Balance)
+	require.Equal(t, 800*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision, tokenCoin.LoadAccount(addr3).Balance)
+	require.Equal(t, 700*types.DefaultCoinPrecision+10*types.DefaultCoinPrecision, tokenCoin.LoadAccount(addr4).Balance)
 }
 
 func TestDepositBalance(t *testing.T) {
@@ -107,7 +107,7 @@ func TestDepositBalance(t *testing.T) {
 	_, err := accCoin.depositBalance(addr1, 20*types.DefaultCoinPrecision)
 	require.NoError(t, err)
 	t.Logf("Coin deposit balance [%d]", accCoin.LoadAccount(addr1).Balance)
-	require.Equal(t, int64(1000*types.DefaultCoinPrecision+20*types.DefaultCoinPrecision), accCoin.LoadAccount(addr1).Balance)
+	require.Equal(t, 1000*types.DefaultCoinPrecision+20*types.DefaultCoinPrecision, accCoin.LoadAccount(addr1).Balance)
 
 	_, err = tokenCoin.depositBalance(addr1, 30*types.DefaultCoinPrecision)
 	require.NoError(t, err)

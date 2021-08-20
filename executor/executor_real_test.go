@@ -165,7 +165,7 @@ func TestExecAllow(t *testing.T) {
 	tx2 := util.CreateTxWithExecer(cfg, genkey, "coins")          //allow
 	tx3 := util.CreateTxWithExecer(cfg, genkey, "evmxx")          //not allow
 	tx4 := util.CreateTxWithExecer(cfg, genkey, "user.evmxx.xxx") //allow
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, int64(100000000*types.DefaultCoinPrecision))
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	txs := []*types.Transaction{tx1, tx2, tx3, tx4}
 	var err error
 	block, err = util.ExecAndCheckBlockCB(mock33.GetClient(), block, txs, func(index int, receipt *types.ReceiptData) error {
@@ -194,7 +194,7 @@ func TestExecBlock2(t *testing.T) {
 	genaddr := mock33.GetGenesisAddress()
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, int64(100000000*types.DefaultCoinPrecision))
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	txs := util.GenCoinsTxs(cfg, genkey, 2)
 
 	block2 := util.CreateNewBlock(cfg, block, txs)
@@ -402,7 +402,7 @@ func TestExecLocalSameTime1(t *testing.T) {
 	genaddr := mock33.GetGenesisAddress()
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, int64(100000000*types.DefaultCoinPrecision))
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	var txs []*types.Transaction
 	addr1, priv1 := util.Genaddress()
 	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr1, types.DefaultCoinPrecision))
@@ -432,7 +432,7 @@ func TestExecLocalSameTime0(t *testing.T) {
 	genaddr := mock33.GetGenesisAddress()
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, int64(100000000*types.DefaultCoinPrecision))
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	var txs []*types.Transaction
 	addr1, priv1 := util.Genaddress()
 	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr1, types.DefaultCoinPrecision))
@@ -463,7 +463,7 @@ func TestExecLocalSameTimeSetErrKey(t *testing.T) {
 	genaddr := mock33.GetGenesisAddress()
 	mock33.WaitHeight(0)
 	block := mock33.GetBlock(0)
-	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, int64(100000000*types.DefaultCoinPrecision))
+	assert.Equal(t, mock33.GetAccount(block.StateHash, genaddr).Balance, 100000000*types.DefaultCoinPrecision)
 	var txs []*types.Transaction
 	addr1, priv1 := util.Genaddress()
 	txs = append(txs, util.CreateCoinsTx(cfg, genkey, addr1, types.DefaultCoinPrecision))
