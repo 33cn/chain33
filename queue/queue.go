@@ -144,7 +144,7 @@ func (q *queue) Start() {
 		//atomic.StoreInt32(&q.isClose, 1)
 		break
 	case s := <-c:
-		qlog.Info("Got signal:", s)
+		qlog.Info("Got signal:", "s", s)
 		//atomic.StoreInt32(&q.isClose, 1)
 		break
 	}
