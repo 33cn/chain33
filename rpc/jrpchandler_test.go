@@ -9,6 +9,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"encoding/hex"
 
 	"github.com/33cn/chain33/account"
@@ -1637,7 +1639,7 @@ func Test_fmtTxDetail(t *testing.T) {
 	detail.Tx.Payload, err = common.FromHex("0x180322301080c2d72f2205636f696e732a22314761485970576d71414a7371527772706f4e6342385676674b7453776a63487174")
 	assert.NoError(t, err)
 	tx.To = "to"
-	tran, err := fmtTxDetail(detail, false)
+	tran, err := fmtTxDetail(detail, false, "coins", types.DefaultCoinPrecision)
 	assert.NoError(t, err)
 	assert.Equal(t, "to", tran.Fromaddr)
 	assert.Equal(t, "from", tx.To)
@@ -1749,7 +1751,7 @@ func TestChain33_convertParaTxDetails(t *testing.T) {
 	assert.Nil(t, err)
 	detail.Header = &types.Header{Height: 555, BlockTime: 39169, TxHash: hashBs}
 	var rmsg rpctypes.ParaTxDetails
-	convertParaTxDetails(&details, &rmsg)
+	convertParaTxDetails(&details, &rmsg, types.DefaultCoinPrecision)
 	assert.Equal(t, 555, int(rmsg.Items[0].Header.Height))
 	assert.Equal(t, 39169, int(rmsg.Items[0].Header.BlockTime))
 	assert.Equal(t, txhash, rmsg.Items[0].Header.TxHash)
@@ -1768,7 +1770,21 @@ func TestChain33_convertHeader(t *testing.T) {
 	assert.Equal(t, header.GetTxCount(), reheader.TxCount)
 	assert.Equal(t, header.GetBlockTime(), reheader.BlockTime)
 	assert.Equal(t, header.GetHeight(), reheader.Height)
+}
 
+func TestChain33_ChainID(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	testChain33 := newTestChain33(api)
+	var testResult interface{}
+
+	in := &types.ReqNil{}
+	chainID := int32(33)
+	api.On("GetChainID", mock.Anything).Return(chainID, nil)
+	err := testChain33.GetChainID(in, &testResult)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, int32(33), testResult.(*rpctypes.ChainIDInfo).ChainID)
 }
 
 func TestChain33_GetCryptoList(t *testing.T) {
@@ -1779,5 +1795,35 @@ func TestChain33_GetCryptoList(t *testing.T) {
 	var result interface{}
 	api.On("GetCryptoList").Return(nil)
 	err := client.GetCryptoList(&types.ReqNil{}, &result)
+	assert.Nil(t, err)
+}
+
+func TestChain33_SendDelayTransaction(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	var result interface{}
+	testData := []byte("testTxHash")
+	api.On("SendDelayTx", mock.Anything, true).Return(&types.Reply{Msg: testData}, nil)
+	err := client.SendDelayTransaction(&types.ReqString{Data: "1234"}, &result)
+	require.NotNil(t, err)
+	err = client.SendDelayTransaction(
+		&types.ReqString{Data: common.ToHex(testData)}, &result)
+	require.NotNil(t, err)
+	err = client.SendDelayTransaction(
+		&types.ReqString{Data: common.ToHex(types.Encode(&types.DelayTx{}))}, &result)
+	require.Nil(t, err)
+	require.Equal(t, common.ToHex(testData), result.(string))
+}
+
+func TestChain33_GetChainConfig(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	client := newTestChain33(api)
+	var result interface{}
+	api.On("GetChainConfig").Return(nil)
+	err := client.GetChainConfig(&types.ReqNil{}, &result)
 	assert.Nil(t, err)
 }

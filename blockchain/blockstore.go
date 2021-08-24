@@ -893,6 +893,17 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	}
 	height := blockdetail.Block.GetHeight()
 	hash := blockdetail.Block.Hash(bs.client.GetConfig())
+
+	// 检测数据库中是否存在，通过hash获取blockheader，存在说明已经保存过了，有两种可能:
+	// 1. 只执行了maybeStoreBlock，没有保存到主链(可能重启了)，则可以跳过此保存
+	// 2. 执行了maybeStoreBlock,也执行了主链，但是又被回滚了，处于侧链，则也可以跳过此临时保存，而继续去connect,验证分叉
+	// 对于2，被回滚的区块重新被广播到，而且系统重启之后，index里面没有缓存，blockExists就会认为此hash不存在，而执行dbMaybeStoreBlock, 导致receipts等信息丢失
+	blockheader, _ := bs.GetBlockHeaderByHash(hash)
+	if blockheader != nil {
+		chainlog.Info("dbMaybeStoreBlock block header existed", "hash", common.ToHex(hash))
+		return nil
+	}
+
 	storeBatch := bs.batch
 	storeBatch.Reset()
 	storeBatch.UpdateWriteSync(sync)

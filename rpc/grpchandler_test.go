@@ -741,3 +741,15 @@ func TestGrpc_GetCryptoList(t *testing.T) {
 	_, err := g.GetCryptoList(getOkCtx(), nil)
 	assert.NoError(t, err)
 }
+
+func TestGrpc_SendDelayTransaction(t *testing.T) {
+	qapi.On("SendDelayTx", mock.Anything, mock.Anything).Return(nil, nil)
+	_, err := g.SendDelayTransaction(getOkCtx(), nil)
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetChainConfig(t *testing.T) {
+	cfg, err := g.GetChainConfig(getOkCtx(), nil)
+	assert.NoError(t, err)
+	assert.Equal(t, types.DefaultCoinPrecision, cfg.GetCoinPrecision())
+}

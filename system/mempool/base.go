@@ -5,9 +5,12 @@
 package mempool
 
 import (
+	"encoding/hex"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/client"
 
 	"github.com/33cn/chain33/common"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -23,6 +26,7 @@ type Mempool struct {
 	in                chan *queue.Message
 	out               <-chan *queue.Message
 	client            queue.Client
+	api               client.QueueProtocolAPI
 	header            *types.Header
 	sync              bool
 	cfg               *types.Mempool
@@ -32,6 +36,19 @@ type Mempool struct {
 	done              chan struct{}
 	removeBlockTicket *time.Ticker
 	cache             *txCache
+	delayTxListChan   chan []*types.Transaction
+}
+
+func (mem *Mempool) setAPI(api client.QueueProtocolAPI) {
+	mem.proxyMtx.Lock()
+	mem.api = api
+	mem.proxyMtx.Unlock()
+}
+
+func (mem *Mempool) getAPI() client.QueueProtocolAPI {
+	mem.proxyMtx.RLock()
+	defer mem.proxyMtx.RUnlock()
+	return mem.api
 }
 
 //GetSync 判断是否mempool 同步
@@ -60,6 +77,7 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	pool.poolHeader = make(chan struct{}, 2)
 	pool.removeBlockTicket = time.NewTicker(time.Minute)
 	pool.cache = newCache(cfg.MaxTxNumPerAccount, cfg.MaxTxLast, cfg.PoolCacheSize)
+	pool.delayTxListChan = make(chan []*types.Transaction, 16)
 	return pool
 }
 
@@ -80,9 +98,14 @@ func (mem *Mempool) Close() {
 }
 
 //SetQueueClient 初始化mempool模块
-func (mem *Mempool) SetQueueClient(client queue.Client) {
-	mem.client = client
+func (mem *Mempool) SetQueueClient(cli queue.Client) {
+	mem.client = cli
 	mem.client.Sub("mempool")
+	api, err := client.New(cli, nil)
+	if err != nil {
+		panic("Mempool SetQueueClient client.New err")
+	}
+	mem.setAPI(api)
 	mem.wg.Add(1)
 	go mem.pollLastHeader()
 	mem.wg.Add(1)
@@ -92,6 +115,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 
 	mem.wg.Add(1)
 	go mem.eventProcess()
+	go mem.pushDelayTxRoutine()
 }
 
 // Size 返回mempool中txCache大小
@@ -457,6 +481,11 @@ func (mem *Mempool) checkSync() {
 		}
 		if resp.GetData().(*types.IsCaughtUp).GetIscaughtup() {
 			mem.setSync(true)
+			// 通知p2p广播模块，区块同步状态
+			err = mem.client.Send(mem.client.NewMessage("p2p", types.EventIsSync, nil), false)
+			if err != nil {
+				mlog.Error("checkSync", "send p2p error", err)
+			}
 			return
 		}
 		time.Sleep(time.Second)
@@ -491,4 +520,44 @@ func (mem *Mempool) getTxListByHash(hashList *types.ReqTxHashList) *types.ReplyT
 		replyTxList.Txs = append(replyTxList.Txs, tx)
 	}
 	return &replyTxList
+}
+
+// push expired delay tx to mempool
+func (mem *Mempool) pushDelayTxRoutine() {
+
+	retryList := make([]*types.Transaction, 0, 8)
+	push2Mempool := func(tx *types.Transaction) {
+		_, err := mem.getAPI().SendTx(tx)
+		if err != nil {
+			mlog.Error("pushDelayTxRoutine", "txHash", hex.EncodeToString(tx.Hash()), "send tx err", err)
+		}
+		// try later if mempool is full
+		if err == types.ErrMemFull {
+			retryList = append(retryList, tx)
+		}
+	}
+	ticker := time.NewTicker(time.Second)
+
+	for {
+
+		select {
+		case <-mem.done:
+			ticker.Stop()
+			return
+		case delayList := <-mem.delayTxListChan:
+			for _, tx := range delayList {
+				push2Mempool(tx)
+			}
+		case <-ticker.C:
+			if len(retryList) == 0 {
+				break
+			}
+			// retry send to mempool
+			sendList := retryList
+			retryList = make([]*types.Transaction, 0, 8)
+			for _, tx := range sendList {
+				push2Mempool(tx)
+			}
+		}
+	}
 }

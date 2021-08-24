@@ -91,6 +91,7 @@ func Run(RPCAddr, ParaName, name string) {
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.VersionCmd(),
+		commands.SystemCmd(),
 		commands.OneStepSendCmd(),
 		commands.OneStepSendCertTxCmd(),
 		closeCmd,

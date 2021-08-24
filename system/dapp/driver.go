@@ -19,6 +19,7 @@ import (
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
 	log "github.com/33cn/chain33/common/log/log15"
+	nonetypes "github.com/33cn/chain33/system/dapp/none/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -227,6 +228,11 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 		return nil, types.ErrActionNotSupport
 	}
 
+	// 除了none合约自定义的交易类型，其他的交易仅做存证，不执行
+	if nonetypes.NoneX == d.GetName() && d.ety.ActionName(tx) == nonetypes.UnknownActionName {
+		return &types.LocalDBSet{}, nil
+	}
+
 	if d.child.CheckReceiptExecOk() {
 		if receipt.GetTy() != types.ExecOk {
 			return &types.LocalDBSet{}, nil
@@ -295,6 +301,10 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	if d.ety == nil {
 		return nil, nil
 	}
+	// 除了none合约自定义的交易类型，其他的交易仅做存证，不执行
+	if nonetypes.NoneX == d.GetName() && d.ety.ActionName(tx) == nonetypes.UnknownActionName {
+		return nil, nil
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			blog.Error("call exec error", "tx.exec", string(tx.Execer), "info", r)
@@ -306,9 +316,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	if d.child.GetPayloadValue() == nil {
 		return nil, nil
 	}
-	if d.ety == nil {
-		return nil, nil
-	}
+
 	name, value, err := d.ety.DecodePayloadValue(tx)
 	if err != nil {
 		return nil, err

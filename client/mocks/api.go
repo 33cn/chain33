@@ -1103,6 +1103,29 @@ func (_m *QueueProtocolAPI) QueryTx(param *types.ReqHash) (*types.TransactionDet
 	return r0, r1
 }
 
+// SendDelayTx provides a mock function with given fields: param, waitReply
+func (_m *QueueProtocolAPI) SendDelayTx(param *types.DelayTx, waitReply bool) (*types.Reply, error) {
+	ret := _m.Called(param, waitReply)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.DelayTx, bool) *types.Reply); ok {
+		r0 = rf(param, waitReply)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.DelayTx, bool) error); ok {
+		r1 = rf(param, waitReply)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SendTx provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) SendTx(param *types.Transaction) (*types.Reply, error) {
 	ret := _m.Called(param)

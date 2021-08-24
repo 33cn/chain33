@@ -18,12 +18,12 @@ import (
 func (p *broadcastProtocol) handleStreamBroadcastV1(stream core.Stream) {
 
 	pid := stream.Conn().RemotePeer()
-	sPid := pid.Pretty()
+	sPid := pid.String()
 	peerAddr := stream.Conn().RemoteMultiaddr().String()
 	var data types.MessageBroadCast
 	err := prototypes.ReadStream(&data, stream)
 	if err != nil {
-		log.Error("Handle", "pid", pid.Pretty(), "addr", peerAddr, "err", err)
+		log.Error("handleStreamBroadcastV1", "pid", sPid, "addr", peerAddr, "read err", err)
 		return
 	}
 	_ = p.handleReceive(data.Message, sPid, peerAddr, broadcastV1)
@@ -116,6 +116,7 @@ func (p *broadcastProtocol) broadcastV1(peerCtx context.Context, pid peer.ID) {
 
 			err = prototypes.WriteStream(broadData, stream)
 			if err != nil {
+				prototypes.CloseStream(stream)
 				log.Error("broadcastV1", "pid", sPid, "WriteStream err", err)
 				return
 			}

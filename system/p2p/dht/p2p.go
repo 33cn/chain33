@@ -10,12 +10,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/p2p"
@@ -25,14 +27,15 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	libp2pLog "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
 	circuit "github.com/libp2p/go-libp2p-circuit"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/metrics"
+	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -68,6 +71,28 @@ type P2P struct {
 	env *protocol.P2PEnv
 }
 
+func setLibp2pLog(logFile, logLevel string) {
+
+	if _, err := os.Stat(logFile); os.IsNotExist(err) {
+		return
+	}
+
+	if logLevel == "" {
+		logLevel = "ERROR"
+	}
+
+	libp2pLog.SetupLogging(libp2pLog.Config{
+		Stderr: false,
+		Stdout: false,
+		File:   logFile,
+	})
+
+	err := libp2pLog.SetLogLevel("*", logLevel)
+	if err != nil {
+		log.Error("NewP2P", "set libp2p log level err", err)
+	}
+}
+
 // New new dht p2p network
 func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 
@@ -78,6 +103,9 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	if mcfg.Port == 0 {
 		mcfg.Port = p2pty.DefaultP2PPort
 	}
+	// set libp2p log
+	setLibp2pLog(mgr.ChainCfg.GetModuleConfig().Log.LogFile, mcfg.Libp2pLogLevel)
+
 	p := &P2P{
 		client:   mgr.Client,
 		chainCfg: chainCfg,
@@ -122,12 +150,7 @@ func initP2P(p *P2P) *P2P {
 	}
 
 	p.host = host
-	psOpts := make([]pubsub.Option, 0)
-	// pubsub消息默认会基于节点私钥进行签名和验签，支持关闭
-	if p.subCfg.DisablePubSubMsgSign {
-		psOpts = append(psOpts, pubsub.WithMessageSigning(false), pubsub.WithStrictSignatureVerification(false))
-	}
-	ps, err := extension.NewPubSub(p.ctx, p.host, psOpts...)
+	ps, err := extension.NewPubSub(p.ctx, p.host, &p.subCfg.PubSub)
 	if err != nil {
 		return nil
 	}
@@ -152,20 +175,20 @@ func (p *P2P) StartP2P() {
 	log.Info("NewP2p", "peerId", p.host.ID(), "addrs", p.host.Addrs())
 
 	env := &protocol.P2PEnv{
-		Ctx:              p.ctx,
-		ChainCfg:         p.chainCfg,
-		QueueClient:      p.client,
-		Host:             p.host,
-		P2PManager:       p.mgr,
-		SubConfig:        p.subCfg,
-		DB:               p.db,
-		RoutingDiscovery: discovery.NewRoutingDiscovery(p.discovery.kademliaDHT),
-		RoutingTable:     p.discovery.RoutingTable(),
-		API:              p.api,
-		Pubsub:           p.pubsub,
-		PeerInfoManager:  p.peerInfoManager,
-		ConnManager:      p.connManager,
-		ConnBlackList:    p.blackCache,
+		Ctx:             p.ctx,
+		ChainCfg:        p.chainCfg,
+		QueueClient:     p.client,
+		Host:            p.host,
+		P2PManager:      p.mgr,
+		SubConfig:       p.subCfg,
+		DB:              p.db,
+		Discovery:       discovery.NewRoutingDiscovery(p.discovery.kademliaDHT),
+		RoutingTable:    p.discovery.RoutingTable(),
+		API:             p.api,
+		Pubsub:          p.pubsub,
+		PeerInfoManager: p.peerInfoManager,
+		ConnManager:     p.connManager,
+		ConnBlackList:   p.blackCache,
 	}
 	p.env = env
 	protocol.InitAllProtocol(env)
@@ -185,7 +208,7 @@ func (p *P2P) CloseP2P() {
 
 	protocol.ClearEventHandler()
 	if !p.isRestart() {
-		p.mgr.PubSub.Unsub(p.subChan)
+		p.mgr.PubSub.Shutdown()
 
 	}
 	p.host.Close()
@@ -230,12 +253,24 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 		options = append(options, libp2p.Identity(priv))
 	}
 
+	//enable private network,私有网络，拥有相同配置的节点才能连接进来。
+	if p.subCfg.Psk != "" {
+		psk, err := common.FromHex(p.subCfg.Psk)
+		if err != nil {
+			panic("set psk" + err.Error())
+		}
+		if len(psk) != 32 {
+			panic("psk must 32 bytes")
+		}
+		options = append(options, libp2p.PrivateNetwork(psk))
+	}
+
 	options = append(options, libp2p.BandwidthReporter(bandwidthTracker))
 
 	if p.subCfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
 		var maxconnect = int(p.subCfg.MaxConnectNum)
 		minconnect := maxconnect - int(manage.CacheLimit) //调整为不超过配置的上限
-		if minconnect < 0 {
+		if minconnect <= 0 {
 			minconnect = maxconnect / 2
 		}
 		//2分钟的宽限期,定期清理
@@ -259,9 +294,15 @@ func (p *P2P) managePeers() {
 			return
 		case <-time.After(time.Minute * 10):
 			//Refresh addr book
-			peersInfo := p.discovery.FindLocalPeers(p.connManager.FetchNearestPeers(50))
+			var peersInfo []peer.AddrInfo
+			for _, pid := range p.connManager.FetchNearestPeers(50) {
+				info := p.discovery.FindLocalPeer(pid)
+				if len(info.Addrs) != 0 {
+					peersInfo = append(peersInfo, info)
+				}
+			}
 			if len(peersInfo) != 0 {
-				p.addrBook.SaveAddr(peersInfo)
+				_ = p.addrBook.SaveAddr(peersInfo)
 			}
 		}
 	}

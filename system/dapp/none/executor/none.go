@@ -10,11 +10,16 @@ package executor
 // nofee transaction will not pack into block
 
 import (
+	"github.com/33cn/chain33/common/log"
 	drivers "github.com/33cn/chain33/system/dapp"
+	ntypes "github.com/33cn/chain33/system/dapp/none/types"
 	"github.com/33cn/chain33/types"
 )
 
-var driverName = "none"
+var (
+	eLog       = log.New("module", "none.exec")
+	driverName = ntypes.NoneX
+)
 
 // Init register newnone
 func Init(name string, cfg *types.Chain33Config, sub []byte) {
@@ -23,6 +28,7 @@ func Init(name string, cfg *types.Chain33Config, sub []byte) {
 	}
 	driverName = name
 	drivers.Register(cfg, name, newNone, 0)
+	InitExecType()
 }
 
 // GetName return name at execution time
@@ -38,7 +44,14 @@ type None struct {
 func newNone() drivers.Driver {
 	n := &None{}
 	n.SetChild(n)
+	n.SetExecutorType(types.LoadExecutorType(ntypes.NoneX))
 	return n
+}
+
+//InitExecType the initialization process is relatively heavyweight, lots of reflect, so it's global
+func InitExecType() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&None{}))
 }
 
 // GetDriverName return dcrivername at register

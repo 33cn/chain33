@@ -48,7 +48,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	//查询的方法：  --> GetTxsByAddr
 	//查询的参数：  --> interface{} 类型
 	cfg := chain.client.GetConfig()
-	txinfos, err := chain.query.Query(cfg.ExecName("coins"), "GetTxsByAddr", addr)
+	txinfos, err := chain.query.Query(cfg.ExecName(cfg.GetCoinExec()), "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -226,7 +226,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.query.Query(cfg.ExecName("coins"), "GetAddrReciver", addr)
+	amount, err := chain.query.Query(cfg.ExecName(cfg.GetCoinExec()), "GetAddrReciver", addr)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
 		addrOverview.Reciver = 0
@@ -242,7 +242,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	//新的代码不支持PrefixCount查询地址交易计数，executor/localdb.go PrefixCount
 	//现有的节点都已经升级了localdb，也就是都支持通过GetAddrTxsCount来获取地址交易计数
 	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
-	count, err := chain.query.Query(cfg.ExecName("coins"), "GetAddrTxsCount", &reqkey)
+	count, err := chain.query.Query(cfg.ExecName(cfg.GetCoinExec()), "GetAddrTxsCount", &reqkey)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrTxsCount err", err)
 		addrOverview.TxCount = 0

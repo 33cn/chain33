@@ -280,6 +280,8 @@ func fixtimeRoutine(hosts []string) {
 	}
 	//时间请求频繁一点:
 	ticket := time.NewTicker(time.Minute * 1)
+	defer ticket.Stop()
+
 	for range ticket.C {
 		t = common.GetRealTimeRetry(hosts, 10)
 		if !t.IsZero() {

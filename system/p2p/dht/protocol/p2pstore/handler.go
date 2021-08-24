@@ -10,9 +10,225 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
 	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
+func (p *Protocol) handleStreamRequestPeerInfoForChunk(stream network.Stream) {
+	fromPid := stream.Conn().RemotePeer()
+	localAddr := stream.Conn().LocalMultiaddr()
+	var req types.P2PRequest
+	err := protocol.ReadStream(&req, stream)
+	_ = stream.Close()
+	if err != nil {
+		log.Error("handleStreamRequestPeerInfoForChunk", "ReadStream error", err)
+		return
+	}
+
+	msg := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
+
+	/*
+		1. check local storage
+		2. check chunk provider cache
+		3. query the closer peers
+	*/
+	if _, ok := p.getChunkInfoByHash(msg.ChunkHash); ok {
+		var addrs [][]byte
+		for _, addr := range p.Host.Peerstore().Addrs(p.Host.ID()) {
+			addrs = append(addrs, addr.Bytes())
+		}
+		if len(addrs) == 0 {
+			log.Error("handleStreamRequestPeerInfoForChunk", "error", "no self addr", "conn local addr", localAddr)
+			addrs = append(addrs, localAddr.Bytes())
+		}
+		info := types.PeerInfo{
+			ID:        []byte(p.Host.ID()),
+			MultiAddr: addrs,
+		}
+		if err := p.responsePeerInfoForChunk(&types.ChunkProvider{
+			ChunkHash: msg.ChunkHash,
+			PeerInfos: []*types.PeerInfo{&info},
+		}, fromPid); err != nil {
+			log.Error("handleStreamRequestPeerInfoForChunk", "responsePeerInfoForChunk error", err)
+		}
+	} else if peers := p.getChunkProviderCache(msg.ChunkHash); len(peers) != 0 {
+		var infos []*types.PeerInfo
+		for _, pid := range peers {
+			var addrs [][]byte
+			for _, addr := range p.Host.Peerstore().Addrs(pid) {
+				addrs = append(addrs, addr.Bytes())
+			}
+			infos = append(infos, &types.PeerInfo{ID: []byte(pid), MultiAddr: addrs})
+		}
+		if err := p.responsePeerInfoForChunk(&types.ChunkProvider{
+			ChunkHash: msg.ChunkHash,
+			PeerInfos: infos,
+		}, fromPid); err != nil {
+			log.Error("handleStreamRequestPeerInfoForChunk", "responsePeerInfoForChunk error", err)
+		}
+	} else if exist := p.addChunkRequestTrace(msg.ChunkHash, fromPid); !exist {
+		var count int
+		for _, pid := range p.RoutingTable.NearestPeers(genDHTID(msg.ChunkHash), AlphaValue*2) {
+			// 最多向 AlphaValue-1 个节点请求，请求失败的节点不计入
+			// 只向逻辑距离更小的节点转发请求
+			if count >= AlphaValue-1 || !kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(msg.ChunkHash)) {
+				break
+			}
+
+			if err := p.requestPeerInfoForChunk(msg, pid); err != nil {
+				log.Error("handleStreamPeerAddrAsync", "requestPeerAddr error", err)
+			} else {
+				count++
+			}
+		}
+	}
+}
+
+func (p *Protocol) handleStreamResponsePeerInfoForChunk(stream network.Stream) {
+	var req types.P2PRequest
+	err := protocol.ReadStream(&req, stream)
+	_ = stream.Close()
+	if err != nil {
+		log.Error("handleStreamResponsePeerInfoForChunk", "ReadStream error", err)
+		return
+	}
+
+	provider := req.Request.(*types.P2PRequest_Provider).Provider
+	chunkHash := hex.EncodeToString(provider.ChunkHash)
+
+	// add provider cache
+	savePeers(provider.PeerInfos, p.Host.Peerstore())
+	for _, info := range provider.PeerInfos {
+		p.addChunkProviderCache(provider.ChunkHash, peer.ID(info.ID))
+	}
+
+	p.wakeupMutex.Lock()
+	if ch, ok := p.wakeup[chunkHash]; ok {
+		ch <- struct{}{}
+		delete(p.wakeup, chunkHash)
+	}
+	p.wakeupMutex.Unlock()
+
+	p.chunkInfoCacheMutex.Lock()
+	if msg, ok := p.chunkInfoCache[chunkHash]; ok {
+		select {
+		case p.chunkToDownload <- msg:
+		default:
+			log.Error("handleStreamResponsePeerInfoForChunk", "error", "chunkToDownload channel is full")
+		}
+	}
+	p.chunkInfoCacheMutex.Unlock()
+
+	// check trace and response
+	for _, pid := range p.getChunkRequestTrace(provider.ChunkHash) {
+		// delete trace and response
+		p.removeChunkRequestTrace(provider.ChunkHash, pid)
+		//TODO: retry when error occurs
+		if err := p.responsePeerInfoForChunk(provider, pid); err != nil {
+			log.Error("handleStreamResponsePeerInfoForChunk", "responsePeerInfoForChunk error", err, "pid", pid)
+		}
+	}
+}
+
+func (p *Protocol) handleStreamRequestPeerAddr(stream network.Stream) {
+	fromPid := stream.Conn().RemotePeer()
+	var req types.P2PRequest
+	err := protocol.ReadStream(&req, stream)
+	_ = stream.Close()
+	if err != nil {
+		log.Error("handleStreamRequestPeerAddr", "ReadStream error", err)
+		return
+	}
+
+	keyPid := req.GetRequest().(*types.P2PRequest_Pid).Pid
+	var addrs [][]byte
+	for _, addr := range p.Host.Peerstore().Addrs(peer.ID(keyPid)) {
+		addrs = append(addrs, addr.Bytes())
+	}
+	if len(addrs) != 0 {
+		// response
+		err := p.responsePeerAddr(&types.PeerInfo{ID: []byte(keyPid), MultiAddr: addrs}, fromPid)
+		if err != nil {
+			log.Error("handleStreamRequestPeerAddr", "responsePeerAddr error", err)
+		}
+	} else if exist := p.addPeerAddrRequestTrace(peer.ID(keyPid), fromPid); !exist {
+		var count int
+		for _, pid := range p.RoutingTable.NearestPeers(kb.ConvertPeerID(peer.ID(keyPid)), AlphaValue*2) {
+			// 最多向 AlphaValue-1 个节点请求，请求失败的节点不计入
+			// 只向逻辑距离更小的节点转发请求
+			if count >= AlphaValue-1 || !kb.Closer(pid, p.Host.ID(), keyPid) {
+				break
+			}
+
+			if err := p.requestPeerAddr(peer.ID(keyPid), pid); err != nil {
+				log.Error("handleStreamRequestPeerAddr", "requestPeerAddr error", err)
+			} else {
+				count++
+			}
+		}
+	}
+}
+
+func (p *Protocol) handleStreamResponsePeerAddr(stream network.Stream) {
+	var req types.P2PRequest
+	err := protocol.ReadStream(&req, stream)
+	_ = stream.Close()
+	if err != nil {
+		log.Error("handleStreamResponsePeerAddr", "ReadStream error", err)
+		return
+	}
+
+	info := req.GetRequest().(*types.P2PRequest_PeerInfo).PeerInfo
+	savePeers([]*types.PeerInfo{info}, p.Host.Peerstore())
+
+	// response and delete trace
+	for _, pid := range p.getPeerAddrRequestTrace(peer.ID(info.ID)) {
+		p.removePeerAddrRequestTrace(peer.ID(info.ID), pid)
+		if err := p.responsePeerAddr(info, pid); err != nil {
+			log.Error("handleStreamRequestPeerAddr", "responsePeerAddr error", err)
+		}
+	}
+}
+
+func (p *Protocol) handleStreamFetchActivePeer(res *types.P2PResponse) error {
+	var peerInfos []*types.PeerInfo
+	for _, pid := range p.RoutingTable.ListPeers() {
+		var addrs [][]byte
+		for _, addr := range p.Host.Peerstore().Addrs(pid) {
+			addrs = append(addrs, addr.Bytes())
+		}
+		peerInfos = append(peerInfos, &types.PeerInfo{
+			ID:        []byte(pid),
+			MultiAddr: addrs,
+		})
+
+	}
+	res.Response = &types.P2PResponse_PeerInfos{
+		PeerInfos: &types.PeerInfoList{
+			PeerInfos: peerInfos,
+		},
+	}
+	return nil
+}
+
+func (p *Protocol) handleStreamPeerAddr(req *types.P2PRequest, res *types.P2PResponse) error {
+	pid := req.GetRequest().(*types.P2PRequest_Pid).Pid
+	var addrs [][]byte
+	for _, addr := range p.Host.Peerstore().Addrs(peer.ID(pid)) {
+		addrs = append(addrs, addr.Bytes())
+	}
+
+	res.Response = &types.P2PResponse_PeerInfo{
+		PeerInfo: &types.PeerInfo{
+			ID:        []byte(pid),
+			MultiAddr: addrs,
+		},
+	}
+	return nil
+}
+
+//TODO:
+// Deprecated:
 func (p *Protocol) handleStreamIsFullNode(resp *types.P2PResponse) error {
 	resp.Response = &types.P2PResponse_NodeInfo{
 		NodeInfo: &types.NodeInfo{
@@ -25,12 +241,21 @@ func (p *Protocol) handleStreamIsFullNode(resp *types.P2PResponse) error {
 
 func (p *Protocol) handleStreamFetchShardPeers(req *types.P2PRequest, res *types.P2PResponse) error {
 	reqPeers := req.GetRequest().(*types.P2PRequest_ReqPeers).ReqPeers
-	count := reqPeers.Count
+	count := int(reqPeers.Count)
 	if count <= 0 {
-		count = int32(backup)
+		count = 200
 	}
-	closerPeers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(reqPeers.ReferKey), int(count))
-	for _, pid := range closerPeers {
+	peers := p.RoutingTable.NearestPeers(genDHTID(reqPeers.ReferKey), p.RoutingTable.Size())
+	var activePeers []peer.ID
+	for _, pid := range peers {
+		if p.PeerInfoManager.PeerHeight(pid)+512 > p.PeerInfoManager.PeerHeight(p.Host.ID()) {
+			activePeers = append(activePeers, pid)
+		}
+		if len(activePeers) >= count {
+			break
+		}
+	}
+	for _, pid := range activePeers {
 		var addrs [][]byte
 		for _, addr := range p.Host.Peerstore().Addrs(pid) {
 			addrs = append(addrs, addr.Bytes())
@@ -50,58 +275,25 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 	}
 	param := req.Request.(*types.P2PRequest_ChunkInfoMsg).ChunkInfoMsg
 	var res types.P2PResponse
-	var bodys *types.BlockBodys
-	var err error
 	defer func() {
-		t := time.Now()
-		writeBodys(bodys, stream)
 		_ = protocol.WriteStream(&res, stream)
-		log.Info("handleStreamFetchChunk", "chunk hash", hex.EncodeToString(param.ChunkHash), "start", param.Start, "remote peer", stream.Conn().RemotePeer(), "addrs", stream.Conn().RemoteMultiaddr(), "time cost", time.Since(t))
+		log.Info("handleStreamFetchChunk", "chunk hash", hex.EncodeToString(param.ChunkHash), "start", param.Start, "remote peer", stream.Conn().RemotePeer(), "addrs", stream.Conn().RemoteMultiaddr())
 	}()
 
-	// 全节点模式，只有网络中出现数据丢失时才提供数据
-	if p.SubConfig.IsFullNode {
-		hexHash := hex.EncodeToString(param.ChunkHash)
-		if _, ok := p.chunkWhiteList.Load(hexHash); !ok { //该chunk不在白名单里
-			if pid, ok := p.checkChunkInNetwork(param); ok {
-				//网络中可以查到数据，不应该到全节点来要数据
-				var addrs [][]byte
-				for _, addr := range p.Host.Peerstore().Addrs(pid) {
-					addrs = append(addrs, addr.Bytes())
-				}
-				res.CloserPeers = []*types.PeerInfo{{ID: []byte(pid), MultiAddr: addrs}}
-				return
-			}
-
-			//该chunk添加到白名单，10分钟内无条件提供数据
-			p.chunkWhiteList.Store(hexHash, time.Now())
-			//分片网络中出现数据丢失，备份该chunk到分片网络中
-			go func() {
-				chunkInfo, ok := p.getChunkInfoByHash(param.ChunkHash)
-				if !ok {
-					log.Error("HandleStreamFetchChunk chunkInfo not found", "chunk hash", hexHash)
-					return
-				}
-				p.notifyStoreChunk(chunkInfo.ChunkInfoMsg)
-			}()
-
+	peers := p.RoutingTable.NearestPeers(genDHTID(param.ChunkHash), p.RoutingTable.Size())
+	var closerPeers []peer.ID
+	for _, pid := range peers {
+		if p.PeerInfoManager.PeerHeight(pid) > param.End+2048 && kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(param.ChunkHash)) {
+			closerPeers = append(closerPeers, pid)
 		}
-		bodys, err = p.getChunkBlock(param)
-		if err != nil {
-			res.Error = err.Error()
-			return
+		if len(closerPeers) >= AlphaValue {
+			break
 		}
-		return
 	}
-
-	closerPeers := p.ShardHealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
-	if len(closerPeers) != 0 && kb.Closer(p.Host.ID(), closerPeers[0], genChunkNameSpaceKey(param.ChunkHash)) {
-		closerPeers = p.ShardHealthyRoutingTable.NearestPeers(genDHTID(param.ChunkHash), backup-1)
+	if len(closerPeers) == 0 {
+		closerPeers = p.RoutingTable.NearestPeers(genDHTID(param.ChunkHash), AlphaValue)
 	}
 	for _, pid := range closerPeers {
-		if pid == p.Host.ID() {
-			continue
-		}
 		var addrs [][]byte
 		for _, addr := range p.Host.Peerstore().Addrs(pid) {
 			addrs = append(addrs, addr.Bytes())
@@ -118,40 +310,14 @@ func (p *Protocol) handleStreamFetchChunk(stream network.Stream) {
 	atomic.AddInt64(&p.concurrency, 1)
 	defer atomic.AddInt64(&p.concurrency, -1)
 	//分片节点模式,检查本地是否存在
-	bodys, err = p.getChunkBlock(param)
+	bodys, err := p.getChunkBlock(param)
 	if err != nil {
 		res.Error = err.Error()
 		return
 	}
-}
-
-// 对端节点通知本节点保存数据
-/*
-检查点p2pStore是否保存了数据，
-	1）若已保存则只更新时间即可
-	2）若未保存则从网络中请求chunk数据
-*/
-func (p *Protocol) handleStreamStoreChunks(req *types.P2PRequest) {
-	param := req.Request.(*types.P2PRequest_ChunkInfoList).ChunkInfoList.Items
-	for _, info := range param {
-		chunkHash := hex.EncodeToString(info.ChunkHash)
-		//已有其他节点通知该节点保存该chunk，避免接收到多个节点的通知后重复查询数据
-		if _, ok := p.notifying.LoadOrStore(chunkHash, nil); ok {
-			continue
-		}
-		//检查本地 p2pStore，如果已存在数据则直接更新
-		if err := p.updateChunk(info); err == nil {
-			p.notifying.Delete(chunkHash)
-			continue
-		}
-		//send message to notifying queue to process
-		select {
-		case p.notifyingQueue <- info:
-			//drop the notify message if queue is full
-		default:
-			p.notifying.Delete(chunkHash)
-		}
-	}
+	t := time.Now()
+	writeBodys(bodys, stream)
+	log.Info("handleStreamFetchChunk", "bodys len", len(bodys.Items), "write bodys cost", time.Since(t))
 }
 
 func (p *Protocol) handleStreamGetHeader(req *types.P2PRequest, res *types.P2PResponse) error {
@@ -229,22 +395,20 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	if p.SubConfig.IsFullNode {
 		//全节点保存所有chunk, blockchain模块通知保存chunk时直接保存到本地
 		if err = p.storeChunk(req); err != nil {
-			log.Error("HandleEventNotifyStoreChunk", "storeChunk error", err)
+			log.Error("HandleEventNotifyStoreChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		}
 		return
 	}
 
-	//如果本节点是本地路由表中距离该chunk最近的节点，则保存数据；否则不需要保存数据
-	tmpRoutingTable := p.genTempRoutingTable(req.ChunkHash, backup)
-	pid := tmpRoutingTable.NearestPeer(genDHTID(req.ChunkHash))
-	if pid != "" && kb.Closer(pid, p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
+	//如果本节点是扩展路由表中距离该chunk最近的 `Percentage` 节点之一，则保存数据；否则不需要保存数据
+	extendRoutingTable := p.getExtendRoutingTable()
+	pids := extendRoutingTable.NearestPeers(genDHTID(req.ChunkHash), 100)
+	if len(pids) > 0 && kb.Closer(pids[len(pids)*p.SubConfig.Percentage/100], p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}
 	log.Info("handleEventNotifyStoreChunk", "local nearest peer", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
-	err = p.checkNetworkAndStoreChunk(req)
-	if err != nil {
-		log.Error("storeChunk", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
-		return
+	if err = p.storeChunk(req); err != nil {
+		log.Error("HandleEventNotifyStoreChunk", "storeChunk error", err, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End)
 	}
 }
 
@@ -349,6 +513,7 @@ func writeBodys(bodys *types.BlockBodys, stream network.Stream) {
 			BlockBody: body,
 		}
 		if err := protocol.WriteStream(&data, stream); err != nil {
+			log.Error("writeBodys", "error", err)
 			return
 		}
 	}

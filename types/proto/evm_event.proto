@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+// import "common.proto";
+import "transaction.proto";
+
+package types;
+option go_package = "github.com/33cn/chain33/types";
+
+// 一条evm event log数据
+message EVMLog {
+    repeated bytes topic = 1;
+    bytes          data  = 2;
+}
+
+// 多条evm event log数据
+message EVMLogsPerTx {
+    repeated EVMLog logs = 1;
+}
+
+message EVMTxAndLogs {
+    Transaction  tx        = 1;
+    EVMLogsPerTx logsPerTx = 2;
+}
+
+//一个块中包含的多条evm event log数据
+message EVMTxLogPerBlk {
+    repeated EVMTxAndLogs txAndLogs    = 1;
+    int64                 height       = 2;
+    bytes                 blockHash    = 3;
+    bytes                 parentHash   = 4;
+    bytes                 previousHash = 5;
+    int32                 addDelType   = 6;
+    int64                 seqNum       = 7;
+}
+
+//多个块中包含的多条evm event log数据
+message EVMTxLogsInBlks {
+    repeated EVMTxLogPerBlk logs4EVMPerBlk = 1;
+}
+
+// 创建/调用合约的请求结构
+message EVMContractAction4Chain33 {
+    // 转账金额
+    uint64 amount = 1;
+    // 消耗限制，默认为Transaction.Fee
+    uint64 gasLimit = 2;
+    // gas价格，默认为1
+    uint32 gasPrice = 3;
+    // 合约数据
+    bytes code = 4;
+    //交易参数
+    bytes para = 5;
+    // 合约别名，方便识别
+    string alias = 6;
+    // 交易备注
+    string note = 7;
+    // 调用合约地址
+    string contractAddr = 8;
+}

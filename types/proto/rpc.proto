@@ -15,14 +15,32 @@ message serverTime {
     int64 currentTimestamp = 1;
 }
 
-// 数字签名加密算法类型
-message crypto {
+message crypto { // 数字签名加密算法类型
     string name   = 1;
     int32  typeID = 2;
 }
 
 message cryptoList {
     repeated crypto cryptos = 1;
+}
+
+message delayTx { // 延时交易
+    Transaction tx           = 1;
+    int64       endDelayTime = 2;
+}
+
+message ChainConfigInfo {
+    string  title           = 1;
+    string  coinExec        = 2;
+    string  coinSymbol      = 3;
+    int64  coinPrecision   = 4;
+    int64  tokenPrecision  = 5;
+    int32  chainID         = 6;
+    int64  maxTxFee        = 7;
+    int64  minTxFeeRate    = 8;
+    int64  maxTxFeeRate    = 9;
+    bool  isPara          = 10;
+
 }
 
 service chain33 {
@@ -191,4 +209,10 @@ service chain33 {
 
     // 获取加密算法列表，用于签名等
     rpc GetCryptoList(ReqNil) returns (cryptoList) {}
+
+    // 发送延时交易
+    rpc SendDelayTransaction(delayTx) returns (Reply) {}
+
+    // 获取节点配置信息
+    rpc GetChainConfig(ReqNil) returns (ChainConfigInfo) {}
 }

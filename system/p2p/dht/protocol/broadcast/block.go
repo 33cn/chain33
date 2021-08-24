@@ -54,9 +54,10 @@ func (p *broadcastProtocol) recvBlock(block *types.P2PBlock, pid, peerAddr strin
 	if p.blockFilter.AddWithCheckAtomic(blockHash, true) {
 		return nil
 	}
-	log.Debug("recvBlock", "height", block.GetBlock().GetHeight(), "size(KB)", float32(types.Size(block.GetBlock()))/1024)
+	log.Debug("recvBlkFull", "height", block.Block.GetHeight(), "from", pid, "hash", blockHash,
+		"size(KB)", float32(types.Size(block.GetBlock()))/1024)
 	//发送至blockchain执行
-	if err := p.postBlockChain(blockHash, pid, block.GetBlock()); err != nil {
+	if err := p.postBlockChainV1(blockHash, pid, block.GetBlock()); err != nil {
 		log.Error("recvBlock", "send block to blockchain Error", err.Error())
 		return errSendBlockChain
 	}
@@ -72,6 +73,7 @@ func (p *broadcastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr
 	if p.blockFilter.AddWithCheckAtomic(blockHash, true) {
 		return nil
 	}
+	log.Debug("recvBlkLt", "height", ltBlock.Header.GetHeight(), "from", pid, "hash", blockHash)
 
 	//组装block
 	block := &types.Block{}
@@ -132,7 +134,7 @@ func (p *broadcastProtocol) recvLtBlock(ltBlock *types.LightBlock, pid, peerAddr
 
 		log.Debug("recvLtBlock", "height", block.GetHeight(), "txCount", ltBlock.Header.TxCount, "size(KB)", float32(ltBlock.Size)/1024)
 		//发送至blockchain执行
-		if err := p.postBlockChain(blockHash, pid, block); err != nil {
+		if err := p.postBlockChainV1(blockHash, pid, block); err != nil {
 			log.Error("recvLtBlock", "send block to blockchain Error", err.Error())
 			return errSendBlockChain
 		}

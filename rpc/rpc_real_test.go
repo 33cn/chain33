@@ -38,7 +38,7 @@ func TestErrLog(t *testing.T) {
 	//发送交易到区块链
 	addr1, key1 := util.Genaddress()
 	addr2, _ := util.Genaddress()
-	tx1 := util.CreateCoinsTx(cfg, gen, addr1, 1*types.Coin)
+	tx1 := util.CreateCoinsTx(cfg, gen, addr1, 1*types.DefaultCoinPrecision)
 	mocker.GetAPI().SendTx(tx1)
 	mocker.WaitHeight(1)
 

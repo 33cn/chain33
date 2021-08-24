@@ -36,7 +36,7 @@ func (t testConn) ID() string {
 }
 
 // NewStream constructs a new Stream over this conn.
-func (t testConn) NewStream() (network.Stream, error) { return nil, nil }
+func (t testConn) NewStream(ctx context.Context) (network.Stream, error) { return nil, nil }
 
 // GetStreams returns all open streams over this conn.
 func (t testConn) GetStreams() []network.Stream { return nil }
@@ -95,7 +95,7 @@ func TestConnManager(t *testing.T) {
 	h1.Peerstore().RecordLatency(h2.ID(), time.Second/100)
 	mgr.printMonitorInfo()
 	mgr.procConnections()
-	kademliaDHT.RoutingTable().Update(h2.ID())
+	kademliaDHT.RoutingTable().TryAddPeer(h2.ID(), true, true)
 	peers := mgr.FetchNearestPeers(1)
 	require.NotNil(t, peers)
 	require.Equal(t, h2.ID(), peers[0])

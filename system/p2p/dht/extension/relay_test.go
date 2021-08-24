@@ -90,7 +90,7 @@ func TestRelay(t *testing.T) {
 	require.NotNil(t, dinfo.Addrs)
 	kademliaDHT, err := dht.New(context.Background(), hosts[0])
 	require.Nil(t, err)
-	_, err = kademliaDHT.RoutingTable().Update(hosts[1].ID())
+	_, err = kademliaDHT.RoutingTable().TryAddPeer(hosts[1].ID(), true, true)
 	require.Nil(t, err)
 	netRely := NewRelayDiscovery(hosts[0], discovery.NewRoutingDiscovery(kademliaDHT))
 	netRely.Advertise(ctx)

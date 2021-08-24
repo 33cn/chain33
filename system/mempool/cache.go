@@ -5,6 +5,9 @@
 package mempool
 
 import (
+	"math"
+	"sync"
+
 	"github.com/33cn/chain33/types"
 )
 
@@ -34,6 +37,7 @@ type txCache struct {
 	qcache   QueueCache
 	totalFee int64
 	*SHashTxCache
+	delayCache *delayTxCache
 }
 
 //NewTxCache init accountIndex and last cache
@@ -42,6 +46,7 @@ func newCache(maxTxPerAccount int64, sizeLast int64, poolCacheSize int64) *txCac
 		AccountTxIndex: NewAccountTxIndex(int(maxTxPerAccount)),
 		LastTxCache:    NewLastTxCache(int(sizeLast)),
 		SHashTxCache:   NewSHashTxCache(int(poolCacheSize)),
+		delayCache:     newDelayTxCache(int(poolCacheSize) / 2),
 	}
 }
 
@@ -155,4 +160,98 @@ func (cache *txCache) getTxByHash(hash string) *types.Transaction {
 		return nil
 	}
 	return item.Value
+}
+
+//delayTxCache 延时交易缓存
+type delayTxCache struct {
+	size              int
+	txCache           map[int64][]*types.Transaction // 以延时时间作为key索引
+	hashCache         map[string]int64               //哈希缓存，用于查重
+	lock              sync.RWMutex
+	minDelayBlockTime int64
+}
+
+// new txCache
+func newDelayTxCache(size int) *delayTxCache {
+	return &delayTxCache{
+		size:              size,
+		txCache:           make(map[int64][]*types.Transaction, 16),
+		hashCache:         make(map[string]int64, 32),
+		minDelayBlockTime: math.MaxInt64,
+	}
+}
+
+// 目前延时交易只做缓存，到期后发到mempool，通过节点广播可以基本避免局部缓存丢失问题
+// TODO: 后续可以考虑增加磁盘存储
+func (c *delayTxCache) addDelayTx(tx *types.DelayTx) error {
+
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if tx.GetTx() == nil {
+		return types.ErrNilTransaction
+	}
+	if len(c.hashCache) >= c.size {
+		return types.ErrCacheOverFlow
+	}
+	txHash := string(tx.GetTx().Hash())
+	if _, ok := c.hashCache[txHash]; ok {
+		return types.ErrDupTx
+	}
+	// 标记交易哈希，并记录对应的延时时刻，方便快速查找交易
+	c.hashCache[txHash] = tx.EndDelayTime
+	txList, ok := c.txCache[tx.EndDelayTime]
+	if !ok {
+		txList = make([]*types.Transaction, 0, 16)
+	}
+	txList = append(txList, tx.GetTx())
+	c.txCache[tx.EndDelayTime] = txList
+
+	// record min block time delay
+	if tx.EndDelayTime > types.ExpireBound && tx.EndDelayTime < c.minDelayBlockTime {
+		c.minDelayBlockTime = tx.EndDelayTime
+	}
+	return nil
+}
+
+// 删除已到期的延时交易，即可以被打包的延期交易
+func (c *delayTxCache) delExpiredTxs(lastBlockTime, currBlockTime, currBlockHeight int64) []*types.Transaction {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if len(c.hashCache) <= 0 {
+		return nil
+	}
+	delList := make([]*types.Transaction, 0)
+	// narrow loop range
+	if lastBlockTime < c.minDelayBlockTime {
+		lastBlockTime = c.minDelayBlockTime - 1
+	}
+	// 延时时刻为区块时间
+	for t := lastBlockTime + 1; t <= currBlockTime; t++ {
+
+		if txList, ok := c.txCache[t]; ok {
+			delList = append(delList, txList...)
+			delete(c.txCache, t)
+		}
+	}
+
+	// 延时时刻为区块高度
+	if txList, ok := c.txCache[currBlockHeight]; ok {
+		delList = append(delList, txList...)
+		delete(c.txCache, currBlockHeight)
+	}
+
+	// 删除哈希缓存
+	for _, tx := range delList {
+		delete(c.hashCache, string(tx.Hash()))
+	}
+	return delList
+}
+
+func (c *delayTxCache) contains(txHash []byte) (int64, bool) {
+
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	delayTime, exist := c.hashCache[string(txHash)]
+	return delayTime, exist
 }

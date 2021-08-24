@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,15 +35,15 @@ var (
 
 // coin conversation
 const (
-	Coin            int64 = 1e8
-	MaxCoin         int64 = 1e17
-	MaxTxSize             = 100000 //100K
-	MaxTxGroupSize  int32 = 20
-	MaxBlockSize          = 20000000 //20M
-	MaxTxsPerBlock        = 100000
-	TokenPrecision  int64 = 1e8
-	MaxTokenBalance int64 = 900 * 1e8 * TokenPrecision //900亿
-	DefaultMinFee   int64 = 1e5
+	ShowPrecisionNum int64 = 4      //cli命令显示保留4位
+	MaxCoin          int64 = 1e9    // 1e17/1e8
+	MaxFloatCharNum  int   = 15     //float64最大可精确表示15个字符的浮点数，小数点占一位，小数点位置不确定，不好确定最大值
+	MaxTxSize              = 100000 //100K
+	MaxTxGroupSize   int32 = 20
+	MaxBlockSize           = 20000000 //20M
+	MaxTxsPerBlock         = 100000
+	MaxTokenBalance  int64 = 900 * 1e8 * DefaultCoinPrecision //缺省900亿，小数位精度为1e8, 900*1e16 大约为int64最大可表示范围
+	DefaultMinFee    int64 = 1e5
 )
 
 //Chain33Config ...
@@ -55,7 +56,10 @@ type Chain33Config struct {
 	mu               sync.Mutex
 	chainConfig      map[string]interface{}
 	mver             *mversion
+	coinExec         string
 	coinSymbol       string
+	coinPrecision    int64
+	tokenPrecision   int64
 	forks            *Forks
 	disableCheckFork bool
 	chainID          int32
@@ -121,7 +125,10 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 		minerExecs:       []string{"ticket"}, //挖矿的合约名单，适配旧配置，默认ticket
 		title:            cfg.Title,
 		chainConfig:      make(map[string]interface{}),
-		coinSymbol:       "bty",
+		coinExec:         DefaultCoinsExec,
+		coinSymbol:       DefaultCoinsSymbol,
+		coinPrecision:    DefaultCoinPrecision,
+		tokenPrecision:   DefaultCoinPrecision, //缺省和coinPrecision一致
 		forks:            &Forks{make(map[string]int64)},
 		chainID:          cfg.ChainID,
 		disableCheckFork: cfg.DisableForkCheck,
@@ -235,6 +242,16 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 			c.setMinerExecs(cfg.Consensus.MinerExecs)
 		}
 		c.setChainConfig("FixTime", cfg.FixTime)
+
+		//coinExec默认coins执行器, 如果配置了coinExec，用户必须实现相应的合约
+		c.coinExec = DefaultCoinsExec
+		if len(cfg.CoinExec) > 0 {
+			if strings.Contains(cfg.CoinExec, "-") {
+				panic("config CoinExec must without '-'")
+			}
+			c.coinExec = cfg.CoinExec
+		}
+
 		if cfg.CoinSymbol != "" {
 			if strings.Contains(cfg.CoinSymbol, "-") {
 				panic("config CoinSymbol must without '-'")
@@ -246,6 +263,23 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 			} else {
 				c.coinSymbol = DefaultCoinsSymbol
 			}
+		}
+
+		//配置coinPrecision支持0~8, 最大8,也就是1e8
+		c.coinPrecision = DefaultCoinPrecision
+		if cfg.CoinPrecision > 0 {
+			if !checkPrecision(cfg.CoinPrecision) {
+				panic(fmt.Sprintf("config coinPrecision=%d should be 1~100000000", cfg.CoinPrecision))
+			}
+			c.coinPrecision = cfg.CoinPrecision
+		}
+
+		c.tokenPrecision = DefaultCoinPrecision
+		if cfg.TokenPrecision > 0 {
+			if !checkPrecision(cfg.TokenPrecision) {
+				panic(fmt.Sprintf("config tokenPrecision=%d should be 1~100000000", cfg.TokenPrecision))
+			}
+			c.tokenPrecision = cfg.TokenPrecision
 		}
 		//TxHeight
 		c.setChainConfig("TxHeight", cfg.TxHeight)
@@ -266,6 +300,14 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	if c.mver != nil {
 		c.mver.UpdateFork(c.forks)
 	}
+}
+
+//只检查是否是10的指数，不限制最大精度
+func checkPrecision(precision int64) bool {
+	s := strconv.Itoa(int(precision))
+	n := strings.Count(s, "0")
+	calc := math.Pow10(n)
+	return precision == int64(calc)
 }
 
 func (c *Chain33Config) needSetForkZero() bool {
@@ -449,6 +491,27 @@ func (c *Chain33Config) GetCoinSymbol() string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.coinSymbol
+}
+
+// GetCoinExec 获取 coin symbol
+func (c *Chain33Config) GetCoinExec() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.coinExec
+}
+
+// GetCoinPrecision 获取 coin 精度，缺省小数点后8位， 1e8
+func (c *Chain33Config) GetCoinPrecision() int64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.coinPrecision
+}
+
+// GetTokenPrecision 获取 token 精度，缺省小数点后8位， 1e8
+func (c *Chain33Config) GetTokenPrecision() int64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.tokenPrecision
 }
 
 func (c *Chain33Config) isLocal() bool {

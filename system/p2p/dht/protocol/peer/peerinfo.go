@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/common/version"
@@ -19,6 +18,7 @@ import (
 )
 
 const diffHeightValue = 512
+const maxPeers = 20
 
 func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	msg := p.QueueClient.NewMessage(mempool, types.EventGetMempoolSize, nil)
@@ -26,7 +26,7 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	if err != nil {
 		return nil
 	}
-	resp, err := p.QueueClient.WaitTimeout(msg, time.Second*10)
+	resp, err := p.QueueClient.WaitTimeout(msg, time.Second*5)
 	if err != nil {
 		log.Error("getLocalPeerInfo", "mempool WaitTimeout", err)
 		return nil
@@ -63,15 +63,11 @@ func (p *Protocol) refreshSelf() {
 	}
 }
 
-func (p *Protocol) refreshPeerInfo() {
-	if !atomic.CompareAndSwapInt32(&p.refreshing, 0, 1) {
-		return
-	}
-	defer atomic.StoreInt32(&p.refreshing, 0)
+func (p *Protocol) refreshPeerInfo(peers []peer.ID) {
 	var wg sync.WaitGroup
 	// 限制最大并发数量为20
 	ch := make(chan struct{}, 20)
-	for _, remoteID := range p.RoutingTable.ListPeers() {
+	for _, remoteID := range peers {
 		if p.checkDone() {
 			log.Warn("getPeerInfo", "process", "done+++++++")
 			return
@@ -174,7 +170,7 @@ func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
 		return nil, err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	err = protocol.WriteStream(&types.MessagePeerInfoReq{}, stream)
 	if err != nil {
 		return nil, err
@@ -209,7 +205,7 @@ func (p *Protocol) queryPeerInfo(pid peer.ID) (*types.Peer, error) {
 		return nil, err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 	var resp types.Peer
 	err = protocol.ReadStream(&resp, stream)
 	if err != nil {
@@ -227,7 +223,7 @@ func (p *Protocol) queryVersionOld(pid peer.ID) error {
 		return err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 
 	req := types.MessageP2PVersionReq{
 		Message: &types.P2PVersion{
@@ -273,7 +269,7 @@ func (p *Protocol) queryVersion(pid peer.ID) error {
 		return err
 	}
 	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
+	defer stream.Close()
 
 	req := &types.P2PVersion{
 		Version:  p.SubConfig.Channel,

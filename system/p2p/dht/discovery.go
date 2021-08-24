@@ -14,14 +14,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	opts "github.com/libp2p/go-libp2p-kad-dht/opts"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
-	// Deprecated 老版本的协议，仅做兼容，TODO 后面升级后移除
-	classicDhtProtoID = "/ipfs/kad/%s/1.0.0/%d"
-	dhtProtoID        = "/%s-%d/kad/1.0.0" //title-channel/kad/1.0.0
+	dhtProtoID = "/%s-%d/kad/1.0.0" //title-channel/kad/1.0.0
 )
 
 // Discovery dht discovery
@@ -41,9 +38,8 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 	// Make the DHT,不同的ID进入不同的网络。
 	//如果不修改DHTProto 则有可能会连入IPFS网络，dhtproto=/ipfs/kad/1.0.0
 	d := new(Discovery)
-	opt := opts.Protocols(protocol.ID(fmt.Sprintf(dhtProtoID, chainCfg.GetTitle(), subCfg.Channel)),
-		protocol.ID(fmt.Sprintf(classicDhtProtoID, chainCfg.GetTitle(), subCfg.Channel)))
-	kademliaDHT, err := dht.New(ctx, host, opt, opts.BucketSize(dht.KValue), opts.RoutingTableLatencyTolerance(time.Second*5))
+
+	kademliaDHT, err := dht.New(ctx, host, dht.V1ProtocolOverride(protocol.ID(fmt.Sprintf(dhtProtoID, chainCfg.GetTitle(), subCfg.Channel))), dht.BootstrapPeers(peersInfo...), dht.DisableAutoRefresh())
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +55,7 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 //Start  the dht
 func (d *Discovery) Start() {
 	//连接内置种子，以及addrbook存储的节点
-	initInnerPeers(d.host, d.bootstraps, d.subCfg)
+	go initInnerPeers(d.host, d.bootstraps, d.subCfg)
 	// Bootstrap the DHT. In the default configuration, this spawns a Background
 	// thread that will refresh the peer table every five minutes.
 	if err := d.kademliaDHT.Bootstrap(d.ctx); err != nil {
@@ -127,17 +123,6 @@ func (d *Discovery) FindLocalPeers(pids []peer.ID) []peer.AddrInfo {
 	return addrinfos
 }
 
-// FindPeersConnectedToPeer 获取连接指定的peerId的peers信息,查找连接PID=A的所有节点
-func (d *Discovery) FindPeersConnectedToPeer(pid peer.ID) (<-chan *peer.AddrInfo, error) {
-	if d.kademliaDHT == nil {
-		return nil, errors.New("empty ptr")
-
-	}
-	pctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	return d.kademliaDHT.FindPeersConnectedToPeer(pctx, pid)
-}
-
 // FindNearestPeers find nearest peers
 func (d *Discovery) FindNearestPeers(pid peer.ID, count int) []peer.ID {
 	if d.kademliaDHT == nil {
@@ -162,7 +147,7 @@ func (d *Discovery) ListPeers() []peer.ID {
 
 // Update update peer
 func (d *Discovery) Update(pid peer.ID) error {
-	_, err := d.kademliaDHT.RoutingTable().Update(pid)
+	_, err := d.kademliaDHT.RoutingTable().TryAddPeer(pid, true, true)
 	return err
 }
 
@@ -171,6 +156,6 @@ func (d *Discovery) Remove(pid peer.ID) {
 	if d.kademliaDHT == nil {
 		return
 	}
-	d.kademliaDHT.RoutingTable().Remove(pid)
+	d.kademliaDHT.RoutingTable().RemovePeer(pid)
 
 }

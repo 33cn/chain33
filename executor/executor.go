@@ -70,6 +70,7 @@ func New(cfg *typ.Chain33Config) *Executor {
 	exec.pluginEnable["addrindex"] = !mcfg.DisableAddrIndex
 	exec.pluginEnable["txindex"] = true
 	exec.pluginEnable["fee"] = true
+	exec.pluginEnable[addrFeeIndex] = mcfg.EnableAddrFeeIndex
 	exec.noneDriverPool = &sync.Pool{
 		New: func() interface{} {
 			none, err := drivers.LoadDriver("none", 0)

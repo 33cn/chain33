@@ -18,6 +18,7 @@ var (
 	TxShortHashPerfix      = []byte("STX:")
 	TxAddrHash             = []byte("TxAddrHash:")
 	TxAddrDirHash          = []byte("TxAddrDirHash:")
+	TxFeeAddrDirHash       = []byte("TxFeeAddrDirHash:")
 	AddrTxsCount           = []byte("AddrTxsCount:")
 	ConsensusParaTxsPrefix = []byte("LODBP:Consensus:Para:")            //存贮para共识模块从主链拉取的平行链交易
 	FlagReduceLocaldb      = []byte("FLAG:ReduceLocaldb")               // 精简版localdb标记
@@ -68,6 +69,12 @@ func CalcTxAddrHashKey(addr string, heightindex string) []byte {
 //地址下面某个分类的交易
 func CalcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
 	return append(TxAddrDirHash, []byte(fmt.Sprintf("%s:%d:%s", addr, flag, heightindex))...)
+}
+
+//CalcTxFeeAddrDirHashKey 用于存储地址相关的hash列表，key=TxAddrHash:addr:flag:height*100000 + index
+//地址下面某个分类的交易
+func CalcTxFeeAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
+	return append(TxFeeAddrDirHash, []byte(fmt.Sprintf("%s:%d:%s", addr, flag, heightindex))...)
 }
 
 //CalcAddrTxsCountKey 存储地址参与的交易数量。add时加一，del时减一

@@ -617,6 +617,36 @@ func (_m *Chain33Client) GetBlocks(ctx context.Context, in *types.ReqBlocks, opt
 	return r0, r1
 }
 
+// GetChainConfig provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetChainConfig(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.ChainConfigInfo, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.ChainConfigInfo
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqNil, ...grpc.CallOption) *types.ChainConfigInfo); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ChainConfigInfo)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetCryptoList provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetCryptoList(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.CryptoList, error) {
 	_va := make([]interface{}, len(opts))
@@ -1599,6 +1629,36 @@ func (_m *Chain33Client) SaveSeed(ctx context.Context, in *types.SaveSeedByPw, o
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.SaveSeedByPw, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SendDelayTransaction provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) SendDelayTransaction(ctx context.Context, in *types.DelayTx, opts ...grpc.CallOption) (*types.Reply, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(context.Context, *types.DelayTx, ...grpc.CallOption) *types.Reply); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.DelayTx, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

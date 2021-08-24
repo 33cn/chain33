@@ -63,7 +63,7 @@ func TestConfigNoInit(t *testing.T) {
 	// tx fee config
 	assert.Equal(t, int64(1e8), cfg.GetMaxTxFee())
 	assert.Equal(t, int64(1e6), cfg.GetMaxTxFeeRate())
-	assert.Equal(t, int64(1e4), cfg.GetMinTxFeeRate())
+	assert.Equal(t, int64(1e5), cfg.GetMinTxFeeRate())
 	cfg.SetTxFeeConfig(1e9, 1e9, 1e9)
 	assert.True(t, int64(1e9) == cfg.GetMinTxFeeRate() && cfg.GetMaxTxFeeRate() == cfg.GetMaxTxFee())
 }
@@ -89,4 +89,32 @@ func TestGetParaExecTitleName(t *testing.T) {
 	title, exist = GetParaExecTitleName("user.p.guodux.token")
 	assert.Equal(t, true, exist)
 	assert.Equal(t, "user.p.guodux.", title)
+}
+
+func TestCheckPrecision(t *testing.T) {
+	a := int64(11)
+	r := checkPrecision(a)
+	assert.Equal(t, false, r)
+
+	a = 10
+	r = checkPrecision(a)
+	assert.Equal(t, true, r)
+
+	a = 1
+	r = checkPrecision(a)
+	assert.Equal(t, true, r)
+
+	a = 1e8
+	r = checkPrecision(a)
+	assert.Equal(t, true, r)
+
+	//大于1e8也允许
+	a = 1000000000
+	r = checkPrecision(a)
+	assert.Equal(t, true, r)
+
+	a = 110000000
+	r = checkPrecision(a)
+	assert.Equal(t, false, r)
+
 }

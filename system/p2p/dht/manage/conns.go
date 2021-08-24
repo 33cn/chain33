@@ -101,7 +101,12 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 // MonitorAllPeers monitory all peers
 func (s *ConnManager) MonitorAllPeers() {
 	ticker1 := time.NewTicker(time.Minute)
+	defer ticker1.Stop()
 	ticker2 := time.NewTicker(time.Minute * 2)
+	defer ticker2.Stop()
+	ticker3 := time.NewTicker(time.Second * 5)
+	defer ticker3.Stop()
+
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -110,6 +115,8 @@ func (s *ConnManager) MonitorAllPeers() {
 			s.printMonitorInfo()
 		case <-ticker2.C:
 			s.procConnections()
+		case <-ticker3.C:
+			s.procRoutingTable()
 		}
 	}
 }
@@ -180,7 +187,15 @@ func (s *ConnManager) procConnections() {
 			}
 		}
 	}
+}
 
+func (s *ConnManager) procRoutingTable() {
+	if s.routingTable.Size() > len(s.host.Network().Peers())*4/5 {
+		return
+	}
+	for _, pid := range s.host.Network().Peers() {
+		_, _ = s.routingTable.TryAddPeer(pid, true, true)
+	}
 }
 
 func genAddrInfo(addr string) (*peer.AddrInfo, error) {
@@ -208,7 +223,7 @@ func (s *ConnManager) IsNeighbors(pid peer.ID) bool {
 // Delete delete peer by id
 func (s *ConnManager) Delete(pid peer.ID) {
 	_ = s.host.Network().ClosePeer(pid)
-	s.routingTable.Remove(pid)
+	s.routingTable.RemovePeer(pid)
 }
 
 // FetchNearestPeers fetch nearest peer ids
@@ -262,22 +277,22 @@ func (s *ConnManager) CheckDirection(pid peer.ID) network.Direction {
 }
 
 // OutBounds get out bounds conn peers
-func (s *ConnManager) OutBounds() []peer.ID {
-	var peers []peer.ID
+func (s *ConnManager) OutBounds() map[peer.ID][]network.Conn {
+	var peers = make(map[peer.ID][]network.Conn)
 	for _, con := range s.host.Network().Conns() {
 		if con.Stat().Direction == network.DirOutbound {
-			peers = append(peers, con.RemotePeer())
+			peers[con.RemotePeer()] = append(peers[con.RemotePeer()], con)
 		}
 	}
 	return peers
 }
 
 // InBounds get in bounds conn peers
-func (s *ConnManager) InBounds() []peer.ID {
-	var peers []peer.ID
+func (s *ConnManager) InBounds() map[peer.ID][]network.Conn {
+	var peers = make(map[peer.ID][]network.Conn)
 	for _, con := range s.host.Network().Conns() {
 		if con.Stat().Direction == network.DirInbound {
-			peers = append(peers, con.RemotePeer())
+			peers[con.RemotePeer()] = append(peers[con.RemotePeer()], con)
 		}
 	}
 	return peers
@@ -285,15 +300,19 @@ func (s *ConnManager) InBounds() []peer.ID {
 
 // BoundSize get in out conn bound size
 func (s *ConnManager) BoundSize() (insize int, outsize int) {
+	var outBounds = make(map[peer.ID][]network.Conn)
+	var inBounds = make(map[peer.ID][]network.Conn)
 	for _, con := range s.host.Network().Conns() {
 		if con.Stat().Direction == network.DirOutbound {
-			outsize++
+			outBounds[con.RemotePeer()] = append(outBounds[con.RemotePeer()], con)
 		}
 		if con.Stat().Direction == network.DirInbound {
-			insize++
+			inBounds[con.RemotePeer()] = append(inBounds[con.RemotePeer()], con)
 		}
 	}
-	return insize, outsize
+	insize = len(inBounds)
+	outsize = len(outBounds)
+	return
 }
 
 // GetNetRate get rateinfo

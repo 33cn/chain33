@@ -10,9 +10,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -45,6 +49,20 @@ func (c *Chain33Config) ExecName(name string) string {
 		return c.GetTitle() + name
 	}
 	return name
+}
+
+//GetExecName 根据paraName 获取exec name
+func GetExecName(exec, paraName string) string {
+	if len(exec) > 1 && exec[0] == '#' {
+		return exec[1:]
+	}
+	if IsParaExecName(exec) {
+		return exec
+	}
+	if len(paraName) > 0 {
+		return paraName + exec
+	}
+	return exec
 }
 
 //IsAllowExecName 默认的allow 规则->根据 GetRealExecName 来判断
@@ -253,8 +271,8 @@ func NewErrReceipt(err error) *Receipt {
 }
 
 //CheckAmount  检测转账金额
-func CheckAmount(amount int64) bool {
-	if amount <= 0 || amount >= MaxCoin {
+func CheckAmount(amount, coinPrecision int64) bool {
+	if amount <= 0 || amount >= MaxCoin*coinPrecision {
 		return false
 	}
 	return true
@@ -636,4 +654,68 @@ func (hashes *ReplyHashes) Hash() []byte {
 		panic(err)
 	}
 	return common.Sha256(data)
+}
+
+//FormatAmount2FloatDisplay 将传输、计算的amount值按精度格式化成浮点显示值，支持精度可配置
+//strconv.FormatFloat(float64(amount/types.Int1E4)/types.Float1E4, 'f', 4, 64) 的方法在amount很大的时候会丢失精度
+//比如在9001234567812345678时候，float64 最大精度只能在900123456781234的大小，decimal处理可以完整保持精度
+//在coinPrecision支持可配时候，对不同精度统一处理,而不是限定在1e4
+//round:是否需要对小数后四位值圆整，以912345678为例，912345678/1e8=9.1235, 非圆整例子:(912345678/1e4)/float(1e4)
+func FormatAmount2FloatDisplay(amount, coinPrecision int64, round bool) string {
+	n := int64(math.Log10(float64(coinPrecision)))
+	//小数左移n位，0保持不变
+	d := decimal.NewFromInt(amount).Shift(int32(-n))
+
+	//coinPrecision:5~8,
+	//v=99.12345678  => 99.1234,需要先truncate掉，不然5678会round到前一位也就是99.1235
+	if n > ShowPrecisionNum {
+		//有些需要圆整上来的,比如交易费,0.12345678,圆整为0.1235
+		if round {
+			return d.StringFixedBank(int32(ShowPrecisionNum))
+		}
+		//有些需要直接truncate掉
+		return d.Truncate(int32(ShowPrecisionNum)).StringFixedBank(int32(ShowPrecisionNum))
+
+	}
+
+	return d.StringFixedBank(int32(n))
+}
+
+//FormatAmount2FixPrecisionDisplay 将传输、计算的amount值按配置精度格式化成浮点显示值，不设缺省精度
+func FormatAmount2FixPrecisionDisplay(amount, coinPrecision int64) string {
+	n := int64(math.Log10(float64(coinPrecision)))
+	//小数左移n位，0保持不变
+	d := decimal.NewFromInt(amount).Shift(int32(-n))
+
+	return d.StringFixedBank(int32(n))
+}
+
+//FormatFloatDisplay2Value 将显示、输入的float amount值按精度格式化成计算值，小数点后精度只保留4位
+//浮点数算上浮点能精确表达最大16位长的数字(1234567.12345678),考虑到16个9会被表示为1e16,这里限制最多15个字符
+//本函数然后小数位只精确到4位，后面补0
+func FormatFloatDisplay2Value(amount float64, coinPrecision int64) (int64, error) {
+	f := decimal.NewFromFloat(amount)
+	strVal := f.String()
+	if len(strVal) <= 0 {
+		return 0, errors.Wrapf(ErrInvalidParam, "input=%f", amount)
+	}
+	//小数位输入不能超过配置小数位精度
+	coinPrecisionNum := int(math.Log10(float64(coinPrecision)))
+	i := strings.Index(strVal, ".")
+	if i > 0 && len(strVal)-i-1 > coinPrecisionNum {
+		return 0, errors.Wrapf(ErrInvalidParam, "input decimalpoint num=%d great than config coinPrecision=%d", len(strVal)-i-1, coinPrecisionNum)
+	}
+
+	//因为float精度原因，限制输入浮点数最多字符数
+	if len(strVal) > MaxFloatCharNum {
+		return 0, errors.Wrapf(ErrInvalidParam, "input=%f,len=%d great than %v", amount, len(strVal), MaxFloatCharNum)
+	}
+
+	//如果配置精度超过4位，小数位只精确到后4位, 例如1.23456789 ->123450000
+	if int64(coinPrecisionNum) > ShowPrecisionNum {
+		return f.Truncate(int32(ShowPrecisionNum)).Shift(int32(coinPrecisionNum)).IntPart(), nil
+	}
+	//如果配置精度小于4位，乘精度
+	return f.Shift(int32(coinPrecisionNum)).IntPart(), nil
+
 }

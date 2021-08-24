@@ -7,7 +7,6 @@ package commands
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/33cn/chain33/rpc/jsonclient"
@@ -188,15 +187,21 @@ func walletListTxs(cmd *cobra.Command, args []string) {
 	}
 	var res rpctypes.WalletTxDetails
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
-	ctx.SetResultCb(parseWalletTxListRes)
-	ctx.Run()
+	ctx.SetResultCbExt(parseWalletTxListRes)
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	ctx.RunExt(cfg)
 }
 
-func parseWalletTxListRes(arg interface{}) (interface{}, error) {
-	res := arg.(*rpctypes.WalletTxDetails)
+func parseWalletTxListRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*rpctypes.WalletTxDetails)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
 	var result commandtypes.WalletTxDetailsResult
 	for _, v := range res.TxDetails {
-		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
+		amountResult := types.FormatAmount2FloatDisplay(v.Amount, cfg.CoinPrecision, true)
 		wtxd := &commandtypes.WalletTxDetailResult{
 			Tx:         commandtypes.DecodeTransaction(v.Tx),
 			Receipt:    v.Receipt,
@@ -410,14 +415,25 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	feeInt64 := int64(fee * 1e4)
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	feeInt64, err := types.FormatFloatDisplay2Value(fee, cfg.CoinPrecision)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	params := types.ReqSignRawTx{
 		Addr:      addr,
 		Privkey:   key,
 		TxHex:     data,
 		Expire:    expire,
 		Index:     index,
-		Fee:       feeInt64 * 1e4,
+		Fee:       feeInt64,
 		NewToAddr: to,
 	}
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
@@ -443,9 +459,19 @@ func addSetFeeFlags(cmd *cobra.Command) {
 func setFee(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	amount, _ := cmd.Flags().GetFloat64("amount")
-	amountInt64 := int64(amount * 1e4)
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	params := types.ReqWalletSetFee{
-		Amount: amountInt64 * 1e4,
+		Amount: amountInt64,
 	}
 	var res rpctypes.Reply
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)

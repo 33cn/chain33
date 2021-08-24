@@ -15,6 +15,18 @@ message Account {
     string addr = 4;
 }
 
+// AccountInfo account 的信息
+message AccountInfo {
+    //账户地址
+    string addr = 1;
+    //账户私钥
+    string privateKey = 2;
+    //账户公钥
+    string pubKey = 3;
+    //账户助记词
+    string seed = 4;
+}
+
 //账户余额改变的一个交易回报（合约内）
 message ReceiptExecAccountTransfer {
     //合约地址

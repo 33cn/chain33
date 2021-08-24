@@ -234,7 +234,10 @@ message P2PRequest {
         ChunkInfoList   chunkInfoList   = 4;
         ReqBlocks       reqBlocks       = 5;
         //新的协议可以继续添加request类型
-        ReqPeers reqPeers = 6;
+        ReqPeers      reqPeers = 6;
+        string        pid      = 7;
+        PeerInfo      peerInfo = 8;
+        ChunkProvider provider = 9;
     }
 }
 
@@ -260,8 +263,9 @@ message P2PResponse {
         Headers      blockHeaders = 6;
         ChunkRecords chunkRecords = 7;
         //新的协议可以继续添加response类型
-        NodeInfo nodeInfo = 8;
-        // Reply reply = 8;
+        NodeInfo     nodeInfo  = 8;
+        PeerInfo     peerInfo  = 9;
+        PeerInfoList peerInfos = 10;
     }
 }
 
@@ -273,6 +277,15 @@ message NodeInfo {
 message PeerInfo {
     bytes    ID              = 1;
     repeated bytes MultiAddr = 2;
+}
+
+message ChunkProvider {
+    bytes    chunkHash          = 1;
+    repeated PeerInfo peerInfos = 2;
+}
+
+message PeerInfoList {
+    repeated PeerInfo peerInfos = 1;
 }
 
 /**

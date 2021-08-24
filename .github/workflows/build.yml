@@ -8,7 +8,7 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.14
         id: go
       - name: checkout
         uses: actions/checkout@v2
@@ -39,14 +39,16 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.14
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
       - name: checkout
         uses: actions/checkout@v2
       - name: unit-test
-        run: make test
+        run: |
+          sudo sysctl -w net.core.rmem_max=2500000
+          make test
 
   coverage:
     name: coverage
@@ -55,14 +57,16 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.14
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
       - name: checkout
         uses: actions/checkout@v2
       - name: ut coverage
-        run: make coverage
+        run: |
+          sudo sysctl -w net.core.rmem_max=2500000
+          make coverage
       - name: cover report
         if: success()
         run: bash <(curl -s https://codecov.io/bash)
@@ -74,7 +78,7 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.13
+          go-version: 1.14
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin

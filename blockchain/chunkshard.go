@@ -35,6 +35,8 @@ func (chain *BlockChain) chunkDeleteRoutine() {
 	defer chain.tickerwg.Done()
 	// 60s检测一次是否可以删除本地的body数据
 	checkDelTicker := time.NewTicker(time.Minute)
+	defer checkDelTicker.Stop()
+
 	for {
 		select {
 		case <-chain.quit:
@@ -49,6 +51,8 @@ func (chain *BlockChain) chunkGenerateRoutine() {
 	defer chain.tickerwg.Done()
 	// 10s检测一次是否可以触发归档操作
 	checkGenChunkTicker := time.NewTicker(10 * time.Second)
+	defer checkGenChunkTicker.Stop()
+
 	for {
 		select {
 		case <-chain.quit:
@@ -116,12 +120,10 @@ func (chain *BlockChain) CheckDeleteBlockBody() {
 	}
 
 	//删除超过100个chunk则进行数据库压缩
-	if atomic.LoadInt64(&chain.deleteChunkCount) >= 100 {
+	if atomic.LoadInt64(&chain.deleteChunkCount) >= onceDelChunkNum {
 		now := time.Now()
-		start := []byte("CHAIN-body-body-")
-		limit := make([]byte, len(start))
-		copy(limit, start)
-		limit[len(limit)-1]++
+		start := []byte("CHAIN-body-body-d-" + fmt.Sprintf("%012d", chain.cfg.ChunkblockNum*(toDelete-atomic.LoadInt64(&chain.deleteChunkCount))))
+		limit := []byte("CHAIN-body-body-d-" + fmt.Sprintf("%012d", chain.cfg.ChunkblockNum*toDelete))
 		if err := chain.blockStore.db.CompactRange(start, limit); err != nil {
 			chainlog.Error("walkOverDeleteChunk", "CompactRange error", err)
 			return

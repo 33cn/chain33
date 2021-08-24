@@ -450,6 +450,525 @@ func Test_PostTxReceipt(t *testing.T) {
 	defer mock33.Close()
 }
 
+func Test_PostEVMEvent_Subscribe(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+	seqStore := &bcMocks.SequenceStore{}
+	var blockSequence types.BlockSequence
+	blockSequence.Hash, _ = common.FromHex("0xe902b2e28be70e2062f6c7838fe12196c91b159ed6cbf189741c43f5d4c09927")
+	blockSequence.Type = 1
+	seqStore.On("GetBlockSequence", mock.Anything).Return(&blockSequence, nil)
+	seqStore.On("LoadBlockLastSequence").Return(int64(1), nil)
+
+	///////////////////
+	var txs []*types.Transaction
+	var receipts []*types.ReceiptData
+	for i := 0; i < 10; i++ {
+		tx := &types.Transaction{}
+		tx.Execer = []byte("evm")
+		tx.To = "19tjS51kjwrCoSQS13U3owe7gYBLfSfoFm"
+		txs = append(txs, tx)
+
+		topic, _ := common.FromHex("0x374449c83a37309524754bbdfc5b8306d3694b5d14609b8fbb1b50cc5c0319a7")
+		evmLog := &types.EVMLog{
+			Topic: [][]byte{topic},
+			Data:  []byte{0, 1},
+		}
+
+		other := &types.ReceiptLog{
+			Ty: 99,
+		}
+
+		receipt := &types.ReceiptData{
+			Ty: types.ExecOk,
+			Logs: []*types.ReceiptLog{{
+				Ty:  605,
+				Log: types.Encode(evmLog),
+			}, other},
+		}
+		receipts = append(receipts, receipt)
+	}
+	block := &types.Block{
+		Height: 1,
+		Txs:    txs,
+	}
+	blockDetail := &types.BlockDetail{
+		Block:          block,
+		Receipts:       receipts,
+		KV:             nil,
+		PrevStatusHash: nil,
+	}
+	size := blockDetail.Size()
+	////////////////////
+	seqStore.On("LoadBlockBySequence", mock.Anything).Return(blockDetail, size, nil)
+	chain.push.sequenceStore = seqStore
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test-evm-event"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushEVMEvent
+	subscribe.Encode = "json"
+	subscribe.Contract = make(map[string]bool)
+	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
+
+	err := chain.push.addSubscriber(subscribe)
+	assert.Equal(t, err, nil)
+
+	//createBlocks(t, mock33, chain, 1)
+	keyStr := string(calcPushKey(subscribe.Name))
+	pushNotify := chain.push.tasks[keyStr]
+	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	assert.Equal(t, pushNotify.subscribe.Type, subscribe.Type)
+
+	defer mock33.Close()
+}
+
+func Test_PostEVMEvent(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+	seqStore := &bcMocks.SequenceStore{}
+	var blockSequence types.BlockSequence
+	blockSequence.Hash, _ = common.FromHex("0xe902b2e28be70e2062f6c7838fe12196c91b159ed6cbf189741c43f5d4c09927")
+	blockSequence.Type = 1
+	seqStore.On("GetBlockSequence", mock.Anything).Return(&blockSequence, nil)
+	seqStore.On("LoadBlockLastSequence").Return(int64(1), nil)
+
+	///////////////////
+	var txs []*types.Transaction
+	var receipts []*types.ReceiptData
+	for i := 0; i < 10; i++ {
+		tx := &types.Transaction{}
+		tx.Execer = []byte("evm")
+		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
+
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
+		txs = append(txs, tx)
+
+		topic, _ := common.FromHex("0x374449c83a37309524754bbdfc5b8306d3694b5d14609b8fbb1b50cc5c0319a7")
+		evmLog := &types.EVMLog{
+			Topic: [][]byte{topic},
+			Data:  []byte{0, 1},
+		}
+
+		other := &types.ReceiptLog{
+			Ty: 99,
+		}
+
+		receipt := &types.ReceiptData{
+			Ty: types.ExecOk,
+			Logs: []*types.ReceiptLog{{
+				Ty:  605,
+				Log: types.Encode(evmLog),
+			}, other},
+		}
+		receipts = append(receipts, receipt)
+	}
+	//将第一笔交易执行器设置为token
+	txs[0].Execer = []byte("token")
+	block := &types.Block{
+		Height: 1,
+		Txs:    txs,
+	}
+	//将第二笔交易的payload设置为不能反序列化的数据
+	txs[1].Payload = []byte{1, 2}
+
+	blockDetail := &types.BlockDetail{
+		Block:          block,
+		Receipts:       receipts,
+		KV:             nil,
+		PrevStatusHash: nil,
+	}
+	size := blockDetail.Size()
+	////////////////////
+	seqStore.On("LoadBlockBySequence", mock.Anything).Return(blockDetail, size, nil)
+	chain.push.sequenceStore = seqStore
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test-evm-event"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushEVMEvent
+	subscribe.Encode = "proto"
+	subscribe.Contract = make(map[string]bool)
+	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
+
+	startSeq := int64(0)
+	seqCount := 5
+	maxSize := int(1024 * 1024)
+	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
+	assert.NotEqual(t, nil, data)
+	var evmlogs types.EVMTxLogsInBlks
+	_ = types.Decode(data, &evmlogs)
+	assert.Equal(t, 5, len(evmlogs.Logs4EVMPerBlk))
+	assert.Equal(t, 8, len(evmlogs.Logs4EVMPerBlk[0].TxAndLogs))
+
+	defer mock33.Close()
+}
+
+func Test_PostEVMEvent_bigsize(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+	seqStore := &bcMocks.SequenceStore{}
+	var blockSequence types.BlockSequence
+	blockSequence.Hash, _ = common.FromHex("0xe902b2e28be70e2062f6c7838fe12196c91b159ed6cbf189741c43f5d4c09927")
+	blockSequence.Type = 1
+	seqStore.On("GetBlockSequence", mock.Anything).Return(&blockSequence, nil)
+	seqStore.On("LoadBlockLastSequence").Return(int64(1), nil)
+
+	///////////////////
+	var txs []*types.Transaction
+	var receipts []*types.ReceiptData
+	for i := 0; i < 10; i++ {
+		tx := &types.Transaction{}
+		tx.Execer = []byte("evm")
+		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
+		txs = append(txs, tx)
+
+		topic, _ := common.FromHex("0x374449c83a37309524754bbdfc5b8306d3694b5d14609b8fbb1b50cc5c0319a7")
+		evmLog := &types.EVMLog{
+			Topic: [][]byte{topic},
+			Data:  []byte{0, 1},
+		}
+
+		other := &types.ReceiptLog{
+			Ty: 99,
+		}
+
+		receipt := &types.ReceiptData{
+			Ty: types.ExecOk,
+			Logs: []*types.ReceiptLog{{
+				Ty:  605,
+				Log: types.Encode(evmLog),
+			}, other},
+		}
+		receipts = append(receipts, receipt)
+	}
+	block := &types.Block{
+		Height: 1,
+		Txs:    txs,
+	}
+	blockDetail := &types.BlockDetail{
+		Block:          block,
+		Receipts:       receipts,
+		KV:             nil,
+		PrevStatusHash: nil,
+	}
+	size := blockDetail.Size()
+	////////////////////
+	seqStore.On("LoadBlockBySequence", mock.Anything).Return(blockDetail, size, nil)
+	chain.push.sequenceStore = seqStore
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test-evm-event"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushEVMEvent
+	subscribe.Encode = "json"
+	subscribe.Contract = make(map[string]bool)
+	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
+
+	startSeq := int64(0)
+	seqCount := 5
+	maxSize := int(10)
+	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, int64(-1), updateSeq)
+	assert.Equal(t, 0, len(data))
+
+	defer mock33.Close()
+}
+
+func Test_PostEVMEvent_notJson(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+	seqStore := &bcMocks.SequenceStore{}
+	var blockSequence types.BlockSequence
+	blockSequence.Hash, _ = common.FromHex("0xe902b2e28be70e2062f6c7838fe12196c91b159ed6cbf189741c43f5d4c09927")
+	blockSequence.Type = 1
+	seqStore.On("GetBlockSequence", mock.Anything).Return(&blockSequence, nil)
+	seqStore.On("LoadBlockLastSequence").Return(int64(1), nil)
+
+	///////////////////
+	var txs []*types.Transaction
+	var receipts []*types.ReceiptData
+	for i := 0; i < 10; i++ {
+		tx := &types.Transaction{}
+		tx.Execer = []byte("evm")
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
+		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
+		txs = append(txs, tx)
+
+		topic, _ := common.FromHex("0x374449c83a37309524754bbdfc5b8306d3694b5d14609b8fbb1b50cc5c0319a7")
+		evmLog := &types.EVMLog{
+			Topic: [][]byte{topic},
+			Data:  []byte{0, 1},
+		}
+
+		other := &types.ReceiptLog{
+			Ty: 99,
+		}
+
+		receipt := &types.ReceiptData{
+			Ty: types.ExecOk,
+			Logs: []*types.ReceiptLog{{
+				Ty:  605,
+				Log: types.Encode(evmLog),
+			}, other},
+		}
+		receipts = append(receipts, receipt)
+	}
+	block := &types.Block{
+		Height: 1,
+		Txs:    txs,
+	}
+	blockDetail := &types.BlockDetail{
+		Block:          block,
+		Receipts:       receipts,
+		KV:             nil,
+		PrevStatusHash: nil,
+	}
+	size := blockDetail.Size()
+	////////////////////
+	seqStore.On("LoadBlockBySequence", mock.Anything).Return(blockDetail, size, nil)
+	chain.push.sequenceStore = seqStore
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test-evm-event"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushEVMEvent
+	subscribe.Encode = "other"
+	subscribe.Contract = make(map[string]bool)
+	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
+
+	startSeq := int64(0)
+	seqCount := 5
+	maxSize := int(1024 * 1024)
+	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
+	assert.NotEqual(t, nil, data)
+
+	defer mock33.Close()
+}
+
+func Test_PostEVMEvent_badLog(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+	seqStore := &bcMocks.SequenceStore{}
+	var blockSequence types.BlockSequence
+	blockSequence.Hash, _ = common.FromHex("0xe902b2e28be70e2062f6c7838fe12196c91b159ed6cbf189741c43f5d4c09927")
+	blockSequence.Type = 1
+	seqStore.On("GetBlockSequence", mock.Anything).Return(&blockSequence, nil)
+	seqStore.On("LoadBlockLastSequence").Return(int64(1), nil)
+
+	///////////////////
+	var txs []*types.Transaction
+	var receipts []*types.ReceiptData
+	for i := 0; i < 10; i++ {
+		tx := &types.Transaction{}
+		tx.Execer = []byte("evm")
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
+		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
+		txs = append(txs, tx)
+
+		other := &types.ReceiptLog{
+			Ty: 99,
+		}
+
+		receipt := &types.ReceiptData{
+			Ty: types.ExecOk,
+			Logs: []*types.ReceiptLog{{
+				Ty:  605,
+				Log: []byte{0, 1},
+			}, other},
+		}
+		receipts = append(receipts, receipt)
+	}
+	block := &types.Block{
+		Height: 1,
+		Txs:    txs,
+	}
+	blockDetail := &types.BlockDetail{
+		Block:          block,
+		Receipts:       receipts,
+		KV:             nil,
+		PrevStatusHash: nil,
+	}
+	size := blockDetail.Size()
+	blockDetail.Receipts[0].Ty = types.ExecErr
+	////////////////////
+	seqStore.On("LoadBlockBySequence", mock.Anything).Return(blockDetail, size, nil)
+	chain.push.sequenceStore = seqStore
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test-evm-event"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushEVMEvent
+	subscribe.Encode = "not json"
+	subscribe.Contract = make(map[string]bool)
+	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
+
+	startSeq := int64(0)
+	seqCount := 5
+	maxSize := int(1)
+	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
+	assert.NotEqual(t, nil, err)
+	assert.Equal(t, int64(-1), updateSeq)
+	assert.Equal(t, 0, len(data))
+
+	defer mock33.Close()
+}
+
+func Test_PostEVMEvent_nil(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+	seqStore := &bcMocks.SequenceStore{}
+	var blockSequence types.BlockSequence
+	blockSequence.Hash, _ = common.FromHex("0xe902b2e28be70e2062f6c7838fe12196c91b159ed6cbf189741c43f5d4c09927")
+	blockSequence.Type = 1
+	seqStore.On("GetBlockSequence", mock.Anything).Return(&blockSequence, nil)
+	seqStore.On("LoadBlockLastSequence").Return(int64(1), nil)
+
+	///////////////////
+	var txs []*types.Transaction
+	var receipts []*types.ReceiptData
+	for i := 0; i < 10; i++ {
+		tx := &types.Transaction{}
+		tx.Execer = []byte("evm")
+		evmAction := &types.EVMContractAction4Chain33{
+			ContractAddr: "165UZpSHske8hryahjM91kAWMJRW47Hn7E",
+		}
+		payload := types.Encode(evmAction)
+		tx.Payload = payload
+		tx.To = "165UZpSHske8hryahjM91kAWMJRW47Hn7E"
+		txs = append(txs, tx)
+
+		topic, _ := common.FromHex("0x374449c83a37309524754bbdfc5b8306d3694b5d14609b8fbb1b50cc5c0319a7")
+		evmLog := &types.EVMLog{
+			Topic: [][]byte{topic},
+			Data:  []byte{0, 1},
+		}
+
+		other := &types.ReceiptLog{
+			Ty: 99,
+		}
+
+		receipt := &types.ReceiptData{
+			Ty: types.ExecOk,
+			Logs: []*types.ReceiptLog{{
+				Ty:  606,
+				Log: types.Encode(evmLog),
+			}, other},
+		}
+		receipts = append(receipts, receipt)
+	}
+	block := &types.Block{
+		Height: 1,
+		Txs:    txs,
+	}
+	blockDetail := &types.BlockDetail{
+		Block:          block,
+		Receipts:       receipts,
+		KV:             nil,
+		PrevStatusHash: nil,
+	}
+	size := blockDetail.Size()
+	////////////////////
+	seqStore.On("LoadBlockBySequence", mock.Anything).Return(blockDetail, size, nil)
+	chain.push.sequenceStore = seqStore
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test-evm-event"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushEVMEvent
+	subscribe.Encode = "not json"
+	subscribe.Contract = make(map[string]bool)
+	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
+
+	startSeq := int64(0)
+	seqCount := 5
+	maxSize := int(1)
+	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
+	assert.Equal(t, nil, err)
+	assert.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
+	assert.Equal(t, 0, len(data))
+
+	defer mock33.Close()
+}
+
+func Test_PostEVMEvent_errProcess(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+
+	ps := &bcMocks.PostService{}
+	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+	chain.push.postService = ps
+	seqStore := &bcMocks.SequenceStore{}
+	var blockSequence types.BlockSequence
+	blockSequence.Hash, _ = common.FromHex("0xe902b2e28be70e2062f6c7838fe12196c91b159ed6cbf189741c43f5d4c09927")
+	blockSequence.Type = 1
+	index := int64(0)
+	seqStore.On("GetBlockSequence", index).Return(&blockSequence, errors.New("err to GetBlockSequence "))
+	index = int64(1)
+	seqStore.On("GetBlockSequence", index).Return(&blockSequence, nil)
+	seqStore.On("LoadBlockBySequence", mock.Anything).Return(nil, 1, errors.New("err to LoadBlockBySequence "))
+	seqStore.On("LoadBlockLastSequence").Return(int64(1), nil)
+	chain.push.sequenceStore = seqStore
+
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test-evm-event"
+	subscribe.URL = "http://localhost"
+	subscribe.Type = PushEVMEvent
+	subscribe.Encode = "json"
+	subscribe.Contract = make(map[string]bool)
+	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
+
+	startSeq := int64(0)
+	seqCount := 5
+	maxSize := int(1024 * 1024)
+	_, _, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
+	assert.NotEqual(t, nil, err)
+
+	_, _, err = chain.push.getPushData(subscribe, startSeq+1, seqCount, maxSize)
+	assert.NotEqual(t, nil, err)
+
+	defer mock33.Close()
+}
+
 func Test_AddPush_reachMaxNum(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 

@@ -6,10 +6,15 @@ package mempool
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"testing"
 
+	nty "github.com/33cn/chain33/system/dapp/none/types"
+
+	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/util"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/golang/protobuf/proto"
 
@@ -34,8 +39,8 @@ import (
 //----------------------------- data for testing ---------------------------------
 var (
 	c, _       = crypto.New(types.GetSignName("", types.SECP256K1))
-	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
-	a, _       = common.FromHex(hex)
+	hexPirv    = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+	a, _       = common.FromHex(hexPirv)
 	privKey, _ = c.PrivKeyFromBytes(a)
 	random     *rand.Rand
 	mainPriv   crypto.PrivKey
@@ -1337,4 +1342,102 @@ func TestCheckTxsExist(t *testing.T) {
 	replyData = reply.GetData().(*types.ReplyCheckTxsExist)
 	require.Equal(t, 0, len(replyData.ExistFlags))
 	require.Equal(t, 0, int(replyData.ExistCount))
+}
+
+func Test_pushDelayTxRoutine(t *testing.T) {
+
+	_, mem := initEnv(1)
+	mockAPI := &mocks.QueueProtocolAPI{}
+	mem.setAPI(mockAPI)
+	txChan := make(chan *types.Transaction)
+
+	runFn := func(args mock.Arguments) {
+		tx := args.Get(0).(*types.Transaction)
+		txChan <- tx
+	}
+	mockAPI.On("SendTx", mock.Anything).Run(runFn).Return(nil, types.ErrMemFull).Once()
+	mem.delayTxListChan <- []*types.Transaction{tx1}
+	// push to mempool
+	tx := <-txChan
+	require.Equal(t, tx1.Hash(), tx.Hash())
+	mockAPI.On("SendTx", mock.Anything).Run(runFn).Return(nil, nil)
+	// retry push
+	tx = <-txChan
+	require.Equal(t, tx1.Hash(), tx.Hash())
+	mem.delayTxListChan <- []*types.Transaction{tx2}
+	tx = <-txChan
+	require.Equal(t, tx2.Hash(), tx.Hash())
+	close(mem.done)
+	mem.delayTxListChan <- nil
+	txs := <-mem.delayTxListChan
+	require.Equal(t, 0, len(txs))
+}
+
+func Test_pushDelayTx(t *testing.T) {
+
+	_, mem := initEnv(1)
+	mockAPI := &mocks.QueueProtocolAPI{}
+	mem.setAPI(mockAPI)
+
+	cache := newDelayTxCache(100)
+
+	txChan := make(chan *types.Transaction)
+
+	runFn := func(args mock.Arguments) {
+		tx := args.Get(0).(*types.Transaction)
+		txChan <- tx
+	}
+	mockAPI.On("SendTx", mock.Anything).Run(runFn).Return(nil, nil)
+	txList := make([]*types.Transaction, 100)
+	for i := 0; i < 100; i++ {
+		txList[i] = &types.Transaction{Payload: []byte(fmt.Sprintf("test%d", i))}
+		err := cache.addDelayTx(&types.DelayTx{
+			Tx:           txList[i],
+			EndDelayTime: int64(i)})
+		require.Nil(t, err)
+		mem.pushExpiredDelayTx(cache, 0, 0, int64(i))
+	}
+
+	for i := 0; i < 100; i++ {
+		<-txChan
+	}
+}
+
+func Test_addDelayTxFromBlock(t *testing.T) {
+
+	q, mem := initEnv(1)
+	cache := newDelayTxCache(100)
+	_, priv := util.Genaddress()
+
+	block := util.CreateNoneBlock(q.GetConfig(), priv, 10)
+	block.Height = 10
+	mem.addDelayTx(cache, block)
+	require.Equal(t, 0, len(cache.hashCache))
+	delayTx := util.CreateNoneTx(q.GetConfig(), priv)
+	action := &nty.NoneAction{}
+	block.Txs[0].Payload = types.Encode(action)
+	mem.addDelayTx(cache, block)
+	require.Equal(t, 0, len(cache.hashCache))
+
+	action.Ty = nty.TyCommitDelayTxAction
+	block.Txs[0].Payload = types.Encode(action)
+	mem.addDelayTx(cache, block)
+	require.Equal(t, 0, len(cache.hashCache))
+	action.Value = &nty.NoneAction_CommitDelayTx{CommitDelayTx: &nty.CommitDelayTx{
+		DelayTx:                delayTx,
+		RelativeDelayTime:      1,
+		IsBlockHeightDelayTime: true,
+	}}
+
+	block.Txs[0].Payload = types.Encode(action)
+	mem.addDelayTx(cache, block)
+	require.Equal(t, 1, len(cache.hashCache))
+
+	//duplicate tx
+	mem.addDelayTx(cache, block)
+	require.Equal(t, 1, len(cache.hashCache))
+	delayTime, ok := cache.contains(delayTx.Hash())
+	require.Equal(t, 11, int(delayTime))
+	require.True(t, ok)
+
 }
