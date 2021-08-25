@@ -474,7 +474,7 @@ func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 		tlog.Error("ReplyGetExecBalance.AddItem", "err", err)
 		return
 	}
-	tlog.Info("acc:", "value", acc)
+	tlog.Info("acc:", "value", &acc)
 	t.Amount += acc.Balance
 	t.Amount += acc.Frozen
 
@@ -485,7 +485,7 @@ func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 	t.Items = append(t.Items, item)
 }
 
-// CopyAccount copy account
+// CloneAccount copy account
 func CloneAccount(acc *Account) *Account {
 	return &Account{
 		Currency: acc.Currency,

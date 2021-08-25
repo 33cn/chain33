@@ -644,7 +644,7 @@ func TestChain33_GetTxByAddr(t *testing.T) {
 	api.On("GetTransactionByAddr", mock.Anything).Return(&types.ReplyTxInfos{TxInfos: []*types.ReplyTxInfo{{}}}, nil)
 	var testResult interface{}
 	data := types.ReqAddr{}
-	err := testChain33.GetTxByAddr(data, &testResult)
+	err := testChain33.GetTxByAddr(&data, &testResult)
 	t.Log(err)
 	assert.NotNil(t, testResult)
 	assert.NoError(t, err)
@@ -727,7 +727,7 @@ func TestChain33_NewAccount(t *testing.T) {
 	api.On("ExecWalletFunc", "wallet", "NewAccount", &types.ReqNewAccount{}).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
-	err := testChain33.NewAccount(types.ReqNewAccount{}, &testResult)
+	err := testChain33.NewAccount(&types.ReqNewAccount{}, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -743,7 +743,7 @@ func TestChain33_GetAccount(t *testing.T) {
 	api.On("ExecWalletFunc", "wallet", "WalletGetAccount", &types.ReqGetAccount{}).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
-	err := testChain33.GetAccount(types.ReqGetAccount{}, &testResult)
+	err := testChain33.GetAccount(&types.ReqGetAccount{}, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -779,7 +779,7 @@ func TestChain33_ImportPrivkey(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqWalletImportPrivkey{}
-	err := testChain33.ImportPrivkey(actual, &testResult)
+	err := testChain33.ImportPrivkey(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -802,7 +802,7 @@ func TestChain33_SendToAddress(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqWalletSendToAddress{}
-	err := testChain33.SendToAddress(actual, &testResult)
+	err := testChain33.SendToAddress(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -821,7 +821,7 @@ func TestChain33_SetTxFee(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqWalletSetFee{}
-	err := testChain33.SetTxFee(actual, &testResult)
+	err := testChain33.SetTxFee(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -840,7 +840,7 @@ func TestChain33_SetLabl(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqWalletSetLabel{}
-	err := testChain33.SetLabl(actual, &testResult)
+	err := testChain33.SetLabl(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -859,7 +859,7 @@ func TestChain33_MergeBalance(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqWalletMergeBalance{}
-	err := testChain33.MergeBalance(actual, &testResult)
+	err := testChain33.MergeBalance(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -878,7 +878,7 @@ func TestChain33_SetPasswd(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqWalletSetPasswd{}
-	err := testChain33.SetPasswd(actual, &testResult)
+	err := testChain33.SetPasswd(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -897,7 +897,7 @@ func TestChain33_Lock(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqNil{}
-	err := testChain33.Lock(actual, &testResult)
+	err := testChain33.Lock(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -916,7 +916,7 @@ func TestChain33_UnLock(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.WalletUnLock{}
-	err := testChain33.UnLock(actual, &testResult)
+	err := testChain33.UnLock(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -934,7 +934,7 @@ func TestChain33_GetPeerInfo(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.P2PGetPeerReq{}
-	err := testChain33.GetPeerInfo(actual, &testResult)
+	err := testChain33.GetPeerInfo(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -957,7 +957,7 @@ func TestChain33_GetPeerInfoOk(t *testing.T) {
 	api.On("PeerInfo", mock.Anything).Return(&peerlist, nil)
 	var testResult interface{}
 	var in types.P2PGetPeerReq
-	_ = testChain33.GetPeerInfo(in, &testResult)
+	_ = testChain33.GetPeerInfo(&in, &testResult)
 	assert.Equal(t, testResult.(*rpctypes.PeerList).Peers[0].Addr, peerlist.Peers[0].Addr)
 }
 
@@ -972,7 +972,7 @@ func TestChain33_GetHeaders(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqBlocks{}
-	err := testChain33.GetHeaders(actual, &testResult)
+	err := testChain33.GetHeaders(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -997,7 +997,7 @@ func TestChain33_GetHeadersOk(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqBlocks{}
-	err := testChain33.GetHeaders(actual, &testResult)
+	err := testChain33.GetHeaders(&actual, &testResult)
 	assert.Nil(t, err)
 	assert.Equal(t, testResult.(*rpctypes.Headers).Items[0].TxCount, header.TxCount)
 
@@ -1014,7 +1014,7 @@ func TestChain33_GetLastMemPool(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqNil{}
-	err := testChain33.GetLastMemPool(actual, &testResult)
+	err := testChain33.GetLastMemPool(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -1032,7 +1032,7 @@ func TestChain33_GetProperFee(t *testing.T) {
 	api.On("GetProperFee", &expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}
-	err := testChain33.GetProperFee(expected, &testResult)
+	err := testChain33.GetProperFee(&expected, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -1097,7 +1097,7 @@ func TestChain33_GetAddrOverview(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqAddr{}
-	err := testChain33.GetAddrOverview(actual, &testResult)
+	err := testChain33.GetAddrOverview(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -1116,7 +1116,7 @@ func TestChain33_GetBlockHash(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqInt{}
-	err := testChain33.GetBlockHash(actual, &testResult)
+	err := testChain33.GetBlockHash(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -1135,7 +1135,7 @@ func TestChain33_GenSeed(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.GenSeedLang{}
-	err := testChain33.GenSeed(actual, &testResult)
+	err := testChain33.GenSeed(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -1154,7 +1154,7 @@ func TestChain33_SaveSeed(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.SaveSeedByPw{}
-	err := testChain33.SaveSeed(actual, &testResult)
+	err := testChain33.SaveSeed(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -1173,7 +1173,7 @@ func TestChain33_GetSeed(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.GetSeedByPw{}
-	err := testChain33.GetSeed(actual, &testResult)
+	err := testChain33.GetSeed(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -1192,7 +1192,7 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 
 	var testResult interface{}
 	actual := types.ReqNil{}
-	err := testChain33.GetWalletStatus(actual, &testResult)
+	err := testChain33.GetWalletStatus(&actual, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
@@ -1205,7 +1205,7 @@ func TestChain33_GetWalletStatus(t *testing.T) {
 	}
 
 	api.On("ExecWalletFunc", "wallet", "GetWalletStatus", &expected).Return(&expect, nil).Once()
-	err = testChain33.GetWalletStatus(actual, &testResult)
+	err = testChain33.GetWalletStatus(&actual, &testResult)
 	t.Log(err)
 	assert.Nil(t, err)
 	status, ok := testResult.(*rpctypes.WalletStatus)
@@ -1378,24 +1378,24 @@ func TestChain33_GetBalance(t *testing.T) {
 
 	var addrs = []string{"1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt"}
 	cases := []struct {
-		In types.ReqBalance
+		In *types.ReqBalance
 	}{
-		{In: types.ReqBalance{
+		{In: &types.ReqBalance{
 			Execer:    cfg.ExecName("coins"),
 			Addresses: addrs,
 		}},
-		{In: types.ReqBalance{
+		{In: &types.ReqBalance{
 			Execer:    cfg.ExecName("ticket"),
 			Addresses: addrs,
 		}},
 
-		{In: types.ReqBalance{
+		{In: &types.ReqBalance{
 			AssetSymbol: "bty",
 			AssetExec:   "coins",
 			Execer:      cfg.ExecName("ticket"),
 			Addresses:   addrs,
 		}},
-		{In: types.ReqBalance{
+		{In: &types.ReqBalance{
 			AssetSymbol: "bty",
 			AssetExec:   "coins",
 			Execer:      cfg.ExecName("coins"),
@@ -1434,7 +1434,7 @@ func TestChain33_GetBalance(t *testing.T) {
 		Addresses: addrs1,
 	}
 
-	err := client.GetBalance(input, &data1)
+	err := client.GetBalance(&input, &data1)
 	assert.Equal(t, err, types.ErrInvalidAddress)
 
 	//测试多重签名地址不合法返回ErrInvalidAddress
@@ -1444,7 +1444,7 @@ func TestChain33_GetBalance(t *testing.T) {
 		Addresses: addrs2,
 	}
 
-	err = client.GetBalance(input, &data1)
+	err = client.GetBalance(&input, &data1)
 	assert.Equal(t, err, types.ErrInvalidAddress)
 
 	//测试多重签名地址合法
@@ -1454,7 +1454,7 @@ func TestChain33_GetBalance(t *testing.T) {
 		Addresses: addrs3,
 	}
 
-	err = client.GetBalance(input, &data1)
+	err = client.GetBalance(&input, &data1)
 	assert.Nil(t, err)
 
 }
@@ -1512,7 +1512,7 @@ func TestChain33_DumpPrivkey(t *testing.T) {
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("ExecWalletFunc", "wallet", "DumpPrivkey", mock.Anything).Return(nil, nil)
-	err := client.DumpPrivkey(types.ReqString{}, &testResult)
+	err := client.DumpPrivkey(&types.ReqString{}, &testResult)
 	assert.NoError(t, err)
 }
 
@@ -1523,7 +1523,7 @@ func TestChain33_DumpPrivkeysFile(t *testing.T) {
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("ExecWalletFunc", "wallet", "DumpPrivkeysFile", mock.Anything).Return(&types.Reply{}, nil)
-	err := client.DumpPrivkeysFile(types.ReqPrivkeysFile{}, &testResult)
+	err := client.DumpPrivkeysFile(&types.ReqPrivkeysFile{}, &testResult)
 	assert.NoError(t, err)
 }
 
@@ -1534,7 +1534,7 @@ func TestChain33_ImportPrivkeysFile(t *testing.T) {
 	client := newTestChain33(api)
 	var testResult interface{}
 	api.On("ExecWalletFunc", "wallet", "ImportPrivkeysFile", mock.Anything).Return(&types.Reply{}, nil)
-	err := client.ImportPrivkeysFile(types.ReqPrivkeysFile{}, &testResult)
+	err := client.ImportPrivkeysFile(&types.ReqPrivkeysFile{}, &testResult)
 	assert.NoError(t, err)
 }
 
@@ -1649,7 +1649,7 @@ func queryTotalFee(client *Chain33, req *types.LocalDBGet, t *testing.T) int64 {
 	var testResult interface{}
 	err := client.QueryTotalFee(req, &testResult)
 	assert.NoError(t, err)
-	fee, _ := testResult.(types.TotalFee)
+	fee, _ := testResult.(*types.TotalFee)
 	return fee.Fee
 }
 
@@ -1691,7 +1691,7 @@ func TestChain33_GetBlockBySeq(t *testing.T) {
 	client := newTestChain33(api)
 	api.On("GetBlockBySeq", mock.Anything).Return(&types.BlockSeq{Num: 12345, Seq: &types.BlockSequence{Type: 1, Hash: []byte("1111")}}, nil)
 	var testResult interface{}
-	err := client.GetBlockBySeq(types.Int64{Data: 11}, &testResult)
+	err := client.GetBlockBySeq(&types.Int64{Data: 11}, &testResult)
 	assert.Nil(t, err)
 
 }
@@ -1703,7 +1703,7 @@ func TestChain33_GetParaTxByTitle(t *testing.T) {
 	client := newTestChain33(api)
 	api.On("GetParaTxByTitle", mock.Anything).Return(&types.ParaTxDetails{Items: []*types.ParaTxDetail{}}, nil)
 	var testResult interface{}
-	err := client.GetParaTxByTitle(types.ReqParaTxByTitle{Start: 11, End: 11, Title: "2323"}, &testResult)
+	err := client.GetParaTxByTitle(&types.ReqParaTxByTitle{Start: 11, End: 11, Title: "2323"}, &testResult)
 	assert.Nil(t, err)
 }
 
@@ -1714,7 +1714,7 @@ func TestChain33_LoadParaTxByTitle(t *testing.T) {
 	client := newTestChain33(api)
 	api.On("LoadParaTxByTitle", mock.Anything).Return(&types.ReplyHeightByTitle{}, nil)
 	var testResult interface{}
-	err := client.LoadParaTxByTitle(types.ReqHeightByTitle{}, &testResult)
+	err := client.LoadParaTxByTitle(&types.ReqHeightByTitle{}, &testResult)
 	assert.Nil(t, err)
 }
 
@@ -1725,7 +1725,7 @@ func TestChain33_GetParaTxByHeight(t *testing.T) {
 	client := newTestChain33(api)
 	api.On("GetParaTxByHeight", mock.Anything).Return(&types.ParaTxDetails{}, nil)
 	var testResult interface{}
-	err := client.GetParaTxByHeight(types.ReqParaTxByHeight{}, &testResult)
+	err := client.GetParaTxByHeight(&types.ReqParaTxByHeight{}, &testResult)
 	assert.Nil(t, err)
 }
 

@@ -436,7 +436,7 @@ func testGetBlocksOK(t *testing.T) {
 	var details2 types.BlockDetails
 	pb.Decode(data.Msg, &details2)
 	if !proto.Equal(&details, &details2) {
-		assert.Equal(t, details, details2)
+		assert.Equal(t, types.Encode(&details), types.Encode(&details2))
 	}
 }
 

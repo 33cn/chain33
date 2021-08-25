@@ -118,7 +118,7 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	assert.Equal(t, int64(count), startheight-1)
 
 	t.Log(paraTxs)
-	t.Log(req1)
+	t.Log(req1.String())
 	//通过title+heightList获取对应平行链的交易信息
 	paraChainTxs, err := blockchain.GetParaTxByHeight(&req1)
 	require.NoError(t, err)

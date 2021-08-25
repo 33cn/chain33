@@ -50,18 +50,14 @@ func TestCoinsType(t *testing.T) {
 }
 
 func TestCoinsPb(t *testing.T) {
-	var b []byte
-	ca := &CoinsAction{Value: &CoinsAction_Transfer{&types.AssetsTransfer{}}}
-	var err error
 
+	ca := &CoinsAction{Value: &CoinsAction_Transfer{&types.AssetsTransfer{}}}
 	transfer := ca.GetTransfer()
 	assert.NotNil(t, transfer)
-	_, err = xxx_messageInfo_CoinsAction.Marshal(b, ca, true)
-	assert.NoError(t, err)
+	types.Encode(ca)
 
 	ca.Value = &CoinsAction_Genesis{&types.AssetsGenesis{}}
 	genesis := ca.GetGenesis()
 	assert.NotNil(t, genesis)
-	_, err = xxx_messageInfo_CoinsAction.Marshal(b, ca, true)
-	assert.NoError(t, err)
+	types.Encode(ca)
 }

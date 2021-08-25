@@ -358,7 +358,7 @@ func CalcMerkleRootCache(txs []*types.TransactionCache) []byte {
 }
 
 //CalcMultiLayerMerkleInfo 计算多层merkle树根hash以及子链根hash信息
-func CalcMultiLayerMerkleInfo(cfg *types.Chain33Config, height int64, txs []*types.Transaction) ([]byte, []types.ChildChain) {
+func CalcMultiLayerMerkleInfo(cfg *types.Chain33Config, height int64, txs []*types.Transaction) ([]byte, []*types.ChildChain) {
 	if !cfg.IsFork(height, "ForkRootHash") {
 		return nil, nil
 	}
@@ -369,9 +369,9 @@ func CalcMultiLayerMerkleInfo(cfg *types.Chain33Config, height int64, txs []*typ
 //1,交易列表中都是主链的交易
 //2,交易列表中都是某个平行链的交易（平行链节点上的情况）
 //3,交易列表中是主链和平行链交易都存在，及混合交易
-func calcMultiLayerMerkleInfo(txs []*types.Transaction) ([]byte, []types.ChildChain) {
+func calcMultiLayerMerkleInfo(txs []*types.Transaction) ([]byte, []*types.ChildChain) {
 	var fristParaTitle string
-	var childchains []types.ChildChain
+	var childchains []*types.ChildChain
 
 	txsCount := len(txs)
 	if txsCount == 0 {
@@ -383,11 +383,11 @@ func calcMultiLayerMerkleInfo(txs []*types.Transaction) ([]byte, []types.ChildCh
 		paraTitle, haveParaTx := types.GetParaExecTitleName(string(tx.Execer))
 		//记录主链交易的index。主链交易肯定是从0开始的
 		if !haveParaTx && 0 == i {
-			childchains = append(childchains, types.ChildChain{Title: types.MainChainName, StartIndex: 0})
+			childchains = append(childchains, &types.ChildChain{Title: types.MainChainName, StartIndex: 0})
 		} else if (haveParaTx && 0 == len(fristParaTitle)) || (haveParaTx && paraTitle != fristParaTitle) {
 			//第一个平行链交易或者不同平行链的交易需要更新fristParaTitle以及子链信息
 			fristParaTitle = paraTitle
-			childchains = append(childchains, types.ChildChain{Title: paraTitle, StartIndex: int32(i)})
+			childchains = append(childchains, &types.ChildChain{Title: paraTitle, StartIndex: int32(i)})
 		}
 	}
 	chainCount := len(childchains)

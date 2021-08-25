@@ -399,9 +399,9 @@ func TestReplace(t *testing.T) {
 	assert.Equal(t, err, ErrDupPrimaryKey)
 
 	//不改变hash，改变签名
-	tx2 := *tx1
+	tx2 := types.CloneTx(tx1)
 	tx2.Signature = nil
-	err = table.Replace(&tx2)
+	err = table.Replace(tx2)
 	assert.Nil(t, err)
 	//save 然后从列表中读取
 	kvs, err := table.Save()

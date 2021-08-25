@@ -65,7 +65,7 @@ func dumpKey(cmd *cobra.Command, args []string) {
 		Data: addr,
 	}
 	var res types.ReplyString
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DumpPrivkey", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DumpPrivkey", &params, &res)
 	ctx.Run()
 }
 
@@ -151,7 +151,7 @@ func balance(cmd *cobra.Command, args []string) {
 	if execer == "" && height == -1 {
 		req := types.ReqAllExecBalance{Addr: addr}
 		var res rpctypes.AllExecBalance
-		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", &req, &res)
 		ctx.SetResultCb(parseGetAllBalanceRes)
 		ctx.Run()
 		return
@@ -165,7 +165,7 @@ func balance(cmd *cobra.Command, args []string) {
 			IsDetail: false,
 		}
 		var res rpctypes.Headers
-		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", &params, &res)
 		_, err := ctx.RunResult()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -178,7 +178,7 @@ func balance(cmd *cobra.Command, args []string) {
 	if execer == "" {
 		req := types.ReqAllExecBalance{Addr: addr, StateHash: stateHash}
 		var res rpctypes.AllExecBalance
-		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", &req, &res)
 		ctx.SetResultCb(parseGetAllBalanceRes)
 		ctx.Run()
 		return
@@ -197,7 +197,7 @@ func balance(cmd *cobra.Command, args []string) {
 		StateHash: stateHash,
 	}
 	var res []*rpctypes.Account
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", &params, &res)
 	ctx.SetResultCb(parseGetBalanceRes)
 	ctx.Run()
 }
@@ -260,7 +260,7 @@ func importKey(cmd *cobra.Command, args []string) {
 		Label:   label,
 	}
 	var res types.WalletAccount
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkey", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkey", &params, &res)
 	ctx.SetResultCb(parseImportKeyRes)
 	ctx.Run()
 }
@@ -298,7 +298,7 @@ func createAccount(cmd *cobra.Command, args []string) {
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewAccount", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewAccount", &params, &res)
 	ctx.SetResultCb(parseCreateAccountRes)
 	ctx.Run()
 }
@@ -335,7 +335,7 @@ func getRandAccount(cmd *cobra.Command, args []string) {
 		Lang: lang,
 	}
 	var res types.AccountInfo
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewRandAccount", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewRandAccount", &params, &res)
 	ctx.Run()
 }
 
@@ -361,7 +361,7 @@ func getPubToAddr(cmd *cobra.Command, args []string) {
 		Data: pub,
 	}
 	var res types.ReplyString
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.PubKeyToAddr", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.PubKeyToAddr", &params, &res)
 	ctx.Run()
 }
 
@@ -405,7 +405,7 @@ func getAccount(cmd *cobra.Command, args []string) {
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAccount", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAccount", &params, &res)
 	ctx.SetResultCb(parseSetLabelRes)
 	ctx.Run()
 }
@@ -419,7 +419,7 @@ func setLabel(cmd *cobra.Command, args []string) {
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetLabl", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetLabl", &params, &res)
 	ctx.SetResultCb(parseSetLabelRes)
 	ctx.Run()
 }
@@ -471,7 +471,7 @@ func dumpKeys(cmd *cobra.Command, args []string) {
 		Passwd:   pwd,
 	}
 	var res types.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DumpPrivkeysFile", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DumpPrivkeysFile", &params, &res)
 	ctx.Run()
 }
 
@@ -484,6 +484,6 @@ func importKeys(cmd *cobra.Command, args []string) {
 		Passwd:   pwd,
 	}
 	var res types.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkeysFile", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkeysFile", &params, &res)
 	ctx.Run()
 }

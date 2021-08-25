@@ -102,7 +102,7 @@ func unLock(cmd *cobra.Command, args []string) {
 		WalletOrTicket: walletOrTicket,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.UnLock", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.UnLock", &params, &res)
 	ctx.Run()
 }
 
@@ -151,7 +151,7 @@ func setPwd(cmd *cobra.Command, args []string) {
 		NewPass: newPwd,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetPasswd", &params, &res)
 	ctx.Run()
 }
 
@@ -236,7 +236,7 @@ func mergeBalance(cmd *cobra.Command, args []string) {
 		To: toAddr,
 	}
 	var res rpctypes.ReplyHashes
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.MergeBalance", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.MergeBalance", &params, &res)
 	ctx.Run()
 }
 
@@ -392,7 +392,7 @@ func noBalanceTx(cmd *cobra.Command, args []string) {
 		Expire:  expire,
 		Privkey: privkey,
 	}
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CreateNoBalanceTransaction", params, nil)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CreateNoBalanceTransaction", &params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -411,7 +411,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		return
 	}
 	feeInt64 := int64(fee * 1e4)
-	params := types.ReqSignRawTx{
+	params := &types.ReqSignRawTx{
 		Addr:      addr,
 		Privkey:   key,
 		TxHex:     data,
@@ -448,7 +448,7 @@ func setFee(cmd *cobra.Command, args []string) {
 		Amount: amountInt64 * 1e4,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetTxFee", &params, &res)
 	ctx.Run()
 }
 

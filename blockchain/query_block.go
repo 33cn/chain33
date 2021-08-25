@@ -286,8 +286,8 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 }
 
 //getBlockHashes 获取指定height区间对应的blockhashes
-func (chain *BlockChain) getBlockHashes(startheight, endheight int64) types.ReqHashes {
-	var reqHashes types.ReqHashes
+func (chain *BlockChain) getBlockHashes(startheight, endheight int64) *types.ReqHashes {
+	reqHashes := &types.ReqHashes{}
 	for i := startheight; i <= endheight; i++ {
 		hash, err := chain.blockStore.GetBlockHashByHeight(i)
 		if hash == nil || err != nil {

@@ -153,7 +153,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 				params.Execer = "token"
 			}
 			var res types.ReplyGetTotalCoins
-			err = rpc.Call("Chain33.GetTotalCoins", params, &res)
+			err = rpc.Call("Chain33.GetTotalCoins", &params, &res)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				return
@@ -264,7 +264,7 @@ func execBalance(cmd *cobra.Command, args []string) {
 	for {
 		var reply types.ReplyGetExecBalance
 		var str string
-		err = rpc.Call("Chain33.GetExecBalance", reqParam, &str)
+		err = rpc.Call("Chain33.GetExecBalance", &reqParam, &str)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
@@ -411,7 +411,7 @@ func getBlockHash(height int64, rpc *jsonclient.JSONClient) (string, error) {
 
 	params := types.ReqInt{Height: height}
 	var res rpctypes.ReplyHash
-	err := rpc.Call("Chain33.GetBlockHash", params, &res)
+	err := rpc.Call("Chain33.GetBlockHash", &params, &res)
 	if err != nil {
 		return "", err
 	}
@@ -453,7 +453,7 @@ func queryTotalFeeWithHash(blockHash string, rpc *jsonclient.JSONClient) (*types
 	hash = append([]byte("TotalFeeKey:"), hash...)
 	params := types.LocalDBGet{Keys: [][]byte{hash[:]}}
 	res := &types.TotalFee{}
-	err = rpc.Call("Chain33.QueryTotalFee", params, &res)
+	err = rpc.Call("Chain33.QueryTotalFee", &params, &res)
 	if err != nil {
 		return nil, err
 	}

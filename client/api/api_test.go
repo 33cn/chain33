@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+
 	"google.golang.org/grpc/codes"
 
 	"github.com/33cn/chain33/client/mocks"
@@ -78,7 +80,7 @@ func TestAPI(t *testing.T) {
 	eapi = New(api, gapi2)
 	detail, err = eapi.GetBlockByHashes(param)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, detail, &types.BlockDetails{})
+	assert.True(t, proto.Equal(detail, &types.BlockDetails{}))
 	randhash, err = eapi.GetRandNum(param2)
 	assert.Nil(t, err)
 	assert.Equal(t, randhash, []byte("hello"))

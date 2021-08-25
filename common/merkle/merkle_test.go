@@ -400,24 +400,24 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	tx31, _ := hex.DecodeString(tx3)
 
 	var txList types.Transactions
-	var tx12 types.Transaction
-	types.Decode(tx11, &tx12)
-	var tx22 types.Transaction
-	types.Decode(tx21, &tx22)
-	var tx32 types.Transaction
-	types.Decode(tx31, &tx32)
+	tx12 := &types.Transaction{}
+	types.Decode(tx11, tx12)
+	tx22 := &types.Transaction{}
+	types.Decode(tx21, tx22)
+	tx32 := &types.Transaction{}
+	types.Decode(tx31, tx32)
 
 	//构建三笔单个交易并添加到交易列表中
 	tx12.Execer = []byte("hashlock")
 	tx22.Execer = []byte("voken")
 	tx32.Execer = []byte("coins")
-	txList.Txs = append(txList.Txs, &tx12)
-	txList.Txs = append(txList.Txs, &tx22)
-	txList.Txs = append(txList.Txs, &tx32)
+	txList.Txs = append(txList.Txs, tx12)
+	txList.Txs = append(txList.Txs, tx22)
+	txList.Txs = append(txList.Txs, tx32)
 
 	//构建主链的交易组并添加到交易列表中
 	tx111, tx221, tx321 := modifyTxExec(tx12, tx22, tx32, "paracross", "game", "guess")
-	group, err := types.CreateTxGroup([]*types.Transaction{&tx111, &tx221, &tx321}, 1000000)
+	group, err := types.CreateTxGroup([]*types.Transaction{tx111, tx221, tx321}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -433,13 +433,13 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	//构建三笔不同平行链的单笔交易
 	tx1111, tx2211, tx3211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.js", "user.p.para.lottery", "user.p.fuzamei.norm")
 
-	txList.Txs = append(txList.Txs, &tx1111)
-	txList.Txs = append(txList.Txs, &tx2211)
-	txList.Txs = append(txList.Txs, &tx3211)
+	txList.Txs = append(txList.Txs, tx1111)
+	txList.Txs = append(txList.Txs, tx2211)
+	txList.Txs = append(txList.Txs, tx3211)
 
 	//构建user.p.test.平行链的交易组并添加到交易列表中
 	tx1112, tx2212, tx3212 := modifyTxExec(tx12, tx22, tx32, "user.p.test.evm", "user.p.test.relay", "user.p.test.ticket")
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx1112, &tx2212, &tx3212}, 1000000)
+	group, err = types.CreateTxGroup([]*types.Transaction{tx1112, tx2212, tx3212}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -455,7 +455,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	//构建user.p.para.平行链的交易组并添加到交易列表中
 	tx1113, tx2213, tx3213 := modifyTxExec(tx12, tx22, tx32, "user.p.para.coins", "user.p.para.paracross", "user.p.para.pokerbull")
 
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx1113, &tx2213, &tx3213}, 1000000)
+	group, err = types.CreateTxGroup([]*types.Transaction{tx1113, tx2213, tx3213}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -471,7 +471,7 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	//构建user.p.fuzamei.平行链的交易组并添加到交易列表中
 	tx1114, tx2214, tx3214 := modifyTxExec(tx12, tx22, tx32, "user.p.fuzamei.norm", "user.p.fuzamei.coins", "user.p.fuzamei.retrieve")
 
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx1114, &tx2214, &tx3214}, 1000000)
+	group, err = types.CreateTxGroup([]*types.Transaction{tx1114, tx2214, tx3214}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -486,9 +486,9 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 
 	//构造一些主链交易的合约名排序在user后面的交易
 	tx1115, tx2215, tx3215 := modifyTxExec(tx12, tx22, tx32, "varacross", "wame", "zuess")
-	txList.Txs = append(txList.Txs, &tx1115)
-	txList.Txs = append(txList.Txs, &tx2215)
-	txList.Txs = append(txList.Txs, &tx3215)
+	txList.Txs = append(txList.Txs, tx1115)
+	txList.Txs = append(txList.Txs, tx2215)
+	txList.Txs = append(txList.Txs, tx3215)
 
 	sorTxList := types.TransactionSort(txList.Txs)
 
@@ -568,12 +568,12 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	//构建全是主链的交易列表
 	var txMainList types.Transactions
 	tx51111, tx52211, tx53211 := modifyTxExec(tx12, tx22, tx32, "user.write", "coins", "ticket")
-	txMainList.Txs = append(txMainList.Txs, &tx51111)
-	txMainList.Txs = append(txMainList.Txs, &tx52211)
-	txMainList.Txs = append(txMainList.Txs, &tx53211)
+	txMainList.Txs = append(txMainList.Txs, tx51111)
+	txMainList.Txs = append(txMainList.Txs, tx52211)
+	txMainList.Txs = append(txMainList.Txs, tx53211)
 
 	tx61111, tx62211, tx63211 := modifyTxExec(tx12, tx22, tx32, "ajs", "zottery", "norm")
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx61111, &tx62211, &tx63211}, 1000000)
+	group, err = types.CreateTxGroup([]*types.Transaction{tx61111, tx62211, tx63211}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -601,13 +601,13 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	//构建全是同一个平行链的交易列表
 	var txParaTestList types.Transactions
 	tx71111, tx72211, tx73211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.js", "user.p.test.lottery", "user.p.test.norm")
-	txParaTestList.Txs = append(txParaTestList.Txs, &tx71111)
-	txParaTestList.Txs = append(txParaTestList.Txs, &tx72211)
-	txParaTestList.Txs = append(txParaTestList.Txs, &tx73211)
+	txParaTestList.Txs = append(txParaTestList.Txs, tx71111)
+	txParaTestList.Txs = append(txParaTestList.Txs, tx72211)
+	txParaTestList.Txs = append(txParaTestList.Txs, tx73211)
 
 	tx81111, tx82211, tx83211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.coins", "user.p.test.token", "user.p.test.none")
 
-	group, err = types.CreateTxGroup([]*types.Transaction{&tx81111, &tx82211, &tx83211}, 1000000)
+	group, err = types.CreateTxGroup([]*types.Transaction{tx81111, tx82211, tx83211}, 1000000)
 	if err != nil {
 		t.Error(err)
 		return
@@ -634,9 +634,9 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	//构造一个主链和一个平行链的交易列表
 	var txMPList types.Transactions
 	tx91111, tx92211, tx93211 := modifyTxExec(tx12, tx22, tx32, "coins", "user.p.test.lottery", "token")
-	txMPList.Txs = append(txMPList.Txs, &tx91111)
-	txMPList.Txs = append(txMPList.Txs, &tx92211)
-	txMPList.Txs = append(txMPList.Txs, &tx93211)
+	txMPList.Txs = append(txMPList.Txs, tx91111)
+	txMPList.Txs = append(txMPList.Txs, tx92211)
+	txMPList.Txs = append(txMPList.Txs, tx93211)
 
 	sorTxMPList := types.TransactionSort(txMPList.Txs)
 
@@ -665,19 +665,19 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	//构造一个主链和三个平行链的交易列表
 	var txMThreePList types.Transactions
 	tx111111, tx112211, tx113211 := modifyTxExec(tx12, tx22, tx32, "coins", "user.p.test.none", "user.p.para.oracle")
-	txMThreePList.Txs = append(txMThreePList.Txs, &tx111111)
-	txMThreePList.Txs = append(txMThreePList.Txs, &tx112211)
-	txMThreePList.Txs = append(txMThreePList.Txs, &tx113211)
+	txMThreePList.Txs = append(txMThreePList.Txs, tx111111)
+	txMThreePList.Txs = append(txMThreePList.Txs, tx112211)
+	txMThreePList.Txs = append(txMThreePList.Txs, tx113211)
 
 	tx211111, tx212211, tx213211 := modifyTxExec(tx12, tx22, tx32, "valnode", "user.p.test.lottery", "user.p.para.relay")
-	txMThreePList.Txs = append(txMThreePList.Txs, &tx211111)
-	txMThreePList.Txs = append(txMThreePList.Txs, &tx212211)
-	txMThreePList.Txs = append(txMThreePList.Txs, &tx213211)
+	txMThreePList.Txs = append(txMThreePList.Txs, tx211111)
+	txMThreePList.Txs = append(txMThreePList.Txs, tx212211)
+	txMThreePList.Txs = append(txMThreePList.Txs, tx213211)
 
 	tx311111, tx312211, tx313211 := modifyTxExec(tx12, tx22, tx32, "unfreeze", "user.p.test.hashlock", "user.p.para.echo")
-	txMThreePList.Txs = append(txMThreePList.Txs, &tx311111)
-	txMThreePList.Txs = append(txMThreePList.Txs, &tx312211)
-	txMThreePList.Txs = append(txMThreePList.Txs, &tx313211)
+	txMThreePList.Txs = append(txMThreePList.Txs, tx311111)
+	txMThreePList.Txs = append(txMThreePList.Txs, tx312211)
+	txMThreePList.Txs = append(txMThreePList.Txs, tx313211)
 
 	sorTxMThreePList := types.TransactionSort(txMThreePList.Txs)
 
@@ -725,10 +725,10 @@ func TestCalcMainMerkleRoot(t *testing.T) {
 	assert.Nil(t, childHash1)
 }
 
-func modifyTxExec(tx1, tx2, tx3 types.Transaction, tx1exec, tx2exec, tx3exec string) (types.Transaction, types.Transaction, types.Transaction) {
-	tx11 := tx1
-	tx12 := tx2
-	tx13 := tx3
+func modifyTxExec(tx1, tx2, tx3 *types.Transaction, tx1exec, tx2exec, tx3exec string) (*types.Transaction, *types.Transaction, *types.Transaction) {
+	tx11 := types.CloneTx(tx1)
+	tx12 := types.CloneTx(tx2)
+	tx13 := types.CloneTx(tx3)
 
 	tx11.Execer = []byte(tx1exec)
 	tx12.Execer = []byte(tx2exec)

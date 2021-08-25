@@ -789,7 +789,7 @@ func DelLeafCountKV(db dbm.DB, blockHeight int64, treeCfg *TreeConfig) error {
 }
 
 // VerifyKVPairProof 验证KVPair 的证明
-func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proof []byte) bool {
+func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue *types.KeyValue, proof []byte) bool {
 
 	//通过传入的keyvalue构造leafnode
 	leafNode := types.LeafNode{Key: keyvalue.GetKey(), Value: keyvalue.GetValue(), Height: 0, Size: 1}

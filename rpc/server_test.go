@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
 	qmocks "github.com/33cn/chain33/queue/mocks"
@@ -219,7 +221,7 @@ func TestGrpc_Call(t *testing.T) {
 	api.On("GetBlockBySeq", mock.Anything).Return(&types.BlockSeq{}, nil)
 	blockSeq, err := client.GetBlockBySeq(ctx, &types.Int64{Data: 1})
 	assert.Nil(t, err)
-	assert.Equal(t, &types.BlockSeq{}, blockSeq)
+	assert.True(t, proto.Equal(&types.BlockSeq{}, blockSeq))
 
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
