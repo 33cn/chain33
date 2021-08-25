@@ -31,7 +31,7 @@ func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {
 
 func connect(t *testing.T, a, b host.Host) {
 	pinfo := b.Peerstore().PeerInfo(b.ID())
-	ctx,cancel:= context.WithTimeout(context.Background(),time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	err := a.Connect(ctx, pinfo)
 	if err != nil {
@@ -51,14 +51,14 @@ func TestRelay(t *testing.T) {
 	h2dht, err := dht.New(ctx, hosts[2])
 	require.Nil(t, err)
 	h1dht.Bootstrap(ctx)
-	hoprelay:=NewRelayDiscovery(hosts[1], discovery.NewRoutingDiscovery(h1dht),circuit.OptHop)
+	hoprelay := NewRelayDiscovery(hosts[1], discovery.NewRoutingDiscovery(h1dht), circuit.OptHop)
 	hoprelay.Advertise(ctx)
-	r2:=NewRelayDiscovery(hosts[2], discovery.NewRoutingDiscovery(h2dht))
-	wait:=make(chan bool)
+	r2 := NewRelayDiscovery(hosts[2], discovery.NewRoutingDiscovery(h2dht))
+	wait := make(chan bool)
 	msg := []byte("relay works!")
 	go func() {
 		//第三个节点监听
-		wait<-true
+		wait <- true
 		list := r2.crelay.Listener()
 		conn, err := list.Accept()
 		if err != nil {
@@ -81,10 +81,10 @@ func TestRelay(t *testing.T) {
 	require.Nil(t, err)
 	_, err = h0dht.RoutingTable().TryAddPeer(hosts[1].ID(), true, true)
 	require.Nil(t, err)
-	relayPeer:= NewRelayDiscovery(hosts[0], discovery.NewRoutingDiscovery(h0dht))
+	relayPeer := NewRelayDiscovery(hosts[0], discovery.NewRoutingDiscovery(h0dht))
 	conn, err := relayPeer.DialDestPeer(rinfo, dinfo)
-	if err!=nil{
-		t.Log("dial err:",err)
+	if err != nil {
+		t.Log("dial err:", err)
 	}
 	assert.Nil(t, err)
 	err = conn.SetReadDeadline(time.Now().Add(time.Second))
@@ -92,7 +92,7 @@ func TestRelay(t *testing.T) {
 	result := make([]byte, len(msg))
 	_, err = io.ReadFull(conn, result)
 	assert.Nil(t, err)
-	ok:= bytes.Equal(result, msg)
+	ok := bytes.Equal(result, msg)
 	assert.True(t, ok)
 
 	testFindOpPeers(t, hoprelay)
