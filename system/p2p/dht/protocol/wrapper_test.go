@@ -31,7 +31,9 @@ func Test_ReadWriteStreamCompatibility(t *testing.T) {
 	testBlock := util.CreateNoneBlock(cfg, priv, 100)
 	handler := func(s core.Stream) {
 		block := &types.Block{}
-		err := ReadStreamLegacy(block, s)
+		// 1.4.3的pb结构不能使用老的接口解析, 即对应的1.3.*的pb包
+		//err := ReadStreamLegacy(block, s)
+		err := ReadStream(block, s)
 		require.Nil(t, err)
 		require.Equal(t, types.Encode(testBlock), types.Encode(block))
 		err = WriteStreamLegacy(block, s)

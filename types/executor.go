@@ -683,7 +683,7 @@ func (base *ExecTypeBase) Create(action string, msg Message) (*Transaction, erro
 	typemap := base.child.GetTypeMap()
 
 	if _, ok := typemap[action]; ok {
-		fieldDes := base.actionFieldDescriptors.ByName(base.fieldName[action])
+		fieldDes := base.actionFieldDescriptors.ByName(base.getActionFieldName(action))
 		// 判断msg结构名称是否一致
 		if fieldDes.Message().FullName() != proto.MessageV2(msg).ProtoReflect().Descriptor().FullName() {
 			return nil, ErrInvalidParam
