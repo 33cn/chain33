@@ -358,7 +358,12 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	if action == nil {
 		return
 	}
+	base.actionFunList = ListMethod(action)
 	actionDescriptor := proto.MessageV2(action).ProtoReflect().Descriptor()
+	// 合约action不存在oneof类型, 不支持反射构造交易
+	if actionDescriptor.Oneofs().Len() <= 0 {
+		return
+	}
 	base.actionMsgDescriptor = actionDescriptor
 	base.actionFieldDescriptors = actionDescriptor.Fields()
 
@@ -368,7 +373,6 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 		base.setActionFieldName(field.Name())
 	}
 
-	base.actionFunList = ListMethod(action)
 	//check type map is all in value type list
 	typelist := base.child.GetTypeMap()
 	for k := range typelist {
@@ -681,9 +685,9 @@ func (base *ExecTypeBase) Create(action string, msg Message) (*Transaction, erro
 		return nil, ErrInvalidParam
 	}
 	typemap := base.child.GetTypeMap()
-
-	if _, ok := typemap[action]; ok {
-		fieldDes := base.actionFieldDescriptors.ByName(base.getActionFieldName(action))
+	fieldName := base.getActionFieldName(action)
+	if _, ok := typemap[action]; ok && fieldName != "" {
+		fieldDes := base.actionFieldDescriptors.ByName(fieldName)
 		// 判断msg结构名称是否一致
 		if fieldDes.Message().FullName() != proto.MessageV2(msg).ProtoReflect().Descriptor().FullName() {
 			return nil, ErrInvalidParam
@@ -697,8 +701,8 @@ func (base *ExecTypeBase) Create(action string, msg Message) (*Transaction, erro
 //GetAction 获取action
 func (base *ExecTypeBase) GetAction(action string) (Message, error) {
 	typemap := base.child.GetTypeMap()
-	if _, ok := typemap[action]; ok {
-		fieldName := base.getActionFieldName(action)
+	fieldName := base.getActionFieldName(action)
+	if _, ok := typemap[action]; ok && fieldName != "" {
 		return dynamicpb.NewMessage(base.actionFieldDescriptors.ByName(fieldName).Message()), nil
 	}
 	tlog.Error(action + " ErrActionNotSupport")
@@ -740,6 +744,9 @@ func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Tr
 			err = ErrActionNotSupport
 		}
 	}()
+	if base.actionFieldDescriptors == nil {
+		return nil, ErrActionNotSupport
+	}
 	// 兼容protobuf不同版本msg, 统一使用反射类型
 	if _, ok := data.(*dynamicpb.Message); !ok {
 		fieldName := base.getActionFieldName(action)
