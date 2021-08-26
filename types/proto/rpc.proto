@@ -30,17 +30,16 @@ message delayTx { // 延时交易
 }
 
 message ChainConfigInfo {
-    string  title           = 1;
-    string  coinExec        = 2;
-    string  coinSymbol      = 3;
-    int64  coinPrecision   = 4;
-    int64  tokenPrecision  = 5;
-    int32  chainID         = 6;
-    int64  maxTxFee        = 7;
-    int64  minTxFeeRate    = 8;
-    int64  maxTxFeeRate    = 9;
-    bool  isPara          = 10;
-
+    string title          = 1;
+    string coinExec       = 2;
+    string coinSymbol     = 3;
+    int64  coinPrecision  = 4;
+    int64  tokenPrecision = 5;
+    int32  chainID        = 6;
+    int64  maxTxFee       = 7;
+    int64  minTxFeeRate   = 8;
+    int64  maxTxFeeRate   = 9;
+    bool   isPara         = 10;
 }
 
 service chain33 {
