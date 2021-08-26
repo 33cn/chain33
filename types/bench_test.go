@@ -126,3 +126,14 @@ func Test_MarshalProtoCompatibility(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, txHexV1, hex.EncodeToString(types.Encode(txV2)))
 }
+
+func Test_ProtoOneOfReflect(t *testing.T) {
+
+	action := &coinstypes.CoinsAction{}
+	des := action.ProtoReflect().Descriptor()
+	require.Equal(t, 1, des.Oneofs().Len())
+
+	tx := &types.Transaction{}
+	des = tx.ProtoReflect().Descriptor()
+	require.Equal(t, 0, des.Oneofs().Len())
+}
