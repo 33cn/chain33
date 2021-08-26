@@ -12,6 +12,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
@@ -58,9 +60,16 @@ func createTransfer(cmd *cobra.Command, args []string) {
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	txHex, err := commandtypes.CreateRawTx(cmd, toAddr, amount, note, false, "", "")
+	paraName, _ := cmd.Flags().GetString("paraName")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
+		return
+	}
+	txHex, err := commandtypes.CreateRawTx(paraName, toAddr, amount, note, false, "", "", cfg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "createRawTx"))
 		return
 	}
 	fmt.Println(txHex)
@@ -98,9 +107,17 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, true, "", realExec)
+
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
+		return
+	}
+
+	txHex, err := commandtypes.CreateRawTx(paraName, execAddr, amount, note, true, "", realExec, cfg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "CreateRawTx"))
 		return
 	}
 	fmt.Println(txHex)
@@ -138,9 +155,15 @@ func sendToExec(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := commandtypes.CreateRawTx(cmd, execAddr, amount, note, false, "", realExec)
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
+		return
+	}
+	txHex, err := commandtypes.CreateRawTx(paraName, execAddr, amount, note, false, "", realExec, cfg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "CreateRawTx"))
 		return
 	}
 	fmt.Println(txHex)

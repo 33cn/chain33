@@ -3,13 +3,13 @@ package extension
 import (
 	"bytes"
 	"context"
+	circuit "github.com/libp2p/go-libp2p-circuit"
+	"github.com/stretchr/testify/assert"
 	"io"
-	"net"
 	"testing"
 	"time"
 
 	bhost "github.com/libp2p/go-libp2p-blankhost"
-	circuit "github.com/libp2p/go-libp2p-circuit"
 	"github.com/libp2p/go-libp2p-core/host"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
@@ -30,8 +30,10 @@ func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {
 }
 
 func connect(t *testing.T, a, b host.Host) {
-	pinfo := a.Peerstore().PeerInfo(a.ID())
-	err := b.Connect(context.Background(), pinfo)
+	pinfo := b.Peerstore().PeerInfo(b.ID())
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err := a.Connect(ctx, pinfo)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,79 +42,64 @@ func connect(t *testing.T, a, b host.Host) {
 func TestRelay(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
 	hosts := getNetHosts(ctx, 3, t)
-
 	connect(t, hosts[0], hosts[1])
 	connect(t, hosts[1], hosts[2])
 	//第二个节点作为中继节点
-	newRelay(ctx, hosts[1], circuit.OptHop)
-	r2, err := newRelay(ctx, hosts[2])
+	h1dht, err := dht.New(ctx, hosts[1])
 	require.Nil(t, err)
-
-	var (
-		conn1, conn2 net.Conn
-		done         = make(chan struct{})
-	)
-
-	defer func() {
-		<-done
-		if conn1 != nil {
-			conn1.Close()
-		}
-		if conn2 != nil {
-			conn2.Close()
-		}
-	}()
+	h2dht, err := dht.New(ctx, hosts[2])
+	require.Nil(t, err)
+	h1dht.Bootstrap(ctx)
+	hoprelay := NewRelayDiscovery(hosts[1], discovery.NewRoutingDiscovery(h1dht), circuit.OptHop)
+	hoprelay.Advertise(ctx)
+	r2 := NewRelayDiscovery(hosts[2], discovery.NewRoutingDiscovery(h2dht))
+	wait := make(chan bool)
 	msg := []byte("relay works!")
 	go func() {
-		defer close(done)
 		//第三个节点监听
-		list := r2.Listener()
-
-		var err error
-		conn1, err = list.Accept()
+		wait <- true
+		list := r2.crelay.Listener()
+		conn, err := list.Accept()
 		if err != nil {
 			t.Error(err)
 			return
 		}
-
-		_, err = conn1.Write(msg)
+		_, err = conn.Write(msg)
 		if err != nil {
 			t.Error(err)
 			return
 		}
 	}()
 
+	<-wait
 	rinfo := hosts[1].Peerstore().PeerInfo(hosts[1].ID()) //中继节点的peerinfo
 	require.NotNil(t, rinfo.Addrs)
 	dinfo := hosts[2].Peerstore().PeerInfo(hosts[2].ID()) //目的节点
 	require.NotNil(t, dinfo.Addrs)
-	kademliaDHT, err := dht.New(context.Background(), hosts[0])
+	h0dht, err := dht.New(ctx, hosts[0])
 	require.Nil(t, err)
-	_, err = kademliaDHT.RoutingTable().TryAddPeer(hosts[1].ID(), true, true)
+	_, err = h0dht.RoutingTable().TryAddPeer(hosts[1].ID(), true, true)
 	require.Nil(t, err)
-	netRely := NewRelayDiscovery(hosts[0], discovery.NewRoutingDiscovery(kademliaDHT))
-	netRely.Advertise(ctx)
-	conn2, err = netRely.DialDestPeer(rinfo, dinfo)
+	relayPeer := NewRelayDiscovery(hosts[0], discovery.NewRoutingDiscovery(h0dht))
+	conn, err := relayPeer.DialDestPeer(rinfo, dinfo)
 	if err != nil {
-		t.Fatal(err)
+		t.Log("dial err:", err)
 	}
-
-	err = conn2.SetReadDeadline(time.Now().Add(time.Second))
+	assert.Nil(t, err)
+	err = conn.SetReadDeadline(time.Now().Add(time.Second))
 	require.Nil(t, err)
 	result := make([]byte, len(msg))
-	_, err = io.ReadFull(conn2, result)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, err = io.ReadFull(conn, result)
+	assert.Nil(t, err)
+	ok := bytes.Equal(result, msg)
+	assert.True(t, ok)
 
-	if !bytes.Equal(result, msg) {
-		t.Fatal("message was incorrect:", string(result))
-	}
-
-	testCheckOp(t, netRely, hosts[1])
-	testFindOpPeers(t, netRely)
+	testFindOpPeers(t, hoprelay)
+	testCheckOp(t, relayPeer, hosts[1])
+	hosts[0].Close()
+	hosts[1].Close()
+	hosts[2].Close()
 
 }
 

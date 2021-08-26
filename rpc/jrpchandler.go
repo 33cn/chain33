@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"strconv"
 	"time"
 
 	"github.com/33cn/chain33/wallet/bipwallet"
@@ -185,7 +184,8 @@ func (c *Chain33) QueryTransaction(in rpctypes.QueryParm, result *interface{}) e
 		return err
 	}
 
-	transDetail, err := fmtTxDetail(reply, false, c.cli.GetConfig().GetCoinExec())
+	cfg := c.cli.GetConfig()
+	transDetail, err := fmtTxDetail(reply, false, cfg.GetCoinExec(), cfg.GetCoinPrecision())
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func (c *Chain33) GetBlocks(in rpctypes.BlockParam, result *interface{}) error {
 	{
 		var blockDetails rpctypes.BlockDetails
 		items := reply.GetItems()
-		if err := convertBlockDetails(items, &blockDetails, in.Isdetail); err != nil {
+		if err := convertBlockDetails(items, &blockDetails, in.Isdetail, c.cli.GetConfig().GetCoinPrecision()); err != nil {
 			return err
 		}
 		*result = &blockDetails
@@ -294,7 +294,7 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	var txdetails rpctypes.TransactionDetails
 	if 0 != len(txs) {
 		for _, tx := range txs {
-			txDetail, err := fmtTxDetail(tx, in.DisableDetail, c.cli.GetConfig().GetCoinExec())
+			txDetail, err := fmtTxDetail(tx, in.DisableDetail, c.cli.GetConfig().GetCoinExec(), c.cli.GetConfig().GetCoinPrecision())
 			if err != nil {
 				return err
 			}
@@ -305,7 +305,7 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 	return nil
 }
 
-func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool, coinExec string) (*rpctypes.TransactionDetail, error) {
+func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool, coinExec string, coinPrecision int64) (*rpctypes.TransactionDetail, error) {
 	//增加判断，上游接口可能返回空指针
 	if tx == nil || tx.GetTx() == nil {
 		//参数中hash和返回的detail一一对应，顺序一致
@@ -336,7 +336,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool, coinExec strin
 		proofs = append(proofs, common.ToHex(proof))
 	}
 
-	tran, err := rpctypes.DecodeTx(tx.GetTx())
+	tran, err := rpctypes.DecodeTx(tx.GetTx(), coinPrecision)
 	if err != nil {
 		log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)
 		return nil, err
@@ -344,7 +344,7 @@ func fmtTxDetail(tx *types.TransactionDetail, disableDetail bool, coinExec strin
 	//对Amount做格式化
 	if tx.Amount != 0 {
 		tran.Amount = tx.Amount
-		tran.AmountFmt = strconv.FormatFloat(float64(tran.Amount)/float64(types.Coin), 'f', 4, 64)
+		tran.AmountFmt = types.FormatAmount2FloatDisplay(tran.Amount, coinPrecision, true)
 	}
 	// swap from with to
 	if tx.GetTx().IsWithdraw(coinExec) {
@@ -399,7 +399,7 @@ func (c *Chain33) GetMempool(in *types.ReqGetMempool, result *interface{}) error
 			if err != nil {
 				amount = 0
 			}
-			tran, err := rpctypes.DecodeTx(tx)
+			tran, err := rpctypes.DecodeTx(tx, c.cli.GetConfig().GetCoinPrecision())
 			if err != nil {
 				continue
 			}
@@ -488,7 +488,7 @@ func (c *Chain33) WalletTxList(in rpctypes.ReqWalletTransactionList, result *int
 	}
 	{
 		var txdetails rpctypes.WalletTxDetails
-		err := rpctypes.ConvertWalletTxDetailToJSON(reply.(*types.WalletTxDetails), &txdetails, c.cli.GetConfig().GetCoinExec())
+		err := rpctypes.ConvertWalletTxDetailToJSON(reply.(*types.WalletTxDetails), &txdetails, c.cli.GetConfig().GetCoinExec(), c.cli.GetConfig().GetCoinPrecision())
 		if err != nil {
 			return err
 		}
@@ -699,7 +699,7 @@ func (c *Chain33) GetLastMemPool(in *types.ReqNil, result *interface{}) error {
 		var txlist rpctypes.ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
-			tran, err := rpctypes.DecodeTx(tx)
+			tran, err := rpctypes.DecodeTx(tx, c.cli.GetConfig().GetCoinPrecision())
 			if err != nil {
 				continue
 			}
@@ -1105,14 +1105,14 @@ func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result
 	}
 	var rpctxs rpctypes.ReplyTxList
 	if txs == nil {
-		res, err := rpctypes.DecodeTx(tx)
+		res, err := rpctypes.DecodeTx(tx, c.cli.GetConfig().GetCoinPrecision())
 		if err != nil {
 			return err
 		}
 		rpctxs.Txs = append(rpctxs.Txs, res)
 	} else {
 		for _, rpctx := range txs.GetTxs() {
-			res, err := rpctypes.DecodeTx(rpctx)
+			res, err := rpctypes.DecodeTx(rpctx, c.cli.GetConfig().GetCoinPrecision())
 			if err != nil {
 				return err
 			}
@@ -1209,7 +1209,7 @@ func (c *Chain33) GetBlockByHashes(in rpctypes.ReqHashes, result *interface{}) e
 	{
 		var blockDetails rpctypes.BlockDetails
 		items := reply.Items
-		if err := convertBlockDetails(items, &blockDetails, !in.DisableDetail); err != nil {
+		if err := convertBlockDetails(items, &blockDetails, !in.DisableDetail, c.cli.GetConfig().GetCoinPrecision()); err != nil {
 			return err
 		}
 		*result = &blockDetails
@@ -1280,7 +1280,7 @@ func (c *Chain33) GetPushSeqLastNum(in *types.ReqString, result *interface{}) er
 	return nil
 }
 
-func convertBlockDetails(details []*types.BlockDetail, retDetails *rpctypes.BlockDetails, isDetail bool) error {
+func convertBlockDetails(details []*types.BlockDetail, retDetails *rpctypes.BlockDetails, isDetail bool, coinPercision int64) error {
 	for _, item := range details {
 		var bdtl rpctypes.BlockDetail
 		var block rpctypes.Block
@@ -1307,7 +1307,7 @@ func convertBlockDetails(details []*types.BlockDetail, retDetails *rpctypes.Bloc
 			return types.ErrDecode
 		}
 		for _, tx := range txs {
-			tran, err := rpctypes.DecodeTx(tx)
+			tran, err := rpctypes.DecodeTx(tx, coinPercision)
 			if err != nil {
 				continue
 			}
@@ -1412,7 +1412,7 @@ func (c *Chain33) GetBlockBySeq(in *types.Int64, result *interface{}) error {
 	var retDetail rpctypes.BlockDetails
 
 	bseq.Num = blockSeq.Num
-	err = convertBlockDetails([]*types.BlockDetail{blockSeq.Detail}, &retDetail, false)
+	err = convertBlockDetails([]*types.BlockDetail{blockSeq.Detail}, &retDetail, false, c.cli.GetConfig().GetCoinPrecision())
 	bseq.Detail = retDetail.Items[0]
 	bseq.Seq = &rpctypes.BlockSequence{Hash: common.ToHex(blockSeq.Seq.Hash), Type: blockSeq.Seq.Type}
 	*result = bseq
@@ -1444,7 +1444,7 @@ func (c *Chain33) GetParaTxByTitle(req *types.ReqParaTxByTitle, result *interfac
 		return err
 	}
 	var paraDetails rpctypes.ParaTxDetails
-	convertParaTxDetails(paraTxDetails, &paraDetails)
+	convertParaTxDetails(paraTxDetails, &paraDetails, c.cli.GetConfig().GetCoinPrecision())
 	*result = paraDetails
 	return nil
 }
@@ -1466,7 +1466,7 @@ func (c *Chain33) LoadParaTxByTitle(req *types.ReqHeightByTitle, result *interfa
 	return nil
 }
 
-func convertParaTxDetails(details *types.ParaTxDetails, message *rpctypes.ParaTxDetails) {
+func convertParaTxDetails(details *types.ParaTxDetails, message *rpctypes.ParaTxDetails, coinPrecision int64) {
 	for _, item := range details.Items {
 		var ptxDetail rpctypes.ParaTxDetail
 		var header rpctypes.Header
@@ -1491,7 +1491,7 @@ func convertParaTxDetails(details *types.ParaTxDetails, message *rpctypes.ParaTx
 				receipt.Logs = append(receipt.Logs, &rpctypes.ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.Log)})
 			}
 			txDetail.Receipt = &receipt
-			tranTx, err := rpctypes.DecodeTx(detail.Tx)
+			tranTx, err := rpctypes.DecodeTx(detail.Tx, coinPrecision)
 			if err != nil {
 				continue
 			}
@@ -1510,7 +1510,7 @@ func (c *Chain33) GetParaTxByHeight(req *types.ReqParaTxByHeight, result *interf
 		return err
 	}
 	var ptxDetails rpctypes.ParaTxDetails
-	convertParaTxDetails(paraTxDetails, &ptxDetails)
+	convertParaTxDetails(paraTxDetails, &ptxDetails, c.cli.GetConfig().GetCoinPrecision())
 	*result = ptxDetails
 	return nil
 
@@ -1585,4 +1585,23 @@ func (c *Chain33) SendDelayTransaction(in *types.ReqString, result *interface{})
 		*result = common.ToHex(reply.GetMsg())
 	}
 	return err
+}
+
+// GetChainConfig 获取chain config 参数
+func (c *Chain33) GetChainConfig(in *types.ReqNil, result *interface{}) error {
+	cfg := c.cli.GetConfig()
+	info := rpctypes.ChainConfigInfo{
+		Title:          cfg.GetTitle(),
+		CoinExec:       cfg.GetCoinExec(),
+		CoinSymbol:     cfg.GetCoinSymbol(),
+		CoinPrecision:  cfg.GetCoinPrecision(),
+		TokenPrecision: cfg.GetTokenPrecision(),
+		ChainID:        cfg.GetChainID(),
+		MaxTxFee:       cfg.GetMaxTxFee(),
+		MinTxFeeRate:   cfg.GetMinTxFeeRate(),
+		MaxTxFeeRate:   cfg.GetMaxTxFeeRate(),
+		IsPara:         cfg.IsPara(),
+	}
+	*result = info
+	return nil
 }

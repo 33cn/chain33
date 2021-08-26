@@ -453,6 +453,7 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 }
 
 func copyReceipt(feelog *types.Receipt) *types.Receipt {
+
 	receipt := types.Receipt{}
 	receipt.Ty = feelog.Ty
 	receipt.KV = make([]*types.KeyValue, len(feelog.KV))

@@ -19,14 +19,13 @@ import (
 	"github.com/33cn/chain33/system/crypto/sm2"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
-	"github.com/spf13/cobra"
+	"github.com/pkg/errors"
 
 	// TODO: 暂时将插件中的类型引用起来，后续需要修改
 
 	"encoding/hex"
-	"errors"
+
 	"fmt"
-	"math"
 	"time"
 )
 
@@ -54,8 +53,8 @@ func DecodeTransaction(tx *rpctypes.Transaction) *TxResult {
 
 // DecodeAccount decode account func
 func DecodeAccount(acc *types.Account, precision int64) *AccountResult {
-	balanceResult := strconv.FormatFloat(float64(acc.GetBalance())/float64(precision), 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(acc.GetFrozen())/float64(precision), 'f', 4, 64)
+	balanceResult := types.FormatAmount2FloatDisplay(acc.GetBalance(), precision, true)
+	frozenResult := types.FormatAmount2FloatDisplay(acc.GetFrozen(), precision, true)
 	accResult := &AccountResult{
 		Addr:     acc.GetAddr(),
 		Currency: acc.GetCurrency(),
@@ -85,14 +84,11 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 }
 
 // CreateRawTx create rawtransaction func
-func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isWithdraw bool, tokenSymbol, execName string) (string, error) {
-	title, _ := cmd.Flags().GetString("title")
-	cfg := types.GetCliSysParam(title)
-
+func CreateRawTx(paraName string, to string, amount float64, note string, isWithdraw bool, tokenSymbol, execName string, cfg *rpctypes.ChainConfigInfo) (string, error) {
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
-	if float64(types.MaxCoin/types.Coin) < amount {
+	if float64(types.MaxCoin) < amount {
 		return "", types.ErrAmount
 	}
 	//检测to地址的合法性
@@ -101,8 +97,12 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 			return "", types.ErrInvalidAddress
 		}
 	}
-	paraName, _ := cmd.Flags().GetString("paraName")
-	amountInt64 := int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4
+
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
+	if err != nil {
+		return "", err
+	}
+
 	if execName != "" && !types.IsAllowExecName([]byte(execName), []byte(execName)) {
 		return "", types.ErrExecNameNotMatch
 	}
@@ -123,13 +123,14 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 		transfer.Value = v
 		transfer.Ty = cty.CoinsActionWithdraw
 	}
-	execer := []byte(getRealExecName(paraName, cfg.GetCoinExec()))
+	execer := []byte(getRealExecName(paraName, cfg.CoinExec))
 	if paraName == "" {
 		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: to}
 	} else {
 		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: address.ExecAddress(string(execer))}
 	}
-	tx, err := types.FormatTx(cfg, string(execer), tx)
+
+	tx, err = types.FormatTxExt(cfg.ChainID, len(paraName) > 0, cfg.MinTxFeeRate, string(execer), tx)
 	if err != nil {
 		return "", err
 	}
@@ -146,22 +147,6 @@ func GetExecAddr(exec string) (string, error) {
 	addrResult := address.ExecAddress(exec)
 	result := addrResult
 	return result, nil
-}
-
-// FormatAmountValue2Display 将传输、计算的amount值格式化成显示值
-func FormatAmountValue2Display(amount int64) string {
-	return strconv.FormatFloat(float64(amount)/float64(types.Coin), 'f', 4, 64)
-}
-
-// FormatAmountDisplay2Value 将显示、输入的amount值格式话成传输、计算值
-func FormatAmountDisplay2Value(amount float64) int64 {
-	return int64(amount*types.InputPrecision) * types.Multiple1E4
-}
-
-// GetAmountValue 将命令行中的amount值转换成int64
-func GetAmountValue(cmd *cobra.Command, field string) int64 {
-	amount, _ := cmd.Flags().GetFloat64(field)
-	return FormatAmountDisplay2Value(amount)
 }
 
 func getRealExecName(paraName string, name string) string {
@@ -294,4 +279,18 @@ func CreateTxWithCert(signType string, privateKey crypto.PrivKey, hexTx string, 
 		return "", errors.New("not support")
 	}
 	return common.ToHex(types.Encode(&tx)), nil
+}
+
+//GetChainConfig get system config parameters
+func GetChainConfig(rpcAddr string) (*rpctypes.ChainConfigInfo, error) {
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "new json client")
+	}
+	var res rpctypes.ChainConfigInfo
+	err = rpc.Call("Chain33.GetChainConfig", nil, &res)
+	if err != nil {
+		return nil, errors.Wrapf(err, "get chain config")
+	}
+	return &res, nil
 }

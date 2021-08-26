@@ -385,7 +385,7 @@ func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error
 //SendHot :
 func (mock *Chain33Mock) SendHot() error {
 	types.AssertConfig(mock.client)
-	tx := util.CreateCoinsTx(mock.client.GetConfig(), mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.Coin)
+	tx := util.CreateCoinsTx(mock.client.GetConfig(), mock.GetGenesisKey(), mock.GetHotAddress(), 10000*types.DefaultCoinPrecision)
 	mock.SendTx(tx)
 	return mock.Wait()
 }

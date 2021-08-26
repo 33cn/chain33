@@ -28,7 +28,7 @@ func TestLoadDriverFork(t *testing.T) {
 	var txs []*types.Transaction
 	addr, _ := util.Genaddress()
 	genkey := util.TestPrivkeyList[0]
-	tx := util.CreateCoinsTx(cfg, genkey, addr, types.Coin)
+	tx := util.CreateCoinsTx(cfg, genkey, addr, types.DefaultCoinPrecision)
 	txs = append(txs, tx)
 	tx.Execer = []byte("notAllow")
 	tx1 := types.CloneTx(tx)

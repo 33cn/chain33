@@ -190,6 +190,26 @@ func FormatTx(c *Chain33Config, execName string, tx *Transaction) (*Transaction,
 	return tx, nil
 }
 
+//FormatTxExt 根据输入参数格式化tx
+func FormatTxExt(chainID int32, isPara bool, minFee int64, execName string, tx *Transaction) (*Transaction, error) {
+	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
+	tx.Nonce = rand.Int63()
+	tx.ChainID = chainID
+	tx.Execer = []byte(execName)
+	//平行链，所有的to地址都是合约地址
+	if isPara || tx.To == "" {
+		tx.To = address.ExecAddress(string(tx.Execer))
+	}
+	var err error
+	if tx.Fee == 0 {
+		tx.Fee, err = tx.GetRealFee(minFee)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return tx, nil
+}
+
 // FormatTxEncode 对交易信息编码成byte类型
 func FormatTxEncode(c *Chain33Config, execName string, tx *Transaction) ([]byte, error) {
 	tx, err := FormatTx(c, execName, tx)

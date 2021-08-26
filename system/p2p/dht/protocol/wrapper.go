@@ -16,6 +16,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
 	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
+
+	"github.com/libp2p/go-msgio"
 )
 
 var log = log15.New("module", "p2p.protocol")
@@ -24,8 +26,9 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// ReadStream reads message from stream.
-func ReadStream(data types.Message, stream network.Stream) error {
+// ReadStreamLegacy read stream
+// Deprecated
+func ReadStreamLegacy(data types.Message, stream network.Stream) error {
 	decoder := protobufCodec.Multicodec(nil).Decoder(stream)
 	err := decoder.Decode(data)
 	if err != nil {
@@ -35,12 +38,64 @@ func ReadStream(data types.Message, stream network.Stream) error {
 	return nil
 }
 
-// WriteStream writes message to stream.
-func WriteStream(data types.Message, stream network.Stream) error {
+const messageHeaderLen = 17
+
+var (
+	messageHeader = protobufCodec.HeaderMsgio
+)
+
+// ReadStream reads message from stream.
+func ReadStream(data types.Message, stream network.Stream) error {
+
+	// 兼容历史版本header数据,需要优先读取
+	var header [messageHeaderLen]byte
+	_, err := io.ReadFull(stream, header[:])
+	if err != nil || !bytes.Equal(header[:], messageHeader) {
+		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "read header err", err)
+		return err
+	}
+
+	reader := msgio.NewReaderSize(stream, types.MaxBlockSize)
+	msg, err := reader.ReadMsg()
+	// 内部使用了内存池, 回收内存
+	defer reader.ReleaseMsg(msg)
+	if err != nil {
+		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "read msg err", err)
+		return err
+	}
+	err = types.Decode(msg, data)
+	if err != nil {
+		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "decode err", err)
+		return err
+	}
+	return nil
+}
+
+// WriteStreamLegacy write stream
+// Deprecated
+func WriteStreamLegacy(data types.Message, stream network.Stream) error {
 	enc := protobufCodec.Multicodec(nil).Encoder(stream)
 	err := enc.Encode(data)
 	if err != nil {
 		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "encode err", err)
+		return err
+	}
+	return nil
+}
+
+// WriteStream writes message to stream.
+func WriteStream(data types.Message, stream network.Stream) error {
+
+	_, err := stream.Write(messageHeader)
+	if err != nil {
+		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "write header err", err)
+		return err
+	}
+	msg := types.Encode(data)
+	writer := msgio.NewWriter(stream)
+	err = writer.WriteMsg(msg)
+	if err != nil {
+		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "write msg err", err)
 		return err
 	}
 	return nil

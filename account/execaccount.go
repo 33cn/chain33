@@ -100,7 +100,7 @@ func (acc *DB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, 
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
@@ -126,7 +126,7 @@ func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, 
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
@@ -151,7 +151,7 @@ func (acc *DB) ExecTransfer(from, to, execaddr string, amount int64) (*types.Rec
 	if from == to {
 		return nil, types.ErrSendSameToRecv
 	}
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	accFrom := acc.LoadExecAccount(from, execaddr)
@@ -187,7 +187,7 @@ func (acc *DB) ExecTransferFrozen(from, to, execaddr string, amount int64) (*typ
 	if from == to {
 		return nil, types.ErrSendSameToRecv
 	}
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	accFrom := acc.LoadExecAccount(from, execaddr)
@@ -265,7 +265,7 @@ func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
@@ -286,7 +286,7 @@ func (acc *DB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt,
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
@@ -308,7 +308,7 @@ func (acc *DB) ExecWithdraw(execaddr, addr string, amount int64) (*types.Receipt
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
