@@ -49,7 +49,7 @@ func peerInfo(cmd *cobra.Command, args []string) {
 	var res rpctypes.PeerList
 	p2pty, _ := cmd.Flags().GetString("type")
 	req := types.P2PGetPeerReq{P2PType: p2pty}
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetPeerInfo", req, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetPeerInfo", &req, &res)
 	ctx.Run()
 }
 
@@ -103,7 +103,7 @@ func netInfo(cmd *cobra.Command, args []string) {
 	p2pty, _ := cmd.Flags().GetString("type")
 	req := types.P2PGetNetInfoReq{P2PType: p2pty}
 	var res rpctypes.NodeNetinfo
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetNetInfo", req, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetNetInfo", &req, &res)
 	ctx.Run()
 }
 

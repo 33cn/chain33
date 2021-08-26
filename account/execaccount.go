@@ -108,12 +108,12 @@ func (acc *DB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, 
 		alog.Error("ExecFrozen", "balance", acc1.Balance, "amount", amount)
 		return nil, types.ErrNoBalance
 	}
-	copyacc := *acc1
+	copyacc := types.CloneAccount(acc1)
 	acc1.Balance -= amount
 	acc1.Frozen += amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
-		Prev:     &copyacc,
+		Prev:     copyacc,
 		Current:  acc1,
 	}
 	acc.SaveExecAccount(execaddr, acc1)
@@ -133,12 +133,12 @@ func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, 
 	if acc1.Frozen-amount < 0 {
 		return nil, types.ErrNoBalance
 	}
-	copyacc := *acc1
+	copyacc := types.CloneAccount(acc1)
 	acc1.Balance += amount
 	acc1.Frozen -= amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
-		Prev:     &copyacc,
+		Prev:     copyacc,
 		Current:  acc1,
 	}
 	acc.SaveExecAccount(execaddr, acc1)
@@ -160,20 +160,20 @@ func (acc *DB) ExecTransfer(from, to, execaddr string, amount int64) (*types.Rec
 	if accFrom.GetBalance()-amount < 0 {
 		return nil, types.ErrNoBalance
 	}
-	copyaccFrom := *accFrom
-	copyaccTo := *accTo
+	copyaccFrom := types.CloneAccount(accFrom)
+	copyaccTo := types.CloneAccount(accTo)
 
 	accFrom.Balance -= amount
 	accTo.Balance += amount
 
 	receiptBalanceFrom := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
-		Prev:     &copyaccFrom,
+		Prev:     copyaccFrom,
 		Current:  accFrom,
 	}
 	receiptBalanceTo := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
-		Prev:     &copyaccTo,
+		Prev:     copyaccTo,
 		Current:  accTo,
 	}
 
@@ -196,20 +196,20 @@ func (acc *DB) ExecTransferFrozen(from, to, execaddr string, amount int64) (*typ
 	if b < 0 {
 		return nil, types.ErrNoBalance
 	}
-	copyaccFrom := *accFrom
-	copyaccTo := *accTo
+	copyaccFrom := types.CloneAccount(accFrom)
+	copyaccTo := types.CloneAccount(accTo)
 
 	accFrom.Frozen -= amount
 	accTo.Balance += amount
 
 	receiptBalanceFrom := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
-		Prev:     &copyaccFrom,
+		Prev:     copyaccFrom,
 		Current:  accFrom,
 	}
 	receiptBalanceTo := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
-		Prev:     &copyaccTo,
+		Prev:     copyaccTo,
 		Current:  accTo,
 	}
 
@@ -269,11 +269,11 @@ func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
-	copyacc := *acc1
+	copyacc := types.CloneAccount(acc1)
 	acc1.Frozen += amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
-		Prev:     &copyacc,
+		Prev:     copyacc,
 		Current:  acc1,
 	}
 	acc.SaveExecAccount(execaddr, acc1)
@@ -290,11 +290,11 @@ func (acc *DB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt,
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
-	copyacc := *acc1
+	copyacc := types.CloneAccount(acc1)
 	acc1.Balance += amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
-		Prev:     &copyacc,
+		Prev:     copyacc,
 		Current:  acc1,
 	}
 	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
@@ -315,11 +315,11 @@ func (acc *DB) ExecWithdraw(execaddr, addr string, amount int64) (*types.Receipt
 	if acc1.Balance-amount < 0 {
 		return nil, types.ErrNoBalance
 	}
-	copyacc := *acc1
+	copyacc := types.CloneAccount(acc1)
 	acc1.Balance -= amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
-		Prev:     &copyacc,
+		Prev:     copyacc,
 		Current:  acc1,
 	}
 	acc.SaveExecAccount(execaddr, acc1)

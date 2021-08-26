@@ -696,8 +696,8 @@ func TestCheckExpire1(t *testing.T) {
 	defer q.Close()
 	defer mem.Close()
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
-	ctx1 := *tx1
-	msg := mem.client.NewMessage("mempool", types.EventTx, &ctx1)
+	ctx1 := types.CloneTx(tx1)
+	msg := mem.client.NewMessage("mempool", types.EventTx, ctx1)
 	mem.client.Send(msg, true)
 	resp, _ := mem.client.Wait(msg)
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxExpire.Error() {

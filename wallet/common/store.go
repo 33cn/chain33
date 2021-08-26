@@ -288,7 +288,7 @@ func (store *Store) GetEncryptionFlag() int64 {
 
 // SetPasswordHash 保存密码哈希
 func (store *Store) SetPasswordHash(password string, batch db.Batch) error {
-	var WalletPwHash types.WalletPwHash
+	WalletPwHash := &types.WalletPwHash{}
 	//获取一个随机字符串
 	randstr := fmt.Sprintf("fuzamei:$@%s", crypto.CRandHex(16))
 	WalletPwHash.Randstr = randstr

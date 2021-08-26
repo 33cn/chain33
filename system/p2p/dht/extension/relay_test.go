@@ -3,11 +3,12 @@ package extension
 import (
 	"bytes"
 	"context"
-	circuit "github.com/libp2p/go-libp2p-circuit"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"testing"
 	"time"
+
+	circuit "github.com/libp2p/go-libp2p-circuit"
+	"github.com/stretchr/testify/assert"
 
 	bhost "github.com/libp2p/go-libp2p-blankhost"
 	"github.com/libp2p/go-libp2p-core/host"

@@ -129,7 +129,7 @@ func blockHeightHash(cmd *cobra.Command, args []string) {
 		Height: height,
 	}
 	var res rpctypes.ReplyHash
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockHash", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBlockHash", &params, &res)
 	ctx.Run()
 }
 
@@ -197,7 +197,7 @@ func blockHeader(cmd *cobra.Command, args []string) {
 		IsDetail: detailBool,
 	}
 	var res rpctypes.Headers
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", &params, &res)
 	ctx.Run()
 }
 
@@ -367,7 +367,7 @@ func addPushSubscribe(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.ReplySubscribePush
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddPushSubscribe", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddPushSubscribe", &params, &res)
 	ctx.Run()
 }
 
@@ -414,6 +414,6 @@ func getPushSeqLastNumCmd(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.Int64
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetPushSeqLastNum", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetPushSeqLastNum", &params, &res)
 	ctx.Run()
 }

@@ -76,7 +76,6 @@ func testSubTopic(t *testing.T, p *Protocol) {
 			if subReply.IsOk {
 				var reply types.SubTopicReply
 				types.Decode(subReply.GetMsg(), &reply)
-				require.NotNil(t, reply)
 				t.Log("reply", reply.GetMsg())
 			} else {
 				//订阅失败

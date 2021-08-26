@@ -334,24 +334,24 @@ func TestSortTxList(t *testing.T) {
 	tx31, _ := hex.DecodeString(tx3)
 
 	var txList Transactions
-	var tx12 Transaction
-	Decode(tx11, &tx12)
-	var tx22 Transaction
-	Decode(tx21, &tx22)
-	var tx32 Transaction
-	Decode(tx31, &tx32)
+	tx12 := &Transaction{}
+	Decode(tx11, tx12)
+	tx22 := &Transaction{}
+	Decode(tx21, tx22)
+	tx32 := &Transaction{}
+	Decode(tx31, tx32)
 
 	//构建三笔单个交易并添加到交易列表中
 	tx12.Execer = []byte("hashlock")
 	tx22.Execer = []byte("voken")
 	tx32.Execer = []byte("coins")
-	txList.Txs = append(txList.Txs, &tx12)
-	txList.Txs = append(txList.Txs, &tx22)
-	txList.Txs = append(txList.Txs, &tx32)
+	txList.Txs = append(txList.Txs, tx12)
+	txList.Txs = append(txList.Txs, tx22)
+	txList.Txs = append(txList.Txs, tx32)
 
 	//构建主链的交易组并添加到交易列表中
 	tx111, tx221, tx321 := modifyTxExec(tx12, tx22, tx32, "paracross", "game", "guess")
-	group, err := CreateTxGroup([]*Transaction{&tx111, &tx221, &tx321}, cfg.GetMinTxFeeRate())
+	group, err := CreateTxGroup([]*Transaction{tx111, tx221, tx321}, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return
@@ -367,13 +367,13 @@ func TestSortTxList(t *testing.T) {
 	//构建三笔不同平行链的单笔交易
 	tx1111, tx2211, tx3211 := modifyTxExec(tx12, tx22, tx32, "user.p.test.js", "user.p.para.lottery", "user.p.fuzamei.norm")
 
-	txList.Txs = append(txList.Txs, &tx1111)
-	txList.Txs = append(txList.Txs, &tx2211)
-	txList.Txs = append(txList.Txs, &tx3211)
+	txList.Txs = append(txList.Txs, tx1111)
+	txList.Txs = append(txList.Txs, tx2211)
+	txList.Txs = append(txList.Txs, tx3211)
 
 	//构建user.p.test.平行链的交易组并添加到交易列表中
 	tx1112, tx2212, tx3212 := modifyTxExec(tx12, tx22, tx32, "user.p.test.evm", "user.p.test.relay", "user.p.test.ticket")
-	group, err = CreateTxGroup([]*Transaction{&tx1112, &tx2212, &tx3212}, cfg.GetMinTxFeeRate())
+	group, err = CreateTxGroup([]*Transaction{tx1112, tx2212, tx3212}, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return
@@ -389,7 +389,7 @@ func TestSortTxList(t *testing.T) {
 	//构建user.p.para.平行链的交易组并添加到交易列表中
 	tx1113, tx2213, tx3213 := modifyTxExec(tx12, tx22, tx32, "user.p.para.coins", "user.p.para.paracross", "user.p.para.pokerbull")
 
-	group, err = CreateTxGroup([]*Transaction{&tx1113, &tx2213, &tx3213}, cfg.GetMinTxFeeRate())
+	group, err = CreateTxGroup([]*Transaction{tx1113, tx2213, tx3213}, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return
@@ -405,7 +405,7 @@ func TestSortTxList(t *testing.T) {
 	//构建user.p.fuzamei.平行链的交易组并添加到交易列表中
 	tx1114, tx2214, tx3214 := modifyTxExec(tx12, tx22, tx32, "user.p.fuzamei.norm", "user.p.fuzamei.coins", "user.p.fuzamei.retrieve")
 
-	group, err = CreateTxGroup([]*Transaction{&tx1114, &tx2214, &tx3214}, cfg.GetMinTxFeeRate())
+	group, err = CreateTxGroup([]*Transaction{tx1114, tx2214, tx3214}, cfg.GetMinTxFeeRate())
 	if err != nil {
 		t.Error(err)
 		return
@@ -420,9 +420,9 @@ func TestSortTxList(t *testing.T) {
 
 	//构造一些主链交易的合约名排序在user后面的交易
 	tx1115, tx2215, tx3215 := modifyTxExec(tx12, tx22, tx32, "varacross", "wame", "zuess")
-	txList.Txs = append(txList.Txs, &tx1115)
-	txList.Txs = append(txList.Txs, &tx2215)
-	txList.Txs = append(txList.Txs, &tx3215)
+	txList.Txs = append(txList.Txs, tx1115)
+	txList.Txs = append(txList.Txs, tx2215)
+	txList.Txs = append(txList.Txs, tx3215)
 
 	//交易只分类不排序，保证子链内部交易的顺序不变
 	sorTxList := TransactionSort(txList.Txs)
@@ -469,14 +469,14 @@ func TestSortTxList(t *testing.T) {
 	//构建只有主链交易
 	var txSingleList Transactions
 	tx51111, tx52211, tx53211 := modifyTxExec(tx12, tx22, tx32, "coins", "token", "hashlock")
-	txSingleList.Txs = append(txSingleList.Txs, &tx51111)
-	txSingleList.Txs = append(txSingleList.Txs, &tx52211)
-	txSingleList.Txs = append(txSingleList.Txs, &tx53211)
+	txSingleList.Txs = append(txSingleList.Txs, tx51111)
+	txSingleList.Txs = append(txSingleList.Txs, tx52211)
+	txSingleList.Txs = append(txSingleList.Txs, tx53211)
 
 	tx61111, tx62211, tx63211 := modifyTxExec(tx12, tx22, tx32, "ajs", "zottery", "norm")
-	txSingleList.Txs = append(txSingleList.Txs, &tx61111)
-	txSingleList.Txs = append(txSingleList.Txs, &tx62211)
-	txSingleList.Txs = append(txSingleList.Txs, &tx63211)
+	txSingleList.Txs = append(txSingleList.Txs, tx61111)
+	txSingleList.Txs = append(txSingleList.Txs, tx62211)
+	txSingleList.Txs = append(txSingleList.Txs, tx63211)
 
 	sorTxSingleList := TransactionSort(txSingleList.Txs)
 	assert.Equal(t, len(txSingleList.Txs), len(sorTxSingleList))
@@ -486,10 +486,10 @@ func TestSortTxList(t *testing.T) {
 	}
 }
 
-func modifyTxExec(tx1, tx2, tx3 Transaction, tx1exec, tx2exec, tx3exec string) (Transaction, Transaction, Transaction) {
-	tx11 := tx1
-	tx12 := tx2
-	tx13 := tx3
+func modifyTxExec(tx1, tx2, tx3 *Transaction, tx1exec, tx2exec, tx3exec string) (*Transaction, *Transaction, *Transaction) {
+	tx11 := CloneTx(tx1)
+	tx12 := CloneTx(tx2)
+	tx13 := CloneTx(tx3)
 
 	tx11.Execer = []byte(tx1exec)
 	tx12.Execer = []byte(tx2exec)

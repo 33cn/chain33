@@ -70,7 +70,11 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 		item.Value = &arr
 	}
 	copyValue := *item.GetArr()
-	copyItem := item
+	copyItem := types.ConfigItem{
+		Ty:   item.Ty,
+		Addr: item.Addr,
+		Key:  item.Key,
+	}
 	copyItem.Value = &types.ConfigItem_Arr{Arr: &copyValue}
 
 	switch modify.Op {

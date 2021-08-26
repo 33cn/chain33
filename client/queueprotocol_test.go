@@ -692,7 +692,7 @@ func testGetPeerInfoJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testGenSeedJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
-	params := types.GenSeedLang{
+	params := &types.GenSeedLang{
 		Lang: 1,
 	}
 	var res types.ReplySeed
@@ -748,7 +748,7 @@ func testGetHeadersCmdJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 
 	var res rpctypes.Headers
 	err := rpc.newRPCCtx("Chain33.GetHeaders",
-		params, &res)
+		&params, &res)
 	if err != nil {
 		t.Error("testGetHeadersCmdJSONRPC failed. Error", err)
 	}
@@ -788,7 +788,7 @@ func testGetBlockHashJSONRPC(t *testing.T, rpc *mockJRPCSystem) {
 	}
 	var res rpctypes.ReplyHash
 	err := rpc.newRPCCtx("Chain33.GetBlockHash",
-		params, &res)
+		&params, &res)
 	if err != nil {
 		t.Error("testGetBlockHashJSONRPC failed. Error", err)
 	}
@@ -867,12 +867,12 @@ func testIsSyncGRPC(t *testing.T, rpc *mockGRPCSystem) {
 }
 
 func testVersionGRPC(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.VersionInfo
-	err := rpc.newRPCCtx("Version", &types.ReqNil{}, &res)
+	res := &types.VersionInfo{}
+	err := rpc.newRPCCtx("Version", &types.ReqNil{}, res)
 	if err != nil {
 		t.Error("Call Version Failed.", err)
 	}
-	assert.Equal(t, version.GetVersion(), res.Chain33)
+	assert.Equal(t, version.GetVersion(), rpc.ctx.Res.(*types.VersionInfo).Chain33)
 }
 
 func testDumpPrivkeyGRPC(t *testing.T, rpc *mockGRPCSystem) {

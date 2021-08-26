@@ -110,7 +110,7 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 			TestNet: cfg.IsTestNet(),
 		}
 		if !isValidFileHeader(oldfileHeader, &newfileHeader) {
-			exportlog.Error("exportBlock:inValidFileHeader", "oldfileHeader", oldfileHeader, "newfileHeader", newfileHeader)
+			exportlog.Error("exportBlock:inValidFileHeader", "oldfileHeader", oldfileHeader, "newfileHeader", newfileHeader.String())
 			return types.ErrInValidFileHeader
 		}
 		//需要在已有导出的endheight区块继续接着导出，需要校验endHeight
@@ -228,7 +228,7 @@ func (chain *BlockChain) ImportBlock(filename, dbPath string) error {
 	fileHeader, err := getFileHeader(db)
 
 	if err != nil || fileHeader.StartHeight < 0 || !isValidFileHeader(fileHeader, &newfileHeader) {
-		exportlog.Error("importBlock:fileHeader", "filename", filename, "dbPath", dbPath, "fileHeader", fileHeader, "cfg.fileHeader", newfileHeader, "err", err)
+		exportlog.Error("importBlock:fileHeader", "filename", filename, "dbPath", dbPath, "fileHeader", fileHeader, "cfg.fileHeader", newfileHeader.String(), "err", err)
 		return types.ErrInValidFileHeader
 	}
 	startHeight := fileHeader.StartHeight

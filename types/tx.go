@@ -105,11 +105,11 @@ func (txgroup *Transactions) Tx() *Transaction {
 	}
 	headtx := txgroup.GetTxs()[0]
 	//不会影响原来的tx
-	copytx := *headtx
+	copytx := CloneTx(headtx)
 	data := Encode(txgroup)
 	//放到header中不影响交易的Hash
 	copytx.Header = data
-	return &copytx
+	return copytx
 }
 
 //GetTxGroup 获取交易组
@@ -422,14 +422,6 @@ func CacheToTxs(caches []*TransactionCache) (txs []*Transaction) {
 	return txs
 }
 
-//HashSign hash 不包含签名，用户通过修改签名无法重新发送交易
-func (tx *Transaction) HashSign() []byte {
-	copytx := *tx
-	copytx.Signature = nil
-	data := Encode(&copytx)
-	return common.Sha256(data)
-}
-
 //Tx 交易详情
 func (tx *Transaction) Tx() *Transaction {
 	return tx
@@ -479,9 +471,9 @@ func (tx *Transaction) CheckSign(blockHeight int64) bool {
 
 //txgroup 的情况
 func (tx *Transaction) checkSign(blockHeight int64) bool {
-	copytx := *tx
+	copytx := CloneTx(tx)
 	copytx.Signature = nil
-	data := Encode(&copytx)
+	data := Encode(copytx)
 	if tx.GetSignature() == nil {
 		return false
 	}
@@ -808,7 +800,7 @@ func TransactionSort(rawtxs []*Transaction) []*Transaction {
 
 //Hash 交易的hash不包含header的值，引入tx group的概念后，做了修改
 func (tx *Transaction) Hash() []byte {
-	copytx := cloneTx(tx)
+	copytx := CloneTx(tx)
 	copytx.Signature = nil
 	copytx.Header = nil
 	data := Encode(copytx)
@@ -829,9 +821,10 @@ type TxGroup interface {
 	CheckSign(blockHeight int64) bool
 }
 
+//CloneTx clone tx
 //这里要避免用 tmp := *tx 这样就会读 可能被 proto 其他线程修改的 size 字段
 //proto buffer 字段发生更改之后，一定要修改这里，否则可能引起严重的bug
-func cloneTx(tx *Transaction) *Transaction {
+func CloneTx(tx *Transaction) *Transaction {
 	copytx := &Transaction{}
 	copytx.Execer = tx.Execer
 	copytx.Payload = tx.Payload
@@ -852,7 +845,7 @@ func (tx *Transaction) Clone() *Transaction {
 	if tx == nil {
 		return nil
 	}
-	tmp := cloneTx(tx)
+	tmp := CloneTx(tx)
 	tmp.Signature = tx.Signature.Clone()
 	return tmp
 }

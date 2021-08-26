@@ -667,7 +667,7 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 		assert.Nil(t, err)
 		keyvalue.Key = storeGet.Keys[i]
 		keyvalue.Value = []byte(records[string(storeGet.Keys[i])])
-		exit := VerifyKVPairProof(db, newhash, keyvalue, proof)
+		exit := VerifyKVPairProof(db, newhash, &keyvalue, proof)
 		if !exit {
 			t.Log("TestGetAndVerifyKVPairProof  Verify proof fail!", "keyvalue", keyvalue.String(), "newhash", newhash)
 		}

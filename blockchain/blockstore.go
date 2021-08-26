@@ -1181,7 +1181,7 @@ func (bs *BlockStore) GetUpgradeMeta() (*types.UpgradeMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	storeLog.Info("GetUpgradeMeta", "blockchain db version", ver)
+	storeLog.Info("GetUpgradeMeta", "blockchain db version", ver.String())
 	return &ver, nil
 }
 
@@ -1206,7 +1206,7 @@ func (bs *BlockStore) GetStoreUpgradeMeta() (*types.UpgradeMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	storeLog.Info("GetStoreUpgradeMeta", "blockchain db version", ver)
+	storeLog.Info("GetStoreUpgradeMeta", "blockchain db version", ver.String())
 	return &ver, nil
 }
 

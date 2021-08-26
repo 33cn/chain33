@@ -53,7 +53,7 @@ func genSeed(cmd *cobra.Command, args []string) {
 		Lang: lang,
 	}
 	var res types.ReplySeed
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GenSeed", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GenSeed", &params, &res)
 	_, err := ctx.RunResult()
 	if err != nil {
 		fmt.Println(err)
@@ -85,7 +85,7 @@ func getSeed(cmd *cobra.Command, args []string) {
 		Passwd: pwd,
 	}
 	var res types.ReplySeed
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetSeed", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetSeed", &params, &res)
 	ctx.Run()
 }
 
@@ -117,7 +117,7 @@ func saveSeed(cmd *cobra.Command, args []string) {
 		Passwd: pwd,
 	}
 	var res rpctypes.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SaveSeed", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SaveSeed", &params, &res)
 	ctx.Run()
 	//钱包解锁60s
 	params1 := types.WalletUnLock{
@@ -126,5 +126,5 @@ func saveSeed(cmd *cobra.Command, args []string) {
 		WalletOrTicket: false,
 	}
 	var res1 rpctypes.Reply
-	jsonclient.NewRPCCtx(rpcLaddr, "Chain33.UnLock", params1, &res1)
+	jsonclient.NewRPCCtx(rpcLaddr, "Chain33.UnLock", &params1, &res1)
 }

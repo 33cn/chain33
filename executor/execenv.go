@@ -116,9 +116,9 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := tx.From()
 	accFrom := e.coinsAccount.LoadAccount(from)
 	if accFrom.GetBalance()-tx.Fee >= 0 {
-		copyfrom := *accFrom
+		copyfrom := types.CloneAccount(accFrom)
 		accFrom.Balance = accFrom.GetBalance() - tx.Fee
-		receiptBalance := &types.ReceiptAccountTransfer{Prev: &copyfrom, Current: accFrom}
+		receiptBalance := &types.ReceiptAccountTransfer{Prev: copyfrom, Current: accFrom}
 		set := e.coinsAccount.GetKVSet(accFrom)
 		e.coinsAccount.SaveKVSet(set)
 		return e.cutFeeReceipt(set, receiptBalance), nil
@@ -453,7 +453,9 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 }
 
 func copyReceipt(feelog *types.Receipt) *types.Receipt {
-	receipt := *feelog
+
+	receipt := types.Receipt{}
+	receipt.Ty = feelog.Ty
 	receipt.KV = make([]*types.KeyValue, len(feelog.KV))
 	copy(receipt.KV, feelog.KV)
 	receipt.Logs = make([]*types.ReceiptLog, len(feelog.Logs))

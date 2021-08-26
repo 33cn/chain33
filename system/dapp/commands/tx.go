@@ -78,7 +78,7 @@ func queryTxByAddr(cmd *cobra.Command, args []string) {
 		Index:     index,
 	}
 	var res rpctypes.ReplyTxInfos
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetTxByAddr", &params, &res)
 	ctx.Run()
 }
 
@@ -308,7 +308,7 @@ func decodeTx(cmd *cobra.Command, args []string) {
 	}
 
 	var res rpctypes.ReplyTxList
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DecodeRawTransaction", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DecodeRawTransaction", &params, &res)
 	ctx.SetResultCb(parseReplyTxList)
 	ctx.Run()
 }
@@ -347,7 +347,7 @@ func viewAddress(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.AddrOverview
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAddrOverview", &params, &res)
 	ctx.SetResultCbExt(parseAddrOverview)
 	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
 	if err != nil {

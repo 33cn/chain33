@@ -352,7 +352,7 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	for _, acc1 := range accountlist.Wallets {
 		exist := false
 		for _, acc2 := range accs[:10] {
-			if equal(*acc1.Acc, *acc2) {
+			if equal(acc1.Acc, acc2) {
 				exist = true
 				break
 			}
@@ -366,7 +366,7 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
-func equal(acc1 types.Account, acc2 types.Account) bool {
+func equal(acc1, acc2 *types.Account) bool {
 	if acc1.Currency != acc2.Currency {
 		return false
 	}

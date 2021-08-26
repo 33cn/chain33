@@ -112,7 +112,7 @@ func TestGetAllExecBalance(t *testing.T) {
 	addr := "38BRY193Wvy9MkdqMjmuaYeUHnJaFjUxMP"
 	req := types.ReqAddr{Addr: addr}
 	var res rpctypes.AllExecBalance
-	err := jrpcClient.Call("Chain33.GetAllExecBalance", req, &res)
+	err := jrpcClient.Call("Chain33.GetAllExecBalance", &req, &res)
 	assert.Nil(t, err)
 	assert.Equal(t, addr, res.Addr)
 	assert.Nil(t, res.ExecAccount)

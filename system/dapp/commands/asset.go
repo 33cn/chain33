@@ -83,7 +83,7 @@ func assetBalance(cmd *cobra.Command, args []string) {
 			IsDetail: false,
 		}
 		var res rpcTypes.Headers
-		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", &params, &res)
 		_, err := ctx.RunResult()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -103,7 +103,7 @@ func assetBalance(cmd *cobra.Command, args []string) {
 		AssetSymbol: assetSymbol,
 	}
 	var res []*rpcTypes.Account
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", &params, &res)
 	ctx.SetResultCbExt(parseGetBalanceRes)
 	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
 	if err != nil {

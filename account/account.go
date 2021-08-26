@@ -128,18 +128,18 @@ func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 		return nil, types.ErrSendSameToRecv
 	}
 	if accFrom.GetBalance()-amount >= 0 {
-		copyfrom := *accFrom
-		copyto := *accTo
+		copyFrom := types.CloneAccount(accFrom)
+		copyTo := types.CloneAccount(accTo)
 
 		accFrom.Balance = accFrom.GetBalance() - amount
 		accTo.Balance = accTo.GetBalance() + amount
 
 		receiptBalanceFrom := &types.ReceiptAccountTransfer{
-			Prev:    &copyfrom,
+			Prev:    copyFrom,
 			Current: accFrom,
 		}
 		receiptBalanceTo := &types.ReceiptAccountTransfer{
-			Prev:    &copyto,
+			Prev:    copyTo,
 			Current: accTo,
 		}
 		fromkv := acc.GetKVSet(accFrom)
@@ -157,10 +157,10 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadAccount(execaddr)
-	copyacc := *acc1
+	copyacc := types.CloneAccount(acc1)
 	acc1.Balance += amount
 	receiptBalance := &types.ReceiptAccountTransfer{
-		Prev:    &copyacc,
+		Prev:    copyacc,
 		Current: acc1,
 	}
 	kv := acc.GetKVSet(acc1)
@@ -461,11 +461,11 @@ func (acc *DB) Mint(addr string, amount int64) (*types.Receipt, error) {
 		return nil, err
 	}
 
-	copyAcc := *accTo
+	copyAcc := types.CloneAccount(accTo)
 	accTo.Balance = balance
 
 	receipt := &types.ReceiptAccountMint{
-		Prev:    &copyAcc,
+		Prev:    copyAcc,
 		Current: accTo,
 	}
 	kv := acc.GetKVSet(accTo)
@@ -498,11 +498,11 @@ func (acc *DB) Burn(addr string, amount int64) (*types.Receipt, error) {
 		return nil, types.ErrNoBalance
 	}
 
-	copyAcc := *accTo
+	copyAcc := types.CloneAccount(accTo)
 	accTo.Balance = accTo.Balance - amount
 
 	receipt := &types.ReceiptAccountBurn{
-		Prev:    &copyAcc,
+		Prev:    copyAcc,
 		Current: accTo,
 	}
 	kv := acc.GetKVSet(accTo)

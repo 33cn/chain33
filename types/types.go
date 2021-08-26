@@ -202,13 +202,19 @@ func GetRealExecName(execer []byte) []byte {
 	return execer
 }
 
-//Encode  编码
+//Encode  protobuf V2(golang/protobuf 1.4.0+)
+// 版本默认Marshal接口不保证序列化结果一致性, 需要主动设置相关标志
+// 即使设置了deterministic标志, protobuf官方也不保证后续版本升级以及跨语言的序列化结果一致
+// 即该标志只能保证当前版本具备一致性
 func Encode(data proto.Message) []byte {
-	b, err := proto.Marshal(data)
+	buf := &proto.Buffer{}
+	// 设置确定性编码
+	buf.SetDeterministic(true)
+	err := buf.Marshal(data)
 	if err != nil {
 		panic(err)
 	}
-	return b
+	return buf.Bytes()
 }
 
 //Size  消息大小
@@ -486,7 +492,7 @@ func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 		tlog.Error("ReplyGetExecBalance.AddItem", "err", err)
 		return
 	}
-	tlog.Info("acc:", "value", acc)
+	tlog.Info("acc:", "value", &acc)
 	t.Amount += acc.Balance
 	t.Amount += acc.Frozen
 
@@ -495,6 +501,16 @@ func (t *ReplyGetExecBalance) AddItem(execAddr, value []byte) {
 
 	item := &ExecBalanceItem{ExecAddr: execAddr, Frozen: acc.Frozen, Active: acc.Balance}
 	t.Items = append(t.Items, item)
+}
+
+// CloneAccount copy account
+func CloneAccount(acc *Account) *Account {
+	return &Account{
+		Currency: acc.Currency,
+		Balance:  acc.Balance,
+		Frozen:   acc.Frozen,
+		Addr:     acc.Addr,
+	}
 }
 
 //Clone  克隆

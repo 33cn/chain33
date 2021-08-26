@@ -12,7 +12,7 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 type btcSignOption struct {
