@@ -259,13 +259,13 @@ func TestCheckFuncList(t *testing.T) {
 	assert.True(t, checkJrpcFuncWhitelist(funcName))
 
 	grpcFuncWhitelist = make(map[string]bool)
-	assert.False(t, checkGrpcFuncWhitelist(funcName))
+	assert.False(t, checkGrpcFuncValidity(funcName))
 	grpcFuncWhitelist["*"] = true
-	assert.True(t, checkGrpcFuncWhitelist(funcName))
+	assert.True(t, checkGrpcFuncValidity(funcName))
 
 	delete(grpcFuncWhitelist, "*")
 	grpcFuncWhitelist[funcName] = true
-	assert.True(t, checkGrpcFuncWhitelist(funcName))
+	assert.True(t, checkGrpcFuncValidity(funcName))
 
 	jrpcFuncBlacklist = make(map[string]bool)
 	assert.False(t, checkJrpcFuncBlacklist(funcName))
@@ -273,8 +273,8 @@ func TestCheckFuncList(t *testing.T) {
 	assert.True(t, checkJrpcFuncBlacklist(funcName))
 
 	grpcFuncBlacklist = make(map[string]bool)
-	assert.False(t, checkGrpcFuncBlacklist(funcName))
+	assert.True(t, checkGrpcFuncValidity(funcName))
 	grpcFuncBlacklist[funcName] = true
-	assert.True(t, checkGrpcFuncBlacklist(funcName))
+	assert.False(t, checkGrpcFuncValidity(funcName))
 
 }

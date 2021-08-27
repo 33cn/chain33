@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/33cn/chain33/client"
@@ -34,6 +35,7 @@ var (
 	jrpcFuncBlacklist           = make(map[string]bool)
 	grpcFuncBlacklist           = make(map[string]bool)
 	rpcFilterPrintFuncBlacklist = make(map[string]bool)
+	grpcFuncListLock            = sync.RWMutex{}
 )
 
 // Chain33  a channel client
@@ -132,8 +134,13 @@ func checkJrpcFuncWhitelist(funcName string) bool {
 	}
 	return false
 }
-func checkGrpcFuncWhitelist(funcName string) bool {
 
+func checkGrpcFuncValidity(funcName string) bool {
+	grpcFuncListLock.RLock()
+	defer grpcFuncListLock.RUnlock()
+	if _, ok := grpcFuncBlacklist[funcName]; ok {
+		return false
+	}
 	if _, ok := grpcFuncWhitelist["*"]; ok {
 		return true
 	}
@@ -143,14 +150,9 @@ func checkGrpcFuncWhitelist(funcName string) bool {
 	}
 	return false
 }
+
 func checkJrpcFuncBlacklist(funcName string) bool {
 	if _, ok := jrpcFuncBlacklist[funcName]; ok {
-		return true
-	}
-	return false
-}
-func checkGrpcFuncBlacklist(funcName string) bool {
-	if _, ok := grpcFuncBlacklist[funcName]; ok {
 		return true
 	}
 	return false
@@ -382,6 +384,8 @@ func InitJrpcFuncWhitelist(cfg *types.RPC) {
 
 // InitGrpcFuncWhitelist init grpc function whitelist
 func InitGrpcFuncWhitelist(cfg *types.RPC) {
+	grpcFuncListLock.Lock()
+	defer grpcFuncListLock.Unlock()
 	if len(cfg.GrpcFuncWhitelist) == 0 {
 		grpcFuncWhitelist["*"] = true
 		return
@@ -409,6 +413,8 @@ func InitJrpcFuncBlacklist(cfg *types.RPC) {
 
 // InitGrpcFuncBlacklist init grpc function blacklist
 func InitGrpcFuncBlacklist(cfg *types.RPC) {
+	grpcFuncListLock.Lock()
+	defer grpcFuncListLock.Unlock()
 	if len(cfg.GrpcFuncBlacklist) == 0 {
 		grpcFuncBlacklist["CloseQueue"] = true
 		return

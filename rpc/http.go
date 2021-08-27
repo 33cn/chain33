@@ -180,7 +180,7 @@ func auth(ctx context.Context, info *grpc.UnaryServerInfo) error {
 		}
 
 		funcName := strings.Split(info.FullMethod, "/")[len(strings.Split(info.FullMethod, "/"))-1]
-		if checkGrpcFuncBlacklist(funcName) || !checkGrpcFuncWhitelist(funcName) {
+		if !checkGrpcFuncValidity(funcName) {
 			return fmt.Errorf("the %s method is not authorized", funcName)
 		}
 		return nil
