@@ -207,7 +207,8 @@ func GetRealExecName(execer []byte) []byte {
 // 即使设置了deterministic标志, protobuf官方也不保证后续版本升级以及跨语言的序列化结果一致
 // 即该标志只能保证当前版本具备一致性
 func Encode(data proto.Message) []byte {
-	buf := &proto.Buffer{}
+	var b [0]byte
+	buf := proto.NewBuffer(b[:])
 	// 设置确定性编码
 	buf.SetDeterministic(true)
 	err := buf.Marshal(data)
@@ -240,10 +241,7 @@ func JSONToPBUTF8(data []byte, msg proto.Message) error {
 
 //Hash  计算叶子节点的hash
 func (leafnode *LeafNode) Hash() []byte {
-	data, err := proto.Marshal(leafnode)
-	if err != nil {
-		panic(err)
-	}
+	data := Encode(leafnode)
 	return common.Sha256(data)
 }
 
@@ -260,10 +258,7 @@ func (innernode *InnerNode) Hash() []byte {
 	if len(innernode.LeftHash) > hashLen {
 		innernode.LeftHash = innernode.LeftHash[len(innernode.LeftHash)-hashLen:]
 	}
-	data, err := proto.Marshal(innernode)
-	if err != nil {
-		panic(err)
-	}
+	data := Encode(innernode)
 	innernode.RightHash = rightHash
 	innernode.LeftHash = leftHash
 	return common.Sha256(data)
@@ -665,10 +660,7 @@ func Str2Bytes(s string) []byte {
 
 //Hash  计算hash
 func (hashes *ReplyHashes) Hash() []byte {
-	data, err := proto.Marshal(hashes)
-	if err != nil {
-		panic(err)
-	}
+	data := Encode(hashes)
 	return common.Sha256(data)
 }
 
