@@ -74,7 +74,8 @@ func Test_ReflectProto(t *testing.T) {
 
 	req := &types.ReqAccountList{}
 	buf := types.Encode(req)
-	require.Nil(t, buf)
+	require.NotNil(t, buf)
+	require.Equal(t, 0, len(buf))
 
 	_, priv := util.Genaddress()
 	println(common.ToHex(priv.PubKey().Bytes()))
