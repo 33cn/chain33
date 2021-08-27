@@ -22,7 +22,6 @@ import (
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"github.com/golang/protobuf/proto"
 )
 
 //var
@@ -662,7 +661,7 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	}
 
 	var txResult types.TxResult
-	err = proto.Unmarshal(rawBytes, &txResult)
+	err = types.Decode(rawBytes, &txResult)
 	if err != nil {
 		return nil, err
 	}
@@ -998,11 +997,7 @@ func (bs *BlockStore) saveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 		var blockSequence types.BlockSequence
 		blockSequence.Hash = hash
 		blockSequence.Type = Type
-		BlockSequenceByte, err := proto.Marshal(&blockSequence)
-		if err != nil {
-			storeLog.Error("SaveBlockSequence Marshal BlockSequence", "hash", common.ToHex(hash), "error", err)
-			return newSequence, err
-		}
+		BlockSequenceByte := types.Encode(&blockSequence)
 		storeBatch.Set(calcSequenceToHashKey(newSequence, bs.isParaChain), BlockSequenceByte)
 
 		sequenceBytes := types.Encode(&types.Int64{Data: newSequence})
@@ -1023,11 +1018,7 @@ func (bs *BlockStore) saveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 	var blockSequence types.BlockSequence
 	blockSequence.Hash = hash
 	blockSequence.Type = Type
-	BlockSequenceByte, err := proto.Marshal(&blockSequence)
-	if err != nil {
-		storeLog.Error("SaveBlockSequence Marshal BlockSequence", "hash", common.ToHex(hash), "error", err)
-		return newSequence, err
-	}
+	BlockSequenceByte := types.Encode(&blockSequence)
 	storeBatch.Set(calcMainSequenceToHashKey(mainSeq), BlockSequenceByte)
 
 	// hash->seq 只记录add block时的hash和seq对应关系
@@ -1071,7 +1062,7 @@ func (bs *BlockStore) GetBlockSequence(Sequence int64) (*types.BlockSequence, er
 		return nil, types.ErrHeightNotExist
 	}
 
-	err = proto.Unmarshal(blockSeqByte, &blockSeq)
+	err = types.Decode(blockSeqByte, &blockSeq)
 	if err != nil {
 		storeLog.Error("GetBlockSequence", "err", err)
 		return nil, err
@@ -1090,7 +1081,7 @@ func (bs *BlockStore) GetBlockByMainSequence(sequence int64) (*types.BlockSequen
 		return nil, types.ErrHeightNotExist
 	}
 
-	err = proto.Unmarshal(blockSeqByte, &blockSeq)
+	err = types.Decode(blockSeqByte, &blockSeq)
 	if err != nil {
 		storeLog.Error("GetBlockByMainSequence", "err", err)
 		return nil, err
@@ -1280,11 +1271,7 @@ func (bs *BlockStore) CreateSequences(batchSize int64) {
 		var blockSequence types.BlockSequence
 		blockSequence.Hash = header.Hash
 		blockSequence.Type = types.AddBlock
-		BlockSequenceByte, err := proto.Marshal(&blockSequence)
-		if err != nil {
-			storeLog.Error("CreateSequences Marshal BlockSequence", "height", i, "hash", common.ToHex(header.Hash), "error", err)
-			panic("CreateSequences Marshal BlockSequence" + err.Error())
-		}
+		BlockSequenceByte := types.Encode(&blockSequence)
 		newBatch.Set(calcSequenceToHashKey(seq, bs.isParaChain), BlockSequenceByte)
 
 		// hash -> seq
@@ -1497,7 +1484,7 @@ func (bs *BlockStore) loadBlockByHashOld(hash []byte) (*types.BlockDetail, error
 		}
 		return nil, types.ErrHashNotExist
 	}
-	err = proto.Unmarshal(header, &blockheader)
+	err = types.Decode(header, &blockheader)
 	if err != nil {
 		storeLog.Error("loadBlockByHashOld", "err", err)
 		return nil, err
@@ -1511,7 +1498,7 @@ func (bs *BlockStore) loadBlockByHashOld(hash []byte) (*types.BlockDetail, error
 		}
 		return nil, types.ErrHashNotExist
 	}
-	err = proto.Unmarshal(body, &blockbody)
+	err = types.Decode(body, &blockbody)
 	if err != nil {
 		storeLog.Error("loadBlockByHashOld", "err", err)
 		return nil, err
@@ -1561,7 +1548,7 @@ func (bs *BlockStore) getBlockHeaderByHeightOld(height int64) (*types.Header, er
 		return nil, types.ErrHashNotExist
 	}
 	var header types.Header
-	err = proto.Unmarshal(blockheader, &header)
+	err = types.Decode(blockheader, &header)
 	if err != nil {
 		storeLog.Error("getBlockHeaderByHeightOld", "Could not unmarshal blockheader:", blockheader)
 		return nil, err

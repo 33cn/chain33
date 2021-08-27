@@ -16,7 +16,6 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/types"
-	"github.com/golang/protobuf/proto"
 )
 
 var (
@@ -103,11 +102,7 @@ func (store *Store) GetAccountByte(update bool, addr string, account *types.Wall
 	}
 	account.TimeStamp = timestamp
 
-	accountbyte, err := proto.Marshal(account)
-	if err != nil {
-		storelog.Error("GetAccountByte", " proto.Marshal error", err)
-		return nil, types.ErrMarshal
-	}
+	accountbyte := types.Encode(account)
 	return accountbyte, nil
 }
 
@@ -154,9 +149,9 @@ func (store *Store) GetAccountByAddr(addr string) (*types.WalletAccountStore, er
 		}
 		return nil, types.ErrAddrNotExist
 	}
-	err = proto.Unmarshal(data, &account)
+	err = types.Decode(data, &account)
 	if err != nil {
-		storelog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
+		storelog.Error("GetAccountByAddr", "types.Decode err:", err)
 		return nil, types.ErrUnmarshal
 	}
 	return &account, nil
@@ -176,9 +171,9 @@ func (store *Store) GetAccountByLabel(label string) (*types.WalletAccountStore, 
 		}
 		return nil, types.ErrLabelNotExist
 	}
-	err = proto.Unmarshal(data, &account)
+	err = types.Decode(data, &account)
 	if err != nil {
-		storelog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
+		storelog.Error("GetAccountByAddr", "types.Decode err:", err)
 		return nil, types.ErrUnmarshal
 	}
 	return &account, nil
@@ -199,9 +194,9 @@ func (store *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore
 	WalletAccountStores := make([]*types.WalletAccountStore, len(accbytes))
 	for index, accbyte := range accbytes {
 		var walletaccount types.WalletAccountStore
-		err := proto.Unmarshal(accbyte, &walletaccount)
+		err := types.Decode(accbyte, &walletaccount)
 		if err != nil {
-			storelog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
+			storelog.Error("GetAccountByAddr", "types.Decode err:", err)
 			return nil, types.ErrUnmarshal
 		}
 		WalletAccountStores[index] = &walletaccount
@@ -244,9 +239,9 @@ func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*
 	txDetails.TxDetails = make([]*types.WalletTxDetail, len(txbytes))
 	for index, txdetailbyte := range txbytes {
 		var txdetail types.WalletTxDetail
-		err := proto.Unmarshal(txdetailbyte, &txdetail)
+		err := types.Decode(txdetailbyte, &txdetail)
 		if err != nil {
-			storelog.Error("GetTxDetailByIter", "proto.Unmarshal err:", err)
+			storelog.Error("GetTxDetailByIter", "types.Decode err:", err)
 			return nil, types.ErrUnmarshal
 		}
 		txdetail.Txhash = txdetail.GetTx().Hash()

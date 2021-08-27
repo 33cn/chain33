@@ -18,7 +18,6 @@ import (
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
-	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -143,7 +142,7 @@ func getSecLvlPruningHeight(db dbm.DB) int64 {
 		return 0
 	}
 	h := &types.Int64{}
-	err = proto.Unmarshal(value, h)
+	err = types.Decode(value, h)
 	if err != nil {
 		return 0
 	}
@@ -153,11 +152,7 @@ func getSecLvlPruningHeight(db dbm.DB) int64 {
 func setSecLvlPruningHeight(db dbm.DB, height int64) error {
 	h := &types.Int64{}
 	h.Data = height
-	value, err := proto.Marshal(h)
-	if err != nil {
-		return err
-	}
-	return db.Set([]byte(secLvlPruningHeightKey), value)
+	return db.Set([]byte(secLvlPruningHeightKey), types.Encode(h))
 }
 
 func pruning(db dbm.DB, curHeight int64, treeCfg *TreeConfig) {
@@ -267,7 +262,7 @@ func deleteNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch dbm.
 					value, err := db.Get(leafCountKey)
 					if err == nil {
 						var pData types.PruneData
-						err := proto.Unmarshal(value, &pData)
+						err := types.Decode(value, &pData)
 						if err == nil {
 							for _, hash := range pData.Hashs {
 								batch.Delete(hash)
@@ -362,7 +357,7 @@ func deleteOldNode(db dbm.DB, mp map[string][]hashData, curHeight int64, batch d
 						value, err := db.Get(leafCountKey)
 						if err == nil {
 							var pData types.PruneData
-							err := proto.Unmarshal(value, &pData)
+							err := types.Decode(value, &pData)
 							if err == nil {
 								for _, hash := range pData.Hashs {
 									batch.Delete(hash)
@@ -403,7 +398,7 @@ func PruningTreePrintDB(db dbm.DB, prefix []byte) {
 			hashK := it.Key()
 			value := it.Value()
 			var pData types.PruneData
-			err := proto.Unmarshal(value, &pData)
+			err := types.Decode(value, &pData)
 			if err == nil {
 				key, height, _, err := getKeyHeightFromLeafCountKey(hashK)
 				if err == nil {
@@ -461,7 +456,7 @@ func PrintLeafNodeParent(db dbm.DB, key, hash []byte, height int64) {
 	value, err := db.Get(leafCountKey)
 	if err == nil {
 		var pData types.PruneData
-		err := proto.Unmarshal(value, &pData)
+		err := types.Decode(value, &pData)
 		if err == nil {
 			for _, hash := range pData.Hashs {
 				var pri string
@@ -479,7 +474,7 @@ func PrintLeafNodeParent(db dbm.DB, key, hash []byte, height int64) {
 		value, err = db.Get(oldLeafCountKey)
 		if err == nil {
 			var pData types.PruneData
-			err := proto.Unmarshal(value, &pData)
+			err := types.Decode(value, &pData)
 			if err == nil {
 				for _, hash := range pData.Hashs {
 					var pri string

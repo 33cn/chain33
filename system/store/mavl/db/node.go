@@ -12,7 +12,6 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/types"
 	farm "github.com/dgryski/go-farm"
-	"github.com/golang/protobuf/proto"
 )
 
 // Node merkle avl Node
@@ -48,7 +47,7 @@ func MakeNode(buf []byte, t *Tree) (node *Node, err error) {
 
 	var storeNode types.StoreNode
 
-	err = proto.Unmarshal(buf, &storeNode)
+	err = types.Decode(buf, &storeNode)
 	if err != nil {
 		return nil, err
 	}
@@ -257,11 +256,7 @@ func (node *Node) saveRootHash(t *Tree) (err error) {
 	}
 	h := &types.Int64{}
 	h.Data = t.blockHeight
-	value, err := proto.Marshal(h)
-	if err != nil {
-		return err
-	}
-	t.ndb.batch.Set(genRootHashHeight(t.blockHeight, node.hash), value)
+	t.ndb.batch.Set(genRootHashHeight(t.blockHeight, node.hash), types.Encode(h))
 	return nil
 }
 
@@ -296,11 +291,7 @@ func (node *Node) storeNode(t *Tree) []byte {
 		}
 		storeNode.RightHash = node.rightHash
 	}
-	storeNodebytes, err := proto.Marshal(&storeNode)
-	if err != nil {
-		panic(err)
-	}
-	return storeNodebytes
+	return types.Encode(&storeNode)
 }
 
 //从指定node开始插入一个新的node，updated表示是否有叶子结点的value更新

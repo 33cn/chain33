@@ -11,7 +11,6 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
-	proto "github.com/golang/protobuf/proto"
 )
 
 // Hash 获取block的hash值
@@ -32,19 +31,13 @@ func (block *Block) HashByForkHeight(forkheight int64) []byte {
 
 //HashNew 新版本的Hash
 func (block *Block) HashNew() []byte {
-	data, err := proto.Marshal(block.getHeaderHashNew())
-	if err != nil {
-		panic(err)
-	}
+	data := Encode(block.getHeaderHashNew())
 	return common.Sha256(data)
 }
 
 //HashOld 老版本的hash
 func (block *Block) HashOld() []byte {
-	data, err := proto.Marshal(block.getHeaderHashOld())
-	if err != nil {
-		panic(err)
-	}
+	data := Encode(block.getHeaderHashOld())
 	return common.Sha256(data)
 }
 
