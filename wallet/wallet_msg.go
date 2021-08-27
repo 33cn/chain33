@@ -293,9 +293,13 @@ func (wallet *Wallet) execWallet(param *types.ChainExecutor, eventID int64) (rep
 		param.FuncName = param.FuncName[5:]
 	}
 	var paramIn types.Message
-	paramIn, err = wcom.QueryData.Decode(param.Driver, param.FuncName, param.Param)
-	if err != nil {
+	if param.Param == nil {
 		paramIn = &types.ReqNil{}
+	} else {
+		paramIn, err = wcom.QueryData.Decode(param.Driver, param.FuncName, param.Param)
+		if err != nil {
+			return nil, err
+		}
 	}
 	//这里不判断类型是否可以调用，直接按照名字调用，如果发生panic，用recover 恢复
 	return wcom.QueryData.Call(param.Driver, param.FuncName, paramIn)

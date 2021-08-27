@@ -234,16 +234,13 @@ func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block, lastHeightSave b
 	}()
 	newbatch := chain.blockStore.NewBatch(sync)
 
-	blockByte, err := proto.Marshal(block)
-	if err != nil {
-		chainlog.Error("WriteBlockToDbTemp:Marshal", "height", block.Height)
-	}
+	blockByte := types.Encode(block)
 	newbatch.Set(calcHeightToTempBlockKey(block.Height), blockByte)
 	if lastHeightSave {
 		heightbytes := types.Encode(&types.Int64{Data: block.Height})
 		newbatch.Set(calcLastTempBlockHeightKey(), heightbytes)
 	}
-	err = newbatch.Write()
+	err := newbatch.Write()
 	if err != nil {
 		panic(err)
 	}

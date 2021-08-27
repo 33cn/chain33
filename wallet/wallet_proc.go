@@ -25,7 +25,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet/bipwallet"
 	wcom "github.com/33cn/chain33/wallet/common"
-	"github.com/golang/protobuf/proto"
 )
 
 // ProcSignRawTx 用钱包对交易进行签名
@@ -1034,11 +1033,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				continue
 			}
 			if len(wtxdetail.Fromaddr) > 0 {
-				txdetailbyte, err := proto.Marshal(wtxdetail)
-				if err != nil {
-					walletlog.Error("ProcWalletAddBlock", "Marshal txdetail error", err, "Height", block.Block.Height, "index", index)
-					continue
-				}
+				txdetailbyte := types.Encode(wtxdetail)
 				blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
 				heightstr := fmt.Sprintf("%018d", blockheight)
 				key := wcom.CalcTxKey(heightstr)
@@ -1126,11 +1121,7 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 		txdetail.Fromaddr = param.senderRecver
 		//txdetail.Spendrecv = param.utxos
 
-		txdetailbyte, err := proto.Marshal(&txdetail)
-		if err != nil {
-			walletlog.Error("buildAndStoreWalletTxDetail Marshal txdetail err", "Height", param.block.Block.Height, "index", param.index)
-			return
-		}
+		txdetailbyte := types.Encode(&txdetail)
 		param.newbatch.Set(key, txdetailbyte)
 	} else {
 		param.newbatch.Delete(wcom.CalcTxKey(heightstr))
@@ -1229,11 +1220,7 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		txdetail.Fromaddr = txdetal.GetFromaddr()
 		txdetail.ActionName = txdetal.GetTx().ActionName()
 
-		txdetailbyte, err := proto.Marshal(&txdetail)
-		if err != nil {
-			walletlog.Error("GetTxDetailByHashs Marshal txdetail err", "Height", height, "index", txindex)
-			return
-		}
+		txdetailbyte := types.Encode(&txdetail)
 		newbatch.Set(wcom.CalcTxKey(heightstr), txdetailbyte)
 	}
 	err = newbatch.Write()
