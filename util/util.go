@@ -318,7 +318,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 			}
 		}
 		signOK := types.VerifySignature(config, block, unverifiedTxs)
-		ulog.Debug("PreExecBlock", "height", block.GetHeight(), "checkCount", len(unverifiedTxs), "CheckSign", types.Since(beg))
+		ulog.Info("PreExecBlock", "height", block.GetHeight(), "checkCount", len(unverifiedTxs), "CheckSign", types.Since(beg))
 		if !signOK {
 			return nil, nil, types.ErrSign
 		}
@@ -328,7 +328,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	go func() {
 		beg := types.Now()
 		defer func() {
-			ulog.Debug("PreExecBlock", "height", block.GetHeight(), "CheckTxDup", types.Since(beg))
+			ulog.Info("PreExecBlock", "height", block.GetHeight(), "CheckTxDup", types.Since(beg))
 		}()
 		//check tx Duplicate
 		var err error
@@ -350,7 +350,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	beg = types.Now()
 	//对区块的正确性保持乐观，交易查重和执行并行处理，提高效率
 	receipts, err := ExecTx(client, prevStateRoot, block)
-	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "ExecTx", types.Since(beg))
+	ulog.Info("PreExecBlock", "height", block.GetHeight(), "ExecTx", types.Since(beg))
 	beg = types.Now()
 
 	//检查交易查重结果
@@ -363,7 +363,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 		block.Txs = types.CacheToTxs(cacheTxs)
 		receipts, err = ExecTx(client, prevStateRoot, block)
 	}
-	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "WaitDupCheck", types.Since(beg))
+	ulog.Info("PreExecBlock", "height", block.GetHeight(), "WaitDupCheck", types.Since(beg))
 	if err != nil {
 		return nil, nil, err
 	}
