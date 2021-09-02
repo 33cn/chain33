@@ -20,7 +20,7 @@ type txindexPlugin struct {
 }
 
 func (p *txindexPlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {
-	return nil, true, nil
+	return nil, enable, nil
 }
 
 func (p *txindexPlugin) ExecLocal(executor *executor, data *types.BlockDetail) (kvs []*types.KeyValue, err error) {

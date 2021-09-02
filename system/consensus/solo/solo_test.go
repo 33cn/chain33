@@ -161,7 +161,11 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 	}
 	cfg := testnode.GetDefaultConfig()
 	cfg.GetModuleConfig().Exec.DisableAddrIndex = true
+	cfg.GetModuleConfig().Exec.DisableFeeIndex = true
+	cfg.GetModuleConfig().Exec.DisableTxIndex = true
 	cfg.GetModuleConfig().Mempool.DisableExecCheck = true
+	cfg.GetModuleConfig().Mempool.MinTxFeeRate = 0
+	cfg.SetMinFee(0)
 	cfg.GetModuleConfig().RPC.GrpcBindAddr = "localhost:8802"
 	cfg.GetModuleConfig().Crypto.EnableTypes = []string{secp256k1.Name, none.Name}
 	subcfg := cfg.GetSubConfig()

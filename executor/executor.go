@@ -68,8 +68,8 @@ func New(cfg *typ.Chain33Config) *Executor {
 	exec.pluginEnable["stat"] = mcfg.EnableStat
 	exec.pluginEnable["mvcc"] = mcfg.EnableMVCC
 	exec.pluginEnable["addrindex"] = !mcfg.DisableAddrIndex
-	exec.pluginEnable["txindex"] = true
-	exec.pluginEnable["fee"] = true
+	exec.pluginEnable["txindex"] = !mcfg.DisableTxIndex
+	exec.pluginEnable["fee"] = !mcfg.DisableFeeIndex
 	exec.pluginEnable[addrFeeIndex] = mcfg.EnableAddrFeeIndex
 	exec.noneDriverPool = &sync.Pool{
 		New: func() interface{} {
