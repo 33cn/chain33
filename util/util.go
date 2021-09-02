@@ -328,7 +328,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	go func() {
 		beg := types.Now()
 		defer func() {
-			ulog.Info("PreExecBlock", "height", block.GetHeight(), "CheckTxDup", types.Since(beg))
+			ulog.Debug("PreExecBlock", "height", block.GetHeight(), "CheckTxDup", types.Since(beg))
 		}()
 		//check tx Duplicate
 		var err error
