@@ -431,6 +431,10 @@ func (e *executor) loadFlag(key []byte) (int64, error) {
 
 func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
 	feelog := &types.Receipt{Ty: types.ExecPack}
+	// 非平行连情况下,手续费为0,直接返回
+	if !e.cfg.IsPara() && e.cfg.GetMinTxFeeRate() == 0 {
+		return feelog, nil
+	}
 	execer := string(tx.Execer)
 	ex := e.loadDriver(tx, index)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
@@ -442,7 +446,7 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 		}
 	}
 	var err error
-	//公链不允许手续费为0
+	//平行链不收取手续费
 	if !e.cfg.IsPara() && e.cfg.GetMinTxFeeRate() > 0 && !ex.IsFree() {
 		feelog, err = e.processFee(tx)
 		if err != nil {
