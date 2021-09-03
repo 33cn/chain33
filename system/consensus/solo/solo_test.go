@@ -156,9 +156,7 @@ func BenchmarkSendTx(b *testing.B) {
 
 //测试每10000笔交易打包的并发时间  3500tx/s
 func BenchmarkSoloNewBlock(b *testing.B) {
-	if testing.Short() {
-		b.Skip("skipping in short mode.")
-	}
+	shortMode := testing.Short()
 	cfg := testnode.GetDefaultConfig()
 	cfg.GetModuleConfig().Exec.DisableAddrIndex = true
 	cfg.GetModuleConfig().Exec.DisableFeeIndex = true
@@ -191,15 +189,20 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 			defer conn.Close()
 			//gcli := types.NewChain33Client(conn)
 			pub := mock33.GetGenesisKey().PubKey().Bytes()
+			var tx *types.Transaction
 			for {
 				txHeight := atomic.LoadInt64(&height) + types.LowAllowPackHeight/2
-				//tx := util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), txHeight)
-				//测试去签名情况
-				tx := util.CreateNoneTxWithTxHeight(cfg, nil, txHeight)
-				tx.Signature = &types.Signature{
-					Ty:     none.ID,
-					Pubkey: pub,
+				if !shortMode {
+					tx = util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), txHeight)
+				} else {
+					//测试去签名情况
+					tx = util.CreateNoneTxWithTxHeight(cfg, nil, txHeight)
+					tx.Signature = &types.Signature{
+						Ty:     none.ID,
+						Pubkey: pub,
+					}
 				}
+
 				//_, err := gcli.SendTransaction(context.Background(), tx)
 				_, err := mock33.GetAPI().SendTx(tx)
 				if err != nil {
