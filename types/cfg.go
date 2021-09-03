@@ -283,6 +283,7 @@ type Exec struct {
 	EnableAddrFeeIndex bool `json:"enableAddrFeeIndex,omitempty"`
 	DisableTxIndex     bool `json:"disableTxIndex,omitempty"`
 	DisableFeeIndex    bool `json:"disableFeeIndex,omitempty"`
+	DisableTxDupCheck  bool `json:"disableTxDupCheck,omitempty"`
 }
 
 // Pprof 配置
