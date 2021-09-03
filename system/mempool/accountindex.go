@@ -53,10 +53,10 @@ func (cache *AccountTxIndex) GetAccTxs(addrs *types.ReqAddrs) *types.Transaction
 }
 
 //Remove 根据交易哈希删除对应账户的对应交易
-func (cache *AccountTxIndex) Remove(tx *types.Transaction) {
+func (cache *AccountTxIndex) Remove(tx *types.Transaction, txHash string) {
 	addr := tx.From()
 	if lm, ok := cache.accMap[addr]; ok {
-		lm.Remove(string(tx.Hash()))
+		lm.Remove(txHash)
 		if lm.Size() == 0 {
 			delete(cache.accMap, addr)
 		}
@@ -64,7 +64,7 @@ func (cache *AccountTxIndex) Remove(tx *types.Transaction) {
 }
 
 // Push push transaction to AccountTxIndex
-func (cache *AccountTxIndex) Push(tx *types.Transaction) error {
+func (cache *AccountTxIndex) Push(tx *types.Transaction, txHash string) error {
 	addr := tx.From()
 	_, ok := cache.accMap[addr]
 	if !ok {
@@ -73,7 +73,7 @@ func (cache *AccountTxIndex) Push(tx *types.Transaction) error {
 	if cache.accMap[addr].Size() >= cache.maxperaccount {
 		return types.ErrManyTx
 	}
-	cache.accMap[addr].Push(string(tx.Hash()), tx)
+	cache.accMap[addr].Push(txHash, tx)
 	return nil
 }
 

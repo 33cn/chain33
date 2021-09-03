@@ -66,10 +66,10 @@ func (cache *txCache) Remove(hash string) {
 	if err != nil {
 		mlog.Error("Remove", "cache Remove err", err)
 	}
-	cache.AccountTxIndex.Remove(tx)
-	cache.LastTxCache.Remove(tx)
+	cache.AccountTxIndex.Remove(tx, hash)
+	cache.LastTxCache.Remove(hash)
 	cache.totalFee -= tx.Fee
-	cache.SHashTxCache.Remove(tx)
+	cache.SHashTxCache.Remove(hash)
 }
 
 //Exist 是否存在
@@ -114,17 +114,18 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		return types.ErrManyTx
 	}
 	item := &Item{Value: tx, Priority: tx.Fee, EnterTime: types.Now().Unix()}
+	txHash := tx.Hash()
 	err := cache.qcache.Push(item)
 	if err != nil {
 		return err
 	}
-	err = cache.AccountTxIndex.Push(tx)
+	err = cache.AccountTxIndex.Push(tx, string(txHash))
 	if err != nil {
 		return err
 	}
-	cache.LastTxCache.Push(tx)
+	cache.LastTxCache.Push(tx, string(txHash))
 	cache.totalFee += tx.Fee
-	cache.SHashTxCache.Push(tx)
+	cache.SHashTxCache.Push(tx, txHash)
 	return nil
 }
 
