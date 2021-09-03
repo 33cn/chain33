@@ -163,6 +163,7 @@ func BenchmarkSoloNewBlock(b *testing.B) {
 	cfg.GetModuleConfig().Exec.DisableAddrIndex = true
 	cfg.GetModuleConfig().Exec.DisableFeeIndex = true
 	cfg.GetModuleConfig().Exec.DisableTxIndex = true
+	cfg.GetModuleConfig().Exec.DisableTxDupCheck = true
 	cfg.GetModuleConfig().Mempool.DisableExecCheck = true
 	cfg.GetModuleConfig().Mempool.MinTxFeeRate = 0
 	cfg.SetMinFee(0)
