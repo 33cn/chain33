@@ -1827,3 +1827,41 @@ func TestChain33_GetChainConfig(t *testing.T) {
 	err := client.GetChainConfig(&types.ReqNil{}, &result)
 	assert.Nil(t, err)
 }
+
+func TestChain33_AddBlacklist(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+
+
+	testChain33 := newTestChain33(api)
+	var peer types.BlackPeer
+	peer.PeerAddr="192.168.0.31:13802"
+	peer.Lifetime="1min"
+
+	expected := &types.Reply{IsOk: true,Msg: []byte("ok")}
+	api.On("AddBlacklist",mock.Anything).Return(expected, nil)
+
+	var testResult interface{}
+	err := testChain33.AddBlacklist(&peer, &testResult)
+	assert.Nil(t, err)
+	assert.Equal(t, testResult.(string), "ok")
+
+	peer.PeerAddr="192.168.0.312222"
+
+	expected = &types.Reply{IsOk: false,Msg: []byte("ip format err")}
+	api.On("AddBlacklist",mock.Anything).Return(expected, nil)
+
+	err = testChain33.AddBlacklist(&peer, &testResult)
+	assert.Nil(t, err)
+	assert.Equal(t, testResult.(string), "ip format err")
+}
+
+
+func TestChain33_DelBlacklist(t *testing.T) {
+
+}
+
+func TestChain33_ShowBlacklist(t *testing.T) {
+
+}

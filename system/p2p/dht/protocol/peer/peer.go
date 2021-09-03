@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -24,9 +25,33 @@ const (
 	blockchain = "blockchain"
 	mempool    = "mempool"
 )
-
+var  UnitTime = map[string]int64{
+	"hour":3600,
+	"min":60,
+	"second":1,
+}
 var log = log15.New("module", "p2p.peer")
 
+func CaculateLifeTime(timestr string)(int64,error ) {
+	var lifetime int64
+	if timestr==""{
+		return lifetime,nil
+	}
+	for substr, time := range UnitTime {
+		if strings.HasSuffix(timestr, substr) {
+
+			num := strings.TrimRight(timestr, substr)
+			f, err := strconv.ParseFloat(num, 64)
+			if err != nil {
+				return 0, err
+			}
+			lifetime = int64(f * float64(time))
+			break
+		}
+	}
+
+	return lifetime, nil
+}
 func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
@@ -83,7 +108,12 @@ func InitProtocol(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventRemoveTopic, p.handleEventRemoveTopic)
 	//发布消息
 	protocol.RegisterEventHandler(types.EventPubTopicMsg, p.handleEventPubMsg)
-
+	//添加节点到黑名单
+	protocol.RegisterEventHandler(types.EventAddBlacklist,p.handleEventAddBlacklist)
+	//删除黑名单的某个节点
+	protocol.RegisterEventHandler(types.EventDelBlacklist,p.handleEventDelBlacklist)
+	//获取当前的黑名单节点列表
+	protocol.RegisterEventHandler(types.EventShowBlacklist,p.handleEventShowBlacklist)
 	go p.detectNodeAddr()
 	go func() {
 		ticker := time.NewTicker(time.Second / 2)

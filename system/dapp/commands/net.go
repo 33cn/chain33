@@ -5,11 +5,10 @@
 package commands
 
 import (
-	"github.com/33cn/chain33/types"
-	"github.com/spf13/cobra"
-
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
+	"github.com/33cn/chain33/types"
+	"github.com/spf13/cobra"
 )
 
 // NetCmd net command
@@ -28,6 +27,7 @@ func NetCmd() *cobra.Command {
 		GetFatalFailureCmd(),
 		GetTimeStausCmd(),
 		NetProtocolsCmd(),
+
 	)
 
 	return cmd
@@ -157,4 +157,108 @@ func timestatus(cmd *cobra.Command, args []string) {
 	var res rpctypes.TimeStatus
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetTimeStatus", nil, &res)
 	ctx.Run()
+}
+
+//BlacklistCmd get all prototols netinfo
+func BlacklistCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "blacklist",
+		Short: "block peer connect p2p network",
+		Args:  cobra.MinimumNArgs(1),
+	}
+
+	cmd.AddCommand(
+		Add(),
+		Del(),
+		Show(),
+	)
+	return cmd
+}
+
+func Add()*cobra.Command{
+	cmd := &cobra.Command{
+		Use:   "add",
+		Short: "add peer or IP to blacklist",
+		Run:   addblacklist,
+	}
+	cmd.Flags().StringP("time", "t", "", "lifetime such as: 1 hour,1 min,1 second")
+	addBlackFlags(cmd)
+	return cmd
+}
+
+func Del()*cobra.Command{
+	cmd := &cobra.Command{
+		Use:   "del",
+		Short: "delete peer from blacklist",
+		Run:   delblacklist,
+	}
+	addBlackFlags(cmd)
+	return cmd
+}
+
+func Show()*cobra.Command{
+	//黑名单列表打印出来
+	cmd := &cobra.Command{
+		Use:   "show",
+		Short: "show all peer from blacklist",
+		Run:   showblacklist,
+	}
+	return cmd
+
+}
+
+func addBlackFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "", "", "add peer address to blacklist")
+	cmd.Flags().StringP("pid", "", "", "add  peer id to blacklist")
+}
+
+func addblacklist(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	peerName ,_:=cmd.Flags().GetString("pid")
+	PeerAddr ,_:=cmd.Flags().GetString("addr")
+	lifetime ,_:=cmd.Flags().GetString("time")
+
+	var res  string
+	var peer types.BlackPeer
+	peer.Lifetime=lifetime
+	if PeerAddr !=""{
+		peer.PeerAddr=PeerAddr
+	}else if peerName!=""{
+		peer.PeerName=peerName
+	}else{
+		cmd.Usage()
+		return
+	}
+
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddBlacklist",&peer, &res)
+	ctx.Run()
+}
+
+func delblacklist(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	peerName ,_:=cmd.Flags().GetString("pid")
+	PeerAddr ,_:=cmd.Flags().GetString("addr")
+
+	var res  string
+	var peer types.BlackPeer
+	if PeerAddr !=""{
+		peer.PeerAddr=PeerAddr
+	}else if peerName!=""{
+		peer.PeerName=peerName
+	}else{
+		cmd.Usage()
+		return
+	}
+
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DelBlacklist", &peer, &res)
+	ctx.Run()
+
+}
+
+func showblacklist(cmd *cobra.Command, args []string) {
+	var res=new([]*types.BlackInfo)
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ShowBlacklist", nil, &res)
+	ctx.Run()
+
 }

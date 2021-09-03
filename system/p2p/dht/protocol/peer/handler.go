@@ -2,6 +2,7 @@ package peer
 
 import (
 	"encoding/json"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"time"
 
 	"github.com/33cn/chain33/queue"
@@ -178,4 +179,53 @@ func (p *Protocol) handleEventNetInfo(msg *queue.Message) {
 	netinfo.Rateout = p.ConnManager.RateCalculate(netstat.RateOut)
 	netinfo.Ratetotal = p.ConnManager.RateCalculate(netstat.RateOut + netstat.RateIn)
 	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReplyNetInfo, &netinfo))
+}
+
+
+func (p *Protocol)handleEventAddBlacklist(msg *queue.Message){
+	peer,ok:= msg.GetData().(*types.BlackPeer)
+	if !ok{
+		msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:false,Msg: []byte("format err")}))
+	}
+	lifeTime,err:=CaculateLifeTime(peer.GetLifetime())
+	if err!=nil{
+		msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:false,Msg: []byte("invalid lifetime")}))
+		return
+	}
+	var timeduration time.Duration
+	if lifeTime==0{
+		//default 1 year
+		timeduration=time.Hour*24*365
+	}else{
+		timeduration=time.Duration(lifeTime)
+	}
+	p.P2PEnv.ConnBlackList.Add(peer.GetPeerName(),timeduration)// default ten year
+	msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:true,Msg: []byte("add sucess")}))
+
+}
+
+func (p *Protocol)handleEventDelBlacklist(msg *queue.Message){
+	peer,ok:= msg.GetData().(*types.BlackPeer)
+	if !ok{
+		msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:false,Msg: []byte("format err")}))
+	}
+	if p.P2PEnv.ConnBlackList.Has(peer.GetPeerName()){
+		p.P2PEnv.ConnBlackList.Add(peer.GetPeerName(),time.Millisecond)
+		msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:true,Msg: []byte("sucess")}))
+		return
+	}
+	msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:false,Msg: []byte("no this peerName")}))
+	return
+
+}
+
+func (p*Protocol)handleEventShowBlacklist(msg *queue.Message){
+	peers:= p.P2PEnv.ConnBlackList.List()
+	//添加peer remoteAddr
+	for _,blackPeer:=range peers.GetBlackinfo(){
+		info:= p.P2PEnv.Host.Peerstore().PeerInfo(peer.ID(blackPeer.GetPeerName()))
+		blackPeer.RemoteAddr=info.String()
+	}
+	msg.Reply(p.QueueClient.NewMessage("rpc",types.EventShowBlacklist,peers))
+
 }

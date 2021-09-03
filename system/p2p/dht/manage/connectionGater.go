@@ -3,7 +3,9 @@ package manage
 import (
 	"container/list"
 	"context"
+	"github.com/33cn/chain33/types"
 	"runtime"
+	"sort"
 	"sync"
 	"time"
 
@@ -164,6 +166,19 @@ type TimeCache struct {
 	ctx       context.Context
 	span      time.Duration
 }
+//对系统的连接时长按照从大到小的顺序排序
+type blacklist types.Blacklist
+
+//Len
+func (c blacklist) Len() int { return len(c.Blackinfo) }
+
+//Swap
+func (c blacklist) Swap(i, j int) { c.Blackinfo[i], c.Blackinfo[j] = c.Blackinfo[j], c.Blackinfo[i] }
+
+//Less
+func (c blacklist) Less(i, j int) bool { //从大到小排序，即index=0 ，表示数值最大
+	return c.Blackinfo[i].Lifetime<c.Blackinfo[i].Lifetime
+}
 
 //NewTimeCache new time cache obj.
 func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
@@ -234,4 +249,16 @@ func (tc *TimeCache) Has(s string) bool {
 
 	_, ok := tc.M[s]
 	return ok
+}
+
+//show all peers
+func (tc*TimeCache)List()*types.Blacklist{
+	tc.cacheLock.Lock()
+	defer tc.cacheLock.Unlock()
+	var list blacklist
+	for pid,p:=range tc.M{
+		list.Blackinfo=append(list.Blackinfo,&types.BlackInfo{PeerName:pid, Lifetime:int64(time.Now().Sub(p).Seconds() )})
+	}
+	sort.Sort(list)
+	return (*types.Blacklist)(&list)
 }

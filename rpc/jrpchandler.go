@@ -1605,3 +1605,46 @@ func (c *Chain33) GetChainConfig(in *types.ReqNil, result *interface{}) error {
 	*result = info
 	return nil
 }
+
+//AddBlacklist add peer to blacklist ,time deadline:10 years
+func (c *Chain33)AddBlacklist(in *types.BlackPeer,result *interface{})error{
+	reply,err:=	c.cli.AddBlacklist(in)
+	if err!=nil{
+		return  err
+	}
+	if reply.GetIsOk(){
+		*result= string(reply.GetMsg())
+		return nil
+	}
+
+	return errors.New(string(reply.GetMsg()))
+}
+
+//DelBlacklist delete peer from blacklist
+func (c *Chain33)DelBlacklist(in *types.BlackPeer,result *interface{})error{
+	reply,err:=	c.cli.DelBlacklist(in)
+	if err!=nil{
+		return  err
+	}
+	if reply.GetIsOk(){
+		*result= string(reply.GetMsg())
+		return nil
+	}
+
+	return errors.New(string(reply.GetMsg()))
+}
+
+
+//ShowBlacklist show all peers from blacklist
+func (c*Chain33)ShowBlacklist(in*types.ReqNil,result *interface{})error{
+	reply,err:=	c.cli.ShowBlacklist(in)
+	if err!=nil{
+		return  err
+	}
+
+	*result= reply.GetBlackinfo()
+	return nil
+
+
+
+}
