@@ -38,7 +38,7 @@ func (cache *LastTxCache) Push(tx *types.Transaction, txHash string) {
 	if cache.l.Size() >= cache.max {
 		v := cache.l.GetTop()
 		if v != nil {
-			cache.Remove(txHash)
+			cache.Remove(string(v.(*types.Transaction).Hash()))
 		}
 	}
 	cache.l.Push(txHash, tx)
