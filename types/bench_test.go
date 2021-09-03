@@ -138,3 +138,26 @@ func Test_ProtoOneOfReflect(t *testing.T) {
 	des = tx.ProtoReflect().Descriptor()
 	require.Equal(t, 0, des.Oneofs().Len())
 }
+
+func BenchmarkProtoReset(b *testing.B) {
+	_, priv := util.Genaddress()
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	tx := util.CreateNoneTx(cfg, priv)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		tx.Reset()
+	}
+}
+
+func BenchmarkTxHash(b *testing.B) {
+
+	_, priv := util.Genaddress()
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	tx := util.CreateNoneTx(cfg, priv)
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		tx.Hash()
+	}
+}

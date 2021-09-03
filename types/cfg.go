@@ -281,8 +281,8 @@ type Exec struct {
 	// 是否保存token交易信息
 	SaveTokenTxList    bool `json:"saveTokenTxList,omitempty"`
 	EnableAddrFeeIndex bool `json:"enableAddrFeeIndex,omitempty"`
-	DisableTxIndex bool     `json:"disableTxIndex,omitempty"`
-	DisableFeeIndex bool    `json:"disableFeeIndex,omitempty"`
+	DisableTxIndex     bool `json:"disableTxIndex,omitempty"`
+	DisableFeeIndex    bool `json:"disableFeeIndex,omitempty"`
 }
 
 // Pprof 配置
