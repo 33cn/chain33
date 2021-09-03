@@ -202,13 +202,26 @@ func GetRealExecName(execer []byte) []byte {
 	return execer
 }
 
-//Encode  protobuf V2(golang/protobuf 1.4.0+)
+// EncodeWithBuffer encode with input buffer
+func EncodeWithBuffer(data proto.Message, buf *proto.Buffer) []byte {
+	return encodeProto(data, buf)
+}
+
+//Encode encode msg
+func Encode(data proto.Message) []byte {
+	return encodeProto(data, nil)
+}
+
+// protobuf V2(golang/protobuf 1.4.0+)
 // 版本默认Marshal接口不保证序列化结果一致性, 需要主动设置相关标志
 // 即使设置了deterministic标志, protobuf官方也不保证后续版本升级以及跨语言的序列化结果一致
 // 即该标志只能保证当前版本具备一致性
-func Encode(data proto.Message) []byte {
-	var b [0]byte
-	buf := proto.NewBuffer(b[:])
+func encodeProto(data proto.Message, buf *proto.Buffer) []byte {
+
+	if buf == nil {
+		var b [0]byte
+		buf = proto.NewBuffer(b[:])
+	}
 	// 设置确定性编码
 	buf.SetDeterministic(true)
 	err := buf.Marshal(data)
@@ -532,7 +545,7 @@ func (b *BlockDetail) Clone() *BlockDetail {
 	}
 	return &BlockDetail{
 		Block:          b.Block.Clone(),
-		Receipts:       cloneReceipts(b.Receipts),
+		Receipts:       CloneReceipts(b.Receipts),
 		KV:             cloneKVList(b.KV),
 		PrevStatusHash: b.PrevStatusHash,
 	}
@@ -598,7 +611,7 @@ func (b *BlockBody) Clone() *BlockBody {
 	}
 	return &BlockBody{
 		Txs:        cloneTxs(b.Txs),
-		Receipts:   cloneReceipts(b.Receipts),
+		Receipts:   CloneReceipts(b.Receipts),
 		MainHash:   b.MainHash,
 		MainHeight: b.MainHeight,
 		Hash:       b.Hash,
@@ -606,8 +619,8 @@ func (b *BlockBody) Clone() *BlockBody {
 	}
 }
 
-//cloneReceipts 浅拷贝交易回报
-func cloneReceipts(b []*ReceiptData) []*ReceiptData {
+//CloneReceipts 浅拷贝交易回报
+func CloneReceipts(b []*ReceiptData) []*ReceiptData {
 	if b == nil {
 		return nil
 	}
