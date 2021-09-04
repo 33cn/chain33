@@ -1107,6 +1107,7 @@ func (q *QueueProtocol) AddBlacklist(req *types.BlackPeer) (*types.Reply, error)
 	if reply, ok := msg.GetData().(*types.Reply); ok {
 		return  reply,nil
 	}
+
 	return nil, types.ErrInvalidParam
 }
 

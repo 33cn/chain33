@@ -15,7 +15,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
-	net "github.com/multiformats/go-multiaddr-net"
+	//net "github.com/multiformats/go-multiaddr-net"
+	net "github.com/multiformats/go-multiaddr/net"
 )
 
 const (
@@ -81,8 +82,8 @@ func (s *Conngater) checkWhitePeerList(p peer.ID) bool {
 
 // InterceptAddrDial tests whether we're permitted to dial the specified
 // multiaddr for the given peer.
-func (s *Conngater) InterceptAddrDial(_ peer.ID, m multiaddr.Multiaddr) (allow bool) {
-	return true
+func (s *Conngater) InterceptAddrDial(p peer.ID, m multiaddr.Multiaddr) (allow bool) {
+	return !s.blacklist.Has(p.Pretty())
 }
 
 // InterceptAccept tests whether an incipient inbound connection is allowed.
@@ -97,6 +98,7 @@ func (s *Conngater) InterceptAccept(n network.ConnMultiaddrs) (allow bool) {
 	if !s.checkWhitAddr(n.RemoteMultiaddr()) {
 		return false
 	}
+
 	return !s.isPeerAtLimit(network.DirInbound)
 
 }
@@ -122,8 +124,8 @@ func (s *Conngater) checkWhitAddr(addr multiaddr.Multiaddr) bool {
 
 // InterceptSecured tests whether a given connection, now authenticated,
 // is allowed.
-func (s *Conngater) InterceptSecured(_ network.Direction, _ peer.ID, n network.ConnMultiaddrs) (allow bool) {
-	return true
+func (s *Conngater) InterceptSecured(_ network.Direction, p peer.ID, n network.ConnMultiaddrs) (allow bool) {
+	return !s.blacklist.Has(p.Pretty())
 }
 
 // InterceptUpgraded tests whether a fully capable connection is allowed.
@@ -166,6 +168,7 @@ type TimeCache struct {
 	ctx       context.Context
 	span      time.Duration
 }
+
 //对系统的连接时长按照从大到小的顺序排序
 type blacklist types.Blacklist
 
@@ -176,8 +179,8 @@ func (c blacklist) Len() int { return len(c.Blackinfo) }
 func (c blacklist) Swap(i, j int) { c.Blackinfo[i], c.Blackinfo[j] = c.Blackinfo[j], c.Blackinfo[i] }
 
 //Less
-func (c blacklist) Less(i, j int) bool { //从大到小排序，即index=0 ，表示数值最大
-	return c.Blackinfo[i].Lifetime<c.Blackinfo[i].Lifetime
+func (c blacklist) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最大
+	return c.Blackinfo[i].Lifetime < c.Blackinfo[j].Lifetime
 }
 
 //NewTimeCache new time cache obj.
@@ -210,6 +213,7 @@ func (tc *TimeCache) Add(s string, lifetime time.Duration) {
 func (tc *TimeCache) sweep() {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
+	tc.checkOvertimekey()
 
 	for {
 		select {
@@ -225,21 +229,19 @@ func (tc *TimeCache) sweep() {
 func (tc *TimeCache) checkOvertimekey() {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()
+	for e := tc.Q.Front(); e != nil; e = e.Next() {
+		v := e.Value.(string)
+		t, ok := tc.M[v]
+		if !ok {
+			continue
+		}
 
-	back := tc.Q.Back()
-	if back == nil {
-		return
+		if time.Now().After(t) {
+			tc.Q.Remove(e)
+			delete(tc.M, v)
+		}
 	}
-	v := back.Value.(string)
-	t, ok := tc.M[v]
-	if !ok {
-		return
-	}
-	//if time.Since(t) > tc.span {
-	if time.Now().After(t) {
-		tc.Q.Remove(back)
-		delete(tc.M, v)
-	}
+
 }
 
 //Has check key
@@ -252,12 +254,12 @@ func (tc *TimeCache) Has(s string) bool {
 }
 
 //show all peers
-func (tc*TimeCache)List()*types.Blacklist{
+func (tc *TimeCache) List() *types.Blacklist {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()
 	var list blacklist
-	for pid,p:=range tc.M{
-		list.Blackinfo=append(list.Blackinfo,&types.BlackInfo{PeerName:pid, Lifetime:int64(time.Now().Sub(p).Seconds() )})
+	for pid, p := range tc.M {
+		list.Blackinfo = append(list.Blackinfo, &types.BlackInfo{PeerName: pid, Lifetime: ^(int64(time.Now().Sub(p).Seconds())) + 1})
 	}
 	sort.Sort(list)
 	return (*types.Blacklist)(&list)

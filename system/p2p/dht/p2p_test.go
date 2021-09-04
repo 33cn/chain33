@@ -160,7 +160,7 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 	qcli.Send(msg, false)
 	require.True(t, qcli.Send(msg, false) == nil)
 
-	msg = qcli.NewMessage("p2p", types.EventAddBlacklist, &types.BlackPeer{PeerName: "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM",Lifetime: "1second"})
+	msg = qcli.NewMessage("p2p", types.EventAddBlacklist, &types.BlackPeer{PeerName: "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM", Lifetime: "1second"})
 	qcli.Send(msg, false)
 	require.True(t, qcli.Send(msg, false) == nil)
 
@@ -171,8 +171,6 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 	msg = qcli.NewMessage("p2p", types.EventDelBlacklist, &types.BlackPeer{PeerName: "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"})
 	qcli.Send(msg, false)
 	require.True(t, qcli.Send(msg, false) == nil)
-
-
 
 }
 

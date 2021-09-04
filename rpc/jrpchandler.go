@@ -1612,12 +1612,10 @@ func (c *Chain33)AddBlacklist(in *types.BlackPeer,result *interface{})error{
 	if err!=nil{
 		return  err
 	}
-	if reply.GetIsOk(){
-		*result= string(reply.GetMsg())
-		return nil
-	}
 
-	return errors.New(string(reply.GetMsg()))
+	*result=reply
+	return nil
+
 }
 
 //DelBlacklist delete peer from blacklist
@@ -1626,12 +1624,10 @@ func (c *Chain33)DelBlacklist(in *types.BlackPeer,result *interface{})error{
 	if err!=nil{
 		return  err
 	}
-	if reply.GetIsOk(){
-		*result= string(reply.GetMsg())
-		return nil
-	}
+	*result=reply
+	return nil
 
-	return errors.New(string(reply.GetMsg()))
+
 }
 
 
@@ -1644,7 +1640,5 @@ func (c*Chain33)ShowBlacklist(in*types.ReqNil,result *interface{})error{
 
 	*result= reply.GetBlackinfo()
 	return nil
-
-
 
 }

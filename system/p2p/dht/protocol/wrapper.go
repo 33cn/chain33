@@ -407,9 +407,3 @@ func AwaitEOF(s network.Stream) error {
 	}
 	return s.Close()
 }
-
-
-
-
-
-

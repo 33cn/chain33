@@ -40,7 +40,7 @@ type P2PEnv struct {
 type iLRU interface {
 	Add(s string, t time.Duration)
 	Has(s string) bool
-	List()*types.Blacklist
+	List() *types.Blacklist
 }
 
 // IPeerInfoManager is interface of PeerInfoManager

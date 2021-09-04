@@ -2,6 +2,7 @@ package peer
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"time"
 
@@ -181,51 +182,80 @@ func (p *Protocol) handleEventNetInfo(msg *queue.Message) {
 	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReplyNetInfo, &netinfo))
 }
 
+//add peerName to blacklist
+func (p *Protocol) handleEventAddBlacklist(msg *queue.Message) {
+	var err error
+	defer func() {
+		if err != nil {
+			msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+		}
 
-func (p *Protocol)handleEventAddBlacklist(msg *queue.Message){
-	peer,ok:= msg.GetData().(*types.BlackPeer)
-	if !ok{
-		msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:false,Msg: []byte("format err")}))
+	}()
+	blackPeer, ok := msg.GetData().(*types.BlackPeer)
+	if !ok {
+		err = types.ErrInvalidParam
+		return
 	}
-	lifeTime,err:=CaculateLifeTime(peer.GetLifetime())
-	if err!=nil{
-		msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:false,Msg: []byte("invalid lifetime")}))
+	lifeTime, err := CaculateLifeTime(blackPeer.GetLifetime())
+	if err != nil {
+		err = errors.New("invalid lifetime")
 		return
 	}
 	var timeduration time.Duration
-	if lifeTime==0{
+	if lifeTime == 0 {
 		//default 1 year
-		timeduration=time.Hour*24*365
-	}else{
-		timeduration=time.Duration(lifeTime)
+		timeduration = time.Hour * 24 * 365
+	} else {
+		timeduration = time.Duration(lifeTime)
 	}
-	p.P2PEnv.ConnBlackList.Add(peer.GetPeerName(),timeduration)// default ten year
-	msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:true,Msg: []byte("add sucess")}))
+	//check peerID format
+	_, err = peer.Decode(blackPeer.PeerName)
+	if err != nil {
+		err = errors.New("invalid peerName")
+		return
+	}
+
+	p.P2PEnv.ConnBlackList.Add(blackPeer.GetPeerName(), timeduration)
+	//close peer
+	p.P2PEnv.Host.Network().ClosePeer(peer.ID(blackPeer.GetPeerName()))
+	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: []byte("success")}))
 
 }
 
-func (p *Protocol)handleEventDelBlacklist(msg *queue.Message){
-	peer,ok:= msg.GetData().(*types.BlackPeer)
-	if !ok{
-		msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:false,Msg: []byte("format err")}))
-	}
-	if p.P2PEnv.ConnBlackList.Has(peer.GetPeerName()){
-		p.P2PEnv.ConnBlackList.Add(peer.GetPeerName(),time.Millisecond)
-		msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:true,Msg: []byte("sucess")}))
+//delete peerName from blacklist
+func (p *Protocol) handleEventDelBlacklist(msg *queue.Message) {
+	var err error
+	defer func() {
+		if err != nil {
+			msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+		}
+
+	}()
+
+	blackPeer, ok := msg.GetData().(*types.BlackPeer)
+	if !ok {
+		err = types.ErrInvalidParam
 		return
 	}
-	msg.Reply(p.QueueClient.NewMessage("rpc",types.EventReply,types.Reply{IsOk:false,Msg: []byte("no this peerName")}))
+	if p.P2PEnv.ConnBlackList.Has(blackPeer.GetPeerName()) {
+		p.P2PEnv.ConnBlackList.Add(blackPeer.GetPeerName(), time.Millisecond)
+		msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: []byte("sucess")}))
+		return
+	}
+	err = errors.New("no this peerName")
 	return
 
 }
 
-func (p*Protocol)handleEventShowBlacklist(msg *queue.Message){
-	peers:= p.P2PEnv.ConnBlackList.List()
+//show all peers from blacklist
+
+func (p *Protocol) handleEventShowBlacklist(msg *queue.Message) {
+	peers := p.P2PEnv.ConnBlackList.List()
 	//添加peer remoteAddr
-	for _,blackPeer:=range peers.GetBlackinfo(){
-		info:= p.P2PEnv.Host.Peerstore().PeerInfo(peer.ID(blackPeer.GetPeerName()))
-		blackPeer.RemoteAddr=info.String()
+	for _, blackPeer := range peers.GetBlackinfo() {
+		info := p.P2PEnv.Host.Peerstore().PeerInfo(peer.ID(blackPeer.GetPeerName()))
+		blackPeer.RemoteAddr = info.String()
 	}
-	msg.Reply(p.QueueClient.NewMessage("rpc",types.EventShowBlacklist,peers))
+	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventShowBlacklist, peers))
 
 }
