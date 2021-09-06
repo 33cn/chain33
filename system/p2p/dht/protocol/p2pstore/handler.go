@@ -241,21 +241,16 @@ func (p *Protocol) handleStreamIsFullNode(resp *types.P2PResponse) error {
 
 func (p *Protocol) handleStreamFetchShardPeers(req *types.P2PRequest, res *types.P2PResponse) error {
 	reqPeers := req.GetRequest().(*types.P2PRequest_ReqPeers).ReqPeers
-	count := int(reqPeers.Count)
-	if count <= 0 {
-		count = 200
+	var peers []peer.ID
+	if reqPeers.Count == 0 {
+		peers = p.getExtendRoutingTable().ListPeers()
+	} else if reqPeers.ReferKey == nil {
+		peers = p.getExtendRoutingTable().NearestPeers(kb.ConvertPeerID(p.Host.ID()), int(reqPeers.Count))
+	} else {
+		peers = p.getExtendRoutingTable().NearestPeers(genDHTID(reqPeers.ReferKey), int(reqPeers.Count))
 	}
-	peers := p.RoutingTable.NearestPeers(genDHTID(reqPeers.ReferKey), p.RoutingTable.Size())
-	var activePeers []peer.ID
+
 	for _, pid := range peers {
-		if p.PeerInfoManager.PeerHeight(pid)+512 > p.PeerInfoManager.PeerHeight(p.Host.ID()) {
-			activePeers = append(activePeers, pid)
-		}
-		if len(activePeers) >= count {
-			break
-		}
-	}
-	for _, pid := range activePeers {
 		var addrs [][]byte
 		for _, addr := range p.Host.Peerstore().Addrs(pid) {
 			addrs = append(addrs, addr.Bytes())
@@ -402,11 +397,11 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 
 	//如果本节点是扩展路由表中距离该chunk最近的 `Percentage` 节点之一，则保存数据；否则不需要保存数据
 	extendRoutingTable := p.getExtendRoutingTable()
-	pids := extendRoutingTable.NearestPeers(genDHTID(req.ChunkHash), 100)
+	pids := extendRoutingTable.NearestPeers(genDHTID(req.ChunkHash), extendRoutingTable.Size())
 	if len(pids) > 0 && kb.Closer(pids[len(pids)*p.SubConfig.Percentage/100], p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}
-	log.Info("handleEventNotifyStoreChunk", "local nearest peer", p.Host.ID(), "chunk hash", hex.EncodeToString(req.ChunkHash))
+	log.Info("handleEventNotifyStoreChunk", "peers count", len(pids), "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End)
 	if err = p.storeChunk(req); err != nil {
 		log.Error("HandleEventNotifyStoreChunk", "storeChunk error", err, "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End)
 	}
@@ -490,7 +485,7 @@ func (p *Protocol) handleEventGetHeaders(m *queue.Message) {
 		return
 	}
 	m.Reply(p.QueueClient.NewMessage("blockchain", types.EventReply, types.Reply{IsOk: true, Msg: []byte("ok")}))
-	headers, pid := p.getHeadersOld(req)
+	headers, pid := p.getHeaders(req)
 	if headers == nil || len(headers.Items) == 0 {
 		return
 	}
