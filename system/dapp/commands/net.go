@@ -208,7 +208,7 @@ func Show()*cobra.Command{
 }
 
 func addBlackFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "", "", "add peer address to blacklist")
+	cmd.Flags().StringP("addr", "", "", "add peer address to blacklist ,used only gossip network")
 	cmd.Flags().StringP("pid", "", "", "add  peer id to blacklist")
 }
 
@@ -218,7 +218,7 @@ func addblacklist(cmd *cobra.Command, args []string) {
 	PeerAddr ,_:=cmd.Flags().GetString("addr")
 	lifetime ,_:=cmd.Flags().GetString("time")
 
-	var res  string
+	var res  interface{}
 	var peer types.BlackPeer
 	peer.Lifetime=lifetime
 	if PeerAddr !=""{
@@ -239,7 +239,7 @@ func delblacklist(cmd *cobra.Command, args []string) {
 	peerName ,_:=cmd.Flags().GetString("pid")
 	PeerAddr ,_:=cmd.Flags().GetString("addr")
 
-	var res  string
+	var res interface{}
 	var peer types.BlackPeer
 	if PeerAddr !=""{
 		peer.PeerAddr=PeerAddr

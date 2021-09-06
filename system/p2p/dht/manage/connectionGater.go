@@ -43,6 +43,10 @@ type Conngater struct {
 func NewConnGater(h *host.Host, limit int32, cache *TimeCache, whitPeers []*peer.AddrInfo) *Conngater {
 	gater := &Conngater{}
 	gater.host = h
+	if limit == 0 {
+		limit = 4096
+	}
+
 	gater.maxConnectNum = limit
 	gater.blacklist = cache
 	if gater.blacklist == nil {
@@ -130,7 +134,7 @@ func (s *Conngater) InterceptSecured(_ network.Direction, p peer.ID, n network.C
 
 // InterceptUpgraded tests whether a fully capable connection is allowed.
 func (s *Conngater) InterceptUpgraded(n network.Conn) (allow bool, reason control.DisconnectReason) {
-	return true, 0
+	return !s.blacklist.Has(n.RemotePeer().Pretty()), 0
 }
 
 func (s *Conngater) validateDial(addr multiaddr.Multiaddr) bool {
@@ -172,13 +176,10 @@ type TimeCache struct {
 //对系统的连接时长按照从大到小的顺序排序
 type blacklist types.Blacklist
 
-//Len
 func (c blacklist) Len() int { return len(c.Blackinfo) }
 
-//Swap
 func (c blacklist) Swap(i, j int) { c.Blackinfo[i], c.Blackinfo[j] = c.Blackinfo[j], c.Blackinfo[i] }
 
-//Less
 func (c blacklist) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最大
 	return c.Blackinfo[i].Lifetime < c.Blackinfo[j].Lifetime
 }
@@ -199,15 +200,13 @@ func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
 func (tc *TimeCache) Add(s string, lifetime time.Duration) {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()
-	_, ok := tc.M[s]
-	if ok {
-		return
-	}
+
 	if lifetime == 0 {
 		lifetime = tc.span
 	}
-	tc.M[s] = time.Now().Add(lifetime)
+	tc.M[s] = time.Now().Add(lifetime) //update lifetime
 	tc.Q.PushFront(s)
+
 }
 
 func (tc *TimeCache) sweep() {
@@ -233,6 +232,7 @@ func (tc *TimeCache) checkOvertimekey() {
 		v := e.Value.(string)
 		t, ok := tc.M[v]
 		if !ok {
+			tc.Q.Remove(e)
 			continue
 		}
 
@@ -253,7 +253,7 @@ func (tc *TimeCache) Has(s string) bool {
 	return ok
 }
 
-//show all peers
+//List show all peers
 func (tc *TimeCache) List() *types.Blacklist {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()

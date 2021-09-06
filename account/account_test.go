@@ -231,6 +231,7 @@ func TestAccountName(t *testing.T) {
 	t.Log("myAddr of paracorss", fromAcc)
 }
 
+
 func TestGetExecBalance(t *testing.T) {
 	key := "mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp:1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 	addr := "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"

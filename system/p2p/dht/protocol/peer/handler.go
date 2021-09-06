@@ -206,18 +206,20 @@ func (p *Protocol) handleEventAddBlacklist(msg *queue.Message) {
 		//default 1 year
 		timeduration = time.Hour * 24 * 365
 	} else {
-		timeduration = time.Duration(lifeTime)
+		timeduration = lifeTime
 	}
 	//check peerID format
-	_, err = peer.Decode(blackPeer.PeerName)
+	var pid peer.ID
+	pid, err = peer.Decode(blackPeer.GetPeerName())
 	if err != nil {
-		err = errors.New("invalid peerName")
 		return
 	}
-
+	err = p.P2PEnv.Host.Network().ClosePeer(pid)
+	if err != nil {
+		log.Error("handleEventAddBlacklist", "close peer", err)
+	}
 	p.P2PEnv.ConnBlackList.Add(blackPeer.GetPeerName(), timeduration)
-	//close peer
-	p.P2PEnv.Host.Network().ClosePeer(peer.ID(blackPeer.GetPeerName()))
+
 	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: []byte("success")}))
 
 }
@@ -239,7 +241,7 @@ func (p *Protocol) handleEventDelBlacklist(msg *queue.Message) {
 	}
 	if p.P2PEnv.ConnBlackList.Has(blackPeer.GetPeerName()) {
 		p.P2PEnv.ConnBlackList.Add(blackPeer.GetPeerName(), time.Millisecond)
-		msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: []byte("sucess")}))
+		msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: []byte("success")}))
 		return
 	}
 	err = errors.New("no this peerName")
@@ -254,7 +256,9 @@ func (p *Protocol) handleEventShowBlacklist(msg *queue.Message) {
 	//添加peer remoteAddr
 	for _, blackPeer := range peers.GetBlackinfo() {
 		info := p.P2PEnv.Host.Peerstore().PeerInfo(peer.ID(blackPeer.GetPeerName()))
-		blackPeer.RemoteAddr = info.String()
+		if len(info.Addrs) > 0 {
+			blackPeer.RemoteAddr = info.Addrs[0].String()
+		}
 	}
 	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventShowBlacklist, peers))
 

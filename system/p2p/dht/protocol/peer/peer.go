@@ -33,10 +33,10 @@ var UnitTime = map[string]int64{
 }
 var log = log15.New("module", "p2p.peer")
 
-func CaculateLifeTime(timestr string) (int64, error) {
+func CaculateLifeTime(timestr string) (time.Duration, error) {
 	var lifetime int64
 	if timestr == "" {
-		return lifetime, nil
+		return 0, nil
 	}
 	for substr, time := range UnitTime {
 		if strings.HasSuffix(timestr, substr) {
@@ -51,7 +51,7 @@ func CaculateLifeTime(timestr string) (int64, error) {
 		}
 	}
 
-	return lifetime, nil
+	return time.Duration(lifetime) * time.Second, nil
 }
 func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)

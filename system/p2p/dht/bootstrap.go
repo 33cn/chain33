@@ -23,8 +23,9 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 			log.Error("Host Connect", "err", err, "peer", info.ID)
 			continue
 		}
+		log.Info("------------------------------------------------->")
 		//加保护
-		host.ConnManager().Protect(info.ID, "seed")
+		//host.ConnManager().Protect(info.ID, "seed")
 	}
 
 	for _, node := range cfg.BootStraps {
