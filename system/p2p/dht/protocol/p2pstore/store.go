@@ -50,6 +50,13 @@ func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
 		p.localChunkInfo[mapKey] = info
 		return nil
 	}
+	if _, err := p.DB.Get(genChunkDBKey(req.Start)); err == nil {
+		p.localChunkInfo[mapKey] = LocalChunkInfo{
+			ChunkInfoMsg: req,
+			Time: time.Now(),
+		}
+		return nil
+	}
 
 	return types2.ErrNotFound
 }
@@ -73,13 +80,15 @@ func (p *Protocol) deleteChunkBlock(msg *types.ChunkInfoMsg) error {
 // 获取本地chunk数据
 func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
 
-	if _, ok := p.getChunkInfoByHash(req.ChunkHash); !ok {
-		return nil, types2.ErrNotFound
-	}
+	// TODO: 处理特殊情况
+	// 新节点从其他节点拷贝了p2pstore
+	//if _, ok := p.getChunkInfoByHash(req.ChunkHash); !ok {
+	//	return nil, types2.ErrNotFound
+	//}
 	var bodys []*types.BlockBody
 	it := p.DB.Iterator(genChunkDBKey(req.Start), genChunkDBKey(req.End+1), false)
 	defer it.Close()
-	for it.Next(); it.Valid(); it.Next() {
+	for it.Rewind(); it.Valid(); it.Next() {
 		var body types.BlockBody
 		if err := types.Decode(it.Value(), &body); err != nil {
 			return nil, err
