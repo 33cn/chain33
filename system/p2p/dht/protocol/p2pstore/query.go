@@ -234,50 +234,6 @@ func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID
 	return p.mustFetchChunk(req)
 }
 
-func (p *Protocol) getHeadersOld(param *types.ReqBlocks) (*types.Headers, peer.ID) {
-	req := types.P2PGetHeaders{
-		StartHeight: param.Start,
-		EndHeight:   param.End,
-	}
-	for _, peerID := range param.Pid {
-		pid, err := peer.Decode(peerID)
-		if err != nil {
-			log.Error("getHeaders", "decode pid error", err)
-			continue
-		}
-		headers, err := p.getHeadersFromPeerOld(&req, pid)
-		if err != nil {
-			continue
-		}
-		return headers, pid
-	}
-	return nil, ""
-}
-
-func (p *Protocol) getHeadersFromPeerOld(req *types.P2PGetHeaders, pid peer.ID) (*types.Headers, error) {
-	p.Host.ConnManager().Protect(pid, getHeaderOld)
-	defer p.Host.ConnManager().Unprotect(pid, getHeaderOld)
-	stream, err := p.Host.NewStream(p.Ctx, pid, getHeaderOld)
-	if err != nil {
-		return nil, err
-	}
-	defer stream.Close()
-	err = protocol.WriteStream(&types.MessageHeaderReq{
-		Message: req,
-	}, stream)
-	if err != nil {
-		return nil, err
-	}
-	var resp types.MessageHeaderResp
-	err = protocol.ReadStream(&resp, stream)
-	if err != nil {
-		return nil, err
-	}
-	return &types.Headers{
-		Items: resp.Message.Headers,
-	}, nil
-}
-
 func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) {
 	for _, peerID := range param.Pid {
 		pid, err := peer.Decode(peerID)
@@ -310,7 +266,7 @@ func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) 
 }
 
 func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*types.Headers, error) {
-	childCtx, cancel := context.WithTimeout(p.Ctx, 30*time.Second)
+	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, getHeader)
 	defer p.Host.ConnManager().Unprotect(pid, getHeader)
@@ -318,6 +274,7 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 	if err != nil {
 		return nil, err
 	}
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
 	defer stream.Close()
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ReqBlocks{
@@ -368,7 +325,7 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 }
 
 func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid peer.ID) (*types.ChunkRecords, error) {
-	childCtx, cancel := context.WithTimeout(p.Ctx, 30*time.Second)
+	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, getChunkRecord)
 	defer p.Host.ConnManager().Unprotect(pid, getChunkRecord)
@@ -377,6 +334,7 @@ func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid pee
 		return nil, err
 	}
 	defer stream.Close()
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ReqChunkRecords{
 			ReqChunkRecords: param,
@@ -597,6 +555,7 @@ func (p *Protocol) queryAddrInfo(pid peer.ID, queryPeer peer.ID) (*types.PeerInf
 		return nil, err
 	}
 	defer stream.Close()
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
 	req := types.P2PRequest{
 		Request: &types.P2PRequest_Pid{
 			Pid: string(pid),

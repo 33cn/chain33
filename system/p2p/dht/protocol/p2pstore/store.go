@@ -53,7 +53,7 @@ func (p *Protocol) updateChunk(req *types.ChunkInfoMsg) error {
 	if _, err := p.DB.Get(genChunkDBKey(req.Start)); err == nil {
 		p.localChunkInfo[mapKey] = LocalChunkInfo{
 			ChunkInfoMsg: req,
-			Time: time.Now(),
+			Time:         time.Now(),
 		}
 		return nil
 	}
