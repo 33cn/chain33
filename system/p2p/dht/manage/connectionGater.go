@@ -4,8 +4,11 @@ import (
 	"container/list"
 	"context"
 	"runtime"
+	"sort"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/types"
 
 	"github.com/kevinms/leakybucket-go"
 	"github.com/libp2p/go-libp2p-core/control"
@@ -13,7 +16,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
-	net "github.com/multiformats/go-multiaddr-net"
+
+	//net "github.com/multiformats/go-multiaddr-net"
+	net "github.com/multiformats/go-multiaddr/net"
 )
 
 const (
@@ -40,6 +45,10 @@ type Conngater struct {
 func NewConnGater(h *host.Host, limit int32, cache *TimeCache, whitPeers []*peer.AddrInfo) *Conngater {
 	gater := &Conngater{}
 	gater.host = h
+	if limit == 0 {
+		limit = 4096
+	}
+
 	gater.maxConnectNum = limit
 	gater.blacklist = cache
 	if gater.blacklist == nil {
@@ -79,8 +88,8 @@ func (s *Conngater) checkWhitePeerList(p peer.ID) bool {
 
 // InterceptAddrDial tests whether we're permitted to dial the specified
 // multiaddr for the given peer.
-func (s *Conngater) InterceptAddrDial(_ peer.ID, m multiaddr.Multiaddr) (allow bool) {
-	return true
+func (s *Conngater) InterceptAddrDial(p peer.ID, m multiaddr.Multiaddr) (allow bool) {
+	return !s.blacklist.Has(p.Pretty())
 }
 
 // InterceptAccept tests whether an incipient inbound connection is allowed.
@@ -95,6 +104,7 @@ func (s *Conngater) InterceptAccept(n network.ConnMultiaddrs) (allow bool) {
 	if !s.checkWhitAddr(n.RemoteMultiaddr()) {
 		return false
 	}
+
 	return !s.isPeerAtLimit(network.DirInbound)
 
 }
@@ -120,13 +130,16 @@ func (s *Conngater) checkWhitAddr(addr multiaddr.Multiaddr) bool {
 
 // InterceptSecured tests whether a given connection, now authenticated,
 // is allowed.
-func (s *Conngater) InterceptSecured(_ network.Direction, _ peer.ID, n network.ConnMultiaddrs) (allow bool) {
-	return true
+func (s *Conngater) InterceptSecured(_ network.Direction, p peer.ID, n network.ConnMultiaddrs) (allow bool) {
+	return !s.blacklist.Has(p.Pretty())
 }
 
 // InterceptUpgraded tests whether a fully capable connection is allowed.
 func (s *Conngater) InterceptUpgraded(n network.Conn) (allow bool, reason control.DisconnectReason) {
-	return true, 0
+	if n == nil {
+		return false, 0
+	}
+	return !s.blacklist.Has(n.RemotePeer().Pretty()), 0
 }
 
 func (s *Conngater) validateDial(addr multiaddr.Multiaddr) bool {
@@ -146,7 +159,11 @@ func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
 	if s.maxConnectNum == 0 { //不对连接节点数量进行限制
 		return false
 	}
-	numOfConns := len((*s.host).Network().Peers())
+	host := (*s.host)
+	if host == nil {
+		return false
+	}
+	numOfConns := len(host.Network().Peers())
 	var maxPeers int
 	if direction == network.DirInbound { //inbound connect
 		maxPeers = int(s.maxConnectNum + CacheLimit/2)
@@ -165,6 +182,20 @@ type TimeCache struct {
 	span      time.Duration
 }
 
+//对系统的连接时长按照从大到小的顺序排序
+type blacklist []*types.BlackInfo
+
+//Len return size of blackinfo
+func (b blacklist) Len() int { return len(b) }
+
+//Swap swap data between i,j
+func (b blacklist) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+
+//Less check lifetime
+func (b blacklist) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最大
+	return b[i].Lifetime < b[j].Lifetime
+}
+
 //NewTimeCache new time cache obj.
 func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
 	cache := &TimeCache{
@@ -181,20 +212,19 @@ func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
 func (tc *TimeCache) Add(s string, lifetime time.Duration) {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()
-	_, ok := tc.M[s]
-	if ok {
-		return
-	}
+
 	if lifetime == 0 {
 		lifetime = tc.span
 	}
-	tc.M[s] = time.Now().Add(lifetime)
+	tc.M[s] = time.Now().Add(lifetime) //update lifetime
 	tc.Q.PushFront(s)
+
 }
 
 func (tc *TimeCache) sweep() {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
+	tc.checkOvertimekey()
 
 	for {
 		select {
@@ -210,21 +240,20 @@ func (tc *TimeCache) sweep() {
 func (tc *TimeCache) checkOvertimekey() {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()
+	for e := tc.Q.Front(); e != nil; e = e.Next() {
+		v := e.Value.(string)
+		t, ok := tc.M[v]
+		if !ok {
+			tc.Q.Remove(e)
+			continue
+		}
 
-	back := tc.Q.Back()
-	if back == nil {
-		return
+		if time.Now().After(t) {
+			tc.Q.Remove(e)
+			delete(tc.M, v)
+		}
 	}
-	v := back.Value.(string)
-	t, ok := tc.M[v]
-	if !ok {
-		return
-	}
-	//if time.Since(t) > tc.span {
-	if time.Now().After(t) {
-		tc.Q.Remove(back)
-		delete(tc.M, v)
-	}
+
 }
 
 //Has check key
@@ -234,4 +263,17 @@ func (tc *TimeCache) Has(s string) bool {
 
 	_, ok := tc.M[s]
 	return ok
+}
+
+//List show all peers
+func (tc *TimeCache) List() *types.Blacklist {
+	tc.cacheLock.Lock()
+	defer tc.cacheLock.Unlock()
+	var list blacklist
+	for pid, p := range tc.M {
+		list = append(list, &types.BlackInfo{PeerName: pid, Lifetime: int64(^(time.Since(p) / time.Second) + 1)})
+	}
+	sort.Sort(list)
+	return &types.Blacklist{Blackinfo: list}
+
 }

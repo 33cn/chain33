@@ -1096,3 +1096,46 @@ func (q *QueueProtocol) SendDelayTx(param *types.DelayTx, waitReply bool) (*type
 	reply.Msg = param.GetTx().Hash()
 	return reply, err
 }
+
+//AddBlacklist add peer to blacklist
+func (q *QueueProtocol) AddBlacklist(req *types.BlackPeer) (*types.Reply, error) {
+	msg, err := q.send(p2pKey, types.EventAddBlacklist, req)
+	if err != nil {
+		log.Error("AddBlacklist", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+
+	return nil, types.ErrInvalidParam
+}
+
+//DelBlacklist delete peer from blacklist
+func (q *QueueProtocol) DelBlacklist(req *types.BlackPeer) (*types.Reply, error) {
+	msg, err := q.send(p2pKey, types.EventDelBlacklist, req)
+	if err != nil {
+		log.Error("DelBlacklist", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrInvalidParam
+}
+
+//ShowBlacklist show all blacklist peers
+func (q *QueueProtocol) ShowBlacklist(req *types.ReqNil) (*types.Blacklist, error) {
+	msg, err := q.send(p2pKey, types.EventShowBlacklist, req)
+	if err != nil {
+		log.Error("DelBlacklist", "Error", err.Error())
+		return nil, err
+	}
+
+	if reply, ok := msg.GetData().(*types.Blacklist); ok {
+		return reply, nil
+	}
+
+	return nil, types.ErrInvalidParam
+
+}
