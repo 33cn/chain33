@@ -126,7 +126,7 @@ func Test_otherInterface(t *testing.T) {
 	defer ctx.Done()
 	gater := NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second), nil)
 	allow, _ := gater.InterceptUpgraded(nil)
-	require.True(t, allow)
+	require.True(t, !allow)
 	require.True(t, gater.InterceptSecured(network.DirInbound, "", nil))
 
 }

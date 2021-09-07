@@ -134,6 +134,9 @@ func (s *Conngater) InterceptSecured(_ network.Direction, p peer.ID, n network.C
 
 // InterceptUpgraded tests whether a fully capable connection is allowed.
 func (s *Conngater) InterceptUpgraded(n network.Conn) (allow bool, reason control.DisconnectReason) {
+	if n == nil {
+		return false, 0
+	}
 	return !s.blacklist.Has(n.RemotePeer().Pretty()), 0
 }
 
@@ -176,10 +179,13 @@ type TimeCache struct {
 //对系统的连接时长按照从大到小的顺序排序
 type blacklist types.Blacklist
 
+//Len return size of blackinfo
 func (c blacklist) Len() int { return len(c.Blackinfo) }
 
+//Swap swap data betwen i,j
 func (c blacklist) Swap(i, j int) { c.Blackinfo[i], c.Blackinfo[j] = c.Blackinfo[j], c.Blackinfo[i] }
 
+//Less check liftime
 func (c blacklist) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最大
 	return c.Blackinfo[i].Lifetime < c.Blackinfo[j].Lifetime
 }
