@@ -27,7 +27,6 @@ func NetCmd() *cobra.Command {
 		GetFatalFailureCmd(),
 		GetTimeStausCmd(),
 		NetProtocolsCmd(),
-
 	)
 
 	return cmd
@@ -175,7 +174,7 @@ func BlacklistCmd() *cobra.Command {
 	return cmd
 }
 
-func Add()*cobra.Command{
+func Add() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "add peer or IP to blacklist",
@@ -186,7 +185,7 @@ func Add()*cobra.Command{
 	return cmd
 }
 
-func Del()*cobra.Command{
+func Del() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "del",
 		Short: "delete peer from blacklist",
@@ -196,7 +195,7 @@ func Del()*cobra.Command{
 	return cmd
 }
 
-func Show()*cobra.Command{
+func Show() *cobra.Command {
 	//黑名单列表打印出来
 	cmd := &cobra.Command{
 		Use:   "show",
@@ -214,38 +213,38 @@ func addBlackFlags(cmd *cobra.Command) {
 
 func addblacklist(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	peerName ,_:=cmd.Flags().GetString("pid")
-	PeerAddr ,_:=cmd.Flags().GetString("addr")
-	lifetime ,_:=cmd.Flags().GetString("time")
+	peerName, _ := cmd.Flags().GetString("pid")
+	PeerAddr, _ := cmd.Flags().GetString("addr")
+	lifetime, _ := cmd.Flags().GetString("time")
 
-	var res  interface{}
+	var res interface{}
 	var peer types.BlackPeer
-	peer.Lifetime=lifetime
-	if PeerAddr !=""{
-		peer.PeerAddr=PeerAddr
-	}else if peerName!=""{
-		peer.PeerName=peerName
-	}else{
+	peer.Lifetime = lifetime
+	if PeerAddr != "" {
+		peer.PeerAddr = PeerAddr
+	} else if peerName != "" {
+		peer.PeerName = peerName
+	} else {
 		cmd.Usage()
 		return
 	}
 
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddBlacklist",&peer, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddBlacklist", &peer, &res)
 	ctx.Run()
 }
 
 func delblacklist(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	peerName ,_:=cmd.Flags().GetString("pid")
-	PeerAddr ,_:=cmd.Flags().GetString("addr")
+	peerName, _ := cmd.Flags().GetString("pid")
+	PeerAddr, _ := cmd.Flags().GetString("addr")
 
 	var res interface{}
 	var peer types.BlackPeer
-	if PeerAddr !=""{
-		peer.PeerAddr=PeerAddr
-	}else if peerName!=""{
-		peer.PeerName=peerName
-	}else{
+	if PeerAddr != "" {
+		peer.PeerAddr = PeerAddr
+	} else if peerName != "" {
+		peer.PeerName = peerName
+	} else {
 		cmd.Usage()
 		return
 	}
@@ -256,7 +255,7 @@ func delblacklist(cmd *cobra.Command, args []string) {
 }
 
 func showblacklist(cmd *cobra.Command, args []string) {
-	var res=new([]*types.BlackInfo)
+	var res = new([]*types.BlackInfo)
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ShowBlacklist", nil, &res)
 	ctx.Run()

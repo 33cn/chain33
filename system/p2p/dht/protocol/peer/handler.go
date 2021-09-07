@@ -3,8 +3,9 @@ package peer
 import (
 	"encoding/json"
 	"errors"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"

@@ -209,6 +209,7 @@ func TestPrivateNetwork(t *testing.T) {
 	testPSK := make([]byte, 32)
 	rand.Reader.Read(testPSK)
 	subcfg.Psk = hex.EncodeToString(testPSK)
+	subcfg.MaxConnectNum = 1000
 	subcfg2.Psk = subcfg.Psk
 	h1 := newHost(&subcfg, prvKey1, nil, maddr)
 	h2 := newHost(&subcfg2, prvKey2, nil, maddr2)

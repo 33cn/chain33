@@ -228,13 +228,13 @@ func Test_isPublicIP(t *testing.T) {
 	}
 }
 
-func Test_CaculateLifeTime(t *testing.T){
-	td,err:= CaculateLifeTime("1.2hour")
+func Test_CaculateLifeTime(t *testing.T) {
+	td, err := CaculateLifeTime("1.2hour")
 	require.Nil(t, err)
-	require.Equal(t,float64(72) ,	td.Minutes())
-	td,err= CaculateLifeTime("1.5 min")
+	require.Equal(t, float64(72), td.Minutes())
+	td, err = CaculateLifeTime("1.5 min")
 	require.Nil(t, err)
-	require.Equal(t,float64(60*1.5) ,	td.Seconds())
+	require.Equal(t, float64(60*1.5), td.Seconds())
 }
 
 type peerInfoManager struct {

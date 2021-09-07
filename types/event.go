@@ -190,13 +190,11 @@ const (
 	EventAddDelayTx = 359
 
 	//添加节点到黑名单
-	EventAddBlacklist=360
+	EventAddBlacklist = 360
 	//删除节点中的黑名单
-	EventDelBlacklist=361
+	EventDelBlacklist = 361
 	//获取黑名单列表
-	EventShowBlacklist=362
-
-
+	EventShowBlacklist = 362
 )
 
 var eventName = map[int]string{
@@ -355,9 +353,7 @@ var eventName = map[int]string{
 	EventNetProtocols:               "EventNetProtocols",
 	EventCheckTxsExist:              "EventCheckTxsExist",
 	EventDeleteParaBlocks:           "EventDeleteParaBlocks",
-	EventAddBlacklist:				 "EventAddBlacklist",
-	EventDelBlacklist: 				 "EventDelBlacklist",
-	EventShowBlacklist:				 "EventDelBlacklist",
-
+	EventAddBlacklist:               "EventAddBlacklist",
+	EventDelBlacklist:               "EventDelBlacklist",
+	EventShowBlacklist:              "EventDelBlacklist",
 }
-

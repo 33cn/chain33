@@ -470,4 +470,3 @@ type ChainConfigInfo struct {
 	MaxTxFeeRate   int64  `json:"maxTxFeeRate,omitempty"`
 	IsPara         bool   `json:"isPara,omitempty"`
 }
-

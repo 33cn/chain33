@@ -1105,7 +1105,7 @@ func (q *QueueProtocol) AddBlacklist(req *types.BlackPeer) (*types.Reply, error)
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return  reply,nil
+		return reply, nil
 	}
 
 	return nil, types.ErrInvalidParam
@@ -1119,22 +1119,22 @@ func (q *QueueProtocol) DelBlacklist(req *types.BlackPeer) (*types.Reply, error)
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return  reply,nil
+		return reply, nil
 	}
 	return nil, types.ErrInvalidParam
 }
 
-func (q*QueueProtocol)ShowBlacklist(req *types.ReqNil)(*types.Blacklist,error){
+func (q *QueueProtocol) ShowBlacklist(req *types.ReqNil) (*types.Blacklist, error) {
 	msg, err := q.send(p2pKey, types.EventShowBlacklist, req)
 	if err != nil {
 		log.Error("DelBlacklist", "Error", err.Error())
 		return nil, err
 	}
 
-	if reply,ok:= msg.GetData().(*types.Blacklist);ok{
-		return  reply,nil
+	if reply, ok := msg.GetData().(*types.Blacklist); ok {
+		return reply, nil
 	}
 
-	return nil,types.ErrInvalidParam
+	return nil, types.ErrInvalidParam
 
 }

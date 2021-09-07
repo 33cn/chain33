@@ -3,11 +3,12 @@ package manage
 import (
 	"container/list"
 	"context"
-	"github.com/33cn/chain33/types"
 	"runtime"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/types"
 
 	"github.com/kevinms/leakybucket-go"
 	"github.com/libp2p/go-libp2p-core/control"
@@ -15,6 +16,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
+
 	//net "github.com/multiformats/go-multiaddr-net"
 	net "github.com/multiformats/go-multiaddr/net"
 )
@@ -157,7 +159,11 @@ func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
 	if s.maxConnectNum == 0 { //不对连接节点数量进行限制
 		return false
 	}
-	numOfConns := len((*s.host).Network().Peers())
+	host := (*s.host)
+	if host == nil {
+		return false
+	}
+	numOfConns := len(host.Network().Peers())
 	var maxPeers int
 	if direction == network.DirInbound { //inbound connect
 		maxPeers = int(s.maxConnectNum + CacheLimit/2)
@@ -177,17 +183,17 @@ type TimeCache struct {
 }
 
 //对系统的连接时长按照从大到小的顺序排序
-type blacklist types.Blacklist
+type blacklist []*types.BlackInfo
 
 //Len return size of blackinfo
-func (c blacklist) Len() int { return len(c.Blackinfo) }
+func (b blacklist) Len() int { return len(b) }
 
 //Swap swap data betwen i,j
-func (c blacklist) Swap(i, j int) { c.Blackinfo[i], c.Blackinfo[j] = c.Blackinfo[j], c.Blackinfo[i] }
+func (b blacklist) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 
 //Less check liftime
-func (c blacklist) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最大
-	return c.Blackinfo[i].Lifetime < c.Blackinfo[j].Lifetime
+func (b blacklist) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最大
+	return b[i].Lifetime < b[j].Lifetime
 }
 
 //NewTimeCache new time cache obj.
@@ -265,8 +271,9 @@ func (tc *TimeCache) List() *types.Blacklist {
 	defer tc.cacheLock.Unlock()
 	var list blacklist
 	for pid, p := range tc.M {
-		list.Blackinfo = append(list.Blackinfo, &types.BlackInfo{PeerName: pid, Lifetime: ^(int64(time.Now().Sub(p).Seconds())) + 1})
+		list = append(list, &types.BlackInfo{PeerName: pid, Lifetime: ^(int64(time.Now().Sub(p).Seconds())) + 1})
 	}
 	sort.Sort(list)
-	return (*types.Blacklist)(&list)
+	return &types.Blacklist{Blackinfo: list}
+
 }
