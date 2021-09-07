@@ -188,10 +188,10 @@ type blacklist []*types.BlackInfo
 //Len return size of blackinfo
 func (b blacklist) Len() int { return len(b) }
 
-//Swap swap data betwen i,j
+//Swap swap data between i,j
 func (b blacklist) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 
-//Less check liftime
+//Less check lifetime
 func (b blacklist) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最大
 	return b[i].Lifetime < b[j].Lifetime
 }
@@ -271,7 +271,7 @@ func (tc *TimeCache) List() *types.Blacklist {
 	defer tc.cacheLock.Unlock()
 	var list blacklist
 	for pid, p := range tc.M {
-		list = append(list, &types.BlackInfo{PeerName: pid, Lifetime: ^(int64(time.Now().Sub(p).Seconds())) + 1})
+		list = append(list, &types.BlackInfo{PeerName: pid, Lifetime: int64(^(time.Since(p) / time.Second) + 1)})
 	}
 	sort.Sort(list)
 	return &types.Blacklist{Blackinfo: list}

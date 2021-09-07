@@ -1837,7 +1837,7 @@ func TestChain33_AddBlacklist(t *testing.T) {
 	var peer types.BlackPeer
 	peer.PeerAddr = "192.168.0.31:13802"
 	peer.Lifetime = "1min"
-	peer.PeerName="16Uiu2HAm2HS2VPChZsfAk3yKwfKncpCFAW9WT2L4UQQGtTtUEk8k"
+	peer.PeerName = "16Uiu2HAm2HS2VPChZsfAk3yKwfKncpCFAW9WT2L4UQQGtTtUEk8k"
 
 	expected := &types.Reply{IsOk: true, Msg: []byte("success")}
 	api.On("AddBlacklist", mock.Anything).Return(expected, nil)

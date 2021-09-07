@@ -174,6 +174,7 @@ func BlacklistCmd() *cobra.Command {
 	return cmd
 }
 
+//Add add peer to blacklist
 func Add() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add",
@@ -185,6 +186,7 @@ func Add() *cobra.Command {
 	return cmd
 }
 
+//Del del peer from blacklist
 func Del() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "del",
@@ -195,6 +197,7 @@ func Del() *cobra.Command {
 	return cmd
 }
 
+//Show print all peers from blacklist
 func Show() *cobra.Command {
 	//黑名单列表打印出来
 	cmd := &cobra.Command{

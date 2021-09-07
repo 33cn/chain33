@@ -26,6 +26,7 @@ const (
 	mempool    = "mempool"
 )
 
+//UnitTime key time value:time.Second
 var UnitTime = map[string]int64{
 	"hour":   3600,
 	"min":    60,
@@ -33,6 +34,7 @@ var UnitTime = map[string]int64{
 }
 var log = log15.New("module", "p2p.peer")
 
+//CaculateLifeTime parase time string to time.Duration
 func CaculateLifeTime(timestr string) (time.Duration, error) {
 	var lifetime int64
 	if timestr == "" {
@@ -54,6 +56,7 @@ func CaculateLifeTime(timestr string) (time.Duration, error) {
 
 	return time.Duration(lifetime) * time.Second, nil
 }
+
 func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }

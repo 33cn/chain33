@@ -247,8 +247,6 @@ func (p *Protocol) handleEventDelBlacklist(msg *queue.Message) {
 		return
 	}
 	err = errors.New("no this peerName")
-	return
-
 }
 
 //show all peers from blacklist
