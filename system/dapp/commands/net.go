@@ -181,7 +181,7 @@ func Add()*cobra.Command{
 		Short: "add peer or IP to blacklist",
 		Run:   addblacklist,
 	}
-	cmd.Flags().StringP("time", "t", "", "lifetime such as: 1 hour,1 min,1 second")
+	cmd.Flags().StringP("time", "t", "", "lifetime such as: 1hour,1min,1second")
 	addBlackFlags(cmd)
 	return cmd
 }

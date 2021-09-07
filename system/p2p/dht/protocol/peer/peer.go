@@ -42,6 +42,7 @@ func CaculateLifeTime(timestr string) (time.Duration, error) {
 		if strings.HasSuffix(timestr, substr) {
 
 			num := strings.TrimRight(timestr, substr)
+			num = strings.TrimSpace(num)
 			f, err := strconv.ParseFloat(num, 64)
 			if err != nil {
 				return 0, err

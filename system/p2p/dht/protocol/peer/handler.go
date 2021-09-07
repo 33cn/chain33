@@ -214,6 +214,7 @@ func (p *Protocol) handleEventAddBlacklist(msg *queue.Message) {
 	if err != nil {
 		return
 	}
+	//close this peer
 	err = p.P2PEnv.Host.Network().ClosePeer(pid)
 	if err != nil {
 		log.Error("handleEventAddBlacklist", "close peer", err)
@@ -250,7 +251,6 @@ func (p *Protocol) handleEventDelBlacklist(msg *queue.Message) {
 }
 
 //show all peers from blacklist
-
 func (p *Protocol) handleEventShowBlacklist(msg *queue.Message) {
 	peers := p.P2PEnv.ConnBlackList.List()
 	//添加peer remoteAddr
