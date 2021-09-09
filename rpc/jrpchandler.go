@@ -131,6 +131,22 @@ func (c *Chain33) SendTransaction(in rpctypes.RawParm, result *interface{}) erro
 	return err
 }
 
+// SendTransactions send tx batch
+func (c *Chain33) SendTransactions(in rpctypes.ReqStrings, result *interface{}) error {
+	reply := rpctypes.ReplyHashes{Hashes: make([]string, 0, len(in.Datas))}
+	var err error
+	for _, data := range in.Datas {
+		var txHash interface{}
+		err = c.SendTransaction(rpctypes.RawParm{Data: data}, &txHash)
+		if err != nil {
+			break
+		}
+		reply.Hashes = append(reply.Hashes, txHash.(string))
+	}
+	*result = reply
+	return err
+}
+
 // SendTransactionSync send transaction and wait reply
 func (c *Chain33) SendTransactionSync(in rpctypes.RawParm, result *interface{}) error {
 	err := c.SendTransaction(in, result)
