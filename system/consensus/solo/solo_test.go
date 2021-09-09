@@ -289,7 +289,7 @@ func BenchmarkCheckSign(b *testing.B) {
 
 	start := make(chan struct{})
 	wait := make(chan struct{})
-	result := make(chan interface{}, 0)
+	result := make(chan interface{})
 	//控制并发协程数量
 	for i := 0; i < runtime.NumCPU(); i++ {
 		go func() {
