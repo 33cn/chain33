@@ -758,6 +758,12 @@ func TestGrpc_GetChainConfig(t *testing.T) {
 
 func TestGrpc_SendTransactions(t *testing.T) {
 
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	//Init(cfg)
+	g := Grpc{}
+	qapi = new(mocks.QueueProtocolAPI)
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
+	g.cli.QueueProtocolAPI = qapi
 	txCount := 10
 	in := &types.Transactions{Txs: make([]*types.Transaction, txCount)}
 	testMsg := []byte("test")
