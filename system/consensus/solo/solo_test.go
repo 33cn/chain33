@@ -175,7 +175,7 @@ var (
 	enablesign      *bool
 	sendtxgrpc      *bool
 	enabletxfee     *bool
-	disabledupcheck *bool
+	enabledupcheck  *bool
 	enabletxindex   *bool
 	enableexeccheck *bool
 	maxtxnum        *int64
@@ -185,7 +185,7 @@ func init() {
 	enablesign = flag.Bool("enablesign", false, "enable tx sign")
 	sendtxgrpc = flag.Bool("sendtxgrpc", false, "send tx with grpc")
 	enabletxfee = flag.Bool("enabletxfee", false, "enable tx sign")
-	disabledupcheck = flag.Bool("disabledupcheck", false, "diabledupcheck")
+	enabledupcheck = flag.Bool("enabledupcheck", false, "diabledupcheck")
 	enabletxindex = flag.Bool("enabletxindex", false, "enabletxindex")
 	enableexeccheck = flag.Bool("enableexeccheck", false, "enabletxindex")
 	maxtxnum = flag.Int64("maxtxnum", 10000, "max tx num in block")
@@ -209,7 +209,7 @@ func BenchmarkSolo(b *testing.B) {
 	cfg.GetModuleConfig().Exec.DisableAddrIndex = true
 	cfg.GetModuleConfig().Exec.DisableFeeIndex = true
 	cfg.GetModuleConfig().Exec.DisableTxIndex = !*enabletxindex
-	cfg.GetModuleConfig().Exec.DisableTxDupCheck = *disabledupcheck
+	cfg.GetModuleConfig().Exec.DisableTxDupCheck = !*enabledupcheck
 	cfg.GetModuleConfig().Mempool.DisableExecCheck = !*enableexeccheck
 	cfg.GetModuleConfig().BlockChain.HighAllowPackHeight = 50
 	cfg.GetModuleConfig().BlockChain.LowAllowPackHeight = 30
