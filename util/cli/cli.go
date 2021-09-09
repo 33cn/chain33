@@ -94,6 +94,7 @@ func Run(RPCAddr, ParaName, name string) {
 		commands.SystemCmd(),
 		commands.OneStepSendCmd(),
 		commands.OneStepSendCertTxCmd(),
+		commands.BlacklistCmd(),
 		closeCmd,
 		commands.AssetCmd(),
 	)

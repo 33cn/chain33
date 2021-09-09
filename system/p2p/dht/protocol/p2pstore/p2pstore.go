@@ -92,15 +92,6 @@ func InitProtocol(env *protocol.P2PEnv) {
 	if env.SubConfig.Percentage < types2.MinPercentage || env.SubConfig.Percentage > types2.MaxPercentage {
 		env.SubConfig.Percentage = types2.DefaultPercentage
 	}
-	if env.SubConfig.MinExtendRoutingTableSize == 0 {
-		env.SubConfig.MinExtendRoutingTableSize = types2.DefaultMinExtendRoutingTableSize
-	}
-	if env.SubConfig.MaxExtendRoutingTableSize == 0 {
-		env.SubConfig.MaxExtendRoutingTableSize = types2.DefaultMaxExtendRoutingTableSize
-	}
-	if env.SubConfig.MaxExtendRoutingTableSize < env.SubConfig.MinExtendRoutingTableSize {
-		env.SubConfig.MaxExtendRoutingTableSize = env.SubConfig.MinExtendRoutingTableSize
-	}
 
 	p.initLocalChunkInfoMap()
 

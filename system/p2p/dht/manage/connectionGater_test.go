@@ -2,6 +2,7 @@ package manage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -125,7 +126,7 @@ func Test_otherInterface(t *testing.T) {
 	defer ctx.Done()
 	gater := NewConnGater(&host1, 1, NewTimeCache(context.Background(), time.Second), nil)
 	allow, _ := gater.InterceptUpgraded(nil)
-	require.True(t, allow)
+	require.True(t, !allow)
 	require.True(t, gater.InterceptSecured(network.DirInbound, "", nil))
 
 }
@@ -133,18 +134,25 @@ func Test_otherInterface(t *testing.T) {
 func Test_timecache(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cache := NewTimeCache(ctx, time.Second)
+	cache.Add("zero", time.Second*15)
 	cache.Add("one", 0)
 	cache.Add("two", time.Second*3)
 	cache.Add("three", time.Second*5)
+	b, _ := json.MarshalIndent(cache.List(), "", "\t")
+	t.Log(string(b))
+	require.Equal(t, 4, len(cache.List().Blackinfo))
 	time.Sleep(time.Second * 2)
+	require.True(t, cache.Has("zero"))
 	require.False(t, cache.Has("one"))
 	require.True(t, cache.Has("two"))
 	require.True(t, cache.Has("three"))
+	require.Equal(t, 3, len(cache.List().Blackinfo))
 	time.Sleep(time.Second * 2)
 	require.False(t, cache.Has("two"))
 	require.True(t, cache.Has("three"))
+	require.Equal(t, 2, len(cache.List().Blackinfo))
 	cancel()
 	time.Sleep(time.Second * 2)
 	require.True(t, cache.Has("three"))
-
+	require.Equal(t, 2, len(cache.List().Blackinfo))
 }

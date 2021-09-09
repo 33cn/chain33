@@ -143,13 +143,15 @@ func (p *Protocol) detectNodeAddr() {
 			time.Sleep(time.Second)
 			continue
 		}
-		//启动后间隔1分钟，以充分获得节点外网地址
+		//启动后间隔10秒钟，以充分获得节点外网地址，稳定后间隔10分钟
 		rangeCount++
-		if rangeCount > 2 {
-			time.Sleep(time.Minute)
+		if rangeCount > 100 {
+			time.Sleep(time.Minute * 10)
+		} else if rangeCount > 2 {
+			time.Sleep(time.Second * 10)
 		}
 		for _, pid := range p.RoutingTable.ListPeers() {
-			if p.containsPublicIP(pid) {
+			if isPublicIP(p.getPublicIP()) && p.containsPublicIP(pid) {
 				continue
 			}
 			err := p.queryVersionOld(pid)
