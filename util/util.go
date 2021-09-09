@@ -450,7 +450,9 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	}
 	ulog.Debug("PreExecBlock", "CheckBlock", types.Since(beg))
 
-	detail.KV = kvset
+	if len(kvset) > 0 {
+		detail.KV = kvset
+	}
 	detail.PrevStatusHash = prevStateRoot
 	return &detail, deltxs, nil
 }
