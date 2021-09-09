@@ -18,10 +18,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/crypto/none"
 	"github.com/33cn/chain33/system/crypto/secp256k1"
-
-	"github.com/33cn/chain33/common/log/log15"
 	"google.golang.org/grpc"
 
 	"github.com/33cn/chain33/common"
@@ -122,28 +121,34 @@ func BenchmarkSendTx(b *testing.B) {
 	})
 }
 
-func sendTxGrpc(cfg *types.Chain33Config, recvChan <-chan *types.Transaction) {
+func sendTxGrpc(cfg *types.Chain33Config, recvChan <-chan *types.Transaction, batchNum int) {
 	grpcAddr := cfg.GetModuleConfig().RPC.GrpcBindAddr
 	conn, err := grpc.Dial(grpcAddr, grpc.WithInsecure())
 	if err != nil {
 		panic(err.Error())
 	}
 	defer conn.Close()
+	txs := &types.Transactions{Txs: make([]*types.Transaction, 0, batchNum)}
 	gcli := types.NewChain33Client(conn)
 	for {
 		tx, ok := <-recvChan
 		if !ok {
 			return
 		}
-		_, err := gcli.SendTransaction(context.Background(), tx)
-		if err != nil {
-			if strings.Contains(err.Error(), "ErrChannelClosed") {
-				return
+		txs.Txs = append(txs.Txs, tx)
+		if len(txs.Txs) == batchNum {
+			_, err := gcli.SendTransactions(context.Background(), txs)
+			txs.Txs = txs.Txs[:0]
+			if err != nil {
+				if strings.Contains(err.Error(), "ErrChannelClosed") {
+					return
+				}
+				tlog.Error("sendtx", "err", err.Error())
+				time.Sleep(time.Second)
+				continue
 			}
-			tlog.Error("sendtx", "err", err.Error())
-			time.Sleep(time.Second)
-			continue
 		}
+
 	}
 }
 
@@ -206,6 +211,8 @@ func BenchmarkSolo(b *testing.B) {
 	cfg.GetModuleConfig().Exec.DisableTxIndex = !*enabletxindex
 	cfg.GetModuleConfig().Exec.DisableTxDupCheck = *disabledupcheck
 	cfg.GetModuleConfig().Mempool.DisableExecCheck = !*enableexeccheck
+	cfg.GetModuleConfig().BlockChain.HighAllowPackHeight = 50
+	cfg.GetModuleConfig().BlockChain.LowAllowPackHeight = 30
 	if !*enabletxfee {
 		cfg.GetModuleConfig().Mempool.MinTxFeeRate = 0
 		cfg.SetMinFee(0)
@@ -228,7 +235,7 @@ func BenchmarkSolo(b *testing.B) {
 	txChan := make(chan *types.Transaction, 10000)
 	for i := 0; i < cpuNum*3; i++ {
 		if *sendtxgrpc {
-			go sendTxGrpc(cfg, txChan)
+			go sendTxGrpc(cfg, txChan, 100)
 		} else {
 			go sendTxDirect(mock33, txChan)
 		}

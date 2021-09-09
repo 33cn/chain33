@@ -39,6 +39,22 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	return g.cli.SendTx(in)
 }
 
+// SendTransactions send transaction by network
+func (g *Grpc) SendTransactions(ctx context.Context, in *pb.Transactions) (*pb.ReplyHashes, error) {
+	if len(in.GetTxs()) == 0 {
+		return nil, nil
+	}
+	hashes := &pb.ReplyHashes{Hashes: make([][]byte, 0, len(in.GetTxs()))}
+	for _, tx := range in.GetTxs() {
+		reply, err := g.cli.SendTx(tx)
+		if err != nil {
+			return hashes, err
+		}
+		hashes.Hashes = append(hashes.Hashes, reply.GetMsg())
+	}
+	return hashes, nil
+}
+
 // CreateNoBalanceTxs create multiple transaction with no balance
 func (g *Grpc) CreateNoBalanceTxs(ctx context.Context, in *pb.NoBalanceTxs) (*pb.ReplySignRawTx, error) {
 	reply, err := g.cli.CreateNoBalanceTxs(in)

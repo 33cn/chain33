@@ -260,6 +260,11 @@ type ReqAddr struct {
 	Addr string `json:"addr"`
 }
 
+// ReqStrings require strings
+type ReqStrings struct {
+	Datas []string `json:"datas"`
+}
+
 // ReqHashes require hashes
 type ReqHashes struct {
 	Hashes        []string `json:"hashes"`

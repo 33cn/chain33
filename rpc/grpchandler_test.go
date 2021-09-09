@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"strings"
 
 	"github.com/33cn/chain33/client/mocks"
@@ -752,4 +754,17 @@ func TestGrpc_GetChainConfig(t *testing.T) {
 	cfg, err := g.GetChainConfig(getOkCtx(), nil)
 	assert.NoError(t, err)
 	assert.Equal(t, types.DefaultCoinPrecision, cfg.GetCoinPrecision())
+}
+
+func TestGrpc_SendTransactions(t *testing.T) {
+
+	txCount := 10
+	in := &types.Transactions{Txs: make([]*types.Transaction, txCount)}
+	testMsg := []byte("test")
+	qapi.On("SendTx", mock.Anything).Return(&types.Reply{IsOk: true, Msg: testMsg}, nil)
+
+	reply, err := g.SendTransactions(getOkCtx(), in)
+	require.Nil(t, err)
+	require.Equal(t, txCount, len(reply.GetHashes()))
+	require.Equal(t, testMsg, reply.GetHashes()[0])
 }
