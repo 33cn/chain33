@@ -87,6 +87,7 @@ func (up *UpdateInitFileTask) genInitFile() error {
 }
 
 func (up *UpdateInitFileTask) formatInitFile() error {
+	/* #nosec */
 	cmd := exec.Command("gofmt", "-l", "-s", "-w", up.initFile)
 	err := cmd.Run()
 	if err != nil {

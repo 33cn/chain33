@@ -55,33 +55,29 @@ func parse(key string, data interface{}, d, n int) interface{} {
 	if data == nil {
 		return data
 	}
-	switch data.(type) {
+	switch data := data.(type) {
 	case bool:
 		return data
 	case string:
-		if !isValidNumber(data.(string)) {
+		if !isValidNumber(data) {
 			return data
 		}
-		numstr := data.(string)
-		num := json.Number(numstr)
-		if strings.Contains(numstr, ".") {
+		num := json.Number(data)
+		if strings.Contains(data, ".") {
 			dm, _ := num.Float64()
 			return format64(key, dm, d, n)
 		}
 		dm, _ := num.Int64()
 		return format64(key, float64(dm), d, n)
 	case float64:
-		num := data.(float64)
-		return format64(key, num, d, n)
+		return format64(key, data, d, n)
 	case []interface{}:
-		datas := data.([]interface{})
-		for i := range datas {
-			datas[i] = parse(key, datas[i], d, n)
+		for i := range data {
+			data[i] = parse(key, data[i], d, n)
 		}
 	case map[string]interface{}:
-		datas := data.(map[string]interface{})
-		for i := range datas {
-			datas[i] = parse(i, datas[i], d, n)
+		for i := range data {
+			data[i] = parse(i, data[i], d, n)
 		}
 	}
 	return data

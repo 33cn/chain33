@@ -4,6 +4,7 @@
 
 package solo
 
+/* #nosec */
 import (
 	"bytes"
 	"context"

@@ -4,6 +4,7 @@
 
 package executor_test
 
+/* #nosec */
 import (
 	"errors"
 	"fmt"

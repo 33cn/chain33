@@ -5,6 +5,7 @@
 // package main 主要是执行已经同步好的区块链的某个区块
 package main
 
+/* #nosec */
 import (
 	"flag"
 	"fmt"

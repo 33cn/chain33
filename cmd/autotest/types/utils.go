@@ -43,7 +43,7 @@ func AutoTestLogFormat() log15.Format {
 
 //RunChain33Cli invoke chain33 client
 func RunChain33Cli(para []string) (string, error) {
-
+	/* #nosec */
 	rawOut, err := exec.Command(CliCmd, para[0:]...).CombinedOutput()
 
 	strOut := string(rawOut)

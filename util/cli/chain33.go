@@ -12,6 +12,7 @@
 
 package cli
 
+/* #nosec */
 import (
 	"flag"
 	"fmt"

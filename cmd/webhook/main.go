@@ -30,9 +30,9 @@ func main() {
 			}
 		}
 		w.Header().Set("Content-type", "application/json")
-		switch payload.(type) {
+		switch payload := payload.(type) {
 		case github.ReleasePayload:
-			release := payload.(github.ReleasePayload)
+			release := payload
 			// Do whatever you want from here...
 			//fmt.Printf("%+v", release)
 			w.WriteHeader(http.StatusOK)
@@ -40,7 +40,7 @@ func main() {
 			qhook <- release
 			return
 		case github.PullRequestPayload:
-			pullRequest := payload.(github.PullRequestPayload)
+			pullRequest := payload
 			// Do whatever you want from here...
 			//fmt.Printf("%+v", pullRequest)
 			w.WriteHeader(http.StatusOK)
@@ -57,11 +57,11 @@ func main() {
 
 func webhooksProcess(ch chan interface{}) {
 	for payload := range ch {
-		switch payload.(type) {
+		switch payload := payload.(type) {
 		case github.ReleasePayload:
 			break
 		case github.PullRequestPayload:
-			processGithubPL(payload.(github.PullRequestPayload))
+			processGithubPL(payload)
 		}
 	}
 }

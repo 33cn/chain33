@@ -1,5 +1,6 @@
 package main
 
+/* #nosec */
 import (
 	"flag"
 	"log"
