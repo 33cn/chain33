@@ -1328,12 +1328,12 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 		return "", types.ErrInvalidParam
 	}
 
-	priv, err := wallet.getPrivKeyByAddr(addr)
+	priv, err := wallet.getPrivKeyFromStore(addr)
 	if err != nil {
+		walletlog.Error("ProcDumpPrivkey", "getPrivKeyFromStore err", err)
 		return "", err
 	}
-	return common.ToHex(priv.Bytes()), nil
-	//return strings.ToUpper(common.ToHex(priv.Bytes())), nil
+	return common.ToHex(priv), nil
 }
 
 //收到其他模块上报的系统有致命性故障，需要通知前端
