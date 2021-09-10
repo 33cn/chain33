@@ -32,15 +32,6 @@ func TestListMethod(t *testing.T) {
 	}
 }
 
-func TestListType(t *testing.T) {
-	excpect := []string{"Value_Withdraw", "Withdraw", "Value_Transfer", "Value_Genesis", "Value_TransferToExec"}
-	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	for _, v := range excpect {
-		if _, ok := NewType(cfg).GetValueTypeMap()[v]; !ok {
-			t.Error(v + " is not in list")
-		}
-	}
-}
 func BenchmarkGetActionValue(b *testing.B) {
 	action := &CoinsAction{Value: &CoinsAction_Transfer{Transfer: &types.AssetsTransfer{}}}
 	funclist := types.ListMethod(action)

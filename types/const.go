@@ -39,8 +39,9 @@ const (
 
 //DefaultCoinsSymbol 默认的主币名称
 const (
-	DefaultCoinsExec   = "coins"
-	DefaultCoinsSymbol = "bty"
+	DefaultCoinsExec     = "coins"
+	DefaultCoinsSymbol   = "bty"
+	DefaultCoinPrecision = int64(1e8)
 )
 
 //UserKeyX 用户自定义执行器前缀byte类型
@@ -52,21 +53,16 @@ var (
 
 //基本全局常量定义
 const (
-	InputPrecision        float64 = 1e4
-	Multiple1E4           int64   = 1e4
-	BTY                           = "BTY"
-	TxGroupMaxCount               = 20
-	MinerAction                   = "miner"
-	Int1E4                int64   = 10000
-	Float1E4              float64 = 10000.0
-	AirDropMinIndex       uint32  = 100000000         //通过钱包的seed生成一个空投地址，最小index索引
-	AirDropMaxIndex       uint32  = 101000000         //通过钱包的seed生成一个空投地址，最大index索引
-	MaxBlockCountPerTime  int64   = 1000              //从数据库中一次性获取block的最大数 1000个
-	MaxBlockSizePerTime           = 100 * 1024 * 1024 //从数据库中一次性获取block的最大size100M
-	AddBlock              int64   = 1
-	DelBlock              int64   = 2
-	MainChainName                 = "main"
-	MaxHeaderCountPerTime int64   = 10000 //从数据库中一次性获取header的最大数 10000个
+	BTY                          = "BTY"
+	MinerAction                  = "miner"
+	AirDropMinIndex       uint32 = 100000000         //通过钱包的seed生成一个空投地址，最小index索引
+	AirDropMaxIndex       uint32 = 101000000         //通过钱包的seed生成一个空投地址，最大index索引
+	MaxBlockCountPerTime  int64  = 1000              //从数据库中一次性获取block的最大数 1000个
+	MaxBlockSizePerTime          = 100 * 1024 * 1024 //从数据库中一次性获取block的最大size100M
+	AddBlock              int64  = 1
+	DelBlock              int64  = 2
+	MainChainName                = "main"
+	MaxHeaderCountPerTime int64  = 10000 //从数据库中一次性获取header的最大数 10000个
 
 )
 

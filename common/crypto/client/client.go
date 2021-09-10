@@ -55,7 +55,7 @@ func (m module) SetQueueClient(cli queue.Client) {
 			select {
 			case msg := <-cli.Recv():
 				if msg.Ty == types.EventAddBlock {
-					if header, ok := msg.Data.(types.Header); ok {
+					if header, ok := msg.Data.(*types.Header); ok {
 						SetCurrentBlock(header.GetHeight(), header.GetBlockTime())
 					}
 

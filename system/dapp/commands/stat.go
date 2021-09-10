@@ -8,14 +8,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
-	"strconv"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 	"github.com/33cn/chain33/types"
+
+	"os"
+
 	"github.com/spf13/cobra"
 )
 
@@ -65,6 +66,12 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	cfg, err := commandtypes.GetChainConfig(rpcAddr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "get chain config err=%s", err.Error())
+		return
+	}
+
 	var stateHashHex string
 	if height < 0 {
 
@@ -110,8 +117,8 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		} else { //挖矿产量降低30->8
 			issueCoins = 22*2269999 + height*8
 		}
-		totalAmount = (317430000+issueCoins)*types.Coin - fee.Fee
-		resp.TotalAmount = strconv.FormatFloat(float64(totalAmount)/float64(types.Coin), 'f', 4, 64)
+		totalAmount = (317430000+issueCoins)*cfg.CoinPrecision - fee.Fee
+		resp.TotalAmount = types.FormatAmount2FloatDisplay(totalAmount, cfg.CoinPrecision, true)
 	} else {
 		var req types.ReqString
 		req.Data = symbol
@@ -133,7 +140,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		}
 
 		totalAmount = res.Total
-		resp.TotalAmount = strconv.FormatFloat(float64(totalAmount)/float64(types.TokenPrecision), 'f', 4, 64)
+		resp.TotalAmount = types.FormatAmount2FloatDisplay(totalAmount, cfg.TokenPrecision, true)
 	}
 
 	if actual != "" {
@@ -153,7 +160,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 				params.Execer = "token"
 			}
 			var res types.ReplyGetTotalCoins
-			err = rpc.Call("Chain33.GetTotalCoins", params, &res)
+			err = rpc.Call("Chain33.GetTotalCoins", &params, &res)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				return
@@ -165,11 +172,11 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		}
 
 		if symbol == "bty" {
-			resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.Coin), 'f', 4, 64)
-			resp.DifferenceAmount = strconv.FormatFloat(float64(totalAmount-actualAmount)/float64(types.Coin), 'f', 4, 64)
+			resp.ActualAmount = types.FormatAmount2FloatDisplay(actualAmount, cfg.CoinPrecision, true)
+			resp.DifferenceAmount = types.FormatAmount2FloatDisplay(totalAmount-actualAmount, cfg.CoinPrecision, true)
 		} else {
-			resp.ActualAmount = strconv.FormatFloat(float64(actualAmount)/float64(types.TokenPrecision), 'f', 4, 64)
-			resp.DifferenceAmount = strconv.FormatFloat(float64(totalAmount-actualAmount)/float64(types.TokenPrecision), 'f', 4, 64)
+			resp.ActualAmount = types.FormatAmount2FloatDisplay(actualAmount, cfg.TokenPrecision, true)
+			resp.DifferenceAmount = types.FormatAmount2FloatDisplay(totalAmount-actualAmount, cfg.TokenPrecision, true)
 		}
 
 	}
@@ -216,6 +223,13 @@ func execBalance(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+
+	cfg, err := commandtypes.GetChainConfig(rpcAddr)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "get chain config err=%s", err.Error())
+		return
+	}
+
 	var stateHashHex string
 	if height < 0 {
 
@@ -264,7 +278,7 @@ func execBalance(cmd *cobra.Command, args []string) {
 	for {
 		var reply types.ReplyGetExecBalance
 		var str string
-		err = rpc.Call("Chain33.GetExecBalance", reqParam, &str)
+		err = rpc.Call("Chain33.GetExecBalance", &reqParam, &str)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
@@ -298,9 +312,9 @@ func execBalance(cmd *cobra.Command, args []string) {
 	}
 
 	if symbol == "bty" {
-		convertReplyToResult(&replys, &resp, types.Coin)
+		convertReplyToResult(&replys, &resp, cfg.CoinPrecision)
 	} else {
-		convertReplyToResult(&replys, &resp, types.TokenPrecision)
+		convertReplyToResult(&replys, &resp, cfg.TokenPrecision)
 	}
 
 	data, err := json.MarshalIndent(resp, "", "    ")
@@ -313,15 +327,15 @@ func execBalance(cmd *cobra.Command, args []string) {
 }
 
 func convertReplyToResult(reply *types.ReplyGetExecBalance, result *commandtypes.GetExecBalanceResult, precision int64) {
-	result.Amount = strconv.FormatFloat(float64(reply.Amount)/float64(precision), 'f', 4, 64)
-	result.AmountFrozen = strconv.FormatFloat(float64(reply.AmountFrozen)/float64(precision), 'f', 4, 64)
-	result.AmountActive = strconv.FormatFloat(float64(reply.AmountActive)/float64(precision), 'f', 4, 64)
+	result.Amount = types.FormatAmount2FloatDisplay(reply.Amount, precision, true)
+	result.AmountFrozen = types.FormatAmount2FloatDisplay(reply.AmountFrozen, precision, true)
+	result.AmountActive = types.FormatAmount2FloatDisplay(reply.AmountActive, precision, true)
 
 	for i := 0; i < len(reply.Items); i++ {
 		item := &commandtypes.ExecBalance{}
 		item.ExecAddr = string(reply.Items[i].ExecAddr)
-		item.Frozen = strconv.FormatFloat(float64(reply.Items[i].Frozen)/float64(precision), 'f', 4, 64)
-		item.Active = strconv.FormatFloat(float64(reply.Items[i].Active)/float64(precision), 'f', 4, 64)
+		item.Frozen = types.FormatAmount2FloatDisplay(reply.Items[i].Frozen, precision, true)
+		item.Active = types.FormatAmount2FloatDisplay(reply.Items[i].Active, precision, true)
 		result.ExecBalances = append(result.ExecBalances, item)
 	}
 }
@@ -384,7 +398,14 @@ func totalFee(cmd *cobra.Command, args []string) {
 	if fee < 0 {
 		fee = 0
 	}
-	resp := fmt.Sprintf(`{"startHeight":%d,"endHeight":%d, "totalFee":%s}`, start, end, commandtypes.FormatAmountValue2Display(fee))
+
+	cfg, err := commandtypes.GetChainConfig(rpcAddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	resp := fmt.Sprintf(`{"startHeight":%d,"endHeight":%d, "totalFee":%s}`, start, end, types.FormatAmount2FloatDisplay(fee, cfg.CoinPrecision, true))
 	buf := &bytes.Buffer{}
 	err = json.Indent(buf, []byte(resp), "", "    ")
 	if err != nil {
@@ -411,7 +432,7 @@ func getBlockHash(height int64, rpc *jsonclient.JSONClient) (string, error) {
 
 	params := types.ReqInt{Height: height}
 	var res rpctypes.ReplyHash
-	err := rpc.Call("Chain33.GetBlockHash", params, &res)
+	err := rpc.Call("Chain33.GetBlockHash", &params, &res)
 	if err != nil {
 		return "", err
 	}
@@ -453,7 +474,7 @@ func queryTotalFeeWithHash(blockHash string, rpc *jsonclient.JSONClient) (*types
 	hash = append([]byte("TotalFeeKey:"), hash...)
 	params := types.LocalDBGet{Keys: [][]byte{hash[:]}}
 	res := &types.TotalFee{}
-	err = rpc.Call("Chain33.QueryTotalFee", params, &res)
+	err = rpc.Call("Chain33.QueryTotalFee", &params, &res)
 	if err != nil {
 		return nil, err
 	}

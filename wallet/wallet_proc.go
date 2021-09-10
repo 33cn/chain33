@@ -14,6 +14,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/pkg/errors"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -23,7 +25,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet/bipwallet"
 	wcom "github.com/33cn/chain33/wallet/common"
-	"github.com/golang/protobuf/proto"
 )
 
 // ProcSignRawTx 用钱包对交易进行签名
@@ -91,18 +92,18 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if unsigned.NewToAddr != "" {
 		tx.To = unsigned.NewToAddr
 	}
-	if unsigned.Fee != 0 {
-		tx.Fee = unsigned.Fee
-	} else {
-		//get proper fee if not set
-		proper, err := wallet.api.GetProperFee(nil)
-		if err != nil {
-			return "", err
-		}
-		fee, err := tx.GetRealFee(proper.ProperFee)
-		if err != nil {
-			return "", err
-		}
+
+	//To to set fee based on bigger of two fees, on is from sign request and the other is calculated based on tx size
+	tx.Fee = unsigned.Fee
+	proper, err := wallet.api.GetProperFee(nil)
+	if err != nil {
+		return "", err
+	}
+	fee, err := tx.GetRealFee(proper.ProperFee)
+	if err != nil {
+		return "", err
+	}
+	if fee > tx.Fee {
 		tx.Fee = fee
 	}
 
@@ -369,6 +370,49 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	}
 
 	return &walletAccount, nil
+}
+
+// ProcNewRandAccount 随机创建新账号
+func (wallet *Wallet) ProcNewRandAccount(req *types.GenSeedLang) (*types.AccountInfo, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	seed, err := wallet.genSeed(req.Lang)
+	if err != nil {
+		return nil, errors.Wrapf(err, "genSeed")
+	}
+
+	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed.Seed, 0, wallet.SignType, wallet.CoinType)
+	if err != nil {
+		walletlog.Error("ProcCreateNewAccount", "GetPrivkeyBySeed err", err)
+		return nil, errors.Wrapf(err, "GetPrivkeyBySeed")
+	}
+
+	privkeybyte, err := common.FromHex(privkeyhex)
+	if err != nil || len(privkeybyte) == 0 {
+		walletlog.Error("ProcCreateNewAccount", "FromHex err", err)
+		return nil, errors.Wrapf(err, "transfer privkey")
+	}
+
+	pub, err := bipwallet.PrivkeyToPub(wallet.CoinType, uint32(wallet.SignType), privkeybyte)
+	if err != nil {
+		seedlog.Error("ProcCreateNewAccount PrivkeyToPub", "err", err)
+		return nil, types.ErrPrivkeyToPub
+	}
+
+	addr, err := bipwallet.PubToAddress(pub)
+	if err != nil {
+		seedlog.Error("ProcCreateNewAccount PubToAddress", "err", err)
+		return nil, types.ErrPrivkeyToPub
+	}
+
+	return &types.AccountInfo{
+		Addr:       addr,
+		PrivateKey: privkeyhex,
+		PubKey:     hex.EncodeToString(pub),
+		Seed:       seed.GetSeed(),
+	}, nil
+
 }
 
 // ProcWalletTxList 处理获取钱包交易列表
@@ -989,11 +1033,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				continue
 			}
 			if len(wtxdetail.Fromaddr) > 0 {
-				txdetailbyte, err := proto.Marshal(wtxdetail)
-				if err != nil {
-					walletlog.Error("ProcWalletAddBlock", "Marshal txdetail error", err, "Height", block.Block.Height, "index", index)
-					continue
-				}
+				txdetailbyte := types.Encode(wtxdetail)
 				blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
 				heightstr := fmt.Sprintf("%018d", blockheight)
 				key := wcom.CalcTxKey(heightstr)
@@ -1081,11 +1121,7 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 		txdetail.Fromaddr = param.senderRecver
 		//txdetail.Spendrecv = param.utxos
 
-		txdetailbyte, err := proto.Marshal(&txdetail)
-		if err != nil {
-			walletlog.Error("buildAndStoreWalletTxDetail Marshal txdetail err", "Height", param.block.Block.Height, "index", param.index)
-			return
-		}
+		txdetailbyte := types.Encode(&txdetail)
 		param.newbatch.Set(key, txdetailbyte)
 	} else {
 		param.newbatch.Delete(wcom.CalcTxKey(heightstr))
@@ -1184,11 +1220,7 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		txdetail.Fromaddr = txdetal.GetFromaddr()
 		txdetail.ActionName = txdetal.GetTx().ActionName()
 
-		txdetailbyte, err := proto.Marshal(&txdetail)
-		if err != nil {
-			walletlog.Error("GetTxDetailByHashs Marshal txdetail err", "Height", height, "index", txindex)
-			return
-		}
+		txdetailbyte := types.Encode(&txdetail)
 		newbatch.Set(wcom.CalcTxKey(heightstr), txdetailbyte)
 	}
 	err = newbatch.Write()

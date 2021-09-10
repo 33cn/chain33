@@ -1,10 +1,12 @@
 package p2pstore
 
 import (
+	"context"
 	"encoding/hex"
 	"time"
 
 	"github.com/33cn/chain33/types"
+	"github.com/libp2p/go-libp2p-core/peer"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -76,38 +78,58 @@ func (p *Protocol) getExtendRoutingTable() *kbt.RoutingTable {
 }
 
 func (p *Protocol) updateExtendRoutingTable() {
-	key := []byte("temp")
-	count := 200
+	const maxQueryPeerNum = 10
 	start := time.Now()
-	for _, pid := range p.extendRoutingTable.ListPeers() {
-		if p.RoutingTable.Find(pid) == "" {
-			p.extendRoutingTable.RemovePeer(pid)
-		}
-	}
+	tmpRoutingTable, _ := kbt.NewRoutingTable(20, kbt.ConvertPeerID(p.Host.ID()), time.Minute, p.Host.Peerstore(), time.Hour, nil)
 	peers := p.RoutingTable.ListPeers()
 	for _, pid := range peers {
-		_, _ = p.extendRoutingTable.TryAddPeer(pid, true, true)
-	}
-	if key != nil {
-		peers = p.RoutingTable.NearestPeers(genDHTID(key), p.RoutingTable.Size())
+		if p.PeerInfoManager.PeerHeight(pid) < p.PeerInfoManager.PeerHeight(p.Host.ID())-1e4 {
+			continue
+		}
+		_, _ = tmpRoutingTable.TryAddPeer(pid, true, true)
 	}
 
-	for i, pid := range peers {
-		// 至少从 3 个节点上获取新节点，
-		if i+1 > 3 && p.extendRoutingTable.Size() > p.SubConfig.MaxExtendRoutingTableSize {
+	var count int // 只有通信成功的节点才会计数
+	for _, pid := range p.RoutingTable.ListPeers() {
+		if count > maxQueryPeerNum {
 			break
 		}
-		extendPeers, err := p.fetchShardPeers(key, count, pid)
+		extendPeers, err := p.fetchShardPeers(nil, 0, pid)
 		if err != nil {
 			log.Error("updateExtendRoutingTable", "fetchShardPeers error", err, "peer id", pid)
 			continue
 		}
+		count++
 		for _, cPid := range extendPeers {
 			if cPid == p.Host.ID() {
 				continue
 			}
-			_, _ = p.extendRoutingTable.TryAddPeer(cPid, true, true)
+			_, _ = tmpRoutingTable.TryAddPeer(cPid, true, true)
+			if len(p.Host.Network().Conns()) < 50 && len(p.Host.Network().ConnsToPeer(cPid)) == 0 {
+				p.connect(cPid)
+			}
 		}
 	}
-	log.Info("updateExtendRoutingTable", "pid", p.Host.ID(), "local peers count", p.RoutingTable.Size(), "extendRoutingTable peer count", p.extendRoutingTable.Size(), "time cost", time.Since(start), "origin count", count)
+
+	for _, pid := range p.extendRoutingTable.ListPeers() {
+		p.extendRoutingTable.RemovePeer(pid)
+	}
+	for _, pid := range tmpRoutingTable.ListPeers() {
+		_, _ = p.extendRoutingTable.TryAddPeer(pid, true, true)
+	}
+	_ = tmpRoutingTable.Close()
+	log.Info("updateExtendRoutingTable", "pid", p.Host.ID(), "local peers count", p.RoutingTable.Size(), "extendRoutingTable peer count", p.extendRoutingTable.Size(), "time cost", time.Since(start))
+}
+
+func (p *Protocol) connect(pid peer.ID) {
+	ctx, cancel := context.WithTimeout(p.Ctx, 3*time.Second)
+	defer cancel()
+	info := peer.AddrInfo{
+		ID:    pid,
+		Addrs: p.Host.Peerstore().Addrs(pid),
+	}
+	if err := p.Host.Connect(ctx, info); err != nil {
+		log.Error("Host Connect", "err", err, "peer", info.ID)
+	}
+
 }

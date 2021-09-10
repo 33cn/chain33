@@ -15,7 +15,7 @@ type feePlugin struct {
 }
 
 func (p *feePlugin) CheckEnable(executor *executor, enable bool) (kvs []*types.KeyValue, ok bool, err error) {
-	return nil, true, nil
+	return nil, enable, nil
 }
 
 func (p *feePlugin) ExecLocal(executor *executor, data *types.BlockDetail) ([]*types.KeyValue, error) {

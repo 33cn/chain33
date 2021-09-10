@@ -5,6 +5,7 @@
 package util
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/33cn/chain33/common"
@@ -15,12 +16,12 @@ import (
 func TestCalcByteBitMap(t *testing.T) {
 	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17}
 	for i := 0; i < 18; i++ {
-		ori = append(ori, common.Sha256([]byte(string(i))))
+		ori = append(ori, common.Sha256([]byte(fmt.Sprint(i))))
 	}
 	cur := [][]byte{}
 	arry := []byte{3, 7, 8, 11, 15, 17}
 	for _, v := range arry {
-		cur = append(cur, common.Sha256([]byte(string(v))))
+		cur = append(cur, common.Sha256([]byte(fmt.Sprint(v))))
 	}
 
 	d0 := &types.ReceiptData{Ty: types.ExecOk}
@@ -43,12 +44,12 @@ func TestCalcByteBitMap(t *testing.T) {
 func TestCalcSubBitMap(t *testing.T) {
 	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9}
 	for i := 0; i < 10; i++ {
-		ori = append(ori, common.Sha256([]byte(string(i))))
+		ori = append(ori, common.Sha256([]byte(fmt.Sprint(i))))
 	}
 	sub := [][]byte{}
 	arry := []byte{0, 2, 4, 6, 7, 9}
 	for _, v := range arry {
-		sub = append(sub, common.Sha256([]byte(string(v))))
+		sub = append(sub, common.Sha256([]byte(fmt.Sprint(v))))
 	}
 
 	d0 := &types.ReceiptData{Ty: types.ExecOk}
@@ -93,7 +94,7 @@ func TestDecodeByteBitMap(t *testing.T) {
 func TestCalcSingleBitMap(t *testing.T) {
 	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9}
 	for i := 0; i < 10; i++ {
-		ori = append(ori, common.Sha256([]byte(string(i))))
+		ori = append(ori, common.Sha256([]byte(fmt.Sprint(i))))
 	}
 
 	d0 := &types.ReceiptData{Ty: types.ExecOk}
@@ -118,12 +119,12 @@ func TestCalcSingleBitMap(t *testing.T) {
 func TestCalcBitMapByBitMap(t *testing.T) {
 	ori := [][]byte{} //{0,1,2,3,4,5,6,7,8,9}
 	for i := 0; i < 10; i++ {
-		ori = append(ori, common.Sha256([]byte(string(i))))
+		ori = append(ori, common.Sha256([]byte(fmt.Sprint(i))))
 	}
 	sub := [][]byte{}
 	arry := []byte{0, 2, 4, 6, 7, 9}
 	for _, v := range arry {
-		sub = append(sub, common.Sha256([]byte(string(v))))
+		sub = append(sub, common.Sha256([]byte(fmt.Sprint(v))))
 	}
 
 	bitmap := []byte{0x97}

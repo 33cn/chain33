@@ -115,7 +115,7 @@ func scanWrite(cfg *types.Chain33Config) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		paramsReqAddr := types.ReqAddr{
+		paramsReqAddr := &types.ReqAddr{
 			Addr:      receiveAddr,
 			Flag:      2,
 			Count:     0,
@@ -176,7 +176,7 @@ func scanWrite(cfg *types.Chain33Config) {
 				continue
 			}
 			amount := transactionDetail.Amount
-			if amount < types.Coin {
+			if amount < cfg.GetCoinPrecision() {
 				fmt.Fprintln(os.Stderr, "not enough fee")
 				continue
 			}
@@ -198,7 +198,7 @@ func scanWrite(cfg *types.Chain33Config) {
 			userTx.ChainID = cfg.GetChainID()
 
 			txHex := types.Encode(userTx)
-			paramsReqSignRawTx := types.ReqSignRawTx{
+			paramsReqSignRawTx := &types.ReqSignRawTx{
 				Addr:   receiveAddr,
 				TxHex:  hex.EncodeToString(txHex),
 				Expire: "0",

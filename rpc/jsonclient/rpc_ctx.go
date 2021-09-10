@@ -18,10 +18,14 @@ type RPCCtx struct {
 	Params interface{}
 	Res    interface{}
 	cb     Callback
+	cbExt  CallbackExt
 }
 
 // Callback a callback function
 type Callback func(res interface{}) (interface{}, error)
+
+// CallbackExt an extension callback  function
+type CallbackExt func(res ...interface{}) (interface{}, error)
 
 // NewRPCCtx produce a object of rpcctx
 func NewRPCCtx(laddr, method string, params, res interface{}) *RPCCtx {
@@ -36,6 +40,11 @@ func NewRPCCtx(laddr, method string, params, res interface{}) *RPCCtx {
 // SetResultCb rpcctx callback
 func (c *RPCCtx) SetResultCb(cb Callback) {
 	c.cb = cb
+}
+
+// SetResultCbExt extension rpcctx  callback
+func (c *RPCCtx) SetResultCbExt(cb CallbackExt) {
+	c.cbExt = cb
 }
 
 // RunResult  format rpc result
@@ -93,4 +102,46 @@ func (c *RPCCtx) RunWithoutMarshal() {
 	}
 
 	fmt.Println(res)
+}
+
+// RunResultExt  format rpc result with ext cb func
+func (c *RPCCtx) RunResultExt(arg ...interface{}) (interface{}, error) {
+	rpc, err := NewJSONClient(c.Addr)
+	if err != nil {
+		return nil, err
+	}
+
+	err = rpc.Call(c.Method, c.Params, c.Res)
+	if err != nil {
+		return nil, err
+	}
+	// maybe format rpc result
+	var result interface{}
+	if c.cbExt != nil {
+		var ints []interface{}
+		ints = append(ints, c.Res)
+		ints = append(ints, arg...)
+		result, err = c.cbExt(ints...)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		result = c.Res
+	}
+	return result, nil
+}
+
+// RunExt extension to run
+func (c *RPCCtx) RunExt(arg ...interface{}) {
+	result, err := c.RunResultExt(arg...)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	data, err := json.MarshalIndent(result, "", "    ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(string(data))
 }

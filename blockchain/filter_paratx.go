@@ -29,7 +29,7 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 	if seq.End > seq.Start && (seq.End-seq.Start > types.MaxBlockCountPerTime) {
 		seq.End = seq.Start + types.MaxBlockCountPerTime - 1
 	}
-	var reqHashes types.ReqHashes
+	reqHashes := &types.ReqHashes{}
 	var sequences *types.BlockSequences
 	if seq.IsSeq {
 		req := &types.ReqBlocks{Start: seq.Start, End: seq.End, IsDetail: false, Pid: []string{}}

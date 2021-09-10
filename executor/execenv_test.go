@@ -28,12 +28,12 @@ func TestLoadDriverFork(t *testing.T) {
 	var txs []*types.Transaction
 	addr, _ := util.Genaddress()
 	genkey := util.TestPrivkeyList[0]
-	tx := util.CreateCoinsTx(cfg, genkey, addr, types.Coin)
+	tx := util.CreateCoinsTx(cfg, genkey, addr, types.DefaultCoinPrecision)
 	txs = append(txs, tx)
 	tx.Execer = []byte("notAllow")
-	tx1 := *tx
+	tx1 := types.CloneTx(tx)
 	tx1.Execer = []byte("user.p.para.notAllow")
-	tx2 := *tx
+	tx2 := types.CloneTx(tx)
 	tx2.Execer = []byte("user.p.test.notAllow")
 	// local fork值 为0, 测试不出fork前的情况
 	//types.SetTitleOnlyForTest("chain33")
@@ -46,13 +46,13 @@ func TestLoadDriverFork(t *testing.T) {
 	}{
 		{cfg.GetFork("ForkCacheDriver") - 1, "notAllow", tx, 0},
 		//相当于平行链交易 使用none执行器
-		{cfg.GetFork("ForkCacheDriver") - 1, "none", &tx1, 0},
+		{cfg.GetFork("ForkCacheDriver") - 1, "none", tx1, 0},
 		// index > 0的allow, 但由于是fork之前，所以不会检查allow, 直接采用上一个缓存的，即none执行器
-		{cfg.GetFork("ForkCacheDriver") - 1, "none", &tx1, 1},
+		{cfg.GetFork("ForkCacheDriver") - 1, "none", tx1, 1},
 		// 不能通过allow判定 加载none执行器
-		{cfg.GetFork("ForkCacheDriver"), "none", &tx2, 0},
+		{cfg.GetFork("ForkCacheDriver"), "none", tx2, 0},
 		// fork之后需要重新判定, index>0 通过allow判定
-		{cfg.GetFork("ForkCacheDriver"), "notAllow", &tx2, 1},
+		{cfg.GetFork("ForkCacheDriver"), "notAllow", tx2, 1},
 	}
 	ctx := &executorCtx{
 		stateHash:  nil,

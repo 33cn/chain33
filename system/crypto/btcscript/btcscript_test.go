@@ -290,7 +290,7 @@ func Test_wallet_recover_transaction(t *testing.T) {
 	//wrAddr := address.PubKeyToAddr(script.Script2PubKey(wrScript))
 	//println(wrAddr)
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	tx1 := util.CreateCoinsTx(cfg, priv1, addr1, 9*types.Coin)
+	tx1 := util.CreateCoinsTx(cfg, priv1, addr1, 9*types.DefaultCoinPrecision)
 	tx1.Signature = nil
 	tx1.ChainID = 0
 	tx1.Nonce = types.Now().UnixNano()
@@ -306,7 +306,7 @@ func Test_wallet_recover_transaction(t *testing.T) {
 	tx1Hex := hex.EncodeToString(types.Encode(tx1))
 	println("tx1: " + tx1Hex)
 
-	tx2 := util.CreateCoinsTx(cfg, priv1, addr2, 10*types.Coin)
+	tx2 := util.CreateCoinsTx(cfg, priv1, addr2, 10*types.DefaultCoinPrecision)
 	tx2.Signature = nil
 	tx2.ChainID = 0
 	tx2.Nonce = types.Now().UnixNano()

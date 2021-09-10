@@ -38,7 +38,7 @@ func TestErrLog(t *testing.T) {
 	//发送交易到区块链
 	addr1, key1 := util.Genaddress()
 	addr2, _ := util.Genaddress()
-	tx1 := util.CreateCoinsTx(cfg, gen, addr1, 1*types.Coin)
+	tx1 := util.CreateCoinsTx(cfg, gen, addr1, 1*types.DefaultCoinPrecision)
 	mocker.GetAPI().SendTx(tx1)
 	mocker.WaitHeight(1)
 
@@ -112,7 +112,7 @@ func TestGetAllExecBalance(t *testing.T) {
 	addr := "38BRY193Wvy9MkdqMjmuaYeUHnJaFjUxMP"
 	req := types.ReqAddr{Addr: addr}
 	var res rpctypes.AllExecBalance
-	err := jrpcClient.Call("Chain33.GetAllExecBalance", req, &res)
+	err := jrpcClient.Call("Chain33.GetAllExecBalance", &req, &res)
 	assert.Nil(t, err)
 	assert.Equal(t, addr, res.Addr)
 	assert.Nil(t, res.ExecAccount)

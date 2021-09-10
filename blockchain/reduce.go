@@ -133,18 +133,18 @@ func (chain *BlockChain) deleteTx(batch dbm.Batch, block *types.Block) {
 
 // reduceReceipts 精简receipts
 func reduceReceipts(src *types.BlockBody) []*types.ReceiptData {
-	dst := src.Clone()
-	for i := 0; i < len(dst.Receipts); i++ {
-		for j := 0; j < len(dst.Receipts[i].Logs); j++ {
-			if dst.Receipts[i].Logs[j] != nil {
-				if dst.Receipts[i].Logs[j].Ty == types.TyLogErr { // 为了匹配界面显示
+	receipts := types.CloneReceipts(src.Receipts)
+	for i := 0; i < len(receipts); i++ {
+		for j := 0; j < len(receipts[i].Logs); j++ {
+			if receipts[i].Logs[j] != nil {
+				if receipts[i].Logs[j].Ty == types.TyLogErr { // 为了匹配界面显示
 					continue
 				}
-				dst.Receipts[i].Logs[j].Log = nil
+				receipts[i].Logs[j].Log = nil
 			}
 		}
 	}
-	return dst.Receipts
+	return receipts
 }
 
 // ReduceLocalDB 实时精简localdb

@@ -17,7 +17,6 @@ import (
 	"github.com/33cn/chain33/system/store/mavl/db/ticket"
 	"github.com/33cn/chain33/types"
 	farm "github.com/dgryski/go-farm"
-	"github.com/golang/protobuf/proto"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -286,11 +285,7 @@ func (t *Tree) Proof(key []byte) (value []byte, proofBytes []byte, exists bool) 
 	}
 	var mavlproof types.MAVLProof
 	mavlproof.InnerNodes = proof.InnerNodes
-	proofBytes, err := proto.Marshal(&mavlproof)
-	if err != nil {
-		treelog.Error("Proof proto.Marshal err!", "err", err)
-		return nil, nil, false
-	}
+	proofBytes = types.Encode(&mavlproof)
 	return value, proofBytes, true
 }
 
@@ -324,7 +319,7 @@ func (t *Tree) getMaxBlockHeight() int64 {
 		return 0
 	}
 	h := &types.Int64{}
-	err = proto.Unmarshal(value, h)
+	err = types.Decode(value, h)
 	if err != nil {
 		return 0
 	}
@@ -337,11 +332,7 @@ func (t *Tree) setMaxBlockHeight(height int64) error {
 	}
 	h := &types.Int64{}
 	h.Data = height
-	value, err := proto.Marshal(h)
-	if err != nil {
-		return err
-	}
-	t.ndb.batch.Set([]byte(curMaxBlockHeight), value)
+	t.ndb.batch.Set([]byte(curMaxBlockHeight), types.Encode(h))
 	return nil
 }
 
@@ -380,7 +371,7 @@ func (t *Tree) RemoveLeafCountKey(height int64) {
 		value := make([]byte, len(it.Value()))
 		copy(value, it.Value())
 		pData := &types.StoreNode{}
-		err := proto.Unmarshal(value, pData)
+		err := types.Decode(value, pData)
 		if err == nil {
 			keys = append(keys, pData.Key)
 		}
@@ -534,11 +525,7 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 		data := &types.PruneData{
 			Hashs: getHashNode(node),
 		}
-		v, err := proto.Marshal(data)
-		if err != nil {
-			panic(err)
-		}
-		ndb.batch.Set(k, v)
+		ndb.batch.Set(k, types.Encode(data))
 	}
 	node.persisted = true
 	ndb.cacheNode(node)
@@ -605,7 +592,7 @@ func updateGlobalMemTree(node *Node, treeCfg *TreeConfig) {
 	if node.height == 0 {
 		if bytes.HasPrefix(node.key, ticket.TicketPrefix) {
 			tk := &ticket.Ticket{}
-			err := proto.Unmarshal(node.value, tk)
+			err := types.Decode(node.value, tk)
 			if err == nil && tk.Status == ticket.StatusCloseTicket { //ticket为close状态下不做存储
 				isTkCloseNode = true
 			}
@@ -642,7 +629,7 @@ func updateLocalMemTree(t *Tree, node *Node) {
 		if node.height == 0 {
 			if bytes.HasPrefix(node.key, ticket.TicketPrefix) {
 				tk := &ticket.Ticket{}
-				err := proto.Unmarshal(node.value, tk)
+				err := types.Decode(node.value, tk)
 				if err == nil && tk.Status == ticket.StatusCloseTicket { //ticket为close状态下不做存储
 					isTkCloseNode = true
 				}
@@ -789,7 +776,7 @@ func DelLeafCountKV(db dbm.DB, blockHeight int64, treeCfg *TreeConfig) error {
 }
 
 // VerifyKVPairProof 验证KVPair 的证明
-func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proof []byte) bool {
+func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue *types.KeyValue, proof []byte) bool {
 
 	//通过传入的keyvalue构造leafnode
 	leafNode := types.LeafNode{Key: keyvalue.GetKey(), Value: keyvalue.GetValue(), Height: 0, Size: 1}

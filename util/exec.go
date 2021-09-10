@@ -157,6 +157,9 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	var checkHashList types.TxHashList
 	types.AssertConfig(client)
 	cfg := client.GetConfig()
+	if cfg.GetModuleConfig().Exec.DisableTxDupCheck {
+		return txs, nil
+	}
 	if cfg.IsFork(height, "ForkCheckTxDup") {
 		txs = DelDupTx(txs)
 	}

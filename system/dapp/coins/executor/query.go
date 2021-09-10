@@ -18,6 +18,11 @@ func (c *Coins) Query_GetTxsByAddr(in *types.ReqAddr) (types.Message, error) {
 	return c.GetTxsByAddr(in)
 }
 
+// Query_GetTxsFeeByAddr query get txs fee by address
+func (c *Coins) Query_GetTxsFeeByAddr(in *types.ReqAddr) (types.Message, error) {
+	return c.GetTxsFeeByAddr(in)
+}
+
 // Query_GetPrefixCount query key counts in the prefix
 func (c *Coins) Query_GetPrefixCount(in *types.ReqKey) (types.Message, error) {
 	return c.GetPrefixCount(in)

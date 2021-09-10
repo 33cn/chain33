@@ -29,17 +29,17 @@ func (cache *LastTxCache) GetLatestTx() (txs []*types.Transaction) {
 }
 
 //Remove remove tx of last cache
-func (cache *LastTxCache) Remove(tx *types.Transaction) {
-	cache.l.Remove(string(tx.Hash()))
+func (cache *LastTxCache) Remove(txHash string) {
+	cache.l.Remove(txHash)
 }
 
 //Push tx into LastTxCache
-func (cache *LastTxCache) Push(tx *types.Transaction) {
+func (cache *LastTxCache) Push(tx *types.Transaction, txHash string) {
 	if cache.l.Size() >= cache.max {
 		v := cache.l.GetTop()
 		if v != nil {
-			cache.Remove(v.(*types.Transaction))
+			cache.Remove(string(v.(*types.Transaction).Hash()))
 		}
 	}
-	cache.l.Push(string(tx.Hash()), tx)
+	cache.l.Push(txHash, tx)
 }

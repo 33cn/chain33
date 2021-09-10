@@ -34,15 +34,14 @@ func (cache *SHashTxCache) GetSHashTxCache(sHash string) *types.Transaction {
 }
 
 //Remove remove tx of SHashTxCache
-func (cache *SHashTxCache) Remove(tx *types.Transaction) {
-	txhash := tx.Hash()
-	cache.l.Remove(types.CalcTxShortHash(txhash))
+func (cache *SHashTxCache) Remove(txHash string) {
+	cache.l.Remove(types.CalcTxShortHash(types.Str2Bytes(txHash)))
 	//shashlog.Debug("SHashTxCache:Remove", "shash", types.CalcTxShortHash(txhash), "txhash", common.ToHex(txhash))
 }
 
 //Push tx into SHashTxCache
-func (cache *SHashTxCache) Push(tx *types.Transaction) {
-	shash := types.CalcTxShortHash(tx.Hash())
+func (cache *SHashTxCache) Push(tx *types.Transaction, txHash []byte) {
+	shash := types.CalcTxShortHash(txHash)
 
 	if cache.Exist(shash) {
 		shashlog.Error("SHashTxCache:Push:Exist", "oldhash", common.ToHex(cache.GetSHashTxCache(shash).Hash()), "newhash", common.ToHex(tx.Hash()))

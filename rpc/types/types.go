@@ -260,6 +260,11 @@ type ReqAddr struct {
 	Addr string `json:"addr"`
 }
 
+// ReqStrings require strings
+type ReqStrings struct {
+	Datas []string `json:"datas"`
+}
+
 // ReqHashes require hashes
 type ReqHashes struct {
 	Hashes        []string `json:"hashes"`
@@ -455,4 +460,18 @@ type BlockInfo struct {
 //ChainIDInfo parameter
 type ChainIDInfo struct {
 	ChainID int32 `json:"chainID"`
+}
+
+//ChainConfigInfo parameter
+type ChainConfigInfo struct {
+	Title          string `json:"title,omitempty"`
+	CoinExec       string `json:"coinExec,omitempty"`
+	CoinSymbol     string `json:"coinSymbol,omitempty"`
+	CoinPrecision  int64  `json:"coinPrecision,omitempty"`
+	TokenPrecision int64  `json:"tokenPrecision,omitempty"`
+	ChainID        int32  `json:"chainID,omitempty"`
+	MaxTxFee       int64  `json:"maxTxFee,omitempty"`
+	MinTxFeeRate   int64  `json:"minTxFeeRate,omitempty"`
+	MaxTxFeeRate   int64  `json:"maxTxFeeRate,omitempty"`
+	IsPara         bool   `json:"isPara,omitempty"`
 }

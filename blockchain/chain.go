@@ -377,7 +377,7 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	chain.sendAddBlockEvent("p2p", block.GetBlock(), height)
 	chain.sendAddBlockEvent("wallet", block, height)
 
-	header := types.Header{Height: height, BlockTime: block.GetBlock().GetBlockTime()}
+	header := &types.Header{Height: height, BlockTime: block.GetBlock().GetBlockTime()}
 	chain.sendAddBlockEvent("crypto", header, height)
 	return nil
 }

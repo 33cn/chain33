@@ -7,7 +7,6 @@ package commands
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/rpc/jsonclient"
@@ -31,6 +30,8 @@ func AccountCmd() *cobra.Command {
 		GetBalanceCmd(),
 		ImportKeyCmd(),
 		NewAccountCmd(),
+		NewRandAccountCmd(),
+		PubKeyToAddrCmd(),
 		SetLabelCmd(),
 		DumpKeysFileCmd(),
 		ImportKeysFileCmd(),
@@ -63,7 +64,7 @@ func dumpKey(cmd *cobra.Command, args []string) {
 		Data: addr,
 	}
 	var res types.ReplyString
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DumpPrivkey", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DumpPrivkey", &params, &res)
 	ctx.Run()
 }
 
@@ -81,16 +82,22 @@ func listAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.WalletAccounts
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAccounts", nil, &res)
-	ctx.SetResultCb(parseListAccountRes)
-	ctx.Run()
+	ctx.SetResultCbExt(parseListAccountRes)
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	ctx.RunExt(cfg)
 }
 
-func parseListAccountRes(arg interface{}) (interface{}, error) {
-	res := arg.(*rpctypes.WalletAccounts)
+func parseListAccountRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*rpctypes.WalletAccounts)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
 	var result commandtypes.AccountsResult
 	for _, r := range res.Wallets {
-		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance/types.Int1E4)/types.Float1E4, 'f', 4, 64)
-		frozenResult := strconv.FormatFloat(float64(r.Acc.Frozen/types.Int1E4)/types.Float1E4, 'f', 4, 64)
+		balanceResult := types.FormatAmount2FloatDisplay(r.Acc.Balance, cfg.CoinPrecision, false)
+		frozenResult := types.FormatAmount2FloatDisplay(r.Acc.Frozen, cfg.CoinPrecision, false)
 		accResult := &commandtypes.AccountResult{
 			Currency: r.Acc.Currency,
 			Addr:     r.Acc.Addr,
@@ -149,9 +156,14 @@ func balance(cmd *cobra.Command, args []string) {
 	if execer == "" && height == -1 {
 		req := types.ReqAllExecBalance{Addr: addr}
 		var res rpctypes.AllExecBalance
-		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
-		ctx.SetResultCb(parseGetAllBalanceRes)
-		ctx.Run()
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", &req, &res)
+		ctx.SetResultCbExt(parseGetAllBalanceRes)
+		cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		ctx.RunExt(cfg)
 		return
 	}
 
@@ -163,7 +175,7 @@ func balance(cmd *cobra.Command, args []string) {
 			IsDetail: false,
 		}
 		var res rpctypes.Headers
-		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", &params, &res)
 		_, err := ctx.RunResult()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -176,9 +188,14 @@ func balance(cmd *cobra.Command, args []string) {
 	if execer == "" {
 		req := types.ReqAllExecBalance{Addr: addr, StateHash: stateHash}
 		var res rpctypes.AllExecBalance
-		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
-		ctx.SetResultCb(parseGetAllBalanceRes)
-		ctx.Run()
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAllExecBalance", &req, &res)
+		ctx.SetResultCbExt(parseGetAllBalanceRes)
+		cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		ctx.RunExt(cfg)
 		return
 	}
 
@@ -195,15 +212,21 @@ func balance(cmd *cobra.Command, args []string) {
 		StateHash: stateHash,
 	}
 	var res []*rpctypes.Account
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
-	ctx.SetResultCb(parseGetBalanceRes)
-	ctx.Run()
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", &params, &res)
+	ctx.SetResultCbExt(parseGetBalanceRes)
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	ctx.RunExt(cfg)
 }
 
-func parseGetBalanceRes(arg interface{}) (interface{}, error) {
-	res := *arg.(*[]*rpctypes.Account)
-	balanceResult := strconv.FormatFloat(float64(res[0].Balance/types.Int1E4)/types.Float1E4, 'f', 4, 64)
-	frozenResult := strconv.FormatFloat(float64(res[0].Frozen/types.Int1E4)/types.Float1E4, 'f', 4, 64)
+func parseGetBalanceRes(arg ...interface{}) (interface{}, error) {
+	res := *arg[0].(*[]*rpctypes.Account)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	balanceResult := types.FormatAmount2FloatDisplay(res[0].Balance, cfg.CoinPrecision, false)
+	frozenResult := types.FormatAmount2FloatDisplay(res[0].Frozen, cfg.CoinPrecision, false)
 	result := &commandtypes.AccountResult{
 		Addr:     res[0].Addr,
 		Currency: res[0].Currency,
@@ -213,13 +236,14 @@ func parseGetBalanceRes(arg interface{}) (interface{}, error) {
 	return result, nil
 }
 
-func parseGetAllBalanceRes(arg interface{}) (interface{}, error) {
-	res := *arg.(*rpctypes.AllExecBalance)
+func parseGetAllBalanceRes(arg ...interface{}) (interface{}, error) {
+	res := *arg[0].(*rpctypes.AllExecBalance)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
 	accs := res.ExecAccount
 	result := commandtypes.AllExecBalance{Addr: res.Addr}
 	for _, acc := range accs {
-		balanceResult := strconv.FormatFloat(float64(acc.Account.Balance/types.Int1E4)/types.Float1E4, 'f', 4, 64)
-		frozenResult := strconv.FormatFloat(float64(acc.Account.Frozen/types.Int1E4)/types.Float1E4, 'f', 4, 64)
+		balanceResult := types.FormatAmount2FloatDisplay(acc.Account.Balance, cfg.CoinPrecision, false)
+		frozenResult := types.FormatAmount2FloatDisplay(acc.Account.Frozen, cfg.CoinPrecision, false)
 		ar := &commandtypes.AccountResult{
 			Currency: acc.Account.Currency,
 			Balance:  balanceResult,
@@ -253,19 +277,26 @@ func importKey(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	key, _ := cmd.Flags().GetString("key")
 	label, _ := cmd.Flags().GetString("label")
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	params := types.ReqWalletImportPrivkey{
 		Privkey: key,
 		Label:   label,
 	}
 	var res types.WalletAccount
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkey", params, &res)
-	ctx.SetResultCb(parseImportKeyRes)
-	ctx.Run()
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkey", &params, &res)
+	ctx.SetResultCbExt(parseImportKeyRes)
+	ctx.RunExt(cfg)
 }
 
-func parseImportKeyRes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.WalletAccount)
-	accResult := commandtypes.DecodeAccount(res.GetAcc(), types.Coin)
+func parseImportKeyRes(args ...interface{}) (interface{}, error) {
+	res := args[0].(*types.WalletAccount)
+	cfg := args[1].(*rpctypes.ChainConfigInfo)
+	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.CoinPrecision)
 	result := commandtypes.WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),
@@ -292,23 +323,82 @@ func addCreateAccountFlags(cmd *cobra.Command) {
 func createAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	label, _ := cmd.Flags().GetString("label")
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	params := types.ReqNewAccount{
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewAccount", params, &res)
-	ctx.SetResultCb(parseCreateAccountRes)
-	ctx.Run()
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewAccount", &params, &res)
+	ctx.SetResultCbExt(parseCreateAccountRes)
+	ctx.RunExt(cfg)
 }
 
-func parseCreateAccountRes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.WalletAccount)
-	accResult := commandtypes.DecodeAccount(res.GetAcc(), types.Coin)
+func parseCreateAccountRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*types.WalletAccount)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.CoinPrecision)
 	result := commandtypes.WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),
 	}
 	return result, nil
+}
+
+//NewRandAccountCmd get rand account
+func NewRandAccountCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "rand",
+		Short: "Get account by label",
+		Run:   getRandAccount,
+	}
+	addRandAccountFlags(cmd)
+	return cmd
+}
+func addRandAccountFlags(cmd *cobra.Command) {
+	cmd.Flags().Int32P("lang", "l", 0, "seed language(0:English, 1:简体中文)")
+	cmd.MarkFlagRequired("lang")
+}
+func getRandAccount(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	lang, _ := cmd.Flags().GetInt32("lang")
+
+	params := types.GenSeedLang{
+		Lang: lang,
+	}
+	var res types.AccountInfo
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewRandAccount", &params, &res)
+	ctx.Run()
+}
+
+//PubKeyToAddrCmd get rand account
+func PubKeyToAddrCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "p2addr",
+		Short: "Get addr by pubkey",
+		Run:   getPubToAddr,
+	}
+	addPubKeyFlags(cmd)
+	return cmd
+}
+func addPubKeyFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("pub", "p", "", "pub key string")
+	cmd.MarkFlagRequired("pub")
+}
+func getPubToAddr(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	pub, _ := cmd.Flags().GetString("pub")
+
+	params := types.ReqString{
+		Data: pub,
+	}
+	var res types.ReplyString
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.PubKeyToAddr", &params, &res)
+	ctx.Run()
 }
 
 //GetAccountCmd get account by label
@@ -347,32 +437,47 @@ func addSetLabelFlags(cmd *cobra.Command) {
 func getAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	label, _ := cmd.Flags().GetString("label")
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	params := types.ReqGetAccount{
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAccount", params, &res)
-	ctx.SetResultCb(parseSetLabelRes)
-	ctx.Run()
+
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetAccount", &params, &res)
+	ctx.SetResultCbExt(parseSetLabelRes)
+	ctx.RunExt(cfg)
 }
 
 func setLabel(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
 	label, _ := cmd.Flags().GetString("label")
+
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	params := types.ReqWalletSetLabel{
 		Addr:  addr,
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetLabl", params, &res)
-	ctx.SetResultCb(parseSetLabelRes)
-	ctx.Run()
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SetLabl", &params, &res)
+	ctx.SetResultCbExt(parseSetLabelRes)
+	ctx.RunExt(cfg)
 }
 
-func parseSetLabelRes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.WalletAccount)
-	accResult := commandtypes.DecodeAccount(res.GetAcc(), types.Coin)
+func parseSetLabelRes(arg ...interface{}) (interface{}, error) {
+	res := arg[0].(*types.WalletAccount)
+	cfg := arg[1].(*rpctypes.ChainConfigInfo)
+	accResult := commandtypes.DecodeAccount(res.GetAcc(), cfg.CoinPrecision)
 	result := commandtypes.WalletResult{
 		Acc:   accResult,
 		Label: res.GetLabel(),
@@ -417,7 +522,7 @@ func dumpKeys(cmd *cobra.Command, args []string) {
 		Passwd:   pwd,
 	}
 	var res types.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DumpPrivkeysFile", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DumpPrivkeysFile", &params, &res)
 	ctx.Run()
 }
 
@@ -430,6 +535,6 @@ func importKeys(cmd *cobra.Command, args []string) {
 		Passwd:   pwd,
 	}
 	var res types.Reply
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkeysFile", params, &res)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkeysFile", &params, &res)
 	ctx.Run()
 }

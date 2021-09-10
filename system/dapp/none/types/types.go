@@ -18,7 +18,7 @@ const (
 	TyCommitDelayTxAction = iota + 101
 
 	// UnknownActionName unknown action name
-	UnknownActionName = "UnknownActionName"
+	UnknownActionName = "UnknownNoneActionName"
 	// NameCommitDelayTxAction commit delay transaction action name
 	NameCommitDelayTxAction = "CommitDelayTx"
 )

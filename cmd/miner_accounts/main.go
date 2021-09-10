@@ -59,7 +59,7 @@ func main() {
 
 	go accounts.SyncBlock(cfg.Chain33Host)
 
-	shower := accounts.ShowMinerAccount{DataDir: cfg.DataDir, Addrs: cfg.MinerAddr}
+	shower := accounts.ShowMinerAccount{DataDir: cfg.DataDir, Addrs: cfg.MinerAddr, CoinPrecision: cfg.CoinPrecision}
 	server := rpc.NewServer()
 	server.Register(&shower)
 

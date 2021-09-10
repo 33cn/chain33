@@ -365,7 +365,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 		panic(err)
 	}
 	writeCost := types.Since(beg)
-	chainlog.Debug("ConnectBlock", "execLocal", txCost, "saveBlk", saveBlkCost, "cacheBlk", cacheCost, "writeBatch", writeCost)
+	chainlog.Info("ConnectBlock", "execLocal", txCost, "saveBlk", saveBlkCost, "cacheBlk", cacheCost, "writeBatch", writeCost)
 	chainlog.Debug("connectBlock info", "height", block.Height, "batchsync", sync, "hash", common.ToHex(blockdetail.Block.Hash(cfg)))
 
 	// 更新最新的高度和header

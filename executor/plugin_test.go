@@ -24,7 +24,7 @@ func TestPlugin(t *testing.T) {
 	}
 	var txs []*types.Transaction
 	addr, priv := util.Genaddress()
-	tx := util.CreateCoinsTx(cfg, priv, addr, types.Coin)
+	tx := util.CreateCoinsTx(cfg, priv, addr, types.DefaultCoinPrecision)
 	tx.Sign(types.SECP256K1, priv)
 	txs = append(txs, tx)
 	var stateHash [32]byte

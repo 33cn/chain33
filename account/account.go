@@ -101,7 +101,7 @@ func (acc *DB) LoadAccount(addr string) *types.Account {
 
 // CheckTransfer 检查交易
 func (acc *DB) CheckTransfer(from, to string, amount int64) error {
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return types.ErrAmount
 	}
 	accFrom := acc.LoadAccount(from)
@@ -112,9 +112,14 @@ func (acc *DB) CheckTransfer(from, to string, amount int64) error {
 	return nil
 }
 
+// CheckAmount acc db check amount
+func (acc *DB) CheckAmount(amount int64) bool {
+	return types.CheckAmount(amount, acc.cfg.GetCoinPrecision())
+}
+
 // Transfer 执行交易
 func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	accFrom := acc.LoadAccount(from)
@@ -123,18 +128,18 @@ func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 		return nil, types.ErrSendSameToRecv
 	}
 	if accFrom.GetBalance()-amount >= 0 {
-		copyfrom := *accFrom
-		copyto := *accTo
+		copyFrom := types.CloneAccount(accFrom)
+		copyTo := types.CloneAccount(accTo)
 
 		accFrom.Balance = accFrom.GetBalance() - amount
 		accTo.Balance = accTo.GetBalance() + amount
 
 		receiptBalanceFrom := &types.ReceiptAccountTransfer{
-			Prev:    &copyfrom,
+			Prev:    copyFrom,
 			Current: accFrom,
 		}
 		receiptBalanceTo := &types.ReceiptAccountTransfer{
-			Prev:    &copyto,
+			Prev:    copyTo,
 			Current: accTo,
 		}
 		fromkv := acc.GetKVSet(accFrom)
@@ -148,14 +153,14 @@ func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 }
 
 func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, error) {
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadAccount(execaddr)
-	copyacc := *acc1
+	copyacc := types.CloneAccount(acc1)
 	acc1.Balance += amount
 	receiptBalance := &types.ReceiptAccountTransfer{
-		Prev:    &copyacc,
+		Prev:    copyacc,
 		Current: acc1,
 	}
 	kv := acc.GetKVSet(acc1)
@@ -446,7 +451,7 @@ func genPrefixEdge(prefix []byte) (r []byte) {
 
 // Mint 铸币
 func (acc *DB) Mint(addr string, amount int64) (*types.Receipt, error) {
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 
@@ -456,11 +461,11 @@ func (acc *DB) Mint(addr string, amount int64) (*types.Receipt, error) {
 		return nil, err
 	}
 
-	copyAcc := *accTo
+	copyAcc := types.CloneAccount(accTo)
 	accTo.Balance = balance
 
 	receipt := &types.ReceiptAccountMint{
-		Prev:    &copyAcc,
+		Prev:    copyAcc,
 		Current: accTo,
 	}
 	kv := acc.GetKVSet(accTo)
@@ -484,7 +489,7 @@ func (acc *DB) mintReceipt(kv []*types.KeyValue, receipt proto.Message) *types.R
 
 // Burn 然收
 func (acc *DB) Burn(addr string, amount int64) (*types.Receipt, error) {
-	if !types.CheckAmount(amount) {
+	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 
@@ -493,11 +498,11 @@ func (acc *DB) Burn(addr string, amount int64) (*types.Receipt, error) {
 		return nil, types.ErrNoBalance
 	}
 
-	copyAcc := *accTo
+	copyAcc := types.CloneAccount(accTo)
 	accTo.Balance = accTo.Balance - amount
 
 	receipt := &types.ReceiptAccountBurn{
-		Prev:    &copyAcc,
+		Prev:    copyAcc,
 		Current: accTo,
 	}
 	kv := acc.GetKVSet(accTo)

@@ -30,21 +30,25 @@ require (
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
 	github.com/libp2p/go-libp2p-swarm v0.5.0
+	github.com/libp2p/go-msgio v0.0.6
 	github.com/mattn/go-colorable v0.1.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.3.1
-	github.com/multiformats/go-multiaddr-net v0.2.0
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/pkg/errors v0.9.1
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/rs/cors v1.6.0
+	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
 	github.com/tjfoc/gmsm v1.3.2
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
+	golang.org/x/mod v0.5.0 // indirect
 	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6
-	golang.org/x/sys v0.0.0-20210426080607-c94f62235c83
+	golang.org/x/sys v0.0.0-20210906170528-6f6e22806c34
+	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.33.2
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c

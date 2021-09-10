@@ -27,6 +27,8 @@ type Config struct {
 	Health           *HealthCheck   `json:"health,omitempty"`
 	CoinExec         string         `json:"coinExec,omitempty"`
 	CoinSymbol       string         `json:"coinSymbol,omitempty"`
+	CoinPrecision    int64          `json:"coinPrecision,omitempty"`
+	TokenPrecision   int64          `json:"tokenPrecision,omitempty"`
 	DisableForkCheck bool           `json:"disableForkCheck,omitempty"`
 	EnableParaFork   bool           `json:"enableParaFork,omitempty"`
 	Metrics          *Metrics       `json:"metrics,omitempty"`
@@ -277,7 +279,11 @@ type Exec struct {
 	DisableAddrIndex bool     `json:"disableAddrIndex,omitempty"`
 	Alias            []string `json:"alias,omitempty"`
 	// 是否保存token交易信息
-	SaveTokenTxList bool `json:"saveTokenTxList,omitempty"`
+	SaveTokenTxList    bool `json:"saveTokenTxList,omitempty"`
+	EnableAddrFeeIndex bool `json:"enableAddrFeeIndex,omitempty"`
+	DisableTxIndex     bool `json:"disableTxIndex,omitempty"`
+	DisableFeeIndex    bool `json:"disableFeeIndex,omitempty"`
+	DisableTxDupCheck  bool `json:"disableTxDupCheck,omitempty"`
 }
 
 // Pprof 配置

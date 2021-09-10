@@ -39,6 +39,22 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	return g.cli.SendTx(in)
 }
 
+// SendTransactions send transaction by network
+func (g *Grpc) SendTransactions(ctx context.Context, in *pb.Transactions) (*pb.ReplyHashes, error) {
+	if len(in.GetTxs()) == 0 {
+		return nil, nil
+	}
+	hashes := &pb.ReplyHashes{Hashes: make([][]byte, 0, len(in.GetTxs()))}
+	for _, tx := range in.GetTxs() {
+		reply, err := g.cli.SendTx(tx)
+		if err != nil {
+			return hashes, err
+		}
+		hashes.Hashes = append(hashes.Hashes, reply.GetMsg())
+	}
+	return hashes, nil
+}
+
 // CreateNoBalanceTxs create multiple transaction with no balance
 func (g *Grpc) CreateNoBalanceTxs(ctx context.Context, in *pb.NoBalanceTxs) (*pb.ReplySignRawTx, error) {
 	reply, err := g.cli.CreateNoBalanceTxs(in)
@@ -567,4 +583,21 @@ func (g *Grpc) GetWalletRecoverAddress(ctx context.Context, in *pb.ReqGetWalletR
 // SignWalletRecoverTx sign wallet recover tx
 func (g *Grpc) SignWalletRecoverTx(ctx context.Context, in *pb.ReqSignWalletRecoverTx) (*pb.ReplySignRawTx, error) {
 	return g.cli.SignWalletRecoverTx(in)
+}
+
+// GetChainConfig 获取chain config 参数
+func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConfigInfo, error) {
+	cfg := g.cli.GetConfig()
+	return &pb.ChainConfigInfo{
+		Title:          cfg.GetTitle(),
+		CoinExec:       cfg.GetCoinExec(),
+		CoinSymbol:     cfg.GetCoinSymbol(),
+		CoinPrecision:  cfg.GetCoinPrecision(),
+		TokenPrecision: cfg.GetTokenPrecision(),
+		ChainID:        cfg.GetChainID(),
+		MaxTxFee:       cfg.GetMaxTxFee(),
+		MinTxFeeRate:   cfg.GetMinTxFeeRate(),
+		MaxTxFeeRate:   cfg.GetMaxTxFeeRate(),
+		IsPara:         cfg.IsPara(),
+	}, nil
 }

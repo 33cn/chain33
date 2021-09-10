@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"strings"
 
 	"github.com/33cn/chain33/client/mocks"
@@ -436,7 +438,7 @@ func testGetBlocksOK(t *testing.T) {
 	var details2 types.BlockDetails
 	pb.Decode(data.Msg, &details2)
 	if !proto.Equal(&details, &details2) {
-		assert.Equal(t, details, details2)
+		assert.Equal(t, types.Encode(&details), types.Encode(&details2))
 	}
 }
 
@@ -753,4 +755,29 @@ func TestGrpc_WalletRecoverScript(t *testing.T) {
 	assert.Equal(t, types.ErrInvalidParam, err)
 	_, err = g.SignWalletRecoverTx(getOkCtx(), nil)
 	assert.Equal(t, types.ErrInvalidParam, err)
+}
+
+func TestGrpc_GetChainConfig(t *testing.T) {
+	cfg, err := g.GetChainConfig(getOkCtx(), nil)
+	assert.NoError(t, err)
+	assert.Equal(t, types.DefaultCoinPrecision, cfg.GetCoinPrecision())
+}
+
+func TestGrpc_SendTransactions(t *testing.T) {
+
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	//Init(cfg)
+	g := Grpc{}
+	qapi = new(mocks.QueueProtocolAPI)
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
+	g.cli.QueueProtocolAPI = qapi
+	txCount := 10
+	in := &types.Transactions{Txs: make([]*types.Transaction, txCount)}
+	testMsg := []byte("test")
+	qapi.On("SendTx", mock.Anything).Return(&types.Reply{IsOk: true, Msg: testMsg}, nil)
+
+	reply, err := g.SendTransactions(getOkCtx(), in)
+	require.Nil(t, err)
+	require.Equal(t, txCount, len(reply.GetHashes()))
+	require.Equal(t, testMsg, reply.GetHashes()[0])
 }

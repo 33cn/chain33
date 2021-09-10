@@ -136,7 +136,7 @@ func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, txH
 func CreateTxWithExecer(cfg *types.Chain33Config, priv crypto.PrivKey, execer string) *types.Transaction {
 	if execer == cfg.GetCoinExec() {
 		to, _ := Genaddress()
-		return CreateCoinsTx(cfg, priv, to, types.Coin)
+		return CreateCoinsTx(cfg, priv, to, cfg.GetCoinPrecision())
 	}
 	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("none")}
 	tx.To = address.ExecAddress(execer)
@@ -228,7 +228,7 @@ func CreateTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to stri
 func GenTxsTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, n, height int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
-		tx := CreateTxWithTxHeight(cfg, priv, to, types.Coin*(n+1), height)
+		tx := CreateTxWithTxHeight(cfg, priv, to, (n+1)*cfg.GetCoinPrecision(), height)
 		txs = append(txs, tx)
 	}
 	return txs
@@ -318,7 +318,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 			}
 		}
 		signOK := types.VerifySignature(config, block, unverifiedTxs)
-		ulog.Debug("PreExecBlock", "height", block.GetHeight(), "checkCount", len(unverifiedTxs), "CheckSign", types.Since(beg))
+		ulog.Info("PreExecBlock", "height", block.GetHeight(), "checkCount", len(unverifiedTxs), "CheckSign", types.Since(beg))
 		if !signOK {
 			return nil, nil, types.ErrSign
 		}
@@ -350,7 +350,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	beg = types.Now()
 	//对区块的正确性保持乐观，交易查重和执行并行处理，提高效率
 	receipts, err := ExecTx(client, prevStateRoot, block)
-	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "ExecTx", types.Since(beg))
+	ulog.Info("PreExecBlock", "height", block.GetHeight(), "ExecTx", types.Since(beg))
 	beg = types.Now()
 
 	//检查交易查重结果
@@ -363,7 +363,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 		block.Txs = types.CacheToTxs(cacheTxs)
 		receipts, err = ExecTx(client, prevStateRoot, block)
 	}
-	ulog.Debug("PreExecBlock", "height", block.GetHeight(), "WaitDupCheck", types.Since(beg))
+	ulog.Info("PreExecBlock", "height", block.GetHeight(), "WaitDupCheck", types.Since(beg))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -393,22 +393,30 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	block.Txs = block.Txs[:index]
 	cacheTxs = cacheTxs[:index]
 
-	//检查block的txhash值
-	var txHash []byte
 	height := block.Height
 	//此时需要区分主链和平行链
 	if config.IsPara() {
 		height = block.MainHeight
 	}
-	if !config.IsFork(height, "ForkRootHash") {
-		txHash = merkle.CalcMerkleRootCache(cacheTxs)
-	} else {
-		txHash = merkle.CalcMerkleRoot(config, height, types.TransactionSort(block.Txs))
+	//txHash有两种情况需要额外计算
+	//1. 本地共识模块过来的区块未对txHash设置
+	//2. 收到其他不可信节点的区块, 需要验证时重新计算
+	var txHash []byte
+	if len(block.TxHash) == 0 || errReturn {
+		if !config.IsFork(height, "ForkRootHash") {
+			txHash = merkle.CalcMerkleRootCache(cacheTxs)
+		} else {
+			txHash = merkle.CalcMerkleRoot(config, height, types.TransactionSort(block.Txs))
+		}
 	}
+	// 本节点打包区块不检查, 检查其他节点的区块, 其他节点errReturn = true
 	if errReturn && !bytes.Equal(txHash, block.TxHash) {
 		return nil, nil, types.ErrCheckTxHash
 	}
-	block.TxHash = txHash
+	// 共识模块未设置txHash, 需要进行赋值
+	if len(block.TxHash) == 0 {
+		block.TxHash = txHash
+	}
 	ulog.Debug("PreExecBlock", "CalcMerkleRootCache", types.Since(beg))
 	beg = types.Now()
 	kvset = DelDupKey(kvset)
@@ -416,7 +424,7 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	if err != nil {
 		return nil, nil, err
 	}
-	//println("2")
+
 	if errReturn && !bytes.Equal(block.StateHash, stateHash) {
 		err = ExecKVSetRollback(client, stateHash)
 		if err != nil {
@@ -442,7 +450,9 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	}
 	ulog.Debug("PreExecBlock", "CheckBlock", types.Since(beg))
 
-	detail.KV = kvset
+	if len(kvset) > 0 {
+		detail.KV = kvset
+	}
 	detail.PrevStatusHash = prevStateRoot
 	return &detail, deltxs, nil
 }

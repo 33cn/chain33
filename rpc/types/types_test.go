@@ -39,12 +39,12 @@ func TestDecodeTx(t *testing.T) {
 		ChainID: cfg.GetChainID(),
 	}
 
-	data, err := DecodeTx(&tx)
+	data, err := DecodeTx(&tx, types.DefaultCoinPrecision)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
 	tx.Execer = []byte(cfg.ExecName("coins"))
-	data, err = DecodeTx(&tx)
+	data, err = DecodeTx(&tx, types.DefaultCoinPrecision)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
@@ -57,7 +57,7 @@ func TestDecodeTx(t *testing.T) {
 	}
 
 	t.Log(string(tx.Execer))
-	data, err = DecodeTx(&tx)
+	data, err = DecodeTx(&tx, types.DefaultCoinPrecision)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 }
@@ -80,7 +80,7 @@ func TestConvertWalletTxDetailToJSON(t *testing.T) {
 	detail := &types.WalletTxDetail{Tx: tx, Receipt: receipt}
 	in := &types.WalletTxDetails{TxDetails: []*types.WalletTxDetail{detail}}
 	out := &WalletTxDetails{}
-	err := ConvertWalletTxDetailToJSON(in, out, "coins")
+	err := ConvertWalletTxDetailToJSON(in, out, "coins", types.DefaultCoinPrecision)
 	assert.NoError(t, err)
 
 	//test withdraw swap from to
@@ -89,7 +89,7 @@ func TestConvertWalletTxDetailToJSON(t *testing.T) {
 	assert.NoError(t, err)
 	tx.To = "to"
 	out = &WalletTxDetails{}
-	err = ConvertWalletTxDetailToJSON(in, out, "coins")
+	err = ConvertWalletTxDetailToJSON(in, out, "coins", types.DefaultCoinPrecision)
 	assert.NoError(t, err)
 	assert.Equal(t, "to", out.TxDetails[0].FromAddr)
 	assert.Equal(t, "from", detail.Tx.To)
@@ -113,7 +113,7 @@ func TestDecodeTx2(t *testing.T) {
 	var r types.Transaction
 	err = types.Decode(bdata, &r)
 	assert.Nil(t, err)
-	data, err := DecodeTx(&r)
+	data, err := DecodeTx(&r, types.DefaultCoinPrecision)
 	assert.Nil(t, err)
 	jsondata, err := json.Marshal(data)
 	assert.Nil(t, err)

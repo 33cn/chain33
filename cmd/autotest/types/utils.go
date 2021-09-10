@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/33cn/chain33/types"
+
 	"github.com/33cn/chain33/common/log/log15"
 )
 
@@ -149,7 +151,7 @@ func CheckBalanceDeltaWithAddr(log map[string]interface{}, addr string, delta fl
 	prev, _ := strconv.ParseFloat(log["prev"].(map[string]interface{})["balance"].(string), 64)
 	curr, _ := strconv.ParseFloat(log["current"].(map[string]interface{})["balance"].(string), 64)
 
-	logDelta := (curr - prev) / 1e8
+	logDelta := (curr - prev) / float64(types.DefaultCoinPrecision)
 
 	return (logAddr == addr) && (IsBalanceEqualFloat(logDelta, delta))
 }
@@ -161,7 +163,7 @@ func CheckFrozenDeltaWithAddr(log map[string]interface{}, addr string, delta flo
 	prev, _ := strconv.ParseFloat(log["prev"].(map[string]interface{})["frozen"].(string), 64)
 	curr, _ := strconv.ParseFloat(log["current"].(map[string]interface{})["frozen"].(string), 64)
 
-	logDelta := (curr - prev) / 1e8
+	logDelta := (curr - prev) / float64(types.DefaultCoinPrecision)
 
 	return (logAddr == addr) && (IsBalanceEqualFloat(logDelta, delta))
 }
@@ -182,7 +184,7 @@ func CalcTxUtxoAmount(log map[string]interface{}, key string) float64 {
 		totalAmount += temp
 	}
 
-	return totalAmount / 1e8
+	return totalAmount / float64(types.DefaultCoinPrecision)
 }
 
 //CalcUtxoAvailAmount calculate available utxo with specific addr and TxHash

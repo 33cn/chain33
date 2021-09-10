@@ -160,6 +160,18 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 	qcli.Send(msg, false)
 	require.True(t, qcli.Send(msg, false) == nil)
 
+	msg = qcli.NewMessage("p2p", types.EventAddBlacklist, &types.BlackPeer{PeerName: "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM", Lifetime: "1second"})
+	qcli.Send(msg, false)
+	require.True(t, qcli.Send(msg, false) == nil)
+
+	msg = qcli.NewMessage("p2p", types.EventShowBlacklist, &types.ReqNil{})
+	qcli.Send(msg, false)
+	require.True(t, qcli.Send(msg, false) == nil)
+
+	msg = qcli.NewMessage("p2p", types.EventDelBlacklist, &types.BlackPeer{PeerName: "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"})
+	qcli.Send(msg, false)
+	require.True(t, qcli.Send(msg, false) == nil)
+
 }
 
 func newHost(subcfg *p2pty.P2PSubConfig, priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
@@ -197,6 +209,7 @@ func TestPrivateNetwork(t *testing.T) {
 	testPSK := make([]byte, 32)
 	rand.Reader.Read(testPSK)
 	subcfg.Psk = hex.EncodeToString(testPSK)
+	subcfg.MaxConnectNum = 1000
 	subcfg2.Psk = subcfg.Psk
 	h1 := newHost(&subcfg, prvKey1, nil, maddr)
 	h2 := newHost(&subcfg2, prvKey2, nil, maddr2)
@@ -209,6 +222,8 @@ func TestPrivateNetwork(t *testing.T) {
 	assert.Nil(t, err)
 	t.Log("same privatenetwork test success")
 	h2.Close()
+	//断开与h2的网络连接
+	h1.Network().ClosePeer(h2.ID())
 	//h2 采用另外一种privatekey
 	var testPsk2 [32]byte
 	copy(testPsk2[:], testPSK)

@@ -19,13 +19,13 @@ func safeAdd(balance, amount int64) (int64, error) {
 // GenesisInit 生成创世地址账户收据
 func (acc *DB) GenesisInit(addr string, amount int64) (receipt *types.Receipt, err error) {
 	accTo := acc.LoadAccount(addr)
-	copyto := *accTo
+	copyto := types.CloneAccount(accTo)
 	accTo.Balance, err = safeAdd(accTo.GetBalance(), amount)
 	if err != nil {
 		return nil, err
 	}
 	receiptBalanceTo := &types.ReceiptAccountTransfer{
-		Prev:    &copyto,
+		Prev:    copyto,
 		Current: accTo,
 	}
 	acc.SaveAccount(accTo)
@@ -36,13 +36,13 @@ func (acc *DB) GenesisInit(addr string, amount int64) (receipt *types.Receipt, e
 // GenesisInitExec 生成创世地址执行器账户收据
 func (acc *DB) GenesisInitExec(addr string, amount int64, execaddr string) (receipt *types.Receipt, err error) {
 	accTo := acc.LoadAccount(execaddr)
-	copyto := *accTo
+	copyto := types.CloneAccount(accTo)
 	accTo.Balance, err = safeAdd(accTo.GetBalance(), amount)
 	if err != nil {
 		return nil, err
 	}
 	receiptBalanceTo := &types.ReceiptAccountTransfer{
-		Prev:    &copyto,
+		Prev:    copyto,
 		Current: accTo,
 	}
 	acc.SaveAccount(accTo)

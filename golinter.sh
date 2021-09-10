@@ -12,7 +12,6 @@ function filterLinter() {
             --enable=gosimple \
             --enable=deadcode \
             --enable=unconvert \
-            --enable=interfacer \
             --enable=varcheck \
             --enable=structcheck \
             --enable=goimports \

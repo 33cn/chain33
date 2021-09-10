@@ -6,9 +6,10 @@ package commands
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"strings"
+
+	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/rpc/jsonclient"
@@ -82,7 +83,7 @@ func assetBalance(cmd *cobra.Command, args []string) {
 			IsDetail: false,
 		}
 		var res rpcTypes.Headers
-		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetHeaders", &params, &res)
 		_, err := ctx.RunResult()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -102,15 +103,18 @@ func assetBalance(cmd *cobra.Command, args []string) {
 		AssetSymbol: assetSymbol,
 	}
 	var res []*rpcTypes.Account
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
-	ctx.SetResultCb(parseGetBalanceRes)
-	ctx.Run()
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.GetBalance", &params, &res)
+	ctx.SetResultCbExt(parseGetBalanceRes)
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	ctx.RunExt(cfg)
 }
 
 // CreateAssetSendToExec 通用的创建 send_exec 交易， 额外指定资产合约
 func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
-	title, _ := cmd.Flags().GetString("title")
-	cfg := types.GetCliSysParam(title)
 	paraName, _ := cmd.Flags().GetString("paraName")
 	exec, _ := cmd.Flags().GetString("exec")
 	exec = getRealExecName(paraName, exec)
@@ -120,33 +124,43 @@ func CreateAssetSendToExec(cmd *cobra.Command, args []string, fromExec string) {
 		return
 	}
 
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
 
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	payload := &types.AssetsTransferToExec{
 		To:        to,
-		Amount:    int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4,
+		Amount:    amountInt64,
 		Note:      []byte(note),
 		Cointoken: symbol,
 		ExecName:  exec,
 	}
 
 	params := &rpcTypes.CreateTxIn{
-		Execer:     cfg.ExecName(fromExec),
+		Execer:     types.GetExecName(fromExec, paraName),
 		ActionName: "TransferToExec",
 		Payload:    types.MustPBToJSON(payload),
 	}
 
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CreateTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
 // CreateAssetWithdraw 通用的创建 withdraw 交易， 额外指定资产合约
 func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
-	title, _ := cmd.Flags().GetString("title")
-	cfg := types.GetCliSysParam(title)
 	exec, _ := cmd.Flags().GetString("exec")
 	paraName, _ := cmd.Flags().GetString("paraName")
 	exec = getRealExecName(paraName, exec)
@@ -160,46 +174,67 @@ func CreateAssetWithdraw(cmd *cobra.Command, args []string, fromExec string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	payload := &types.AssetsWithdraw{
 		To:        execAddr,
-		Amount:    int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4,
+		Amount:    amountInt64,
 		Note:      []byte(note),
 		Cointoken: symbol,
 		ExecName:  exec,
 	}
 	params := &rpcTypes.CreateTxIn{
-		Execer:     cfg.ExecName(fromExec),
+		Execer:     types.GetExecName(fromExec, paraName),
 		ActionName: "Withdraw",
 		Payload:    types.MustPBToJSON(payload),
 	}
 
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CreateTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
 // CreateAssetTransfer 通用的创建 transfer 交易， 额外指定资产合约
 func CreateAssetTransfer(cmd *cobra.Command, args []string, fromExec string) {
-	title, _ := cmd.Flags().GetString("title")
-	cfg := types.GetCliSysParam(title)
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
+	paraName, _ := cmd.Flags().GetString("paraName")
+
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	amountInt64, err := types.FormatFloatDisplay2Value(amount, cfg.CoinPrecision)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 
 	payload := &types.AssetsTransfer{
 		To:        toAddr,
-		Amount:    int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4,
+		Amount:    amountInt64,
 		Note:      []byte(note),
 		Cointoken: symbol,
 	}
 	params := &rpcTypes.CreateTxIn{
-		Execer:     cfg.ExecName(fromExec),
+		Execer:     types.GetExecName(fromExec, paraName),
 		ActionName: "Transfer",
 		Payload:    types.MustPBToJSON(payload),
 	}
 
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.CreateTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
