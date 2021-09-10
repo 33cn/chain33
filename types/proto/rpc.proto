@@ -58,7 +58,7 @@ service chain33 {
     // 发送交易
     rpc SendTransaction(Transaction) returns (Reply) {}
     // 批量发送交易
-    rpc SendTransactions(Transactions) returns (ReplyHashes){}
+    rpc SendTransactions(Transactions) returns (ReplyHashes) {}
 
     //通过地址获取交易信息
     rpc GetTransactionByAddr(ReqAddr) returns (ReplyTxInfos) {}
