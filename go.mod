@@ -32,7 +32,6 @@ require (
 	github.com/mattn/go-colorable v0.1.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.4.0
-	github.com/vipwzw/go-multicodec v0.1.6
 	github.com/pkg/errors v0.9.1
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/rs/cors v1.6.0
