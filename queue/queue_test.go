@@ -393,7 +393,8 @@ func BenchmarkChanSub2(b *testing.B) {
 			sub.high <- msg
 			_, err := client.Wait(msg)
 			if err != nil {
-				b.Fatal(err)
+				b.Error(err)
+				return
 			}
 		}
 	}()
