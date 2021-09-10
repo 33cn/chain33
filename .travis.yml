@@ -12,7 +12,7 @@ matrix:
     - name: check_fmt
       sudo: require
       go:
-        - "1.14.x"
+        - "1.15.x"
         - master
       env:
         - GO111MODULE=on
@@ -26,7 +26,7 @@ matrix:
         - make linter
 
     - name: unit-test
-      go: "1.14.x"
+      go: "1.15.x"
       env:
         - GO111MODULE=on
 
@@ -37,7 +37,7 @@ matrix:
     - name: coverage
       if: branch = master
       go:
-        - "1.14.x"
+        - "1.15.x"
       env:
         - GO111MODULE=on
       before_install:
@@ -51,7 +51,7 @@ matrix:
     - name: deploy
       sudo: required
       go: 
-        - "1.14.x"
+        - "1.15.x"
       services:
         - docker
       env:
