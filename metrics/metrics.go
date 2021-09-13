@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
+	"reflect"
 	"time"
 
 	chain33log "github.com/33cn/chain33/common/log/log15"
@@ -57,4 +59,23 @@ func StartMetrics(cfg *types.Chain33Config) {
 		log.Error("startMetrics", "The dataEmitMode set is not supported now ", metrics.DataEmitMode)
 		return
 	}
+}
+
+
+var Namespace = "chain33"
+type Collector interface {
+	Metrics() []prometheus.Collector
+}
+
+func PrometheusCollectorsFromFields(i interface{}) (cs []prometheus.Collector) {
+	v := reflect.Indirect(reflect.ValueOf(i))
+	for i := 0; i < v.NumField(); i++ {
+		if !v.Field(i).CanInterface() {
+			continue
+		}
+		if u, ok := v.Field(i).Interface().(prometheus.Collector); ok {
+			cs = append(cs, u)
+		}
+	}
+	return cs
 }
