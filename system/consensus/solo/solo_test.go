@@ -144,19 +144,28 @@ func sendTxGrpc(cfg *types.Chain33Config, recvChan <-chan *types.Transaction, ba
 			retryTxs = retryTxs[:0]
 		}
 		if len(txs.Txs) >= batchNum {
-			hashes, err := gcli.SendTransactions(context.Background(), txs)
 
-			if err != nil || strings.Contains(hashes.GetErrMsg(), "ChannelClosed") {
+			reps, err := gcli.SendTransactions(context.Background(), txs)
+			if err != nil {
 				return
 			}
 
 			// retry failed txs
-			if strings.Contains(hashes.GetErrMsg(), "MemFull") {
-				retryTxs = append(retryTxs, txs.Txs[len(hashes.GetHashes()):]...)
-				//tlog.Error("sendtx", "err", err.Error())
+			for index, reply := range reps.GetReplyList() {
+				if reply.IsOk {
+					continue
+				}
+				if string(reply.GetMsg()) == types.ErrChannelClosed.Error() {
+					return
+				}
+				if string(reply.GetMsg()) == types.ErrMemFull.Error() ||
+					string(reply.GetMsg()) == types.ErrManyTx.Error() {
+					retryTxs = append(retryTxs, txs.Txs[index])
+				}
+			}
+			if len(retryTxs) > 0 {
 				time.Sleep(time.Second)
 			}
-
 			txs.Txs = txs.Txs[:0]
 		}
 
@@ -203,7 +212,7 @@ func init() {
 	enableexeccheck = flag.Bool("enableexeccheck", false, "enabletxindex")
 	maxtxnum = flag.Int64("maxtxnum", 10000, "max tx num in block")
 	txtype = flag.String("txtype", "none", "set tx type, coins/none")
-	accountnum = flag.Int("accountnum", 10, "set coins tx account num, default 10")
+	accountnum = flag.Int("accountnum", 10, "set account num for transfer bench, default 10")
 	testing.Init()
 	flag.Parse()
 
@@ -263,7 +272,7 @@ func BenchmarkSolo(b *testing.B) {
 	}
 
 	txChan := make(chan *types.Transaction, 10000)
-	for i := 0; i < cpuNum*3; i++ {
+	for i := 0; i < cpuNum*2; i++ {
 		if *sendtxgrpc {
 			go sendTxGrpc(cfg, txChan, 100)
 		} else {
