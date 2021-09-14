@@ -7,7 +7,6 @@ package solo
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -288,8 +287,9 @@ func BenchmarkSolo(b *testing.B) {
 			pub := mock33.GetGenesisKey().PubKey().Bytes()
 			var tx *types.Transaction
 			toAddrs := toAddrList[index]
+			txCount := 0
 			for {
-				toAddrIndex := rand.Int() % toAddrPerRoutine
+				toAddrIndex := txCount % toAddrPerRoutine
 				txHeight := atomic.LoadInt64(&height) + types.LowAllowPackHeight/2
 				if *txtype != "none" {
 					tx = util.CreateCoinsTxWithTxHeight(cfg, nil, toAddrs[toAddrIndex], 1, txHeight)
@@ -306,6 +306,7 @@ func BenchmarkSolo(b *testing.B) {
 					}
 				}
 				txChan <- tx
+				txCount++
 			}
 		}(i)
 		<-start
