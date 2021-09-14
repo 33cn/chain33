@@ -7,10 +7,10 @@ package solo
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	_ "net/http/pprof" //
 	"runtime"
@@ -287,7 +287,6 @@ func BenchmarkSolo(b *testing.B) {
 			start <- struct{}{}
 			pub := mock33.GetGenesisKey().PubKey().Bytes()
 			var tx *types.Transaction
-			txCount := 0
 			toAddrs := toAddrList[index]
 			for {
 				toAddrIndex := rand.Int() % toAddrPerRoutine
@@ -297,7 +296,6 @@ func BenchmarkSolo(b *testing.B) {
 				} else {
 					tx = util.CreateNoneTxWithTxHeight(cfg, nil, txHeight)
 				}
-				tx.Nonce = int64(txCount)
 				if *enablesign {
 					tx.Sign(types.SECP256K1, mock33.GetGenesisKey())
 				} else {
@@ -308,7 +306,6 @@ func BenchmarkSolo(b *testing.B) {
 					}
 				}
 				txChan <- tx
-				txCount++
 			}
 		}(i)
 		<-start
