@@ -179,7 +179,7 @@ func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
 	if direction == network.DirInbound { //inbound connect
 		return inboundNum >= s.maxConnectNum
 	}
-	return outboundNum >= s.maxConnectNum + CacheLimit
+	return outboundNum >= s.maxConnectNum+CacheLimit
 }
 
 //TimeCache data struct

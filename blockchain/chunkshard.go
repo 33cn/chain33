@@ -76,7 +76,7 @@ func (chain *BlockChain) CheckGenChunkNum() {
 		chunkNum := chain.getMaxSerialChunkNum() + 1
 		// store 300 more chunks in blockchain module for some scenes
 		// for example: paracross commit
-		if chunkNum + 300 > safetyChunkNum {
+		if chunkNum+300 > safetyChunkNum {
 			break
 		}
 		if err := chain.chunkShardHandle(chunkNum); err != nil {
