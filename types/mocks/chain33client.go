@@ -1758,7 +1758,7 @@ func (_m *Chain33Client) SendTransactionSync(ctx context.Context, in *types.Tran
 }
 
 // SendTransactions provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) SendTransactions(ctx context.Context, in *types.Transactions, opts ...grpc.CallOption) (*types.ReplyHashes, error) {
+func (_m *Chain33Client) SendTransactions(ctx context.Context, in *types.Transactions, opts ...grpc.CallOption) (*types.Replies, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -1768,12 +1768,12 @@ func (_m *Chain33Client) SendTransactions(ctx context.Context, in *types.Transac
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
-	var r0 *types.ReplyHashes
-	if rf, ok := ret.Get(0).(func(context.Context, *types.Transactions, ...grpc.CallOption) *types.ReplyHashes); ok {
+	var r0 *types.Replies
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Transactions, ...grpc.CallOption) *types.Replies); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyHashes)
+			r0 = ret.Get(0).(*types.Replies)
 		}
 	}
 
