@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"strings"
+	"sync/atomic"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
@@ -278,7 +279,7 @@ func (mem *Mempool) eventGetProperFee(msg *queue.Message) {
 
 func (mem *Mempool) checkSign(data *queue.Message) *queue.Message {
 	tx, ok := data.GetData().(types.TxGroup)
-	if ok && tx.CheckSign(mem.GetHeader().GetHeight()) {
+	if ok && tx.CheckSign(atomic.LoadInt64(&mem.currHeight)+1) {
 		return data
 	}
 	mlog.Error("wrong tx", "err", types.ErrSign)
