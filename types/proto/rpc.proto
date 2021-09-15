@@ -42,6 +42,11 @@ message ChainConfigInfo {
     bool   isPara         = 10;
 }
 
+// 批量发送交易返回结构
+message Replies {
+    repeated Reply replyList = 1;
+}
+
 service chain33 {
     // chain33 对外提供服务的接口
     //区块链接口
@@ -58,7 +63,7 @@ service chain33 {
     // 发送交易
     rpc SendTransaction(Transaction) returns (Reply) {}
     // 批量发送交易
-    rpc SendTransactions(Transactions) returns (ReplyHashes) {}
+    rpc SendTransactions(Transactions) returns (Replies) {}
 
     //通过地址获取交易信息
     rpc GetTransactionByAddr(ReqAddr) returns (ReplyTxInfos) {}
