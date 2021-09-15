@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	_ "net/http/pprof" //
 	"runtime"
@@ -17,6 +18,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/crypto/none"
@@ -146,6 +149,7 @@ func sendTxGrpc(cfg *types.Chain33Config, recvChan <-chan *types.Transaction, ba
 
 			reps, err := gcli.SendTransactions(context.Background(), txs)
 			if err != nil {
+				tlog.Error("sendtxs", "err", err)
 				return
 			}
 
@@ -163,7 +167,7 @@ func sendTxGrpc(cfg *types.Chain33Config, recvChan <-chan *types.Transaction, ba
 				}
 			}
 			if len(retryTxs) > 0 {
-				time.Sleep(time.Second)
+				time.Sleep(time.Second * 3)
 			}
 			txs.Txs = txs.Txs[:0]
 		}
@@ -204,17 +208,36 @@ var (
 
 func init() {
 	enablesign = flag.Bool("enablesign", false, "enable tx sign")
-	sendtxgrpc = flag.Bool("sendtxgrpc", false, "send tx with grpc")
-	enabletxfee = flag.Bool("enabletxfee", false, "enable tx sign")
-	enabledupcheck = flag.Bool("enabledupcheck", false, "diabledupcheck")
-	enabletxindex = flag.Bool("enabletxindex", false, "enabletxindex")
-	enableexeccheck = flag.Bool("enableexeccheck", false, "enabletxindex")
+	sendtxgrpc = flag.Bool("grpc", true, "send tx in grpc")
+	enabletxfee = flag.Bool("txfee", false, "enable tx fee")
+	enabledupcheck = flag.Bool("dupcheck", false, "enable dup check")
+	enabletxindex = flag.Bool("txindex", false, "enable tx index")
+	enableexeccheck = flag.Bool("execcheck", false, "enabletxindex")
 	maxtxnum = flag.Int64("maxtxnum", 10000, "max tx num in block")
 	txtype = flag.String("txtype", "none", "set tx type, coins/none")
 	accountnum = flag.Int("accountnum", 10, "set account num for transfer bench, default 10")
 	testing.Init()
 	flag.Parse()
 
+}
+
+func createCoinsTx(cfg *types.Chain33Config, to string, txHeight int64) *types.Transaction {
+	action := &cty.CoinsAction{Ty: cty.CoinsActionTransfer}
+	action.Value = &cty.CoinsAction_Transfer{
+		Transfer: &types.AssetsTransfer{
+			Cointoken: cfg.GetCoinSymbol(),
+			Amount:    1,
+			To:        to,
+		},
+	}
+	tx := &types.Transaction{Execer: []byte("coins")}
+	tx.Payload = types.Encode(action)
+	tx.To = to
+	tx.Nonce = rand.Int63()
+	tx.Fee = 100000
+	tx.ChainID = cfg.GetChainID()
+	tx.Expire = types.TxHeightFlag + txHeight
+	return tx
 }
 
 //测试solo并发
@@ -237,9 +260,10 @@ func BenchmarkSolo(b *testing.B) {
 	cfg.GetModuleConfig().Exec.DisableTxIndex = !*enabletxindex
 	cfg.GetModuleConfig().Exec.DisableTxDupCheck = !*enabledupcheck
 	cfg.GetModuleConfig().Mempool.DisableExecCheck = !*enableexeccheck
-	cfg.GetModuleConfig().BlockChain.HighAllowPackHeight = 50
-	cfg.GetModuleConfig().BlockChain.LowAllowPackHeight = 30
-	cfg.GetModuleConfig().Mempool.MaxTxNumPerAccount = cfg.GetModuleConfig().Mempool.PoolCacheSize + 1
+	cfg.GetModuleConfig().BlockChain.HighAllowPackHeight = 200
+	cfg.GetModuleConfig().BlockChain.LowAllowPackHeight = 100
+	cfg.GetModuleConfig().Mempool.PoolCacheSize = 200000
+	cfg.GetModuleConfig().Mempool.MaxTxNumPerAccount = 210000
 	if !*enabletxfee {
 		cfg.GetModuleConfig().Mempool.MinTxFeeRate = 0
 		cfg.SetMinFee(0)
@@ -258,7 +282,7 @@ func BenchmarkSolo(b *testing.B) {
 	go func() {
 		_ = http.ListenAndServe(":6060", nil)
 	}()
-	createRoutineCount := cpuNum * 2
+	createRoutineCount := cpuNum
 	toAddrPerRoutine := *accountnum/createRoutineCount + 1
 	toAddrList := make([][]string, createRoutineCount)
 
@@ -284,15 +308,15 @@ func BenchmarkSolo(b *testing.B) {
 	for i := 0; i < createRoutineCount; i++ {
 		go func(index int) {
 			start <- struct{}{}
-			pub := mock33.GetGenesisKey().PubKey().Bytes()
 			var tx *types.Transaction
 			toAddrs := toAddrList[index]
 			txCount := 0
+			pub := mock33.GetGenesisKey().PubKey().Bytes()
 			for {
 				toAddrIndex := txCount % toAddrPerRoutine
 				txHeight := atomic.LoadInt64(&height) + types.LowAllowPackHeight/2
 				if *txtype != "none" {
-					tx = util.CreateCoinsTxWithTxHeight(cfg, nil, toAddrs[toAddrIndex], 1, txHeight)
+					tx = createCoinsTx(cfg, toAddrs[toAddrIndex], txHeight)
 				} else {
 					tx = util.CreateNoneTxWithTxHeight(cfg, nil, txHeight)
 				}

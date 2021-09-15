@@ -122,7 +122,6 @@ func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	}
 	msg, err := q.send(mempoolKey, types.EventTx, param)
 	if err != nil {
-		log.Error("SendTx", "Error", err.Error())
 		return nil, err
 	}
 	reply, ok := msg.GetData().(*types.Reply)
