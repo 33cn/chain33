@@ -37,6 +37,7 @@ type Mempool struct {
 	removeBlockTicket *time.Ticker
 	cache             *txCache
 	delayTxListChan   chan []*types.Transaction
+	currHeight        int64
 }
 
 func (mem *Mempool) setAPI(api client.QueueProtocolAPI) {
@@ -203,6 +204,7 @@ func (mem *Mempool) PushTx(tx *types.Transaction) error {
 
 //  setHeader设置mempool.header
 func (mem *Mempool) setHeader(h *types.Header) {
+	atomic.StoreInt64(&mem.currHeight, h.Height)
 	mem.proxyMtx.Lock()
 	mem.header = h
 	mem.proxyMtx.Unlock()
