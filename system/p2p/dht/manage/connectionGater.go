@@ -30,7 +30,7 @@ const (
 )
 
 //CacheLimit cachebuffer
-var CacheLimit int32 = 50
+var CacheLimit int32 = 20
 
 //Conngater gater struct data
 type Conngater struct {
@@ -73,8 +73,11 @@ func (s *Conngater) InterceptPeerDial(p peer.ID) (allow bool) {
 	if !s.checkWhitePeerList(p) {
 		return false
 	}
-	return !s.blacklist.Has(p.Pretty())
+	if s.blacklist.Has(p.Pretty()) {
+		return false
+	}
 
+	return !s.isPeerAtLimit(network.DirOutbound)
 }
 
 func (s *Conngater) checkWhitePeerList(p peer.ID) bool {
@@ -95,6 +98,7 @@ func (s *Conngater) InterceptAddrDial(p peer.ID, m multiaddr.Multiaddr) (allow b
 // InterceptAccept tests whether an incipient inbound connection is allowed.
 func (s *Conngater) InterceptAccept(n network.ConnMultiaddrs) (allow bool) {
 	if !s.validateDial(n.RemoteMultiaddr()) { //对连进来的节点进行速率限制
+		log.Error("InterceptAccept: query too frequent", "multiAddr", n.RemoteMultiaddr())
 		// Allow other go-routines to run in the event
 		// we receive a large amount of junk connections.
 		runtime.Gosched()
@@ -163,14 +167,19 @@ func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
 	if host == nil {
 		return false
 	}
-	numOfConns := len(host.Network().Peers())
-	var maxPeers int
-	if direction == network.DirInbound { //inbound connect
-		maxPeers = int(s.maxConnectNum + CacheLimit/2)
-	} else {
-		maxPeers = int(s.maxConnectNum + CacheLimit)
+	var inboundNum, outboundNum int32
+	for _, conn := range host.Network().Conns() {
+		if conn.Stat().Direction == network.DirInbound {
+			inboundNum++
+		} else {
+			outboundNum++
+		}
 	}
-	return numOfConns >= maxPeers
+
+	if direction == network.DirInbound { //inbound connect
+		return inboundNum >= s.maxConnectNum
+	}
+	return outboundNum >= s.maxConnectNum + CacheLimit
 }
 
 //TimeCache data struct
