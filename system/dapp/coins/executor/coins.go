@@ -17,17 +17,27 @@ EventTransfer -> 转移资产
 // nofee transaction will not pack into block
 
 import (
+	"github.com/33cn/chain33/common/log"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 )
 
-// var clog = log.New("module", "execs.coins")
+var clog = log.New("module", "execs.coins")
 var driverName = "coins"
+
+type subConfig struct {
+	DisableAddrReceiver bool `json:"disableAddrReceiver"`
+}
+
+var subCfg subConfig
 
 // Init defines a register function
 func Init(name string, cfg *types.Chain33Config, sub []byte) {
 	if name != driverName {
 		panic("system dapp can't be rename")
+	}
+	if sub != nil {
+		types.MustDecode(sub, &subCfg)
 	}
 	// 需要先 RegisterDappFork才可以Register dapp
 	drivers.Register(cfg, driverName, newCoins, cfg.GetDappFork(driverName, "Enable"))

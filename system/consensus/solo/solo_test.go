@@ -204,6 +204,7 @@ var (
 	maxtxnum        *int64
 	txtype          *string
 	accountnum      *int
+	txsize          *int
 )
 
 func init() {
@@ -216,6 +217,7 @@ func init() {
 	maxtxnum = flag.Int64("maxtxnum", 10000, "max tx num in block")
 	txtype = flag.String("txtype", "none", "set tx type, coins/none")
 	accountnum = flag.Int("accountnum", 10, "set account num for transfer bench, default 10")
+	txsize = flag.Int("txsize", 32, "set none tx size byte")
 	testing.Init()
 	flag.Parse()
 
@@ -264,6 +266,8 @@ func BenchmarkSolo(b *testing.B) {
 	cfg.GetModuleConfig().BlockChain.LowAllowPackHeight = 100
 	cfg.GetModuleConfig().Mempool.PoolCacheSize = 200000
 	cfg.GetModuleConfig().Mempool.MaxTxNumPerAccount = 210000
+	cfg.GetModuleConfig().BlockChain.EnableTxQuickIndex = false
+	cfg.GetModuleConfig().Consensus.NoneRollback = true
 	if !*enabletxfee {
 		cfg.GetModuleConfig().Mempool.MinTxFeeRate = 0
 		cfg.SetMinFee(0)
@@ -271,6 +275,8 @@ func BenchmarkSolo(b *testing.B) {
 	cfg.GetModuleConfig().RPC.GrpcBindAddr = "localhost:8802"
 	cfg.GetModuleConfig().Crypto.EnableTypes = []string{secp256k1.Name, none.Name}
 	subcfg := cfg.GetSubConfig()
+	coinSub, err := types.ModifySubConfig(subcfg.Exec["coins"], "disableAddrReceiver", true)
+	subcfg.Exec["coins"] = coinSub
 	solocfg, err := types.ModifySubConfig(subcfg.Consensus["solo"], "waitTxMs", 100)
 	assert.Nil(b, err)
 	solocfg, err = types.ModifySubConfig(solocfg, "benchMode", true)
@@ -312,6 +318,7 @@ func BenchmarkSolo(b *testing.B) {
 			toAddrs := toAddrList[index]
 			txCount := 0
 			pub := mock33.GetGenesisKey().PubKey().Bytes()
+			payload := []byte(strings.Repeat("t", *txsize))
 			for {
 				toAddrIndex := txCount % toAddrPerRoutine
 				txHeight := atomic.LoadInt64(&height) + types.LowAllowPackHeight/2
@@ -319,6 +326,7 @@ func BenchmarkSolo(b *testing.B) {
 					tx = createCoinsTx(cfg, toAddrs[toAddrIndex], txHeight)
 				} else {
 					tx = util.CreateNoneTxWithTxHeight(cfg, nil, txHeight)
+					tx.Payload = payload
 				}
 				if *enablesign {
 					tx.Sign(types.SECP256K1, mock33.GetGenesisKey())

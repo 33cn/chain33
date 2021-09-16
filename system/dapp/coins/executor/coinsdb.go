@@ -56,6 +56,9 @@ func setAddrReciver(db dbm.KVDB, addr string, reciverAmount int64) error {
 }
 
 func updateAddrReciver(cachedb dbm.KVDB, addr string, amount int64, isadd bool) (*types.KeyValue, error) {
+	if subCfg.DisableAddrReceiver {
+		return nil, types.ErrActionNotSupport
+	}
 	recv, err := getAddrReciver(cachedb, addr)
 	if err != nil && err != types.ErrNotFound {
 		return nil, err
