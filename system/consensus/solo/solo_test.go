@@ -275,7 +275,7 @@ func BenchmarkSolo(b *testing.B) {
 	cfg.GetModuleConfig().RPC.GrpcBindAddr = "localhost:8802"
 	cfg.GetModuleConfig().Crypto.EnableTypes = []string{secp256k1.Name, none.Name}
 	subcfg := cfg.GetSubConfig()
-	coinSub, err := types.ModifySubConfig(subcfg.Exec["coins"], "disableAddrReceiver", true)
+	coinSub, _ := types.ModifySubConfig(subcfg.Exec["coins"], "disableAddrReceiver", true)
 	subcfg.Exec["coins"] = coinSub
 	solocfg, err := types.ModifySubConfig(subcfg.Consensus["solo"], "waitTxMs", 100)
 	assert.Nil(b, err)

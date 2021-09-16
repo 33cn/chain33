@@ -10,6 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+// ExecLocal exec local
 func (c *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (dbSet *types.LocalDBSet, err error) {
 	dbSet, err = c.execLocal(tx, receipt, index)
 	if err != nil || dbSet == nil { // 不能向上层返回LocalDBSet为nil, 以及error
