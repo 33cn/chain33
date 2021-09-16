@@ -142,6 +142,8 @@ type BlockChain struct {
 	// TODO
 	lastHeight             int64
 	heightNotIncreaseTimes int32
+	// 标识区块是否回滚
+	neverRollback bool
 }
 
 //New new
@@ -191,6 +193,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 	}
 	blockchain.initConfig(cfg)
 	blockchain.blockCache = newBlockCache(cfg, defaultBlockHashCacheSize)
+	blockchain.neverRollback = cfg.GetModuleConfig().Consensus.NoneRollback
 	return blockchain
 }
 

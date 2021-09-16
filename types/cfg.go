@@ -128,6 +128,8 @@ type Consensus struct {
 	MinerExecs []string `json:"minerExecs,omitempty"`
 	// 最优区块选择
 	EnableBestBlockCmp bool `json:"enableBestBlockCmp,omitempty"`
+	// 不回滚的共识设为true
+	NoneRollback bool `json:"noneRollback,omitempty"`
 }
 
 // Wallet 配置
