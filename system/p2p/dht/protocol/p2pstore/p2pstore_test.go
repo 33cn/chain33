@@ -56,7 +56,7 @@ func TestInit(t *testing.T) {
 		msg2 := testGetBody(t, client, p2pB, info)
 		require.Equal(t, 1000, len(msg2.Data.(*types.BlockBodys).Items))
 
-		_, err = p2.getChunkBlock(info)
+		_, err = p2.loadChunk(info)
 		if err == nil {
 			ChunkCount++
 		}

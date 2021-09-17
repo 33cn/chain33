@@ -213,7 +213,7 @@ func (p *Protocol) processLocalChunk() {
 		case info := <-p.chunkToDownload:
 			//TODO: 1.根据节点时延排序 2.并发获取数据 3.把一个chunk分成多份分别到多个节点上去获取数据
 			for _, pid := range p.getChunkProviderCache(info.ChunkHash) {
-				bodys, _, err := p.fetchChunkFromPeer(p.Ctx, info, pid)
+				bodys, _, err := p.fetchChunkFromPeer(info, pid)
 				if err != nil {
 					log.Error("processLocalChunk", "fetchChunkFromPeer error", err, "pid", pid, "chunkHash", hex.EncodeToString(info.ChunkHash))
 					continue

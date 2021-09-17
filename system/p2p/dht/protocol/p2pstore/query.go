@@ -167,13 +167,13 @@ func (p *Protocol) fetchShardPeers(key []byte, count int, pid peer.ID) ([]peer.I
 //  3. 异步获取数据
 func (p *Protocol) findChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID, error) {
 	//优先获取本地p2pStore数据
-	bodys, _ := p.getChunkBlock(req)
+	bodys, _ := p.loadChunk(req)
 	if bodys != nil {
 		return bodys, p.Host.ID(), nil
 	}
 	//检查缓存
 	for _, pid := range p.getChunkProviderCache(req.ChunkHash) {
-		if bodys, _, _ := p.fetchChunkFromPeer(p.Ctx, req, pid); bodys != nil {
+		if bodys, _, _ := p.fetchChunkFromPeer(req, pid); bodys != nil {
 			return bodys, pid, nil
 		}
 	}
@@ -199,7 +199,7 @@ func (p *Protocol) findChunkAsync(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	select {
 	case <-wakeupCh:
 		for _, pid := range p.getChunkProviderCache(req.ChunkHash) {
-			bodys, _, err := p.fetchChunkFromPeer(p.Ctx, req, pid)
+			bodys, _, err := p.fetchChunkFromPeer(req, pid)
 			if err != nil {
 				log.Error("findChunkAsync", "fetchChunkFromPeer error", err, "pid", pid)
 				continue
@@ -220,13 +220,56 @@ func (p *Protocol) findChunkAsync(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	return nil, "", types2.ErrNotFound
 }
 
+func (p *Protocol) getBlocks(req *types.ChunkInfoMsg) (*types.Blocks, error) {
+	headerCh := make(chan *types.Headers, 1)
+	go func() {
+		headers, _ := p.getHeaders(&types.ReqBlocks{Start: req.Start, End: req.End})
+		headerCh <- headers
+	}()
+	bodys, _, err := p.getChunk(req)
+	if bodys == nil {
+		log.Error("GetChunkBlock", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
+		return nil, types2.ErrNotFound
+	}
+	headers := <- headerCh
+	if headers == nil {
+		log.Error("GetBlockHeader", "error", types2.ErrNotFound)
+		return nil, types2.ErrNotFound
+	}
+	if len(headers.Items) != len(bodys.Items) {
+		log.Error("GetBlockHeader", "error", types2.ErrLength, "header length", len(headers.Items), "body length", len(bodys.Items), "start", req.Start, "end", req.End)
+		return nil, types2.ErrLength
+	}
+
+	var blockList []*types.Block
+	for index := range bodys.Items {
+		body := bodys.Items[index]
+		header := headers.Items[index]
+		block := &types.Block{
+			Version:    header.Version,
+			ParentHash: header.ParentHash,
+			TxHash:     header.TxHash,
+			StateHash:  header.StateHash,
+			Height:     header.Height,
+			BlockTime:  header.BlockTime,
+			Difficulty: header.Difficulty,
+			MainHash:   body.MainHash,
+			MainHeight: body.MainHeight,
+			Signature:  header.Signature,
+			Txs:        body.Txs,
+		}
+		blockList = append(blockList, block)
+	}
+	return &types.Blocks{Items: blockList}, nil
+}
+
 //getChunk gets chunk data from p2pStore or other peers.
 func (p *Protocol) getChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID, error) {
 	if req == nil {
 		return nil, "", types2.ErrInvalidParam
 	}
 	//优先获取本地p2pStore数据
-	bodys, _ := p.getChunkBlock(req)
+	bodys, _ := p.loadChunk(req)
 	if bodys != nil {
 		return bodys, p.Host.ID(), nil
 	}
@@ -274,7 +317,7 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 	if err != nil {
 		return nil, err
 	}
-	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
+	_ = stream.SetDeadline(time.Now().Add(time.Second * 10))
 	defer stream.Close()
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ReqBlocks{
@@ -359,56 +402,101 @@ func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid pee
 
 //若网络中有节点保存了该chunk，该方法可以保证查询到
 func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, peer.ID, error) {
-	//递归查询时间上限5分钟
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute*5)
-	defer cancel()
+	//TODO: temporary
+	for _, conn := range p.Host.Network().Conns() {
+		if len(p.RoutingTable.Find(conn.RemotePeer())) == 0 {
+			_, _ = p.RoutingTable.TryAddPeer(conn.RemotePeer(), false, true)
+		}
+	}
 
 	chunkHash := hex.EncodeToString(req.ChunkHash)
-	//保存查询过的节点，防止重复查询
-	searchedPeers := make(map[peer.ID]struct{})
-	searchedPeers[p.Host.ID()] = struct{}{}
-	peers := p.RoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
 	log.Info("into mustFetchChunk", "start", req.Start, "end", req.End)
 
 	// 先请求缓存provider节点
 	for _, pid := range p.getChunkProviderCache(req.ChunkHash) {
 		start := time.Now()
-		bodys, _, err := p.fetchChunkFromPeer(ctx, req, pid)
+		bodys, _, err := p.fetchChunkFromPeer(req, pid)
 		if err == nil && bodys != nil {
 			log.Info("mustFetchChunk found from cache provider", "chunk hash", chunkHash, "start", req.Start, "pid", pid, "maddrs", p.Host.Peerstore().Addrs(pid), "time cost", time.Since(start))
 			return bodys, pid, nil
 		}
 	}
 
-	for len(peers) != 0 {
-		var nearerPeers []peer.ID
-		var bodys *types.BlockBodys
-		var err error
-		for _, pid := range peers {
+	//保存查询过的节点，防止重复查询
+	searchedPeers := make(map[peer.ID]struct{})
+	searchedPeers[p.Host.ID()] = struct{}{}
+
+	peers := p.RoutingTable.NearestPeers(genDHTID(req.ChunkHash), 2*AlphaValue)
+	localPeers := make(chan peer.ID, 100)
+	alternativePeers := make(chan peer.ID, 100)
+	for _, pid := range peers {
+		localPeers <- pid
+	}
+
+	// 优先从已经建立连接的节点上查找数据，因为建立新的连接会耗时，且会导致网络拓扑结构发生变化
+	Loop1:
+	for {
+		select {
+		case pid := <-localPeers:
 			if _, ok := searchedPeers[pid]; ok {
 				continue
 			}
 			searchedPeers[pid] = struct{}{}
 			start := time.Now()
-			bodys, nearerPeers, err = p.fetchChunkFromPeer(ctx, req, pid)
+			bodys, nearerPeers, err := p.fetchChunkFromPeer(req, pid)
 			if err != nil {
 				continue
 			}
 			if bodys != nil {
-				log.Info("mustFetchChunk found", "chunk hash", chunkHash, "start", req.Start, "pid", pid, "maddrs", p.Host.Peerstore().Addrs(pid), "time cost", time.Since(start))
+				log.Info("mustFetchChunk found better", "chunk hash", chunkHash, "start", req.Start, "pid", pid, "maddrs", p.Host.Peerstore().Addrs(pid), "time cost", time.Since(start))
 				return bodys, pid, nil
 			}
-			break
+			for _, pid := range nearerPeers {
+				if len(p.Host.Network().ConnsToPeer(pid)) != 0 {
+					localPeers <- pid
+				} else if len(p.Host.Peerstore().Addrs(pid)) != 0 {
+					alternativePeers <- pid
+				}
+			}
+		default:
+			break Loop1
 		}
-		peers = nearerPeers
+	}
+
+	// 其次从未建立连接但已保存ip等信息的的节点上获取数据
+	Loop2:
+	for {
+		select {
+		case pid := <-alternativePeers:
+			if _, ok := searchedPeers[pid]; ok {
+				continue
+			}
+			searchedPeers[pid] = struct{}{}
+			start := time.Now()
+			bodys, nearerPeers, err := p.fetchChunkFromPeer(req, pid)
+			if err != nil {
+				continue
+			}
+			if bodys != nil {
+				log.Info("mustFetchChunk found from alternative peer", "chunk hash", chunkHash, "start", req.Start, "pid", pid, "maddrs", p.Host.Peerstore().Addrs(pid), "time cost", time.Since(start))
+				return bodys, pid, nil
+			}
+			for _, pid := range nearerPeers {
+				if len(p.Host.Peerstore().Addrs(pid)) != 0 {
+					alternativePeers <- pid
+				}
+			}
+		default:
+			break Loop2
+		}
 	}
 
 	log.Error("mustFetchChunk not found", "chunk hash", chunkHash, "start", req.Start, "error", types2.ErrNotFound)
 
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
-	ctx2, cancel2 := context.WithTimeout(ctx, time.Minute*3)
+	ctx, cancel2 := context.WithTimeout(p.Ctx, time.Minute)
 	defer cancel2()
-	peerInfos, err := p.Discovery.FindPeers(ctx2, fullNode)
+	peerInfos, err := p.Discovery.FindPeers(ctx, fullNode)
 	if err != nil {
 		log.Error("mustFetchChunk", "Find full peers error", err)
 		return nil, "", types2.ErrNotFound
@@ -418,21 +506,22 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 		if addrInfo.ID == p.Host.ID() {
 			continue
 		}
-		log.Info("mustFetchChunk", "pid", addrInfo.ID, "addrs", addrInfo.Addrs)
-		bodys, pid := p.fetchChunkFromFullPeer(ctx, req, addrInfo.ID)
-		if bodys == nil {
-			log.Error("mustFetchChunk from full node failed", "pid", addrInfo.ID, "chunk hash", chunkHash, "start", req.Start)
+		log.Info("mustFetchChunk from full node", "pid", addrInfo.ID, "addrs", addrInfo.Addrs)
+		start := time.Now()
+		bodys, err := p.fetchChunkFromFullPeer(req, addrInfo.ID)
+		if err != nil {
+			log.Error("mustFetchChunk from full node failed", "pid", addrInfo.ID, "chunk hash", chunkHash, "start", req.Start, "time cost", time.Since(start))
 			continue
 		}
-		log.Info("mustFetchChunk from full node succeed", "pid", addrInfo.ID, "chunk hash", chunkHash, "start", req.Start)
-		return bodys, pid, nil
+		log.Info("mustFetchChunk from full node succeed", "pid", addrInfo.ID, "chunk hash", chunkHash, "start", req.Start, "time cost", time.Since(start))
+		return bodys, addrInfo.ID, nil
 	}
 
 	return nil, "", types2.ErrNotFound
 }
 
-func (p *Protocol) fetchChunkFromPeer(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
-	childCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+func (p *Protocol) fetchChunkFromPeer(params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
+	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second * 5)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, fetchChunk)
 	defer p.Host.ConnManager().Unprotect(pid, fetchChunk)
@@ -480,26 +569,12 @@ func (p *Protocol) fetchChunkFromPeer(ctx context.Context, params *types.ChunkIn
 	return nil, closerPeers, nil
 }
 
-func (p *Protocol) fetchChunkFromFullPeer(ctx context.Context, params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, peer.ID) {
-	bodys, peers, err := p.fetchChunkFromPeer(ctx, params, pid)
-	if err != nil {
-		log.Error("fetchChunkFromFullPeer", "error", err)
-		return nil, ""
+func (p *Protocol) fetchChunkFromFullPeer(params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, error) {
+	bodys, _, err := p.fetchChunkFromPeer(params, pid)
+	if bodys == nil {
+		return nil, types2.ErrNotFound
 	}
-	if bodys != nil {
-		return bodys, pid
-	}
-	for _, pid := range peers {
-		bodys, _, err = p.fetchChunkFromPeer(ctx, params, pid)
-		if err != nil {
-			log.Error("fetchChunkFromFullPeer 2", "error", err, "pid", pid)
-			continue
-		}
-		if bodys != nil {
-			return bodys, pid
-		}
-	}
-	return nil, ""
+	return bodys, err
 }
 
 func (p *Protocol) storeChunk(req *types.ChunkInfoMsg) error {
