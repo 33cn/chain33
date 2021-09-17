@@ -78,7 +78,7 @@ func (p *Protocol) deleteChunkBlock(msg *types.ChunkInfoMsg) error {
 }
 
 // 获取本地chunk数据
-func (p *Protocol) getChunkBlock(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
+func (p *Protocol) loadChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, error) {
 
 	// TODO: 处理特殊情况
 	// 新节点从其他节点拷贝了p2pstore
