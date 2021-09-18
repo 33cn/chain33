@@ -74,9 +74,7 @@ func (chain *BlockChain) CheckGenChunkNum() {
 	safetyChunkNum, _, _ := chain.CalcSafetyChunkInfo(chain.GetBlockHeight())
 	for i := int32(0); i < OnceMaxChunkNum; i++ {
 		chunkNum := chain.getMaxSerialChunkNum() + 1
-		// store 300 more chunks in blockchain module for some scenes
-		// for example: paracross commit
-		if chunkNum+300 > safetyChunkNum {
+		if chunkNum > safetyChunkNum {
 			break
 		}
 		if err := chain.chunkShardHandle(chunkNum); err != nil {
@@ -327,7 +325,7 @@ func (chain *BlockChain) CalcSafetyChunkInfo(height int64) (chunkNum, start, end
 }
 
 func (chain *BlockChain) calcSafetyChunkHeight(height int64) int64 {
-	return height - MaxRollBlockNum - chain.cfg.ChunkblockNum
+	return height - MaxRollBlockNum - chain.cfg.ChunkblockNum - chain.cfg.ReservedBlockNum
 }
 
 // CalcChunkInfo 主要用于计算验证

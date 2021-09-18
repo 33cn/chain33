@@ -142,8 +142,12 @@ type BlockChain struct {
 	// TODO
 	lastHeight             int64
 	heightNotIncreaseTimes int32
+
 	// 标识区块是否回滚
 	neverRollback bool
+
+	// 是否正在下载chunk
+	chunkDownloading int32
 }
 
 //New new

@@ -693,11 +693,7 @@ func (chain *BlockChain) addChunkBlock(msg *queue.Message) {
 
 	if chain.GetDownloadSyncStatus() == chunkDownLoadMode {
 		for _, blk := range blocks.Items {
-			chain.WriteBlockToDbTemp(blk, true)
-			//downLoadTask 运行时设置对应的blockdone
-			if chain.downLoadTask.InProgress() {
-				chain.downLoadTask.Done(blk.Height)
-			}
+			chain.WriteBlockToDbTemp(blk, false)
 		}
 	} else {
 		for _, blk := range blocks.Items {

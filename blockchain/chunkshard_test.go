@@ -325,7 +325,7 @@ func TestFetchChunkBlock(t *testing.T) {
 			fmt.Println("done i", i)
 		}
 	}()
-	chain.ReqDownLoadChunkBlocks()
+	//chain.ReqDownLoadChunkBlocks()
 	time.Sleep(time.Second)
 }
 
