@@ -633,20 +633,9 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 		synlog.Info("SynBlocksFromPeers", "curheight", curheight, "LastCastBlkHeight", RcvLastCastBlkHeight, "peerMaxBlkHeight", peerMaxBlkHeight)
 		pids := chain.GetBestChainPids()
 		if pids != nil {
-			recvChunk := chain.GetCurRecvChunkNum()
-			curShouldChunk, _, _ := chain.CalcChunkInfo(curheight + 1)
-			// TODO 后期可修改为同步节点不使用FetchChunkBlock，即让对端节点去查找具体的chunk，这里不做区分
-			if !chain.cfg.DisableShard && chain.cfg.EnableFetchP2pstore &&
-				curheight+MaxRollBlockNum < peerMaxBlkHeight && recvChunk >= curShouldChunk {
-				err := chain.FetchChunkBlock(curheight+1, peerMaxBlkHeight, pids, false)
-				if err != nil {
-					synlog.Error("SynBlocksFromPeers FetchChunkBlock", "err", err)
-				}
-			} else {
-				err := chain.FetchBlock(curheight+1, peerMaxBlkHeight, pids, false)
-				if err != nil {
-					synlog.Error("SynBlocksFromPeers FetchBlock", "err", err)
-				}
+			err := chain.FetchBlock(curheight+1, peerMaxBlkHeight, pids, false)
+			if err != nil {
+				synlog.Error("SynBlocksFromPeers FetchBlock", "err", err)
 			}
 		} else {
 			synlog.Info("SynBlocksFromPeers GetBestChainPids is nil")
@@ -845,7 +834,7 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 		if tipheight < peermaxheight {
 			endHeight = tipheight + 1
 		}
-		go chain.ProcDownLoadBlocks(ForkHeight, endHeight, false, []string{pid})
+		go chain.ProcDownLoadBlocks(ForkHeight, endHeight, []string{pid})
 	}
 	return nil
 }
@@ -1189,90 +1178,92 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 	return err
 }
 
-/*
-FetchChunkBlock 函数功能：
-通过向P2P模块送 EventGetChunkBlock(types.RequestGetBlock)，向其他节点主动请求区块，
-P2P区块收到这个消息后，会向blockchain 模块回复， EventReply。
-其他节点如果有这个范围的区块，P2P模块收到其他节点发来的数据，
-会发送送EventAddBlocks(types.Blocks) 给 blockchain 模块，
-blockchain 模块回复 EventReply
-*/
-func (chain *BlockChain) FetchChunkBlock(startHeight, endHeight int64, pid []string, isDownLoad bool) (err error) {
-	if chain.client == nil {
-		synlog.Error("FetchChunkBlock chain client not bind message queue.")
-		return types.ErrClientNotBindQueue
-	}
+// FetchChunkBlockNew requests 3 chunks in same time
+func (chain *BlockChain) FetchChunkBlockRoutine() {
+	atomic.StoreInt32(&chain.chunkDownloading, 1)
+	defer atomic.StoreInt32(&chain.chunkDownloading, 0)
 
-	synlog.Debug("FetchChunkBlock input", "StartHeight", startHeight, "EndHeight", endHeight)
+	chunkStart := chain.GetBlockHeight() + 1
+	synlog.Info("FetchChunkBlockRoutine", "chunkStart", chunkStart)
+	concurrency := make(chan struct{}, 3)
+	for {
+		select {
+		case <-chain.quit:
+			return
+		default:
+			// chunk下载速度太快，区块执行速度跟不上
+			// 避免临时区块占用太多空间，执行落后100w高度时先sleep一下
+			if chunkStart > chain.GetBlockHeight() + 1e6 {
+				time.Sleep(time.Minute)
+				continue
+			}
 
-	blockcount := endHeight - startHeight
-	if blockcount < 0 {
-		return types.ErrStartBigThanEnd
-	}
-	chunkNum, _, end := chain.CalcChunkInfo(startHeight)
+			// 节点生成chunk的高度滞后于当前高度
+			_, safetyStart, safetyEnd := chain.CalcSafetyChunkInfo(chain.GetPeerMaxBlkHeight())
+			if chunkStart > safetyEnd {
+				if chain.GetBlockHeight() > safetyStart {
+					break
+				}
+				// 执行速度跟不上下载速度，此时不能直接退出，可能执行一段时间后又有新的chunk需要下载
+				time.Sleep(time.Second * 5)
+				continue
+			}
+			chunkNum, _, chunkEnd := chain.CalcChunkInfo(chunkStart)
+			chunkHash, err := chain.blockStore.getRecvChunkHash(chunkNum)
+			if err != nil {
+				time.Sleep(time.Second * 5)
+				continue
+			}
 
-	var chunkhash []byte
-	for i := 0; i < waitTimeDownLoad; i++ {
-		chunkhash, err = chain.blockStore.getRecvChunkHash(chunkNum)
-		if err != nil && isDownLoad { // downLoac模式下会进行多次尝试
-			time.Sleep(time.Second)
-			continue
+			// 由于多个chunk同时下载，可能存在前一个chunk没下载到但后续的chunk已经下载好了的情况，若重启节点又会从当前高度依次下载
+			// 因此需要判断一下数据库中是否已经存在下载好了的chunk，避免重复下载
+			_, err1 := chain.blockStore.db.Get(calcHeightToTempBlockKey(chunkStart))
+			_, err2 := chain.blockStore.db.Get(calcHeightToTempBlockKey(chunkEnd))
+			if err1 == nil && err2 == nil {
+				synlog.Info("FetchChunkBlockRoutine temp block exist", "chunk", chunkNum, "chunkStart", chunkStart, "chunkEnd", chunkEnd)
+				chunkStart = chunkEnd + 1
+				continue
+			}
+			concurrency <- struct{}{}
+			go chain.mustFetchChunk(concurrency, &types.ChunkInfoMsg{Start: chunkStart, End: chunkEnd, ChunkHash: chunkHash})
+			chunkStart = chunkEnd+1
 		}
-		break
 	}
+}
+
+func (chain *BlockChain) mustFetchChunk(ch <-chan struct{}, info *types.ChunkInfoMsg) {
+	defer func() {
+		<-ch
+	}()
+	var retryCount int
+	start := time.Now()
+	for {
+		select {
+		case <- chain.quit:
+			return
+		default:
+			retryCount++
+			synlog.Info("fetchChunk", "Start", info.Start, "End", info.End, "chunkhash", common.ToHex(info.ChunkHash), "retryCount", retryCount)
+			if err := chain.fetchChunk(info); err == nil {
+				synlog.Info("fetchChunk finished", "Start", info.Start, "End", info.End, "chunkhash", common.ToHex(info.ChunkHash), "retryCount", retryCount, "time cost", time.Since(start))
+				return
+			}
+		}
+	}
+}
+
+func (chain *BlockChain) fetchChunk(info *types.ChunkInfoMsg) error {
+	msg := chain.client.NewMessage("p2p", types.EventGetChunkBlock, info)
+	err := chain.client.Send(msg, true)
 	if err != nil {
-		return ErrNoChunkInfoToDownLoad
-	}
-
-	// 以chunk为单位同步block
-	var requestblock types.ChunkInfoMsg
-	requestblock.ChunkHash = chunkhash
-	requestblock.Start = startHeight
-	requestblock.End = endHeight
-	if endHeight > end {
-		requestblock.End = end
-	}
-
-	var cb func()
-	var timeoutcb func(height int64)
-	if isDownLoad {
-		//还有区块需要请求，挂接钩子回调函数
-		if requestblock.End < chain.downLoadInfo.EndHeight {
-			cb = func() {
-				chain.ReqDownLoadChunkBlocks()
-			}
-			timeoutcb = func(height int64) {
-				chain.DownLoadChunkTimeOutProc(height)
-			}
-			chain.UpdateDownLoadStartHeight(requestblock.End + 1)
-		} else { // 所有DownLoad block已请求结束，恢复DownLoadInfo为默认值
-			chain.DefaultDownLoadInfo()
-		}
-		// chunk下载只是每次只下载一个chunk
-		// TODO 后续再做并发请求下载
-		err = chain.downLoadTask.Start(requestblock.Start, requestblock.End, cb, timeoutcb)
-		if err != nil {
-			return err
-		}
-	} else {
-		if chain.GetPeerMaxBlkHeight()-requestblock.End > BackBlockNum {
-			cb = func() {
-				chain.SynBlocksFromPeers()
-			}
-		}
-		// chunk下载只是每次只下载一个chunk
-		// TODO 后续再做并发请求下载
-		err = chain.syncTask.Start(requestblock.Start, requestblock.End, cb, timeoutcb)
-		if err != nil {
-			return err
-		}
-	}
-	synlog.Info("FetchChunkBlock", "chunkNum", chunkNum, "Start", requestblock.Start, "End", requestblock.End, "isDownLoad", isDownLoad, "chunkhash", common.ToHex(chunkhash))
-	msg := chain.client.NewMessage("p2p", types.EventGetChunkBlock, &requestblock)
-	err = chain.client.Send(msg, false)
-	if err != nil {
-		synlog.Error("FetchChunkBlock", "client.Send err:", err)
 		return err
 	}
-	return err
+	msgReply, err := chain.client.Wait(msg)
+	if err != nil {
+		return err
+	}
+	if reply, ok := msgReply.GetData().(*types.Reply); ok && reply.IsOk {
+		return nil
+	}
+	return types.ErrNotFound
 }

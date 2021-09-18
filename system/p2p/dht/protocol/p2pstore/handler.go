@@ -409,7 +409,12 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 
 func (p *Protocol) handleEventGetChunkBlock(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)
-	blocks, err := p.getBlocks(req)
+	var blocks *types.Blocks
+	var err error
+	defer func() {
+		m.Reply(p.QueueClient.NewMessage("", 0, &types.Reply{IsOk: err == nil}))
+	}()
+	blocks, err = p.getBlocks(req)
 	if err != nil {
 		return
 	}
