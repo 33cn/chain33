@@ -408,12 +408,20 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 			_, _ = p.RoutingTable.TryAddPeer(conn.RemotePeer(), false, true)
 		}
 	}
+	// 递归查询时间上限10分钟
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute * 10)
+	defer cancel()
 
 	chunkHash := hex.EncodeToString(req.ChunkHash)
 	log.Info("into mustFetchChunk", "start", req.Start, "end", req.End)
 
 	// 先请求缓存provider节点
 	for _, pid := range p.getChunkProviderCache(req.ChunkHash) {
+		select {
+		case <- ctx.Done():
+			return nil, "", types2.ErrNotFound
+		default:
+		}
 		start := time.Now()
 		bodys, _, err := p.fetchChunkFromPeer(req, pid)
 		if err == nil && bodys != nil {
@@ -437,6 +445,8 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	Loop1:
 	for {
 		select {
+		case <- ctx.Done():
+			return nil, "", types2.ErrNotFound
 		case pid := <-localPeers:
 			if _, ok := searchedPeers[pid]; ok {
 				continue
@@ -467,6 +477,8 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	Loop2:
 	for {
 		select {
+		case <- ctx.Done():
+			return nil, "", types2.ErrNotFound
 		case pid := <-alternativePeers:
 			if _, ok := searchedPeers[pid]; ok {
 				continue
@@ -503,6 +515,11 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	}
 
 	for addrInfo := range peerInfos {
+		select {
+		case <- ctx.Done():
+			return nil, "", types2.ErrNotFound
+		default:
+		}
 		if addrInfo.ID == p.Host.ID() {
 			continue
 		}
