@@ -544,10 +544,11 @@ func (p *Protocol) fetchChunkFromPeer(params *types.ChunkInfoMsg, pid peer.ID) (
 	defer p.Host.ConnManager().Unprotect(pid, fetchChunk)
 	stream, err := p.Host.NewStream(childCtx, pid, fetchChunk)
 	if err != nil {
-		log.Error("fetchChunkFromPeer", "error", err)
+		log.Error("fetchChunkFromPeer", "error", err, "start", params.Start)
 		return nil, nil, err
 	}
 	defer stream.Close()
+	_ = stream.SetDeadline(time.Now().Add(time.Minute * 3))
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ChunkInfoMsg{
 			ChunkInfoMsg: params,
@@ -555,14 +556,14 @@ func (p *Protocol) fetchChunkFromPeer(params *types.ChunkInfoMsg, pid peer.ID) (
 	}
 	err = protocol.SignAndWriteStream(&msg, stream)
 	if err != nil {
-		log.Error("fetchChunkFromPeer", "SignAndWriteStream error", err)
+		log.Error("fetchChunkFromPeer", "SignAndWriteStream error", err, "start", params.Start)
 		return nil, nil, err
 	}
 	var bodys []*types.BlockBody
 	var res types.P2PResponse
 	for {
 		if err := protocol.ReadStream(&res, stream); err != nil {
-			log.Error("fetchChunkFromPeer", "ReadStream error", err)
+			log.Error("fetchChunkFromPeer", "ReadStream error", err, "start", params.Start)
 			return nil, nil, err
 		}
 		body, ok := res.Response.(*types.P2PResponse_BlockBody)
