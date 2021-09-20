@@ -473,6 +473,8 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 		}
 	}
 
+	log.Error("mustFetchChunk from rt peer not found", "chunk hash", chunkHash, "start", req.Start, "error", types2.ErrNotFound)
+
 	// 其次从未建立连接但已保存ip等信息的的节点上获取数据
 	Loop2:
 	for {
@@ -506,9 +508,9 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	log.Error("mustFetchChunk not found", "chunk hash", chunkHash, "start", req.Start, "error", types2.ErrNotFound)
 
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
-	ctx, cancel2 := context.WithTimeout(p.Ctx, time.Minute)
+	ctx2, cancel2 := context.WithTimeout(p.Ctx, time.Minute)
 	defer cancel2()
-	peerInfos, err := p.Discovery.FindPeers(ctx, fullNode)
+	peerInfos, err := p.Discovery.FindPeers(ctx2, fullNode)
 	if err != nil {
 		log.Error("mustFetchChunk", "Find full peers error", err)
 		return nil, "", types2.ErrNotFound
