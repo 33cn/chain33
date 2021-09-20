@@ -463,9 +463,18 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 			}
 			for _, pid := range nearerPeers {
 				if len(p.Host.Network().ConnsToPeer(pid)) != 0 {
-					localPeers <- pid
+					select {
+					case localPeers <- pid:
+					default:
+						log.Info("mustFetchChunk localPeers channel full", "pid", pid)
+					}
+
 				} else if len(p.Host.Peerstore().Addrs(pid)) != 0 {
-					alternativePeers <- pid
+					select {
+					case alternativePeers <- pid:
+					default:
+						log.Info("mustFetchChunk alternativePeers channel full", "pid", pid)
+					}
 				}
 			}
 		default:
@@ -497,7 +506,11 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 			}
 			for _, pid := range nearerPeers {
 				if len(p.Host.Peerstore().Addrs(pid)) != 0 {
-					alternativePeers <- pid
+					select {
+					case alternativePeers <- pid:
+					default:
+						log.Info("mustFetchChunk alternativePeers channel full", "pid", pid)
+					}
 				}
 			}
 		default:
