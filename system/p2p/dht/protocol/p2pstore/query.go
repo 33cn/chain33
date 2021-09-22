@@ -439,6 +439,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	alternativePeers := make(chan peer.ID, 100)
 	for _, pid := range peers {
 		localPeers <- pid
+		searchedPeers[pid] = struct{}{}
 	}
 
 	// 优先从已经建立连接的节点上查找数据，因为建立新的连接会耗时，且会导致网络拓扑结构发生变化
@@ -448,10 +449,6 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 		case <- ctx.Done():
 			return nil, "", types2.ErrNotFound
 		case pid := <-localPeers:
-			if _, ok := searchedPeers[pid]; ok {
-				continue
-			}
-			searchedPeers[pid] = struct{}{}
 			start := time.Now()
 			bodys, nearerPeers, err := p.fetchChunkFromPeer(req, pid)
 			if err != nil {
@@ -462,9 +459,13 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 				return bodys, pid, nil
 			}
 			for _, pid := range nearerPeers {
+				if _, ok := searchedPeers[pid]; ok {
+					continue
+				}
 				if len(p.Host.Network().ConnsToPeer(pid)) != 0 {
 					select {
 					case localPeers <- pid:
+						searchedPeers[pid] = struct{}{}
 					default:
 						log.Info("mustFetchChunk localPeers channel full", "pid", pid)
 					}
@@ -472,6 +473,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 				} else if len(p.Host.Peerstore().Addrs(pid)) != 0 {
 					select {
 					case alternativePeers <- pid:
+						searchedPeers[pid] = struct{}{}
 					default:
 						log.Info("mustFetchChunk alternativePeers channel full", "pid", pid)
 					}
@@ -491,10 +493,6 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 		case <- ctx.Done():
 			return nil, "", types2.ErrNotFound
 		case pid := <-alternativePeers:
-			if _, ok := searchedPeers[pid]; ok {
-				continue
-			}
-			searchedPeers[pid] = struct{}{}
 			start := time.Now()
 			bodys, nearerPeers, err := p.fetchChunkFromPeer(req, pid)
 			if err != nil {
@@ -505,9 +503,13 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 				return bodys, pid, nil
 			}
 			for _, pid := range nearerPeers {
+				if _, ok := searchedPeers[pid]; ok {
+					continue
+				}
 				if len(p.Host.Peerstore().Addrs(pid)) != 0 {
 					select {
 					case alternativePeers <- pid:
+						searchedPeers[pid] = struct{}{}
 					default:
 						log.Info("mustFetchChunk alternativePeers channel full", "pid", pid)
 					}
