@@ -461,10 +461,18 @@ func (c *channelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr)
 // SignWalletRecoverTx sign wallet recover transaction
 func (c *channelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (*types.ReplySignRawTx, error) {
 
-	if len(req.GetPrivKey()) <= 0 || len(req.GetRawTx()) <= 0 ||
-		req.GetWalletRecoverParam() == nil {
+	if req.GetWalletRecoverParam() == nil || len(req.GetRawTx()) <= 0 {
 		log.Error("SignWalletRecoverTx", "invalid req", req.String())
 		return nil, types.ErrInvalidParam
+	}
+	privKeyHex := req.PrivKey
+	if privKeyHex == "" {
+		reply, err := c.ExecWalletFunc("wallet", "DumpPrivkey", &types.ReqString{Data: req.SignAddr})
+		if err != nil {
+			log.Error("SignWalletRecoverTx", "execWalletFunc err", err)
+			return nil, err
+		}
+		privKeyHex = reply.(*types.ReplyString).GetData()
 	}
 
 	recoverPub, wrScript, err := c.getWalletRecoverAddr(req.GetWalletRecoverParam())
@@ -480,7 +488,7 @@ func (c *channelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 	}
 	tx.Signature = nil
 	signMsg := types.Encode(tx)
-	privKey, err := common.FromHex(req.GetPrivKey())
+	privKey, err := common.FromHex(privKeyHex)
 	if err != nil {
 		log.Error("SignWalletRecoverTx", "privKey from hex err", err)
 		return nil, types.ErrFromHex

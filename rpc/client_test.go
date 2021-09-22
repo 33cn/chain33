@@ -447,7 +447,7 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 
 	req.RelativeDelayHeight = 10
 
-	_, priv1 := util.Genaddress()
+	addr1, priv1 := util.Genaddress()
 	_, priv2 := util.Genaddress()
 	req.CtrPubKey = common.ToHex(priv1.PubKey().Bytes())
 	req.RecoverPubKey = common.ToHex(priv2.PubKey().Bytes())
@@ -457,10 +457,15 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	_, priv3 := util.Genaddress()
 	tx := util.CreateNoneTx(cfg, priv3)
+	privKeyHex := hex.EncodeToString(priv1.Bytes())
+	mockAPI := new(mocks.QueueProtocolAPI)
+	cli.QueueProtocolAPI = mockAPI
+	mockAPI.On("ExecWalletFunc", "wallet", "DumpPrivkey",
+		&types.ReqString{Data: addr1}).Return(&types.ReplyString{Data: privKeyHex}, nil)
 	req2 := &types.ReqSignWalletRecoverTx{
-		PrivKey:            hex.EncodeToString(priv1.Bytes()),
 		RawTx:              hex.EncodeToString(types.Encode(tx)),
 		WalletRecoverParam: req,
+		SignAddr:           addr1,
 	}
 
 	reply, err := cli.SignWalletRecoverTx(req2)
@@ -470,4 +475,17 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 	err = types.Decode(txByte, tx)
 	require.Nil(t, err)
 	require.True(t, tx.CheckSign(0))
+}
+
+func TestChannelClient_SignWalletRecoverTx(t *testing.T) {
+
+	cli := &channelClient{}
+	req := &types.ReqGetWalletRecoverAddr{}
+	signReq := &types.ReqSignWalletRecoverTx{}
+
+	_, err := cli.SignWalletRecoverTx(signReq)
+	require.Equal(t, types.ErrInvalidParam, err)
+	signReq.WalletRecoverParam = req
+	_, err = cli.SignWalletRecoverTx(signReq)
+	require.Equal(t, types.ErrInvalidParam, err)
 }

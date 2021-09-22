@@ -41,8 +41,9 @@ message ReqGetWalletRecoverAddr {
 // 获取钱包找回签名请求
 message ReqSignWalletRecoverTx {
     ReqGetWalletRecoverAddr walletRecoverParam = 1;
-    string privKey = 2;
-    string rawTx = 3;
+    string                  signAddr           = 2;
+    string                  privKey            = 3;
+    string                  rawTx              = 4;
 }
 
 message ChainConfigInfo {
