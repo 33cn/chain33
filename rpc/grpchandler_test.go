@@ -774,10 +774,17 @@ func TestGrpc_SendTransactions(t *testing.T) {
 	txCount := 10
 	in := &types.Transactions{Txs: make([]*types.Transaction, txCount)}
 	testMsg := []byte("test")
-	qapi.On("SendTx", mock.Anything).Return(&types.Reply{IsOk: true, Msg: testMsg}, nil)
-
+	var testTx *types.Transaction
+	qapi.On("SendTx", testTx).Return(&types.Reply{IsOk: true, Msg: testMsg}, types.ErrInvalidParam)
+	testTx = &types.Transaction{}
+	qapi.On("SendTx", testTx).Return(&types.Reply{IsOk: true, Msg: testMsg}, nil)
+	in.Txs[txCount-1] = testTx
 	reply, err := g.SendTransactions(getOkCtx(), in)
 	require.Nil(t, err)
-	require.Equal(t, txCount, len(reply.GetHashes()))
-	require.Equal(t, testMsg, reply.GetHashes()[0])
+	require.Equal(t, txCount, len(reply.GetReplyList()))
+	require.Equal(t, types.ErrInvalidParam.Error(), string(reply.GetReplyList()[0].Msg))
+	require.False(t, reply.GetReplyList()[0].IsOk)
+
+	require.Equal(t, testMsg, reply.GetReplyList()[txCount-1].Msg)
+	require.True(t, reply.GetReplyList()[txCount-1].IsOk)
 }

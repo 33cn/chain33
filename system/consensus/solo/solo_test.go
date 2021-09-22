@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	_ "net/http/pprof" //
 	"runtime"
@@ -17,6 +18,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	cty "github.com/33cn/chain33/system/dapp/coins/types"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/crypto/none"
@@ -39,6 +42,7 @@ import (
 	_ "github.com/33cn/chain33/system/dapp/init"
 	_ "github.com/33cn/chain33/system/mempool/init"
 	_ "github.com/33cn/chain33/system/store/init"
+	//_ "github.com/33cn/plugin/plugin/store/kvmvcc"
 )
 
 // 执行： go test -cover
@@ -129,6 +133,7 @@ func sendTxGrpc(cfg *types.Chain33Config, recvChan <-chan *types.Transaction, ba
 	}
 	defer conn.Close()
 	txs := &types.Transactions{Txs: make([]*types.Transaction, 0, batchNum)}
+	retryTxs := make([]*types.Transaction, 0, batchNum*2)
 	gcli := types.NewChain33Client(conn)
 	for {
 		tx, ok := <-recvChan
@@ -136,17 +141,35 @@ func sendTxGrpc(cfg *types.Chain33Config, recvChan <-chan *types.Transaction, ba
 			return
 		}
 		txs.Txs = append(txs.Txs, tx)
-		if len(txs.Txs) == batchNum {
-			_, err := gcli.SendTransactions(context.Background(), txs)
-			txs.Txs = txs.Txs[:0]
+		if len(retryTxs) > 0 {
+			txs.Txs = append(txs.Txs, retryTxs...)
+			retryTxs = retryTxs[:0]
+		}
+		if len(txs.Txs) >= batchNum {
+
+			reps, err := gcli.SendTransactions(context.Background(), txs)
 			if err != nil {
-				if strings.Contains(err.Error(), "ErrChannelClosed") {
+				tlog.Error("sendtxs", "err", err)
+				return
+			}
+
+			// retry failed txs
+			for index, reply := range reps.GetReplyList() {
+				if reply.IsOk {
+					continue
+				}
+				if string(reply.GetMsg()) == types.ErrChannelClosed.Error() {
 					return
 				}
-				tlog.Error("sendtx", "err", err.Error())
-				time.Sleep(time.Second)
-				continue
+				if string(reply.GetMsg()) == types.ErrMemFull.Error() ||
+					string(reply.GetMsg()) == types.ErrManyTx.Error() {
+					retryTxs = append(retryTxs, txs.Txs[index])
+				}
 			}
+			if len(retryTxs) > 0 {
+				time.Sleep(time.Second * 3)
+			}
+			txs.Txs = txs.Txs[:0]
 		}
 
 	}
@@ -179,19 +202,44 @@ var (
 	enabletxindex   *bool
 	enableexeccheck *bool
 	maxtxnum        *int64
+	txtype          *string
+	accountnum      *int
+	txsize          *int
 )
 
 func init() {
 	enablesign = flag.Bool("enablesign", false, "enable tx sign")
-	sendtxgrpc = flag.Bool("sendtxgrpc", false, "send tx with grpc")
-	enabletxfee = flag.Bool("enabletxfee", false, "enable tx sign")
-	enabledupcheck = flag.Bool("enabledupcheck", false, "diabledupcheck")
-	enabletxindex = flag.Bool("enabletxindex", false, "enabletxindex")
-	enableexeccheck = flag.Bool("enableexeccheck", false, "enabletxindex")
+	sendtxgrpc = flag.Bool("grpc", true, "send tx in grpc")
+	enabletxfee = flag.Bool("txfee", false, "enable tx fee")
+	enabledupcheck = flag.Bool("dupcheck", false, "enable dup check")
+	enabletxindex = flag.Bool("txindex", false, "enable tx index")
+	enableexeccheck = flag.Bool("execcheck", false, "enabletxindex")
 	maxtxnum = flag.Int64("maxtxnum", 10000, "max tx num in block")
+	txtype = flag.String("txtype", "none", "set tx type, coins/none")
+	accountnum = flag.Int("accountnum", 10, "set account num for transfer bench, default 10")
+	txsize = flag.Int("txsize", 32, "set none tx size byte")
 	testing.Init()
 	flag.Parse()
 
+}
+
+func createCoinsTx(cfg *types.Chain33Config, to string, txHeight int64) *types.Transaction {
+	action := &cty.CoinsAction{Ty: cty.CoinsActionTransfer}
+	action.Value = &cty.CoinsAction_Transfer{
+		Transfer: &types.AssetsTransfer{
+			Cointoken: cfg.GetCoinSymbol(),
+			Amount:    1,
+			To:        to,
+		},
+	}
+	tx := &types.Transaction{Execer: []byte("coins")}
+	tx.Payload = types.Encode(action)
+	tx.To = to
+	tx.Nonce = rand.Int63()
+	tx.Fee = 100000
+	tx.ChainID = cfg.GetChainID()
+	tx.Expire = types.TxHeightFlag + txHeight
+	return tx
 }
 
 //测试solo并发
@@ -201,6 +249,9 @@ func BenchmarkSolo(b *testing.B) {
 		b.Skip("skipping in short mode.")
 	}
 	cfgStr := types.GetDefaultCfgstring()
+	if *accountnum < 10 {
+		*accountnum = 10
+	}
 	if *maxtxnum > 10000 {
 		str := fmt.Sprintf("maxTxNumber = %d", *maxtxnum)
 		cfgStr = strings.Replace(cfgStr, "maxTxNumber = 10000", str, -1)
@@ -211,8 +262,12 @@ func BenchmarkSolo(b *testing.B) {
 	cfg.GetModuleConfig().Exec.DisableTxIndex = !*enabletxindex
 	cfg.GetModuleConfig().Exec.DisableTxDupCheck = !*enabledupcheck
 	cfg.GetModuleConfig().Mempool.DisableExecCheck = !*enableexeccheck
-	cfg.GetModuleConfig().BlockChain.HighAllowPackHeight = 50
-	cfg.GetModuleConfig().BlockChain.LowAllowPackHeight = 30
+	cfg.GetModuleConfig().BlockChain.HighAllowPackHeight = 200
+	cfg.GetModuleConfig().BlockChain.LowAllowPackHeight = 100
+	cfg.GetModuleConfig().Mempool.PoolCacheSize = 200000
+	cfg.GetModuleConfig().Mempool.MaxTxNumPerAccount = 210000
+	cfg.GetModuleConfig().BlockChain.EnableTxQuickIndex = false
+	cfg.GetModuleConfig().Consensus.NoneRollback = true
 	if !*enabletxfee {
 		cfg.GetModuleConfig().Mempool.MinTxFeeRate = 0
 		cfg.SetMinFee(0)
@@ -220,6 +275,8 @@ func BenchmarkSolo(b *testing.B) {
 	cfg.GetModuleConfig().RPC.GrpcBindAddr = "localhost:8802"
 	cfg.GetModuleConfig().Crypto.EnableTypes = []string{secp256k1.Name, none.Name}
 	subcfg := cfg.GetSubConfig()
+	coinSub, _ := types.ModifySubConfig(subcfg.Exec["coins"], "disableAddrReceiver", true)
+	subcfg.Exec["coins"] = coinSub
 	solocfg, err := types.ModifySubConfig(subcfg.Consensus["solo"], "waitTxMs", 100)
 	assert.Nil(b, err)
 	solocfg, err = types.ModifySubConfig(solocfg, "benchMode", true)
@@ -231,9 +288,20 @@ func BenchmarkSolo(b *testing.B) {
 	go func() {
 		_ = http.ListenAndServe(":6060", nil)
 	}()
+	createRoutineCount := cpuNum
+	toAddrPerRoutine := *accountnum/createRoutineCount + 1
+	toAddrList := make([][]string, createRoutineCount)
+
+	for i := 0; i < createRoutineCount; i++ {
+		toAddrList[i] = make([]string, 0, toAddrPerRoutine)
+		for j := 0; j < toAddrPerRoutine; j++ {
+			addr, _ := util.Genaddress()
+			toAddrList[i] = append(toAddrList[i], addr)
+		}
+	}
 
 	txChan := make(chan *types.Transaction, 10000)
-	for i := 0; i < cpuNum*3; i++ {
+	for i := 0; i < cpuNum*2; i++ {
 		if *sendtxgrpc {
 			go sendTxGrpc(cfg, txChan, 100)
 		} else {
@@ -243,26 +311,36 @@ func BenchmarkSolo(b *testing.B) {
 
 	start := make(chan struct{})
 	var height int64
-	for i := 0; i < cpuNum*2; i++ {
-		go func() {
+	for i := 0; i < createRoutineCount; i++ {
+		go func(index int) {
 			start <- struct{}{}
-			pub := mock33.GetGenesisKey().PubKey().Bytes()
 			var tx *types.Transaction
+			toAddrs := toAddrList[index]
+			txCount := 0
+			pub := mock33.GetGenesisKey().PubKey().Bytes()
+			payload := []byte(strings.Repeat("t", *txsize))
 			for {
+				toAddrIndex := txCount % toAddrPerRoutine
 				txHeight := atomic.LoadInt64(&height) + types.LowAllowPackHeight/2
+				if *txtype != "none" {
+					tx = createCoinsTx(cfg, toAddrs[toAddrIndex], txHeight)
+				} else {
+					tx = util.CreateNoneTxWithTxHeight(cfg, nil, txHeight)
+					tx.Payload = payload
+				}
 				if *enablesign {
-					tx = util.CreateNoneTxWithTxHeight(cfg, mock33.GetGenesisKey(), txHeight)
+					tx.Sign(types.SECP256K1, mock33.GetGenesisKey())
 				} else {
 					//测试去签名情况
-					tx = util.CreateNoneTxWithTxHeight(cfg, nil, txHeight)
 					tx.Signature = &types.Signature{
 						Ty:     none.ID,
 						Pubkey: pub,
 					}
 				}
 				txChan <- tx
+				txCount++
 			}
-		}()
+		}(i)
 		<-start
 	}
 	b.ResetTimer()

@@ -1,12 +1,10 @@
 package p2pstore
 
 import (
-	"context"
 	"encoding/hex"
 	"time"
 
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/peer"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
@@ -105,9 +103,6 @@ func (p *Protocol) updateExtendRoutingTable() {
 				continue
 			}
 			_, _ = tmpRoutingTable.TryAddPeer(cPid, true, true)
-			if len(p.Host.Network().Conns()) < 50 && len(p.Host.Network().ConnsToPeer(cPid)) == 0 {
-				p.connect(cPid)
-			}
 		}
 	}
 
@@ -119,17 +114,4 @@ func (p *Protocol) updateExtendRoutingTable() {
 	}
 	_ = tmpRoutingTable.Close()
 	log.Info("updateExtendRoutingTable", "pid", p.Host.ID(), "local peers count", p.RoutingTable.Size(), "extendRoutingTable peer count", p.extendRoutingTable.Size(), "time cost", time.Since(start))
-}
-
-func (p *Protocol) connect(pid peer.ID) {
-	ctx, cancel := context.WithTimeout(p.Ctx, 3*time.Second)
-	defer cancel()
-	info := peer.AddrInfo{
-		ID:    pid,
-		Addrs: p.Host.Peerstore().Addrs(pid),
-	}
-	if err := p.Host.Connect(ctx, info); err != nil {
-		log.Error("Host Connect", "err", err, "peer", info.ID)
-	}
-
 }

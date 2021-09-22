@@ -197,6 +197,10 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 
 	err = mem.PushTx(tx.Tx())
 	if err != nil {
+		if err == types.ErrMemFull {
+			//has a sleep
+			time.Sleep(time.Millisecond * 200)
+		}
 		mlog.Error("checkTxRemote", "push err", err)
 		msg.Data = err
 	}

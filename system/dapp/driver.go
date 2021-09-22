@@ -207,7 +207,7 @@ func (d *DriverBase) SetChild(e Driver) {
 func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	lset, err := d.callLocal("ExecLocal_", tx, receipt, index)
 	if err != nil || lset == nil { // 不能向上层返回LocalDBSet为nil, 以及error
-		blog.Debug("call ExecLocal", "tx.Execer", string(tx.Execer), "err", err)
+		//blog.Debug("call ExecLocal", "tx.Execer", string(tx.Execer), "err", err)
 		return &types.LocalDBSet{}, nil
 	}
 	return lset, nil

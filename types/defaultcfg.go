@@ -192,6 +192,7 @@ minerwhitelist=["*"]
 enableStat=false
 enableMVCC=false
 alias=["token1:token","token2:token","token3:token"]
+[exec.sub.coins]
 
 [exec.sub.token]
 saveTokenTxList=true

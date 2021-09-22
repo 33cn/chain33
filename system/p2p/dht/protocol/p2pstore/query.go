@@ -369,6 +369,17 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	searchedPeers[p.Host.ID()] = struct{}{}
 	peers := p.RoutingTable.NearestPeers(genDHTID(req.ChunkHash), AlphaValue)
 	log.Info("into mustFetchChunk", "start", req.Start, "end", req.End)
+
+	// 先请求缓存provider节点
+	for _, pid := range p.getChunkProviderCache(req.ChunkHash) {
+		start := time.Now()
+		bodys, _, err := p.fetchChunkFromPeer(ctx, req, pid)
+		if err == nil && bodys != nil {
+			log.Info("mustFetchChunk found from cache provider", "chunk hash", chunkHash, "start", req.Start, "pid", pid, "maddrs", p.Host.Peerstore().Addrs(pid), "time cost", time.Since(start))
+			return bodys, pid, nil
+		}
+	}
+
 	for len(peers) != 0 {
 		var nearerPeers []peer.ID
 		var bodys *types.BlockBodys
@@ -456,6 +467,8 @@ func (p *Protocol) fetchChunkFromPeer(ctx context.Context, params *types.ChunkIn
 	}
 	closerPeers := savePeers(res.CloserPeers, p.Host.Peerstore())
 	if int64(len(bodys)) == params.End-params.Start+1 {
+		// 增加provider缓存
+		p.addChunkProviderCache(params.ChunkHash, pid)
 		return &types.BlockBodys{
 			Items: bodys,
 		}, closerPeers, nil

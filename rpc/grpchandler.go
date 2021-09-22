@@ -40,19 +40,20 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 }
 
 // SendTransactions send transaction by network
-func (g *Grpc) SendTransactions(ctx context.Context, in *pb.Transactions) (*pb.ReplyHashes, error) {
+func (g *Grpc) SendTransactions(ctx context.Context, in *pb.Transactions) (*pb.Replies, error) {
 	if len(in.GetTxs()) == 0 {
 		return nil, nil
 	}
-	hashes := &pb.ReplyHashes{Hashes: make([][]byte, 0, len(in.GetTxs()))}
+	reps := &pb.Replies{ReplyList: make([]*pb.Reply, 0, len(in.GetTxs()))}
 	for _, tx := range in.GetTxs() {
 		reply, err := g.cli.SendTx(tx)
 		if err != nil {
-			return hashes, err
+			// grpc内部不允许error非空情况下返回参数,需要把错误信息记录在结构中
+			reply = &pb.Reply{Msg: []byte(err.Error())}
 		}
-		hashes.Hashes = append(hashes.Hashes, reply.GetMsg())
+		reps.ReplyList = append(reps.ReplyList, reply)
 	}
-	return hashes, nil
+	return reps, nil
 }
 
 // CreateNoBalanceTxs create multiple transaction with no balance

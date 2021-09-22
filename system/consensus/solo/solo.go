@@ -128,7 +128,8 @@ func (client *Client) CreateBlock() {
 			continue
 		}
 		issleep = false
-
+		waitTxCost := types.Since(beg)
+		beg = types.Now()
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash(cfg)
 		newblock.Height = lastBlock.Height + 1
@@ -144,8 +145,10 @@ func (client *Client) CreateBlock() {
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
+
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
-		log.Info("SoloNewBlock", "height", newblock.Height, "txs", len(newblock.Txs), "cost", types.Since(beg))
+		log.Info("SoloNewBlock", "height", newblock.Height, "txs", len(txs), "waitTxs", waitTxCost)
+		log.Info("SoloNewBlock", "height", newblock.Height, "txs", len(txs), "writeBlock", types.Since(beg))
 		beg = types.Now()
 		//判断有没有交易是被删除的，这类交易要从mempool 中删除
 		if err != nil {

@@ -142,6 +142,8 @@ type BlockChain struct {
 	// TODO
 	lastHeight             int64
 	heightNotIncreaseTimes int32
+	// 标识区块是否回滚
+	neverRollback bool
 }
 
 //New new
@@ -167,7 +169,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		reducewg:           &sync.WaitGroup{},
 
 		syncTask:        newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
-		downLoadTask:    newTask(300 * time.Second),
+		downLoadTask:    newTask(180 * time.Second),
 		chunkRecordTask: newTask(120 * time.Second),
 
 		quit:                make(chan struct{}),
@@ -191,6 +193,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 	}
 	blockchain.initConfig(cfg)
 	blockchain.blockCache = newBlockCache(cfg, defaultBlockHashCacheSize)
+	blockchain.neverRollback = cfg.GetModuleConfig().Consensus.NoneRollback
 	return blockchain
 }
 

@@ -15,8 +15,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/network"
-	protobufCodec "github.com/multiformats/go-multicodec/protobuf"
-
 	"github.com/libp2p/go-msgio"
 )
 
@@ -26,22 +24,10 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-// ReadStreamLegacy read stream
-// Deprecated
-func ReadStreamLegacy(data types.Message, stream network.Stream) error {
-	decoder := protobufCodec.Multicodec(nil).Decoder(stream)
-	err := decoder.Decode(data)
-	if err != nil {
-		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "decode err", err)
-		return err
-	}
-	return nil
-}
-
 const messageHeaderLen = 17
 
 var (
-	messageHeader = protobufCodec.HeaderMsgio
+	messageHeader = headerSafe([]byte("/protobuf/msgio"))
 )
 
 // ReadStream reads message from stream.
@@ -66,18 +52,6 @@ func ReadStream(data types.Message, stream network.Stream) error {
 	err = types.Decode(msg, data)
 	if err != nil {
 		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "decode err", err)
-		return err
-	}
-	return nil
-}
-
-// WriteStreamLegacy write stream
-// Deprecated
-func WriteStreamLegacy(data types.Message, stream network.Stream) error {
-	enc := protobufCodec.Multicodec(nil).Encoder(stream)
-	err := enc.Encode(data)
-	if err != nil {
-		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "encode err", err)
 		return err
 	}
 	return nil
@@ -406,4 +380,14 @@ func AwaitEOF(s network.Stream) error {
 		return err
 	}
 	return s.Close()
+}
+
+// migrated from github.com/multiformats/go-multicodec@v0.1.6: header.go
+func headerSafe(path []byte) []byte {
+	l := len(path) + 1 // + \n
+	buf := make([]byte, l+1)
+	buf[0] = byte(l)
+	copy(buf[1:], path)
+	buf[l] = '\n'
+	return buf
 }

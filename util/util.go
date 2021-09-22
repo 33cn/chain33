@@ -192,7 +192,9 @@ func CreateManageTx(cfg *types.Chain33Config, priv crypto.PrivKey, key, op, valu
 // CreateCoinsTx : Create Coins Tx
 func CreateCoinsTx(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	tx := createCoinsTx(cfg, to, amount)
-	tx.Sign(types.SECP256K1, priv)
+	if priv != nil {
+		tx.Sign(types.SECP256K1, priv)
+	}
 	return tx
 }
 
