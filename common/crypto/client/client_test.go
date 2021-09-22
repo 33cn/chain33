@@ -26,7 +26,7 @@ func TestModule(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		height := int64(i)
-		err := cli.Send(cli.NewMessage("crypto", types.EventAddBlock, types.Header{Height: height}), true)
+		err := cli.Send(cli.NewMessage("crypto", types.EventAddBlock, &types.Header{Height: height}), true)
 		require.Nil(t, err)
 	}
 	module.Wait()
