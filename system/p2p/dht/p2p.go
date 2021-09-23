@@ -73,7 +73,15 @@ type P2P struct {
 
 func setLibp2pLog(logFile, logLevel string) {
 
-	if _, err := os.Stat(logFile); os.IsNotExist(err) {
+	if logFile == "" {
+		return
+	}
+	_, err := os.Stat(logFile)
+	if os.IsNotExist(err) {
+		err = os.MkdirAll(filepath.Dir(logFile), 0744)
+	}
+	if err != nil {
+		log.Error("setLibp2pLog", "err", err)
 		return
 	}
 
@@ -87,7 +95,7 @@ func setLibp2pLog(logFile, logLevel string) {
 		File:   logFile,
 	})
 
-	err := libp2pLog.SetLogLevel("*", logLevel)
+	err = libp2pLog.SetLogLevel("*", logLevel)
 	if err != nil {
 		log.Error("NewP2P", "set libp2p log level err", err)
 	}
@@ -104,7 +112,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		mcfg.Port = p2pty.DefaultP2PPort
 	}
 	// set libp2p log
-	setLibp2pLog(mgr.ChainCfg.GetModuleConfig().Log.LogFile, mcfg.Libp2pLogLevel)
+	setLibp2pLog(mcfg.Libp2pLogFile, mcfg.Libp2pLogLevel)
 
 	p := &P2P{
 		client:   mgr.Client,
