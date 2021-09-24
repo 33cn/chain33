@@ -750,6 +750,13 @@ func TestGrpc_SendDelayTransaction(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestGrpc_WalletRecoverScript(t *testing.T) {
+	_, err := g.GetWalletRecoverAddress(getOkCtx(), nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
+	_, err = g.SignWalletRecoverTx(getOkCtx(), nil)
+	assert.Equal(t, types.ErrInvalidParam, err)
+}
+
 func TestGrpc_GetChainConfig(t *testing.T) {
 	cfg, err := g.GetChainConfig(getOkCtx(), nil)
 	assert.NoError(t, err)

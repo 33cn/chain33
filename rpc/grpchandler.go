@@ -576,6 +576,16 @@ func (g *Grpc) SendDelayTransaction(ctx context.Context, in *pb.DelayTx) (*pb.Re
 	return g.cli.SendDelayTx(in, true)
 }
 
+// GetWalletRecoverAddress get recover addr
+func (g *Grpc) GetWalletRecoverAddress(ctx context.Context, in *pb.ReqGetWalletRecoverAddr) (*pb.ReplyString, error) {
+	return g.cli.GetWalletRecoverAddr(in)
+}
+
+// SignWalletRecoverTx sign wallet recover tx
+func (g *Grpc) SignWalletRecoverTx(ctx context.Context, in *pb.ReqSignWalletRecoverTx) (*pb.ReplySignRawTx, error) {
+	return g.cli.SignWalletRecoverTx(in)
+}
+
 // GetChainConfig 获取chain config 参数
 func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConfigInfo, error) {
 	cfg := g.cli.GetConfig()

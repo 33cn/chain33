@@ -15,13 +15,13 @@ func (n *None) Exec_CommitDelayTx(commit *nty.CommitDelayTx, tx *types.Transacti
 
 	receipt := &types.Receipt{Ty: types.ExecOk}
 	delayInfo := &nty.CommitDelayTxLog{}
-
-	delayTxHash := commit.GetDelayTx().Hash()
-	if commit.IsBlockHeightDelayTime {
-		delayInfo.EndDelayTime = n.GetHeight() + commit.RelativeDelayTime
-	} else {
-		delayInfo.EndDelayTime = n.GetBlockTime() + commit.RelativeDelayTime
+	delayTx := &types.Transaction{}
+	txByte, err := common.FromHex(commit.GetDelayTx())
+	if err != nil || types.Decode(txByte, delayTx) != nil {
+		return nil, errDecodeDelayTx
 	}
+	delayTxHash := delayTx.Hash()
+	delayInfo.DelayBeginHeight = n.GetHeight()
 	delayInfo.Submitter = tx.From()
 	receipt.KV = append(receipt.KV,
 		&types.KeyValue{Key: formatDelayTxKey(delayTxHash), Value: types.Encode(delayInfo)})

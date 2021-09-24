@@ -376,30 +376,26 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 		chainlog.Error("SendAddBlockEvent block is null")
 		return types.ErrInvalidParam
 	}
-	chainlog.Debug("SendAddBlockEvent", "Height", block.Block.Height)
+	height := block.GetBlock().GetHeight()
+	chainlog.Debug("SendAddBlockEvent", "Height", height)
 
-	chainlog.Debug("SendAddBlockEvent -->>mempool")
-	msg := chain.client.NewMessage("mempool", types.EventAddBlock, block)
-	//此处采用同步发送模式，主要是为了消息在消息队列内部走高速通道，尽快被mempool模块处理
-	if err = chain.client.Send(msg, true); err != nil {
-		chainlog.Error("SendAddBlockEvent -->>mempool", "err", err)
-	}
-	chainlog.Debug("SendAddBlockEvent -->>consensus")
+	chain.sendAddBlockEvent("mempool", block, height)
+	chain.sendAddBlockEvent("consensus", block, height)
+	chain.sendAddBlockEvent("p2p", block.GetBlock(), height)
+	chain.sendAddBlockEvent("wallet", block, height)
 
-	msg = chain.client.NewMessage("consensus", types.EventAddBlock, block)
-	if err = chain.client.Send(msg, false); err != nil {
-		chainlog.Error("SendAddBlockEvent -->>consensus", "err", err)
-	}
-
-	if err = chain.client.Send(chain.client.NewMessage("p2p", types.EventAddBlock, block.GetBlock()), true); err != nil {
-		chainlog.Error("SendAddBlockEvent -->>p2p", "err", err)
-	}
-	chainlog.Debug("SendAddBlockEvent -->>wallet", "height", block.GetBlock().GetHeight())
-	msg = chain.client.NewMessage("wallet", types.EventAddBlock, block)
-	if err = chain.client.Send(msg, false); err != nil {
-		chainlog.Error("SendAddBlockEvent -->>wallet", "err", err)
-	}
+	header := &types.Header{Height: height, BlockTime: block.GetBlock().GetBlockTime()}
+	chain.sendAddBlockEvent("crypto", header, height)
 	return nil
+}
+
+func (chain *BlockChain) sendAddBlockEvent(topic string, data interface{}, height int64) {
+	chainlog.Debug("SendAddBlockEvent", "topic", topic)
+	msg := chain.client.NewMessage(topic, types.EventAddBlock, data)
+	//此处采用同步发送模式，主要是为了消息在消息队列内部走高速通道，使得消息能尽快被处理
+	if err := chain.client.Send(msg, true); err != nil {
+		chainlog.Error("SendAddBlockEvent", "topic", topic, "height", height, "err", err)
+	}
 }
 
 //SendBlockBroadcast blockchain模块广播此block到网络中

@@ -9,12 +9,15 @@ import (
 	"bytes"
 	"errors"
 
+	cryptocli "github.com/33cn/chain33/common/crypto/client"
+	"github.com/33cn/chain33/system/crypto/btcscript/script"
+	"github.com/33cn/chain33/system/crypto/secp256k1"
+	nty "github.com/33cn/chain33/system/dapp/none/types"
+	"github.com/33cn/chain33/types"
+
 	"github.com/33cn/chain33/common"
 
 	"github.com/33cn/chain33/common/crypto"
-	secp256k1 "github.com/btcsuite/btcd/btcec"
-	"github.com/btcsuite/btcd/txscript"
-	"github.com/golang/protobuf/proto"
 )
 
 //const
@@ -28,58 +31,62 @@ func init() {
 	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID))
 }
 
-//Driver 驱动
-type Driver struct{}
-
-//GenKey 生成私钥
-func (d Driver) GenKey() (crypto.PrivKey, error) {
-	privKeyBytes := [32]byte{}
-	copy(privKeyBytes[:], crypto.CRandBytes(32))
-	priv, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKeyBytes[:])
-	copy(privKeyBytes[:], priv.Serialize())
-	return privKeyBtcScript{key: privKeyBytes}, nil
-}
-
-//PrivKeyFromBytes 字节转为私钥
-func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
-	if len(b) != 32 {
-		return nil, errors.New("invalid priv Key byte")
-	}
-	privKeyBytes := new([32]byte)
-	copy(privKeyBytes[:], b[:32])
-	priv, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKeyBytes[:])
-	copy(privKeyBytes[:], priv.Serialize())
-	return privKeyBtcScript{key: *privKeyBytes}, nil
-}
-
-//PubKeyFromBytes 字节转为公钥
-func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
-	pubKeyBytes := make([]byte, len(b))
-	copy(pubKeyBytes[:], b[:])
-	return pubKeyBtcScript(pubKeyBytes), nil
-}
-
-//SignatureFromBytes 字节转为签名
-func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
-	return sigBtcScript(b), nil
+//Driver 驱动, 除验证外，其余接口同secp256k1
+type Driver struct {
+	secp256k1.Driver
 }
 
 // Validate validate msg and signature
 func (d Driver) Validate(msg, pk, sig []byte) error {
-	ssig := &Signature{}
-	err := proto.Unmarshal(sig, ssig)
+	ssig := &script.Signature{}
+	err := types.Decode(sig, ssig)
 	if err != nil {
-		return err
+		return errDecodeBtcSignature
 	}
 
 	//需要验证公钥和锁定脚本是否一一对应
 	if !bytes.Equal(pk, common.Sha256(ssig.LockScript)) {
-		return errors.New("invalid lock Script")
+		return errInvalidLockScript
 	}
 
-	if err := CheckBtcScript(msg, ssig.LockScript, ssig.UnlockScript,
-		txscript.StandardVerifyFlags); err != nil {
-		return errors.New("invalid unlock Script, err:" + err.Error())
+	ctx := cryptocli.GetCryptoContext()
+	// check btc script lock time , lockTime <= blockHeight
+	if ssig.LockTime > ctx.CurrBlockHeight+1 {
+		return errInvalidLockTime
 	}
+
+	// check btc script utxo sequence, delayBeginHeight+sequence <= blockHeight
+	if ssig.UtxoSequence > 0 {
+
+		tx := &types.Transaction{}
+		err = types.Decode(msg, tx)
+		if err != nil {
+			return errDecodeValidateTx
+		}
+		reply, err := ctx.API.Query(nty.NoneX, nty.QueryGetDelayBegin, &types.ReqBytes{Data: tx.Hash()})
+		if err != nil {
+			return errQueryDelayBeginTime
+		}
+
+		val, ok := reply.(*types.Int64)
+		if !ok || val.Data+ssig.UtxoSequence > ctx.CurrBlockHeight+1 {
+			return errInvalidUtxoSequence
+		}
+	}
+
+	if err := script.CheckBtcScript(msg, ssig); err != nil {
+		return errInvalidBtcSignature
+	}
+
 	return nil
 }
+
+var (
+	errInvalidLockScript   = errors.New("errInvalidLockScript")
+	errInvalidBtcSignature = errors.New("errInvalidBtcSignature")
+	errDecodeBtcSignature  = errors.New("errDecodeBtcSignature")
+	errDecodeValidateTx    = errors.New("errDecodeValidateTx")
+	errInvalidLockTime     = errors.New("errInvalidLockTime")
+	errQueryDelayBeginTime = errors.New("errQueryDelayBeginTime")
+	errInvalidUtxoSequence = errors.New("errInvalidUtxoSequence")
+)
