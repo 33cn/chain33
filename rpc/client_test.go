@@ -9,6 +9,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/util"
+	"github.com/stretchr/testify/require"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common/address"
@@ -433,4 +437,55 @@ func TestClientReWriteRawTx(t *testing.T) {
 			t.Error("TestClientReWriteRawTx Fee !=0")
 		}
 	}
+}
+
+func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
+	cli := &channelClient{}
+	req := &types.ReqGetWalletRecoverAddr{}
+	_, err := cli.GetWalletRecoverAddr(req)
+	require.Equal(t, types.ErrInvalidParam, err)
+
+	req.RelativeDelayHeight = 10
+
+	addr1, priv1 := util.Genaddress()
+	_, priv2 := util.Genaddress()
+	req.CtrPubKey = common.ToHex(priv1.PubKey().Bytes())
+	req.RecoverPubKey = common.ToHex(priv2.PubKey().Bytes())
+	_, err = cli.GetWalletRecoverAddr(req)
+	require.Nil(t, err)
+
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	_, priv3 := util.Genaddress()
+	tx := util.CreateNoneTx(cfg, priv3)
+	privKeyHex := hex.EncodeToString(priv1.Bytes())
+	mockAPI := new(mocks.QueueProtocolAPI)
+	cli.QueueProtocolAPI = mockAPI
+	mockAPI.On("ExecWalletFunc", "wallet", "DumpPrivkey",
+		&types.ReqString{Data: addr1}).Return(&types.ReplyString{Data: privKeyHex}, nil)
+	req2 := &types.ReqSignWalletRecoverTx{
+		RawTx:              hex.EncodeToString(types.Encode(tx)),
+		WalletRecoverParam: req,
+		SignAddr:           addr1,
+	}
+
+	reply, err := cli.SignWalletRecoverTx(req2)
+	require.Nil(t, err)
+	txByte, err := common.FromHex(reply.TxHex)
+	require.Nil(t, err)
+	err = types.Decode(txByte, tx)
+	require.Nil(t, err)
+	require.True(t, tx.CheckSign(0))
+}
+
+func TestChannelClient_SignWalletRecoverTx(t *testing.T) {
+
+	cli := &channelClient{}
+	req := &types.ReqGetWalletRecoverAddr{}
+	signReq := &types.ReqSignWalletRecoverTx{}
+
+	_, err := cli.SignWalletRecoverTx(signReq)
+	require.Equal(t, types.ErrInvalidParam, err)
+	signReq.WalletRecoverParam = req
+	_, err = cli.SignWalletRecoverTx(signReq)
+	require.Equal(t, types.ErrInvalidParam, err)
 }

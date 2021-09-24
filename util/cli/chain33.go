@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/33cn/chain33/common/crypto"
+	cryptocli "github.com/33cn/chain33/common/crypto/client"
 
 	"github.com/33cn/chain33/p2p"
 
@@ -151,7 +151,6 @@ func RunChain33(name, defCfg string) {
 	runtime.GOMAXPROCS(cpuNum)
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	crypto.Init(chain33Cfg.GetModuleConfig().Crypto, chain33Cfg.GetSubConfig().Crypto)
 	version.SetLocalDBVersion(cfg.Store.LocalDBVersion)
 	version.SetStoreDBVersion(cfg.Store.StoreDBVersion)
 	version.SetAppVersion(cfg.Version)
@@ -160,6 +159,8 @@ func RunChain33(name, defCfg string) {
 	q := queue.New("channel")
 	q.SetConfig(chain33Cfg)
 
+	crypto := cryptocli.New()
+	crypto.SetQueueClient(q.Client())
 	log.Info("loading mempool module")
 	mem := mempool.New(chain33Cfg)
 	mem.SetQueueClient(q.Client())
@@ -218,6 +219,8 @@ func RunChain33(name, defCfg string) {
 		health.Close()
 		log.Info("begin close blockchain module")
 		chain.Close()
+		log.Info("begin close crypto module")
+		crypto.Close()
 		log.Info("begin close mempool module")
 		mem.Close()
 		log.Info("begin close P2P module")

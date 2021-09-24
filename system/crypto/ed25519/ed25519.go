@@ -69,14 +69,14 @@ func (privKey PrivKeyEd25519) Bytes() []byte {
 }
 
 //Sign 签名
-func (privKey PrivKeyEd25519) Sign(msg []byte, opts ...interface{}) crypto.Signature {
+func (privKey PrivKeyEd25519) Sign(msg []byte) crypto.Signature {
 	privKeyBytes := [64]byte(privKey)
 	signatureBytes := ed25519.Sign(&privKeyBytes, msg)
 	return SignatureEd25519(*signatureBytes)
 }
 
 //PubKey 公钥
-func (privKey PrivKeyEd25519) PubKey(opts ...interface{}) crypto.PubKey {
+func (privKey PrivKeyEd25519) PubKey() crypto.PubKey {
 	privKeyBytes := [64]byte(privKey)
 	return PubKeyEd25519(*ed25519.MakePublicKey(&privKeyBytes))
 }

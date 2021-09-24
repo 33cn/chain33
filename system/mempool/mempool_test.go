@@ -1424,9 +1424,8 @@ func Test_addDelayTxFromBlock(t *testing.T) {
 	mem.addDelayTx(cache, block)
 	require.Equal(t, 0, len(cache.hashCache))
 	action.Value = &nty.NoneAction_CommitDelayTx{CommitDelayTx: &nty.CommitDelayTx{
-		DelayTx:                delayTx,
-		RelativeDelayTime:      1,
-		IsBlockHeightDelayTime: true,
+		DelayTx:             common.ToHex(types.Encode(delayTx)),
+		RelativeDelayHeight: 1,
 	}}
 
 	block.Txs[0].Payload = types.Encode(action)

@@ -325,7 +325,8 @@ func (wallet *Wallet) GetPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	return wallet.getPrivKeyByAddr(addr)
 }
 
-func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
+func (wallet *Wallet) getPrivKeyFromStore(addr string) ([]byte, error) {
+
 	//获取指定地址在钱包里的账户信息
 	Accountstor, err := wallet.walletStore.GetAccountByAddr(addr)
 	if err != nil {
@@ -340,7 +341,16 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 
-	privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
+	return wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte), nil
+}
+
+func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
+
+	privkey, err := wallet.getPrivKeyFromStore(addr)
+	if err != nil {
+		walletlog.Error("getPrivKeyByAddr", "getPrivKeyFromStore err", err)
+		return nil, err
+	}
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignName("", wallet.SignType), crypto.WithNewOptionEnableCheck(wallet.lastHeader.GetHeight()))
 	if err != nil {

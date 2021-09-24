@@ -55,7 +55,7 @@ func TestNone_CheckTx(t *testing.T) {
 	err = n.CheckTx(tx, 0)
 	require.Equal(t, errNilDelayTx, err)
 	delayTx := util.CreateNoneTx(cfg, priv)
-	commit := &nty.CommitDelayTx{RelativeDelayTime: -1, DelayTx: delayTx}
+	commit := &nty.CommitDelayTx{RelativeDelayHeight: -1, DelayTx: common.ToHex(types.Encode(delayTx))}
 	action.Value = &nty.NoneAction_CommitDelayTx{
 		CommitDelayTx: commit,
 	}
@@ -63,7 +63,7 @@ func TestNone_CheckTx(t *testing.T) {
 	err = n.CheckTx(tx, 0)
 	require.Equal(t, errNegativeDelayTime, err)
 
-	commit.RelativeDelayTime = 1
+	commit.RelativeDelayHeight = 1
 	tx.Payload = types.Encode(action)
 	err = n.CheckTx(tx, 0)
 	require.Nil(t, err)
@@ -75,10 +75,11 @@ func TestNone_CheckTx(t *testing.T) {
 func TestNone_Exec_CommitDelayTx(t *testing.T) {
 
 	_, dbDir, n, cfg := initTestNone()
+	n.SetEnv(1, types.Now().Unix(), 10)
 	defer util.CloseTestDB(dbDir, n.GetStateDB().(db.DB))
 	addr, priv := util.Genaddress()
 	delayTx := util.CreateNoneTx(cfg, priv)
-	commit := &nty.CommitDelayTx{DelayTx: delayTx, RelativeDelayTime: 10}
+	commit := &nty.CommitDelayTx{DelayTx: common.ToHex(types.Encode(delayTx)), RelativeDelayHeight: 10}
 	noneType := types.LoadExecutorType(driverName)
 	tx, err := noneType.CreateTransaction(nty.NameCommitDelayTxAction, commit)
 	require.Nil(t, err)
@@ -96,7 +97,7 @@ func TestNone_Exec_CommitDelayTx(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, common.ToHex(delayTx.Hash()), info.DelayTxHash)
 	require.Equal(t, addr, info.Submitter)
-	require.True(t, 10 == info.EndDelayTime)
+	require.True(t, 1 == info.DelayBeginHeight)
 }
 
 func TestNone_ExecLocal_CommitDelayTx(t *testing.T) {
@@ -113,13 +114,14 @@ func TestNone_ExecDelLocal(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestNone_Query_GetEndDelayTime(t *testing.T) {
+func TestNone_Query_GetDelayBeginTime(t *testing.T) {
 
 	_, dbDir, n, cfg := initTestNone()
+	n.SetEnv(1, types.Now().Unix(), 10)
 	defer util.CloseTestDB(dbDir, n.GetStateDB().(db.DB))
 	_, priv := util.Genaddress()
 	delayTx := util.CreateNoneTx(cfg, priv)
-	commit := &nty.CommitDelayTx{DelayTx: delayTx, RelativeDelayTime: 10}
+	commit := &nty.CommitDelayTx{DelayTx: common.ToHex(types.Encode(delayTx)), RelativeDelayHeight: 10}
 	noneType := types.LoadExecutorType(driverName)
 	tx, err := noneType.CreateTransaction(nty.NameCommitDelayTxAction, commit)
 	require.Nil(t, err)
@@ -128,9 +130,9 @@ func TestNone_Query_GetEndDelayTime(t *testing.T) {
 	recp, err := n.Exec(tx, 0)
 	require.Nil(t, err)
 	util.SaveKVList(n.GetStateDB().(db.DB), recp.KV)
-	msg, err := n.Query("GetEndDelayTime", types.Encode(&types.ReqBytes{Data: delayTx.Hash()}))
+	msg, err := n.Query(nty.QueryGetDelayBegin, types.Encode(&types.ReqBytes{Data: delayTx.Hash()}))
 	require.Nil(t, err)
 	reply, ok := msg.(*types.Int64)
 	require.True(t, ok)
-	require.True(t, 10 == reply.Data)
+	require.True(t, 1 == reply.Data)
 }

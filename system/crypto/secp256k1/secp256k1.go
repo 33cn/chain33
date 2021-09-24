@@ -69,7 +69,7 @@ func (privKey PrivKeySecp256k1) Bytes() []byte {
 }
 
 //Sign 签名
-func (privKey PrivKeySecp256k1) Sign(msg []byte, opts ...interface{}) crypto.Signature {
+func (privKey PrivKeySecp256k1) Sign(msg []byte) crypto.Signature {
 	priv, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey[:])
 	sig, err := priv.Sign(crypto.Sha256(msg))
 	if err != nil {
@@ -79,7 +79,7 @@ func (privKey PrivKeySecp256k1) Sign(msg []byte, opts ...interface{}) crypto.Sig
 }
 
 //PubKey 私钥生成公钥
-func (privKey PrivKeySecp256k1) PubKey(opts ...interface{}) crypto.PubKey {
+func (privKey PrivKeySecp256k1) PubKey() crypto.PubKey {
 	_, pub := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey[:])
 	var pubSecp256k1 PubKeySecp256k1
 	copy(pubSecp256k1[:], pub.SerializeCompressed())

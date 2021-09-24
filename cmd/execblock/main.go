@@ -12,8 +12,6 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/33cn/chain33/common/crypto"
-
 	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/client"
 	clog "github.com/33cn/chain33/common/log"
@@ -51,7 +49,6 @@ func initEnv() (queue.Queue, queue.Module, queue.Module) {
 		resetDatadir(mcfg, *datadir)
 	}
 	mcfg.Consensus.Minerstart = false
-	crypto.Init(mcfg.Crypto, cfg.GetSubConfig().Crypto)
 	var q = queue.New("channel")
 	q.SetConfig(cfg)
 	chain := blockchain.New(cfg)

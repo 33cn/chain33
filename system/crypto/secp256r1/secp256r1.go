@@ -107,7 +107,7 @@ func (privKey PrivKeyECDSA) Bytes() []byte {
 }
 
 // Sign create signature
-func (privKey PrivKeyECDSA) Sign(msg []byte, opts ...interface{}) crypto.Signature {
+func (privKey PrivKeyECDSA) Sign(msg []byte) crypto.Signature {
 	priv, pub := privKeyFromBytes(elliptic.P256(), privKey[:])
 	r, s, err := ecdsa.Sign(rand.Reader, priv, crypto.Sha256(msg))
 	if err != nil {
@@ -120,7 +120,7 @@ func (privKey PrivKeyECDSA) Sign(msg []byte, opts ...interface{}) crypto.Signatu
 }
 
 // PubKey convert to public key
-func (privKey PrivKeyECDSA) PubKey(opts ...interface{}) crypto.PubKey {
+func (privKey PrivKeyECDSA) PubKey() crypto.PubKey {
 	_, pub := privKeyFromBytes(elliptic.P256(), privKey[:])
 	var pubECDSA PubKeyECDSA
 	copy(pubECDSA[:], SerializePublicKeyCompressed(pub))

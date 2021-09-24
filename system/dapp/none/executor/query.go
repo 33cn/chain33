@@ -11,8 +11,8 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-// Query_GetEndDelayTime query delay tx end delay time
-func (n *None) Query_GetEndDelayTime(req *types.ReqBytes) (types.Message, error) {
+// Query_GetDelayBeginHeight query delay tx delay begin height
+func (n *None) Query_GetDelayBeginHeight(req *types.ReqBytes) (types.Message, error) {
 
 	if len(req.GetData()) == 0 {
 		return nil, types.ErrInvalidParam
@@ -20,15 +20,15 @@ func (n *None) Query_GetEndDelayTime(req *types.ReqBytes) (types.Message, error)
 
 	val, err := n.GetStateDB().Get(formatDelayTxKey(req.GetData()))
 	if err != nil {
-		eLog.Error("Query_GetEndDelayTime", "txHash", hex.EncodeToString(req.GetData()), "get db err", err)
+		eLog.Error("Query_GetDelayBeginHeight", "txHash", hex.EncodeToString(req.GetData()), "get db err", err)
 		return nil, types.ErrGetStateDB
 	}
 	info := &ntypes.CommitDelayTxLog{}
 
 	err = types.Decode(val, info)
 	if err != nil {
-		eLog.Error("Query_GetEndDelayTime", "txHash", hex.EncodeToString(req.GetData()), "get db err", err)
+		eLog.Error("Query_GetDelayBeginHeight", "txHash", hex.EncodeToString(req.GetData()), "get db err", err)
 		return nil, types.ErrDecode
 	}
-	return &types.Int64{Data: info.EndDelayTime}, nil
+	return &types.Int64{Data: info.DelayBeginHeight}, nil
 }
