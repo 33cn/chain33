@@ -1185,7 +1185,7 @@ func (chain *BlockChain) FetchChunkBlockRoutine() {
 
 	chunkStart := chain.GetBlockHeight() + 1
 	synlog.Info("FetchChunkBlockRoutine", "chunkStart", chunkStart)
-	concurrency := make(chan struct{}, 3)
+	concurrency := make(chan struct{}, 4)
 	for {
 		select {
 		case <-chain.quit:
