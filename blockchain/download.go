@@ -223,14 +223,13 @@ func (chain *BlockChain) ReadChunkBlockToExec() {
 		}
 		_, ismain, isorphan, err := chain.ProcessBlock(false, &types.BlockDetail{Block: block}, "download", true, -1)
 		if err != nil {
-			//执行失败强制结束快速下载模式并切换到普通下载模式
-			chain.DefaultDownLoadInfo()
-
-			//清除快速下载的标识并从缓存中删除此执行失败的区块，
-			chain.cancelDownLoadFlag(true)
-			chain.blockStore.db.Delete(calcHeightToTempBlockKey(block.Height))
+			//正常情况不会执行失败
+			//部分区块包含平行链共识交易中有跨链交易需要依赖历史区块
+			//分片节点执行交易的时候会从网络中请求历史区块
+			//可能会因网络请求超时而执行失败
+			//打印日志后重新执行即可
 			synlog.Error("ReadBlockToExec:ProcessBlock:err!", "height", block.Height, "hash", common.ToHex(block.Hash(cfg)), "err", err)
-			break
+			continue
 		}
 		synlog.Debug("ReadBlockToExec:ProcessBlock:success!", "height", block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash(cfg)))
 	}
