@@ -231,7 +231,7 @@ func (p *Protocol) getBlocks(req *types.ChunkInfoMsg) (*types.Blocks, error) {
 		log.Error("GetChunkBlock", "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End, "error", err)
 		return nil, types2.ErrNotFound
 	}
-	headers := <- headerCh
+	headers := <-headerCh
 	if headers == nil {
 		log.Error("GetBlockHeader", "error", types2.ErrNotFound)
 		return nil, types2.ErrNotFound
@@ -409,7 +409,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 		}
 	}
 	// 递归查询时间上限10分钟
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute * 10)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Minute*10)
 	defer cancel()
 
 	chunkHash := hex.EncodeToString(req.ChunkHash)
@@ -418,7 +418,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	// 先请求缓存provider节点
 	for _, pid := range p.getChunkProviderCache(req.ChunkHash) {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return nil, "", types2.ErrNotFound
 		default:
 		}
@@ -443,10 +443,10 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	}
 
 	// 优先从已经建立连接的节点上查找数据，因为建立新的连接会耗时，且会导致网络拓扑结构发生变化
-	Loop1:
+Loop1:
 	for {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return nil, "", types2.ErrNotFound
 		case pid := <-localPeers:
 			start := time.Now()
@@ -487,10 +487,10 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	log.Error("mustFetchChunk from rt peer not found", "chunk hash", chunkHash, "start", req.Start, "error", types2.ErrNotFound)
 
 	// 其次从未建立连接但已保存ip等信息的的节点上获取数据
-	Loop2:
+Loop2:
 	for {
 		select {
-		case <- ctx.Done():
+		case <-ctx.Done():
 			return nil, "", types2.ErrNotFound
 		case pid := <-alternativePeers:
 			start := time.Now()
@@ -531,11 +531,11 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 		return nil, "", types2.ErrNotFound
 	}
 
-	ctx3, cancel3 := context.WithTimeout(p.Ctx, time.Minute * 3)
+	ctx3, cancel3 := context.WithTimeout(p.Ctx, time.Minute*3)
 	defer cancel3()
 	for addrInfo := range peerInfos {
 		select {
-		case <- ctx3.Done():
+		case <-ctx3.Done():
 			return nil, "", types2.ErrNotFound
 		default:
 		}
@@ -557,7 +557,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 }
 
 func (p *Protocol) fetchChunkFromPeer(params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
-	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second * 5)
+	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, fetchChunk)
 	defer p.Host.ConnManager().Unprotect(pid, fetchChunk)
