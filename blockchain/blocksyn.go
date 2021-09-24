@@ -1178,13 +1178,14 @@ func (chain *BlockChain) FetchChunkRecords(start int64, end int64, pid []string)
 	return err
 }
 
-// FetchChunkBlockNew requests 3 chunks in same time
+// FetchChunkBlockRoutine requests 4 chunks in same time
 func (chain *BlockChain) FetchChunkBlockRoutine() {
 	atomic.StoreInt32(&chain.chunkDownloading, 1)
 	defer atomic.StoreInt32(&chain.chunkDownloading, 0)
 
 	chunkStart := chain.GetBlockHeight() + 1
 	synlog.Info("FetchChunkBlockRoutine", "chunkStart", chunkStart)
+	// 启动4个goroutine下载chunk，该参数为实验参数，少于4个goroutine时下载速度跟不上执行速度
 	concurrency := make(chan struct{}, 4)
 	for {
 		select {
