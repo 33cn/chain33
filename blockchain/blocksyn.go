@@ -1194,7 +1194,7 @@ func (chain *BlockChain) FetchChunkBlockRoutine() {
 		default:
 			// chunk下载速度太快，区块执行速度跟不上
 			// 避免临时区块占用太多空间，执行落后100w高度时先sleep一下
-			if chunkStart > chain.GetBlockHeight() + 1e6 {
+			if chunkStart > chain.GetBlockHeight()+1e6 {
 				time.Sleep(time.Minute)
 				continue
 			}
@@ -1227,7 +1227,7 @@ func (chain *BlockChain) FetchChunkBlockRoutine() {
 			}
 			concurrency <- struct{}{}
 			go chain.mustFetchChunk(concurrency, &types.ChunkInfoMsg{Start: chunkStart, End: chunkEnd, ChunkHash: chunkHash})
-			chunkStart = chunkEnd+1
+			chunkStart = chunkEnd + 1
 		}
 	}
 }
@@ -1240,7 +1240,7 @@ func (chain *BlockChain) mustFetchChunk(ch <-chan struct{}, info *types.ChunkInf
 	start := time.Now()
 	for {
 		select {
-		case <- chain.quit:
+		case <-chain.quit:
 			return
 		default:
 			retryCount++
