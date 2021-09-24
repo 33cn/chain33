@@ -531,9 +531,11 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 		return nil, "", types2.ErrNotFound
 	}
 
+	ctx3, cancel3 := context.WithTimeout(p.Ctx, time.Minute * 3)
+	defer cancel3()
 	for addrInfo := range peerInfos {
 		select {
-		case <- ctx.Done():
+		case <- ctx3.Done():
 			return nil, "", types2.ErrNotFound
 		default:
 		}
@@ -565,7 +567,7 @@ func (p *Protocol) fetchChunkFromPeer(params *types.ChunkInfoMsg, pid peer.ID) (
 		return nil, nil, err
 	}
 	defer stream.Close()
-	_ = stream.SetDeadline(time.Now().Add(time.Minute * 3))
+	_ = stream.SetDeadline(time.Now().Add(time.Minute * 5))
 	msg := types.P2PRequest{
 		Request: &types.P2PRequest_ChunkInfoMsg{
 			ChunkInfoMsg: params,
