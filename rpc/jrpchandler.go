@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/33cn/chain33/system/p2p/trace"
 	"time"
 
 	"github.com/33cn/chain33/wallet/bipwallet"
@@ -663,6 +664,8 @@ func (c *Chain33) GetPeerInfo(in *types.P2PGetPeerReq, result *interface{}) erro
 			pr.Version = peer.GetVersion()
 			pr.LocalDBVersion = peer.GetLocalDBVersion()
 			pr.StoreDBVersion = peer.GetStoreDBVersion()
+			pr.Runningtime=peer.GetRunningtime()
+			pr.FullNode=peer.GetFullNode()
 			peerlist.Peers = append(peerlist.Peers, &pr)
 
 		}
@@ -1660,4 +1663,58 @@ func (c *Chain33) ShowBlacklist(in *types.ReqNil, result *interface{}) error {
 	*result = reply.GetBlackinfo()
 	return nil
 
+}
+
+func (c *Chain33)AddVisiter(in *types.Vister,result *interface{})error{
+
+	//reply,err:=c.cli.AddVisiter(in)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//var resp rpctypes.Reply
+	//resp.IsOk=true
+	//resp.Msg=string(reply.GetMsg())
+	//*result= resp
+
+	urlstr,err:= trace.TraceService.AddAuth(in)
+	if err!=nil{
+		return err
+	}
+	*result = urlstr
+	return nil
+}
+
+func  (c *Chain33)DelVisiter(in *types.Vister,result *interface{})error{
+	//reply,err:=c.cli.DelVisiter(in)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//var resp rpctypes.Reply
+	//resp.IsOk=true
+	//resp.Msg=string(reply.GetMsg())
+	//*result= resp
+	//
+	//return nil
+	urlstr,err:= trace.TraceService.AddAuth(in)
+	if err!=nil{
+		return err
+	}
+	*result = urlstr
+	return nil
+
+}
+
+
+func (c *Chain33)ShowVisiters(in *types.ReqNil,result *interface{})error {
+	//visters,err:= c.cli.ShowVisiters(in)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//*result = visters
+	//return nil
+	*result = trace.TraceService.ShowVisters()
+	return nil
 }

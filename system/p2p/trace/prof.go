@@ -16,7 +16,7 @@ const prefixPath = "/"
 var profileDescriptions = map[string]string{
 	"peers":        "show all dht peers which we connected",
 	"blackpeers":   "show all peers from blacklist",
-	"logs":			"print chain's current log,include Error,Info,Debug",
+	"logs":         "print chain's current log,include Error,Info,Debug",
 	"chainstatus":  "show this chain's current status",
 	"profile":      "CPU profile. You can specify the duration in the seconds GET parameter. After you get the profile file, use the go tool pprof command to investigate the profile.",
 	"threadcreate": "Stack traces that led to the creation of new OS threads",

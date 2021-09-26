@@ -50,6 +50,7 @@ type QueueProtocol struct {
 	option QueueProtocolOption
 }
 
+
 // New New QueueProtocolAPI interface
 func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, error) {
 	if client == nil {
@@ -1139,3 +1140,39 @@ func (q *QueueProtocol) ShowBlacklist(req *types.ReqNil) (*types.Blacklist, erro
 	return nil, types.ErrInvalidParam
 
 }
+/*
+//AddVisiter
+func (q *QueueProtocol)AddVisiter(in *types.Vister)(*types.Reply, error){
+	//当前目录下处理
+	urlstr,err:= trace.TraceService.AddAuth(in)
+	if err!= nil{
+		return nil ,err
+	}
+
+	var reply types.Reply
+	reply.Msg=[]byte(urlstr)
+	reply.IsOk=true
+	return &reply,nil
+}
+
+//DelVisiter
+func (q *QueueProtocol)DelVisiter(in *types.Vister)(*types.Reply, error){
+	//当前目录下处理
+	_,err:= trace.TraceService.AddAuth(in)
+	if err!= nil{
+		return nil ,err
+	}
+
+	var reply types.Reply
+	reply.Msg=[]byte("delete sucess")
+	reply.IsOk=true
+	return &reply,nil
+
+}
+
+//ShowVisiter
+func (q *QueueProtocol)ShowVisiters(in *types.ReqNil)(*types.Visters, error){
+	visters:= trace.TraceService.ShowVisters()
+	return visters,nil
+}
+*/

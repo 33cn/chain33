@@ -9,7 +9,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/33cn/chain33/trace"
+	"github.com/33cn/chain33/system/p2p/trace"
 	"math/rand"
 	"os"
 	"path/filepath"

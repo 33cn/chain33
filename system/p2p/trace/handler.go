@@ -4,10 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/33cn/chain33/types"
-	"github.com/gorilla/mux"
 	"github.com/hpcloud/tail"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
-	"github.com/multiformats/go-multiaddr"
 	"io"
 	"net/http"
 	"os"
@@ -30,7 +28,7 @@ type chainStateResponse struct {
 
 func (s *Service) blacklistPeersHandler(w http.ResponseWriter, r *http.Request) {
 
-	if s.P2PEnv==nil{
+	if s.P2PEnv == nil {
 		BadRequest(w, "service init faild")
 		return
 	}
@@ -46,9 +44,11 @@ func (s *Service) peersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Service) logsHandler(w http.ResponseWriter, r *http.Request) {
-	_,err:=os.Stat(s.ChainCfg.GetModuleConfig().Log.LogFile)
-	if err!=nil{
-		BadRequest(w, err.Error()+fmt.Sprintf("filepath:%s",s.ChainCfg.GetModuleConfig().Log.LogFile))
+	//TODO CHECK AUTH
+
+	_, err := os.Stat(s.ChainCfg.GetModuleConfig().Log.LogFile)
+	if err != nil {
+		BadRequest(w, err.Error()+fmt.Sprintf("filepath:%s", s.ChainCfg.GetModuleConfig().Log.LogFile))
 		return
 	}
 
@@ -56,16 +56,15 @@ func (s *Service) logsHandler(w http.ResponseWriter, r *http.Request) {
 	seek.Offset = 0
 	seek.Whence = io.SeekEnd
 	//RateLimiter: ratelimiter.NewLeakyBucket(1800, time.Second)
-	t, err := tail.TailFile(s.ChainCfg.GetModuleConfig().Log.LogFile, tail.Config{Follow: true,Location: seek})
-	if err!=nil{
+	t, err := tail.TailFile(s.ChainCfg.GetModuleConfig().Log.LogFile, tail.Config{Follow: true, Location: seek})
+	if err != nil {
 		BadRequest(w, err.Error())
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	for line := range t.Lines {
-
-		_, err= w.Write([]byte(line.Text+"\n"))
-		if err!=nil{
+		_, err = w.Write([]byte(line.Text + "\n"))
+		if err != nil {
 			BadRequest(w, err.Error())
 			return
 		}
@@ -73,32 +72,13 @@ func (s *Service) logsHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
-	//OK(w, string(line))
-
-}
-
-func (s *Service) peerConnectHandler(w http.ResponseWriter, r *http.Request) {
-	//指定一个peer去发起连接
-	addr, err := multiaddr.NewMultiaddr("/" + mux.Vars(r)["multi-address"])
-	if err != nil {
-		BadRequest(w, err)
-		return
-	}
-	log.Info("peerConnectHandler", "addr", addr)
-	//TODO 对指定的节点发起连接
-
-	var peerAddr string
-	OK(w, peerAddr)
 }
 
 // chainStateHandler returns the current chain state.
 func (s *Service) chainStateHandler(w http.ResponseWriter, _ *http.Request) {
+	//TODO 获取区块链的状态数据
+	BadRequest(w, errors.New("no support"))
 
-	OK(w, chainStateResponse{
-		//TODO 获取区块链的状态数据
-	})
 }
 
 //获取当前的拓扑结构数据

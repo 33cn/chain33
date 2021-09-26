@@ -22,7 +22,7 @@ type MethodHandler map[string]http.Handler
 func (h MethodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	web.HandleMethods(h, `{"message":"Method Not Allowed","code":405}`, DefaultContentTypeHeader, w, r)
 }
-
+/*
 // NewMaxBodyBytesHandler is an http middleware constructor that limits the
 // maximal number of bytes that can be read from the request body. When a body
 // is read, the error can be handled with a helper function HandleBodyReadError
@@ -55,7 +55,7 @@ func HandleBodyReadError(err error, w http.ResponseWriter) (responded bool) {
 		return true
 	}
 	return false
-}
+}*/
 
 func OK(w http.ResponseWriter, response interface{}) {
 	Respond(w, http.StatusOK, response)

@@ -174,6 +174,7 @@ func BlacklistCmd() *cobra.Command {
 	return cmd
 }
 
+
 //Add add peer to blacklist
 func Add() *cobra.Command {
 	cmd := &cobra.Command{
@@ -263,4 +264,89 @@ func showblacklist(cmd *cobra.Command, args []string) {
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ShowBlacklist", nil, &res)
 	ctx.Run()
 
+}
+
+
+
+//Diagnosis  authorize remote diagnosis
+func DiagnosisCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "diagnosis",
+		Short: "authorize remote diagnosis",
+		Args:  cobra.MinimumNArgs(1),
+	}
+
+	cmd.AddCommand(
+		AddVisiter(),
+		DelVisiter(),
+		ShowVisiter(),
+	)
+	return cmd
+
+}
+
+//Add add peer to blacklist
+func AddVisiter() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "add",
+		Short: "add visiter  to blacklist",
+		Run:   addVisiter,
+	}
+	cmd.Flags().StringP("time", "t", "", "lifetime such as: 1hour,1min,1second")
+	addBlackFlags(cmd)
+	return cmd
+}
+
+func addVisiter(cmd *cobra.Command, args []string){
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	//pid, _ := cmd.Flags().GetString("pid")
+	ip, _ := cmd.Flags().GetString("remoteip")
+	liftime,_:=cmd.Flags().GetString("time")
+	var res string
+	var vister types.Vister
+	vister.RemoteIP=ip
+	vister.Lifetime=liftime
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddVisiter", &vister, &res)
+	ctx.Run()
+}
+
+
+//Add add peer to blacklist
+func DelVisiter() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "del",
+		Short: "add visiter  to blacklist",
+		Run:   delVisiter,
+	}
+
+	addBlackFlags(cmd)
+	return cmd
+}
+func delVisiter(cmd *cobra.Command, args []string){
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	ip, _ := cmd.Flags().GetString("remoteip")
+
+	var res string
+	var vister types.Vister
+	vister.RemoteIP=ip
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DelVisiter", &vister, &res)
+	ctx.Run()
+}
+
+//Add add peer to blacklist
+func ShowVisiter() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "show",
+		Short: "show visiters",
+		Run:   showVisters,
+	}
+
+	addBlackFlags(cmd)
+	return cmd
+}
+func showVisters(cmd *cobra.Command,args []string){
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res =new([]*types.Vister)
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ShowVisiters", nil, &res)
+	ctx.Run()
 }

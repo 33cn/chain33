@@ -19,6 +19,7 @@ const (
 	// Deprecated: old version, use peerVersion instead
 	peerVersionOld = "/chain33/peerVersion/1.0.0"
 	peerVersion    = "/chain33/peer-version/1.0.0"
+
 )
 
 const (
@@ -33,6 +34,7 @@ var UnitTime = map[string]int64{
 	"second": 1,
 }
 var log = log15.New("module", "p2p.peer")
+var processStart=time.Now()
 
 //CaculateLifeTime parase time string to time.Duration
 func CaculateLifeTime(timestr string) (time.Duration, error) {

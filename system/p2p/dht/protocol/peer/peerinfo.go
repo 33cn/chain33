@@ -52,9 +52,24 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	localPeer.Version = version.GetVersion() + "@" + version.GetAppVersion()
 	localPeer.StoreDBVersion = version.GetStoreDBVersion()
 	localPeer.LocalDBVersion = version.GetLocalDBVersion()
+
+	//增加节点运行时间，以及节点节点类型：全节点，分片节点
+	localPeer.Runningtime=caculteRunningTime()
+	localPeer.FullNode=p.SubConfig.IsFullNode
 	return &localPeer
 }
 
+func caculteRunningTime()string{
+	var runningTime string
+	mins := float64(time.Since(processStart).Minutes())
+	runningTime=fmt.Sprintf("%.3f minues",mins)
+	if mins>60{
+		hours:=float64(mins/60)
+		runningTime=fmt.Sprintf("%.3f hours",hours)
+	}
+
+	return runningTime
+}
 func (p *Protocol) refreshSelf() {
 	selfPeer := p.getLocalPeerInfo()
 	if selfPeer != nil {

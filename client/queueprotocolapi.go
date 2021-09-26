@@ -143,6 +143,14 @@ type QueueProtocolAPI interface {
 	AddBlacklist(req *types.BlackPeer) (*types.Reply, error)
 	//del blacklist
 	DelBlacklist(req *types.BlackPeer) (*types.Reply, error)
+	//+++++++++++++++  debug interface   ++++++ Begin
 	//show blacklist
 	ShowBlacklist(req *types.ReqNil) (*types.Blacklist, error)
+	//AddVisiter add vister
+	//AddVisiter(in *types.Vister)(*types.Reply, error)
+	//DelVisiter
+	//DelVisiter(in *types.Vister)(*types.Reply, error)
+	//ShowVisiters
+	//ShowVisiters(in *types.ReqNil)(*types.Visters,error)
+	//+++++++++++++++ debug interface    ++++++End
 }

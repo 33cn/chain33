@@ -59,6 +59,13 @@ type P2PSubConfig struct {
 	PubSub PubSubConfig `json:"pubsub,omitempty"`
 	//启动私有网络，只有相同配置的节点才能连接，多用于联盟链需求，创建方式 hex.Encode([32]byte),32字节的十六进制编码字符串
 	Psk string `json:"psk"`
+	Trace traceConfig `json:"trace,omitempty"`
+
+}
+
+//授权给某个IP远程访问本节点相关数据，授权的接口功能为只读模式
+type traceConfig struct{
+	ListenAddr string `json:"listenAddr,omitempty"`
 }
 
 // PubSubConfig pubsub config

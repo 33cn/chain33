@@ -366,12 +366,11 @@ message ProtocolInfo {
     string ratetotal = 4;
 }
 
-
 /**
 * blackinfo 节点黑名单列表
 */
 
-message Blacklist{
+message Blacklist {
     repeated BlackInfo blackinfo = 1;
 }
 
@@ -381,17 +380,30 @@ message BlackInfo {
     // 节点的IP地址
     string remoteAddr = 2;
     //生命周期，剩余解除的时间
-    int64  lifetime = 3;
+    int64 lifetime = 3;
+}
+
+message BlackPeer {
+    string peerAddr = 1;
+    string peerName = 2;
+    string lifetime = 3;
 }
 
 
-message  BlackPeer {
-      string peerAddr =1;
-      string peerName =2;
-      string lifetime =3;
+message Statistical {
+    repeated  P2PPeerInfo peerinfo=1;
+    NodeNetInfo nodeinfo=2;
 
 }
+//Visters 授权远程访问的节点日志以及其他要素的节点列表
+message  Visters {
+    repeated Vister visters =1;
+}
 
-
-
-
+message Vister {
+    string remoteIP =1;
+    string accesskey =2;
+    string lifetime = 3;
+    //备用
+    string peerName = 4;
+}
