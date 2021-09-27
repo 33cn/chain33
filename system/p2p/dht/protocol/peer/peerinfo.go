@@ -164,7 +164,7 @@ func (p *Protocol) detectNodeAddr() {
 }
 
 func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	stream, err := p.Host.NewStream(ctx, pid, peerInfoOld)
 	if err != nil {
@@ -199,7 +199,7 @@ func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
 }
 
 func (p *Protocol) queryPeerInfo(pid peer.ID) (*types.Peer, error) {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	stream, err := p.Host.NewStream(ctx, pid, peerInfo)
 	if err != nil {
@@ -217,7 +217,7 @@ func (p *Protocol) queryPeerInfo(pid peer.ID) (*types.Peer, error) {
 }
 
 func (p *Protocol) queryVersionOld(pid peer.ID) error {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	stream, err := p.Host.NewStream(ctx, pid, peerVersionOld)
 	if err != nil {
@@ -263,7 +263,7 @@ func (p *Protocol) queryVersionOld(pid peer.ID) error {
 }
 
 func (p *Protocol) queryVersion(pid peer.ID) error {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	stream, err := p.Host.NewStream(ctx, pid, peerVersion)
 	if err != nil {

@@ -42,12 +42,10 @@ func (p *Protocol) refreshLocalChunk() {
 			p.chunkInfoCacheMutex.Unlock()
 			syncNum++
 			p.chunkToSync <- msg
-			log.Info("refreshLocalChunk sync", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "chunkHash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 
 		} else {
 			deleteNum++
 			p.chunkToDelete <- msg
-			log.Info("refreshLocalChunk delete", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "chunkHash", hex.EncodeToString(info.ChunkHash), "start", info.Start)
 		}
 	}
 	log.Info("refreshLocalChunk", "save num", saveNum, "sync num", syncNum, "delete num", deleteNum, "time cost", time.Since(start), "exRT size", p.getExtendRoutingTable().Size())
