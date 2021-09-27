@@ -1719,7 +1719,6 @@ func (bs *BlockStore) deleteRecvChunkHash(num int64) error {
 func (bs *BlockStore) getRecvChunkHash(chunkNum int64) ([]byte, error) {
 	value, err := bs.GetKey(calcRecvChunkNumToHash(chunkNum))
 	if err != nil {
-		storeLog.Error("getRecvChunkHash", "chunkNum", chunkNum, "error", err)
 		return nil, err
 	}
 	var chunk types.ChunkInfo
