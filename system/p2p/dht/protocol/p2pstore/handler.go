@@ -398,7 +398,7 @@ func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	//如果本节点是扩展路由表中距离该chunk最近的 `Percentage` 节点之一，则保存数据；否则不需要保存数据
 	extendRoutingTable := p.getExtendRoutingTable()
 	pids := extendRoutingTable.NearestPeers(genDHTID(req.ChunkHash), extendRoutingTable.Size())
-	if len(pids) > 0 && kb.Closer(pids[len(pids)*p.SubConfig.Percentage/100], p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
+	if len(pids) > 0 && kb.Closer(pids[(len(pids)-1)*p.SubConfig.Percentage/100], p.Host.ID(), genChunkNameSpaceKey(req.ChunkHash)) {
 		return
 	}
 	log.Info("handleEventNotifyStoreChunk", "peers count", len(pids), "chunk hash", hex.EncodeToString(req.ChunkHash), "start", req.Start, "end", req.End)
