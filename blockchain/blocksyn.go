@@ -1203,7 +1203,7 @@ func (chain *BlockChain) FetchChunkBlockRoutine() {
 			_, safetyStart, safetyEnd := chain.CalcSafetyChunkInfo(chain.GetPeerMaxBlkHeight())
 			if chunkStart > safetyEnd {
 				if chain.GetBlockHeight() > safetyStart {
-					break
+					return
 				}
 				// 执行速度跟不上下载速度，此时不能直接退出，可能执行一段时间后又有新的chunk需要下载
 				time.Sleep(time.Second * 5)
