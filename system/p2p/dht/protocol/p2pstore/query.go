@@ -16,7 +16,7 @@ import (
 )
 
 func (p *Protocol) requestPeerInfoForChunk(msg *types.ChunkInfoMsg, pid peer.ID) error {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, requestPeerInfoForChunk)
 	defer p.Host.ConnManager().Unprotect(pid, requestPeerInfoForChunk)
@@ -37,7 +37,7 @@ func (p *Protocol) requestPeerInfoForChunk(msg *types.ChunkInfoMsg, pid peer.ID)
 }
 
 func (p *Protocol) responsePeerInfoForChunk(provider *types.ChunkProvider, pid peer.ID) error {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, responsePeerInfoForChunk)
 	defer p.Host.ConnManager().Unprotect(pid, responsePeerInfoForChunk)
@@ -58,7 +58,7 @@ func (p *Protocol) responsePeerInfoForChunk(provider *types.ChunkProvider, pid p
 }
 
 func (p *Protocol) requestPeerAddr(keyPid, remotePid peer.ID) error {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	p.Host.ConnManager().Protect(remotePid, requestPeerAddr)
 	defer p.Host.ConnManager().Unprotect(remotePid, requestPeerAddr)
@@ -79,7 +79,7 @@ func (p *Protocol) requestPeerAddr(keyPid, remotePid peer.ID) error {
 }
 
 func (p *Protocol) responsePeerAddr(info *types.PeerInfo, remotePid peer.ID) error {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	p.Host.ConnManager().Protect(remotePid, responsePeerAddr)
 	defer p.Host.ConnManager().Unprotect(remotePid, responsePeerAddr)
@@ -100,7 +100,7 @@ func (p *Protocol) responsePeerAddr(info *types.PeerInfo, remotePid peer.ID) err
 }
 
 func (p *Protocol) fetchActivePeers(pid peer.ID, saveAddr bool) ([]peer.ID, error) {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, fetchActivePeer)
 	defer p.Host.ConnManager().Unprotect(pid, fetchActivePeer)
@@ -132,7 +132,7 @@ func (p *Protocol) fetchActivePeers(pid peer.ID, saveAddr bool) ([]peer.ID, erro
 }
 
 func (p *Protocol) fetchShardPeers(key []byte, count int, pid peer.ID) ([]peer.ID, error) {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, fetchShardPeer)
 	defer p.Host.ConnManager().Unprotect(pid, fetchShardPeer)
@@ -309,7 +309,7 @@ func (p *Protocol) getHeaders(param *types.ReqBlocks) (*types.Headers, peer.ID) 
 }
 
 func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*types.Headers, error) {
-	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, getHeader)
 	defer p.Host.ConnManager().Unprotect(pid, getHeader)
@@ -368,7 +368,7 @@ func (p *Protocol) getChunkRecords(param *types.ReqChunkRecords) *types.ChunkRec
 }
 
 func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid peer.ID) (*types.ChunkRecords, error) {
-	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, getChunkRecord)
 	defer p.Host.ConnManager().Unprotect(pid, getChunkRecord)
@@ -434,7 +434,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	searchedPeers := make(map[peer.ID]struct{})
 	searchedPeers[p.Host.ID()] = struct{}{}
 
-	peers := p.RoutingTable.NearestPeers(genDHTID(req.ChunkHash), 2*AlphaValue)
+	peers := p.RoutingTable.NearestPeers(genDHTID(req.ChunkHash), 10)
 	localPeers := make(chan peer.ID, 100)
 	alternativePeers := make(chan peer.ID, 100)
 	for _, pid := range peers {
@@ -443,7 +443,8 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 	}
 
 	// 优先从已经建立连接的节点上查找数据，因为建立新的连接会耗时，且会导致网络拓扑结构发生变化
-Loop1:
+	loop1Start := time.Now()
+	Loop1:
 	for {
 		select {
 		case <-ctx.Done():
@@ -484,10 +485,11 @@ Loop1:
 		}
 	}
 
-	log.Error("mustFetchChunk from rt peer not found", "chunk hash", chunkHash, "start", req.Start, "error", types2.ErrNotFound)
+	log.Error("mustFetchChunk from rt peer not found", "chunk hash", chunkHash, "start", req.Start, "error", types2.ErrNotFound, "time cost", time.Since(loop1Start))
 
 	// 其次从未建立连接但已保存ip等信息的的节点上获取数据
-Loop2:
+	loop2Start := time.Now()
+	Loop2:
 	for {
 		select {
 		case <-ctx.Done():
@@ -520,7 +522,7 @@ Loop2:
 		}
 	}
 
-	log.Error("mustFetchChunk not found", "chunk hash", chunkHash, "start", req.Start, "error", types2.ErrNotFound)
+	log.Error("mustFetchChunk not found", "chunk hash", chunkHash, "start", req.Start, "error", types2.ErrNotFound, "time cost", time.Since(loop2Start))
 
 	//如果是分片节点没有在分片网络中找到数据，最后到全节点去请求数据
 	ctx2, cancel2 := context.WithTimeout(p.Ctx, time.Minute)
@@ -557,11 +559,11 @@ Loop2:
 }
 
 func (p *Protocol) fetchChunkFromPeer(params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
-	childCtx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second * 3)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, fetchChunk)
 	defer p.Host.ConnManager().Unprotect(pid, fetchChunk)
-	stream, err := p.Host.NewStream(childCtx, pid, fetchChunk)
+	stream, err := p.Host.NewStream(ctx, pid, fetchChunk)
 	if err != nil {
 		log.Error("fetchChunkFromPeer", "error", err, "start", params.Start)
 		return nil, nil, err
@@ -673,7 +675,7 @@ func (p *Protocol) getChunkRecordFromBlockchain(req *types.ReqChunkRecords) (*ty
 
 //TODO: 备用
 func (p *Protocol) queryAddrInfo(pid peer.ID, queryPeer peer.ID) (*types.PeerInfo, error) {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	stream, err := p.Host.NewStream(ctx, queryPeer, fetchPeerAddr)
 	if err != nil {
