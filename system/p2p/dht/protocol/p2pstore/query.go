@@ -444,7 +444,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 
 	// 优先从已经建立连接的节点上查找数据，因为建立新的连接会耗时，且会导致网络拓扑结构发生变化
 	loop1Start := time.Now()
-	Loop1:
+Loop1:
 	for {
 		select {
 		case <-ctx.Done():
@@ -489,7 +489,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 
 	// 其次从未建立连接但已保存ip等信息的的节点上获取数据
 	loop2Start := time.Now()
-	Loop2:
+Loop2:
 	for {
 		select {
 		case <-ctx.Done():
@@ -559,7 +559,7 @@ func (p *Protocol) mustFetchChunk(req *types.ChunkInfoMsg) (*types.BlockBodys, p
 }
 
 func (p *Protocol) fetchChunkFromPeer(params *types.ChunkInfoMsg, pid peer.ID) (*types.BlockBodys, []peer.ID, error) {
-	ctx, cancel := context.WithTimeout(p.Ctx, time.Second * 3)
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*3)
 	defer cancel()
 	p.Host.ConnManager().Protect(pid, fetchChunk)
 	defer p.Host.ConnManager().Unprotect(pid, fetchChunk)
