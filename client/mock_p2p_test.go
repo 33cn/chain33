@@ -23,6 +23,13 @@ func (m *mockP2P) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.PeerList{}))
 			case types.EventGetNetInfo:
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.NodeNetInfo{}))
+			case types.EventDialPeer, types.EventClosePeer:
+				setpeer, ok := msg.GetData().(*types.SetPeer)
+				if !ok || setpeer.GetPeerAddr() == "" {
+					msg.Reply(client.NewMessage(p2pKey, types.EventReply, &types.Reply{IsOk: false, Msg: []byte(types.ErrInvalidParam.Error())}))
+					break
+				}
+				msg.Reply(client.NewMessage(p2pKey, types.EventReply, &types.Reply{IsOk: true, Msg: []byte("success")}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}

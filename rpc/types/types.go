@@ -223,6 +223,9 @@ type Peer struct {
 	Version        string  `json:"version,omitempty"`
 	LocalDBVersion string  `json:"localDBVersion,omitempty"`
 	StoreDBVersion string  `json:"storeDBVersion,omitempty"`
+	RunningTime    string  `json:"runningTime,omitempty"`
+	FullNode       bool    `json:"fullNode,omitempty"`
+	Blocked        bool    `json:"blocked,omitempty"`
 }
 
 // WalletAccounts Wallet Module

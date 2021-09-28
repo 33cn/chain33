@@ -78,6 +78,9 @@ message P2PPeerInfo {
     string version        = 6;
     string localDBVersion = 7;
     string storeDBVersion = 8;
+    string runningTime    = 9;
+    bool   fullNode       = 10;
+    bool   blocked        = 11;
 }
 
 /**
@@ -343,6 +346,9 @@ message Peer {
     string version        = 7;
     string localDBVersion = 8;
     string storeDBVersion = 9;
+    string runningTime    = 10;
+    bool   fullNode       = 11;
+    bool   blocked        = 12;
 }
 
 /**

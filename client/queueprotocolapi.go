@@ -139,10 +139,14 @@ type QueueProtocolAPI interface {
 
 	// send delay tx
 	SendDelayTx(param *types.DelayTx, waitReply bool) (*types.Reply, error)
-	//add blacklist
+	//AddBlacklist add blacklist
 	AddBlacklist(req *types.BlackPeer) (*types.Reply, error)
-	//del blacklist
+	//DelBlacklist  del blacklist
 	DelBlacklist(req *types.BlackPeer) (*types.Reply, error)
-	//show blacklist
+	//ShowBlacklist  show blacklist
 	ShowBlacklist(req *types.ReqNil) (*types.Blacklist, error)
+	//DialPeer dial the specified  peer
+	DialPeer(in *types.SetPeer) (*types.Reply, error)
+	//ClosePeer close specified peer
+	ClosePeer(in *types.SetPeer) (*types.Reply, error)
 }

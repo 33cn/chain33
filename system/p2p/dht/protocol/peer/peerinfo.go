@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/common/version"
@@ -17,8 +18,17 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-const diffHeightValue = 512
-const maxPeers = 20
+const (
+	diffHeightValue = 512
+	maxPeers        = 20
+	latestTag       = "latestBlock"
+	highestTag      = "highest"
+)
+
+type lastBlock struct {
+	Height    int64
+	LastScene time.Time
+}
 
 func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	msg := p.QueueClient.NewMessage(mempool, types.EventGetMempoolSize, nil)
@@ -50,11 +60,27 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	localPeer.Addr = ip
 	localPeer.Port = int32(port)
 	localPeer.Version = version.GetVersion() + "@" + version.GetAppVersion()
-	localPeer.StoreDBVersion = version.GetStoreDBVersion()
-	localPeer.LocalDBVersion = version.GetLocalDBVersion()
+	//localPeer.StoreDBVersion = version.GetStoreDBVersion()
+	//localPeer.LocalDBVersion = version.GetLocalDBVersion()
+	//增加节点运行时间，以及节点节点类型：全节点，分片节点
+	localPeer.RunningTime = caculteRunningTime()
+	localPeer.FullNode = p.SubConfig.IsFullNode
+	//增加节点高度增长是否是阻塞状态监测
+	localPeer.Blocked = p.getBlocked()
 	return &localPeer
 }
 
+func caculteRunningTime() string {
+	var runningTime string
+	mins := time.Since(processStart).Minutes()
+	runningTime = fmt.Sprintf("%.3f minues", mins)
+	if mins > 60 {
+		hours := mins / 60
+		runningTime = fmt.Sprintf("%.3f hours", hours)
+	}
+
+	return runningTime
+}
 func (p *Protocol) refreshSelf() {
 	selfPeer := p.getLocalPeerInfo()
 	if selfPeer != nil {
@@ -186,14 +212,17 @@ func (p *Protocol) queryPeerInfoOld(pid peer.ID) (*types.Peer, error) {
 		return nil, types2.ErrInvalidResponse
 	}
 	pInfo := types.Peer{
-		Addr:           resp.Message.Addr,
-		Port:           resp.Message.Port,
-		Name:           resp.Message.Name,
-		MempoolSize:    resp.Message.MempoolSize,
-		Header:         resp.Message.Header,
-		Version:        resp.Message.Version,
-		LocalDBVersion: resp.Message.LocalDBVersion,
-		StoreDBVersion: resp.Message.StoreDBVersion,
+		Addr:        resp.Message.Addr,
+		Port:        resp.Message.Port,
+		Name:        resp.Message.Name,
+		MempoolSize: resp.Message.MempoolSize,
+		Header:      resp.Message.Header,
+		Version:     resp.Message.Version,
+		//LocalDBVersion: resp.Message.LocalDBVersion,
+		//StoreDBVersion: resp.Message.StoreDBVersion,
+		FullNode:    resp.Message.GetFullNode(),
+		RunningTime: resp.Message.GetRunningTime(),
+		Blocked:     resp.Message.GetBlocked(),
 	}
 	return &pInfo, nil
 }
@@ -344,4 +373,54 @@ func parseIPAndPort(multiAddr string) (ip string, port int) {
 	}
 	ip = split[2]
 	return
+}
+
+func (p *Protocol) checkBlocked() {
+
+	var check = time.NewTicker(time.Second * 10)
+	defer check.Stop()
+
+	for {
+		select {
+
+		case <-p.Ctx.Done():
+			return
+
+		case <-check.C:
+			msg := p.QueueClient.NewMessage(blockchain, types.EventGetLastHeader, nil)
+			err := p.QueueClient.Send(msg, true)
+			if err != nil {
+				continue
+			}
+			resp, err := p.QueueClient.WaitTimeout(msg, time.Second)
+			if err != nil {
+				log.Error("checkBlocked EventGetLastHeader", "blockchain WaitTimeout", err)
+				continue
+			}
+
+			header := resp.Data.(*types.Header)
+			var storeInfo lastBlock
+			storeInfo.LastScene = time.Now()
+			storeInfo.Height = header.GetHeight()
+			p.latestBlock.Store(latestTag, &storeInfo)
+
+			if info, ok := p.latestBlock.Load(highestTag); ok {
+				heighest := info.(*lastBlock)
+				if header.GetHeight() > heighest.Height {
+					heighest.Height = header.GetHeight()
+					heighest.LastScene = storeInfo.LastScene
+					atomic.StoreInt32(&p.blocked, 0)
+					continue
+				}
+				if storeInfo.LastScene.Sub(heighest.LastScene) > time.Minute { //1分钟高度没有更新
+					atomic.StoreInt32(&p.blocked, 1)
+				}
+			}
+
+		}
+	}
+}
+
+func (p *Protocol) getBlocked() bool {
+	return atomic.LoadInt32(&p.blocked) == 1
 }

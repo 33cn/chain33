@@ -663,6 +663,9 @@ func (c *Chain33) GetPeerInfo(in *types.P2PGetPeerReq, result *interface{}) erro
 			pr.Version = peer.GetVersion()
 			pr.LocalDBVersion = peer.GetLocalDBVersion()
 			pr.StoreDBVersion = peer.GetStoreDBVersion()
+			pr.RunningTime = peer.GetRunningTime()
+			pr.FullNode = peer.GetFullNode()
+			pr.Blocked = peer.GetBlocked()
 			peerlist.Peers = append(peerlist.Peers, &pr)
 
 		}
@@ -1674,5 +1677,31 @@ func (c *Chain33) ShowBlacklist(in *types.ReqNil, result *interface{}) error {
 	}
 
 	*result = reply.GetBlackinfo()
+	return nil
+}
+
+//DialPeer dial the specified peer
+func (c *Chain33) DialPeer(in *types.SetPeer, result *interface{}) error {
+	reply, err := c.cli.DialPeer(in)
+	if err != nil {
+		return err
+	}
+	var resp rpctypes.Reply
+	resp.IsOk = reply.IsOk
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
+	return nil
+}
+
+//ClosePeer close the specified peer
+func (c *Chain33) ClosePeer(in *types.SetPeer, result *interface{}) error {
+	reply, err := c.cli.ClosePeer(in)
+	if err != nil {
+		return err
+	}
+	var resp rpctypes.Reply
+	resp.IsOk = reply.IsOk
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
 	return nil
 }

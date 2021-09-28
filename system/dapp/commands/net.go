@@ -27,6 +27,8 @@ func NetCmd() *cobra.Command {
 		GetFatalFailureCmd(),
 		GetTimeStausCmd(),
 		NetProtocolsCmd(),
+		DialCmd(),
+		CloseCmd(),
 	)
 
 	return cmd
@@ -263,4 +265,58 @@ func showblacklist(cmd *cobra.Command, args []string) {
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ShowBlacklist", nil, &res)
 	ctx.Run()
 
+}
+
+//DialCmd dial the specified node
+func DialCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "dial",
+		Short: "dial the specified node",
+		Run:   dialPeer,
+	}
+
+	cmd.Flags().StringP("peer", "p", "", "peer addr,format: /ip4/ip/tcp/port/p2p/pid")
+	cmd.Flags().BoolP("seed", "", false, "set peer to seed")
+	return cmd
+}
+
+func dialPeer(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	peerAddr, _ := cmd.Flags().GetString("peer")
+	isseed, _ := cmd.Flags().GetBool("seed")
+	if peerAddr == "" {
+		cmd.Usage()
+		return
+	}
+	var setpeer types.SetPeer
+	var res interface{}
+	setpeer.Seed = isseed
+	setpeer.PeerAddr = peerAddr
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DialPeer", &setpeer, &res)
+	ctx.Run()
+}
+
+//CloseCmd close the specified peer
+func CloseCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "close",
+		Short: "close the specified peer",
+		Run:   closePeer,
+	}
+	cmd.Flags().StringP("pid", "", "", "peer id,support dht network")
+	return cmd
+}
+
+func closePeer(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	pid, _ := cmd.Flags().GetString("pid")
+	if pid == "" {
+		cmd.Usage()
+		return
+	}
+	var setpeer types.SetPeer
+	var res interface{}
+	setpeer.Pid = pid
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ClosePeer", &setpeer, &res)
+	ctx.Run()
 }

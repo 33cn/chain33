@@ -102,6 +102,8 @@ func TestQueueProtocol(t *testing.T) {
 	testQueryConsensus(t, api)
 	testExecWalletFunc(t, api)
 	testGetSequenceByHash(t, api)
+	testDialPeer(t, api)
+	testClosePeer(t, api)
 }
 
 func testGetSequenceByHash(t *testing.T, api client.QueueProtocolAPI) {
@@ -1328,4 +1330,30 @@ func TestQueueProtocol_SendDelayTx(t *testing.T) {
 	reply, err = api.SendDelayTx(testDelayTx, false)
 	require.Nil(t, err)
 	require.Nil(t, reply)
+}
+
+func testDialPeer(t *testing.T, api client.QueueProtocolAPI) {
+
+	reply, err := api.DialPeer(&types.SetPeer{})
+	if err != nil {
+		t.Error("Call PeerInfo Failed.", err)
+	}
+	assert.Equal(t, types.ErrInvalidParam.Error(), string(reply.GetMsg()))
+
+	reply, err = api.DialPeer(&types.SetPeer{PeerAddr: "/ip4/192.168.1.1/tcp/13803/p2p/16uwr23wefwrwrwwerwerwerwerwewe"})
+	assert.Nil(t, err)
+	assert.Equal(t, "success", string(reply.GetMsg()))
+
+}
+
+func testClosePeer(t *testing.T, api client.QueueProtocolAPI) {
+	reply, err := api.ClosePeer(&types.SetPeer{})
+	if err != nil {
+		t.Error("Call PeerInfo Failed.", err)
+	}
+	assert.Equal(t, types.ErrInvalidParam.Error(), string(reply.GetMsg()))
+	reply, err = api.DialPeer(&types.SetPeer{PeerAddr: "/ip4/192.168.1.1/tcp/13803/p2p/16uwr23wefwrwrwwerwerwerwerwewe"})
+	assert.Nil(t, err)
+	assert.Equal(t, "success", string(reply.GetMsg()))
+
 }

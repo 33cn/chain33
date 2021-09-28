@@ -388,3 +388,17 @@ message BlackPeer {
     string peerName = 2;
     string lifetime = 3;
 }
+
+// Statistical  用于统计信息的获取
+message Statistical {
+    repeated Peer peers    = 1;
+    NodeNetInfo   nodeinfo = 2;
+}
+
+
+// SetPeer 通过rpc 方式连接指定的节点
+message SetPeer {
+    string peerAddr = 1;
+    string pid      = 2;
+    bool   seed     = 3;
+}
