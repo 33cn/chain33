@@ -1,11 +1,12 @@
 package peer
 
 import (
+	"testing"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_statistic(t *testing.T) {

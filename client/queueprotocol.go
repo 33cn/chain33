@@ -50,7 +50,6 @@ type QueueProtocol struct {
 	option QueueProtocolOption
 }
 
-
 // New New QueueProtocolAPI interface
 func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, error) {
 	if client == nil {
@@ -1142,7 +1141,7 @@ func (q *QueueProtocol) ShowBlacklist(req *types.ReqNil) (*types.Blacklist, erro
 }
 
 //DialPeer  dial the the specified peer
-func (q *QueueProtocol)DialPeer(req *types.SetPeer)(*types.Reply,error){
+func (q *QueueProtocol) DialPeer(req *types.SetPeer) (*types.Reply, error) {
 	msg, err := q.send(p2pKey, types.EventDialPeer, req)
 	if err != nil {
 		log.Error("DialPeer", "Error", err.Error())
@@ -1154,12 +1153,10 @@ func (q *QueueProtocol)DialPeer(req *types.SetPeer)(*types.Reply,error){
 	}
 	return nil, types.ErrInvalidParam
 
-
 }
 
-
 //ClosePeer close the specified peer
-func (q *QueueProtocol)ClosePeer(req *types.SetPeer)(*types.Reply,error){
+func (q *QueueProtocol) ClosePeer(req *types.SetPeer) (*types.Reply, error) {
 	msg, err := q.send(p2pKey, types.EventClosePeer, req)
 	if err != nil {
 		log.Error("ClosePeer", "Error", err.Error())
@@ -1170,6 +1167,5 @@ func (q *QueueProtocol)ClosePeer(req *types.SetPeer)(*types.Reply,error){
 		return reply, nil
 	}
 	return nil, types.ErrInvalidParam
-
 
 }

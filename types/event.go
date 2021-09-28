@@ -196,10 +196,9 @@ const (
 	//获取黑名单列表
 	EventShowBlacklist = 362
 	// 连接指定的节点
-	EventDialPeer =363
+	EventDialPeer = 363
 	//断开指定的节点
-	EventClosePeer =364
-
+	EventClosePeer = 364
 )
 
 var eventName = map[int]string{
@@ -361,6 +360,6 @@ var eventName = map[int]string{
 	EventAddBlacklist:               "EventAddBlacklist",
 	EventDelBlacklist:               "EventDelBlacklist",
 	EventShowBlacklist:              "EventShowBlacklist",
-	EventDialPeer:"EventDialPeer",
-	EventClosePeer :"EventClosePeer",
+	EventDialPeer:                   "EventDialPeer",
+	EventClosePeer:                  "EventClosePeer",
 }

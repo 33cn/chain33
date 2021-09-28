@@ -663,9 +663,9 @@ func (c *Chain33) GetPeerInfo(in *types.P2PGetPeerReq, result *interface{}) erro
 			pr.Version = peer.GetVersion()
 			pr.LocalDBVersion = peer.GetLocalDBVersion()
 			pr.StoreDBVersion = peer.GetStoreDBVersion()
-			pr.RunningTime=peer.GetRunningTime()
-			pr.FullNode=peer.GetFullNode()
-			pr.Blocked=peer.GetBlocked()
+			pr.RunningTime = peer.GetRunningTime()
+			pr.FullNode = peer.GetFullNode()
+			pr.Blocked = peer.GetBlocked()
 			peerlist.Peers = append(peerlist.Peers, &pr)
 
 		}
@@ -1666,8 +1666,8 @@ func (c *Chain33) ShowBlacklist(in *types.ReqNil, result *interface{}) error {
 }
 
 //DialPeer dial the specified peer
-func (c *Chain33)DialPeer(in *types.SetPeer,result *interface{})error{
-	reply,err:=c.cli.DialPeer(in)
+func (c *Chain33) DialPeer(in *types.SetPeer, result *interface{}) error {
+	reply, err := c.cli.DialPeer(in)
 	if err != nil {
 		return err
 	}
@@ -1679,8 +1679,8 @@ func (c *Chain33)DialPeer(in *types.SetPeer,result *interface{})error{
 }
 
 //ClosePeer close the specified peer
-func (c *Chain33)ClosePeer(in *types.SetPeer,result *interface{})error{
-	reply,err:=c.cli.ClosePeer(in)
+func (c *Chain33) ClosePeer(in *types.SetPeer, result *interface{}) error {
+	reply, err := c.cli.ClosePeer(in)
 	if err != nil {
 		return err
 	}

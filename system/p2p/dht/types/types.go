@@ -61,8 +61,6 @@ type P2PSubConfig struct {
 	Psk string `json:"psk"`
 }
 
-
-
 // PubSubConfig pubsub config
 type PubSubConfig struct {
 

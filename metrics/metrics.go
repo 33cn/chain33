@@ -1,9 +1,10 @@
 package metrics
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
 	"reflect"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	chain33log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/metrics/influxdb"
@@ -61,8 +62,8 @@ func StartMetrics(cfg *types.Chain33Config) {
 	}
 }
 
-
 var Namespace = "chain33"
+
 type Collector interface {
 	Metrics() []prometheus.Collector
 }

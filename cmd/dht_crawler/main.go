@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-kad-dht/crawler"
 	"github.com/multiformats/go-multiaddr"
-	"os"
-	"time"
 )
 
 //dhtprotoId="/chain33-0/kad/1.0.0"

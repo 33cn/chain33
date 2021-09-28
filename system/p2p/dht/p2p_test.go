@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
 	"github.com/33cn/chain33/common/address"
 
 	"net"
@@ -424,10 +425,10 @@ func Test_Id(t *testing.T) {
 	pubkey, err := PeerIDToPubkey(encodeIDStr)
 	require.Nil(t, err)
 	require.Equal(t, pubkey, "02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0")
-	encodeIDStr="16Uiu2HAmPFtypMxNZZh9K2ouqsRhxQMt18wYnec4KkaqvBCrGGTK"
+	encodeIDStr = "16Uiu2HAmPFtypMxNZZh9K2ouqsRhxQMt18wYnec4KkaqvBCrGGTK"
 	pubkey, err = PeerIDToPubkey(encodeIDStr)
 	require.Nil(t, err)
-	pub,_:=	hex.DecodeString(pubkey)
+	pub, _ := hex.DecodeString(pubkey)
 	a := address.PubKeyToAddress(pub)
 	t.Log(a.String())
 

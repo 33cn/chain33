@@ -146,7 +146,7 @@ type QueueProtocolAPI interface {
 	//show blacklist
 	ShowBlacklist(req *types.ReqNil) (*types.Blacklist, error)
 	//DialPeer dial the specified  peer
-	DialPeer(in *types.SetPeer)(*types.Reply,error)
+	DialPeer(in *types.SetPeer) (*types.Reply, error)
 	//ClosePeer close specified peer
-	ClosePeer(in *types.SetPeer)(*types.Reply,error)
+	ClosePeer(in *types.SetPeer) (*types.Reply, error)
 }

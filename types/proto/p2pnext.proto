@@ -389,27 +389,27 @@ message BlackPeer {
     string lifetime = 3;
 }
 
-//Statistical  用于统计信息的获取
+// Statistical  用于统计信息的获取
 message Statistical {
-    repeated  Peer peers=1;
-    NodeNetInfo nodeinfo=2;
+    repeated Peer peers    = 1;
+    NodeNetInfo   nodeinfo = 2;
 }
 
-//Visters 授权远程访问的节点日志以及其他要素的节点列表
-message  Visters {
-    repeated Vister visters =1;
+// Visters 授权远程访问的节点日志以及其他要素的节点列表
+message Visters {
+    repeated Vister visters = 1;
 }
 
 message Vister {
-    string remoteIP =1;
-    string accesskey =2;
-    string lifetime = 3;
+    string remoteIP  = 1;
+    string accesskey = 2;
+    string lifetime  = 3;
     //备用
     string peerName = 4;
 }
-//SetPeer 通过rpc 方式连接指定的节点
+// SetPeer 通过rpc 方式连接指定的节点
 message SetPeer {
-    string peerAddr =1;
-    string pid = 2;
-    bool   seed =3;
+    string peerAddr = 1;
+    string pid      = 2;
+    bool   seed     = 3;
 }

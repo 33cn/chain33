@@ -1921,7 +1921,6 @@ func TestChain33_ShowBlacklist(t *testing.T) {
 
 }
 
-
 func TestChain33_DialPeer(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
@@ -1935,7 +1934,6 @@ func TestChain33_DialPeer(t *testing.T) {
 	_, ok := testResult.(*rpctypes.Reply)
 	assert.True(t, ok)
 }
-
 
 func TestChain33_ClosePeer(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
