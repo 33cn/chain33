@@ -18,7 +18,7 @@ import (
 //dhtprotoId="/chain33-0/kad/1.0.0"
 var (
 	//dht 协议ID，需要根据具体区块链网络进行配置
-	dhtProtoId = flag.String("proto", "/chain33-0/kad/1.0.0", "dht protocol id")
+	dhtProtoId = flag.String("proto", "/chain33-0/kad/1.0.0", "dht protocol id,such as:/chain33-0/kad/1.0.0")
 	//扫描的引导节点
 	startNodes = flag.String("node", "", "bootstrap nodes")
 	//扫描数据输出
@@ -77,7 +77,7 @@ d::::::ddddd::::::dd h:::::h     h:::::h     t::::::tttt:::::t
    ddddddddd   ddddd hhhhhhh     hhhhhhh         ttttttttttt     crawler start working....,wait a moment`)
 
 	cl.Run(ctx, []*peer.AddrInfo{startingPeerInfo}, handlerSuccess, nil)
-	fmt.Println("peerMap", len(peerMap))
+	fmt.Println("peers", len(peerMap))
 	OutputData(h, *out, *allpeers, *jsonpeers)
 
 }

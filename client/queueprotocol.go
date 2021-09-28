@@ -1140,39 +1140,36 @@ func (q *QueueProtocol) ShowBlacklist(req *types.ReqNil) (*types.Blacklist, erro
 	return nil, types.ErrInvalidParam
 
 }
-/*
-//AddVisiter
-func (q *QueueProtocol)AddVisiter(in *types.Vister)(*types.Reply, error){
-	//当前目录下处理
-	urlstr,err:= trace.TraceService.AddAuth(in)
-	if err!= nil{
-		return nil ,err
+
+//DialPeer  dial the the specified peer
+func (q *QueueProtocol)DialPeer(req *types.SetPeer)(*types.Reply,error){
+	msg, err := q.send(p2pKey, types.EventDialPeer, req)
+	if err != nil {
+		log.Error("DialPeer", "Error", err.Error())
+		return nil, err
 	}
 
-	var reply types.Reply
-	reply.Msg=[]byte(urlstr)
-	reply.IsOk=true
-	return &reply,nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrInvalidParam
+
+
 }
 
-//DelVisiter
-func (q *QueueProtocol)DelVisiter(in *types.Vister)(*types.Reply, error){
-	//当前目录下处理
-	_,err:= trace.TraceService.AddAuth(in)
-	if err!= nil{
-		return nil ,err
+
+//ClosePeer close the specified peer
+func (q *QueueProtocol)ClosePeer(req *types.SetPeer)(*types.Reply,error){
+	msg, err := q.send(p2pKey, types.EventClosePeer, req)
+	if err != nil {
+		log.Error("ClosePeer", "Error", err.Error())
+		return nil, err
 	}
 
-	var reply types.Reply
-	reply.Msg=[]byte("delete sucess")
-	reply.IsOk=true
-	return &reply,nil
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrInvalidParam
+
 
 }
-
-//ShowVisiter
-func (q *QueueProtocol)ShowVisiters(in *types.ReqNil)(*types.Visters, error){
-	visters:= trace.TraceService.ShowVisters()
-	return visters,nil
-}
-*/

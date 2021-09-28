@@ -9,14 +9,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/33cn/chain33/system/p2p/trace"
-	"math/rand"
-	"os"
-	"path/filepath"
-	"sync"
-	"sync/atomic"
-	"time"
-
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
@@ -38,6 +30,12 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	discovery "github.com/libp2p/go-libp2p-discovery"
 	"github.com/multiformats/go-multiaddr"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 var log = log15.New("module", p2pty.DHTTypeName)
@@ -70,7 +68,6 @@ type P2P struct {
 	db      dbm.DB
 
 	env *protocol.P2PEnv
-	tracer  *trace.Service
 }
 
 func setLibp2pLog(logFile, logLevel string) {
@@ -193,7 +190,6 @@ func (p *P2P) StartP2P() {
 		ConnBlackList:   p.blackCache,
 	}
 	p.env = env
-	p.tracer=trace.New(p.env)
 	protocol.InitAllProtocol(env)
 	p.discovery.Start()
 	go p.managePeers()

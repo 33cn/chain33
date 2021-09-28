@@ -112,6 +112,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	protocol.RegisterStreamHandler(host2, peerVersion, p2.handleStreamVersion)
 	protocol.RegisterStreamHandler(host2, peerInfoOld, p2.handleStreamPeerInfoOld)
 	protocol.RegisterStreamHandler(host2, peerVersionOld, p2.handleStreamVersionOld)
+	protocol.RegisterStreamHandler(host2, statisticalInfo, p2.handlerStreamStatistical)
 
 	client1.Sub("p2p")
 	go func() {

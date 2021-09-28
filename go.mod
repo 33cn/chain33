@@ -15,15 +15,14 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.3
 	github.com/google/uuid v1.2.0
-	github.com/gorilla/handlers v1.5.1
-	github.com/gorilla/mux v1.7.4
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
-	github.com/hpcloud/tail v1.0.0
+	github.com/huin/goupnp v1.0.2 // indirect
 	github.com/influxdata/influxdb v1.8.3
 	github.com/ipfs/go-log/v2 v2.3.0
 	github.com/kevinms/leakybucket-go v0.0.0-20200115003610-082473db97ca
+	github.com/klauspost/cpuid/v2 v2.0.8 // indirect
+	github.com/koron/go-ssdp v0.0.2 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/libp2p/dht-tracer1 v0.0.0-20210807095715-3f9582916a1f
 	github.com/libp2p/go-libp2p v0.14.3
 	github.com/libp2p/go-libp2p-blankhost v0.2.0
 	github.com/libp2p/go-libp2p-circuit v0.4.0
@@ -35,13 +34,17 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
 	github.com/libp2p/go-libp2p-swarm v0.5.0
 	github.com/libp2p/go-msgio v0.0.6
+	github.com/libp2p/go-tcp-transport v0.2.4 // indirect
 	github.com/marten-seemann/qtls-go1-15 v0.1.4 // indirect
 	github.com/mattn/go-colorable v0.1.2
+	github.com/miekg/dns v1.1.43 // indirect
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/common v0.29.0 // indirect
+	github.com/prometheus/procfs v0.7.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/rs/cors v1.7.0
 	github.com/shopspring/decimal v1.2.0
@@ -49,6 +52,9 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954
 	github.com/tjfoc/gmsm v1.3.2
+	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/multierr v1.7.0 // indirect
+	go.uber.org/zap v1.18.1 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/mod v0.5.0 // indirect
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
@@ -60,6 +66,5 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/go-playground/webhooks.v5 v5.2.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
-	resenje.org/web v0.4.3
 
 )

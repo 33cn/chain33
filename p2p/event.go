@@ -49,7 +49,9 @@ func (mgr *Manager) handleSysEvent() {
 			}
 			mgr.pub2P2P(msg, p2pTy)
 
-		case types.EventPubTopicMsg, types.EventFetchTopics, types.EventRemoveTopic, types.EventSubTopic, types.EventAddBlacklist, types.EventDelBlacklist, types.EventShowBlacklist:
+		case types.EventPubTopicMsg, types.EventFetchTopics, types.EventRemoveTopic,
+		types.EventSubTopic, types.EventAddBlacklist, types.EventDelBlacklist,
+		types.EventShowBlacklist,types.EventDialPeer,types.EventClosePeer:
 			p2pTy := mgr.p2pCfg.Types[0]
 			mgr.pub2P2P(msg, p2pTy)
 

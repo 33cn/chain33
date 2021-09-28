@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/33cn/chain33/system/p2p/trace"
 	"time"
 
 	"github.com/33cn/chain33/wallet/bipwallet"
@@ -664,8 +663,9 @@ func (c *Chain33) GetPeerInfo(in *types.P2PGetPeerReq, result *interface{}) erro
 			pr.Version = peer.GetVersion()
 			pr.LocalDBVersion = peer.GetLocalDBVersion()
 			pr.StoreDBVersion = peer.GetStoreDBVersion()
-			pr.Runningtime=peer.GetRunningtime()
+			pr.RunningTime=peer.GetRunningTime()
 			pr.FullNode=peer.GetFullNode()
+			pr.Blocked=peer.GetBlocked()
 			peerlist.Peers = append(peerlist.Peers, &pr)
 
 		}
@@ -1665,56 +1665,28 @@ func (c *Chain33) ShowBlacklist(in *types.ReqNil, result *interface{}) error {
 
 }
 
-func (c *Chain33)AddVisiter(in *types.Vister,result *interface{})error{
-
-	//reply,err:=c.cli.AddVisiter(in)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//var resp rpctypes.Reply
-	//resp.IsOk=true
-	//resp.Msg=string(reply.GetMsg())
-	//*result= resp
-
-	urlstr,err:= trace.TraceService.AddAuth(in)
-	if err!=nil{
+//DialPeer dial the specified peer
+func (c *Chain33)DialPeer(in *types.SetPeer,result *interface{})error{
+	reply,err:=c.cli.DialPeer(in)
+	if err != nil {
 		return err
 	}
-	*result = urlstr
+	var resp rpctypes.Reply
+	resp.IsOk = reply.IsOk
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
 	return nil
 }
 
-func  (c *Chain33)DelVisiter(in *types.Vister,result *interface{})error{
-	//reply,err:=c.cli.DelVisiter(in)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//var resp rpctypes.Reply
-	//resp.IsOk=true
-	//resp.Msg=string(reply.GetMsg())
-	//*result= resp
-	//
-	//return nil
-	urlstr,err:= trace.TraceService.AddAuth(in)
-	if err!=nil{
+//ClosePeer close the specified peer
+func (c *Chain33)ClosePeer(in *types.SetPeer,result *interface{})error{
+	reply,err:=c.cli.ClosePeer(in)
+	if err != nil {
 		return err
 	}
-	*result = urlstr
-	return nil
-
-}
-
-
-func (c *Chain33)ShowVisiters(in *types.ReqNil,result *interface{})error {
-	//visters,err:= c.cli.ShowVisiters(in)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//*result = visters
-	//return nil
-	*result = trace.TraceService.ShowVisters()
+	var resp rpctypes.Reply
+	resp.IsOk = reply.IsOk
+	resp.Msg = string(reply.GetMsg())
+	*result = &resp
 	return nil
 }

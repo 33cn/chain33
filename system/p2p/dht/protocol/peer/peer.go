@@ -19,7 +19,6 @@ const (
 	// Deprecated: old version, use peerVersion instead
 	peerVersionOld = "/chain33/peerVersion/1.0.0"
 	peerVersion    = "/chain33/peer-version/1.0.0"
-
 )
 
 const (
@@ -34,7 +33,7 @@ var UnitTime = map[string]int64{
 	"second": 1,
 }
 var log = log15.New("module", "p2p.peer")
-var processStart=time.Now()
+var processStart = time.Now()
 
 //CaculateLifeTime parase time string to time.Duration
 func CaculateLifeTime(timestr string) (time.Duration, error) {
@@ -73,6 +72,8 @@ type Protocol struct {
 
 	topicMutex  sync.RWMutex
 	topicModule sync.Map
+	latestBlock sync.Map
+	blocked     int32
 }
 
 // InitProtocol init protocol
@@ -103,6 +104,8 @@ func InitProtocol(env *protocol.P2PEnv) {
 	// Deprecated: old version, use peerVersion instead
 	protocol.RegisterStreamHandler(p.Host, peerVersionOld, p.handleStreamVersionOld)
 	protocol.RegisterStreamHandler(p.Host, peerVersion, p.handleStreamVersion)
+	//统计信息
+	protocol.RegisterStreamHandler(p.Host, statisticalInfo, p.handlerStreamStatistical)
 	protocol.RegisterEventHandler(types.EventPeerInfo, p.handleEventPeerInfo)
 	protocol.RegisterEventHandler(types.EventGetNetInfo, p.handleEventNetInfo)
 	protocol.RegisterEventHandler(types.EventNetProtocols, p.handleEventNetProtocols)
@@ -121,7 +124,13 @@ func InitProtocol(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventDelBlacklist, p.handleEventDelBlacklist)
 	//获取当前的黑名单节点列表
 	protocol.RegisterEventHandler(types.EventShowBlacklist, p.handleEventShowBlacklist)
+	//连接指定的节点
+	protocol.RegisterEventHandler(types.EventDialPeer, p.handleEventDialPeer)
+	//关闭指定的节点
+	protocol.RegisterEventHandler(types.EventClosePeer, p.handleEventClosePeer)
+
 	go p.detectNodeAddr()
+	go p.checkBlocked()
 	go func() {
 		ticker := time.NewTicker(time.Second / 2)
 		defer ticker.Stop()

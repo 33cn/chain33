@@ -7,7 +7,6 @@ package types
 
 import (
 	"encoding/json"
-	"time"
 )
 
 // TransParm transport parameter
@@ -224,8 +223,9 @@ type Peer struct {
 	Version        string  `json:"version,omitempty"`
 	LocalDBVersion string  `json:"localDBVersion,omitempty"`
 	StoreDBVersion string  `json:"storeDBVersion,omitempty"`
-	Runningtime string `json:"runningtime,omitempty"`
+	RunningTime string `json:"runningTime,omitempty"`
 	FullNode bool 		`json:"fullNode,omitempty"`
+	Blocked bool `json:"blocked,omitempty"`
 }
 
 // WalletAccounts Wallet Module
@@ -479,16 +479,3 @@ type ChainConfigInfo struct {
 	IsPara         bool   `json:"isPara,omitempty"`
 }
 
-
-
-
-
-
-type AuthorizeInfo  struct{
-	//授权远程IP地址
-	RemoteIp  string  `json:"remoteIp,omitempty"`
-	//授权IP 访问的用户名
-	AccessKey  string  `json:"accessKey,omitempty"`
-	//授权时间
-	Deadline   time.Time `json:"deadline,omitempty"`
-}

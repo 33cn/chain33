@@ -1920,3 +1920,33 @@ func TestChain33_ShowBlacklist(t *testing.T) {
 	assert.True(t, ok)
 
 }
+
+
+func TestChain33_DialPeer(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	expected := &types.Reply{}
+	api.On("DialPeer", mock.Anything).Return(expected, nil)
+	testChain33 := newTestChain33(api)
+	var testResult interface{}
+	err := testChain33.DialPeer(&types.SetPeer{}, &testResult)
+	assert.Nil(t, err)
+	_, ok := testResult.(*rpctypes.Reply)
+	assert.True(t, ok)
+}
+
+
+func TestChain33_ClosePeer(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	expected := &types.Reply{}
+	api.On("ClosePeer", mock.Anything).Return(expected, nil)
+	testChain33 := newTestChain33(api)
+	var testResult interface{}
+	err := testChain33.ClosePeer(&types.SetPeer{}, &testResult)
+	assert.Nil(t, err)
+	_, ok := testResult.(*rpctypes.Reply)
+	assert.True(t, ok)
+}

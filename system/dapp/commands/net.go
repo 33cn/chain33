@@ -27,6 +27,8 @@ func NetCmd() *cobra.Command {
 		GetFatalFailureCmd(),
 		GetTimeStausCmd(),
 		NetProtocolsCmd(),
+		DialCmd(),
+		CloseCmd(),
 	)
 
 	return cmd
@@ -174,7 +176,6 @@ func BlacklistCmd() *cobra.Command {
 	return cmd
 }
 
-
 //Add add peer to blacklist
 func Add() *cobra.Command {
 	cmd := &cobra.Command{
@@ -266,87 +267,56 @@ func showblacklist(cmd *cobra.Command, args []string) {
 
 }
 
-
-
-//Diagnosis  authorize remote diagnosis
-func DiagnosisCmd() *cobra.Command {
+//DialCmd dial the specified node
+func DialCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "diagnosis",
-		Short: "authorize remote diagnosis",
-		Args:  cobra.MinimumNArgs(1),
+		Use:   "dial",
+		Short: "dial the specified node",
+		Run:   dialPeer,
 	}
 
-	cmd.AddCommand(
-		AddVisiter(),
-		DelVisiter(),
-		ShowVisiter(),
-	)
-	return cmd
-
-}
-
-//Add add peer to blacklist
-func AddVisiter() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "add",
-		Short: "add visiter  to blacklist",
-		Run:   addVisiter,
-	}
-	cmd.Flags().StringP("time", "t", "", "lifetime such as: 1hour,1min,1second")
-	addBlackFlags(cmd)
+	cmd.Flags().StringP("peer", "p", "", "peer addr,format: /ip4/ip/tcp/port/p2p/pid")
+	cmd.Flags().BoolP("seed", "", false, "set peer to seed")
 	return cmd
 }
 
-func addVisiter(cmd *cobra.Command, args []string){
+func dialPeer(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	//pid, _ := cmd.Flags().GetString("pid")
-	ip, _ := cmd.Flags().GetString("remoteip")
-	liftime,_:=cmd.Flags().GetString("time")
-	var res string
-	var vister types.Vister
-	vister.RemoteIP=ip
-	vister.Lifetime=liftime
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.AddVisiter", &vister, &res)
+	peerAddr, _ := cmd.Flags().GetString("peer")
+	isseed, _ := cmd.Flags().GetBool("seed")
+	if peerAddr == "" {
+		cmd.Usage()
+		return
+	}
+	var setpeer types.SetPeer
+	var res interface{}
+	setpeer.Seed = isseed
+	setpeer.PeerAddr = peerAddr
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DialPeer", &setpeer, &res)
 	ctx.Run()
 }
 
-
-//Add add peer to blacklist
-func DelVisiter() *cobra.Command {
+//CloseCmd close the specified peer
+func CloseCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "del",
-		Short: "add visiter  to blacklist",
-		Run:   delVisiter,
+		Use:   "close",
+		Short: "close the specified peer",
+		Run:   closePeer,
 	}
-
-	addBlackFlags(cmd)
+	cmd.Flags().StringP("pid", "", "", "peer id,support dht network")
 	return cmd
 }
-func delVisiter(cmd *cobra.Command, args []string){
+
+func closePeer(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	ip, _ := cmd.Flags().GetString("remoteip")
-
-	var res string
-	var vister types.Vister
-	vister.RemoteIP=ip
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.DelVisiter", &vister, &res)
-	ctx.Run()
-}
-
-//Add add peer to blacklist
-func ShowVisiter() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "show",
-		Short: "show visiters",
-		Run:   showVisters,
+	pid, _ := cmd.Flags().GetString("pid")
+	if pid == "" {
+		cmd.Usage()
+		return
 	}
-
-	addBlackFlags(cmd)
-	return cmd
-}
-func showVisters(cmd *cobra.Command,args []string){
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res =new([]*types.Vister)
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ShowVisiters", nil, &res)
+	var setpeer types.SetPeer
+	var res interface{}
+	setpeer.Pid = pid
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ClosePeer", &setpeer, &res)
 	ctx.Run()
 }
