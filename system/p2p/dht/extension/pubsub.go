@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/33cn/chain33/types"
+
 	"github.com/33cn/chain33/common/log/log15"
 	p2ptypes "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -43,7 +45,11 @@ type SubMsg *pubsub.Message
 type SubCallBack func(topic string, msg SubMsg)
 
 func setPubSubParameters(psConf *p2ptypes.PubSubConfig) {
-
+	// mb -> byte
+	psConf.MaxMsgSize *= 1 << 20
+	if psConf.MaxMsgSize <= 0 {
+		psConf.MaxMsgSize = types.MaxBlockSize
+	}
 	if psConf.PeerOutboundQueueSize <= 0 {
 		psConf.PeerOutboundQueueSize = 128
 	}
@@ -107,7 +113,8 @@ func NewPubSub(ctx context.Context, host host.Host, psConf *p2ptypes.PubSubConfi
 	psOpts = append(psOpts, pubsub.WithFloodPublish(true),
 		pubsub.WithPeerOutboundQueueSize(psConf.PeerOutboundQueueSize),
 		pubsub.WithValidateQueueSize(psConf.ValidateQueueSize),
-		pubsub.WithPeerExchange(psConf.EnablePeerExchange))
+		pubsub.WithPeerExchange(psConf.EnablePeerExchange),
+		pubsub.WithMaxMessageSize(psConf.MaxMsgSize))
 
 	//选择使用GossipSub
 	ps, err := pubsub.NewGossipSub(ctx, host, psOpts...)
