@@ -110,4 +110,7 @@ type PubSubConfig struct {
 	// GossipSubHistoryLength controls the size of the message cache used for gossip.
 	// The message cache will remember messages for GossipSubHistoryLength heartbeats.
 	GossipSubHistoryLength int `json:"gossipSubHistoryLength,omitempty"`
+
+	// MaxMsgSize, max message size in pub sub(MB)
+	MaxMsgSize int `json:"maxMsgSize,omitempty"`
 }
