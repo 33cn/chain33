@@ -1,9 +1,10 @@
 package main
 
 import (
+	"time"
+
 	"github.com/libp2p/go-libp2p-kad-dht/crawler"
 	"github.com/qianlnk/pgbar"
-	"time"
 )
 
 var finished bool
