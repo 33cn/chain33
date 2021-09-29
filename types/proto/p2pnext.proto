@@ -395,7 +395,6 @@ message Statistical {
     NodeNetInfo   nodeinfo = 2;
 }
 
-
 // SetPeer 通过rpc 方式连接指定的节点
 message SetPeer {
     string peerAddr = 1;
