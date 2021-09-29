@@ -405,14 +405,14 @@ func (p *Protocol) checkBlocked() {
 			p.latestBlock.Store(latestTag, &storeInfo)
 
 			if info, ok := p.latestBlock.Load(highestTag); ok {
-				heighest := info.(*lastBlock)
-				if header.GetHeight() > heighest.Height {
-					heighest.Height = header.GetHeight()
-					heighest.LastScene = storeInfo.LastScene
+				preMaxHigh := info.(*lastBlock)
+				if header.GetHeight() > preMaxHigh.Height {
+					preMaxHigh.Height = header.GetHeight()
+					preMaxHigh.LastScene = storeInfo.LastScene
 					atomic.StoreInt32(&p.blocked, 0)
 					continue
 				}
-				if storeInfo.LastScene.Sub(heighest.LastScene) > time.Minute { //1分钟高度没有更新
+				if storeInfo.LastScene.Sub(preMaxHigh.LastScene) > time.Minute { //1分钟高度没有更新
 					atomic.StoreInt32(&p.blocked, 1)
 				}
 			}

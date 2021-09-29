@@ -22,5 +22,4 @@ func Test_statistic(t *testing.T) {
 	err = protocol.ReadStream(&resp, stream)
 	require.Nil(t, err)
 	require.Equal(t, int32(0), resp.Nodeinfo.Outbounds)
-
 }
