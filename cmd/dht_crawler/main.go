@@ -61,7 +61,7 @@ func main() {
 		panic(err)
 	}
 	err = h.Connect(ctx, *startingPeerInfo)
-	if err!=nil{
+	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
