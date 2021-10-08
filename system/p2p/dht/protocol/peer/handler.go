@@ -271,6 +271,7 @@ func (p *Protocol) handleEventShowBlacklist(msg *queue.Message) {
 func (p *Protocol) handleEventDialPeer(msg *queue.Message) {
 	maddr, addrinfo, err := p.setPeerCheck(msg)
 	if err != nil {
+		msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
 		return
 	}
 
@@ -289,11 +290,16 @@ func (p *Protocol) handleEventDialPeer(msg *queue.Message) {
 		p.Host.Peerstore().AddAddr(addrinfo.ID, maddr, time.Hour)
 		p.Host.ConnManager().Protect(addrinfo.ID, "seed")
 		//加入种子列表
-		for _, seed := range p.SubConfig.Seeds {
+		seedNum := len(p.SubConfig.Seeds)
+		var index int
+		var seed string
+		for index, seed = range p.SubConfig.Seeds {
 			if seed == paddr {
-				p.SubConfig.Seeds = append(p.SubConfig.Seeds, paddr)
 				break
 			}
+		}
+		if index == seedNum-1 && seed != paddr {
+			p.SubConfig.Seeds = append(p.SubConfig.Seeds, paddr)
 		}
 	}
 
@@ -314,13 +320,13 @@ func (p *Protocol) handleEventClosePeer(msg *queue.Message) {
 		err = types.ErrInvalidParam
 		return
 	}
-	_, err = peer.Decode(setPeer.GetPid())
+	pid, err := peer.Decode(setPeer.GetPid())
 	if err != nil {
 		return
 	}
 
 	//close peer
-	err = p.Host.Network().ClosePeer(peer.ID(setPeer.GetPid()))
+	err = p.Host.Network().ClosePeer(pid)
 	if err != nil {
 		return
 	}
@@ -348,12 +354,6 @@ func (p *Protocol) handleEventClosePeer(msg *queue.Message) {
 
 func (p *Protocol) setPeerCheck(msg *queue.Message) (multiaddr.Multiaddr, *peer.AddrInfo, error) {
 	var err error
-	defer func() {
-		if err != nil {
-			msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
-		}
-	}()
-
 	setPeer, ok := msg.GetData().(*types.SetPeer)
 	if !ok {
 		err = types.ErrInvalidParam
