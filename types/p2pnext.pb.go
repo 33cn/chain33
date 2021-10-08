@@ -3026,6 +3026,126 @@ func (x *BlackPeer) GetLifetime() string {
 	return ""
 }
 
+// Statistical  用于统计信息的获取
+type Statistical struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Peers    []*Peer      `protobuf:"bytes,1,rep,name=peers,proto3" json:"peers,omitempty"`
+	Nodeinfo *NodeNetInfo `protobuf:"bytes,2,opt,name=nodeinfo,proto3" json:"nodeinfo,omitempty"`
+}
+
+func (x *Statistical) Reset() {
+	*x = Statistical{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_p2pnext_proto_msgTypes[48]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Statistical) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Statistical) ProtoMessage() {}
+
+func (x *Statistical) ProtoReflect() protoreflect.Message {
+	mi := &file_p2pnext_proto_msgTypes[48]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Statistical.ProtoReflect.Descriptor instead.
+func (*Statistical) Descriptor() ([]byte, []int) {
+	return file_p2pnext_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *Statistical) GetPeers() []*Peer {
+	if x != nil {
+		return x.Peers
+	}
+	return nil
+}
+
+func (x *Statistical) GetNodeinfo() *NodeNetInfo {
+	if x != nil {
+		return x.Nodeinfo
+	}
+	return nil
+}
+
+// SetPeer 通过rpc 方式连接指定的节点
+type SetPeer struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PeerAddr string `protobuf:"bytes,1,opt,name=peerAddr,proto3" json:"peerAddr,omitempty"`
+	Pid      string `protobuf:"bytes,2,opt,name=pid,proto3" json:"pid,omitempty"`
+	Seed     bool   `protobuf:"varint,3,opt,name=seed,proto3" json:"seed,omitempty"`
+}
+
+func (x *SetPeer) Reset() {
+	*x = SetPeer{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_p2pnext_proto_msgTypes[49]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SetPeer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetPeer) ProtoMessage() {}
+
+func (x *SetPeer) ProtoReflect() protoreflect.Message {
+	mi := &file_p2pnext_proto_msgTypes[49]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetPeer.ProtoReflect.Descriptor instead.
+func (*SetPeer) Descriptor() ([]byte, []int) {
+	return file_p2pnext_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *SetPeer) GetPeerAddr() string {
+	if x != nil {
+		return x.PeerAddr
+	}
+	return ""
+}
+
+func (x *SetPeer) GetPid() string {
+	if x != nil {
+		return x.Pid
+	}
+	return ""
+}
+
+func (x *SetPeer) GetSeed() bool {
+	if x != nil {
+		return x.Seed
+	}
+	return false
+}
+
 var File_p2pnext_proto protoreflect.FileDescriptor
 
 var file_p2pnext_proto_rawDesc = []byte{
@@ -3382,10 +3502,21 @@ var file_p2pnext_proto_rawDesc = []byte{
 	0x65, 0x65, 0x72, 0x41, 0x64, 0x64, 0x72, 0x12, 0x1a, 0x0a, 0x08, 0x70, 0x65, 0x65, 0x72, 0x4e,
 	0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x70, 0x65, 0x65, 0x72, 0x4e,
 	0x61, 0x6d, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x6c, 0x69, 0x66, 0x65, 0x74, 0x69, 0x6d, 0x65, 0x18,
-	0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6c, 0x69, 0x66, 0x65, 0x74, 0x69, 0x6d, 0x65, 0x42,
-	0x1f, 0x5a, 0x1d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x33, 0x33,
-	0x63, 0x6e, 0x2f, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x33, 0x33, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6c, 0x69, 0x66, 0x65, 0x74, 0x69, 0x6d, 0x65, 0x22,
+	0x60, 0x0a, 0x0b, 0x53, 0x74, 0x61, 0x74, 0x69, 0x73, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x12, 0x21,
+	0x0a, 0x05, 0x70, 0x65, 0x65, 0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0b, 0x2e,
+	0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x50, 0x65, 0x65, 0x72, 0x52, 0x05, 0x70, 0x65, 0x65, 0x72,
+	0x73, 0x12, 0x2e, 0x0a, 0x08, 0x6e, 0x6f, 0x64, 0x65, 0x69, 0x6e, 0x66, 0x6f, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x4e, 0x6f, 0x64, 0x65,
+	0x4e, 0x65, 0x74, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x08, 0x6e, 0x6f, 0x64, 0x65, 0x69, 0x6e, 0x66,
+	0x6f, 0x22, 0x4b, 0x0a, 0x07, 0x53, 0x65, 0x74, 0x50, 0x65, 0x65, 0x72, 0x12, 0x1a, 0x0a, 0x08,
+	0x70, 0x65, 0x65, 0x72, 0x41, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08,
+	0x70, 0x65, 0x65, 0x72, 0x41, 0x64, 0x64, 0x72, 0x12, 0x10, 0x0a, 0x03, 0x70, 0x69, 0x64, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x70, 0x69, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x73, 0x65,
+	0x65, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x08, 0x52, 0x04, 0x73, 0x65, 0x65, 0x64, 0x42, 0x1f,
+	0x5a, 0x1d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x33, 0x33, 0x63,
+	0x6e, 0x2f, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x33, 0x33, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -3400,7 +3531,7 @@ func file_p2pnext_proto_rawDescGZIP() []byte {
 	return file_p2pnext_proto_rawDescData
 }
 
-var file_p2pnext_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
+var file_p2pnext_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
 var file_p2pnext_proto_goTypes = []interface{}{
 	(*MessageComm)(nil),            // 0: types.MessageComm
 	(*MessageUtil)(nil),            // 1: types.MessageUtil
@@ -3450,97 +3581,100 @@ var file_p2pnext_proto_goTypes = []interface{}{
 	(*Blacklist)(nil),              // 45: types.Blacklist
 	(*BlackInfo)(nil),              // 46: types.BlackInfo
 	(*BlackPeer)(nil),              // 47: types.BlackPeer
-	(*P2PPeerInfo)(nil),            // 48: types.P2PPeerInfo
-	(*P2PVersion)(nil),             // 49: types.P2PVersion
-	(*P2PVerAck)(nil),              // 50: types.P2PVerAck
-	(*P2PExternalInfo)(nil),        // 51: types.P2PExternalInfo
-	(*P2PGetBlocks)(nil),           // 52: types.P2PGetBlocks
-	(*InvDatas)(nil),               // 53: types.InvDatas
-	(*P2PPing)(nil),                // 54: types.P2PPing
-	(*P2PPong)(nil),                // 55: types.P2PPong
-	(*P2PGetAddr)(nil),             // 56: types.P2PGetAddr
-	(*P2PAddr)(nil),                // 57: types.P2PAddr
-	(*P2PAddrList)(nil),            // 58: types.P2PAddrList
-	(*P2PGetMempool)(nil),          // 59: types.P2PGetMempool
-	(*Versions)(nil),               // 60: types.Versions
-	(*P2PGetHeaders)(nil),          // 61: types.P2PGetHeaders
-	(*P2PHeaders)(nil),             // 62: types.P2PHeaders
-	(*InvData)(nil),                // 63: types.InvData
-	(*PeerList)(nil),               // 64: types.PeerList
-	(*NodeNetInfo)(nil),            // 65: types.NodeNetInfo
-	(*PeersReply)(nil),             // 66: types.PeersReply
-	(*BroadCastData)(nil),          // 67: types.BroadCastData
-	(*ReqChunkRecords)(nil),        // 68: types.ReqChunkRecords
-	(*ChunkInfoMsg)(nil),           // 69: types.ChunkInfoMsg
-	(*ReqBlocks)(nil),              // 70: types.ReqBlocks
-	(*BlockBody)(nil),              // 71: types.BlockBody
-	(*Headers)(nil),                // 72: types.Headers
-	(*ChunkRecords)(nil),           // 73: types.ChunkRecords
+	(*Statistical)(nil),            // 48: types.Statistical
+	(*SetPeer)(nil),                // 49: types.SetPeer
+	(*P2PPeerInfo)(nil),            // 50: types.P2PPeerInfo
+	(*P2PVersion)(nil),             // 51: types.P2PVersion
+	(*P2PVerAck)(nil),              // 52: types.P2PVerAck
+	(*P2PExternalInfo)(nil),        // 53: types.P2PExternalInfo
+	(*P2PGetBlocks)(nil),           // 54: types.P2PGetBlocks
+	(*InvDatas)(nil),               // 55: types.InvDatas
+	(*P2PPing)(nil),                // 56: types.P2PPing
+	(*P2PPong)(nil),                // 57: types.P2PPong
+	(*P2PGetAddr)(nil),             // 58: types.P2PGetAddr
+	(*P2PAddr)(nil),                // 59: types.P2PAddr
+	(*P2PAddrList)(nil),            // 60: types.P2PAddrList
+	(*P2PGetMempool)(nil),          // 61: types.P2PGetMempool
+	(*Versions)(nil),               // 62: types.Versions
+	(*P2PGetHeaders)(nil),          // 63: types.P2PGetHeaders
+	(*P2PHeaders)(nil),             // 64: types.P2PHeaders
+	(*InvData)(nil),                // 65: types.InvData
+	(*PeerList)(nil),               // 66: types.PeerList
+	(*NodeNetInfo)(nil),            // 67: types.NodeNetInfo
+	(*PeersReply)(nil),             // 68: types.PeersReply
+	(*BroadCastData)(nil),          // 69: types.BroadCastData
+	(*ReqChunkRecords)(nil),        // 70: types.ReqChunkRecords
+	(*ChunkInfoMsg)(nil),           // 71: types.ChunkInfoMsg
+	(*ReqBlocks)(nil),              // 72: types.ReqBlocks
+	(*BlockBody)(nil),              // 73: types.BlockBody
+	(*Headers)(nil),                // 74: types.Headers
+	(*ChunkRecords)(nil),           // 75: types.ChunkRecords
+	(*Peer)(nil),                   // 76: types.Peer
 }
 var file_p2pnext_proto_depIdxs = []int32{
 	0,  // 0: types.MessageUtil.common:type_name -> types.MessageComm
-	48, // 1: types.MessageUtil.peerInfo:type_name -> types.P2PPeerInfo
-	49, // 2: types.MessageUtil.version:type_name -> types.P2PVersion
-	50, // 3: types.MessageUtil.versionAck:type_name -> types.P2PVerAck
-	51, // 4: types.MessageUtil.external:type_name -> types.P2PExternalInfo
-	52, // 5: types.MessageUtil.getblocks:type_name -> types.P2PGetBlocks
-	53, // 6: types.MessageUtil.invdatas:type_name -> types.InvDatas
+	50, // 1: types.MessageUtil.peerInfo:type_name -> types.P2PPeerInfo
+	51, // 2: types.MessageUtil.version:type_name -> types.P2PVersion
+	52, // 3: types.MessageUtil.versionAck:type_name -> types.P2PVerAck
+	53, // 4: types.MessageUtil.external:type_name -> types.P2PExternalInfo
+	54, // 5: types.MessageUtil.getblocks:type_name -> types.P2PGetBlocks
+	55, // 6: types.MessageUtil.invdatas:type_name -> types.InvDatas
 	0,  // 7: types.MessagePeerInfoReq.messageData:type_name -> types.MessageComm
 	0,  // 8: types.MessagePeerInfoResp.messageData:type_name -> types.MessageComm
-	48, // 9: types.MessagePeerInfoResp.message:type_name -> types.P2PPeerInfo
+	50, // 9: types.MessagePeerInfoResp.message:type_name -> types.P2PPeerInfo
 	0,  // 10: types.MessageP2PVersionReq.messageData:type_name -> types.MessageComm
-	49, // 11: types.MessageP2PVersionReq.message:type_name -> types.P2PVersion
+	51, // 11: types.MessageP2PVersionReq.message:type_name -> types.P2PVersion
 	0,  // 12: types.MessageP2PVersionResp.messageData:type_name -> types.MessageComm
-	49, // 13: types.MessageP2PVersionResp.message:type_name -> types.P2PVersion
+	51, // 13: types.MessageP2PVersionResp.message:type_name -> types.P2PVersion
 	0,  // 14: types.MessagePingReq.messageData:type_name -> types.MessageComm
-	54, // 15: types.MessagePingReq.message:type_name -> types.P2PPing
+	56, // 15: types.MessagePingReq.message:type_name -> types.P2PPing
 	0,  // 16: types.MessagePingResp.messageData:type_name -> types.MessageComm
-	55, // 17: types.MessagePingResp.message:type_name -> types.P2PPong
+	57, // 17: types.MessagePingResp.message:type_name -> types.P2PPong
 	0,  // 18: types.MessageAddrReq.messageData:type_name -> types.MessageComm
-	56, // 19: types.MessageAddrReq.message:type_name -> types.P2PGetAddr
+	58, // 19: types.MessageAddrReq.message:type_name -> types.P2PGetAddr
 	0,  // 20: types.MessageAddrResp.messageData:type_name -> types.MessageComm
-	57, // 21: types.MessageAddrResp.message:type_name -> types.P2PAddr
+	59, // 21: types.MessageAddrResp.message:type_name -> types.P2PAddr
 	0,  // 22: types.MessageAddrList.messageData:type_name -> types.MessageComm
-	58, // 23: types.MessageAddrList.message:type_name -> types.P2PAddrList
+	60, // 23: types.MessageAddrList.message:type_name -> types.P2PAddrList
 	0,  // 24: types.MessageExternalNetReq.messageData:type_name -> types.MessageComm
 	0,  // 25: types.MessageExternalNetResp.messageData:type_name -> types.MessageComm
-	51, // 26: types.MessageExternalNetResp.message:type_name -> types.P2PExternalInfo
+	53, // 26: types.MessageExternalNetResp.message:type_name -> types.P2PExternalInfo
 	0,  // 27: types.MessageGetBlocksReq.messageData:type_name -> types.MessageComm
-	52, // 28: types.MessageGetBlocksReq.message:type_name -> types.P2PGetBlocks
+	54, // 28: types.MessageGetBlocksReq.message:type_name -> types.P2PGetBlocks
 	0,  // 29: types.MessageGetBlocksResp.messageData:type_name -> types.MessageComm
-	53, // 30: types.MessageGetBlocksResp.message:type_name -> types.InvDatas
+	55, // 30: types.MessageGetBlocksResp.message:type_name -> types.InvDatas
 	0,  // 31: types.MessageGetMempoolReq.messageData:type_name -> types.MessageComm
-	59, // 32: types.MessageGetMempoolReq.message:type_name -> types.P2PGetMempool
+	61, // 32: types.MessageGetMempoolReq.message:type_name -> types.P2PGetMempool
 	0,  // 33: types.MessageVersion.messageData:type_name -> types.MessageComm
-	60, // 34: types.MessageVersion.message:type_name -> types.Versions
+	62, // 34: types.MessageVersion.message:type_name -> types.Versions
 	0,  // 35: types.MessageHeaderReq.messageData:type_name -> types.MessageComm
-	61, // 36: types.MessageHeaderReq.message:type_name -> types.P2PGetHeaders
+	63, // 36: types.MessageHeaderReq.message:type_name -> types.P2PGetHeaders
 	0,  // 37: types.MessageHeaderResp.messageData:type_name -> types.MessageComm
-	62, // 38: types.MessageHeaderResp.message:type_name -> types.P2PHeaders
+	64, // 38: types.MessageHeaderResp.message:type_name -> types.P2PHeaders
 	0,  // 39: types.MessageInvDataReq.messageData:type_name -> types.MessageComm
-	63, // 40: types.MessageInvDataReq.message:type_name -> types.InvData
+	65, // 40: types.MessageInvDataReq.message:type_name -> types.InvData
 	0,  // 41: types.MessagePeerList.messageData:type_name -> types.MessageComm
-	64, // 42: types.MessagePeerList.message:type_name -> types.PeerList
+	66, // 42: types.MessagePeerList.message:type_name -> types.PeerList
 	0,  // 43: types.MessageNetInfo.messageData:type_name -> types.MessageComm
-	65, // 44: types.MessageNetInfo.message:type_name -> types.NodeNetInfo
+	67, // 44: types.MessageNetInfo.message:type_name -> types.NodeNetInfo
 	0,  // 45: types.MessagePeersReply.common:type_name -> types.MessageComm
-	66, // 46: types.MessagePeersReply.peersReply:type_name -> types.PeersReply
+	68, // 46: types.MessagePeersReply.peersReply:type_name -> types.PeersReply
 	0,  // 47: types.MessageBroadCast.common:type_name -> types.MessageComm
-	67, // 48: types.MessageBroadCast.message:type_name -> types.BroadCastData
+	69, // 48: types.MessageBroadCast.message:type_name -> types.BroadCastData
 	24, // 49: types.P2PRequest.headers:type_name -> types.P2PMessageHeaders
-	68, // 50: types.P2PRequest.reqChunkRecords:type_name -> types.ReqChunkRecords
-	69, // 51: types.P2PRequest.chunkInfoMsg:type_name -> types.ChunkInfoMsg
+	70, // 50: types.P2PRequest.reqChunkRecords:type_name -> types.ReqChunkRecords
+	71, // 51: types.P2PRequest.chunkInfoMsg:type_name -> types.ChunkInfoMsg
 	28, // 52: types.P2PRequest.chunkInfoList:type_name -> types.ChunkInfoList
-	70, // 53: types.P2PRequest.reqBlocks:type_name -> types.ReqBlocks
+	72, // 53: types.P2PRequest.reqBlocks:type_name -> types.ReqBlocks
 	26, // 54: types.P2PRequest.reqPeers:type_name -> types.ReqPeers
 	31, // 55: types.P2PRequest.peerInfo:type_name -> types.PeerInfo
 	32, // 56: types.P2PRequest.provider:type_name -> types.ChunkProvider
-	69, // 57: types.ChunkInfoList.items:type_name -> types.ChunkInfoMsg
+	71, // 57: types.ChunkInfoList.items:type_name -> types.ChunkInfoMsg
 	24, // 58: types.P2PResponse.headers:type_name -> types.P2PMessageHeaders
 	31, // 59: types.P2PResponse.closerPeers:type_name -> types.PeerInfo
-	71, // 60: types.P2PResponse.blockBody:type_name -> types.BlockBody
-	72, // 61: types.P2PResponse.blockHeaders:type_name -> types.Headers
-	73, // 62: types.P2PResponse.chunkRecords:type_name -> types.ChunkRecords
+	73, // 60: types.P2PResponse.blockBody:type_name -> types.BlockBody
+	74, // 61: types.P2PResponse.blockHeaders:type_name -> types.Headers
+	75, // 62: types.P2PResponse.chunkRecords:type_name -> types.ChunkRecords
 	30, // 63: types.P2PResponse.nodeInfo:type_name -> types.NodeInfo
 	31, // 64: types.P2PResponse.peerInfo:type_name -> types.PeerInfo
 	33, // 65: types.P2PResponse.peerInfos:type_name -> types.PeerInfoList
@@ -3548,11 +3682,13 @@ var file_p2pnext_proto_depIdxs = []int32{
 	31, // 67: types.PeerInfoList.peerInfos:type_name -> types.PeerInfo
 	44, // 68: types.NetProtocolInfos.protoinfo:type_name -> types.ProtocolInfo
 	46, // 69: types.Blacklist.blackinfo:type_name -> types.BlackInfo
-	70, // [70:70] is the sub-list for method output_type
-	70, // [70:70] is the sub-list for method input_type
-	70, // [70:70] is the sub-list for extension type_name
-	70, // [70:70] is the sub-list for extension extendee
-	0,  // [0:70] is the sub-list for field type_name
+	76, // 70: types.Statistical.peers:type_name -> types.Peer
+	67, // 71: types.Statistical.nodeinfo:type_name -> types.NodeNetInfo
+	72, // [72:72] is the sub-list for method output_type
+	72, // [72:72] is the sub-list for method input_type
+	72, // [72:72] is the sub-list for extension type_name
+	72, // [72:72] is the sub-list for extension extendee
+	0,  // [0:72] is the sub-list for field type_name
 }
 
 func init() { file_p2pnext_proto_init() }
@@ -4139,6 +4275,30 @@ func file_p2pnext_proto_init() {
 				return nil
 			}
 		}
+		file_p2pnext_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Statistical); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_p2pnext_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SetPeer); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	file_p2pnext_proto_msgTypes[1].OneofWrappers = []interface{}{
 		(*MessageUtil_PeerInfo)(nil),
@@ -4172,7 +4332,7 @@ func file_p2pnext_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_p2pnext_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   48,
+			NumMessages:   50,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

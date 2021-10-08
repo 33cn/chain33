@@ -1,8 +1,10 @@
 package peer
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -83,6 +85,9 @@ func (p *Protocol) handleStreamPeerInfoOld(stream network.Stream) {
 		Version:        peerInfo.Version,
 		LocalDBVersion: peerInfo.LocalDBVersion,
 		StoreDBVersion: peerInfo.StoreDBVersion,
+		RunningTime:    peerInfo.GetRunningTime(),
+		FullNode:       peerInfo.GetFullNode(),
+		Blocked:        peerInfo.GetBlocked(),
 	}
 	err = protocol.WriteStream(&types.MessagePeerInfoResp{
 		Message: pInfo,
@@ -260,5 +265,114 @@ func (p *Protocol) handleEventShowBlacklist(msg *queue.Message) {
 		}
 	}
 	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventShowBlacklist, peers))
+
+}
+
+func (p *Protocol) handleEventDialPeer(msg *queue.Message) {
+	maddr, addrinfo, err := p.setPeerCheck(msg)
+	if err != nil {
+		msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(p.Ctx, time.Second*2)
+	defer cancel()
+	paddr := msg.GetData().(*types.SetPeer).GetPeerAddr()
+
+	err = p.Host.Connect(ctx, *addrinfo)
+	if err != nil {
+		log.Error("handleEventDialPeer", "host.Connect", err.Error())
+		msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+		return
+	}
+
+	if msg.GetData().(*types.SetPeer).GetSeed() { //标记为seed节点
+		p.Host.Peerstore().AddAddr(addrinfo.ID, maddr, time.Hour)
+		p.Host.ConnManager().Protect(addrinfo.ID, "seed")
+		//加入种子列表
+		seedNum := len(p.SubConfig.Seeds)
+		var index int
+		var seed string
+		for index, seed = range p.SubConfig.Seeds {
+			if seed == paddr {
+				break
+			}
+		}
+		if index == seedNum-1 && seed != paddr {
+			p.SubConfig.Seeds = append(p.SubConfig.Seeds, paddr)
+		}
+	}
+
+	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: []byte("dial success")}))
+
+}
+
+func (p *Protocol) handleEventClosePeer(msg *queue.Message) {
+	var err error
+	defer func() {
+		if err != nil {
+			msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+		}
+	}()
+
+	setPeer, ok := msg.GetData().(*types.SetPeer)
+	if !ok {
+		err = types.ErrInvalidParam
+		return
+	}
+	pid, err := peer.Decode(setPeer.GetPid())
+	if err != nil {
+		return
+	}
+
+	//close peer
+	err = p.Host.Network().ClosePeer(pid)
+	if err != nil {
+		return
+	}
+
+	//delete peer from seedConf
+	if p.Host.ConnManager().IsProtected(peer.ID(setPeer.GetPid()), "seed") {
+		p.Host.ConnManager().Unprotect(peer.ID(setPeer.GetPid()), "seed")
+		//从种子列表中删除
+		for index, seed := range p.SubConfig.Seeds {
+			a, err := multiaddr.NewMultiaddr(seed)
+			if err == nil {
+				addrinfo, err := peer.AddrInfoFromP2pAddr(a)
+				if err == nil {
+					if addrinfo.ID.String() == setPeer.GetPid() {
+						//delete
+						p.SubConfig.Seeds = append(p.SubConfig.Seeds[:index], p.SubConfig.Seeds[index+1])
+					}
+				}
+			}
+
+		}
+	}
+	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: []byte(fmt.Sprintf("%v closed success", setPeer.GetPid()))}))
+}
+
+func (p *Protocol) setPeerCheck(msg *queue.Message) (multiaddr.Multiaddr, *peer.AddrInfo, error) {
+	var err error
+	setPeer, ok := msg.GetData().(*types.SetPeer)
+	if !ok {
+		err = types.ErrInvalidParam
+		return nil, nil, err
+	}
+
+	maddr, merr := multiaddr.NewMultiaddr(setPeer.GetPeerAddr())
+	if merr != nil {
+		log.Error("setPeerCheck", "NewMultiaddr", merr, "peerAddr", setPeer.GetPeerAddr())
+		err = merr
+		return nil, nil, err
+	}
+
+	addrinfo, perr := peer.AddrInfoFromP2pAddr(maddr)
+	if perr != nil {
+		log.Error("setPeerCheck", "AddrInfoFromP2pAddr", perr, "peerAddr", maddr.String())
+		err = perr
+		return nil, nil, err
+	}
+	return maddr, addrinfo, nil
 
 }

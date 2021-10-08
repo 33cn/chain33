@@ -65,6 +65,29 @@ func (_m *QueueProtocolAPI) Close() {
 	_m.Called()
 }
 
+// ClosePeer provides a mock function with given fields: in
+func (_m *QueueProtocolAPI) ClosePeer(in *types.SetPeer) (*types.Reply, error) {
+	ret := _m.Called(in)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.SetPeer) *types.Reply); ok {
+		r0 = rf(in)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.SetPeer) error); ok {
+		r1 = rf(in)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CloseQueue provides a mock function with given fields:
 func (_m *QueueProtocolAPI) CloseQueue() (*types.Reply, error) {
 	ret := _m.Called()
@@ -104,6 +127,29 @@ func (_m *QueueProtocolAPI) DelBlacklist(req *types.BlackPeer) (*types.Reply, er
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.BlackPeer) error); ok {
 		r1 = rf(req)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DialPeer provides a mock function with given fields: in
+func (_m *QueueProtocolAPI) DialPeer(in *types.SetPeer) (*types.Reply, error) {
+	ret := _m.Called(in)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.SetPeer) *types.Reply); ok {
+		r0 = rf(in)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.SetPeer) error); ok {
+		r1 = rf(in)
 	} else {
 		r1 = ret.Error(1)
 	}
