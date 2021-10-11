@@ -9,7 +9,6 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
-	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
@@ -145,7 +144,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 			case <-ticker.C:
 				p.refreshSelf()
 			case <-ticker2.C:
-				peers := p.RoutingTable.NearestPeers(kbt.ConvertPeerID(p.Host.ID()), p.RoutingTable.Size())
+				peers := p.RoutingTable.ListPeers()
 				if len(peers) <= maxPeers {
 					break
 				}
@@ -168,7 +167,11 @@ func InitProtocol(env *protocol.P2PEnv) {
 			case <-p.Ctx.Done():
 				return
 			case <-ticker1.C:
-				p.refreshPeerInfo(p.RoutingTable.NearestPeers(kbt.ConvertPeerID(p.Host.ID()), maxPeers))
+				peers := p.RoutingTable.ListPeers()
+				if len(peers) > maxPeers {
+					peers = peers[:maxPeers]
+				}
+				p.refreshPeerInfo(peers)
 			}
 		}
 	}()
