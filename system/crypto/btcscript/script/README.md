@@ -54,7 +54,8 @@
 |字段名称 |类型|含义
 |---|---|---|
 |walletRecoverParam|ReqGetWalletRecoverAddr|钱包找回信息结构
-|privKey|string|签名地址私钥, secp256k1算法, 16进制
+|signAddr|string|签名地址 
+|privKey|string|签名地址的私钥, secp256k1算法, 16进制, 不指定私钥时,将从本地钱包获取对应私钥
 |rawTx|string| 原始交易, 16进制
 
 
