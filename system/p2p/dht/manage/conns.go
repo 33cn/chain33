@@ -190,8 +190,10 @@ func (s *ConnManager) procConnections() {
 }
 
 func (s *ConnManager) procRoutingTable() {
-	if s.routingTable.Size() > len(s.host.Network().Peers())*4/5 {
-		return
+	for _, pid := range s.routingTable.ListPeers() {
+		if len(s.host.Network().ConnsToPeer(pid)) == 0 {
+			s.routingTable.RemovePeer(pid)
+		}
 	}
 	for _, pid := range s.host.Network().Peers() {
 		_, _ = s.routingTable.TryAddPeer(pid, true, true)
