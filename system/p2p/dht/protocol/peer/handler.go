@@ -137,7 +137,7 @@ func (p *Protocol) handleStreamVersionOld(stream network.Stream) {
 func (p *Protocol) handleEventPeerInfo(msg *queue.Message) {
 	// no more than 40 peers
 	peers := p.RoutingTable.ListPeers()
-	if len(peers) > maxPeers * 2 {
+	if len(peers) > maxPeers*2 {
 		peers = peers[:maxPeers*2]
 	}
 	var peerList types.PeerList

@@ -278,7 +278,7 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	if p.subCfg.MaxConnectNum > 0 { //如果不设置最大连接数量，默认允许dht自由连接并填充路由表
 		maxconnect := int(p.subCfg.MaxConnectNum)
 		minconnect := 20
-		if minconnect > maxconnect / 2 {
+		if minconnect > maxconnect/2 {
 			minconnect = maxconnect / 2
 		}
 
