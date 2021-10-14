@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/33cn/chain33/common/log"
+	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -58,8 +59,9 @@ func Run(RPCAddr, ParaName, name string) {
 	types.SetCliSysParam(chain33Cfg.GetTitle(), chain33Cfg)
 
 	rootCmd := &cobra.Command{
-		Use:   chain33Cfg.GetTitle() + "-cli",
-		Short: chain33Cfg.GetTitle() + " client tools",
+		Use:     chain33Cfg.GetTitle() + "-cli",
+		Short:   chain33Cfg.GetTitle() + " client tools",
+		Version: fmt.Sprintf("%s %s", version.GetVersion(), version.BuildTime),
 	}
 
 	closeCmd := &cobra.Command{
