@@ -26,14 +26,14 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.5.1
 	github.com/libp2p/go-libp2p-kad-dht v0.13.1
 	github.com/libp2p/go-libp2p-kbucket v0.4.7
-	github.com/libp2p/go-libp2p-pubsub v0.5.4
+	github.com/libp2p/go-libp2p-pubsub v0.5.5
 	github.com/libp2p/go-libp2p-swarm v0.5.3
 	github.com/libp2p/go-msgio v0.0.6
 	github.com/mattn/go-colorable v0.1.2
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.4.0
 	github.com/pkg/errors v0.9.1
-	github.com/qianlnk/pgbar v0.0.0-20210208085217-8c19b9f2477e // indirect
+	github.com/qianlnk/pgbar v0.0.0-20210208085217-8c19b9f2477e
 	github.com/qianlnk/to v0.0.0-20191230085244-91e712717368 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/rs/cors v1.6.0
