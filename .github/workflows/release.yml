@@ -19,6 +19,9 @@ jobs:
 
       - name: checkout repo
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          persist-credentials: false # <--- this
 
       - name: compile binary
         run: make all-arch
@@ -38,7 +41,7 @@ jobs:
             @semantic-release/changelog
             @semantic-release/git
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Do something when a new release published
         if: steps.semantic.outputs.new_release_published == 'true'
