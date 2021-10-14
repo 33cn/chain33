@@ -15,7 +15,7 @@ require (
 	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4
-	github.com/influxdata/influxdb v1.7.9
+	github.com/influxdata/influxdb v1.9.5
 	github.com/ipfs/go-log/v2 v2.3.0
 	github.com/kevinms/leakybucket-go v0.0.0-20200115003610-082473db97ca
 	github.com/libp2p/go-libp2p v0.15.0
@@ -29,7 +29,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.5.4
 	github.com/libp2p/go-libp2p-swarm v0.5.3
 	github.com/libp2p/go-msgio v0.0.6
-	github.com/mattn/go-colorable v0.1.2
+	github.com/mattn/go-colorable v0.1.8
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.4.1
 	github.com/pkg/errors v0.9.1
