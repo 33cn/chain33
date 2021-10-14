@@ -67,7 +67,7 @@ var (
 func RunChain33(name, defCfg string) {
 	flag.Parse()
 	if *versionCmd {
-		fmt.Println(version.GetVersion())
+		fmt.Println(fmt.Sprintf("%s %s", version.GetVersion(), version.BuildTime))
 		return
 	}
 	if *configPath == "" {

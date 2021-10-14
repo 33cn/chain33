@@ -18,6 +18,7 @@ var (
 	storeversion     = "1.0.0"
 	appversion       = "1.0.0"
 	GitCommit        string
+	BuildTime        string
 )
 
 //GetLocalDBKeyList 获取本地key列表
