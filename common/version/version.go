@@ -7,6 +7,7 @@ package version
 
 const version = "1.65.4"
 
+//var version key
 var (
 	WalletVerKey     = []byte("WalletVerKey")
 	BlockChainVerKey = []byte("BlockChainVerKey")
