@@ -5,7 +5,7 @@
 // Package version 软件版本号
 package version
 
-const version = "1.65.3"
+const version = "1.65.4"
 
 //var
 var (
