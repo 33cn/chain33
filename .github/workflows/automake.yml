@@ -1,0 +1,62 @@
+# This is a basic workflow that is manually triggered
+name: manually auto publish release
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+    inputs:
+      name:
+        # Friendly description to be shown in the UI instead of 'name'
+        description: 'auto make'
+        # Default value if no value is explicitly provided
+        default: 'push'
+        # Input has to be provided for the workflow to run
+        required: true
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  automake:
+    name: automake
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang env
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+        id: go
+
+      - name: checkout repo
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          persist-credentials: false # <--- this
+
+      - name: compile binary
+        run: make all-arch
+
+      - name : Upload artifact bin
+        uses: actions/upload-artifact@v2
+        with:
+          name: chain33-artifact
+          path: build/*.tar
+
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v2
+        id: semantic
+        with:
+          branch: master
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Do something when a new release published
+        if: steps.semantic.outputs.new_release_published == 'true'
+        run: |
+          echo ${{ steps.semantic.outputs.new_release_version }}
+          echo ${{ steps.semantic.outputs.new_release_major_version }}
+          echo ${{ steps.semantic.outputs.new_release_minor_version }}
+          echo ${{ steps.semantic.outputs.new_release_patch_version }}
