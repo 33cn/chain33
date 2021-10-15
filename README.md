@@ -168,7 +168,7 @@ make pull name=libangzhu b=chain33-p2p-listenPort
 make pullpush name=libangzhu b=chain33-p2p-listenPort
 ```
 
-## License
+## License 
 
 ```
 BSD 3-Clause License
