@@ -1,5 +1,12 @@
 changelog
 
+## [1.65.4](https://github.com/33cn/chain33/compare/v1.65.3...v1.65.4) (2021-10-15)
+
+
+### Bug Fixes
+
+* **doc:** release 1.65.4 ([4f53148](https://github.com/33cn/chain33/commit/4f531488049a79640121ba5d950166939dedaebd))
+
 # [1.66.0](https://github.com/33cn/chain33/compare/v1.65.2...v1.66.0) (2021-10-15)
 
 
