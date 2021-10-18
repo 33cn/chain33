@@ -5,7 +5,8 @@
 // Package version 软件版本号
 package version
 
-const version = "1.65.4"
+//Version chain33 version
+var Version = "1.65.4"
 
 //var version key
 var (
@@ -31,9 +32,9 @@ func GetLocalDBKeyList() [][]byte {
 //GetVersion 获取版本信息
 func GetVersion() string {
 	if GitCommit != "" {
-		return version + "-" + GitCommit
+		return Version + "-" + GitCommit
 	}
-	return version
+	return Version
 }
 
 //GetLocalDBVersion 数据库版本解析

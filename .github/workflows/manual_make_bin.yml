@@ -1,0 +1,32 @@
+# This is a basic workflow that is manually triggered
+name: manually make bin for all branch
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on: [push,pull_request]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  automake:
+    name: automake
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Golang env
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+        id: go
+
+      - name: checkout repo
+        uses: actions/checkout@v2
+
+      - name: compile binary
+        run: make all-arch
+
+      - name : Upload artifact bin
+        uses: actions/upload-artifact@v2
+        with:
+          name: chain33-artifact
+          path: |
+            build/*.tar.gz
+            build/*.zip
