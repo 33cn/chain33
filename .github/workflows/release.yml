@@ -23,21 +23,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false # <--- this
 
-      - name: compile binary
-        run: make all-arch
-
-      - name : Upload artifact bin
-        uses: actions/upload-artifact@v2
-        with:
-          name: chain33-artifact
-          path: build/*.tar
-
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v2
         id: semantic
         with:
           branch: master
           extra_plugins: |
+            @google/semantic-release-replace-plugin
+            @semantic-release/exec
             @semantic-release/changelog
             @semantic-release/git
         env:
