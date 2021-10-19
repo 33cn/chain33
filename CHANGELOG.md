@@ -1,5 +1,12 @@
 changelog
 
+## [1.65.5](https://github.com/33cn/chain33/compare/v1.65.4...v1.65.5) (2021-10-19)
+
+
+### Bug Fixes
+
+* Adjust github action ([9246b83](https://github.com/33cn/chain33/commit/9246b830a84d9a52ae140d09754ed71291c81548))
+
 ## [1.65.4](https://github.com/33cn/chain33/compare/v1.65.3...v1.65.4) (2021-10-15)
 
 
