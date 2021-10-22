@@ -78,5 +78,5 @@ type Driver struct {
 // RegOption  Register Driver可选参数，设置相关参数默认值
 type RegOption func(*Driver) error
 
-// NewOption New Crypto可选参数
-type NewOption func(*Driver) error
+// LoadOption load crypto可选参数
+type LoadOption func(*Driver) error
