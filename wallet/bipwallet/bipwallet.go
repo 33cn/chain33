@@ -84,7 +84,7 @@ func (w *HDWallet) NewKeyPair(index uint32) (priv, pub []byte, err error) {
 		return key.Key, key.PublicKey().Key, err
 	}
 
-	edcrypto, err := crypto.New(crypto.GetName(int(w.KeyType)))
+	edcrypto, err := crypto.Load(crypto.GetName(int(w.KeyType)), -1)
 	if err != nil {
 		return nil, nil, err
 	}
