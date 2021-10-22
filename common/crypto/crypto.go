@@ -131,15 +131,28 @@ func GetType(name string) int {
 	return 0
 }
 
-//New new
-func New(name string, options ...NewOption) (Crypto, error) {
+// Load 加载加密插件, 内部会检测在指定区块高度是否使能
+//
+// 不考虑使能情况, 只做插件加载, blockHeight传负值, 如-1
+func Load(name string, blockHeight int64) (Crypto, error) {
+	return load(name, WithLoadOptionEnableCheck(blockHeight))
+}
 
+// New new
+//
+// Deprecated: 加密插件已支持高度分叉配置, 使用Load接口替换
+func New(name string) (Crypto, error) {
+	return load(name)
+}
+
+// load crypto with defined options
+func load(name string, opts ...LoadOption) (Crypto, error) {
 	c, ok := drivers[name]
 	if !ok {
 		return nil, ErrUnknownDriver
 	}
 
-	for _, opt := range options {
+	for _, opt := range opts {
 		if err := opt(c); err != nil {
 			return nil, err
 		}

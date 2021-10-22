@@ -255,7 +255,7 @@ func TestRegister(t *testing.T) {
 }
 
 func getNewCryptoErr(name string, height int64) error {
-	_, err := crypto.New(name, crypto.WithNewOptionEnableCheck(height))
+	_, err := crypto.Load(name, height)
 	return err
 }
 
@@ -276,7 +276,8 @@ func TestInitCfg(t *testing.T) {
 	crypto.Init(cfg, nil)
 	must.NotNil(getNewCryptoErr(none.Name, 0))
 	must.Nil(getNewCryptoErr(none.Name, 100))
-	must.NotNil(getNewCryptoErr(secp256k1.Name, -1))
+	must.NotNil(getNewCryptoErr(secp256k1.Name, 0))
+	must.Nil(getNewCryptoErr(secp256k1.Name, -1))
 	must.NotNil(getNewCryptoErr(ed25519.Name, 10))
 }
 
