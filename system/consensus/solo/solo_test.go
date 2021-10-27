@@ -205,6 +205,7 @@ var (
 	txtype          *string
 	accountnum      *int
 	txsize          *int
+	port            *int
 )
 
 func init() {
@@ -218,6 +219,7 @@ func init() {
 	txtype = flag.String("txtype", "none", "set tx type, coins/none")
 	accountnum = flag.Int("accountnum", 10, "set account num for transfer bench, default 10")
 	txsize = flag.Int("txsize", 32, "set none tx size byte")
+	port = flag.Int("port", 9902, "set grpc port")
 	testing.Init()
 	flag.Parse()
 
@@ -272,7 +274,7 @@ func BenchmarkSolo(b *testing.B) {
 		cfg.GetModuleConfig().Mempool.MinTxFeeRate = 0
 		cfg.SetMinFee(0)
 	}
-	cfg.GetModuleConfig().RPC.GrpcBindAddr = "localhost:8802"
+	cfg.GetModuleConfig().RPC.GrpcBindAddr = fmt.Sprintf("localhost:%d", *port)
 	cfg.GetModuleConfig().Crypto.EnableTypes = []string{secp256k1.Name, none.Name}
 	subcfg := cfg.GetSubConfig()
 	coinSub, _ := types.ModifySubConfig(subcfg.Exec["coins"], "disableAddrReceiver", true)

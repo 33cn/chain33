@@ -512,7 +512,7 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.PeerList{}))
 			case types.EventGetNetInfo:
 				msg.Reply(client.NewMessage(p2pKey, types.EventPeerList, &types.NodeNetInfo{}))
-			case types.EventTxBroadcast, types.EventBlockBroadcast:
+			case types.EventTxBroadcast, types.EventBlockBroadcast, types.EventAddBlock:
 				client.FreeMessage(msg)
 			default:
 				msg.ReplyErr("p2p->Do not support "+types.GetEventName(int(msg.Ty)), types.ErrNotSupport)

@@ -53,7 +53,11 @@ func New(cfg *types.Consensus, sub []byte) queue.Module {
 	if subcfg.GenesisBlockTime == 0 {
 		subcfg.GenesisBlockTime = cfg.GenesisBlockTime
 	}
-	solo := &Client{c, &subcfg, time.Duration(subcfg.WaitTxMs) * time.Millisecond}
+	solo := &Client{
+		BaseClient: c,
+		subcfg:     &subcfg,
+		sleepTime:  time.Duration(subcfg.WaitTxMs) * time.Millisecond,
+	}
 	c.SetChild(solo)
 	return solo
 }
