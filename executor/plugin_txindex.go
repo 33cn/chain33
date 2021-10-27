@@ -88,7 +88,7 @@ func getTxIndex(executor *executor, tx *types.Transaction, receipt *types.Receip
 		var err error
 		txinf.Assets, err = ety.GetAssets(tx)
 		if err != nil {
-			elog.Error("getTxIndex ", "GetAssets err", err)
+			elog.Debug("getTxIndex ", "GetAssets err", err)
 		}
 	}
 
