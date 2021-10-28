@@ -167,6 +167,8 @@ func (chain *BlockChain) deleteBlockBody(height int64) (kvs []*types.KeyValue, e
 		chainlog.Error("deleteBlockBody delBlockBodyTable", "height", height, "error", err)
 		return nil, err
 	}
+	//删除区块的同时，删除这些区块的total difficulty记录
+	kvs = append(kvs, &types.KeyValue{Key: append(tdPrefix, hash...)})
 	return kvs, err
 }
 
