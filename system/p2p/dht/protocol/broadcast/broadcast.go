@@ -8,8 +8,11 @@ package broadcast
 import (
 	"context"
 	"encoding/hex"
+	"strings"
 	"sync"
 	"sync/atomic"
+
+	"github.com/33cn/chain33/system/p2p/dht/extension"
 
 	"github.com/33cn/chain33/common/pubsub"
 
@@ -68,19 +71,20 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 	p.txFilter = utils.NewFilter(txRecvFilterCacheNum)
 	p.blockFilter = utils.NewFilter(blockRecvFilterCacheNum)
 
-	p.ps = pubsub.NewPubSub(10000)
+	p.ps = pubsub.NewPubSub(1024)
 	// 单独复制一份， 避免data race
 	subCfg := *(env.SubConfig)
 	p.p2pCfg = &subCfg
 
 	//注册事件处理函数
-	protocol.RegisterEventHandler(types.EventTxBroadcast, p.handleBroadCastEvent)
-	protocol.RegisterEventHandler(types.EventBlockBroadcast, p.handleBroadCastEvent)
+	protocol.RegisterEventHandler(types.EventTxBroadcast, p.handleBroadcastSend)
+	protocol.RegisterEventHandler(types.EventBlockBroadcast, p.handleBroadcastSend)
 	protocol.RegisterEventHandler(types.EventIsSync, p.handleIsSyncEvent)
 	protocol.RegisterEventHandler(types.EventAddBlock, p.handleAddBlock)
 
 	// pub sub broadcast
 	newPubSub(p).broadcast()
+	newLtBroadcast(p).broadcast()
 }
 
 func (p *broadcastProtocol) getSyncStatus() bool {
@@ -100,20 +104,27 @@ func (p *broadcastProtocol) handleAddBlock(msg *queue.Message) {
 }
 
 // 处理系统广播发送事件，交易及区块
-func (p *broadcastProtocol) handleBroadCastEvent(msg *queue.Message) {
+func (p *broadcastProtocol) handleBroadcastSend(msg *queue.Message) {
 
 	var topic, hash string
 	var filter *utils.Filterdata
-	if tx, ok := msg.GetData().(*types.Transaction); ok {
+	broadcastData := msg.GetData().(types.Message)
+	if tx, ok := broadcastData.(*types.Transaction); ok {
 		hash = hex.EncodeToString(tx.Hash())
 		filter = p.txFilter
 		topic = psTxTopic
-	} else if block, ok := msg.GetData().(*types.Block); ok {
+	} else if block, ok := broadcastData.(*types.Block); ok {
 		hash = hex.EncodeToString(block.Hash(p.ChainCfg))
 		filter = p.blockFilter
 		topic = psBlockTopic
+		// light block
+		if block.Size() > int(p.SubConfig.MinLtBlockSize) &&
+			len(block.Txs) > 0 {
+			broadcastData = p.buildLtBlock(block)
+			topic = psLtBlockTopic
+		}
 	} else {
-		log.Error("handleBroadCastEvent", "receive unexpect msg", msg)
+		log.Error("handleBroadcastSend", "receive unexpect msg", msg)
 		return
 	}
 	//目前p2p可能存在多个插件并存，dht和gossip，消息回收容易混乱，需要进一步梳理 TODO：p2p模块热点区域消息回收
@@ -122,8 +133,58 @@ func (p *broadcastProtocol) handleBroadCastEvent(msg *queue.Message) {
 	// pub sub只需要转发本节点产生的交易或区块
 	if !filter.Contains(hash) {
 		filter.Add(hash, struct{}{})
-		p.ps.FIFOPub(msg.GetData(), topic)
+		p.ps.Pub(psMsg{msg: broadcastData, topic: topic}, psBroadcast)
 	}
+}
+
+func (p *broadcastProtocol) buildLtBlock(block *types.Block) *types.LightBlock {
+
+	ltBlock := &types.LightBlock{}
+	ltBlock.Header = block.GetHeader(p.ChainCfg)
+	ltBlock.Header.Signature = block.Signature
+	ltBlock.MinerTx = block.Txs[0]
+	for _, tx := range block.Txs[1:] {
+		//tx short hash
+		ltBlock.STxHashes = append(ltBlock.STxHashes, types.CalcTxShortHash(tx.Hash()))
+	}
+	return ltBlock
+}
+
+func (p *broadcastProtocol) handleBroadcastReceive(topic string, msg types.Message, rawData extension.SubMsg) {
+
+	var err error
+	var hash string
+	// 将接收的交易或区块 转发到内部对应模块
+
+	if topic == psTxTopic {
+		tx := msg.(*types.Transaction)
+		hash = hex.EncodeToString(tx.Hash())
+		err = p.postMempool(hash, msg.(*types.Transaction))
+
+	} else if topic == psBlockTopic {
+		block := msg.(*types.Block)
+		hash = hex.EncodeToString(block.Hash(p.ChainCfg))
+		log.Debug("recvBlkPs", "height", block.GetHeight(), "hash", hash, "from", rawData.ReceivedFrom.String())
+		err = p.postBlockChain(hash, rawData.ReceivedFrom.String(), block)
+
+	} else if topic == psLtBlockTopic {
+
+	} else if strings.HasPrefix(topic, psPeerTopicPrefix) {
+
+	}
+
+	if err != nil {
+		log.Error("receivePs", "topic", topic, "hash", hash, "post msg err", err)
+	}
+}
+
+func (p *broadcastProtocol) pubPeerMsg(peerID peer.ID, msgID int32, msg types.Message) {
+	pubMsg := &types.PeerPubSubMsg{
+		MsgID:    msgID,
+		ProtoMsg: types.Encode(msg),
+	}
+	peerTopic := psPeerTopicPrefix + peerID.String()
+	p.ps.Pub(psMsg{msg: pubMsg, topic: peerTopic}, psBroadcast)
 }
 
 func (p *broadcastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {

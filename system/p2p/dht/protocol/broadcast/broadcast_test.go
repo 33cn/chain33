@@ -129,7 +129,7 @@ func testHandleEvent(protocol *broadcastProtocol, msg *queue.Message) {
 		}
 	}()
 
-	protocol.handleBroadCastEvent(msg)
+	protocol.handleBroadcastSend(msg)
 }
 
 func TestBroadCastEvent(t *testing.T) {

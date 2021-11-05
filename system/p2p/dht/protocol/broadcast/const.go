@@ -52,3 +52,9 @@ const (
 var (
 	errSnappyDecode = errors.New("errSnappyDecode")
 )
+
+// peer msg id
+const (
+	blockReqMsgID = iota + 1
+	blockRespMsgID
+)
