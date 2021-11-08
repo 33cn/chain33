@@ -570,7 +570,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	storeBatch.Set(blockLastHeight, heightbytes)
 
 	//存储block hash和height的对应关系，便于通过hash查询block
-	storeBatch.Set(calcHashToHeightKey(hash), heightbytes)
+	//storeBatch.Set(calcHashToHeightKey(hash), heightbytes)
 
 	//存储block height和block hash的对应关系，便于通过height查询block
 	storeBatch.Set(calcHeightToHashKey(height), hash)
@@ -618,7 +618,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 	storeBatch.Set(blockLastHeight, bytes)
 
 	//删除block hash和height的对应关系
-	storeBatch.Delete(calcHashToHeightKey(hash))
+	//storeBatch.Delete(calcHashToHeightKey(hash))
 
 	//删除block height和block hash的对应关系，便于通过height查询block
 	storeBatch.Delete(calcHeightToHashKey(height))
@@ -748,17 +748,17 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 }
 
 //GetHeightByBlockHash 从db数据库中获取指定hash对应的block高度
-func (bs *BlockStore) GetHeightByBlockHash(hash []byte) (int64, error) {
-
-	heightbytes, err := bs.db.Get(calcHashToHeightKey(hash))
-	if heightbytes == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("GetHeightByBlockHash", "error", err)
-		}
-		return -1, types.ErrHashNotExist
-	}
-	return decodeHeight(heightbytes)
-}
+//func (bs *BlockStore) GetHeightByBlockHash(hash []byte) (int64, error) {
+//
+//	heightbytes, err := bs.db.Get(calcHashToHeightKey(hash))
+//	if heightbytes == nil || err != nil {
+//		if err != dbm.ErrNotFoundInDb {
+//			storeLog.Error("GetHeightByBlockHash", "error", err)
+//		}
+//		return -1, types.ErrHashNotExist
+//	}
+//	return decodeHeight(heightbytes)
+//}
 
 func decodeHeight(heightbytes []byte) (int64, error) {
 	var height types.Int64
@@ -767,7 +767,7 @@ func decodeHeight(heightbytes []byte) (int64, error) {
 		//may be old database format json...
 		err = json.Unmarshal(heightbytes, &height.Data)
 		if err != nil {
-			storeLog.Error("GetHeightByBlockHash Could not unmarshal height bytes", "error", err)
+			storeLog.Error("decodeHeight could not unmarshal height bytes", "error", err)
 			return -1, types.ErrUnmarshal
 		}
 	}
