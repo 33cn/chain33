@@ -58,6 +58,7 @@ type broadcastProtocol struct {
 	syncStatus bool
 	currHeight int64
 	lock       sync.RWMutex
+	ltB        *ltBroadcast
 }
 
 // InitProtocol init protocol
@@ -84,7 +85,8 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 
 	// pub sub broadcast
 	newPubSub(p).broadcast()
-	newLtBroadcast(p).broadcast()
+	p.ltB = newLtBroadcast(p)
+	p.ltB.broadcast()
 }
 
 func (p *broadcastProtocol) getSyncStatus() bool {
@@ -101,6 +103,10 @@ func (p *broadcastProtocol) handleIsSyncEvent(msg *queue.Message) {
 
 func (p *broadcastProtocol) handleAddBlock(msg *queue.Message) {
 	atomic.StoreInt64(&p.currHeight, msg.GetData().(*types.Block).GetHeight())
+}
+
+func (p *broadcastProtocol) getCurrentHeight() int64 {
+	return atomic.LoadInt64(&p.currHeight)
 }
 
 // 处理系统广播发送事件，交易及区块
@@ -154,8 +160,13 @@ func (p *broadcastProtocol) handleBroadcastReceive(topic string, msg types.Messa
 
 	var err error
 	var hash string
+	receiveFrom := rawData.ReceivedFrom
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("handleReceive_Panic", "topic", topic, "from", peer.ID(rawData.From).String(), "recoverErr", r)
+		}
+	}()
 	// 将接收的交易或区块 转发到内部对应模块
-
 	if topic == psTxTopic {
 		tx := msg.(*types.Transaction)
 		hash = hex.EncodeToString(tx.Hash())
@@ -164,13 +175,16 @@ func (p *broadcastProtocol) handleBroadcastReceive(topic string, msg types.Messa
 	} else if topic == psBlockTopic {
 		block := msg.(*types.Block)
 		hash = hex.EncodeToString(block.Hash(p.ChainCfg))
-		log.Debug("recvBlkPs", "height", block.GetHeight(), "hash", hash, "from", rawData.ReceivedFrom.String())
-		err = p.postBlockChain(hash, rawData.ReceivedFrom.String(), block)
+		log.Debug("recvBlkPs", "height", block.GetHeight(), "hash", hash)
+		err = p.postBlockChain(hash, receiveFrom.String(), block)
 
 	} else if topic == psLtBlockTopic {
+		lb := msg.(*types.LightBlock)
+		p.ltB.addLtBlock(lb, receiveFrom)
+		log.Debug("recvBlkPs", "height", lb.GetHeader().GetHeight())
 
-	} else if strings.HasPrefix(topic, psPeerTopicPrefix) {
-
+	} else if strings.HasPrefix(topic, psPeerMsgTopicPrefix) {
+		err = p.handlePeerMsg(msg.(*types.PeerPubSubMsg), receiveFrom)
 	}
 
 	if err != nil {
@@ -178,12 +192,39 @@ func (p *broadcastProtocol) handleBroadcastReceive(topic string, msg types.Messa
 	}
 }
 
+func (p *broadcastProtocol) handlePeerMsg(msg *types.PeerPubSubMsg, pid peer.ID) error {
+	var err error
+	from := pid.String()
+	switch msg.GetMsgID() {
+	case blockReqMsgID:
+		req := &types.ReqInt{}
+		err = types.Decode(msg.ProtoMsg, req)
+		log.Debug("recvBlkReq", "height", req.GetHeight(), "from", from)
+		if err == nil {
+			p.ltB.addBlockRequest(req.Height, pid)
+		}
+	case blockRespMsgID:
+		block := &types.Block{}
+		err = types.Decode(msg.ProtoMsg, block)
+		hash := hex.EncodeToString(block.Hash(p.ChainCfg))
+
+		log.Debug("recvBlkResp", "height", block.GetHeight(), "hash", hash, "from", from)
+		err = p.postBlockChain(hash, from, block)
+	default:
+		err = types.ErrActionNotSupport
+	}
+	if err != nil {
+		log.Error("handlePeerMsg", "msgID", msg.GetMsgID(), "err", err)
+	}
+	return err
+}
+
 func (p *broadcastProtocol) pubPeerMsg(peerID peer.ID, msgID int32, msg types.Message) {
 	pubMsg := &types.PeerPubSubMsg{
 		MsgID:    msgID,
 		ProtoMsg: types.Encode(msg),
 	}
-	peerTopic := psPeerTopicPrefix + peerID.String()
+	peerTopic := psPeerMsgTopicPrefix + peerID.String()
 	p.ps.Pub(psMsg{msg: pubMsg, topic: peerTopic}, psBroadcast)
 }
 

@@ -18,12 +18,12 @@ import (
 
 const (
 	//监听发布给本节点的信息, 以pid作为topic
-	psBroadcast        = "ps-broadcast"
-	psPeerTopicPrefix  = "peer-msg/"
-	psTxTopic          = "tx/v1.0.0"
-	psBlockTopic       = "block/v1.0.0"
-	psLtBlockTopic     = "ltblock/v1.0"
-	blkHeaderCacheSize = 128
+	psBroadcast          = "ps-broadcast"
+	psPeerMsgTopicPrefix = "peermsg/"
+	psTxTopic            = "tx/v1.0.0"
+	psBlockTopic         = "block/v1.0.0"
+	psLtBlockTopic       = "ltblk/v1.0"
+	blkHeaderCacheSize   = 128
 )
 
 // 基于libp2p pubsub插件广播
@@ -44,7 +44,7 @@ type psMsg struct {
 func newPubSub(b *broadcastProtocol) *pubSub {
 	p := &pubSub{broadcastProtocol: b}
 	p.blkHeaderCache = make(map[int64]*types.Header)
-	p.peerTopic = psPeerTopicPrefix + b.Host.ID().String()
+	p.peerTopic = psPeerMsgTopicPrefix + b.Host.ID().String()
 	return p
 }
 

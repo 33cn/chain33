@@ -5,8 +5,11 @@
 package broadcast
 
 import (
+	"bytes"
 	"container/list"
+	"encoding/hex"
 	"sync"
+	"time"
 
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -14,116 +17,234 @@ import (
 
 type ltBroadcast struct {
 	*broadcastProtocol
-	ltBlockList      *list.List
+	pendBlockList    *list.List
 	blockRequestList *list.List
-	ltBlockLock      sync.RWMutex
+	pdBlockLock      sync.RWMutex
 	blockReqLock     sync.RWMutex
 }
 
 // 等待组装的轻区块信息
-type lightBlock struct {
+type pendBlock struct {
 	fromPeer          peer.ID
 	receiveTimeStamp  int64
-	totalBlock        *types.Block
-	ltBlock           *types.LightBlock
+	block             *types.Block
+	blockHash         []byte
+	sTxHashes         []string
 	notExistTxHashes  []string
 	notExistTxIndices []int
 }
 
 // 获取区块请求
 type blockRequest struct {
-	fromPeer  peer.ID
-	blockHash []byte
+	fromPeer    peer.ID
+	blockHeight int64
 }
 
 func newLtBroadcast(b *broadcastProtocol) *ltBroadcast {
 	l := &ltBroadcast{broadcastProtocol: b}
-	l.ltBlockList = list.New()
+	l.pendBlockList = list.New()
 	l.blockRequestList = list.New()
 	return l
 }
 
 func (l *ltBroadcast) broadcast() {
 
-	go l.handleLtBlockList()
-	go l.handleBlockRequestList()
+	go l.pendBlockLoop()
+	go l.blockRequestLoop()
 }
 
-const (
-	defaultLtBlockTimeout = 2 //seconds
-)
+func (l *ltBroadcast) buildPendBlock(pd *pendBlock) bool {
 
-func (l *ltBroadcast) buildTotalBlock(ltBlock *lightBlock) bool {
-
-	if len(ltBlock.notExistTxHashes) == 0 {
+	if len(pd.sTxHashes) == 0 {
 		return true
+	}
+	pd.notExistTxHashes = pd.notExistTxHashes[:0]
+	pd.notExistTxIndices = pd.notExistTxIndices[:0]
+	for i, tx := range pd.block.GetTxs() {
+		if tx == nil {
+			pd.notExistTxIndices = append(pd.notExistTxIndices, i)
+			pd.notExistTxHashes = append(pd.notExistTxHashes, pd.sTxHashes[i])
+		}
 	}
 
 	//get tx list from mempool
 	resp, err := l.P2PEnv.QueryModule("mempool", types.EventTxListByHash,
-		&types.ReqTxHashList{Hashes: ltBlock.notExistTxHashes, IsShortHash: true})
+		&types.ReqTxHashList{Hashes: pd.notExistTxHashes, IsShortHash: true})
 	if err != nil {
-		log.Error("buildTotalBlock", "queryTxListByHashErr", err)
+		log.Error("buildPendBlock", "queryTxListByHashErr", err)
 		return false
 	}
 
 	txList, ok := resp.(*types.ReplyTxList)
 	if !ok {
-		log.Error("buildTotalBlock", "queryMemPool", "nilReplyTxList")
+		log.Error("buildPendBlock", "queryMemPool", "nilReplyTxList")
 		return false
 	}
 
-	index := 0
-	for _, tx := range ltBlock.totalBlock.GetTxs() {
-		if index > len(txList.GetTxs()) {
-			break
-		}
-
+	for i := 0; i < len(txList.GetTxs()); i++ {
+		tx := txList.GetTxs()[i]
 		if tx == nil {
-			tx = txList.GetTxs()[index]
-			index++
+			continue
+		}
+		index := pd.notExistTxIndices[i]
+		pd.block.GetTxs()[index] = tx
+		// 交易组处理
+		group, _ := tx.GetTxGroup()
+		// 交易组中的其他交易, 依次添加到区块交易列表中
+		for j, tx := range group.GetTxs() {
+			pd.block.GetTxs()[index+j] = tx
 		}
 	}
-	return true
+
+	if bytes.Equal(pd.blockHash, pd.block.Hash(l.ChainCfg)) {
+		blockHashHex := hex.EncodeToString(pd.blockHash)
+		log.Debug("buildLtBlock", "height", pd.block.GetHeight(), "hash", blockHashHex,
+			"wait(s)", types.Now().Unix()-pd.receiveTimeStamp)
+		_ = l.postBlockChain(blockHashHex, pd.fromPeer.String(), pd.block)
+		return true
+	}
+	return false
 }
 
 func (l *ltBroadcast) addLtBlock(ltBlock *types.LightBlock, receiveFrom peer.ID) {
 
 	//组装block
 	block := &types.Block{}
-	block.SetHeader(ltBlock.Header)
-	block.Txs = make([]*types.Transaction, 0, ltBlock.Header.TxCount)
+	block.SetHeader(ltBlock.GetHeader())
+	txCount := ltBlock.GetHeader().GetTxCount()
+	block.Txs = make([]*types.Transaction, txCount)
 	//add miner tx
-	block.Txs = append(block.Txs, ltBlock.MinerTx)
+	block.Txs[0] = ltBlock.MinerTx
 
-	lb := &lightBlock{
-		fromPeer:         receiveFrom,
-		totalBlock:       block,
-		ltBlock:          ltBlock,
-		receiveTimeStamp: types.Now().Unix(),
-		notExistTxHashes: ltBlock.STxHashes,
+	pd := &pendBlock{
+		fromPeer:          receiveFrom,
+		block:             block,
+		sTxHashes:         ltBlock.GetSTxHashes(),
+		receiveTimeStamp:  types.Now().Unix(),
+		blockHash:         ltBlock.GetHeader().GetHash(),
+		notExistTxIndices: make([]int, txCount),
+		notExistTxHashes:  make([]string, txCount),
 	}
 
-	l.ltBlockLock.Lock()
-	defer l.ltBlockLock.Unlock()
+	if l.buildPendBlock(pd) {
+		return
+	}
 
-	l.ltBlockList.PushBack(lb)
+	l.pdBlockLock.Lock()
+	defer l.pdBlockLock.Unlock()
+
+	l.pendBlockList.PushBack(pd)
 }
 
-func (l *ltBroadcast) addBlockRequest(req *types.ReqBytes, receiveFrom peer.ID) {
+const (
+	defaultLtBlockTimeout = 2 //seconds
+)
 
+func (l *ltBroadcast) buildPendList() []*pendBlock {
+
+	l.pdBlockLock.Lock()
+	defer l.pdBlockLock.Unlock()
+
+	removeItems := make([]*list.Element, 0)
+	timeoutBlocks := make([]*pendBlock, 0)
+	for it := l.pendBlockList.Front(); it != nil; it = it.Next() {
+		pd := it.Value.(*pendBlock)
+		if l.buildPendBlock(pd) {
+			removeItems = append(removeItems, it)
+			continue
+		}
+		if types.Now().Unix()-pd.receiveTimeStamp > defaultLtBlockTimeout {
+			removeItems = append(removeItems, it)
+			timeoutBlocks = append(timeoutBlocks, pd)
+		}
+	}
+	for _, item := range removeItems {
+		l.pendBlockList.Remove(item)
+	}
+	return timeoutBlocks
 }
 
-func (l *ltBroadcast) handleLtBlockList() {
+func (l *ltBroadcast) pendBlockLoop() {
 
+	ticker := time.NewTicker(time.Millisecond * 200)
 	for {
 		select {
 		case <-l.Ctx.Done():
+			ticker.Stop()
 			return
+		case <-ticker.C:
+			pdBlocks := l.buildPendList()
+			for _, pd := range pdBlocks {
+				l.pubPeerMsg(pd.fromPeer, blockReqMsgID, &types.ReqInt{Height: pd.block.GetHeight()})
+			}
 		}
 	}
 }
 
-func (l *ltBroadcast) handleBlockRequestList() {
+func (l *ltBroadcast) handleBlockReq(req *blockRequest) bool {
+	// 当前高度小于请求高度, 继续等待
+	if l.getCurrentHeight() < req.blockHeight {
+		return false
+	}
+	// 向blockchain模块请求区块
+	details, err := l.API.GetBlocks(&types.ReqBlocks{Start: req.blockHeight, End: req.blockHeight})
+	if err != nil {
+		log.Error("handleBlockReq", "height", req.blockHeight, "get block err", err)
+	} else {
+		l.pubPeerMsg(req.fromPeer, blockRespMsgID, details.GetItems()[0].Block)
+	}
 
+	return true
+}
+
+func (l *ltBroadcast) addBlockRequest(height int64, receiveFrom peer.ID) {
+
+	if height <= 0 {
+		return
+	}
+	req := &blockRequest{
+		blockHeight: height,
+		fromPeer:    receiveFrom,
+	}
+
+	if l.handleBlockReq(req) {
+		return
+	}
+
+	l.blockReqLock.Lock()
+	defer l.blockReqLock.Unlock()
+	l.blockRequestList.PushBack(req)
+}
+
+func (l *ltBroadcast) handleBlockReqList() {
+	l.blockReqLock.Lock()
+	defer l.blockReqLock.Unlock()
+
+	removeItems := make([]*list.Element, 0)
+	for it := l.blockRequestList.Front(); it != nil; it = it.Next() {
+
+		req := it.Value.(*blockRequest)
+		if l.handleBlockReq(req) {
+			removeItems = append(removeItems, it)
+		}
+	}
+
+	for _, item := range removeItems {
+		l.blockRequestList.Remove(item)
+	}
+
+}
+
+func (l *ltBroadcast) blockRequestLoop() {
+
+	ticker := time.NewTicker(time.Millisecond * 200)
+	for {
+		select {
+		case <-l.Ctx.Done():
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			l.handleBlockReqList()
+		}
+	}
 }
