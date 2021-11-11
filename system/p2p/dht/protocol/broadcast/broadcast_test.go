@@ -173,13 +173,3 @@ func TestBroadCastReceive(t *testing.T) {
 	require.Equal(t, 0, p.ltB.pendBlockList.Len())
 	require.Equal(t, 0, p.ltB.blockRequestList.Len())
 }
-
-func Test_util(t *testing.T) {
-	proto := newTestProtocol()
-	exist := addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid1")
-	assert.False(t, exist)
-	exist = addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid2")
-	assert.False(t, exist)
-	exist = addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid1")
-	assert.True(t, exist)
-}
