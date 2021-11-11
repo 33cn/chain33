@@ -60,7 +60,7 @@ func (l *ltBroadcast) buildPendBlock(pd *pendBlock) bool {
 	}
 	pd.notExistTxHashes = pd.notExistTxHashes[:0]
 	pd.notExistTxIndices = pd.notExistTxIndices[:0]
-	for i, tx := range pd.block.GetTxs() {
+	for i, tx := range pd.block.GetTxs()[1:] {
 		if tx == nil {
 			pd.notExistTxIndices = append(pd.notExistTxIndices, i)
 			pd.notExistTxHashes = append(pd.notExistTxHashes, pd.sTxHashes[i])
@@ -150,10 +150,12 @@ func (l *ltBroadcast) buildPendList() []*pendBlock {
 	for it := l.pendBlockList.Front(); it != nil; it = it.Next() {
 		pd := it.Value.(*pendBlock)
 		if l.buildPendBlock(pd) {
+			log.Debug("buildPendSuccess", "height", pd.block.GetHeight(), "wait", types.Now().Unix()-pd.receiveTimeStamp)
 			removeItems = append(removeItems, it)
 			continue
 		}
 		if types.Now().Unix()-pd.receiveTimeStamp > defaultLtBlockTimeout {
+			log.Debug("buildPendTimeout", "height", pd.block.GetHeight())
 			removeItems = append(removeItems, it)
 			timeoutBlocks = append(timeoutBlocks, pd)
 		}
