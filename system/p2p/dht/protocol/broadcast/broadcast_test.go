@@ -118,8 +118,8 @@ func newTestProtocol() *broadcastProtocol {
 func TestBroadCastProtocol_InitProtocol(t *testing.T) {
 
 	protocol := newTestProtocol()
-	assert.Equal(t, defaultMinLtBlockSize, int(protocol.p2pCfg.MinLtBlockSize))
-	assert.Equal(t, defaultLtTxBroadCastTTL, int(protocol.p2pCfg.LightTxTTL))
+	assert.Equal(t, defaultMinLtBlockSize, protocol.cfg.MinLtBlockSize)
+	assert.Equal(t, defaultLtBlockTimeout, int(protocol.cfg.LtBlockPendTimeout))
 }
 
 func testHandleEvent(protocol *broadcastProtocol, msg *queue.Message) {

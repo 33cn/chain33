@@ -44,7 +44,7 @@ type psMsg struct {
 func newPubSub(b *broadcastProtocol) *pubSub {
 	p := &pubSub{broadcastProtocol: b}
 	p.blkHeaderCache = make(map[int64]*types.Header)
-	p.peerTopic = psPeerMsgTopicPrefix + b.Host.ID().String()
+	p.peerTopic = p.getPeerTopic(p.Host.ID())
 	return p
 }
 

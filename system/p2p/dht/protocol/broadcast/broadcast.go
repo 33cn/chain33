@@ -46,14 +46,9 @@ type broadcastProtocol struct {
 	txSendFilter    *utils.Filterdata
 	blockSendFilter *utils.Filterdata
 	ltBlockCache    *utils.SpaceLimitCache
-	p2pCfg          *p2pty.P2PSubConfig
+	cfg             p2pty.BroadcastConfig
 	broadcastPeers  map[peer.ID]context.CancelFunc
 	ps              *pubsub.PubSub
-	exitPeer        chan peer.ID
-	errPeer         chan peer.ID
-	// 接收V1版本节点
-	peerV1    chan peer.ID
-	peerV1Num int32
 
 	syncStatus bool
 	currHeight int64
@@ -67,15 +62,30 @@ func InitProtocol(env *protocol.P2PEnv) {
 }
 
 func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
-	p.P2PEnv = env
-	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
-	p.txFilter = utils.NewFilter(txRecvFilterCacheNum)
-	p.blockFilter = utils.NewFilter(blockRecvFilterCacheNum)
 
+	p.P2PEnv = env
 	p.ps = pubsub.NewPubSub(1024)
 	// 单独复制一份， 避免data race
-	subCfg := *(env.SubConfig)
-	p.p2pCfg = &subCfg
+	p.cfg = env.SubConfig.Broadcast
+
+	// set default params
+	if p.cfg.TxFilterLen <= 0 {
+		p.cfg.TxFilterLen = txRecvFilterCacheNum
+	}
+	if p.cfg.BlockFilterLen <= 0 {
+		p.cfg.BlockFilterLen = blockRecvFilterCacheNum
+	}
+	if p.cfg.MinLtBlockSize <= 0 {
+		p.cfg.MinLtBlockSize = defaultMinLtBlockSize
+	}
+
+	if p.cfg.LtBlockPendTimeout <= 0 {
+		p.cfg.LtBlockPendTimeout = defaultLtBlockTimeout
+	}
+
+	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
+	p.txFilter = utils.NewFilter(p.cfg.TxFilterLen)
+	p.blockFilter = utils.NewFilter(p.cfg.BlockFilterLen)
 
 	//注册事件处理函数
 	protocol.RegisterEventHandler(types.EventTxBroadcast, p.handleBroadcastSend)
@@ -85,8 +95,10 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 
 	// pub sub broadcast
 	newPubSub(p).broadcast()
-	p.ltB = newLtBroadcast(p)
-	p.ltB.broadcast()
+	if !p.cfg.DisableLtBlock {
+		p.ltB = newLtBroadcast(p)
+		p.ltB.broadcast()
+	}
 }
 
 func (p *broadcastProtocol) getSyncStatus() bool {
@@ -124,8 +136,9 @@ func (p *broadcastProtocol) handleBroadcastSend(msg *queue.Message) {
 		filter = p.blockFilter
 		topic = psBlockTopic
 		// light block
-		if block.Size() > int(p.SubConfig.MinLtBlockSize) &&
-			len(block.Txs) > 0 {
+		if !p.cfg.DisableLtBlock &&
+			len(block.Txs) > 0 &&
+			block.Size() > p.cfg.MinLtBlockSize {
 			broadcastData = p.buildLtBlock(block)
 			topic = psLtBlockTopic
 		}
@@ -219,13 +232,16 @@ func (p *broadcastProtocol) handlePeerMsg(msg *types.PeerPubSubMsg, pid peer.ID)
 	return err
 }
 
+func (p *broadcastProtocol) getPeerTopic(peerID peer.ID) string {
+	return psPeerMsgTopicPrefix + peerID.String()
+}
+
 func (p *broadcastProtocol) pubPeerMsg(peerID peer.ID, msgID int32, msg types.Message) {
 	pubMsg := &types.PeerPubSubMsg{
 		MsgID:    msgID,
 		ProtoMsg: types.Encode(msg),
 	}
-	peerTopic := psPeerMsgTopicPrefix + peerID.String()
-	p.ps.Pub(psMsg{msg: pubMsg, topic: peerTopic}, psBroadcast)
+	p.ps.Pub(psMsg{msg: pubMsg, topic: p.getPeerTopic(peerID)}, psBroadcast)
 }
 
 func (p *broadcastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {

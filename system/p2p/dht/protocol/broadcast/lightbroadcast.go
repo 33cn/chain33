@@ -149,12 +149,13 @@ func (l *ltBroadcast) buildPendList() []*pendBlock {
 	timeoutBlocks := make([]*pendBlock, 0)
 	for it := l.pendBlockList.Front(); it != nil; it = it.Next() {
 		pd := it.Value.(*pendBlock)
+		pendTime := types.Now().Unix() - pd.receiveTimeStamp
 		if l.buildPendBlock(pd) {
-			log.Debug("buildPendSuccess", "height", pd.block.GetHeight(), "wait", types.Now().Unix()-pd.receiveTimeStamp)
+			log.Debug("buildPendSuccess", "height", pd.block.GetHeight(), "wait", pendTime)
 			removeItems = append(removeItems, it)
 			continue
 		}
-		if types.Now().Unix()-pd.receiveTimeStamp > defaultLtBlockTimeout {
+		if pendTime >= l.cfg.LtBlockPendTimeout {
 			log.Debug("buildPendTimeout", "height", pd.block.GetHeight())
 			removeItems = append(removeItems, it)
 			timeoutBlocks = append(timeoutBlocks, pd)
