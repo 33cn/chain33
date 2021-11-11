@@ -51,8 +51,8 @@ func Test_lightBroadcast(t *testing.T) {
 	proto.ltB.addLtBlock(proto.buildLtBlock(block), pid)
 	// 缺少tx2, 组装失败, 等待1s超时
 	msg := <-peerMsgCh
-	require.Equal(t, msg.(psMsg).msg.(*types.PeerPubSubMsg).MsgID, blockReqMsgID)
-	require.Equal(t, msg.(psMsg).topic, proto.getPeerTopic(pid))
+	require.Equal(t, msg.(publishMsg).msg.(*types.PeerPubSubMsg).MsgID, blockReqMsgID)
+	require.Equal(t, msg.(publishMsg).topic, proto.getPeerTopic(pid))
 
 	//交易组
 	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, proto.ChainCfg.GetMinTxFeeRate())
@@ -102,6 +102,6 @@ func Test_blockRequest(t *testing.T) {
 	atomic.StoreInt64(&proto.currHeight, height)
 	// 缺少tx2, 组装失败, 等待1s超时
 	msg := <-peerMsgCh
-	require.Equal(t, msg.(psMsg).msg.(*types.PeerPubSubMsg).MsgID, blockRespMsgID)
-	require.Equal(t, msg.(psMsg).topic, proto.getPeerTopic(pid))
+	require.Equal(t, msg.(publishMsg).msg.(*types.PeerPubSubMsg).MsgID, blockRespMsgID)
+	require.Equal(t, msg.(publishMsg).topic, proto.getPeerTopic(pid))
 }

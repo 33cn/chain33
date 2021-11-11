@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/libp2p/go-libp2p-core/peer"
+
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	net "github.com/33cn/chain33/system/p2p/dht/extension"
@@ -33,11 +35,6 @@ type pubSub struct {
 	maxRecvBlkHeight int64
 	lock             sync.RWMutex
 	peerTopic        string
-}
-
-type psMsg struct {
-	topic string
-	msg   types.Message
 }
 
 // new pub sub
@@ -88,7 +85,7 @@ func (p *pubSub) handlePubMsg(out chan interface{}) {
 			if !ok {
 				return
 			}
-			psMsg := data.(psMsg)
+			psMsg := data.(publishMsg)
 			raw := p.encodeMsg(psMsg.msg, &buf)
 			if err != nil {
 				log.Error("handlePubMsg", "topic", psMsg.topic, "err", err)
@@ -129,7 +126,11 @@ func (p *pubSub) handleSubMsg(in chan net.SubMsg) {
 				log.Error("handleSubMsg", "topic", topic, "decodeMsg err", err)
 				break
 			}
-			p.handleBroadcastReceive(topic, msg, data)
+			p.handleBroadcastReceive(topic, subscribeMsg{
+				value:       msg,
+				receiveFrom: data.ReceivedFrom,
+				publisher:   peer.ID(data.From),
+			})
 
 		case <-p.Ctx.Done():
 			return

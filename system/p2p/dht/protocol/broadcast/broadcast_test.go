@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	net "github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
@@ -34,12 +36,8 @@ func init() {
 
 var (
 	payload = []byte("testpayload")
-	minerTx = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 14600, Expire: 200}
-	tx      = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 4600, Expire: 2}
-	tx1     = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 460000000, Expire: 0}
-	tx2     = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 100, Expire: 1}
-	txList  = append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
 
+	txList    = append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
 	testBlock = &types.Block{
 		TxHash: []byte("test"),
 		Height: 10,
@@ -132,13 +130,16 @@ func testHandleEvent(protocol *broadcastProtocol, msg *queue.Message) {
 	protocol.handleBroadcastSend(msg)
 }
 
-func TestBroadCastEvent(t *testing.T) {
+func TestBroadCastSend(t *testing.T) {
 	protocol := newTestProtocol()
-	msgs := make([]*queue.Message, 0)
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{}))
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{}))
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventTx, &types.LightTx{}))
-
+	defer protocol.Ctx.Done()
+	msgs := []*queue.Message{
+		protocol.QueueClient.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{}),
+		protocol.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{}),
+		protocol.QueueClient.NewMessage("p2p", types.EventAddBlock, nil),
+		protocol.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{Txs: []*types.Transaction{tx1, tx2}}),
+	}
+	protocol.cfg.MinLtBlockSize = 0
 	for _, msg := range msgs {
 		testHandleEvent(protocol, msg)
 	}
@@ -146,6 +147,31 @@ func TestBroadCastEvent(t *testing.T) {
 	assert.True(t, ok)
 	_, ok = protocol.blockFilter.Get(hex.EncodeToString((&types.Block{}).Hash(protocol.ChainCfg)))
 	assert.True(t, ok)
+	_, ok = protocol.blockFilter.Get(hex.EncodeToString((&types.Block{Txs: []*types.Transaction{tx1, tx2}}).Hash(protocol.ChainCfg)))
+	assert.True(t, ok)
+}
+
+func TestBroadCastReceive(t *testing.T) {
+
+	p := newTestProtocol()
+	defer p.Ctx.Done()
+	pid := p.Host.ID()
+	peerTopic := p.getPeerTopic(pid)
+	msgs := []subscribeMsg{
+		{value: &types.Transaction{}, topic: psTxTopic},
+		{value: &types.Block{}, topic: psBlockTopic},
+		{value: &types.LightBlock{}, topic: psLtBlockTopic},
+		{value: &types.PeerPubSubMsg{MsgID: blockReqMsgID, ProtoMsg: types.Encode(&types.ReqInt{})}, topic: peerTopic},
+		{value: &types.PeerPubSubMsg{MsgID: blockRespMsgID}, topic: peerTopic},
+		{value: &types.PeerPubSubMsg{}, topic: peerTopic},
+	}
+	for _, msg := range msgs {
+		msg.receiveFrom = pid
+		msg.publisher = pid
+		p.handleBroadcastReceive(msg)
+	}
+	require.Equal(t, 0, p.ltB.pendBlockList.Len())
+	require.Equal(t, 0, p.ltB.blockRequestList.Len())
 }
 
 func Test_util(t *testing.T) {
