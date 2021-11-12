@@ -50,6 +50,7 @@ type P2PSubConfig struct {
 	PubSub PubSubConfig `json:"pubsub,omitempty"`
 	//启动私有网络，只有相同配置的节点才能连接，多用于联盟链需求，创建方式 hex.Encode([32]byte),32字节的十六进制编码字符串
 	Psk string `json:"psk"`
+	//广播子配置
 	Broadcast BroadcastConfig `json:"broadcast,omitempty"`
 }
 
@@ -57,11 +58,11 @@ type P2PSubConfig struct {
 type BroadcastConfig struct {
 
 	//交易过滤器长度
-	TxFilterLen int   `json:"txFilterLen,omitempty"`
+	TxFilterLen int `json:"txFilterLen,omitempty"`
 	//区块过滤器长度
-	BlockFilterLen int  `json:"blockFilterLen,omitempty"`
+	BlockFilterLen int `json:"blockFilterLen,omitempty"`
 	//关闭轻区块广播, 默认开启
-	DisableLtBlock bool  `json:"disableLtBlock,omitempty"`
+	DisableLtBlock bool `json:"disableLtBlock,omitempty"`
 	//区块轻广播的最低区块大小,单位KB, 大于该值时区块内交易采用短哈希广播, 默认100KB
 	MinLtBlockSize int `json:"minLtBlockSize,omitempty"`
 	//轻区块等待超时时长, 默认2s

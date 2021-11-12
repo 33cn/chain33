@@ -6,7 +6,6 @@
 package broadcast
 
 import (
-	"context"
 	"encoding/hex"
 	"strings"
 	"sync"
@@ -29,10 +28,6 @@ import (
 
 var log = log15.New("module", "p2p.broadcast")
 
-const (
-	broadcastV1 = "/chain33/p2p/broadcast/1.0.0"
-)
-
 func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
@@ -40,20 +35,14 @@ func init() {
 //
 type broadcastProtocol struct {
 	*protocol.P2PEnv
-
-	txFilter        *utils.Filterdata
-	blockFilter     *utils.Filterdata
-	txSendFilter    *utils.Filterdata
-	blockSendFilter *utils.Filterdata
-	ltBlockCache    *utils.SpaceLimitCache
-	cfg             p2pty.BroadcastConfig
-	broadcastPeers  map[peer.ID]context.CancelFunc
-	ps              *pubsub.PubSub
-
-	syncStatus bool
-	currHeight int64
-	lock       sync.RWMutex
-	ltB        *ltBroadcast
+	txFilter    *utils.Filterdata
+	blockFilter *utils.Filterdata
+	cfg         p2pty.BroadcastConfig
+	ps          *pubsub.PubSub
+	syncStatus  bool
+	currHeight  int64
+	lock        sync.RWMutex
+	ltB         *ltBroadcast
 }
 
 // InitProtocol init protocol

@@ -26,27 +26,12 @@ import (
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
 	commlog.SetLogLevel("error")
 }
-
-var (
-	payload = []byte("testpayload")
-
-	txList    = append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
-	testBlock = &types.Block{
-		TxHash: []byte("test"),
-		Height: 10,
-		Txs:    txList,
-	}
-	testAddr   = "testPeerAddr"
-	testPidStr = "16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U"
-	testPid, _ = peer.Decode("16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U")
-)
 
 func newHost(port int32) core.Host {
 	priv, _, _ := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)

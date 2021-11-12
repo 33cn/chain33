@@ -157,9 +157,7 @@ func (l *ltBroadcast) buildPendList() []*pendBlock {
 		if l.buildPendBlock(pd) {
 			log.Debug("buildPendSuccess", "height", pd.block.GetHeight(), "wait", pendTime)
 			removeItems = append(removeItems, it)
-			continue
-		}
-		if pendTime >= l.cfg.LtBlockPendTimeout {
+		} else if pendTime >= l.cfg.LtBlockPendTimeout {
 			log.Debug("buildPendTimeout", "height", pd.block.GetHeight())
 			removeItems = append(removeItems, it)
 			timeoutBlocks = append(timeoutBlocks, pd)
