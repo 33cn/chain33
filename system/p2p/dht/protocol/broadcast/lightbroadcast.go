@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/33cn/chain33/common"
+
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -28,6 +30,7 @@ type pendBlock struct {
 	fromPeer          peer.ID
 	receiveTimeStamp  int64
 	block             *types.Block
+	blockDataHash     []byte
 	blockHash         []byte
 	sTxHashes         []string
 	notExistTxHashes  []string
@@ -62,7 +65,7 @@ func (l *ltBroadcast) buildPendBlock(pd *pendBlock) bool {
 	pd.notExistTxIndices = pd.notExistTxIndices[:0]
 	for i, tx := range pd.block.GetTxs()[1:] {
 		if tx == nil {
-			pd.notExistTxIndices = append(pd.notExistTxIndices, i)
+			pd.notExistTxIndices = append(pd.notExistTxIndices, i+1)
 			pd.notExistTxHashes = append(pd.notExistTxHashes, pd.sTxHashes[i])
 		}
 	}
@@ -80,8 +83,8 @@ func (l *ltBroadcast) buildPendBlock(pd *pendBlock) bool {
 		log.Error("buildPendBlock", "queryMemPool", "nilReplyTxList")
 		return false
 	}
-
-	for i := 0; i < len(txList.GetTxs()); i++ {
+	// 请求mempool会返回相应长度的数组
+	for i := 0; i < len(pd.notExistTxIndices); i++ {
 		tx := txList.GetTxs()[i]
 		if tx == nil {
 			continue
@@ -96,7 +99,7 @@ func (l *ltBroadcast) buildPendBlock(pd *pendBlock) bool {
 		}
 	}
 
-	if bytes.Equal(pd.blockHash, pd.block.Hash(l.ChainCfg)) {
+	if bytes.Equal(pd.blockDataHash, common.Sha256(types.Encode(pd.block))) {
 		blockHashHex := hex.EncodeToString(pd.blockHash)
 		log.Debug("buildLtBlock", "height", pd.block.GetHeight(), "hash", blockHashHex,
 			"wait(s)", types.Now().Unix()-pd.receiveTimeStamp)
@@ -122,6 +125,7 @@ func (l *ltBroadcast) addLtBlock(ltBlock *types.LightBlock, receiveFrom peer.ID)
 		sTxHashes:         ltBlock.GetSTxHashes(),
 		receiveTimeStamp:  types.Now().Unix(),
 		blockHash:         ltBlock.GetHeader().GetHash(),
+		blockDataHash:     ltBlock.GetBlockDataHash(),
 		notExistTxIndices: make([]int, txCount),
 		notExistTxHashes:  make([]string, txCount),
 	}

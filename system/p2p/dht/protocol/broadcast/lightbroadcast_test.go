@@ -34,11 +34,11 @@ func startHandleMempool(q queue.Queue, txList *[]*types.Transaction) chan struct
 	return done
 }
 
-func Test_lightBroadcast(t *testing.T) {
+func TestLightBroadcast(t *testing.T) {
 
 	q := queue.New("test")
-	proto := newTestProtocolWithQueue(q)
-	defer proto.Ctx.Done()
+	proto, cancel := newTestProtocolWithQueue(q)
+	defer cancel()
 	proto.cfg.MinLtBlockSize = 0
 	proto.cfg.LtBlockPendTimeout = 1
 	defer q.Close()
@@ -51,13 +51,13 @@ func Test_lightBroadcast(t *testing.T) {
 	proto.ltB.addLtBlock(proto.buildLtBlock(block), pid)
 	// 缺少tx2, 组装失败, 等待1s超时
 	msg := <-peerMsgCh
-	require.Equal(t, msg.(publishMsg).msg.(*types.PeerPubSubMsg).MsgID, blockReqMsgID)
+	require.Equal(t, int32(blockReqMsgID), msg.(publishMsg).msg.(*types.PeerPubSubMsg).MsgID)
 	require.Equal(t, msg.(publishMsg).topic, proto.getPeerTopic(pid))
 
 	//交易组
 	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, proto.ChainCfg.GetMinTxFeeRate())
 	gtx := txGroup.Tx()
-	memTxList = []*types.Transaction{tx, gtx}
+	memTxList = []*types.Transaction{tx, gtx, nil, nil}
 	blcCli := q.Client()
 	blcCli.Sub("blockchain")
 	proto.ltB.addLtBlock(proto.buildLtBlock(block), pid)
@@ -69,11 +69,11 @@ func Test_lightBroadcast(t *testing.T) {
 	require.Equal(t, pid.Pretty(), blc.Pid)
 }
 
-func Test_blockRequest(t *testing.T) {
+func TestBlockRequest(t *testing.T) {
 
 	q := queue.New("test")
-	proto := newTestProtocolWithQueue(q)
-	defer proto.Ctx.Done()
+	proto, cancel := newTestProtocolWithQueue(q)
+	defer cancel()
 	api := &mocks.QueueProtocolAPI{}
 	proto.API = api
 	pid := proto.Host.ID()
@@ -102,6 +102,6 @@ func Test_blockRequest(t *testing.T) {
 	atomic.StoreInt64(&proto.currHeight, height)
 	// 缺少tx2, 组装失败, 等待1s超时
 	msg := <-peerMsgCh
-	require.Equal(t, msg.(publishMsg).msg.(*types.PeerPubSubMsg).MsgID, blockRespMsgID)
+	require.Equal(t, int32(blockRespMsgID), msg.(publishMsg).msg.(*types.PeerPubSubMsg).MsgID)
 	require.Equal(t, msg.(publishMsg).topic, proto.getPeerTopic(pid))
 }

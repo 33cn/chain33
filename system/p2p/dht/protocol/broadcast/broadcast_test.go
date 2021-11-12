@@ -98,16 +98,15 @@ func newTestEnv(q queue.Queue) (*prototypes.P2PEnv, context.CancelFunc) {
 	return env, cancel
 }
 
-func newTestProtocolWithQueue(q queue.Queue) *broadcastProtocol {
+func newTestProtocolWithQueue(q queue.Queue) (*broadcastProtocol, context.CancelFunc) {
 	env, cancel := newTestEnv(q)
 	prototypes.ClearEventHandler()
 	p := &broadcastProtocol{syncStatus: true}
 	p.init(env)
-	cancel()
-	return p
+	return p, cancel
 }
 
-func newTestProtocol() *broadcastProtocol {
+func newTestProtocol() (*broadcastProtocol, context.CancelFunc) {
 
 	q := queue.New("test")
 	return newTestProtocolWithQueue(q)
@@ -115,33 +114,24 @@ func newTestProtocol() *broadcastProtocol {
 
 func TestBroadCastProtocol_InitProtocol(t *testing.T) {
 
-	protocol := newTestProtocol()
+	protocol, cancel := newTestProtocol()
+	defer cancel()
 	assert.Equal(t, defaultMinLtBlockSize, protocol.cfg.MinLtBlockSize)
 	assert.Equal(t, defaultLtBlockTimeout, int(protocol.cfg.LtBlockPendTimeout))
 }
 
-func testHandleEvent(protocol *broadcastProtocol, msg *queue.Message) {
-
-	defer func() {
-		if r := recover(); r != nil {
-		}
-	}()
-
-	protocol.handleBroadcastSend(msg)
-}
-
-func TestBroadCastSend(t *testing.T) {
-	protocol := newTestProtocol()
-	defer protocol.Ctx.Done()
+func TestBroadcastSend(t *testing.T) {
+	protocol, cancel := newTestProtocol()
+	defer cancel()
 	msgs := []*queue.Message{
 		protocol.QueueClient.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{}),
 		protocol.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{}),
-		protocol.QueueClient.NewMessage("p2p", types.EventAddBlock, nil),
+		protocol.QueueClient.NewMessage("p2p", types.EventAddBlock, &types.Block{}),
 		protocol.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{Txs: []*types.Transaction{tx1, tx2}}),
 	}
 	protocol.cfg.MinLtBlockSize = 0
 	for _, msg := range msgs {
-		testHandleEvent(protocol, msg)
+		protocol.handleBroadcastSend(msg)
 	}
 	_, ok := protocol.txFilter.Get(hex.EncodeToString((&types.Transaction{}).Hash()))
 	assert.True(t, ok)
@@ -153,8 +143,8 @@ func TestBroadCastSend(t *testing.T) {
 
 func TestBroadCastReceive(t *testing.T) {
 
-	p := newTestProtocol()
-	defer p.Ctx.Done()
+	p, cancel := newTestProtocol()
+	defer cancel()
 	pid := p.Host.ID()
 	peerTopic := p.getPeerTopic(pid)
 	msgs := []subscribeMsg{

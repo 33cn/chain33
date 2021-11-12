@@ -234,10 +234,11 @@ message P2PBlock {
  */
 message LightBlock {
 
-    int64       size          = 1;
-    Header      header        = 2;
-    Transaction minerTx       = 3;
-    repeated string sTxHashes = 4;
+    int64       size              = 1;
+    Header      header            = 2;
+    Transaction minerTx           = 3;
+    repeated string sTxHashes     = 4;
+    bytes           blockDataHash = 5;
 }
 
 // dht pub sub 通信数据

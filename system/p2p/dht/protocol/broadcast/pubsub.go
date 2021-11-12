@@ -126,7 +126,8 @@ func (p *pubSub) handleSubMsg(in chan net.SubMsg) {
 				log.Error("handleSubMsg", "topic", topic, "decodeMsg err", err)
 				break
 			}
-			p.handleBroadcastReceive(topic, subscribeMsg{
+			p.handleBroadcastReceive(subscribeMsg{
+				topic:       topic,
 				value:       msg,
 				receiveFrom: data.ReceivedFrom,
 				publisher:   peer.ID(data.From),

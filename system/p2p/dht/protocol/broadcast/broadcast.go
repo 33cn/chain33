@@ -12,6 +12,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/33cn/chain33/common"
+
 	"github.com/33cn/chain33/common/pubsub"
 
 	"github.com/33cn/chain33/p2p/utils"
@@ -172,6 +174,8 @@ func (p *broadcastProtocol) buildLtBlock(block *types.Block) *types.LightBlock {
 	ltBlock.Header = block.GetHeader(p.ChainCfg)
 	ltBlock.Header.Signature = block.Signature
 	ltBlock.MinerTx = block.Txs[0]
+	ltBlock.STxHashes = make([]string, 0, ltBlock.GetHeader().GetTxCount())
+	ltBlock.BlockDataHash = common.Sha256(types.Encode(block))
 	for _, tx := range block.Txs[1:] {
 		//tx short hash
 		ltBlock.STxHashes = append(ltBlock.STxHashes, types.CalcTxShortHash(tx.Hash()))
