@@ -136,30 +136,58 @@ func (p *PubSub) HasTopic(topic string) bool {
 	return ok
 }
 
+func (p *PubSub) setTopic(topic string, tpInfo *topicinfo) {
+
+	p.topicMutex.Lock()
+	defer p.topicMutex.Unlock()
+	p.topics[topic] = tpInfo
+}
+
+// TryJoinTopic check exist before join topic
+func (p *PubSub) TryJoinTopic(topic string, opts ...pubsub.TopicOpt) error {
+
+	if p.HasTopic(topic) {
+		return nil
+	}
+	return p.JoinTopic(topic, opts...)
+}
+
+// JoinTopic join topic
+func (p *PubSub) JoinTopic(topic string, opts ...pubsub.TopicOpt) error {
+	tp, err := p.Join(topic, opts...)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithCancel(p.ctx)
+	p.setTopic(topic, &topicinfo{
+		pubtopic: tp,
+		ctx:      ctx,
+		topic:    topic,
+		cancel:   cancel,
+	})
+	return nil
+}
+
 // JoinAndSubTopic 加入topic&subTopic
 func (p *PubSub) JoinAndSubTopic(topic string, callback SubCallBack, opts ...pubsub.TopicOpt) error {
 
-	Topic, err := p.Join(topic, opts...)
+	tp, err := p.Join(topic, opts...)
 	if err != nil {
 		return err
 	}
 
-	subscription, err := Topic.Subscribe()
+	subscription, err := tp.Subscribe()
 	if err != nil {
 		return err
 	}
-	//p.topics = append(p.topics, Topic)
 	ctx, cancel := context.WithCancel(p.ctx)
-
-	p.topicMutex.Lock()
-	p.topics[topic] = &topicinfo{
-		pubtopic: Topic,
+	p.setTopic(topic, &topicinfo{
+		pubtopic: tp,
 		ctx:      ctx,
 		topic:    topic,
 		cancel:   cancel,
 		sub:      subscription,
-	}
-	p.topicMutex.Unlock()
+	})
 	go p.subTopic(ctx, subscription, callback)
 	return nil
 }
@@ -202,16 +230,19 @@ func (p *PubSub) RemoveTopic(topic string) {
 	defer p.topicMutex.Unlock()
 
 	info, ok := p.topics[topic]
-	if ok {
-		log.Info("RemoveTopic", "topic", topic)
-		info.cancel()
-		info.sub.Cancel()
-		err := info.pubtopic.Close()
-		if err != nil {
-			log.Error("RemoveTopic", "topic", topic, "close topic err", err)
-		}
-		delete(p.topics, topic)
+	if !ok {
+		return
 	}
+	log.Info("RemoveTopic", "topic", topic)
+	info.cancel()
+	if info.sub != nil {
+		info.sub.Cancel()
+	}
+	err := info.pubtopic.Close()
+	if err != nil {
+		log.Error("RemoveTopic", "topic", topic, "close topic err", err)
+	}
+	delete(p.topics, topic)
 
 }
 
