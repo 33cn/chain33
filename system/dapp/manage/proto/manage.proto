@@ -3,10 +3,44 @@ syntax = "proto3";
 import "executor.proto";
 
 package types;
+option go_package = "../types";
+
+//申请修改配置项
+message ApplyConfig {
+    ModifyConfig modify = 1;
+}
+
+//批准配置项
+message ApproveConfig {
+    string id        = 1; //修改配置项申请ID
+    string approveId = 2; // approve 合约批准的ID
+}
 
 message ManageAction {
     oneof value {
-        ModifyConfig modify = 1;
+        ModifyConfig  modify  = 1;
+        ApplyConfig   apply   = 3;
+        ApproveConfig approve = 4;
     }
     int32 Ty = 2;
+}
+
+message ConfigStatus {
+    string       id       = 1; //申请ID
+    ModifyConfig modify   = 2;
+    int32        status   = 3;
+    string       proposer = 4;
+
+    // 状态
+    int64 height = 8;
+    int32 index  = 9;
+}
+
+message ReceiptApplyConfig {
+    ConfigStatus status = 1;
+}
+
+message ReceiptApproveConfig {
+    ConfigStatus pre = 1;
+    ConfigStatus cur = 2;
 }

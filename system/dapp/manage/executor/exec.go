@@ -28,12 +28,40 @@ func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transac
 	// 兼容在区块上没有To地址检查的交易数据
 	types.AssertConfig(c.GetAPI())
 	cfg := c.GetAPI().GetConfig()
-	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, "ForkManageExec") {
+
+	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyApprove) {
+		return nil, types.ErrNotAllow
+	}
+
+	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageExec) {
 		if err := c.checkTxToAddress(tx, index); err != nil {
 			return nil, err
 		}
 	}
-	action := NewAction(c, tx)
+	action := newAction(c, tx, int32(index))
+	if !IsSuperManager(cfg, action.fromaddr) {
+		return nil, mty.ErrNoPrivilege
+	}
 	return action.modifyConfig(manageAction)
 
+}
+
+func (c *Manage) Exec_ApplyConfig(payload *mty.ApplyConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
+	cfg := c.GetAPI().GetConfig()
+	if !cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyApprove) {
+		return nil, types.ErrNotAllow
+	}
+
+	action := newAction(c, tx, int32(index))
+	return action.applyConfig(payload)
+}
+
+func (c *Manage) Exec_ApproveConfig(payload *mty.ApproveConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
+	cfg := c.GetAPI().GetConfig()
+	if !cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyApprove) {
+		return nil, types.ErrNotAllow
+	}
+
+	action := newAction(c, tx, int32(index))
+	return action.approveConfig(payload)
 }
