@@ -7,14 +7,23 @@ package types
 // ManageActionModifyConfig manager action
 const (
 	ManageActionModifyConfig = iota
+	ManageActionApplyConfig
+	ManageActionApproveConfig
 )
 
 // TyLogModifyConfig log
 const (
-	TyLogModifyConfig = 410
+	TyLogModifyConfig  = 410
+	TyLogApplyConfig   = 411
+	TyLogApproveConfig = 412
 )
 
 // ConfigItemArrayConfig config Item
 const (
 	ConfigItemArrayConfig = iota
+)
+
+const (
+	ManageConfigStatusApply    = 0
+	ManageConfigStatusApproved = 1
 )

@@ -13,13 +13,13 @@ import (
 // Query_GetConfigItem get config item
 func (c *Manage) Query_GetConfigItem(in *types.ReqString) (types.Message, error) {
 	// Load config from state db
-	value, err := c.GetStateDB().Get([]byte(types.ManageKey(in.Data)))
+	value, err := c.GetStateDB().Get(manageKey(in.Data))
 	if err != nil {
 		clog.Info("modifyConfig", "get db key", "not found")
 		value = nil
 	}
 	if value == nil {
-		value, err = c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
+		value, err = c.GetStateDB().Get(configKey(in.Data))
 		if err != nil {
 			clog.Info("modifyConfig", "get db key", "not found")
 			value = nil

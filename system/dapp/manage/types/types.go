@@ -16,12 +16,19 @@ var (
 	// ManageX defines a global string
 	ManageX    = "manage"
 	actionName = map[string]int32{
-		"Modify": ManageActionModifyConfig,
+		"Modify":  ManageActionModifyConfig,
+		"Apply":   ManageActionApplyConfig,
+		"Approve": ManageActionApproveConfig,
 	}
 	logmap = map[int64]*types.LogInfo{
 		// 这里reflect.TypeOf类型必须是proto.Message类型，且是交易的回持结构
 		TyLogModifyConfig: {Ty: reflect.TypeOf(types.ReceiptConfig{}), Name: "LogModifyConfig"},
 	}
+)
+
+const (
+	ForkManageExec            = "ForkManageExec"
+	ForkManageAutonomyApprove = "ForkManageAutonomyApprove"
 )
 
 func init() {
@@ -33,7 +40,9 @@ func init() {
 //InitFork init
 func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(ManageX, "Enable", 120000)
-	cfg.RegisterDappFork(ManageX, "ForkManageExec", 400000)
+	cfg.RegisterDappFork(ManageX, ForkManageExec, 400000)
+	//支持autonomy委员会审批
+	cfg.RegisterDappFork(ManageX, ForkManageAutonomyApprove, 10000000)
 }
 
 //InitExecutor init Executor

@@ -5,27 +5,34 @@
 package executor
 
 import (
+	"github.com/33cn/chain33/account"
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
-	pty "github.com/33cn/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/system/dapp"
+	mty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
+	"github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
-// Action attribute
-type Action struct {
-	db       dbm.KV
-	fromaddr string
-	height   int64
-	cfg      *types.Chain33Config
+type action struct {
+	api          client.QueueProtocolAPI
+	coinsAccount *account.DB
+	db           dbm.KV
+	txhash       []byte
+	fromaddr     string
+	height       int64
+	index        int32
+	execaddr     string
 }
 
-// NewAction new a action object
-func NewAction(m *Manage, tx *types.Transaction) *Action {
-	types.AssertConfig(m.GetAPI())
-	return &Action{db: m.GetStateDB(), fromaddr: tx.From(), height: m.GetHeight(), cfg: m.GetAPI().GetConfig()}
-
+func newAction(m *Manage, tx *types.Transaction, index int32) *action {
+	return &action{m.GetAPI(), m.GetCoinsAccount(), m.GetStateDB(), tx.Hash(), tx.From(),
+		m.GetHeight(), index, dapp.ExecAddress(string(tx.Execer))}
 }
 
-func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error) {
+func (a *action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error) {
 
 	//if modify.Key == "Manager-managers" && !wallet.IsSuperManager(modify.GetAddr()) {
 	//	return nil, types.ErrNoPrivilege
@@ -34,23 +41,20 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	//	return nil, types.ErrNoPrivilege
 	//}
 
-	if !IsSuperManager(m.cfg, m.fromaddr) {
-		return nil, pty.ErrNoPrivilege
-	}
 	if len(modify.Key) == 0 {
-		return nil, pty.ErrBadConfigKey
+		return nil, mty.ErrBadConfigKey
 	}
 	if modify.Op != "add" && modify.Op != "delete" {
-		return nil, pty.ErrBadConfigOp
+		return nil, mty.ErrBadConfigOp
 	}
 
 	var item types.ConfigItem
-	value, err := m.db.Get([]byte(types.ManageKey(modify.Key)))
+	value, err := a.db.Get(manageKey(modify.Key))
 	if err != nil {
 		value = nil
 	}
 	if value == nil {
-		value, err = m.db.Get([]byte(types.ConfigKey(modify.Key)))
+		value, err = a.db.Get(configKey(modify.Key))
 		if err != nil {
 			value = nil
 		}
@@ -64,7 +68,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	} else { // if config item not exist, create a new empty
 		item.Key = modify.Key
 		item.Addr = modify.Addr
-		item.Ty = pty.ConfigItemArrayConfig
+		item.Ty = mty.ConfigItemArrayConfig
 		emptyValue := &types.ArrayConfig{Value: make([]string, 0)}
 		arr := types.ConfigItem_Arr{Arr: emptyValue}
 		item.Value = &arr
@@ -110,15 +114,144 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	key := m.cfg.ManaeKeyWithHeigh(modify.Key, m.height)
+	key := a.manageKeyWithHeigh(modify.Key)
 	valueSave := types.Encode(&item)
-	err = m.db.Set([]byte(key), valueSave)
+	err = a.db.Set(key, valueSave)
 	if err != nil {
 		return nil, err
 	}
-	kv = append(kv, &types.KeyValue{Key: []byte(key), Value: valueSave})
+	kv = append(kv, &types.KeyValue{Key: key, Value: valueSave})
 	log := types.ReceiptConfig{Prev: &copyItem, Current: &item}
-	logs = append(logs, &types.ReceiptLog{Ty: pty.TyLogModifyConfig, Log: types.Encode(&log)})
+	logs = append(logs, &types.ReceiptLog{Ty: mty.TyLogModifyConfig, Log: types.Encode(&log)})
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: kv, Logs: logs}
 	return receipt, nil
+}
+
+//ManaeKeyWithHeigh 超级管理员账户key
+func (a *action) manageKeyWithHeigh(key string) []byte {
+	if a.api.GetConfig().IsFork(a.height, "ForkExecKey") {
+		return manageKey(key)
+	}
+	return configKey(key)
+}
+
+func (a *action) applyConfig(payload *mty.ApplyConfig) (*types.Receipt, error) {
+	configStatus := &mty.ConfigStatus{
+		Id:       common.ToHex(a.txhash),
+		Modify:   payload.Modify,
+		Status:   mty.ManageConfigStatusApply,
+		Proposer: a.fromaddr,
+		Height:   a.height,
+		Index:    a.index,
+	}
+
+	return makeApplyReceipt(configStatus), nil
+}
+
+func (a *action) getConfig(ID string) (*mty.ConfigStatus, error) {
+	value, err := a.db.Get(manageKey(ID))
+	if err != nil {
+		return nil, err
+	}
+	var status mty.ConfigStatus
+	err = types.Decode(value, &status)
+	if err != nil {
+		return nil, err
+	}
+	return &status, nil
+}
+
+func (a *action) approveConfig(payload *mty.ApproveConfig) (*types.Receipt, error) {
+	if len(payload.ApproveId) <= 0 || len(payload.Id) <= 0 {
+		return nil, errors.Wrapf(types.ErrInvalidParam, "id nil, appoved=%s,id=%s", payload.ApproveId, payload.Id)
+	}
+
+	s, err := a.getConfig(payload.Id)
+	if err != nil {
+		return nil, errors.Wrapf(err, "get Config id=%s", payload.Id)
+	}
+
+	if s.Status != mty.ManageConfigStatusApply {
+		return nil, errors.Wrapf(types.ErrNotAllow, "id status =%d", s.Status)
+	}
+
+	cfg := a.api.GetConfig()
+	confManager := types.ConfSub(cfg, mty.ManageX)
+	autonomyExec := confManager.GStr(types.AutonomyCfgKey)
+	if len(autonomyExec) <= 0 {
+		return nil, errors.Wrapf(types.ErrNotFound, "manager autonomy key not config")
+	}
+
+	//去autonomy 合约检验是否id approved, 成功 err返回nil
+	_, err = a.api.QueryChain(&types.ChainExecutor{
+		Driver:   autonomyExec,
+		FuncName: "IsAutonomyApprovedItem",
+		Param:    types.Encode(&types.ReqStrings{Datas: []string{payload.ApproveId, payload.Id}}),
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "query autonomy,approveid=%s,hashId=%s", payload.ApproveId, payload.Id)
+	}
+
+	copyStat := proto.Clone(s).(*mty.ConfigStatus)
+	s.Status = mty.ForkManageAutonomyApprove
+
+	r := makeApproveReceipt(copyStat, s)
+
+	cr, err := a.modifyConfig(s.Modify)
+	if err != nil {
+		return nil, errors.Wrap(err, "modify config")
+	}
+
+	return mergeReceipt(r, cr), nil
+
+}
+
+func mergeReceipt(receipt1, receipt2 *types.Receipt) *types.Receipt {
+	if receipt2 != nil {
+		receipt1.KV = append(receipt1.KV, receipt2.KV...)
+		receipt1.Logs = append(receipt1.Logs, receipt2.Logs...)
+	}
+
+	return receipt1
+}
+
+func makeApplyReceipt(status *mty.ConfigStatus) *types.Receipt {
+	key := manageKey(status.Id)
+	log := &mty.ReceiptApplyConfig{
+		Status: status,
+	}
+
+	return &types.Receipt{
+		Ty: types.ExecOk,
+		KV: []*types.KeyValue{
+			{Key: key, Value: types.Encode(status)},
+		},
+		Logs: []*types.ReceiptLog{
+			{
+				Ty:  mty.TyLogApplyConfig,
+				Log: types.Encode(log),
+			},
+		},
+	}
+}
+
+func makeApproveReceipt(pre, cur *mty.ConfigStatus) *types.Receipt {
+	key := manageKey(cur.Id)
+	log := &mty.ReceiptApproveConfig{
+		Pre: pre,
+		Cur: cur,
+	}
+
+	return &types.Receipt{
+		Ty: types.ExecOk,
+		KV: []*types.KeyValue{
+			{Key: key, Value: types.Encode(cur)},
+		},
+		Logs: []*types.ReceiptLog{
+			{
+				Ty:  mty.TyLogApproveConfig,
+				Log: types.Encode(log),
+			},
+		},
+	}
 }
