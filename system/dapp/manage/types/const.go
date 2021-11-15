@@ -24,6 +24,12 @@ const (
 )
 
 const (
-	ManageConfigStatusApply    = 0
-	ManageConfigStatusApproved = 1
+	ManageConfigStatusNone     = 0
+	ManageConfigStatusApply    = 1
+	ManageConfigStatusApproved = 2
+)
+
+const (
+	OpAdd    = "add"
+	OpDelete = "delete"
 )

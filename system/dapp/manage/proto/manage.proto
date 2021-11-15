@@ -44,3 +44,18 @@ message ReceiptApproveConfig {
     ConfigStatus pre = 1;
     ConfigStatus cur = 2;
 }
+
+// query
+message ReqQueryConfigList {
+
+    int32  status    = 1;
+    string proposer  = 2;
+    int32  count     = 3;
+    int32  direction = 4;
+    int64  height    = 5;
+    int32  index     = 6;
+}
+
+message ReplyQueryConfigList {
+    repeated ConfigStatus lists = 1;
+}

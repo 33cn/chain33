@@ -7,12 +7,11 @@
 package types
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	types "github.com/33cn/chain33/types"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -418,6 +417,141 @@ func (x *ReceiptApproveConfig) GetCur() *ConfigStatus {
 	return nil
 }
 
+// query
+type ReqQueryConfigList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Status    int32  `protobuf:"varint,1,opt,name=status,proto3" json:"status,omitempty"`
+	Proposer  string `protobuf:"bytes,2,opt,name=proposer,proto3" json:"proposer,omitempty"`
+	Count     int32  `protobuf:"varint,3,opt,name=count,proto3" json:"count,omitempty"`
+	Direction int32  `protobuf:"varint,4,opt,name=direction,proto3" json:"direction,omitempty"`
+	Height    int64  `protobuf:"varint,5,opt,name=height,proto3" json:"height,omitempty"`
+	Index     int32  `protobuf:"varint,6,opt,name=index,proto3" json:"index,omitempty"`
+}
+
+func (x *ReqQueryConfigList) Reset() {
+	*x = ReqQueryConfigList{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_manage_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReqQueryConfigList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReqQueryConfigList) ProtoMessage() {}
+
+func (x *ReqQueryConfigList) ProtoReflect() protoreflect.Message {
+	mi := &file_manage_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReqQueryConfigList.ProtoReflect.Descriptor instead.
+func (*ReqQueryConfigList) Descriptor() ([]byte, []int) {
+	return file_manage_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ReqQueryConfigList) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
+}
+
+func (x *ReqQueryConfigList) GetProposer() string {
+	if x != nil {
+		return x.Proposer
+	}
+	return ""
+}
+
+func (x *ReqQueryConfigList) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *ReqQueryConfigList) GetDirection() int32 {
+	if x != nil {
+		return x.Direction
+	}
+	return 0
+}
+
+func (x *ReqQueryConfigList) GetHeight() int64 {
+	if x != nil {
+		return x.Height
+	}
+	return 0
+}
+
+func (x *ReqQueryConfigList) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+type ReplyQueryConfigList struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Lists []*ConfigStatus `protobuf:"bytes,1,rep,name=lists,proto3" json:"lists,omitempty"`
+}
+
+func (x *ReplyQueryConfigList) Reset() {
+	*x = ReplyQueryConfigList{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_manage_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReplyQueryConfigList) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplyQueryConfigList) ProtoMessage() {}
+
+func (x *ReplyQueryConfigList) ProtoReflect() protoreflect.Message {
+	mi := &file_manage_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplyQueryConfigList.ProtoReflect.Descriptor instead.
+func (*ReplyQueryConfigList) Descriptor() ([]byte, []int) {
+	return file_manage_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ReplyQueryConfigList) GetLists() []*ConfigStatus {
+	if x != nil {
+		return x.Lists
+	}
+	return nil
+}
+
 var File_manage_proto protoreflect.FileDescriptor
 
 var file_manage_proto_rawDesc = []byte{
@@ -464,6 +598,21 @@ var file_manage_proto_rawDesc = []byte{
 	0x61, 0x74, 0x75, 0x73, 0x52, 0x03, 0x70, 0x72, 0x65, 0x12, 0x25, 0x0a, 0x03, 0x63, 0x75, 0x72,
 	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x43,
 	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x03, 0x63, 0x75, 0x72,
+	0x22, 0xaa, 0x01, 0x0a, 0x12, 0x52, 0x65, 0x71, 0x51, 0x75, 0x65, 0x72, 0x79, 0x43, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75,
+	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12,
+	0x1a, 0x0a, 0x08, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x08, 0x70, 0x72, 0x6f, 0x70, 0x6f, 0x73, 0x65, 0x72, 0x12, 0x14, 0x0a, 0x05, 0x63,
+	0x6f, 0x75, 0x6e, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x63, 0x6f, 0x75, 0x6e,
+	0x74, 0x12, 0x1c, 0x0a, 0x09, 0x64, 0x69, 0x72, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x04,
+	0x20, 0x01, 0x28, 0x05, 0x52, 0x09, 0x64, 0x69, 0x72, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12,
+	0x16, 0x0a, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x03, 0x52,
+	0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78,
+	0x18, 0x06, 0x20, 0x01, 0x28, 0x05, 0x52, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x22, 0x41, 0x0a,
+	0x14, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x51, 0x75, 0x65, 0x72, 0x79, 0x43, 0x6f, 0x6e, 0x66, 0x69,
+	0x67, 0x4c, 0x69, 0x73, 0x74, 0x12, 0x29, 0x0a, 0x05, 0x6c, 0x69, 0x73, 0x74, 0x73, 0x18, 0x01,
+	0x20, 0x03, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x43, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x52, 0x05, 0x6c, 0x69, 0x73, 0x74, 0x73,
 	0x42, 0x0a, 0x5a, 0x08, 0x2e, 0x2e, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72,
 	0x6f, 0x74, 0x6f, 0x33,
 }
@@ -480,7 +629,7 @@ func file_manage_proto_rawDescGZIP() []byte {
 	return file_manage_proto_rawDescData
 }
 
-var file_manage_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_manage_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_manage_proto_goTypes = []interface{}{
 	(*ApplyConfig)(nil),          // 0: types.ApplyConfig
 	(*ApproveConfig)(nil),        // 1: types.ApproveConfig
@@ -488,22 +637,25 @@ var file_manage_proto_goTypes = []interface{}{
 	(*ConfigStatus)(nil),         // 3: types.ConfigStatus
 	(*ReceiptApplyConfig)(nil),   // 4: types.ReceiptApplyConfig
 	(*ReceiptApproveConfig)(nil), // 5: types.ReceiptApproveConfig
-	(*types.ModifyConfig)(nil),   // 6: types.ModifyConfig
+	(*ReqQueryConfigList)(nil),   // 6: types.ReqQueryConfigList
+	(*ReplyQueryConfigList)(nil), // 7: types.ReplyQueryConfigList
+	(*types.ModifyConfig)(nil),   // 8: types.ModifyConfig
 }
 var file_manage_proto_depIdxs = []int32{
-	6, // 0: types.ApplyConfig.modify:type_name -> types.ModifyConfig
-	6, // 1: types.ManageAction.modify:type_name -> types.ModifyConfig
+	8, // 0: types.ApplyConfig.modify:type_name -> types.ModifyConfig
+	8, // 1: types.ManageAction.modify:type_name -> types.ModifyConfig
 	0, // 2: types.ManageAction.apply:type_name -> types.ApplyConfig
 	1, // 3: types.ManageAction.approve:type_name -> types.ApproveConfig
-	6, // 4: types.ConfigStatus.modify:type_name -> types.ModifyConfig
+	8, // 4: types.ConfigStatus.modify:type_name -> types.ModifyConfig
 	3, // 5: types.ReceiptApplyConfig.status:type_name -> types.ConfigStatus
 	3, // 6: types.ReceiptApproveConfig.pre:type_name -> types.ConfigStatus
 	3, // 7: types.ReceiptApproveConfig.cur:type_name -> types.ConfigStatus
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	3, // 8: types.ReplyQueryConfigList.lists:type_name -> types.ConfigStatus
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_manage_proto_init() }
@@ -584,6 +736,30 @@ func file_manage_proto_init() {
 				return nil
 			}
 		}
+		file_manage_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReqQueryConfigList); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_manage_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReplyQueryConfigList); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	file_manage_proto_msgTypes[2].OneofWrappers = []interface{}{
 		(*ManageAction_Modify)(nil),
@@ -596,7 +772,7 @@ func file_manage_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_manage_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
