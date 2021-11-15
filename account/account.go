@@ -487,7 +487,7 @@ func (acc *DB) mintReceipt(kv []*types.KeyValue, receipt proto.Message) *types.R
 	}
 }
 
-// Burn 然收
+// Burn 燃烧
 func (acc *DB) Burn(addr string, amount int64) (*types.Receipt, error) {
 	if !acc.CheckAmount(amount) {
 		return nil, types.ErrAmount
