@@ -24,3 +24,7 @@ var managePrefix = "mavl-manage"
 func manageKey(key string) []byte {
 	return []byte(fmt.Sprintf("%s-%s", managePrefix, key))
 }
+
+func managerIdKey(id string) []byte {
+	return []byte(fmt.Sprintf("%s-%s", managePrefix+"-id", id))
+}

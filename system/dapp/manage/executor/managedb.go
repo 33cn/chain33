@@ -136,6 +136,21 @@ func (a *action) manageKeyWithHeigh(key string) []byte {
 }
 
 func (a *action) applyConfig(payload *mty.ApplyConfig) (*types.Receipt, error) {
+	if payload.Modify == nil {
+		return nil, errors.Wrapf(types.ErrInvalidParam, "modify is nil")
+	}
+	if len(payload.Modify.Key) <= 0 || len(payload.Modify.Value) <= 0 {
+		return nil, errors.Wrapf(types.ErrInvalidParam, "key=%s,val=%s", payload.Modify.Key, payload.GetModify().Value)
+	}
+	if payload.Modify.Op != mty.OpAdd && payload.Modify.Op != mty.OpDelete {
+		return nil, errors.Wrapf(mty.ErrBadConfigOp, "op=%d", payload.Modify.Op)
+	}
+
+	_, err := a.db.Get(manageKey(payload.GetModify().Key))
+	if err == nil {
+		return nil, errors.Wrapf(types.ErrNotAllow, "key=%s existed", payload.Modify.Key)
+	}
+
 	configStatus := &mty.ConfigStatus{
 		Id:       common.ToHex(a.txhash),
 		Modify:   payload.Modify,
@@ -148,8 +163,8 @@ func (a *action) applyConfig(payload *mty.ApplyConfig) (*types.Receipt, error) {
 	return makeApplyReceipt(configStatus), nil
 }
 
-func (a *action) getConfig(ID string) (*mty.ConfigStatus, error) {
-	value, err := a.db.Get(manageKey(ID))
+func getConfig(db dbm.KV, ID string) (*mty.ConfigStatus, error) {
+	value, err := db.Get(managerIdKey(ID))
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +181,7 @@ func (a *action) approveConfig(payload *mty.ApproveConfig) (*types.Receipt, erro
 		return nil, errors.Wrapf(types.ErrInvalidParam, "id nil, appoved=%s,id=%s", payload.ApproveId, payload.Id)
 	}
 
-	s, err := a.getConfig(payload.Id)
+	s, err := getConfig(a.db, payload.Id)
 	if err != nil {
 		return nil, errors.Wrapf(err, "get Config id=%s", payload.Id)
 	}
@@ -193,7 +208,7 @@ func (a *action) approveConfig(payload *mty.ApproveConfig) (*types.Receipt, erro
 	}
 
 	copyStat := proto.Clone(s).(*mty.ConfigStatus)
-	s.Status = mty.ForkManageAutonomyApprove
+	s.Status = mty.ManageConfigStatusApproved
 
 	r := makeApproveReceipt(copyStat, s)
 
@@ -216,7 +231,7 @@ func mergeReceipt(receipt1, receipt2 *types.Receipt) *types.Receipt {
 }
 
 func makeApplyReceipt(status *mty.ConfigStatus) *types.Receipt {
-	key := manageKey(status.Id)
+	key := managerIdKey(status.Id)
 	log := &mty.ReceiptApplyConfig{
 		Status: status,
 	}
@@ -236,7 +251,7 @@ func makeApplyReceipt(status *mty.ConfigStatus) *types.Receipt {
 }
 
 func makeApproveReceipt(pre, cur *mty.ConfigStatus) *types.Receipt {
-	key := manageKey(cur.Id)
+	key := managerIdKey(cur.Id)
 	log := &mty.ReceiptApproveConfig{
 		Pre: pre,
 		Cur: cur,

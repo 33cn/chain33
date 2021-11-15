@@ -44,3 +44,12 @@ func (c *Manage) Query_GetConfigItem(in *types.ReqString) (types.Message, error)
 
 	return &reply, nil
 }
+
+// Query_GetConfigID get config item id
+func (c *Manage) Query_GetConfigID(in *types.ReqString) (types.Message, error) {
+	if in == nil || len(in.Data) <= 0 {
+		return nil, types.ErrInvalidParam
+	}
+	return getConfig(c.GetStateDB(), in.Data)
+
+}
