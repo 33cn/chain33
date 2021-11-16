@@ -106,7 +106,7 @@ func configApply(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	paraName, _ := cmd.Flags().GetString("paraName")
 	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: ""}
-	apply := &mty.ApplyConfig{Modify: v}
+	apply := &mty.ApplyConfig{Config: v}
 	params := &rpctypes.CreateTxIn{
 		Execer:     util.GetParaExecName(paraName, mty.ManageX),
 		ActionName: "Apply",
@@ -139,11 +139,11 @@ func addConfigApproveFlags(cmd *cobra.Command) {
 
 func configApprove(cmd *cobra.Command, args []string) {
 	id, _ := cmd.Flags().GetString("config_id")
-	approveId, _ := cmd.Flags().GetString("approve_id")
+	approveID, _ := cmd.Flags().GetString("approve_id")
 
 	paraName, _ := cmd.Flags().GetString("paraName")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	v := &mty.ApproveConfig{ApplyConfigId: id, AutonomyItemId: approveId}
+	v := &mty.ApproveConfig{ApplyConfigId: id, AutonomyItemId: approveID}
 
 	params := &rpctypes.CreateTxIn{
 		Execer:     util.GetParaExecName(paraName, mty.ManageX),
@@ -194,18 +194,18 @@ func QueryConfigIDCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "id",
 		Short: "Query config apply id status",
-		Run:   queryConfigId,
+		Run:   queryConfigID,
 	}
-	addQueryConfigIdFlags(cmd)
+	addQueryConfigIDFlags(cmd)
 	return cmd
 }
 
-func addQueryConfigIdFlags(cmd *cobra.Command) {
+func addQueryConfigIDFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("id", "i", "", "config id string")
 	cmd.MarkFlagRequired("id")
 }
 
-func queryConfigId(cmd *cobra.Command, args []string) {
+func queryConfigID(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	paraName, _ := cmd.Flags().GetString("paraName")
 	key, _ := cmd.Flags().GetString("id")

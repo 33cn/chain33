@@ -30,7 +30,7 @@ func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transac
 	types.AssertConfig(c.GetAPI())
 	cfg := c.GetAPI().GetConfig()
 
-	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyApprove) {
+	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyEnable) {
 		return nil, errors.Wrapf(types.ErrNotAllow, "not allow this op directly in new version")
 	}
 
@@ -47,9 +47,10 @@ func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transac
 
 }
 
+//Exec_Apply apply config
 func (c *Manage) Exec_Apply(payload *mty.ApplyConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
 	cfg := c.GetAPI().GetConfig()
-	if !cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyApprove) {
+	if !cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyEnable) {
 		return nil, types.ErrNotAllow
 	}
 
@@ -57,9 +58,10 @@ func (c *Manage) Exec_Apply(payload *mty.ApplyConfig, tx *types.Transaction, ind
 	return action.applyConfig(payload)
 }
 
+//Exec_Approve approve config apply
 func (c *Manage) Exec_Approve(payload *mty.ApproveConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
 	cfg := c.GetAPI().GetConfig()
-	if !cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyApprove) {
+	if !cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyEnable) {
 		return nil, types.ErrNotAllow
 	}
 
