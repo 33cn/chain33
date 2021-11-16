@@ -222,7 +222,7 @@ superManager=[
     "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 
     "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"
 ]
-autonomyExec="autonomy"
+autonomyExec=""
 
 [exec.sub.autonomy]
 total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"

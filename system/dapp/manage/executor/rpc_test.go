@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	rpctypes "github.com/33cn/chain33/rpc/types"
-	mty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
@@ -13,9 +12,7 @@ import (
 
 func TestManageConfig(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
-	cfg.SetTitleOnlyForTest("chain33")
 	mocker := testnode.NewWithConfig(cfg, nil)
-	mocker.GetAPI().GetConfig().SetDappFork(mty.ManageX, mty.ForkManageAutonomyEnable, types.MaxHeight)
 	defer mocker.Close()
 	mocker.Listen()
 	err := mocker.SendHot()
@@ -155,9 +152,7 @@ func TestManageConfig(t *testing.T) {
 
 func TestTokenFinisher(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
-	cfg.SetTitleOnlyForTest("chain33")
 	mocker := testnode.NewWithConfig(cfg, nil)
-	mocker.GetAPI().GetConfig().SetDappFork(mty.ManageX, mty.ForkManageAutonomyEnable, types.MaxHeight)
 	defer mocker.Close()
 	mocker.Listen()
 	err := mocker.SendHot()
