@@ -11,6 +11,6 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-func managerIdKey(id string) []byte {
+func managerIDKey(id string) []byte {
 	return []byte(fmt.Sprintf("%s-%s", types.ManagePrefix+mty.ManageX+"-id", id))
 }

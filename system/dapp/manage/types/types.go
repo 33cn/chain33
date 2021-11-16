@@ -29,8 +29,10 @@ var (
 )
 
 const (
-	ForkManageExec            = "ForkManageExec"
-	ForkManageAutonomyApprove = "ForkManageAutonomyApprove"
+	//ForkManageExec manage key
+	ForkManageExec = "ForkManageExec"
+	//ForkManageAutonomyEnable enable approve from autonomy
+	ForkManageAutonomyEnable = "ForkManageAutonomyEnable"
 )
 
 func init() {
@@ -44,7 +46,7 @@ func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(ManageX, "Enable", 120000)
 	cfg.RegisterDappFork(ManageX, ForkManageExec, 400000)
 	//支持autonomy委员会审批
-	cfg.RegisterDappFork(ManageX, ForkManageAutonomyApprove, 10000000)
+	cfg.RegisterDappFork(ManageX, ForkManageAutonomyEnable, 10000000)
 }
 
 //InitExecutor init Executor

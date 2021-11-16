@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	rpctypes "github.com/33cn/chain33/rpc/types"
+	mty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
@@ -12,7 +13,9 @@ import (
 
 func TestManageConfig(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
+	cfg.SetTitleOnlyForTest("chain33")
 	mocker := testnode.NewWithConfig(cfg, nil)
+	mocker.GetAPI().GetConfig().SetDappFork(mty.ManageX, mty.ForkManageAutonomyEnable, types.MaxHeight)
 	defer mocker.Close()
 	mocker.Listen()
 	err := mocker.SendHot()
@@ -152,7 +155,9 @@ func TestManageConfig(t *testing.T) {
 
 func TestTokenFinisher(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
+	cfg.SetTitleOnlyForTest("chain33")
 	mocker := testnode.NewWithConfig(cfg, nil)
+	mocker.GetAPI().GetConfig().SetDappFork(mty.ManageX, mty.ForkManageAutonomyEnable, types.MaxHeight)
 	defer mocker.Close()
 	mocker.Listen()
 	err := mocker.SendHot()
@@ -205,17 +210,4 @@ func TestTokenFinisher(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, reply.Key, "token-finisher")
 	assert.Equal(t, reply.Value, "[1FCX9XJTZXvZteagTrefJEBPZMt8BFmdoi]")
-}
-
-func TestModify(t *testing.T) {
-	manager := new(Manage)
-
-	log := &types.ReceiptLog{Ty: 0, Log: types.Encode(&types.ReceiptConfig{Prev: &types.ConfigItem{}, Current: &types.ConfigItem{}})}
-	receipt := &types.ReceiptData{Logs: []*types.ReceiptLog{log}}
-
-	_, err := manager.ExecDelLocal_Modify(nil, nil, receipt, 0)
-	assert.NoError(t, err)
-
-	_, err = manager.ExecLocal_Modify(nil, nil, receipt, 0)
-	assert.NoError(t, err)
 }

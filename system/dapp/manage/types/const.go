@@ -23,12 +23,14 @@ const (
 	ConfigItemArrayConfig = iota
 )
 
+//ManageConfigStatus config status
 const (
 	ManageConfigStatusNone     = 0
 	ManageConfigStatusApply    = 1
 	ManageConfigStatusApproved = 2
 )
 
+//OpAdd config op
 const (
 	OpAdd    = "add"
 	OpDelete = "delete"
