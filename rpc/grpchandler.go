@@ -7,11 +7,11 @@ package rpc
 import (
 	"time"
 
-	"strings"
-
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
+	"strings"
 )
 
 // SendTransactionSync send transaction by network and query
@@ -602,3 +602,11 @@ func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConf
 		IsPara:         cfg.IsPara(),
 	}, nil
 }
+
+//ConvertExectoAddr 根据执行器的名字创建地址
+func (g *Grpc) ConvertExectoAddr(ctx context.Context,in *pb.ReqString)(*pb.ReplyString,error){
+	 addr:= address.ExecAddress(in.GetData())
+	return &pb.ReplyString{Data: addr},nil
+}
+
+

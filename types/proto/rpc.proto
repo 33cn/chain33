@@ -244,4 +244,7 @@ service chain33 {
 
     // 获取节点配置信息
     rpc GetChainConfig(ReqNil) returns (ChainConfigInfo) {}
+
+    //根据执行期名称创建对应的地址
+    rpc ConvertExectoAddr(ReqString) returns (ReplyString) {}
 }

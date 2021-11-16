@@ -788,3 +788,15 @@ func TestGrpc_SendTransactions(t *testing.T) {
 	require.Equal(t, testMsg, reply.GetReplyList()[txCount-1].Msg)
 	require.True(t, reply.GetReplyList()[txCount-1].IsOk)
 }
+
+func TestGrpc_ConvertExectoAddr(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	g := Grpc{}
+	qapi = new(mocks.QueueProtocolAPI)
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
+	g.cli.QueueProtocolAPI = qapi
+	replyStr,err := g.ConvertExectoAddr(getOkCtx(),&types.ReqString{Data: "coins"})
+	assert.NoError(t, err)
+	t.Log("execAddr:",replyStr)
+	assert.Equal(t, "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt",replyStr.GetData())
+}
