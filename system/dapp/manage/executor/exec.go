@@ -9,6 +9,7 @@ import (
 	"github.com/33cn/chain33/system/dapp"
 	mty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
+	"github.com/pkg/errors"
 )
 
 func (c *Manage) checkAddress(addr string) error {
@@ -30,7 +31,7 @@ func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transac
 	cfg := c.GetAPI().GetConfig()
 
 	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyApprove) {
-		return nil, types.ErrNotAllow
+		return nil, errors.Wrapf(types.ErrNotAllow, "not allow this op directly in new version")
 	}
 
 	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageExec) {
@@ -46,7 +47,7 @@ func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transac
 
 }
 
-func (c *Manage) Exec_ApplyConfig(payload *mty.ApplyConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (c *Manage) Exec_Apply(payload *mty.ApplyConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
 	cfg := c.GetAPI().GetConfig()
 	if !cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyApprove) {
 		return nil, types.ErrNotAllow
@@ -56,7 +57,7 @@ func (c *Manage) Exec_ApplyConfig(payload *mty.ApplyConfig, tx *types.Transactio
 	return action.applyConfig(payload)
 }
 
-func (c *Manage) Exec_ApproveConfig(payload *mty.ApproveConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (c *Manage) Exec_Approve(payload *mty.ApproveConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
 	cfg := c.GetAPI().GetConfig()
 	if !cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyApprove) {
 		return nil, types.ErrNotAllow

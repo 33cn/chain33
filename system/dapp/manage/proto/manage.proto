@@ -7,13 +7,13 @@ option go_package = "../types";
 
 //申请修改配置项
 message ApplyConfig {
-    ModifyConfig modify = 1;
+    ModifyConfig config = 1;
 }
 
 //批准配置项
 message ApproveConfig {
-    string id        = 1; //修改配置项申请ID
-    string approveId = 2; // approve 合约批准的ID
+    string applyConfigId        = 1; //修改配置项申请ID
+    string autonomyItemId = 2; // autonomy 合約批准的 item ID
 }
 
 message ManageAction {
@@ -27,7 +27,7 @@ message ManageAction {
 
 message ConfigStatus {
     string       id       = 1; //申请ID
-    ModifyConfig modify   = 2;
+    ModifyConfig config   = 2;
     int32        status   = 3;
     string       proposer = 4;
 

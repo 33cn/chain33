@@ -29,6 +29,7 @@ func ConfigCmd() *cobra.Command {
 		ConfigApproveCmd(),
 		QueryConfigCmd(),
 		QueryConfigIDCmd(),
+		ListConfigItemCmd(),
 	)
 
 	return cmd
@@ -108,7 +109,7 @@ func configApply(cmd *cobra.Command, args []string) {
 	apply := &mty.ApplyConfig{Modify: v}
 	params := &rpctypes.CreateTxIn{
 		Execer:     util.GetParaExecName(paraName, mty.ManageX),
-		ActionName: "ApplyConfig",
+		ActionName: "Apply",
 		Payload:    types.MustPBToJSON(apply),
 	}
 
@@ -142,28 +143,11 @@ func configApprove(cmd *cobra.Command, args []string) {
 
 	paraName, _ := cmd.Flags().GetString("paraName")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	//cfg, err := commandtypes.GetChainConfig(rpcLaddr)
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
-	//	return
-	//}
-	v := &mty.ApproveConfig{Id: id, ApproveId: approveId}
-	//modify := &mty.ManageAction{
-	//	Ty:    mty.ManageActionApproveConfig,
-	//	Value: &mty.ManageAction_Approve{Approve: v},
-	//}
-	//txRaw := &types.Transaction{Payload: types.Encode(modify)}
-	//tx, err := types.FormatTxExt(cfg.ChainID, len(paraName) > 0, cfg.MinTxFeeRate, util.GetParaExecName(paraName, "manage"), txRaw)
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//	return
-	//}
-	//txHex := types.Encode(tx)
-	//fmt.Println(hex.EncodeToString(txHex))
+	v := &mty.ApproveConfig{ApplyConfigId: id, AutonomyItemId: approveId}
 
 	params := &rpctypes.CreateTxIn{
 		Execer:     util.GetParaExecName(paraName, mty.ManageX),
-		ActionName: "ApproveConfig",
+		ActionName: "Approve",
 		Payload:    types.MustPBToJSON(v),
 	}
 
@@ -209,7 +193,7 @@ func queryConfig(cmd *cobra.Command, args []string) {
 func QueryConfigIDCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "id",
-		Short: "Query config apply id",
+		Short: "Query config apply id status",
 		Run:   queryConfigId,
 	}
 	addQueryConfigIdFlags(cmd)
@@ -217,7 +201,7 @@ func QueryConfigIDCmd() *cobra.Command {
 }
 
 func addQueryConfigIdFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("id", "i", "", "id string")
+	cmd.Flags().StringP("id", "i", "", "config id string")
 	cmd.MarkFlagRequired("id")
 }
 
@@ -235,5 +219,52 @@ func queryConfigId(cmd *cobra.Command, args []string) {
 
 	var res mty.ConfigStatus
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.Run()
+}
+
+// ListConfigItemCmd list config item
+func ListConfigItemCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "list config id",
+		Run:   listConfigItem,
+	}
+	listConfigItemflags(cmd)
+	return cmd
+}
+
+func listConfigItemflags(cmd *cobra.Command) {
+	cmd.Flags().Uint32P("status", "s", 0, "status 1:apply, 2:approved")
+	cmd.Flags().StringP("addr", "a", "", "config proposer")
+	cmd.Flags().Int32P("count", "c", 1, "count, default is 1")
+	cmd.Flags().Int32P("direction", "d", 0, "direction, default is reserve")
+	cmd.Flags().Int64P("height", "t", -1, "height, default is -1")
+	cmd.Flags().Int32P("index", "i", -1, "index, default is -1")
+}
+
+func listConfigItem(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	status, _ := cmd.Flags().GetUint32("status")
+	addr, _ := cmd.Flags().GetString("addr")
+	count, _ := cmd.Flags().GetInt32("count")
+	direction, _ := cmd.Flags().GetInt32("direction")
+	height, _ := cmd.Flags().GetInt64("height")
+	index, _ := cmd.Flags().GetInt32("index")
+
+	var params rpctypes.Query4Jrpc
+	params.Execer = mty.ManageX
+	req := &mty.ReqQueryConfigList{
+		Status:    int32(status),
+		Proposer:  addr,
+		Count:     count,
+		Direction: direction,
+		Height:    height,
+		Index:     index,
+	}
+	params.FuncName = "ListConfigID"
+	params.Payload = types.MustPBToJSON(req)
+
+	var rep mty.ReplyQueryConfigList
+	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.Query", params, &rep)
 	ctx.Run()
 }

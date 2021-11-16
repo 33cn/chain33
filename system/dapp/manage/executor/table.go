@@ -21,7 +21,7 @@ var configOpt = &table.Option{
 	Prefix:  "LODB-manage",
 	Name:    "config",
 	Primary: "heightindex",
-	Index:   []string{"addr", "status", "id", "addr_status"},
+	Index:   []string{"addr", "status", "addr_status"},
 }
 
 //NewConfigTable 新建表
@@ -62,8 +62,6 @@ func (r *ConfigRow) SetPayload(data types.Message) error {
 func (r *ConfigRow) Get(key string) ([]byte, error) {
 	if key == "heightindex" {
 		return []byte(dapp.HeightIndexStr(r.Height, int64(r.Index))), nil
-	} else if key == "id" {
-		return []byte(r.Id), nil
 	} else if key == "status" {
 		return []byte(fmt.Sprintf("%2d", r.Status)), nil
 	} else if key == "addr" {

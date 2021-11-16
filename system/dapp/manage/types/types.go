@@ -22,7 +22,9 @@ var (
 	}
 	logmap = map[int64]*types.LogInfo{
 		// 这里reflect.TypeOf类型必须是proto.Message类型，且是交易的回持结构
-		TyLogModifyConfig: {Ty: reflect.TypeOf(types.ReceiptConfig{}), Name: "LogModifyConfig"},
+		TyLogModifyConfig:  {Ty: reflect.TypeOf(types.ReceiptConfig{}), Name: "LogModifyConfig"},
+		TyLogApplyConfig:   {Ty: reflect.TypeOf(ReceiptApplyConfig{}), Name: "LogApplyConfig"},
+		TyLogApproveConfig: {Ty: reflect.TypeOf(ReceiptApproveConfig{}), Name: "LogApproveConfig"},
 	}
 )
 
@@ -66,11 +68,6 @@ func NewType(cfg *types.Chain33Config) *ManageType {
 // GetPayload return manageaction
 func (m *ManageType) GetPayload() types.Message {
 	return &ManageAction{}
-}
-
-// ActionName return action a string name
-func (m ManageType) ActionName(tx *types.Transaction) string {
-	return "config"
 }
 
 // Amount amount

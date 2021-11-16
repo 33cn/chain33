@@ -12,7 +12,7 @@ message ReqString {
     string data = 1;
 }
 
-message ReqStrings {
+message ReqMultiStrings {
     repeated string datas = 1;
 }
 

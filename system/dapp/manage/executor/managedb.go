@@ -49,12 +49,12 @@ func (a *action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	}
 
 	var item types.ConfigItem
-	value, err := a.db.Get(manageKey(modify.Key))
+	value, err := a.db.Get([]byte(types.ManageKey(modify.Key)))
 	if err != nil {
 		value = nil
 	}
 	if value == nil {
-		value, err = a.db.Get(configKey(modify.Key))
+		value, err = a.db.Get([]byte(types.ConfigKey(modify.Key)))
 		if err != nil {
 			value = nil
 		}
@@ -130,9 +130,9 @@ func (a *action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 //ManaeKeyWithHeigh 超级管理员账户key
 func (a *action) manageKeyWithHeigh(key string) []byte {
 	if a.api.GetConfig().IsFork(a.height, "ForkExecKey") {
-		return manageKey(key)
+		return []byte(types.ManageKey(key))
 	}
-	return configKey(key)
+	return []byte(types.ConfigKey(key))
 }
 
 func (a *action) applyConfig(payload *mty.ApplyConfig) (*types.Receipt, error) {
@@ -143,10 +143,10 @@ func (a *action) applyConfig(payload *mty.ApplyConfig) (*types.Receipt, error) {
 		return nil, errors.Wrapf(types.ErrInvalidParam, "key=%s,val=%s", payload.Modify.Key, payload.GetModify().Value)
 	}
 	if payload.Modify.Op != mty.OpAdd && payload.Modify.Op != mty.OpDelete {
-		return nil, errors.Wrapf(mty.ErrBadConfigOp, "op=%d", payload.Modify.Op)
+		return nil, errors.Wrapf(mty.ErrBadConfigOp, "op=%s", payload.Modify.Op)
 	}
 
-	_, err := a.db.Get(manageKey(payload.GetModify().Key))
+	_, err := a.db.Get([]byte(types.ManageKey(payload.GetModify().Key)))
 	if err == nil {
 		return nil, errors.Wrapf(types.ErrNotAllow, "key=%s existed", payload.Modify.Key)
 	}
@@ -177,13 +177,13 @@ func getConfig(db dbm.KV, ID string) (*mty.ConfigStatus, error) {
 }
 
 func (a *action) approveConfig(payload *mty.ApproveConfig) (*types.Receipt, error) {
-	if len(payload.ApproveId) <= 0 || len(payload.Id) <= 0 {
-		return nil, errors.Wrapf(types.ErrInvalidParam, "id nil, appoved=%s,id=%s", payload.ApproveId, payload.Id)
+	if len(payload.AutonomyItemId) <= 0 || len(payload.ApplyConfigId) <= 0 {
+		return nil, errors.Wrapf(types.ErrInvalidParam, "id nil, appoved=%s,id=%s", payload.AutonomyItemId, payload.ApplyId)
 	}
 
-	s, err := getConfig(a.db, payload.Id)
+	s, err := getConfig(a.db, payload.ApplyConfigId)
 	if err != nil {
-		return nil, errors.Wrapf(err, "get Config id=%s", payload.Id)
+		return nil, errors.Wrapf(err, "get Config id=%s", payload.ApplyConfigId)
 	}
 
 	if s.Status != mty.ManageConfigStatusApply {
@@ -201,10 +201,10 @@ func (a *action) approveConfig(payload *mty.ApproveConfig) (*types.Receipt, erro
 	_, err = a.api.QueryChain(&types.ChainExecutor{
 		Driver:   autonomyExec,
 		FuncName: "IsAutonomyApprovedItem",
-		Param:    types.Encode(&types.ReqStrings{Datas: []string{payload.ApproveId, payload.Id}}),
+		Param:    types.Encode(&types.ReqMultiStrings{Datas: []string{payload.AutonomyItemId, payload.ApplyConfigId}}),
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "query autonomy,approveid=%s,hashId=%s", payload.ApproveId, payload.Id)
+		return nil, errors.Wrapf(err, "query autonomy,approveid=%s,hashId=%s", payload.AutonomyItemId, payload.ApplyConfigId)
 	}
 
 	copyStat := proto.Clone(s).(*mty.ConfigStatus)
