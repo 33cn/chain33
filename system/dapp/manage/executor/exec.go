@@ -30,7 +30,9 @@ func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transac
 	types.AssertConfig(c.GetAPI())
 	cfg := c.GetAPI().GetConfig()
 
-	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyEnable) {
+	confManager := types.ConfSub(cfg, mty.ManageX)
+	autonomyExec := confManager.GStr(types.AutonomyCfgKey)
+	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyEnable) && len(autonomyExec) > 0 {
 		return nil, errors.Wrapf(types.ErrNotAllow, "not allow this op directly in new version")
 	}
 
