@@ -12,7 +12,7 @@ message ApplyConfig {
 
 //批准配置项
 message ApproveConfig {
-    string applyConfigId        = 1; //修改配置项申请ID
+    string applyConfigId  = 1; //修改配置项申请ID
     string autonomyItemId = 2; // autonomy 合約批准的 item ID
 }
 

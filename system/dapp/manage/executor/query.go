@@ -6,6 +6,7 @@ package executor
 
 import (
 	"fmt"
+
 	mty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
 )
