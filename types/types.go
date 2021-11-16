@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -330,6 +331,23 @@ func GetSignType(execer string, name string) int {
 	}
 	//加载系统执行器的签名类型
 	return crypto.GetType(name)
+}
+
+// ConfigPrefix 配置前缀key
+var ConfigPrefix = "mavl-config-"
+
+// ConfigKey 原来实现有bug， 但生成的key在状态树里， 不可修改
+// mavl-config–{key}  key 前面两个-
+func ConfigKey(key string) string {
+	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
+}
+
+// ManagePrefix 超级管理员账户配置前缀key
+var ManagePrefix = "mavl-"
+
+//ManageKey 超级管理员账户key
+func ManageKey(key string) string {
+	return fmt.Sprintf("%s-%s", ManagePrefix+"manage", key)
 }
 
 //ReceiptDataResult 回执数据

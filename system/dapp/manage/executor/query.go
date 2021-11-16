@@ -6,20 +6,20 @@ package executor
 
 import (
 	"fmt"
-
+	mty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
 )
 
 // Query_GetConfigItem get config item
 func (c *Manage) Query_GetConfigItem(in *types.ReqString) (types.Message, error) {
 	// Load config from state db
-	value, err := c.GetStateDB().Get(manageKey(in.Data))
+	value, err := c.GetStateDB().Get([]byte(types.ManageKey(in.Data)))
 	if err != nil {
 		clog.Info("modifyConfig", "get db key", "not found")
 		value = nil
 	}
 	if value == nil {
-		value, err = c.GetStateDB().Get(configKey(in.Data))
+		value, err = c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
 		if err != nil {
 			clog.Info("modifyConfig", "get db key", "not found")
 			value = nil
@@ -51,5 +51,11 @@ func (c *Manage) Query_GetConfigID(in *types.ReqString) (types.Message, error) {
 		return nil, types.ErrInvalidParam
 	}
 	return getConfig(c.GetStateDB(), in.Data)
+
+}
+
+// Query_ListConfigID get config item id
+func (c *Manage) Query_ListConfigID(req *mty.ReqQueryConfigList) (types.Message, error) {
+	return c.listProposalItem(req)
 
 }

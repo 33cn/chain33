@@ -6,25 +6,10 @@ package executor
 
 import (
 	"fmt"
+	mty "github.com/33cn/chain33/system/dapp/manage/types"
+	"github.com/33cn/chain33/types"
 )
 
-// ConfigPrefix 配置前缀key
-var configPrefix = "mavl-config-"
-
-// ConfigKey 原来实现有bug， 但生成的key在状态树里， 不可修改
-// mavl-config–{key}  key 前面两个-
-func configKey(key string) []byte {
-	return []byte(fmt.Sprintf("%s-%s", configPrefix, key))
-}
-
-// ManagePrefix 超级管理员账户配置前缀key
-var managePrefix = "mavl-manage"
-
-//ManageKey 超级管理员账户key
-func manageKey(key string) []byte {
-	return []byte(fmt.Sprintf("%s-%s", managePrefix, key))
-}
-
 func managerIdKey(id string) []byte {
-	return []byte(fmt.Sprintf("%s-%s", managePrefix+"-id", id))
+	return []byte(fmt.Sprintf("%s-%s", types.ManagePrefix+mty.ManageX+"-id", id))
 }
