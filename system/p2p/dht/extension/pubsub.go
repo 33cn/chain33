@@ -36,6 +36,7 @@ type PubSub struct {
 	topics     TopicMap
 	topicMutex sync.RWMutex
 	ctx        context.Context
+	config     *p2ptypes.PubSubConfig
 }
 
 // SubMsg sub message
@@ -51,10 +52,15 @@ func setPubSubParameters(psConf *p2ptypes.PubSubConfig) {
 		psConf.MaxMsgSize = types.MaxBlockSize
 	}
 	if psConf.PeerOutboundQueueSize <= 0 {
-		psConf.PeerOutboundQueueSize = 128
+		psConf.PeerOutboundQueueSize = 1024
 	}
+
+	if psConf.SubBufferSize <= 0 {
+		psConf.SubBufferSize = 1024
+	}
+
 	if psConf.ValidateQueueSize <= 0 {
-		psConf.ValidateQueueSize = 128
+		psConf.ValidateQueueSize = 1024
 	}
 
 	if psConf.GossipSubDlo <= 0 {
@@ -125,6 +131,7 @@ func NewPubSub(ctx context.Context, host host.Host, psConf *p2ptypes.PubSubConfi
 	p.PubSub = ps
 	p.ctx = ctx
 	p.topics = make(TopicMap)
+	p.config = psConf
 	return p, nil
 }
 
@@ -176,7 +183,7 @@ func (p *PubSub) JoinAndSubTopic(topic string, callback SubCallBack, opts ...pub
 		return err
 	}
 
-	subscription, err := tp.Subscribe()
+	subscription, err := tp.Subscribe(pubsub.WithBufferSize(p.config.SubBufferSize))
 	if err != nil {
 		return err
 	}

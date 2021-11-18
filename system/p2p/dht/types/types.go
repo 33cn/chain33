@@ -65,7 +65,7 @@ type BroadcastConfig struct {
 	DisableLtBlock bool `json:"disableLtBlock,omitempty"`
 	//区块轻广播的最低区块大小,单位KB, 大于该值时区块内交易采用短哈希广播, 默认100KB
 	MinLtBlockSize int `json:"minLtBlockSize,omitempty"`
-	//轻区块等待超时时长, 默认2s
+	//轻区块等待超时时长(毫秒), 默认1000 ms, 建议配置为出块时间的1/3
 	LtBlockPendTimeout int64 `json:"ltBlockPendTimeout,omitempty"`
 }
 
@@ -120,4 +120,6 @@ type PubSubConfig struct {
 
 	// MaxMsgSize, max message size in pub sub(MB)
 	MaxMsgSize int `json:"maxMsgSize,omitempty"`
+	// SubBufferSize customize the size of the subscribe output buffer
+	SubBufferSize int `json:"subBufferSize,omitempty"`
 }
