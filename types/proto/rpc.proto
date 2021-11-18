@@ -254,7 +254,8 @@ service chain33 {
 
     //ReWriteRawTx
     rpc ReWriteTx(ReWriteRawTx)returns(UnsignTx){}
-
+    //GetBlockSequences
+    rpc GetBlockSequences(ReqBlocks)returns(BlockSequences){}
 
 
 }
