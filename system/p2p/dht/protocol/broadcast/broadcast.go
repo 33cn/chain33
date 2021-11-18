@@ -11,8 +11,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/33cn/chain33/common"
-
 	"github.com/33cn/chain33/common/pubsub"
 
 	"github.com/33cn/chain33/p2p/utils"
@@ -164,8 +162,7 @@ func (p *broadcastProtocol) buildLtBlock(block *types.Block) *types.LightBlock {
 	ltBlock.Header.Signature = block.Signature
 	ltBlock.MinerTx = block.Txs[0]
 	ltBlock.STxHashes = make([]string, 0, ltBlock.GetHeader().GetTxCount())
-	ltBlock.BlockDataHash = common.Sha256(types.Encode(block))
-	for _, tx := range block.Txs[1:] {
+	for _, tx := range block.Txs {
 		//tx short hash
 		ltBlock.STxHashes = append(ltBlock.STxHashes, types.CalcTxShortHash(tx.Hash()))
 	}
@@ -196,8 +193,12 @@ func (p *broadcastProtocol) handleBroadcastReceive(msg subscribeMsg) {
 
 	} else if topic == psLtBlockTopic {
 		lb := msg.value.(*types.LightBlock)
+		hash = hex.EncodeToString(lb.GetHeader().GetHash())
+		if p.blockFilter.AddWithCheckAtomic(hash, struct{}{}) {
+			return
+		}
 		p.ltB.addLtBlock(lb, msg.receiveFrom)
-		log.Debug("recvBlkPs", "height", lb.GetHeader().GetHeight())
+		log.Debug("recvLtBlk", "height", lb.GetHeader().GetHeight(), "hash", hash)
 
 	} else if strings.HasPrefix(topic, psPeerMsgTopicPrefix) {
 		err = p.handlePeerMsg(msg.value.(*types.PeerPubSubMsg), msg.receiveFrom)
@@ -222,7 +223,7 @@ func (p *broadcastProtocol) handlePeerMsg(msg *types.PeerPubSubMsg, pid peer.ID)
 	case blockRespMsgID:
 		block := &types.Block{}
 		err = types.Decode(msg.ProtoMsg, block)
-		if err != nil {
+		if err != nil || msg.GetProtoMsg() == nil {
 			log.Error("recvBlkResp", "decode err", err)
 			break
 		}
@@ -246,6 +247,12 @@ func (p *broadcastProtocol) pubPeerMsg(peerID peer.ID, msgID int32, msg types.Me
 	pubMsg := &types.PeerPubSubMsg{
 		MsgID:    msgID,
 		ProtoMsg: types.Encode(msg),
+	}
+	topic := p.getPeerTopic(peerID)
+	err := p.Pubsub.TryJoinTopic(topic)
+	if err != nil {
+		log.Error("pubPeerMsg", "msgID", msgID, "pid", peerID.String(), "join topic err", err)
+		return
 	}
 	p.ps.Pub(publishMsg{msg: pubMsg, topic: p.getPeerTopic(peerID)}, psBroadcast)
 }

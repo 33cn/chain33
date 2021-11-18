@@ -9,13 +9,13 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
-	net "github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/snappy"
+	"github.com/libp2p/go-libp2p-core/peer"
+
+	net "github.com/33cn/chain33/system/p2p/dht/extension"
 )
 
 const (

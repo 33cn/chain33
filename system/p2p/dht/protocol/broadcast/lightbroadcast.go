@@ -5,13 +5,10 @@
 package broadcast
 
 import (
-	"bytes"
 	"container/list"
 	"encoding/hex"
 	"sync"
 	"time"
-
-	"github.com/33cn/chain33/common"
 
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -30,7 +27,6 @@ type pendBlock struct {
 	fromPeer          peer.ID
 	receiveTimeStamp  int64
 	block             *types.Block
-	blockDataHash     []byte
 	blockHash         []byte
 	sTxHashes         []string
 	notExistTxHashes  []string
@@ -63,9 +59,9 @@ func (l *ltBroadcast) buildPendBlock(pd *pendBlock) bool {
 	}
 	pd.notExistTxHashes = pd.notExistTxHashes[:0]
 	pd.notExistTxIndices = pd.notExistTxIndices[:0]
-	for i, tx := range pd.block.GetTxs()[1:] {
+	for i, tx := range pd.block.GetTxs() {
 		if tx == nil {
-			pd.notExistTxIndices = append(pd.notExistTxIndices, i+1)
+			pd.notExistTxIndices = append(pd.notExistTxIndices, i)
 			pd.notExistTxHashes = append(pd.notExistTxHashes, pd.sTxHashes[i])
 		}
 	}
@@ -83,26 +79,30 @@ func (l *ltBroadcast) buildPendBlock(pd *pendBlock) bool {
 		log.Error("buildPendBlock", "queryMemPool", "nilReplyTxList")
 		return false
 	}
+	buildSuccess := true
 	// 请求mempool会返回相应长度的数组
-	for i := 0; i < len(pd.notExistTxIndices); i++ {
+	for i, index := range pd.notExistTxIndices {
 		tx := txList.GetTxs()[i]
-		if tx == nil {
+		// 交易已经设置, 主要是交易组情况
+		if pd.block.GetTxs()[index] != nil {
 			continue
 		}
-		index := pd.notExistTxIndices[i]
+		// mempool中不存在该交易, 无法组装成功
+		if tx == nil {
+			buildSuccess = false
+			continue
+		}
 		pd.block.GetTxs()[index] = tx
 		// 交易组处理
 		group, _ := tx.GetTxGroup()
 		// 交易组中的其他交易, 依次添加到区块交易列表中
-		for j, tx := range group.GetTxs() {
-			pd.block.GetTxs()[index+j] = tx
+		for j, gtx := range group.GetTxs() {
+			pd.block.GetTxs()[index+j] = gtx
 		}
 	}
 
-	if bytes.Equal(pd.blockDataHash, common.Sha256(types.Encode(pd.block))) {
+	if buildSuccess {
 		blockHashHex := hex.EncodeToString(pd.blockHash)
-		log.Debug("buildLtBlock", "height", pd.block.GetHeight(), "hash", blockHashHex,
-			"wait(s)", types.Now().Unix()-pd.receiveTimeStamp)
 		_ = l.postBlockChain(blockHashHex, pd.fromPeer.String(), pd.block)
 		return true
 	}
@@ -123,14 +123,14 @@ func (l *ltBroadcast) addLtBlock(ltBlock *types.LightBlock, receiveFrom peer.ID)
 		fromPeer:          receiveFrom,
 		block:             block,
 		sTxHashes:         ltBlock.GetSTxHashes(),
-		receiveTimeStamp:  types.Now().Unix(),
+		receiveTimeStamp:  types.Now().UnixNano(),
 		blockHash:         ltBlock.GetHeader().GetHash(),
-		blockDataHash:     ltBlock.GetBlockDataHash(),
 		notExistTxIndices: make([]int, txCount),
 		notExistTxHashes:  make([]string, txCount),
 	}
 
 	if l.buildPendBlock(pd) {
+		log.Debug("addLtBlk", "height", pd.block.GetHeight())
 		return
 	}
 
@@ -141,7 +141,7 @@ func (l *ltBroadcast) addLtBlock(ltBlock *types.LightBlock, receiveFrom peer.ID)
 }
 
 const (
-	defaultLtBlockTimeout = 2 //seconds
+	defaultLtBlockTimeout = 1000 //milliseconds
 )
 
 func (l *ltBroadcast) buildPendList() []*pendBlock {
@@ -153,12 +153,12 @@ func (l *ltBroadcast) buildPendList() []*pendBlock {
 	timeoutBlocks := make([]*pendBlock, 0)
 	for it := l.pendBlockList.Front(); it != nil; it = it.Next() {
 		pd := it.Value.(*pendBlock)
-		pendTime := types.Now().Unix() - pd.receiveTimeStamp
+		pendTime := (types.Now().UnixNano() - pd.receiveTimeStamp) / int64(time.Millisecond)
 		if l.buildPendBlock(pd) {
 			log.Debug("buildPendSuccess", "height", pd.block.GetHeight(), "wait", pendTime)
 			removeItems = append(removeItems, it)
 		} else if pendTime >= l.cfg.LtBlockPendTimeout {
-			log.Debug("buildPendTimeout", "height", pd.block.GetHeight())
+			log.Debug("buildPendTimeout", "height", pd.block.GetHeight(), "timeout", pendTime)
 			removeItems = append(removeItems, it)
 			timeoutBlocks = append(timeoutBlocks, pd)
 		}
@@ -180,7 +180,10 @@ func (l *ltBroadcast) pendBlockLoop() {
 		case <-ticker.C:
 			pdBlocks := l.buildPendList()
 			for _, pd := range pdBlocks {
-				l.pubPeerMsg(pd.fromPeer, blockReqMsgID, &types.ReqInt{Height: pd.block.GetHeight()})
+				// 只请求大于本地高度的区块
+				if pd.block.GetHeight() > l.getCurrentHeight() {
+					l.pubPeerMsg(pd.fromPeer, blockReqMsgID, &types.ReqInt{Height: pd.block.GetHeight()})
+				}
 			}
 		}
 	}

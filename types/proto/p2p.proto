@@ -238,7 +238,6 @@ message LightBlock {
     Header      header            = 2;
     Transaction minerTx           = 3;
     repeated string sTxHashes     = 4;
-    bytes           blockDataHash = 5;
 }
 
 // dht pub sub 通信数据
