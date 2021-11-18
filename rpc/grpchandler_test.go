@@ -597,7 +597,7 @@ func TestReWriteRawTx(t *testing.T) {
 		Index:  0,
 	}
 
-	data, err := g.ReWriteRawTx(getOkCtx(), in)
+	data, err := g.ReWriteTx(getOkCtx(), in)
 	assert.Nil(t, err)
 	assert.NotNil(t, data.Data)
 	rtTx := hex.EncodeToString(data.Data)
