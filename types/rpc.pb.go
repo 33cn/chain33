@@ -604,7 +604,7 @@ var file_rpc_proto_rawDesc = []byte{
 	0x70, 0x6c, 0x69, 0x65, 0x73, 0x12, 0x2a, 0x0a, 0x09, 0x72, 0x65, 0x70, 0x6c, 0x79, 0x4c, 0x69,
 	0x73, 0x74, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0c, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73,
 	0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x52, 0x09, 0x72, 0x65, 0x70, 0x6c, 0x79, 0x4c, 0x69, 0x73,
-	0x74, 0x32, 0xb9, 0x1f, 0x0a, 0x07, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x33, 0x33, 0x12, 0x2d, 0x0a,
+	0x74, 0x32, 0xa4, 0x20, 0x0a, 0x07, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x33, 0x33, 0x12, 0x2d, 0x0a,
 	0x09, 0x47, 0x65, 0x74, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x12, 0x10, 0x2e, 0x74, 0x79, 0x70,
 	0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x1a, 0x0c, 0x2e, 0x74,
 	0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x2f, 0x0a, 0x0d,
@@ -855,10 +855,17 @@ var file_rpc_proto_rawDesc = []byte{
 	0x12, 0x3b, 0x0a, 0x11, 0x43, 0x6f, 0x6e, 0x76, 0x65, 0x72, 0x74, 0x45, 0x78, 0x65, 0x63, 0x74,
 	0x6f, 0x41, 0x64, 0x64, 0x72, 0x12, 0x10, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65,
 	0x71, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x1a, 0x12, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e,
-	0x52, 0x65, 0x70, 0x6c, 0x79, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x00, 0x42, 0x1f, 0x5a,
-	0x1d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x33, 0x33, 0x63, 0x6e,
-	0x2f, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x33, 0x33, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x52, 0x65, 0x70, 0x6c, 0x79, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x22, 0x00, 0x12, 0x34, 0x0a,
+	0x0d, 0x47, 0x65, 0x74, 0x43, 0x6f, 0x69, 0x6e, 0x53, 0x79, 0x6d, 0x62, 0x6f, 0x6c, 0x12, 0x0d,
+	0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x4e, 0x69, 0x6c, 0x1a, 0x12, 0x2e,
+	0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x53, 0x74, 0x72, 0x69, 0x6e,
+	0x67, 0x22, 0x00, 0x12, 0x33, 0x0a, 0x09, 0x52, 0x65, 0x57, 0x72, 0x69, 0x74, 0x65, 0x54, 0x78,
+	0x12, 0x13, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x57, 0x72, 0x69, 0x74, 0x65,
+	0x52, 0x61, 0x77, 0x54, 0x78, 0x1a, 0x0f, 0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x55, 0x6e,
+	0x73, 0x69, 0x67, 0x6e, 0x54, 0x78, 0x22, 0x00, 0x42, 0x1f, 0x5a, 0x1d, 0x67, 0x69, 0x74, 0x68,
+	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x33, 0x33, 0x63, 0x6e, 0x2f, 0x63, 0x68, 0x61, 0x69,
+	0x6e, 0x33, 0x33, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x33,
 }
 
 var (
@@ -926,36 +933,37 @@ var file_rpc_proto_goTypes = []interface{}{
 	(*ReqParaTxByTitle)(nil),         // 48: types.ReqParaTxByTitle
 	(*ReqHeightByTitle)(nil),         // 49: types.ReqHeightByTitle
 	(*ReqParaTxByHeight)(nil),        // 50: types.ReqParaTxByHeight
-	(*Header)(nil),                   // 51: types.Header
-	(*UnsignTx)(nil),                 // 52: types.UnsignTx
-	(*TransactionDetail)(nil),        // 53: types.TransactionDetail
-	(*ReplyTxInfos)(nil),             // 54: types.ReplyTxInfos
-	(*TransactionDetails)(nil),       // 55: types.TransactionDetails
-	(*ReplyTxList)(nil),              // 56: types.ReplyTxList
-	(*WalletAccounts)(nil),           // 57: types.WalletAccounts
-	(*WalletAccount)(nil),            // 58: types.WalletAccount
-	(*WalletTxDetails)(nil),          // 59: types.WalletTxDetails
-	(*ReplyHash)(nil),                // 60: types.ReplyHash
-	(*ReplyHashes)(nil),              // 61: types.ReplyHashes
-	(*ReplyProperFee)(nil),           // 62: types.ReplyProperFee
-	(*WalletStatus)(nil),             // 63: types.WalletStatus
-	(*BlockOverview)(nil),            // 64: types.BlockOverview
-	(*AddrOverview)(nil),             // 65: types.AddrOverview
-	(*ReplySeed)(nil),                // 66: types.ReplySeed
-	(*Accounts)(nil),                 // 67: types.Accounts
-	(*HexTx)(nil),                    // 68: types.HexTx
-	(*ReplyString)(nil),              // 69: types.ReplyString
-	(*VersionInfo)(nil),              // 70: types.VersionInfo
-	(*PeerList)(nil),                 // 71: types.PeerList
-	(*NodeNetInfo)(nil),              // 72: types.NodeNetInfo
-	(*Int32)(nil),                    // 73: types.Int32
-	(*BlockDetails)(nil),             // 74: types.BlockDetails
-	(*BlockSeq)(nil),                 // 75: types.BlockSeq
-	(*AllExecBalance)(nil),           // 76: types.AllExecBalance
-	(*ReplySignRawTx)(nil),           // 77: types.ReplySignRawTx
-	(*ParaTxDetails)(nil),            // 78: types.ParaTxDetails
-	(*ReplyHeightByTitle)(nil),       // 79: types.ReplyHeightByTitle
-	(*Headers)(nil),                  // 80: types.Headers
+	(*ReWriteRawTx)(nil),             // 51: types.ReWriteRawTx
+	(*Header)(nil),                   // 52: types.Header
+	(*UnsignTx)(nil),                 // 53: types.UnsignTx
+	(*TransactionDetail)(nil),        // 54: types.TransactionDetail
+	(*ReplyTxInfos)(nil),             // 55: types.ReplyTxInfos
+	(*TransactionDetails)(nil),       // 56: types.TransactionDetails
+	(*ReplyTxList)(nil),              // 57: types.ReplyTxList
+	(*WalletAccounts)(nil),           // 58: types.WalletAccounts
+	(*WalletAccount)(nil),            // 59: types.WalletAccount
+	(*WalletTxDetails)(nil),          // 60: types.WalletTxDetails
+	(*ReplyHash)(nil),                // 61: types.ReplyHash
+	(*ReplyHashes)(nil),              // 62: types.ReplyHashes
+	(*ReplyProperFee)(nil),           // 63: types.ReplyProperFee
+	(*WalletStatus)(nil),             // 64: types.WalletStatus
+	(*BlockOverview)(nil),            // 65: types.BlockOverview
+	(*AddrOverview)(nil),             // 66: types.AddrOverview
+	(*ReplySeed)(nil),                // 67: types.ReplySeed
+	(*Accounts)(nil),                 // 68: types.Accounts
+	(*HexTx)(nil),                    // 69: types.HexTx
+	(*ReplyString)(nil),              // 70: types.ReplyString
+	(*VersionInfo)(nil),              // 71: types.VersionInfo
+	(*PeerList)(nil),                 // 72: types.PeerList
+	(*NodeNetInfo)(nil),              // 73: types.NodeNetInfo
+	(*Int32)(nil),                    // 74: types.Int32
+	(*BlockDetails)(nil),             // 75: types.BlockDetails
+	(*BlockSeq)(nil),                 // 76: types.BlockSeq
+	(*AllExecBalance)(nil),           // 77: types.AllExecBalance
+	(*ReplySignRawTx)(nil),           // 78: types.ReplySignRawTx
+	(*ParaTxDetails)(nil),            // 79: types.ParaTxDetails
+	(*ReplyHeightByTitle)(nil),       // 80: types.ReplyHeightByTitle
+	(*Headers)(nil),                  // 81: types.Headers
 }
 var file_rpc_proto_depIdxs = []int32{
 	1,  // 0: types.cryptoList.cryptos:type_name -> types.crypto
@@ -1031,77 +1039,81 @@ var file_rpc_proto_depIdxs = []int32{
 	5,  // 70: types.chain33.SignWalletRecoverTx:input_type -> types.ReqSignWalletRecoverTx
 	11, // 71: types.chain33.GetChainConfig:input_type -> types.ReqNil
 	37, // 72: types.chain33.ConvertExectoAddr:input_type -> types.ReqString
-	9,  // 73: types.chain33.GetBlocks:output_type -> types.Reply
-	51, // 74: types.chain33.GetLastHeader:output_type -> types.Header
-	52, // 75: types.chain33.CreateRawTransaction:output_type -> types.UnsignTx
-	52, // 76: types.chain33.CreateRawTxGroup:output_type -> types.UnsignTx
-	53, // 77: types.chain33.QueryTransaction:output_type -> types.TransactionDetail
-	9,  // 78: types.chain33.SendTransactionSync:output_type -> types.Reply
-	9,  // 79: types.chain33.SendTransaction:output_type -> types.Reply
-	7,  // 80: types.chain33.SendTransactions:output_type -> types.Replies
-	54, // 81: types.chain33.GetTransactionByAddr:output_type -> types.ReplyTxInfos
-	55, // 82: types.chain33.GetTransactionByHashes:output_type -> types.TransactionDetails
-	56, // 83: types.chain33.GetMemPool:output_type -> types.ReplyTxList
-	57, // 84: types.chain33.GetAccounts:output_type -> types.WalletAccounts
-	58, // 85: types.chain33.GetAccount:output_type -> types.WalletAccount
-	58, // 86: types.chain33.NewAccount:output_type -> types.WalletAccount
-	59, // 87: types.chain33.WalletTransactionList:output_type -> types.WalletTxDetails
-	58, // 88: types.chain33.ImportPrivkey:output_type -> types.WalletAccount
-	60, // 89: types.chain33.SendToAddress:output_type -> types.ReplyHash
-	9,  // 90: types.chain33.SetTxFee:output_type -> types.Reply
-	58, // 91: types.chain33.SetLabl:output_type -> types.WalletAccount
-	61, // 92: types.chain33.MergeBalance:output_type -> types.ReplyHashes
-	9,  // 93: types.chain33.SetPasswd:output_type -> types.Reply
-	9,  // 94: types.chain33.Lock:output_type -> types.Reply
-	9,  // 95: types.chain33.UnLock:output_type -> types.Reply
-	56, // 96: types.chain33.GetLastMemPool:output_type -> types.ReplyTxList
-	62, // 97: types.chain33.GetProperFee:output_type -> types.ReplyProperFee
-	63, // 98: types.chain33.GetWalletStatus:output_type -> types.WalletStatus
-	64, // 99: types.chain33.GetBlockOverview:output_type -> types.BlockOverview
-	65, // 100: types.chain33.GetAddrOverview:output_type -> types.AddrOverview
-	60, // 101: types.chain33.GetBlockHash:output_type -> types.ReplyHash
-	66, // 102: types.chain33.GenSeed:output_type -> types.ReplySeed
-	66, // 103: types.chain33.GetSeed:output_type -> types.ReplySeed
-	9,  // 104: types.chain33.SaveSeed:output_type -> types.Reply
-	67, // 105: types.chain33.GetBalance:output_type -> types.Accounts
-	9,  // 106: types.chain33.QueryChain:output_type -> types.Reply
-	9,  // 107: types.chain33.ExecWallet:output_type -> types.Reply
-	9,  // 108: types.chain33.QueryConsensus:output_type -> types.Reply
-	52, // 109: types.chain33.CreateTransaction:output_type -> types.UnsignTx
-	68, // 110: types.chain33.GetHexTxByHash:output_type -> types.HexTx
-	69, // 111: types.chain33.DumpPrivkey:output_type -> types.ReplyString
-	9,  // 112: types.chain33.DumpPrivkeysFile:output_type -> types.Reply
-	9,  // 113: types.chain33.ImportPrivkeysFile:output_type -> types.Reply
-	70, // 114: types.chain33.Version:output_type -> types.VersionInfo
-	9,  // 115: types.chain33.IsSync:output_type -> types.Reply
-	71, // 116: types.chain33.GetPeerInfo:output_type -> types.PeerList
-	72, // 117: types.chain33.NetInfo:output_type -> types.NodeNetInfo
-	9,  // 118: types.chain33.IsNtpClockSync:output_type -> types.Reply
-	73, // 119: types.chain33.GetFatalFailure:output_type -> types.Int32
-	41, // 120: types.chain33.GetLastBlockSequence:output_type -> types.Int64
-	41, // 121: types.chain33.GetSequenceByHash:output_type -> types.Int64
-	74, // 122: types.chain33.GetBlockByHashes:output_type -> types.BlockDetails
-	75, // 123: types.chain33.GetBlockBySeq:output_type -> types.BlockSeq
-	9,  // 124: types.chain33.CloseQueue:output_type -> types.Reply
-	76, // 125: types.chain33.GetAllExecBalance:output_type -> types.AllExecBalance
-	77, // 126: types.chain33.SignRawTx:output_type -> types.ReplySignRawTx
-	77, // 127: types.chain33.CreateNoBalanceTransaction:output_type -> types.ReplySignRawTx
-	60, // 128: types.chain33.QueryRandNum:output_type -> types.ReplyHash
-	41, // 129: types.chain33.GetFork:output_type -> types.Int64
-	77, // 130: types.chain33.CreateNoBalanceTxs:output_type -> types.ReplySignRawTx
-	78, // 131: types.chain33.GetParaTxByTitle:output_type -> types.ParaTxDetails
-	79, // 132: types.chain33.LoadParaTxByTitle:output_type -> types.ReplyHeightByTitle
-	78, // 133: types.chain33.GetParaTxByHeight:output_type -> types.ParaTxDetails
-	80, // 134: types.chain33.GetHeaders:output_type -> types.Headers
-	0,  // 135: types.chain33.GetServerTime:output_type -> types.serverTime
-	2,  // 136: types.chain33.GetCryptoList:output_type -> types.cryptoList
-	9,  // 137: types.chain33.SendDelayTransaction:output_type -> types.Reply
-	69, // 138: types.chain33.GetWalletRecoverAddress:output_type -> types.ReplyString
-	77, // 139: types.chain33.SignWalletRecoverTx:output_type -> types.ReplySignRawTx
-	6,  // 140: types.chain33.GetChainConfig:output_type -> types.ChainConfigInfo
-	69, // 141: types.chain33.ConvertExectoAddr:output_type -> types.ReplyString
-	73, // [73:142] is the sub-list for method output_type
-	4,  // [4:73] is the sub-list for method input_type
+	11, // 73: types.chain33.GetCoinSymbol:input_type -> types.ReqNil
+	51, // 74: types.chain33.ReWriteTx:input_type -> types.ReWriteRawTx
+	9,  // 75: types.chain33.GetBlocks:output_type -> types.Reply
+	52, // 76: types.chain33.GetLastHeader:output_type -> types.Header
+	53, // 77: types.chain33.CreateRawTransaction:output_type -> types.UnsignTx
+	53, // 78: types.chain33.CreateRawTxGroup:output_type -> types.UnsignTx
+	54, // 79: types.chain33.QueryTransaction:output_type -> types.TransactionDetail
+	9,  // 80: types.chain33.SendTransactionSync:output_type -> types.Reply
+	9,  // 81: types.chain33.SendTransaction:output_type -> types.Reply
+	7,  // 82: types.chain33.SendTransactions:output_type -> types.Replies
+	55, // 83: types.chain33.GetTransactionByAddr:output_type -> types.ReplyTxInfos
+	56, // 84: types.chain33.GetTransactionByHashes:output_type -> types.TransactionDetails
+	57, // 85: types.chain33.GetMemPool:output_type -> types.ReplyTxList
+	58, // 86: types.chain33.GetAccounts:output_type -> types.WalletAccounts
+	59, // 87: types.chain33.GetAccount:output_type -> types.WalletAccount
+	59, // 88: types.chain33.NewAccount:output_type -> types.WalletAccount
+	60, // 89: types.chain33.WalletTransactionList:output_type -> types.WalletTxDetails
+	59, // 90: types.chain33.ImportPrivkey:output_type -> types.WalletAccount
+	61, // 91: types.chain33.SendToAddress:output_type -> types.ReplyHash
+	9,  // 92: types.chain33.SetTxFee:output_type -> types.Reply
+	59, // 93: types.chain33.SetLabl:output_type -> types.WalletAccount
+	62, // 94: types.chain33.MergeBalance:output_type -> types.ReplyHashes
+	9,  // 95: types.chain33.SetPasswd:output_type -> types.Reply
+	9,  // 96: types.chain33.Lock:output_type -> types.Reply
+	9,  // 97: types.chain33.UnLock:output_type -> types.Reply
+	57, // 98: types.chain33.GetLastMemPool:output_type -> types.ReplyTxList
+	63, // 99: types.chain33.GetProperFee:output_type -> types.ReplyProperFee
+	64, // 100: types.chain33.GetWalletStatus:output_type -> types.WalletStatus
+	65, // 101: types.chain33.GetBlockOverview:output_type -> types.BlockOverview
+	66, // 102: types.chain33.GetAddrOverview:output_type -> types.AddrOverview
+	61, // 103: types.chain33.GetBlockHash:output_type -> types.ReplyHash
+	67, // 104: types.chain33.GenSeed:output_type -> types.ReplySeed
+	67, // 105: types.chain33.GetSeed:output_type -> types.ReplySeed
+	9,  // 106: types.chain33.SaveSeed:output_type -> types.Reply
+	68, // 107: types.chain33.GetBalance:output_type -> types.Accounts
+	9,  // 108: types.chain33.QueryChain:output_type -> types.Reply
+	9,  // 109: types.chain33.ExecWallet:output_type -> types.Reply
+	9,  // 110: types.chain33.QueryConsensus:output_type -> types.Reply
+	53, // 111: types.chain33.CreateTransaction:output_type -> types.UnsignTx
+	69, // 112: types.chain33.GetHexTxByHash:output_type -> types.HexTx
+	70, // 113: types.chain33.DumpPrivkey:output_type -> types.ReplyString
+	9,  // 114: types.chain33.DumpPrivkeysFile:output_type -> types.Reply
+	9,  // 115: types.chain33.ImportPrivkeysFile:output_type -> types.Reply
+	71, // 116: types.chain33.Version:output_type -> types.VersionInfo
+	9,  // 117: types.chain33.IsSync:output_type -> types.Reply
+	72, // 118: types.chain33.GetPeerInfo:output_type -> types.PeerList
+	73, // 119: types.chain33.NetInfo:output_type -> types.NodeNetInfo
+	9,  // 120: types.chain33.IsNtpClockSync:output_type -> types.Reply
+	74, // 121: types.chain33.GetFatalFailure:output_type -> types.Int32
+	41, // 122: types.chain33.GetLastBlockSequence:output_type -> types.Int64
+	41, // 123: types.chain33.GetSequenceByHash:output_type -> types.Int64
+	75, // 124: types.chain33.GetBlockByHashes:output_type -> types.BlockDetails
+	76, // 125: types.chain33.GetBlockBySeq:output_type -> types.BlockSeq
+	9,  // 126: types.chain33.CloseQueue:output_type -> types.Reply
+	77, // 127: types.chain33.GetAllExecBalance:output_type -> types.AllExecBalance
+	78, // 128: types.chain33.SignRawTx:output_type -> types.ReplySignRawTx
+	78, // 129: types.chain33.CreateNoBalanceTransaction:output_type -> types.ReplySignRawTx
+	61, // 130: types.chain33.QueryRandNum:output_type -> types.ReplyHash
+	41, // 131: types.chain33.GetFork:output_type -> types.Int64
+	78, // 132: types.chain33.CreateNoBalanceTxs:output_type -> types.ReplySignRawTx
+	79, // 133: types.chain33.GetParaTxByTitle:output_type -> types.ParaTxDetails
+	80, // 134: types.chain33.LoadParaTxByTitle:output_type -> types.ReplyHeightByTitle
+	79, // 135: types.chain33.GetParaTxByHeight:output_type -> types.ParaTxDetails
+	81, // 136: types.chain33.GetHeaders:output_type -> types.Headers
+	0,  // 137: types.chain33.GetServerTime:output_type -> types.serverTime
+	2,  // 138: types.chain33.GetCryptoList:output_type -> types.cryptoList
+	9,  // 139: types.chain33.SendDelayTransaction:output_type -> types.Reply
+	70, // 140: types.chain33.GetWalletRecoverAddress:output_type -> types.ReplyString
+	78, // 141: types.chain33.SignWalletRecoverTx:output_type -> types.ReplySignRawTx
+	6,  // 142: types.chain33.GetChainConfig:output_type -> types.ChainConfigInfo
+	70, // 143: types.chain33.ConvertExectoAddr:output_type -> types.ReplyString
+	70, // 144: types.chain33.GetCoinSymbol:output_type -> types.ReplyString
+	53, // 145: types.chain33.ReWriteTx:output_type -> types.UnsignTx
+	75, // [75:146] is the sub-list for method output_type
+	4,  // [4:75] is the sub-list for method input_type
 	4,  // [4:4] is the sub-list for extension type_name
 	4,  // [4:4] is the sub-list for extension extendee
 	0,  // [0:4] is the sub-list for field type_name
@@ -1382,6 +1394,10 @@ type Chain33Client interface {
 	GetChainConfig(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ChainConfigInfo, error)
 	//根据执行期名称创建对应的地址
 	ConvertExectoAddr(ctx context.Context, in *ReqString, opts ...grpc.CallOption) (*ReplyString, error)
+	//get coin symbol
+	GetCoinSymbol(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyString, error)
+	//ReWriteRawTx
+	ReWriteTx(ctx context.Context, in *ReWriteRawTx, opts ...grpc.CallOption) (*UnsignTx, error)
 }
 
 type chain33Client struct {
@@ -2013,6 +2029,24 @@ func (c *chain33Client) ConvertExectoAddr(ctx context.Context, in *ReqString, op
 	return out, nil
 }
 
+func (c *chain33Client) GetCoinSymbol(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyString, error) {
+	out := new(ReplyString)
+	err := c.cc.Invoke(ctx, "/types.chain33/GetCoinSymbol", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chain33Client) ReWriteTx(ctx context.Context, in *ReWriteRawTx, opts ...grpc.CallOption) (*UnsignTx, error) {
+	out := new(UnsignTx)
+	err := c.cc.Invoke(ctx, "/types.chain33/ReWriteTx", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Chain33Server is the server API for Chain33 service.
 type Chain33Server interface {
 	// chain33 对外提供服务的接口
@@ -2148,6 +2182,10 @@ type Chain33Server interface {
 	GetChainConfig(context.Context, *ReqNil) (*ChainConfigInfo, error)
 	//根据执行期名称创建对应的地址
 	ConvertExectoAddr(context.Context, *ReqString) (*ReplyString, error)
+	//get coin symbol
+	GetCoinSymbol(context.Context, *ReqNil) (*ReplyString, error)
+	//ReWriteRawTx
+	ReWriteTx(context.Context, *ReWriteRawTx) (*UnsignTx, error)
 }
 
 // UnimplementedChain33Server can be embedded to have forward compatible implementations.
@@ -2360,6 +2398,12 @@ func (*UnimplementedChain33Server) GetChainConfig(context.Context, *ReqNil) (*Ch
 }
 func (*UnimplementedChain33Server) ConvertExectoAddr(context.Context, *ReqString) (*ReplyString, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConvertExectoAddr not implemented")
+}
+func (*UnimplementedChain33Server) GetCoinSymbol(context.Context, *ReqNil) (*ReplyString, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCoinSymbol not implemented")
+}
+func (*UnimplementedChain33Server) ReWriteTx(context.Context, *ReWriteRawTx) (*UnsignTx, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReWriteTx not implemented")
 }
 
 func RegisterChain33Server(s *grpc.Server, srv Chain33Server) {
@@ -3608,6 +3652,42 @@ func _Chain33_ConvertExectoAddr_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Chain33_GetCoinSymbol_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReqNil)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Chain33Server).GetCoinSymbol(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/types.chain33/GetCoinSymbol",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Chain33Server).GetCoinSymbol(ctx, req.(*ReqNil))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Chain33_ReWriteTx_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReWriteRawTx)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(Chain33Server).ReWriteTx(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/types.chain33/ReWriteTx",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(Chain33Server).ReWriteTx(ctx, req.(*ReWriteRawTx))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Chain33_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "types.chain33",
 	HandlerType: (*Chain33Server)(nil),
@@ -3887,6 +3967,14 @@ var _Chain33_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ConvertExectoAddr",
 			Handler:    _Chain33_ConvertExectoAddr_Handler,
+		},
+		{
+			MethodName: "GetCoinSymbol",
+			Handler:    _Chain33_GetCoinSymbol_Handler,
+		},
+		{
+			MethodName: "ReWriteTx",
+			Handler:    _Chain33_ReWriteTx_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

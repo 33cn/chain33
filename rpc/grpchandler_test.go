@@ -800,3 +800,13 @@ func TestGrpc_ConvertExectoAddr(t *testing.T) {
 	t.Log("execAddr:",replyStr)
 	assert.Equal(t, "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt",replyStr.GetData())
 }
+
+func TestGrpc_GetCoinSymbol(t *testing.T) {
+
+	reply,err:= g.GetCoinSymbol(context.Background(),&types.ReqNil{})
+	assert.NoError(t, err)
+	t.Log(reply.GetData())
+}
+
+
+

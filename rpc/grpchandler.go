@@ -91,8 +91,8 @@ func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.U
 	return &pb.UnsignTx{Data: reply}, nil
 }
 
-// ReWriteRawTx re-write raw tx parameters of grpc
-func (g *Grpc) ReWriteRawTx(ctx context.Context, in *pb.ReWriteRawTx) (*pb.UnsignTx, error) {
+// ReWriteTx re-write raw tx parameters of grpc
+func (g *Grpc) ReWriteTx(ctx context.Context, in *pb.ReWriteRawTx) (*pb.UnsignTx, error) {
 	reply, err := g.cli.ReWriteRawTx(in)
 	if err != nil {
 		return nil, err
@@ -608,5 +608,14 @@ func (g *Grpc) ConvertExectoAddr(ctx context.Context,in *pb.ReqString)(*pb.Reply
 	 addr:= address.ExecAddress(in.GetData())
 	return &pb.ReplyString{Data: addr},nil
 }
+
+//GetCoinSymbol get coin symbol
+func (g *Grpc)GetCoinSymbol(ctx context.Context,in *pb.ReqNil)(*pb.ReplyString,error){
+	return &pb.ReplyString{Data: g.cli.GetConfig().GetCoinSymbol()},nil
+}
+
+
+
+
 
 
