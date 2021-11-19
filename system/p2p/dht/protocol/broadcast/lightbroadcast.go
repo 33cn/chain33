@@ -149,8 +149,11 @@ func (l *ltBroadcast) buildPendList() []*pendBlock {
 	l.pdBlockLock.Lock()
 	defer l.pdBlockLock.Unlock()
 
-	removeItems := make([]*list.Element, 0)
-	timeoutBlocks := make([]*pendBlock, 0)
+	if l.pendBlockList.Len() == 0 {
+		return nil
+	}
+	var removeItems []*list.Element
+	var timeoutBlocks []*pendBlock
 	for it := l.pendBlockList.Front(); it != nil; it = it.Next() {
 		pd := it.Value.(*pendBlock)
 		pendTime := (types.Now().UnixNano() - pd.receiveTimeStamp) / int64(time.Millisecond)
@@ -225,10 +228,14 @@ func (l *ltBroadcast) addBlockRequest(height int64, receiveFrom peer.ID) {
 }
 
 func (l *ltBroadcast) handleBlockReqList() {
+
 	l.blockReqLock.Lock()
 	defer l.blockReqLock.Unlock()
 
-	removeItems := make([]*list.Element, 0)
+	if l.blockRequestList.Len() == 0 {
+		return
+	}
+	var removeItems []*list.Element
 	for it := l.blockRequestList.Front(); it != nil; it = it.Next() {
 
 		req := it.Value.(*blockRequest)

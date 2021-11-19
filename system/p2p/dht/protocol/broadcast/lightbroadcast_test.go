@@ -43,7 +43,7 @@ func TestLightBroadcast(t *testing.T) {
 	proto.cfg.MinLtBlockSize = 0
 	proto.cfg.LtBlockPendTimeout = 1
 	defer q.Close()
-	memTxList := []*types.Transaction{tx, tx1, nil}
+	memTxList := []*types.Transaction{nil, tx1, tx2}
 	done := startHandleMempool(q, &memTxList)
 	<-done
 	pid := proto.Host.ID()
@@ -58,7 +58,7 @@ func TestLightBroadcast(t *testing.T) {
 	//交易组
 	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx1, tx2}, proto.ChainCfg.GetMinTxFeeRate())
 	gtx := txGroup.Tx()
-	memTxList = []*types.Transaction{tx, gtx, nil, nil}
+	memTxList = []*types.Transaction{tx, gtx, nil}
 	blcCli := q.Client()
 	blcCli.Sub("blockchain")
 	proto.ltB.addLtBlock(proto.buildLtBlock(block), pid)
@@ -101,7 +101,6 @@ func TestBlockRequest(t *testing.T) {
 	// 正确获取流程
 	peerMsgCh := proto.ps.Sub(psBroadcast)
 	atomic.StoreInt64(&proto.currHeight, height)
-	// 缺少tx2, 组装失败, 等待1s超时
 	msg := <-peerMsgCh
 	require.Equal(t, int32(blockRespMsgID), msg.(publishMsg).msg.(*types.PeerPubSubMsg).MsgID)
 	require.Equal(t, msg.(publishMsg).topic, proto.getPeerTopic(pid))

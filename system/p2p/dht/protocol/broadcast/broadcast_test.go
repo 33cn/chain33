@@ -101,7 +101,7 @@ func TestBroadCastProtocol_InitProtocol(t *testing.T) {
 
 	protocol, cancel := newTestProtocol()
 	defer cancel()
-	assert.Equal(t, defaultMinLtBlockSize, protocol.cfg.MinLtBlockSize)
+	assert.Equal(t, defaultMinLtBlockSize*1024, protocol.cfg.MinLtBlockSize)
 	assert.Equal(t, defaultLtBlockTimeout, int(protocol.cfg.LtBlockPendTimeout))
 }
 
