@@ -3,10 +3,59 @@ syntax = "proto3";
 import "executor.proto";
 
 package types;
+option go_package = "../types";
+
+//申请修改配置项
+message ApplyConfig {
+    ModifyConfig config = 1;
+}
+
+//批准配置项
+message ApproveConfig {
+    string applyConfigId  = 1; //修改配置项申请ID
+    string autonomyItemId = 2; // autonomy 合約批准的 item ID
+}
 
 message ManageAction {
     oneof value {
-        ModifyConfig modify = 1;
+        ModifyConfig  modify  = 1;
+        ApplyConfig   apply   = 3;
+        ApproveConfig approve = 4;
     }
     int32 Ty = 2;
+}
+
+message ConfigStatus {
+    string       id       = 1; //申请ID
+    ModifyConfig config   = 2;
+    int32        status   = 3;
+    string       proposer = 4;
+
+    // 状态
+    int64 height = 8;
+    int32 index  = 9;
+}
+
+message ReceiptApplyConfig {
+    ConfigStatus status = 1;
+}
+
+message ReceiptApproveConfig {
+    ConfigStatus pre = 1;
+    ConfigStatus cur = 2;
+}
+
+// query
+message ReqQueryConfigList {
+
+    int32  status    = 1;
+    string proposer  = 2;
+    int32  count     = 3;
+    int32  direction = 4;
+    int64  height    = 5;
+    int32  index     = 6;
+}
+
+message ReplyQueryConfigList {
+    repeated ConfigStatus lists = 1;
 }

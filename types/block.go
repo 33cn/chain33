@@ -190,7 +190,7 @@ func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result
 // CheckSign 检测签名
 func CheckSign(data []byte, execer string, sign *Signature, blockHeight int64) bool {
 	//GetDefaultSign: 系统内置钱包，非插件中的签名
-	c, err := crypto.New(GetSignName(execer, int(sign.Ty)), crypto.WithNewOptionEnableCheck(blockHeight))
+	c, err := crypto.Load(GetSignName(execer, int(sign.Ty)), blockHeight)
 	if err != nil {
 		return false
 	}

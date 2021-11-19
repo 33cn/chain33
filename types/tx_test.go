@@ -194,7 +194,7 @@ func TestDecodeTx(t *testing.T) {
 }
 
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(GetSignName("", SECP256K1))
+	cr, err := crypto.Load(GetSignName("", SECP256K1), -1)
 	if err != nil {
 		panic(err)
 	}

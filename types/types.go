@@ -350,14 +350,6 @@ func ManageKey(key string) string {
 	return fmt.Sprintf("%s-%s", ManagePrefix+"manage", key)
 }
 
-//ManaeKeyWithHeigh 超级管理员账户key
-func (c *Chain33Config) ManaeKeyWithHeigh(key string, height int64) string {
-	if c.IsFork(height, "ForkExecKey") {
-		return ManageKey(key)
-	}
-	return ConfigKey(key)
-}
-
 //ReceiptDataResult 回执数据
 type ReceiptDataResult struct {
 	Ty     int32               `json:"ty"`

@@ -63,7 +63,7 @@ func TestAll(t *testing.T) {
 func testFromBytes(t *testing.T, name string) {
 	require := require.New(t)
 
-	c, err := crypto.New(name)
+	c, err := crypto.Load(name, -1)
 	require.Nil(err)
 
 	priv, err := c.GenKey()
@@ -108,7 +108,7 @@ func testFromBytes(t *testing.T, name string) {
 func testCrypto(t *testing.T, name string) {
 	require := require.New(t)
 
-	c, err := crypto.New(name)
+	c, err := crypto.Load(name, -1)
 	require.Nil(err)
 
 	priv, err := c.GenKey()
@@ -152,7 +152,7 @@ func BenchmarkVerifySm2(b *testing.B) {
 }
 
 func benchSign(b *testing.B, name string) {
-	c, _ := crypto.New(name)
+	c, _ := crypto.Load(name, -1)
 	priv, _ := c.GenKey()
 	msg := []byte("hello world")
 	for i := 0; i < b.N; i++ {
@@ -161,7 +161,7 @@ func benchSign(b *testing.B, name string) {
 }
 
 func benchVerify(b *testing.B, name string) {
-	c, _ := crypto.New(name)
+	c, _ := crypto.Load(name, -1)
 	priv, _ := c.GenKey()
 	pub := priv.PubKey()
 	msg := []byte("hello world")
@@ -172,7 +172,7 @@ func benchVerify(b *testing.B, name string) {
 }
 
 func TestAggregate(t *testing.T) {
-	c, err := crypto.New("secp256k1")
+	c, err := crypto.Load("secp256k1", -1)
 	if err != nil {
 		panic(err)
 	}
@@ -230,7 +230,7 @@ func (d democryptoCGO) GenKey() (crypto.PrivKey, error) {
 }
 
 func TestRegister(t *testing.T) {
-	c, err := crypto.New("secp256k1")
+	c, err := crypto.Load("secp256k1", -1)
 	require.Nil(t, err)
 	p, err := c.GenKey()
 	require.Nil(t, err)
@@ -247,7 +247,7 @@ func TestRegister(t *testing.T) {
 		crypto.Register(secp256k1.Name+"cgo", democryptoCGO{}, crypto.WithRegOptionTypeID(secp256k1.ID))
 	})
 
-	c, err = crypto.New("secp256k1")
+	c, err = crypto.Load("secp256k1", -1)
 	require.Nil(t, err)
 	p, err = c.GenKey()
 	require.Nil(t, p)
@@ -255,7 +255,7 @@ func TestRegister(t *testing.T) {
 }
 
 func getNewCryptoErr(name string, height int64) error {
-	_, err := crypto.New(name, crypto.WithNewOptionEnableCheck(height))
+	_, err := crypto.Load(name, height)
 	return err
 }
 
@@ -276,7 +276,8 @@ func TestInitCfg(t *testing.T) {
 	crypto.Init(cfg, nil)
 	must.NotNil(getNewCryptoErr(none.Name, 0))
 	must.Nil(getNewCryptoErr(none.Name, 100))
-	must.NotNil(getNewCryptoErr(secp256k1.Name, -1))
+	must.NotNil(getNewCryptoErr(secp256k1.Name, 0))
+	must.Nil(getNewCryptoErr(secp256k1.Name, -1))
 	must.NotNil(getNewCryptoErr(ed25519.Name, 10))
 }
 

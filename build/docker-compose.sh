@@ -101,6 +101,9 @@ function base_init() {
 
     sed -i $sedfix 's/^enableTLS=.*/enableTLS=true/g' ${testtoml}
 
+    #autonomy config
+    sed -i $sedfix 's/^autonomyExec =.*/autonomyExec=""/g' chain33.toml
+
     cp ${testtoml} ${testtomlsolo}
     #consens
     consens_init "solo"

@@ -131,15 +131,24 @@ func GetType(name string) int {
 	return 0
 }
 
-//New new
-func New(name string, options ...NewOption) (Crypto, error) {
+// Load 加载加密插件, 内部会检测在指定区块高度是否使能
+//
+// 不考虑使能情况, 只做插件加载, blockHeight传负值, 如-1
+func Load(name string, blockHeight int64, opts ...LoadOption) (Crypto, error) {
+	if len(opts) > 0 {
+		return load(name, append(opts, WithLoadOptionEnableCheck(blockHeight))...)
+	}
+	return load(name, WithLoadOptionEnableCheck(blockHeight))
+}
 
+// load crypto with defined options
+func load(name string, opts ...LoadOption) (Crypto, error) {
 	c, ok := drivers[name]
 	if !ok {
 		return nil, ErrUnknownDriver
 	}
 
-	for _, opt := range options {
+	for _, opt := range opts {
 		if err := opt(c); err != nil {
 			return nil, err
 		}

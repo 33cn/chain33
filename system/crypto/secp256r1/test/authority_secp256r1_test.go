@@ -45,7 +45,7 @@ var (
 
 	privRaw, _  = common.FromHex("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	tr          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: int64(1e8)}}
-	secpp256, _ = crypto.New(types.GetSignName("", types.SECP256K1))
+	secpp256, _ = crypto.Load(types.GetSignName("", types.SECP256K1), -1)
 	privKey, _  = secpp256.PrivKeyFromBytes(privRaw)
 	tx14        = &types.Transaction{
 		Execer:  []byte("coins"),
@@ -146,7 +146,7 @@ func (loader *UserLoader) loadUsers() error {
 }
 
 func (loader *UserLoader) genCryptoPriv(keyBytes []byte) (crypto.PrivKey, error) {
-	cr, err := crypto.New(types.GetSignName("cert", loader.signType))
+	cr, err := crypto.Load(types.GetSignName("cert", loader.signType), -1)
 	if err != nil {
 		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignName("cert", loader.signType), err)
 	}
@@ -282,7 +282,7 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 TestCase05 不带证书，secp256r1签名验证
 */
 func TestChckSignWithEcdsa(t *testing.T) {
-	ecdsacrypto, _ := crypto.New(types.GetSignName("cert", secp256r1.ID))
+	ecdsacrypto, _ := crypto.Load(types.GetSignName("cert", secp256r1.ID), -1)
 	privKeyecdsa, _ := ecdsacrypto.PrivKeyFromBytes(privRaw)
 	tx16 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
