@@ -67,6 +67,12 @@ type BroadcastConfig struct {
 	MinLtBlockSize int `json:"minLtBlockSize,omitempty"`
 	//轻区块等待超时时长(毫秒), 默认1000 ms, 建议配置为出块时间的1/3
 	LtBlockPendTimeout int64 `json:"ltBlockPendTimeout,omitempty"`
+	//支持关闭批量交易广播
+	DisableBatchTx bool `json:"disableBatchTx,omitempty"`
+	//最大批量广播交易数量, 默认200
+	MaxBatchTxNum int `json:"maxBatchTxNum,omitempty"`
+	//批量广播交易最大间隔(毫秒), 默认100 ms
+	MaxBatchTxInterval int `json:"maxBatchTxInterval,omitempty"`
 }
 
 // PubSubConfig pubsub config

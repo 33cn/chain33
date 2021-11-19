@@ -23,6 +23,7 @@ const (
 	psBroadcast          = "ps-broadcast"
 	psPeerMsgTopicPrefix = "peermsg/"
 	psTxTopic            = "tx/v1.0.0"
+	psBatchTxTopic       = "batchtx/v1.0"
 	psBlockTopic         = "block/v1.0.0"
 	psLtBlockTopic       = "ltblk/v1.0"
 	blkHeaderCacheSize   = 128
@@ -51,7 +52,7 @@ func (p *pubSub) broadcast() {
 	incoming := make(chan net.SubMsg, 1024) //sub 接收通道, 订阅外部广播消息
 	outgoing := p.ps.Sub(psBroadcast)       //publish 发送通道, 订阅内部广播消息
 
-	psTopics := []string{psTxTopic, psBlockTopic, psLtBlockTopic, p.peerTopic}
+	psTopics := []string{psTxTopic, psBatchTxTopic, psBlockTopic, psLtBlockTopic, p.peerTopic}
 
 	for _, topic := range psTopics {
 		// pub sub topic注册
@@ -63,7 +64,6 @@ func (p *pubSub) broadcast() {
 	}
 
 	p.Pubsub.RegisterTopicValidator(psBlockTopic, p.validateBlock, pubsub.WithValidatorInline(true))
-	p.Pubsub.RegisterTopicValidator(psTxTopic, p.validateTx, pubsub.WithValidatorInline(true))
 
 	//使用多个协程并发处理，提高效率
 	concurrency := runtime.NumCPU() * 2
@@ -152,14 +152,18 @@ func (p *pubSub) getMsgHash(topic string, msg types.Message) string {
 
 // 构造接收消息对象s
 func (p *pubSub) newMsg(topic string) types.Message {
-	if topic == psTxTopic {
+	switch topic {
+	case psTxTopic:
 		return &types.Transaction{}
-	} else if topic == psBlockTopic {
+	case psBatchTxTopic:
+		return &types.Transactions{}
+	case psBlockTopic:
 		return &types.Block{}
-	} else if topic == psLtBlockTopic {
+	case psLtBlockTopic:
 		return &types.LightBlock{}
+	default:
+		return &types.PeerPubSubMsg{}
 	}
-	return &types.PeerPubSubMsg{}
 }
 
 // 生成订阅消息回调

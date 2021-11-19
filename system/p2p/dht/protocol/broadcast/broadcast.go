@@ -63,11 +63,19 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 		p.cfg.BlockFilterLen = blockRecvFilterCacheNum
 	}
 	if p.cfg.MinLtBlockSize <= 0 {
-		p.cfg.MinLtBlockSize = defaultMinLtBlockSize
+		p.cfg.MinLtBlockSize = defaultMinLtBlockSize * 1024
 	}
 
 	if p.cfg.LtBlockPendTimeout <= 0 {
 		p.cfg.LtBlockPendTimeout = defaultLtBlockTimeout
+	}
+
+	if p.cfg.MaxBatchTxNum <= 0 {
+		p.cfg.MaxBatchTxNum = defaultMaxBatchTxNum
+	}
+
+	if p.cfg.MaxBatchTxInterval <= 0 {
+		p.cfg.MaxBatchTxInterval = defaultMaxBatchTxInterval
 	}
 
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
@@ -82,9 +90,10 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 
 	// pub sub broadcast
 	newPubSub(p).broadcast()
-	if !p.cfg.DisableLtBlock {
-		p.ltB = newLtBroadcast(p)
-		p.ltB.broadcast()
+	p.ltB = newLtBroadcast(p)
+	p.ltB.broadcast()
+	if !p.cfg.DisableBatchTx {
+		go p.handleSendBatchTx(p.ps.Sub(psBatchTxTopic))
 	}
 }
 
@@ -149,10 +158,16 @@ func (p *broadcastProtocol) handleBroadcastSend(msg *queue.Message) {
 	//p.QueueClient.FreeMessage(msg)
 
 	// pub sub只需要转发本节点产生的交易或区块
-	if !filter.Contains(hash) {
-		filter.Add(hash, struct{}{})
-		p.ps.Pub(publishMsg{msg: broadcastData, topic: topic}, psBroadcast)
+	if filter.Contains(hash) {
+		return
 	}
+	filter.Add(hash, struct{}{})
+	// 交易批量广播单独处理
+	if topic == psTxTopic && !p.cfg.DisableBatchTx {
+		p.ps.Pub(broadcastData, psBatchTxTopic)
+		return
+	}
+	p.ps.Pub(publishMsg{msg: broadcastData, topic: topic}, psBroadcast)
 }
 
 func (p *broadcastProtocol) buildLtBlock(block *types.Block) *types.LightBlock {
@@ -169,6 +184,26 @@ func (p *broadcastProtocol) buildLtBlock(block *types.Block) *types.LightBlock {
 	return ltBlock
 }
 
+func (p *broadcastProtocol) recvTx(tx *types.Transaction, publisher peer.ID) error {
+
+	hash := hex.EncodeToString(tx.Hash())
+	if p.txFilter.AddWithCheckAtomic(hash, struct{}{}) {
+		return nil
+	}
+	return p.postMempool(hash, tx)
+}
+
+func (p *broadcastProtocol) recvBatchTx(msg subscribeMsg) {
+
+	txs := msg.value.(*types.Transactions)
+	for _, tx := range txs.GetTxs() {
+		err := p.recvTx(tx, msg.publisher)
+		if err != nil {
+			log.Error("recvBatchTx", "recvTx err", err)
+		}
+	}
+}
+
 func (p *broadcastProtocol) handleBroadcastReceive(msg subscribeMsg) {
 
 	var err error
@@ -181,10 +216,9 @@ func (p *broadcastProtocol) handleBroadcastReceive(msg subscribeMsg) {
 	}()
 	// 将接收的交易或区块 转发到内部对应模块
 	if topic == psTxTopic {
-		tx := msg.value.(*types.Transaction)
-		hash = hex.EncodeToString(tx.Hash())
-		err = p.postMempool(hash, tx)
-
+		err = p.recvTx(msg.value.(*types.Transaction), msg.publisher)
+	} else if topic == psBatchTxTopic {
+		p.recvBatchTx(msg)
 	} else if topic == psBlockTopic {
 		block := msg.value.(*types.Block)
 		hash = hex.EncodeToString(block.Hash(p.ChainCfg))
