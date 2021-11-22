@@ -6,7 +6,6 @@ package db
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 
 	log "github.com/33cn/chain33/common/log/log15"
@@ -425,8 +424,11 @@ func getVersion(key []byte) (int64, error) {
 }
 
 func pad(version int64) []byte {
-	s := fmt.Sprintf("%020d", version)
-	return []byte(s)
+	//equals to `[]byte(fmt.Sprintf("%020d", version))`
+	sInt := strconv.FormatInt(version, 10)
+	result := []byte("00000000000000000000")
+	copy(result[20-len(sInt):], sInt)
+	return result
 }
 
 //GetKeyPerfix 获取key前缀

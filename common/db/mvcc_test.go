@@ -7,6 +7,7 @@ package db
 import (
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"testing"
 
 	"github.com/33cn/chain33/common"
@@ -24,9 +25,6 @@ func TestMVCC(t *testing.T) {
 	m := getMVCC2()
 	_, ok := m.(MVCC)
 	assert.True(t, ok)
-}
-func TestPad(t *testing.T) {
-	assert.Equal(t, []byte("00000000000000000001"), pad(1))
 }
 
 func getMVCC2() MVCC {
@@ -218,4 +216,63 @@ func TestAddDelMVCC(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(0), maxv)
 
+}
+
+func padToLen(version int64, padLen int) []byte {
+	//padLen为期望补齐后的总长度
+	sInt := strconv.FormatInt(version, 10)
+	result := make([]byte, padLen)
+	for i := range result {
+		if i < len(sInt) {
+			result[padLen-1-i] = sInt[len(sInt)-1-i]
+		} else {
+			result[padLen-1-i] = '0'
+		}
+	}
+	return result
+}
+
+func padOrigin(version int64) []byte {
+	return []byte(fmt.Sprintf("%020d", version))
+}
+
+func TestPad(t *testing.T) {
+	assert.Equal(t, []byte("00000000000000000001"), pad(1))
+	cases := []struct{
+		input int64
+		expect []byte
+	}{
+		{0, []byte("00000000000000000000")},
+		{1, []byte("00000000000000000001")},
+		{666, []byte("00000000000000000666")},
+		{1000, []byte("00000000000000001000")},
+		{10086, []byte("00000000000000010086")},
+		{99999999, []byte("00000000000099999999")},
+	}
+	for _, c := range cases {
+		v := padOrigin(c.input)
+		v1 := padToLen(c.input, 20)
+		v2 := pad(c.input)
+		assert.Equal(t, c.expect, v)
+		assert.Equal(t, c.expect, v1)
+		assert.Equal(t, c.expect, v2)
+	}
+}
+
+func BenchmarkPadOrigin(b *testing.B) {
+	for i:=0; i<b.N;i++ {
+		padOrigin(999999)
+	}
+}
+
+func BenchmarkPadToLen(b *testing.B) {
+	for i:=0; i<b.N;i++ {
+		padToLen(999999, 20)
+	}
+}
+
+func BenchmarkPad(b *testing.B) {
+	for i:=0; i<b.N;i++ {
+		pad(999999)
+	}
 }
