@@ -5,32 +5,20 @@
 package executor
 
 import (
-	"fmt"
-
-	pty "github.com/33cn/chain33/system/dapp/manage/types"
 	"github.com/33cn/chain33/types"
 )
 
-func localKey(key string) []byte {
-	return []byte(fmt.Sprintf("LODB-manage-%s", key))
+// ExecDelLocal 重写基类
+func (c *Manage) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	return c.execAutoDelLocal(tx, receipt)
 }
 
-// ExecDelLocal_Modify defines  execdellocal modify func
-func (c *Manage) ExecDelLocal_Modify(transfer *types.ModifyConfig, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set := &types.LocalDBSet{}
-
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		if item.Ty == pty.ManageActionModifyConfig {
-			var receipt types.ReceiptConfig
-			err := types.Decode(item.Log, &receipt)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			key := receipt.Current.Key
-			set.KV = append(set.KV, &types.KeyValue{Key: localKey(key), Value: types.Encode(receipt.Prev)})
-			clog.Debug("ExecDelLocal to savelogs", "config ", key, "value", receipt.Prev)
-		}
+func (c *Manage) execAutoDelLocal(tx *types.Transaction, receiptData *types.ReceiptData) (*types.LocalDBSet, error) {
+	kvs, err := c.DelRollbackKV(tx, tx.Execer)
+	if err != nil {
+		return nil, err
 	}
-	return set, nil
+	dbSet := &types.LocalDBSet{}
+	dbSet.KV = append(dbSet.KV, kvs...)
+	return dbSet, nil
 }

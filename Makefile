@@ -310,7 +310,7 @@ webhook_auto_ci: clean fmt_proto fmt_shell protobuf mock
 		  fi;
 
 addupstream:
-	git remote add upstream https://github.com/33cn/chain33.git
+	git remote add upstream git@github.com:33cn/chain33.git
 	git remote -v
 
 sync:

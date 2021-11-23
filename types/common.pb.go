@@ -122,6 +122,53 @@ func (x *ReqString) GetData() string {
 	return ""
 }
 
+type ReqMultiStrings struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Datas []string `protobuf:"bytes,1,rep,name=datas,proto3" json:"datas,omitempty"`
+}
+
+func (x *ReqMultiStrings) Reset() {
+	*x = ReqMultiStrings{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_common_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReqMultiStrings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReqMultiStrings) ProtoMessage() {}
+
+func (x *ReqMultiStrings) ProtoReflect() protoreflect.Message {
+	mi := &file_common_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReqMultiStrings.ProtoReflect.Descriptor instead.
+func (*ReqMultiStrings) Descriptor() ([]byte, []int) {
+	return file_common_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ReqMultiStrings) GetDatas() []string {
+	if x != nil {
+		return x.Datas
+	}
+	return nil
+}
+
 type ReplyString struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -133,7 +180,7 @@ type ReplyString struct {
 func (x *ReplyString) Reset() {
 	*x = ReplyString{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[2]
+		mi := &file_common_proto_msgTypes[3]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -146,7 +193,7 @@ func (x *ReplyString) String() string {
 func (*ReplyString) ProtoMessage() {}
 
 func (x *ReplyString) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[2]
+	mi := &file_common_proto_msgTypes[3]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -159,7 +206,7 @@ func (x *ReplyString) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyString.ProtoReflect.Descriptor instead.
 func (*ReplyString) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{2}
+	return file_common_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ReplyString) GetData() string {
@@ -180,7 +227,7 @@ type ReplyStrings struct {
 func (x *ReplyStrings) Reset() {
 	*x = ReplyStrings{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[3]
+		mi := &file_common_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -193,7 +240,7 @@ func (x *ReplyStrings) String() string {
 func (*ReplyStrings) ProtoMessage() {}
 
 func (x *ReplyStrings) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[3]
+	mi := &file_common_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -206,7 +253,7 @@ func (x *ReplyStrings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyStrings.ProtoReflect.Descriptor instead.
 func (*ReplyStrings) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{3}
+	return file_common_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ReplyStrings) GetDatas() []string {
@@ -227,7 +274,7 @@ type ReqInt struct {
 func (x *ReqInt) Reset() {
 	*x = ReqInt{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[4]
+		mi := &file_common_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -240,7 +287,7 @@ func (x *ReqInt) String() string {
 func (*ReqInt) ProtoMessage() {}
 
 func (x *ReqInt) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[4]
+	mi := &file_common_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -253,7 +300,7 @@ func (x *ReqInt) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReqInt.ProtoReflect.Descriptor instead.
 func (*ReqInt) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{4}
+	return file_common_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ReqInt) GetHeight() int64 {
@@ -274,7 +321,7 @@ type Int64 struct {
 func (x *Int64) Reset() {
 	*x = Int64{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[5]
+		mi := &file_common_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -287,7 +334,7 @@ func (x *Int64) String() string {
 func (*Int64) ProtoMessage() {}
 
 func (x *Int64) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[5]
+	mi := &file_common_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -300,7 +347,7 @@ func (x *Int64) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Int64.ProtoReflect.Descriptor instead.
 func (*Int64) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{5}
+	return file_common_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Int64) GetData() int64 {
@@ -322,7 +369,7 @@ type ReqHash struct {
 func (x *ReqHash) Reset() {
 	*x = ReqHash{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[6]
+		mi := &file_common_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -335,7 +382,7 @@ func (x *ReqHash) String() string {
 func (*ReqHash) ProtoMessage() {}
 
 func (x *ReqHash) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[6]
+	mi := &file_common_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -348,7 +395,7 @@ func (x *ReqHash) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReqHash.ProtoReflect.Descriptor instead.
 func (*ReqHash) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{6}
+	return file_common_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ReqHash) GetHash() []byte {
@@ -376,7 +423,7 @@ type ReplyHash struct {
 func (x *ReplyHash) Reset() {
 	*x = ReplyHash{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[7]
+		mi := &file_common_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -389,7 +436,7 @@ func (x *ReplyHash) String() string {
 func (*ReplyHash) ProtoMessage() {}
 
 func (x *ReplyHash) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[7]
+	mi := &file_common_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -402,7 +449,7 @@ func (x *ReplyHash) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyHash.ProtoReflect.Descriptor instead.
 func (*ReplyHash) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{7}
+	return file_common_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ReplyHash) GetHash() []byte {
@@ -421,7 +468,7 @@ type ReqNil struct {
 func (x *ReqNil) Reset() {
 	*x = ReqNil{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[8]
+		mi := &file_common_proto_msgTypes[9]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -434,7 +481,7 @@ func (x *ReqNil) String() string {
 func (*ReqNil) ProtoMessage() {}
 
 func (x *ReqNil) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[8]
+	mi := &file_common_proto_msgTypes[9]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -447,7 +494,7 @@ func (x *ReqNil) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReqNil.ProtoReflect.Descriptor instead.
 func (*ReqNil) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{8}
+	return file_common_proto_rawDescGZIP(), []int{9}
 }
 
 type ReqBytes struct {
@@ -461,7 +508,7 @@ type ReqBytes struct {
 func (x *ReqBytes) Reset() {
 	*x = ReqBytes{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[9]
+		mi := &file_common_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -474,7 +521,7 @@ func (x *ReqBytes) String() string {
 func (*ReqBytes) ProtoMessage() {}
 
 func (x *ReqBytes) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[9]
+	mi := &file_common_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -487,7 +534,7 @@ func (x *ReqBytes) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReqBytes.ProtoReflect.Descriptor instead.
 func (*ReqBytes) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{9}
+	return file_common_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ReqBytes) GetData() []byte {
@@ -508,7 +555,7 @@ type ReqHashes struct {
 func (x *ReqHashes) Reset() {
 	*x = ReqHashes{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[10]
+		mi := &file_common_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -521,7 +568,7 @@ func (x *ReqHashes) String() string {
 func (*ReqHashes) ProtoMessage() {}
 
 func (x *ReqHashes) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[10]
+	mi := &file_common_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -534,7 +581,7 @@ func (x *ReqHashes) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReqHashes.ProtoReflect.Descriptor instead.
 func (*ReqHashes) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{10}
+	return file_common_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ReqHashes) GetHashes() [][]byte {
@@ -555,7 +602,7 @@ type ReplyHashes struct {
 func (x *ReplyHashes) Reset() {
 	*x = ReplyHashes{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[11]
+		mi := &file_common_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -568,7 +615,7 @@ func (x *ReplyHashes) String() string {
 func (*ReplyHashes) ProtoMessage() {}
 
 func (x *ReplyHashes) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[11]
+	mi := &file_common_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -581,7 +628,7 @@ func (x *ReplyHashes) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplyHashes.ProtoReflect.Descriptor instead.
 func (*ReplyHashes) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{11}
+	return file_common_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ReplyHashes) GetHashes() [][]byte {
@@ -603,7 +650,7 @@ type KeyValue struct {
 func (x *KeyValue) Reset() {
 	*x = KeyValue{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[12]
+		mi := &file_common_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -616,7 +663,7 @@ func (x *KeyValue) String() string {
 func (*KeyValue) ProtoMessage() {}
 
 func (x *KeyValue) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[12]
+	mi := &file_common_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -629,7 +676,7 @@ func (x *KeyValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeyValue.ProtoReflect.Descriptor instead.
 func (*KeyValue) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{12}
+	return file_common_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *KeyValue) GetKey() []byte {
@@ -657,7 +704,7 @@ type TxHash struct {
 func (x *TxHash) Reset() {
 	*x = TxHash{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[13]
+		mi := &file_common_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -670,7 +717,7 @@ func (x *TxHash) String() string {
 func (*TxHash) ProtoMessage() {}
 
 func (x *TxHash) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[13]
+	mi := &file_common_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +730,7 @@ func (x *TxHash) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TxHash.ProtoReflect.Descriptor instead.
 func (*TxHash) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{13}
+	return file_common_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *TxHash) GetHash() string {
@@ -706,7 +753,7 @@ type TimeStatus struct {
 func (x *TimeStatus) Reset() {
 	*x = TimeStatus{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[14]
+		mi := &file_common_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -719,7 +766,7 @@ func (x *TimeStatus) String() string {
 func (*TimeStatus) ProtoMessage() {}
 
 func (x *TimeStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[14]
+	mi := &file_common_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -732,7 +779,7 @@ func (x *TimeStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TimeStatus.ProtoReflect.Descriptor instead.
 func (*TimeStatus) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{14}
+	return file_common_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *TimeStatus) GetNtpTime() string {
@@ -767,7 +814,7 @@ type ReqKey struct {
 func (x *ReqKey) Reset() {
 	*x = ReqKey{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[15]
+		mi := &file_common_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -780,7 +827,7 @@ func (x *ReqKey) String() string {
 func (*ReqKey) ProtoMessage() {}
 
 func (x *ReqKey) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[15]
+	mi := &file_common_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -793,7 +840,7 @@ func (x *ReqKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReqKey.ProtoReflect.Descriptor instead.
 func (*ReqKey) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{15}
+	return file_common_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ReqKey) GetKey() []byte {
@@ -817,7 +864,7 @@ type ReqRandHash struct {
 func (x *ReqRandHash) Reset() {
 	*x = ReqRandHash{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[16]
+		mi := &file_common_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -830,7 +877,7 @@ func (x *ReqRandHash) String() string {
 func (*ReqRandHash) ProtoMessage() {}
 
 func (x *ReqRandHash) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[16]
+	mi := &file_common_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -843,7 +890,7 @@ func (x *ReqRandHash) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReqRandHash.ProtoReflect.Descriptor instead.
 func (*ReqRandHash) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{16}
+	return file_common_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ReqRandHash) GetExecName() string {
@@ -891,7 +938,7 @@ type VersionInfo struct {
 func (x *VersionInfo) Reset() {
 	*x = VersionInfo{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_common_proto_msgTypes[17]
+		mi := &file_common_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -904,7 +951,7 @@ func (x *VersionInfo) String() string {
 func (*VersionInfo) ProtoMessage() {}
 
 func (x *VersionInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_common_proto_msgTypes[17]
+	mi := &file_common_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -917,7 +964,7 @@ func (x *VersionInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VersionInfo.ProtoReflect.Descriptor instead.
 func (*VersionInfo) Descriptor() ([]byte, []int) {
-	return file_common_proto_rawDescGZIP(), []int{17}
+	return file_common_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *VersionInfo) GetTitle() string {
@@ -964,59 +1011,61 @@ var file_common_proto_rawDesc = []byte{
 	0x4f, 0x6b, 0x12, 0x10, 0x0a, 0x03, 0x6d, 0x73, 0x67, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52,
 	0x03, 0x6d, 0x73, 0x67, 0x22, 0x1f, 0x0a, 0x09, 0x52, 0x65, 0x71, 0x53, 0x74, 0x72, 0x69, 0x6e,
 	0x67, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x21, 0x0a, 0x0b, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x53, 0x74,
-	0x72, 0x69, 0x6e, 0x67, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x24, 0x0a, 0x0c, 0x52, 0x65, 0x70, 0x6c,
-	0x79, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x64, 0x61, 0x74, 0x61,
-	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x05, 0x64, 0x61, 0x74, 0x61, 0x73, 0x22, 0x20,
-	0x0a, 0x06, 0x52, 0x65, 0x71, 0x49, 0x6e, 0x74, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x65, 0x69, 0x67,
-	0x68, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74,
-	0x22, 0x1b, 0x0a, 0x05, 0x49, 0x6e, 0x74, 0x36, 0x34, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74,
-	0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x37, 0x0a,
-	0x07, 0x52, 0x65, 0x71, 0x48, 0x61, 0x73, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x12, 0x18, 0x0a, 0x07,
-	0x75, 0x70, 0x67, 0x72, 0x61, 0x64, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x75,
-	0x70, 0x67, 0x72, 0x61, 0x64, 0x65, 0x22, 0x1f, 0x0a, 0x09, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x48,
-	0x61, 0x73, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x0c, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x22, 0x08, 0x0a, 0x06, 0x52, 0x65, 0x71, 0x4e, 0x69,
-	0x6c, 0x22, 0x1e, 0x0a, 0x08, 0x52, 0x65, 0x71, 0x42, 0x79, 0x74, 0x65, 0x73, 0x12, 0x12, 0x0a,
-	0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74,
-	0x61, 0x22, 0x23, 0x0a, 0x09, 0x52, 0x65, 0x71, 0x48, 0x61, 0x73, 0x68, 0x65, 0x73, 0x12, 0x16,
+	0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x27, 0x0a, 0x0f, 0x52, 0x65, 0x71, 0x4d, 0x75, 0x6c, 0x74,
+	0x69, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x73, 0x12, 0x14, 0x0a, 0x05, 0x64, 0x61, 0x74, 0x61,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x05, 0x64, 0x61, 0x74, 0x61, 0x73, 0x22, 0x21,
+	0x0a, 0x0b, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x12, 0x12, 0x0a,
+	0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x64, 0x61, 0x74,
+	0x61, 0x22, 0x24, 0x0a, 0x0c, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67,
+	0x73, 0x12, 0x14, 0x0a, 0x05, 0x64, 0x61, 0x74, 0x61, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09,
+	0x52, 0x05, 0x64, 0x61, 0x74, 0x61, 0x73, 0x22, 0x20, 0x0a, 0x06, 0x52, 0x65, 0x71, 0x49, 0x6e,
+	0x74, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x03, 0x52, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x22, 0x1b, 0x0a, 0x05, 0x49, 0x6e, 0x74,
+	0x36, 0x34, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03,
+	0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x37, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x48, 0x61, 0x73,
+	0x68, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52,
+	0x04, 0x68, 0x61, 0x73, 0x68, 0x12, 0x18, 0x0a, 0x07, 0x75, 0x70, 0x67, 0x72, 0x61, 0x64, 0x65,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x75, 0x70, 0x67, 0x72, 0x61, 0x64, 0x65, 0x22,
+	0x1f, 0x0a, 0x09, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x48, 0x61, 0x73, 0x68, 0x12, 0x12, 0x0a, 0x04,
+	0x68, 0x61, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68,
+	0x22, 0x08, 0x0a, 0x06, 0x52, 0x65, 0x71, 0x4e, 0x69, 0x6c, 0x22, 0x1e, 0x0a, 0x08, 0x52, 0x65,
+	0x71, 0x42, 0x79, 0x74, 0x65, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x22, 0x23, 0x0a, 0x09, 0x52, 0x65,
+	0x71, 0x48, 0x61, 0x73, 0x68, 0x65, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x61, 0x73, 0x68, 0x65,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x06, 0x68, 0x61, 0x73, 0x68, 0x65, 0x73, 0x22,
+	0x25, 0x0a, 0x0b, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x48, 0x61, 0x73, 0x68, 0x65, 0x73, 0x12, 0x16,
 	0x0a, 0x06, 0x68, 0x61, 0x73, 0x68, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x06,
-	0x68, 0x61, 0x73, 0x68, 0x65, 0x73, 0x22, 0x25, 0x0a, 0x0b, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x48,
-	0x61, 0x73, 0x68, 0x65, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x61, 0x73, 0x68, 0x65, 0x73, 0x18,
-	0x01, 0x20, 0x03, 0x28, 0x0c, 0x52, 0x06, 0x68, 0x61, 0x73, 0x68, 0x65, 0x73, 0x22, 0x32, 0x0a,
-	0x08, 0x4b, 0x65, 0x79, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76,
-	0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75,
-	0x65, 0x22, 0x1c, 0x0a, 0x06, 0x54, 0x78, 0x48, 0x61, 0x73, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x68,
-	0x61, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x22,
-	0x58, 0x0a, 0x0a, 0x54, 0x69, 0x6d, 0x65, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x18, 0x0a,
-	0x07, 0x6e, 0x74, 0x70, 0x54, 0x69, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07,
-	0x6e, 0x74, 0x70, 0x54, 0x69, 0x6d, 0x65, 0x12, 0x1c, 0x0a, 0x09, 0x6c, 0x6f, 0x63, 0x61, 0x6c,
-	0x54, 0x69, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x6c, 0x6f, 0x63, 0x61,
-	0x6c, 0x54, 0x69, 0x6d, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x64, 0x69, 0x66, 0x66, 0x18, 0x03, 0x20,
-	0x01, 0x28, 0x03, 0x52, 0x04, 0x64, 0x69, 0x66, 0x66, 0x22, 0x1a, 0x0a, 0x06, 0x52, 0x65, 0x71,
-	0x4b, 0x65, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c,
-	0x52, 0x03, 0x6b, 0x65, 0x79, 0x22, 0x71, 0x0a, 0x0b, 0x52, 0x65, 0x71, 0x52, 0x61, 0x6e, 0x64,
-	0x48, 0x61, 0x73, 0x68, 0x12, 0x1a, 0x0a, 0x08, 0x65, 0x78, 0x65, 0x63, 0x4e, 0x61, 0x6d, 0x65,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x65, 0x78, 0x65, 0x63, 0x4e, 0x61, 0x6d, 0x65,
-	0x12, 0x16, 0x0a, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03,
-	0x52, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68, 0x74, 0x12, 0x1a, 0x0a, 0x08, 0x62, 0x6c, 0x6f, 0x63,
-	0x6b, 0x4e, 0x75, 0x6d, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x08, 0x62, 0x6c, 0x6f, 0x63,
-	0x6b, 0x4e, 0x75, 0x6d, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x04, 0x20, 0x01,
-	0x28, 0x0c, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x22, 0x83, 0x01, 0x0a, 0x0b, 0x56, 0x65, 0x72,
-	0x73, 0x69, 0x6f, 0x6e, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x69, 0x74, 0x6c,
-	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x12, 0x10,
-	0x0a, 0x03, 0x61, 0x70, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x61, 0x70, 0x70,
-	0x12, 0x18, 0x0a, 0x07, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x33, 0x33, 0x18, 0x03, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x07, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x33, 0x33, 0x12, 0x18, 0x0a, 0x07, 0x6c, 0x6f,
-	0x63, 0x61, 0x6c, 0x44, 0x62, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6c, 0x6f, 0x63,
-	0x61, 0x6c, 0x44, 0x62, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x49, 0x44, 0x18,
-	0x05, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x49, 0x44, 0x42, 0x1f,
-	0x5a, 0x1d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x33, 0x33, 0x63,
-	0x6e, 0x2f, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x33, 0x33, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62,
-	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x68, 0x61, 0x73, 0x68, 0x65, 0x73, 0x22, 0x32, 0x0a, 0x08, 0x4b, 0x65, 0x79, 0x56, 0x61, 0x6c,
+	0x75, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52,
+	0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0c, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x1c, 0x0a, 0x06, 0x54, 0x78,
+	0x48, 0x61, 0x73, 0x68, 0x12, 0x12, 0x0a, 0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x04, 0x68, 0x61, 0x73, 0x68, 0x22, 0x58, 0x0a, 0x0a, 0x54, 0x69, 0x6d, 0x65,
+	0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x6e, 0x74, 0x70, 0x54, 0x69, 0x6d,
+	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6e, 0x74, 0x70, 0x54, 0x69, 0x6d, 0x65,
+	0x12, 0x1c, 0x0a, 0x09, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x54, 0x69, 0x6d, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x09, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x54, 0x69, 0x6d, 0x65, 0x12, 0x12,
+	0x0a, 0x04, 0x64, 0x69, 0x66, 0x66, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x64, 0x69,
+	0x66, 0x66, 0x22, 0x1a, 0x0a, 0x06, 0x52, 0x65, 0x71, 0x4b, 0x65, 0x79, 0x12, 0x10, 0x0a, 0x03,
+	0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x22, 0x71,
+	0x0a, 0x0b, 0x52, 0x65, 0x71, 0x52, 0x61, 0x6e, 0x64, 0x48, 0x61, 0x73, 0x68, 0x12, 0x1a, 0x0a,
+	0x08, 0x65, 0x78, 0x65, 0x63, 0x4e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x08, 0x65, 0x78, 0x65, 0x63, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x68, 0x65, 0x69,
+	0x67, 0x68, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x68, 0x65, 0x69, 0x67, 0x68,
+	0x74, 0x12, 0x1a, 0x0a, 0x08, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x18, 0x03, 0x20,
+	0x01, 0x28, 0x03, 0x52, 0x08, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x4e, 0x75, 0x6d, 0x12, 0x12, 0x0a,
+	0x04, 0x68, 0x61, 0x73, 0x68, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x68, 0x61, 0x73,
+	0x68, 0x22, 0x83, 0x01, 0x0a, 0x0b, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x6e, 0x66,
+	0x6f, 0x12, 0x14, 0x0a, 0x05, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x05, 0x74, 0x69, 0x74, 0x6c, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x61, 0x70, 0x70, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x61, 0x70, 0x70, 0x12, 0x18, 0x0a, 0x07, 0x63, 0x68, 0x61,
+	0x69, 0x6e, 0x33, 0x33, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x63, 0x68, 0x61, 0x69,
+	0x6e, 0x33, 0x33, 0x12, 0x18, 0x0a, 0x07, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x44, 0x62, 0x18, 0x04,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x44, 0x62, 0x12, 0x18, 0x0a,
+	0x07, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x49, 0x44, 0x18, 0x05, 0x20, 0x01, 0x28, 0x05, 0x52, 0x07,
+	0x63, 0x68, 0x61, 0x69, 0x6e, 0x49, 0x44, 0x42, 0x1f, 0x5a, 0x1d, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x33, 0x33, 0x63, 0x6e, 0x2f, 0x63, 0x68, 0x61, 0x69, 0x6e,
+	0x33, 0x33, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1031,26 +1080,27 @@ func file_common_proto_rawDescGZIP() []byte {
 	return file_common_proto_rawDescData
 }
 
-var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_common_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_common_proto_goTypes = []interface{}{
-	(*Reply)(nil),        // 0: types.Reply
-	(*ReqString)(nil),    // 1: types.ReqString
-	(*ReplyString)(nil),  // 2: types.ReplyString
-	(*ReplyStrings)(nil), // 3: types.ReplyStrings
-	(*ReqInt)(nil),       // 4: types.ReqInt
-	(*Int64)(nil),        // 5: types.Int64
-	(*ReqHash)(nil),      // 6: types.ReqHash
-	(*ReplyHash)(nil),    // 7: types.ReplyHash
-	(*ReqNil)(nil),       // 8: types.ReqNil
-	(*ReqBytes)(nil),     // 9: types.ReqBytes
-	(*ReqHashes)(nil),    // 10: types.ReqHashes
-	(*ReplyHashes)(nil),  // 11: types.ReplyHashes
-	(*KeyValue)(nil),     // 12: types.KeyValue
-	(*TxHash)(nil),       // 13: types.TxHash
-	(*TimeStatus)(nil),   // 14: types.TimeStatus
-	(*ReqKey)(nil),       // 15: types.ReqKey
-	(*ReqRandHash)(nil),  // 16: types.ReqRandHash
-	(*VersionInfo)(nil),  // 17: types.VersionInfo
+	(*Reply)(nil),           // 0: types.Reply
+	(*ReqString)(nil),       // 1: types.ReqString
+	(*ReqMultiStrings)(nil), // 2: types.ReqMultiStrings
+	(*ReplyString)(nil),     // 3: types.ReplyString
+	(*ReplyStrings)(nil),    // 4: types.ReplyStrings
+	(*ReqInt)(nil),          // 5: types.ReqInt
+	(*Int64)(nil),           // 6: types.Int64
+	(*ReqHash)(nil),         // 7: types.ReqHash
+	(*ReplyHash)(nil),       // 8: types.ReplyHash
+	(*ReqNil)(nil),          // 9: types.ReqNil
+	(*ReqBytes)(nil),        // 10: types.ReqBytes
+	(*ReqHashes)(nil),       // 11: types.ReqHashes
+	(*ReplyHashes)(nil),     // 12: types.ReplyHashes
+	(*KeyValue)(nil),        // 13: types.KeyValue
+	(*TxHash)(nil),          // 14: types.TxHash
+	(*TimeStatus)(nil),      // 15: types.TimeStatus
+	(*ReqKey)(nil),          // 16: types.ReqKey
+	(*ReqRandHash)(nil),     // 17: types.ReqRandHash
+	(*VersionInfo)(nil),     // 18: types.VersionInfo
 }
 var file_common_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -1091,7 +1141,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReplyString); i {
+			switch v := v.(*ReqMultiStrings); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1103,7 +1153,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReplyStrings); i {
+			switch v := v.(*ReplyString); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1115,7 +1165,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReqInt); i {
+			switch v := v.(*ReplyStrings); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1127,7 +1177,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Int64); i {
+			switch v := v.(*ReqInt); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1139,7 +1189,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReqHash); i {
+			switch v := v.(*Int64); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1151,7 +1201,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReplyHash); i {
+			switch v := v.(*ReqHash); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1163,7 +1213,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReqNil); i {
+			switch v := v.(*ReplyHash); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1175,7 +1225,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReqBytes); i {
+			switch v := v.(*ReqNil); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1187,7 +1237,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReqHashes); i {
+			switch v := v.(*ReqBytes); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1199,7 +1249,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReplyHashes); i {
+			switch v := v.(*ReqHashes); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1211,7 +1261,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*KeyValue); i {
+			switch v := v.(*ReplyHashes); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1223,7 +1273,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TxHash); i {
+			switch v := v.(*KeyValue); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1235,7 +1285,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TimeStatus); i {
+			switch v := v.(*TxHash); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1247,7 +1297,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReqKey); i {
+			switch v := v.(*TimeStatus); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1259,7 +1309,7 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ReqRandHash); i {
+			switch v := v.(*ReqKey); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1271,6 +1321,18 @@ func file_common_proto_init() {
 			}
 		}
 		file_common_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReqRandHash); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_common_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*VersionInfo); i {
 			case 0:
 				return &v.state
@@ -1289,7 +1351,7 @@ func file_common_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_common_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

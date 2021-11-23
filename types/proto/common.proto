@@ -12,6 +12,10 @@ message ReqString {
     string data = 1;
 }
 
+message ReqMultiStrings {
+    repeated string datas = 1;
+}
+
 message ReplyString {
     string data = 1;
 }
