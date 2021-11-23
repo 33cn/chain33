@@ -407,6 +407,9 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 		//通过短hash查询交易存在时，需要再通过全hash索引查询一下。
 		//避免短hash重复，而全hash不一样的情况
 		//return true, nil
+		// 查重性能对比：
+		// 先查短哈希，再查全哈希，单次查询平均耗时10000ns
+		// 直接查全哈希，单次查询平均耗时24000ns
 	}
 	if _, err := bs.db.Get(cfg.CalcTxKey(key)); err != nil {
 		if err == dbm.ErrNotFoundInDb {
