@@ -48,6 +48,7 @@ type Chain33 struct {
 // Grpc a channelClient
 type Grpc struct {
 	cli channelClient
+	subChan chan interface{}
 }
 
 // Grpcserver a object
@@ -59,7 +60,7 @@ type Grpcserver struct {
 
 // NewGrpcServer new  GrpcServer object
 func NewGrpcServer() *Grpcserver {
-	return &Grpcserver{grpc: &Grpc{}}
+	return &Grpcserver{grpc: &Grpc{subChan: make( chan interface{},128)}}
 }
 
 // JSONRPCServer  a json rpcserver object
@@ -274,6 +275,7 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 	r.c = c
 	//注册系统rpc
 	pluginmgr.AddRPC(r)
+	go r.handleSysEvent()
 	r.Listen()
 }
 
@@ -285,6 +287,16 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 	r.japi = japi
 	r.c = c
 }
+
+//处理订阅的rpc事件
+func (r *RPC)handleSysEvent(){
+	r.c.Sub("rpc")
+	for msg:=range r.c.Recv(){
+		r.gapi.grpc.subChan<-msg
+	}
+	//for r.gapi.grpc.subChan =range r.c.Recv(){}
+}
+
 
 // Listen rpc listen
 func (r *RPC) Listen() (port1 int, port2 int) {

@@ -200,6 +200,12 @@ const (
 	EventDialPeer = 363
 	//断开指定的节点
 	EventClosePeer = 364
+
+	EventPushBlock = 365
+	EventPushBlockHeader=366
+	EventPushTxReceipt=367
+	EventPushTxResult=368
+	EventPushEVMEvent=369
 )
 
 var eventName = map[int]string{

@@ -5,6 +5,7 @@
 package rpc
 
 import (
+	"errors"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -615,7 +616,33 @@ func (g *Grpc)GetCoinSymbol(ctx context.Context,in *pb.ReqNil)(*pb.ReplyString,e
 }
 
 
+//GetBlockSequences
+func (g *Grpc)GetBlockSequences(ctx context.Context,in *pb.ReqBlocks)(*pb.BlockSequences,error){
+	return g.cli.GetBlockSequences(in)
+}
 
 
 
+func (g *Grpc)SubTxBlcoks(in *pb.PushSubscribeReq, resp pb.Chain33_SubTxBlcoksServer) error {
 
+	reply,err:=g.cli.AddPushSubscribe(in)
+	if err!=nil {
+		return err
+	}
+	if !reply.GetIsOk(){
+		return errors.New(string(reply.GetMsg()))
+	}
+
+	for msg:=range g.subChan{
+		pushData,ok:=msg.(*pb.PushData)
+		if ok && pushData.GetName()==in.GetName(){
+			err= resp.Send(msg.(*pb.SubData))
+			if err!=nil{
+				break
+			}
+		}
+
+	}
+
+	return err
+}

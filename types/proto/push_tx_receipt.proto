@@ -2,6 +2,8 @@ syntax = "proto3";
 
 // import "common.proto";
 import "transaction.proto";
+import "blockchain.proto";
+import "evm_event.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
@@ -38,4 +40,17 @@ message TxResultPerBlock {
 
 message TxResultSeqs {
     repeated TxResultPerBlock items = 1;
+}
+
+
+message PushData {
+    string name =1;
+    oneof value {
+        BlockSeqs blockSeqs               =2;
+        HeaderSeqs headerSeqs             =3;
+        TxReceipts4Subscribe txReceipts   =4;
+        TxResultSeqs txResult             =5;
+        EVMTxLogsInBlks evmLogs           =6;
+    }
+
 }

@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
+	"github.com/33cn/chain33/common"
+	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -11,10 +15,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/33cn/chain33/common"
-	dbm "github.com/33cn/chain33/common/db"
-	"github.com/33cn/chain33/types"
 )
 
 const (
@@ -93,11 +93,14 @@ type Push struct {
 	cfg            *types.Chain33Config
 	postFail2Sleep int32
 	postwg         *sync.WaitGroup
+
 }
 
 //PushClient ...
 type PushClient struct {
 	client *http.Client
+	//pubCli  *pubsub.PubSub
+	qclient queue.Client
 }
 
 // PushType ...
@@ -111,41 +114,83 @@ func (pushType PushType) string() string {
 func (pushClient *PushClient) PostData(subscribe *types.PushSubscribeReq, postdata []byte, seq int64) (err error) {
 	//post data in body
 	chainlog.Info("postData begin", "seq", seq, "subscribe name", subscribe.Name)
-	var buf bytes.Buffer
-	g := gzip.NewWriter(&buf)
-	if _, err = g.Write(postdata); err != nil {
-		return err
-	}
-	if err = g.Close(); err != nil {
-		return err
-	}
+	if pushClient.client == nil{//通过queue模块推送给rpc订阅者
+		var ty int64
+		var pushData types.PushData
+		pushData.Name=subscribe.GetName()
+		switch (PushType)(subscribe.Type).string(){
+		case "PushBlock":
+			var block types.BlockSeqs
+			types.Decode(postdata,&block)
+			pushData.Value=&types.PushData_BlockSeqs{&block}
+			ty=types.EventPushBlock
+		case "PushBlockHeader":
+			var header types.HeaderSeqs
+			types.Decode(postdata,&header)
+			pushData.Value=&types.PushData_HeaderSeqs{&header}
+			ty=types.EventPushBlockHeader
+		case "PushTxReceipt":
+			var  txreceipt types.TxReceipts4Subscribe
+			types.Decode(postdata,&txreceipt)
+			pushData.Value=&types.PushData_TxReceipts{&txreceipt}
+			ty =types.EventPushTxReceipt
+		case "PushTxResult":
+			var rxResult types.TxResultSeqs
+			types.Decode(postdata,&rxResult)
+			pushData.Value=&types.PushData_TxResult{&rxResult}
+			ty=types.EventPushTxResult
+		case "PushEvmEvent":
+			var evmlogs types.EVMTxLogsInBlks
+			types.Decode(postdata,&evmlogs)
+			pushData.Value=&types.PushData_EvmLogs{&evmlogs}
+			ty=types.EventPushEVMEvent
+		default:
+			return errors.New("wrong pushType")
 
-	req, err := http.NewRequest("POST", subscribe.URL, &buf)
-	if err != nil {
-		return err
-	}
+		}
 
-	req.Header.Set("Content-Type", "text/plain")
-	req.Header.Set("Content-Encoding", "gzip")
-	resp, err := pushClient.client.Do(req)
-	if err != nil {
-		chainlog.Info("postData", "Do err", err)
-		return err
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		_ = resp.Body.Close()
-		return err
-	}
-	if string(body) != "ok" && string(body) != "OK" {
-		chainlog.Error("postData fail", "name:", subscribe.Name, "URL", subscribe.URL,
-			"Contract:", subscribe.Contract, "body", string(body))
-		_ = resp.Body.Close()
-		return types.ErrPushSeqPostData
-	}
-	chainlog.Debug("postData success", "name", subscribe.Name, "URL", subscribe.URL,
-		"Contract:", subscribe.Contract, "updateSeq", seq)
-	return resp.Body.Close()
+		pmsg:= pushClient.qclient.NewMessage("rpc",ty,pushData)
+		pushClient.qclient.Send(pmsg,false)
+		return nil
+
+	} //else if pushClient.client!=nil{
+		var buf bytes.Buffer
+		g := gzip.NewWriter(&buf)
+		if _, err = g.Write(postdata); err != nil {
+			return err
+		}
+		if err = g.Close(); err != nil {
+			return err
+		}
+
+		req, err := http.NewRequest("POST", subscribe.URL, &buf)
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Content-Type", "text/plain")
+		req.Header.Set("Content-Encoding", "gzip")
+		resp, err := pushClient.client.Do(req)
+		if err != nil {
+			chainlog.Info("postData", "Do err", err)
+			return err
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			_ = resp.Body.Close()
+			return err
+		}
+		if string(body) != "ok" && string(body) != "OK" {
+			chainlog.Error("postData fail", "name:", subscribe.Name, "URL", subscribe.URL,
+				"Contract:", subscribe.Contract, "body", string(body))
+			_ = resp.Body.Close()
+			return types.ErrPushSeqPostData
+		}
+		chainlog.Debug("postData success", "name", subscribe.Name, "URL", subscribe.URL,
+			"Contract:", subscribe.Contract, "updateSeq", seq)
+		return resp.Body.Close()
+	//}
+
 }
 
 //ProcAddBlockSeqCB 添加seq callback

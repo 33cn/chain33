@@ -669,6 +669,12 @@ func TestGrpc_GetLastBlockSequence(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestGrpc_GetBlockSequences(t*testing.T){
+	qapi.On("GetBlockSequences", mock.Anything).Return(nil, nil)
+	_, err := g.GetBlockSequences(getOkCtx(), &types.ReqBlocks{})
+	assert.NoError(t, err)
+}
+
 func TestGrpc_GetBlockByHashes(t *testing.T) {
 	qapi.On("GetBlockByHashes", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
 	_, err := g.GetBlockByHashes(getOkCtx(), &types.ReqHashes{})
