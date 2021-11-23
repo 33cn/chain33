@@ -17,6 +17,9 @@ var elog = log.New("module", "execs")
 // DriverCreate defines a drivercreate function
 type DriverCreate func() Driver
 
+// KVChecker checks kv stored in db
+type KVChecker func(key, value []byte) bool
+
 type driverWithHeight struct {
 	create DriverCreate
 	height int64
@@ -26,6 +29,7 @@ var (
 	execDrivers        = make(map[string]*driverWithHeight)
 	execAddressNameMap = make(map[string]string)
 	registedExecDriver = make(map[string]*driverWithHeight)
+	mvccKVExpiredChecker  = make(map[string]KVChecker)
 )
 
 // Register register dcriver height in name
@@ -133,4 +137,32 @@ func ExecAddress(name string) string {
 		return addr
 	}
 	return address.ExecAddress(name)
+}
+
+// RegisterKVExpiredChecker registers dapp kv checker
+func RegisterKVExpiredChecker(name string, f KVChecker) {
+	// 目前只有 ticket 合约用到，如果合约里有需要精简的状态数据，可以自定义 KVChecker 校验规则
+	// KVChecker 返回 true 表示状态数据不会再使用，精简数据库时可以删除
+	if f == nil {
+		panic("Execute: KVExpiredChecker is nil")
+	}
+	if _, dup := mvccKVExpiredChecker[name]; dup {
+		panic("Execute: RegisterKVExpiredChecker called twice for " + name)
+	}
+	mvccKVExpiredChecker[name] = f
+}
+
+// LoadKVExpiredChecker loads dapp kv checker by dapp name
+func LoadKVExpiredChecker(name string) (KVChecker, bool) {
+	f, ok := mvccKVExpiredChecker[name]
+	return f, ok
+}
+
+// KVExpiredCheckerList gets names of dapp which has registered kv checker
+func KVExpiredCheckerList() []string {
+	var checkerNames []string
+	for name := range mvccKVExpiredChecker {
+		checkerNames = append(checkerNames, name)
+	}
+	return checkerNames
 }
