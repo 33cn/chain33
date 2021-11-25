@@ -19,7 +19,8 @@ import (
 
 var (
 	//区块0产生的kv对数量
-	kvCount = 25
+	// 不需要保存hash->height的索引，所以少一个kv对
+	kvCount = 24
 )
 
 func TestReindex(t *testing.T) {

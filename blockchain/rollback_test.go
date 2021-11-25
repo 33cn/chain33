@@ -119,7 +119,7 @@ func TestRollbackSave(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), kvCount)
+	assert.Equal(t, kvCount, len(kvs))
 	defer mock33.Close()
 
 	//发送交易
