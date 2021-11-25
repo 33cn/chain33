@@ -88,9 +88,9 @@ func calcHeightToBlockHeaderKey(height int64) []byte {
 }
 
 //存储block hash对应的block height
-func calcHashToHeightKey(hash []byte) []byte {
-	return append(hashPrefix, hash...)
-}
+//func calcHashToHeightKey(hash []byte) []byte {
+//	return append(hashPrefix, hash...)
+//}
 
 //存储block hash对应的block总难度TD
 func calcHashToTdKey(hash []byte) []byte {
