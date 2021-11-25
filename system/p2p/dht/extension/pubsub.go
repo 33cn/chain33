@@ -38,6 +38,7 @@ type PubSub struct {
 	topicMutex sync.RWMutex
 	ctx        context.Context
 	config     *p2ptypes.PubSubConfig
+	pt         *pubsubTracer
 }
 
 // SubMsg sub message
@@ -109,6 +110,7 @@ func setPubSubParameters(psConf *p2ptypes.PubSubConfig) {
 func NewPubSub(ctx context.Context, host host.Host, psConf *p2ptypes.PubSubConfig) (*PubSub, error) {
 	p := &PubSub{
 		topics: make(TopicMap),
+		pt:     newPubsubTracer(ctx),
 	}
 	setPubSubParameters(psConf)
 
@@ -121,7 +123,8 @@ func NewPubSub(ctx context.Context, host host.Host, psConf *p2ptypes.PubSubConfi
 		pubsub.WithPeerOutboundQueueSize(psConf.PeerOutboundQueueSize),
 		pubsub.WithValidateQueueSize(psConf.ValidateQueueSize),
 		pubsub.WithPeerExchange(psConf.EnablePeerExchange),
-		pubsub.WithMaxMessageSize(psConf.MaxMsgSize))
+		pubsub.WithMaxMessageSize(psConf.MaxMsgSize),
+		pubsub.WithRawTracer(p.pt))
 
 	//选择使用GossipSub
 	ps, err := pubsub.NewGossipSub(ctx, host, psOpts...)
@@ -197,6 +200,7 @@ func (p *PubSub) JoinAndSubTopic(topic string, callback SubCallBack, opts ...pub
 		cancel:   cancel,
 		sub:      subscription,
 	})
+	p.pt.addSubscriber(topic, callback)
 	go p.subTopic(ctx, subscription, callback)
 	return nil
 }
