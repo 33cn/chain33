@@ -42,13 +42,13 @@ func DisableLog() {
 // Executor executor struct
 type Executor struct {
 	disableExecLocal bool
-	disableLocal   bool
-	client         queue.Client
-	qclient        client.QueueProtocolAPI
-	grpccli        types.Chain33Client
-	pluginEnable   map[string]bool
-	alias          map[string]string
-	noneDriverPool *sync.Pool
+	disableLocal     bool
+	client           queue.Client
+	qclient          client.QueueProtocolAPI
+	grpccli          types.Chain33Client
+	pluginEnable     map[string]bool
+	alias            map[string]string
+	noneDriverPool   *sync.Pool
 }
 
 func execInit(cfg *typ.Chain33Config) {

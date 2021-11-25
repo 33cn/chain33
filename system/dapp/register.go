@@ -26,10 +26,10 @@ type driverWithHeight struct {
 }
 
 var (
-	execDrivers        = make(map[string]*driverWithHeight)
-	execAddressNameMap = make(map[string]string)
-	registedExecDriver = make(map[string]*driverWithHeight)
-	mvccKVExpiredChecker  = make(map[string]KVChecker)
+	execDrivers          = make(map[string]*driverWithHeight)
+	execAddressNameMap   = make(map[string]string)
+	registedExecDriver   = make(map[string]*driverWithHeight)
+	mvccKVExpiredChecker = make(map[string]KVChecker)
 )
 
 // Register register dcriver height in name

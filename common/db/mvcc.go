@@ -433,7 +433,7 @@ func pad(version int64) []byte {
 
 //GetKeyPerfix 获取key前缀
 func GetKeyPerfix(key []byte) []byte {
-	result := make([]byte, 0, len(mvccData) + len(key) + 1)
+	result := make([]byte, 0, len(mvccData)+len(key)+1)
 	result = append(result, mvccData...)
 	result = append(result, key...)
 	result = append(result, []byte(".")...)
@@ -442,7 +442,7 @@ func GetKeyPerfix(key []byte) []byte {
 
 //GetKey 获取键
 func GetKey(key []byte, version int64) ([]byte, error) {
-	result := make([]byte, 0, len(mvccData) + len(key) + 21)
+	result := make([]byte, 0, len(mvccData)+len(key)+21)
 	result = append(result, mvccData...)
 	result = append(result, key...)
 	result = append(result, []byte(".")...)
@@ -451,28 +451,28 @@ func GetKey(key []byte, version int64) ([]byte, error) {
 }
 
 func getLastKey(key []byte) []byte {
-	result := make([]byte, 0, len(mvccLast) + len(key))
+	result := make([]byte, 0, len(mvccLast)+len(key))
 	result = append(result, mvccLast...)
 	result = append(result, key...)
 	return result
 }
 
 func getVersionHashKey(hash []byte) []byte {
-	result := make([]byte, 0, len(mvccMeta) + len(hash))
+	result := make([]byte, 0, len(mvccMeta)+len(hash))
 	result = append(result, mvccMeta...)
 	result = append(result, hash...)
 	return result
 }
 
 func getVersionKey(version int64) []byte {
-	result := make([]byte, 0, len(mvccMetaVersion) + 20)
+	result := make([]byte, 0, len(mvccMetaVersion)+20)
 	result = append(result, mvccMetaVersion...)
 	result = append(result, pad(version)...)
 	return result
 }
 
 func getVersionKeyListKey(version int64) []byte {
-	result := make([]byte, 0, len(mvccMetaVersionKeyList) + 20)
+	result := make([]byte, 0, len(mvccMetaVersionKeyList)+20)
 	result = append(result, mvccMetaVersionKeyList...)
 	result = append(result, pad(version)...)
 	return result
