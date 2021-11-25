@@ -367,8 +367,8 @@ message ProtocolInfo {
 }
 
 /**
-* blackinfo 节点黑名单列表
-*/
+ * blackinfo 节点黑名单列表
+ */
 
 message Blacklist {
     repeated BlackInfo blackinfo = 1;

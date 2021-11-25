@@ -61,6 +61,18 @@ func (block *Block) GetHeader(cfg *Chain33Config) *Header {
 	return head
 }
 
+// SetHeader 设置header, 注意相关字段必须和GetHeader一致, 一起维护
+func (block *Block) SetHeader(header *Header) {
+	block.Version = header.Version
+	block.ParentHash = header.ParentHash
+	block.TxHash = header.TxHash
+	block.BlockTime = header.BlockTime
+	block.Height = header.Height
+	block.Difficulty = header.Difficulty
+	block.StateHash = header.StateHash
+	block.Signature = header.Signature
+}
+
 func (block *Block) getHeaderHashOld() *Header {
 	head := &Header{}
 	head.Version = block.Version
