@@ -115,10 +115,6 @@ func (p *pubSub) handleSubMsg(in chan net.SubMsg) {
 			if !ok {
 				return
 			}
-			// reject receive broadcast from self
-			if data.ReceivedFrom == p.Host.ID() {
-				break
-			}
 			topic := *data.Topic
 			msg = p.newMsg(topic)
 			err = p.decodeMsg(data.Data, &buf, msg)
