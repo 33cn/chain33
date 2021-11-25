@@ -238,8 +238,8 @@ func padOrigin(version int64) []byte {
 
 func TestPad(t *testing.T) {
 	assert.Equal(t, []byte("00000000000000000001"), pad(1))
-	cases := []struct{
-		input int64
+	cases := []struct {
+		input  int64
 		expect []byte
 	}{
 		{0, []byte("00000000000000000000")},
@@ -260,19 +260,19 @@ func TestPad(t *testing.T) {
 }
 
 func BenchmarkPadOrigin(b *testing.B) {
-	for i:=0; i<b.N;i++ {
+	for i := 0; i < b.N; i++ {
 		padOrigin(999999)
 	}
 }
 
 func BenchmarkPadToLen(b *testing.B) {
-	for i:=0; i<b.N;i++ {
+	for i := 0; i < b.N; i++ {
 		padToLen(999999, 20)
 	}
 }
 
 func BenchmarkPad(b *testing.B) {
-	for i:=0; i<b.N;i++ {
+	for i := 0; i < b.N; i++ {
 		pad(999999)
 	}
 }

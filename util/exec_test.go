@@ -12,26 +12,26 @@ const repeat = 2
 
 func BenchmarkDelDupKeyOld(b *testing.B) {
 	kvs := make([]*types.KeyValue, 0, repeat*length)
-	for r:=0;r<repeat;r++ {
-		for i:= 0; i<length; i++ {
+	for r := 0; r < repeat; r++ {
+		for i := 0; i < length; i++ {
 			kvs = append(kvs, &types.KeyValue{Key: []byte(fmt.Sprintf("12kezKA11ZDcEuYukFV43oKqX89koycuHY:0x0dfed23208a15efe272d5095cce5fbc9a74ffa79c157564e239f6112e6eb6974:0000000000:test%d", i))})
 		}
 	}
 	b.ResetTimer()
-	for i:=0; i< b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		DelDupKeyOld(kvs)
 	}
 }
 
 func BenchmarkDelDupKeyNew(b *testing.B) {
 	kvs := make([]*types.KeyValue, 0, repeat*length)
-	for r:=0;r<repeat;r++ {
-		for i:= 0; i<length; i++ {
+	for r := 0; r < repeat; r++ {
+		for i := 0; i < length; i++ {
 			kvs = append(kvs, &types.KeyValue{Key: []byte(fmt.Sprintf("12kezKA11ZDcEuYukFV43oKqX89koycuHY:0x0dfed23208a15efe272d5095cce5fbc9a74ffa79c157564e239f6112e6eb6974:0000000000:test%d", i))})
 		}
 	}
 	b.ResetTimer()
-	for i:=0; i< b.N; i++ {
+	for i := 0; i < b.N; i++ {
 		DelDupKey(kvs)
 	}
 }
