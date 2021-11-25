@@ -1,6 +1,7 @@
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
 package extension
 
 import (
@@ -8,6 +9,8 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/host"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -19,12 +22,13 @@ type pubsubTracer struct {
 	blankTracer
 	subLock     sync.RWMutex
 	msgLock     sync.Mutex
+	host        host.Host
 	subscribers map[string]SubCallBack
 	pendMsgList list.List
 }
 
-func newPubsubTracer(ctx context.Context) *pubsubTracer {
-	pt := &pubsubTracer{}
+func newPubsubTracer(ctx context.Context, host host.Host) *pubsubTracer {
+	pt := &pubsubTracer{host: host}
 	pt.subscribers = make(map[string]SubCallBack)
 	go pt.handlePendMsg(ctx)
 	return pt
@@ -78,6 +82,9 @@ func (pt *pubsubTracer) copyPendMsg() []*pubsub.Message {
 
 // 监听subscribe数据丢弃事件, 实现重发机制
 func (pt *pubsubTracer) UndeliverableMessage(msg *pubsub.Message) {
+	if pt.host.ID() == msg.ReceivedFrom {
+		return
+	}
 	pt.msgLock.Lock()
 	defer pt.msgLock.Unlock()
 	pt.pendMsgList.PushBack(msg)

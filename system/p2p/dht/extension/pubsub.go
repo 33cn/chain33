@@ -110,7 +110,7 @@ func setPubSubParameters(psConf *p2ptypes.PubSubConfig) {
 func NewPubSub(ctx context.Context, host host.Host, psConf *p2ptypes.PubSubConfig) (*PubSub, error) {
 	p := &PubSub{
 		topics: make(TopicMap),
-		pt:     newPubsubTracer(ctx),
+		pt:     newPubsubTracer(ctx, host),
 	}
 	setPubSubParameters(psConf)
 
