@@ -33,6 +33,7 @@ type topicinfo struct {
 // PubSub pub sub
 type PubSub struct {
 	*pubsub.PubSub
+	host       host.Host
 	topics     TopicMap
 	topicMutex sync.RWMutex
 	ctx        context.Context
@@ -130,6 +131,7 @@ func NewPubSub(ctx context.Context, host host.Host, psConf *p2ptypes.PubSubConfi
 
 	p.PubSub = ps
 	p.ctx = ctx
+	p.host = host
 	p.topics = make(TopicMap)
 	p.config = psConf
 	return p, nil
@@ -225,6 +227,10 @@ func (p *PubSub) subTopic(ctx context.Context, sub *pubsub.Subscription, callbac
 			log.Error("SubMsg", "topic", topic, "sub err", err)
 			p.RemoveTopic(topic)
 			return
+		}
+		// 不接收自己发布的信息, 即不用于内部模块之间的消息通信
+		if p.host.ID() == got.ReceivedFrom {
+			continue
 		}
 		callback(topic, got)
 	}
