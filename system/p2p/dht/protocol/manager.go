@@ -61,6 +61,12 @@ var (
 	mu            sync.RWMutex
 )
 
+// WithEventOptInline invoke event callback inline
+func WithEventOptInline(handler *EventHandler) error {
+	handler.Inline = true
+	return nil
+}
+
 // RegisterEventHandler registers a handler with an event ID.
 func RegisterEventHandler(eventID int64, cb EventHandlerFunc, opts ...EventOpt) {
 	if cb == nil {

@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -202,8 +203,10 @@ func (p *P2P) StartP2P() {
 	protocol.InitAllProtocol(env)
 	p.discovery.Start()
 	go p.managePeers()
-	go p.handleP2PEvent()
 	go p.findLANPeers()
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go p.handleP2PEvent()
+	}
 }
 
 // CloseP2P close p2p
@@ -350,7 +353,7 @@ func (p *P2P) findLANPeers() {
 }
 
 func (p *P2P) handleP2PEvent() {
-	//TODO, control goroutine num
+
 	for {
 		select {
 		case <-p.ctx.Done():
@@ -364,15 +367,22 @@ func (p *P2P) handleP2PEvent() {
 				log.Error("handleP2PEvent", "recv invalid msg, data=", data)
 				continue
 			}
+			handler := protocol.GetEventHandler(msg.Ty)
+			if handler == nil {
+				log.Error("handleP2PEvent", "unknown message type", msg.Ty)
+				continue
+			}
+			// 同步调用
+			if handler.Inline {
+				handler.CallBack(msg)
+				continue
+			}
 
+			// 异步调用
 			p.taskGroup.Add(1)
 			go func(m *queue.Message) {
 				defer p.taskGroup.Done()
-				if handler := protocol.GetEventHandler(m.Ty); handler != nil {
-					handler.CallBack(m)
-				} else {
-					log.Error("handleP2PEvent", "unknown message type", m.Ty)
-				}
+				handler.CallBack(m)
 			}(msg)
 		}
 	}

@@ -83,8 +83,8 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 	p.blockFilter = utils.NewFilter(p.cfg.BlockFilterLen)
 
 	//注册事件处理函数
-	protocol.RegisterEventHandler(types.EventTxBroadcast, p.handleBroadcastSend)
-	protocol.RegisterEventHandler(types.EventBlockBroadcast, p.handleBroadcastSend)
+	protocol.RegisterEventHandler(types.EventTxBroadcast, p.handleBroadcastSend, protocol.WithEventOptInline)
+	protocol.RegisterEventHandler(types.EventBlockBroadcast, p.handleBroadcastSend, protocol.WithEventOptInline)
 	protocol.RegisterEventHandler(types.EventIsSync, p.handleIsSyncEvent)
 	protocol.RegisterEventHandler(types.EventAddBlock, p.handleAddBlock)
 
