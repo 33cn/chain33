@@ -77,12 +77,13 @@ func (mgr *Manager) handleP2PSub() {
 // PubBroadCast 兼容多种类型p2p广播消息, 避免重复接交易或者区块
 func (mgr *Manager) PubBroadCast(hash string, data interface{}, eventTy int) error {
 
-	exist, _ := mgr.broadcastFilter.ContainsOrAdd(hash, true)
-	// eventTy, 交易=1, 区块=54
-	//log.Debug("PubBroadCast", "eventTy", eventTy, "hash", hash, "exist", exist)
-	if exist {
-		return nil
+	if len(mgr.p2pCfg.Types) > 1 {
+		exist, _ := mgr.broadcastFilter.ContainsOrAdd(hash, struct{}{})
+		if exist {
+			return nil
+		}
 	}
+
 	var err error
 	if eventTy == types.EventTx {
 		//同步模式发送交易，但不需要进行等待回复，目的是为了在消息队列内部使用高速模式
