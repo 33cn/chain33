@@ -73,6 +73,8 @@ type BroadcastConfig struct {
 	MaxBatchTxNum int `json:"maxBatchTxNum,omitempty"`
 	//批量广播交易最大间隔(毫秒), 默认100 ms
 	MaxBatchTxInterval int `json:"maxBatchTxInterval,omitempty"`
+	//关闭广播数据验证, 适用于联盟链私有链
+	DisableValidation bool `json:"disableValidation,omitempty"`
 }
 
 // PubSubConfig pubsub config

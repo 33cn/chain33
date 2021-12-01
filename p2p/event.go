@@ -75,26 +75,29 @@ func (mgr *Manager) handleP2PSub() {
 }
 
 // PubBroadCast 兼容多种类型p2p广播消息, 避免重复接交易或者区块
-func (mgr *Manager) PubBroadCast(hash string, data interface{}, eventTy int) error {
+func (mgr *Manager) PubBroadCast(hash string, data interface{}, eventTy int) (*queue.Message, error) {
 
 	if len(mgr.p2pCfg.Types) > 1 {
 		exist, _ := mgr.broadcastFilter.ContainsOrAdd(hash, struct{}{})
 		if exist {
-			return nil
+			return nil, nil
 		}
 	}
 
 	var err error
+	var msg *queue.Message
 	if eventTy == types.EventTx {
 		//同步模式发送交易，但不需要进行等待回复，目的是为了在消息队列内部使用高速模式
-		err = mgr.Client.Send(mgr.Client.NewMessage("mempool", types.EventTx, data), true)
+		msg = mgr.Client.NewMessage("mempool", types.EventTx, data)
+		err = mgr.Client.Send(msg, true)
 	} else if eventTy == types.EventBroadcastAddBlock {
-		err = mgr.Client.Send(mgr.Client.NewMessage("blockchain", types.EventBroadcastAddBlock, data), true)
+		msg = mgr.Client.NewMessage("blockchain", types.EventBroadcastAddBlock, data)
+		err = mgr.Client.Send(msg, true)
 	}
 	if err != nil {
 		log.Error("PubBroadCast", "eventTy", eventTy, "sendMsgErr", err)
 	}
-	return err
+	return msg, err
 }
 
 //

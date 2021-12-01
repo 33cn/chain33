@@ -24,7 +24,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-var log = log15.New("module", "p2p.broadcast")
+var log = log15.New("module", "p2p.init")
 
 func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
@@ -41,6 +41,7 @@ type broadcastProtocol struct {
 	currHeight  int64
 	lock        sync.RWMutex
 	ltB         *ltBroadcast
+	val         *validator
 }
 
 // InitProtocol init protocol
@@ -54,29 +55,7 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 	p.ps = pubsub.NewPubSub(1024)
 	// 单独复制一份， 避免data race
 	p.cfg = env.SubConfig.Broadcast
-
-	// set default params
-	if p.cfg.TxFilterLen <= 0 {
-		p.cfg.TxFilterLen = txRecvFilterCacheNum
-	}
-	if p.cfg.BlockFilterLen <= 0 {
-		p.cfg.BlockFilterLen = blockRecvFilterCacheNum
-	}
-	if p.cfg.MinLtBlockSize <= 0 {
-		p.cfg.MinLtBlockSize = defaultMinLtBlockSize * 1024
-	}
-
-	if p.cfg.LtBlockPendTimeout <= 0 {
-		p.cfg.LtBlockPendTimeout = defaultLtBlockTimeout
-	}
-
-	if p.cfg.MaxBatchTxNum <= 0 {
-		p.cfg.MaxBatchTxNum = defaultMaxBatchTxNum
-	}
-
-	if p.cfg.MaxBatchTxInterval <= 0 {
-		p.cfg.MaxBatchTxInterval = defaultMaxBatchTxInterval
-	}
+	p.setDefaultConfig()
 
 	//接收交易和区块过滤缓存, 避免重复提交到mempool或blockchain
 	p.txFilter = utils.NewFilter(p.cfg.TxFilterLen)
@@ -88,10 +67,9 @@ func (p *broadcastProtocol) init(env *protocol.P2PEnv) {
 	protocol.RegisterEventHandler(types.EventIsSync, p.handleIsSyncEvent)
 	protocol.RegisterEventHandler(types.EventAddBlock, p.handleAddBlock)
 
-	// pub sub broadcast
-	newPubSub(p).broadcast()
-	p.ltB = newLtBroadcast(p)
-	p.ltB.broadcast()
+	// pub sub init
+	p.val = initPubSubBroadcast(p).val
+	p.ltB = initLightBroadcast(p)
 	if !p.cfg.DisableBatchTx {
 		go p.handleSendBatchTx(p.ps.Sub(psBatchTxTopic))
 	}
@@ -292,11 +270,36 @@ func (p *broadcastProtocol) pubPeerMsg(peerID peer.ID, msgID int32, msg types.Me
 }
 
 func (p *broadcastProtocol) postBlockChain(blockHash, pid string, block *types.Block) error {
-
-	return p.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
+	_, err := p.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: pid, Block: block}, types.EventBroadcastAddBlock)
+	return err
 }
 
 func (p *broadcastProtocol) postMempool(txHash string, tx *types.Transaction) error {
+	_, err := p.P2PManager.PubBroadCast(txHash, tx, types.EventTx)
+	return err
+}
 
-	return p.P2PManager.PubBroadCast(txHash, tx, types.EventTx)
+func (p *broadcastProtocol) setDefaultConfig() {
+	// set default params
+	if p.cfg.TxFilterLen <= 0 {
+		p.cfg.TxFilterLen = txRecvFilterCacheNum
+	}
+	if p.cfg.BlockFilterLen <= 0 {
+		p.cfg.BlockFilterLen = blockRecvFilterCacheNum
+	}
+	if p.cfg.MinLtBlockSize <= 0 {
+		p.cfg.MinLtBlockSize = defaultMinLtBlockSize * 1024
+	}
+
+	if p.cfg.LtBlockPendTimeout <= 0 {
+		p.cfg.LtBlockPendTimeout = defaultLtBlockTimeout
+	}
+
+	if p.cfg.MaxBatchTxNum <= 0 {
+		p.cfg.MaxBatchTxNum = defaultMaxBatchTxNum
+	}
+
+	if p.cfg.MaxBatchTxInterval <= 0 {
+		p.cfg.MaxBatchTxInterval = defaultMaxBatchTxInterval
+	}
 }

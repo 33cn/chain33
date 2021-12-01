@@ -39,17 +39,13 @@ type blockRequest struct {
 	blockHeight int64
 }
 
-func newLtBroadcast(b *broadcastProtocol) *ltBroadcast {
+func initLightBroadcast(b *broadcastProtocol) *ltBroadcast {
 	l := &ltBroadcast{broadcastProtocol: b}
 	l.pendBlockList = list.New()
 	l.blockRequestList = list.New()
-	return l
-}
-
-func (l *ltBroadcast) broadcast() {
-
 	go l.pendBlockLoop()
 	go l.blockRequestLoop()
+	return l
 }
 
 func (l *ltBroadcast) buildPendBlock(pd *pendBlock) bool {

@@ -7,20 +7,18 @@ package broadcast
 import (
 	"encoding/hex"
 	"runtime"
-	"sync"
-
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	"github.com/33cn/chain33/types"
 	"github.com/golang/snappy"
 	"github.com/libp2p/go-libp2p-core/peer"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
 	net "github.com/33cn/chain33/system/p2p/dht/extension"
 )
 
 const (
 	//监听发布给本节点的信息, 以pid作为topic
-	psBroadcast          = "ps-broadcast"
+	psBroadcast          = "ps-init"
 	psPeerMsgTopicPrefix = "peermsg/"
 	psTxTopic            = "tx/v1.0.0"
 	psBatchTxTopic       = "batchtx/v1.0"
@@ -32,22 +30,20 @@ const (
 // 基于libp2p pubsub插件广播
 type pubSub struct {
 	*broadcastProtocol
-	blkHeaderCache   map[int64]*types.Header
-	maxRecvBlkHeight int64
-	lock             sync.RWMutex
-	peerTopic        string
+	peerTopic string
+	val       *validator
 }
 
 // new pub sub
-func newPubSub(b *broadcastProtocol) *pubSub {
+func initPubSubBroadcast(b *broadcastProtocol) *pubSub {
 	p := &pubSub{broadcastProtocol: b}
-	p.blkHeaderCache = make(map[int64]*types.Header)
 	p.peerTopic = p.getPeerTopic(p.Host.ID())
+	p.init()
 	return p
 }
 
 // 广播入口函数，处理相关初始化
-func (p *pubSub) broadcast() {
+func (p *pubSub) init() {
 
 	incoming := make(chan net.SubMsg, 1024) //sub 接收通道, 订阅外部广播消息
 	outgoing := p.ps.Sub(psBroadcast)       //publish 发送通道, 订阅内部广播消息
@@ -58,12 +54,16 @@ func (p *pubSub) broadcast() {
 		// pub sub topic注册
 		err := p.Pubsub.JoinAndSubTopic(topic, p.callback(incoming))
 		if err != nil {
-			log.Error("pubsub broadcast", "topic", topic, "join topic err", err)
+			log.Error("pubsub init", "topic", topic, "join topic err", err)
 			return
 		}
 	}
 
-	p.Pubsub.RegisterTopicValidator(psBlockTopic, p.validateBlock, pubsub.WithValidatorInline(true))
+	if !p.cfg.DisableValidation {
+		p.val = newValidator(p)
+		p.Pubsub.RegisterTopicValidator(psBlockTopic, p.val.validateBlock, pubsub.WithValidatorInline(true))
+		p.Pubsub.RegisterTopicValidator(psTxTopic, p.val.validateTx, pubsub.WithValidatorInline(true))
+	}
 
 	//使用多个协程并发处理，提高效率
 	concurrency := runtime.NumCPU() * 2
