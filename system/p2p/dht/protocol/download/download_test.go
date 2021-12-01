@@ -91,7 +91,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	client1.Sub("p2p")
 	go func() {
 		for msg := range client1.Recv() {
-			protocol.GetEventHandler(msg.Ty)(msg)
+			protocol.GetEventHandler(msg.Ty).CallBack(msg)
 		}
 	}()
 

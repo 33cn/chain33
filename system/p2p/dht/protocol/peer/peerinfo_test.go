@@ -116,7 +116,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	client1.Sub("p2p")
 	go func() {
 		for msg := range client1.Recv() {
-			protocol.GetEventHandler(msg.Ty)(msg)
+			protocol.GetEventHandler(msg.Ty).CallBack(msg)
 		}
 	}()
 
@@ -158,20 +158,20 @@ func TestPeerInfoHandler(t *testing.T) {
 	require.Equal(t, false, p.checkDone())
 
 	msg1 := p.QueueClient.NewMessage("p2p", types.EventPeerInfo, &types.P2PGetPeerReq{P2PType: "DHT"})
-	protocol.GetEventHandler(msg1.Ty)(msg1)
+	protocol.GetEventHandler(msg1.Ty).CallBack(msg1)
 	reply, err := p.QueueClient.Wait(msg1)
 	require.Nil(t, err)
 	_, ok := reply.Data.(*types.PeerList)
 	require.True(t, ok)
 	msg2 := p.QueueClient.NewMessage("p2p", types.EventGetNetInfo, nil)
-	protocol.GetEventHandler(msg2.Ty)(msg2)
+	protocol.GetEventHandler(msg2.Ty).CallBack(msg2)
 	reply, err = p.QueueClient.Wait(msg2)
 	require.Nil(t, err)
 	_, ok = reply.Data.(*types.NodeNetInfo)
 	require.True(t, ok)
 
 	msg3 := p.QueueClient.NewMessage("p2p", types.EventNetProtocols, nil)
-	protocol.GetEventHandler(msg3.Ty)(msg3)
+	protocol.GetEventHandler(msg3.Ty).CallBack(msg3)
 	reply, err = p.QueueClient.Wait(msg3)
 	require.Nil(t, err)
 	_, ok = reply.Data.(*types.NetProtocolInfos)
