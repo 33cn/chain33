@@ -21,13 +21,45 @@ type validator struct {
 	*pubSub
 	blkHeaderCache   map[int64]*types.Header
 	maxRecvBlkHeight int64
-	lock             sync.RWMutex
+	headerLock       sync.Mutex
+	deniedPeers      map[peer.ID]int64
+	peerLock         sync.RWMutex
 }
 
 func newValidator(p *pubSub) *validator {
 	v := &validator{pubSub: p}
 	v.blkHeaderCache = make(map[int64]*types.Header)
 	return v
+}
+
+func (v *validator) addDeniedPeer(id peer.ID, denyTime int64) {
+	v.peerLock.Lock()
+	defer v.peerLock.Unlock()
+	endTime, ok := v.deniedPeers[id]
+	if !ok {
+		endTime = types.Now().Unix()
+	}
+	v.deniedPeers[id] = endTime + denyTime
+}
+
+// check if denied
+func (v *validator) isDeniedPeer(id peer.ID) bool {
+	v.peerLock.RLock()
+	defer v.peerLock.RUnlock()
+	endTime, ok := v.deniedPeers[id]
+	return ok && endTime > types.Now().Unix()
+}
+
+//
+func (v *validator) recoverDeniedPeers() {
+	v.peerLock.Lock()
+	defer v.peerLock.Unlock()
+	now := types.Now().Unix()
+	for id, endTime := range v.deniedPeers {
+		if endTime <= now {
+			delete(v.deniedPeers, id)
+		}
+	}
 }
 
 func (v *validator) addBlockHeader(header *types.Header) {
@@ -48,6 +80,10 @@ func (v *validator) validateBlock(ctx context.Context, id peer.ID, msg *ps.Messa
 
 	if id == v.Host.ID() {
 		return ps.ValidationAccept
+	}
+
+	if v.isDeniedPeer(id) {
+		return ps.ValidationReject
 	}
 
 	block := &types.Block{}
@@ -76,8 +112,8 @@ func (v *validator) validateBlock(ctx context.Context, id peer.ID, msg *ps.Messa
 		atomic.StoreInt64(&v.maxRecvBlkHeight, block.GetHeight())
 	}
 
-	v.lock.Lock()
-	defer v.lock.Unlock()
+	v.headerLock.Lock()
+	defer v.headerLock.Unlock()
 
 	// 分叉区块，选择性广播
 	if h, ok := v.blkHeaderCache[block.Height]; ok && bytes.Equal(h.ParentHash, block.ParentHash) {
@@ -111,23 +147,9 @@ func (v *validator) validateBlock(ctx context.Context, id peer.ID, msg *ps.Messa
 }
 
 //
-func (v *validator) validateTx(ctx context.Context, id peer.ID, msg *ps.Message) ps.ValidationResult {
-
-	if id == v.Host.ID() {
-		return ps.ValidationAccept
-	}
-
-	tx := &types.Transaction{}
-	err := v.decodeMsg(msg.Data, nil, tx)
-	if err != nil {
-		log.Error("validateTx", "decodeMsg err", err)
+func (v *validator) validatePeer(ctx context.Context, id peer.ID, msg *ps.Message) ps.ValidationResult {
+	if v.isDeniedPeer(id) {
 		return ps.ValidationReject
 	}
-
-	//重复检测
-	if v.txFilter.AddWithCheckAtomic(hex.EncodeToString(tx.Hash()), struct{}{}) {
-		return ps.ValidationIgnore
-	}
-
 	return ps.ValidationAccept
 }

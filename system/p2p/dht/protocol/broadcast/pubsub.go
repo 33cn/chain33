@@ -62,7 +62,8 @@ func (p *pubSub) init() {
 	if !p.cfg.DisableValidation {
 		p.val = newValidator(p)
 		p.Pubsub.RegisterTopicValidator(psBlockTopic, p.val.validateBlock, pubsub.WithValidatorInline(true))
-		p.Pubsub.RegisterTopicValidator(psTxTopic, p.val.validateTx, pubsub.WithValidatorInline(true))
+		p.Pubsub.RegisterTopicValidator(psTxTopic, p.val.validatePeer, pubsub.WithValidatorInline(true))
+		p.Pubsub.RegisterTopicValidator(psLtBlockTopic, p.val.validatePeer, pubsub.WithValidatorInline(true))
 	}
 
 	//使用多个协程并发处理，提高效率
