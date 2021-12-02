@@ -49,7 +49,7 @@ func TestLightBroadcast(t *testing.T) {
 	pid := proto.Host.ID()
 	block := &types.Block{TxHash: []byte("test"), Txs: []*types.Transaction{minerTx, tx, tx1, tx2}, Height: 10}
 	peerMsgCh := proto.ps.Sub(psBroadcast)
-	proto.ltB.addLtBlock(proto.buildLtBlock(block), pid)
+	proto.ltB.addLtBlock(proto.buildLtBlock(block), pid, pid)
 	// 缺少tx2, 组装失败, 等待1s超时
 	msg := <-peerMsgCh
 	require.Equal(t, int32(blockReqMsgID), msg.(publishMsg).msg.(*types.PeerPubSubMsg).MsgID)
@@ -61,7 +61,7 @@ func TestLightBroadcast(t *testing.T) {
 	memTxList = []*types.Transaction{tx, gtx, nil}
 	blcCli := q.Client()
 	blcCli.Sub("blockchain")
-	proto.ltB.addLtBlock(proto.buildLtBlock(block), pid)
+	proto.ltB.addLtBlock(proto.buildLtBlock(block), pid, pid)
 	// 组装成功, 发送到blockchain模块, 模拟blockchain接收数据
 	msg1 := <-blcCli.Recv()
 	require.Equal(t, types.EventBroadcastAddBlock, int(msg1.Ty))
