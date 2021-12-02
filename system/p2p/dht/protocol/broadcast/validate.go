@@ -6,10 +6,12 @@ package broadcast
 
 import (
 	"bytes"
+	"container/list"
 	"context"
 	"encoding/hex"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/33cn/chain33/common/difficulty"
 	"github.com/33cn/chain33/types"
@@ -17,19 +19,92 @@ import (
 	ps "github.com/libp2p/go-libp2p-pubsub"
 )
 
+// validator 结合区块链业务逻辑, 实现pubsub数据验证接口
 type validator struct {
 	*pubSub
 	blkHeaderCache   map[int64]*types.Header
 	maxRecvBlkHeight int64
 	headerLock       sync.Mutex
-	deniedPeers      map[peer.ID]int64
+	deniedPeers      map[peer.ID]int64 //广播屏蔽节点
 	peerLock         sync.RWMutex
+	msgList          *list.List
+	msgLock          sync.Mutex
+	msgBuf           []*broadcastMsg
 }
 
 func newValidator(p *pubSub) *validator {
 	v := &validator{pubSub: p}
 	v.blkHeaderCache = make(map[int64]*types.Header)
+	v.msgBuf = make([]*broadcastMsg, 0, 1024)
+	go v.manageDeniedPeer()
 	return v
+}
+
+// manageDeniedPeer  广播屏蔽节点管理
+// 对每次接收的广播数据, 由blockchain或mempool校验后反馈结果,
+// 如果出错则对始发节点进行若干时长屏蔽
+// 单次错误影响不大, 总屏蔽时长根据错误次数不断累计, 主要限制错误广播频率
+// 屏蔽时间结束后可恢复为正常节点
+func (v *validator) manageDeniedPeer() {
+
+	waitMsgReplyTicker := time.NewTicker(time.Second)
+	recoverDeniedPeerTicker := time.NewTicker(time.Minute)
+	for {
+
+		select {
+		case <-v.Ctx.Done():
+			waitMsgReplyTicker.Stop()
+			recoverDeniedPeerTicker.Stop()
+			return
+
+		case <-waitMsgReplyTicker.C:
+			//将数据复制和等待反馈分离, 避免占用list导致广播模块处理逻辑阻塞
+			v.copyMsgList()
+			for _, bcMsg := range v.msgBuf {
+				// 等待blockchain或mempool的广播校验结果
+				msg, err := v.P2PEnv.QueueClient.Wait(bcMsg.msg)
+				// 理论上不会出错, 只做日志记录
+				if msg == nil || err != nil {
+					log.Error("manageDeniedPeer", "msg err", err)
+					continue
+				}
+				reply, ok := msg.Data.(*types.Reply)
+				if !ok {
+					continue
+				}
+				v.handleBroadcastReply(reply, bcMsg)
+
+			}
+
+		case <-recoverDeniedPeerTicker.C:
+			v.recoverDeniedPeers()
+		}
+	}
+}
+
+const (
+	//单位秒, 广播错误交易单次屏蔽时长
+	errTxDenyTime = 10
+	//单位秒, 广播错误区块单次屏蔽时长
+	errBlockDenyTime = 60
+)
+
+func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) {
+
+	if reply.IsOk {
+		return
+	}
+	errMsg := string(reply.GetMsg())
+	// 忽略系统性错误
+	if errMsg == types.ErrMemFull.Error() ||
+		errMsg == types.ErrNotSync.Error() {
+		return
+	}
+	denyTime := int64(errBlockDenyTime)
+	if msg.msg.Ty == types.EventTx {
+		denyTime = errTxDenyTime
+	}
+	v.addDeniedPeer(msg.publisher, denyTime)
 }
 
 func (v *validator) addDeniedPeer(id peer.ID, denyTime int64) {
@@ -42,7 +117,7 @@ func (v *validator) addDeniedPeer(id peer.ID, denyTime int64) {
 	v.deniedPeers[id] = endTime + denyTime
 }
 
-// check if denied
+// 检测是否为屏蔽节点
 func (v *validator) isDeniedPeer(id peer.ID) bool {
 	v.peerLock.RLock()
 	defer v.peerLock.RUnlock()
@@ -50,7 +125,7 @@ func (v *validator) isDeniedPeer(id peer.ID) bool {
 	return ok && endTime > types.Now().Unix()
 }
 
-//
+// 恢复为正常节点
 func (v *validator) recoverDeniedPeers() {
 	v.peerLock.Lock()
 	defer v.peerLock.Unlock()
@@ -60,6 +135,23 @@ func (v *validator) recoverDeniedPeers() {
 			delete(v.deniedPeers, id)
 		}
 	}
+}
+
+func (v *validator) addBroadcastMsg(msg *broadcastMsg) {
+	v.msgLock.Lock()
+	defer v.msgLock.Unlock()
+	v.msgList.PushBack(msg)
+}
+
+// 拷贝列表
+func (v *validator) copyMsgList() {
+	v.msgLock.Lock()
+	defer v.msgLock.Unlock()
+	v.msgBuf = v.msgBuf[:0]
+	for it := v.msgList.Front(); it != nil; it = it.Next() {
+		v.msgBuf = append(v.msgBuf, it.Value.(*broadcastMsg))
+	}
+	v.msgList.Init()
 }
 
 func (v *validator) addBlockHeader(header *types.Header) {
@@ -83,6 +175,7 @@ func (v *validator) validateBlock(ctx context.Context, id peer.ID, msg *ps.Messa
 	}
 
 	if v.isDeniedPeer(id) {
+		log.Debug("validateBlock", "denied peer", id.Pretty())
 		return ps.ValidationReject
 	}
 
@@ -149,6 +242,7 @@ func (v *validator) validateBlock(ctx context.Context, id peer.ID, msg *ps.Messa
 //
 func (v *validator) validatePeer(ctx context.Context, id peer.ID, msg *ps.Message) ps.ValidationResult {
 	if v.isDeniedPeer(id) {
+		log.Debug("validatePeer", "topic", *msg.Topic, "denied peer", id.Pretty())
 		return ps.ValidationReject
 	}
 	return ps.ValidationAccept

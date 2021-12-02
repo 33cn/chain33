@@ -25,6 +25,7 @@ type ltBroadcast struct {
 // 等待组装的轻区块信息
 type pendBlock struct {
 	fromPeer          peer.ID
+	publisher         peer.ID
 	receiveTimeStamp  int64
 	block             *types.Block
 	blockHash         []byte
@@ -99,13 +100,13 @@ func (l *ltBroadcast) buildPendBlock(pd *pendBlock) bool {
 
 	if buildSuccess {
 		blockHashHex := hex.EncodeToString(pd.blockHash)
-		_ = l.postBlockChain(blockHashHex, pd.fromPeer.String(), pd.block)
+		_ = l.postBlockChain(blockHashHex, pd.fromPeer.String(), pd.block, pd.publisher)
 		return true
 	}
 	return false
 }
 
-func (l *ltBroadcast) addLtBlock(ltBlock *types.LightBlock, receiveFrom peer.ID) {
+func (l *ltBroadcast) addLtBlock(ltBlock *types.LightBlock, receiveFrom, publisher peer.ID) {
 
 	//组装block
 	block := &types.Block{}
@@ -117,6 +118,7 @@ func (l *ltBroadcast) addLtBlock(ltBlock *types.LightBlock, receiveFrom peer.ID)
 
 	pd := &pendBlock{
 		fromPeer:          receiveFrom,
+		publisher:         publisher,
 		block:             block,
 		sTxHashes:         ltBlock.GetSTxHashes(),
 		receiveTimeStamp:  types.Now().UnixNano(),

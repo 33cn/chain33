@@ -17,7 +17,7 @@ func (mem *Mempool) reply() {
 		if m.Err() != nil {
 			m.Reply(mem.client.NewMessage("rpc", types.EventReply,
 				&types.Reply{IsOk: false, Msg: []byte(m.Err().Error())}))
-		} else { //TODO, rpc和p2p交易发送需要区分， rpc需要消息答复，p2p不需要
+		} else {
 			mem.sendTxToP2P(m.GetData().(types.TxGroup).Tx())
 			m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{IsOk: true, Msg: nil}))
 		}
