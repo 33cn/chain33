@@ -35,9 +35,16 @@ type validator struct {
 func newValidator(p *pubSub) *validator {
 	v := &validator{pubSub: p}
 	v.blkHeaderCache = make(map[int64]*types.Header)
+	v.deniedPeers = make(map[peer.ID]int64)
 	v.msgBuf = make([]*broadcastMsg, 0, 1024)
-	go v.manageDeniedPeer()
+	v.msgList = list.New()
 	return v
+}
+
+func initValidator(p *pubSub) *validator {
+	val := newValidator(p)
+	go val.manageDeniedPeer()
+	return val
 }
 
 // manageDeniedPeer  广播屏蔽节点管理
@@ -95,9 +102,10 @@ func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) 
 		return
 	}
 	errMsg := string(reply.GetMsg())
-	// 忽略系统性错误
+	// 忽略系统性错误, 区块存在错误可能是广播和下载不协调导致, 可能误判, 暂不做处理
 	if errMsg == types.ErrMemFull.Error() ||
-		errMsg == types.ErrNotSync.Error() {
+		errMsg == types.ErrNotSync.Error() ||
+		errMsg == types.ErrBlockExist.Error() {
 		return
 	}
 	denyTime := int64(errBlockDenyTime)

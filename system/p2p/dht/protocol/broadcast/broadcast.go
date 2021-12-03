@@ -24,7 +24,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-var log = log15.New("module", "p2p.init")
+var log = log15.New("module", "dht.broadcast")
 
 func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
