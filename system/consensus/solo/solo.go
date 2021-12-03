@@ -146,9 +146,6 @@ func (client *Client) CreateBlock() {
 		}
 		newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 		newblock.BlockTime = types.Now().Unix()
-		if lastBlock.BlockTime >= newblock.BlockTime {
-			newblock.BlockTime = lastBlock.BlockTime + 1
-		}
 
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		log.Info("SoloNewBlock", "height", newblock.Height, "txs", len(txs), "waitTxs", waitTxCost)
