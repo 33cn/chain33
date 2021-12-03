@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/types"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	client "github.com/33cn/chain33/queue"
 	clientMocks "github.com/33cn/chain33/queue/mocks"
