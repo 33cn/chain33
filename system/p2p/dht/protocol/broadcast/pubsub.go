@@ -60,7 +60,7 @@ func (p *pubSub) init() {
 	}
 
 	if !p.cfg.DisableValidation {
-		p.val = newValidator(p)
+		p.val = initValidator(p)
 		p.Pubsub.RegisterTopicValidator(psBlockTopic, p.val.validateBlock, pubsub.WithValidatorInline(true))
 		p.Pubsub.RegisterTopicValidator(psTxTopic, p.val.validatePeer, pubsub.WithValidatorInline(true))
 		p.Pubsub.RegisterTopicValidator(psLtBlockTopic, p.val.validatePeer, pubsub.WithValidatorInline(true))
