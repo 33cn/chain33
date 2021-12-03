@@ -883,7 +883,7 @@ func mockblockchain(t *testing.T, q queue.Queue) {
 				cmsg := client.NewMessage("rpc", types.EventPushTxReceipt, &senddata)
 				client.SendTimeout(cmsg, false, time.Second)
 
-				t.Log("sendata", senddata)
+				t.Log("sendata", cmsg)
 			default:
 				t.Log("unsupport msg type", msg.Ty)
 			}
