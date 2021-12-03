@@ -254,6 +254,7 @@ func (demo *demofApp) Upgrade() (kvset *types.LocalDBSet, err error) {
 
 func TestExecutorErrAPIEnv(t *testing.T) {
 	exec, q := initEnv(types.GetDefaultCfgstring())
+	types.AllowUserExec = append(types.AllowUserExec, []byte("demo"))
 	exec.disableLocal = true
 	cfg := exec.client.GetConfig()
 	cfg.SetMinFee(0)

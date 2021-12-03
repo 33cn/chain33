@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTask(t *testing.T) {
@@ -85,5 +85,5 @@ func TestTaskTimeOut(t *testing.T) {
 		task.Done(int64(perm[i]) + 1)
 	}
 	h := <-timeoutHeight
-	assert.Equal(t, h, int64(11))
+	require.Equal(t, h, int64(11))
 }

@@ -11,25 +11,24 @@ import (
 	"testing"
 	"time"
 
+	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
+	qmocks "github.com/33cn/chain33/queue/mocks"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/mock"
-
-	dbm "github.com/33cn/chain33/common/db"
-	qmocks "github.com/33cn/chain33/queue/mocks"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCheckGenChunkNum(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
 	chain := InitEnv()
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	// mock client
 	client := &qmocks.Client{}
@@ -53,20 +52,20 @@ func TestCheckGenChunkNum(t *testing.T) {
 		// check
 		serChunkNum := chain.getMaxSerialChunkNum()
 		curChunkNum := chain.GetCurChunkNum()
-		assert.Equal(t, serChunkNum, curChunkNum)
+		require.Equal(t, serChunkNum, curChunkNum)
 	}
 }
 
 func TestDeleteBlockBody(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
 	chain := InitEnv()
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	start := int64(0)
 	end := int64(15)
@@ -74,7 +73,7 @@ func TestDeleteBlockBody(t *testing.T) {
 	var hashs [][]byte
 	for i := start; i <= end; i++ {
 		head, err := chain.blockStore.loadHeaderByIndex(i)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		hashs = append(hashs, head.Hash)
 	}
 	blockStore.Set(calcChunkNumToHash(1), types.Encode(&types.ChunkInfo{Start: 0, End: 10}))
@@ -82,31 +81,31 @@ func TestDeleteBlockBody(t *testing.T) {
 	chain.blockStore.mustSaveKvset(&types.LocalDBSet{KV: kvs})
 	for i := start; i <= 10; i++ {
 		_, err = getBodyByIndex(blockStore.db, "", calcHeightHashKey(i, hashs[int(i)]), nil)
-		assert.Error(t, err, types.ErrNotFound)
+		require.Error(t, err, types.ErrNotFound)
 	}
 	for i := 11; i <= 15; i++ {
 		_, err = getBodyByIndex(blockStore.db, "", calcHeightHashKey(int64(i), hashs[i]), nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 }
 
 func TestMaxSerialChunkNum(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
 	chain := InitEnv()
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	// test noerror
 	for i := 0; i < 100; i++ {
 		err = chain.updateMaxSerialChunkNum(int64(i))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		chunkNum := chain.getMaxSerialChunkNum()
-		assert.Equal(t, int64(i), chunkNum)
+		require.Equal(t, int64(i), chunkNum)
 	}
 }
 
@@ -124,45 +123,45 @@ func TestNotifyStoreChunkToP2P(t *testing.T) {
 	rspMsg := &queue.Message{Data: &types.Reply{IsOk: true}}
 	client.On("Wait", mock.Anything).Return(rspMsg, nil)
 	err := chain.notifyStoreChunkToP2P(data)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 }
 
 func TestGenChunkBlocks(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
 	chain := InitEnv()
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	start := int64(0)
 	end := int64(10)
 	saveBlockToDB(chain, start, end)
 	chunkHash, bodys, err := chain.genChunkBlocks(start, end)
-	assert.NoError(t, err)
-	assert.NotNil(t, chunkHash)
-	assert.Equal(t, int(end-start+1), len(bodys.Items))
+	require.NoError(t, err)
+	require.NotNil(t, chunkHash)
+	require.Equal(t, int(end-start+1), len(bodys.Items))
 	// for error
 	end = int64(11)
 	chunkHash, bodys, err = chain.genChunkBlocks(start, end)
-	assert.Nil(t, chunkHash)
-	assert.Nil(t, bodys)
-	assert.Error(t, err, types.ErrHashNotExist)
+	require.Nil(t, chunkHash)
+	require.Nil(t, bodys)
+	require.Error(t, err, types.ErrHashNotExist)
 }
 
 func TestGetChunkBlockBody(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
 	chain := InitEnv()
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	req := &types.ChunkInfoMsg{
 		ChunkHash: nil,
@@ -170,20 +169,20 @@ func TestGetChunkBlockBody(t *testing.T) {
 		End:       0,
 	}
 	body, err := chain.GetChunkBlockBody(req)
-	assert.Error(t, err, types.ErrInvalidParam)
-	assert.Nil(t, body)
+	require.Error(t, err, types.ErrInvalidParam)
+	require.Nil(t, body)
 }
 
 func TestGetChunkRecord(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
 	chain := InitEnv()
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	chunk := &types.ChunkInfo{
 		ChunkHash: []byte("11111111111"),
@@ -199,29 +198,29 @@ func TestGetChunkRecord(t *testing.T) {
 		Pid:      nil,
 	}
 	record, err := chain.GetChunkRecord(req)
-	assert.Error(t, err, types.ErrInvalidParam)
-	assert.Nil(t, record)
+	require.Error(t, err, types.ErrInvalidParam)
+	require.Nil(t, record)
 	req.Start = 0
 	req.End = 0
 	record, err = chain.GetChunkRecord(req)
-	assert.NoError(t, err)
-	assert.Equal(t, len(record.Infos), 1)
+	require.NoError(t, err)
+	require.Equal(t, len(record.Infos), 1)
 	req.Start = 0
 	req.End = 4
 	record, err = chain.GetChunkRecord(req)
-	assert.NoError(t, err)
-	assert.Equal(t, len(record.Infos), 5)
+	require.NoError(t, err)
+	require.Equal(t, len(record.Infos), 5)
 	for i, info := range record.Infos {
-		assert.Equal(t, int64(i), info.ChunkNum)
+		require.Equal(t, int64(i), info.ChunkNum)
 	}
 	req.End = 5
 	record, err = chain.GetChunkRecord(req)
-	assert.Error(t, err, types.ErrNotFound)
+	require.Error(t, err, types.ErrNotFound)
 }
 
 func TestCaclChunkInfo(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
@@ -229,38 +228,38 @@ func TestCaclChunkInfo(t *testing.T) {
 	cfg := chain.client.GetConfig()
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 
 	chainCfg := cfg.GetModuleConfig().BlockChain
 	chainCfg.ChunkblockNum = 1
 	chunkNum, start, end := chain.CalcChunkInfo(0)
-	assert.Equal(t, chunkNum, int64(0))
-	assert.Equal(t, start, int64(0))
-	assert.Equal(t, end, int64(0))
+	require.Equal(t, chunkNum, int64(0))
+	require.Equal(t, start, int64(0))
+	require.Equal(t, end, int64(0))
 
 	chunkNum, start, end = chain.CalcChunkInfo(1)
-	assert.Equal(t, chunkNum, int64(1))
-	assert.Equal(t, start, int64(1))
-	assert.Equal(t, end, int64(1))
+	require.Equal(t, chunkNum, int64(1))
+	require.Equal(t, start, int64(1))
+	require.Equal(t, end, int64(1))
 
 	chainCfg.ChunkblockNum = 2
 	chunkNum, start, end = chain.CalcChunkInfo(0)
-	assert.Equal(t, chunkNum, int64(0))
-	assert.Equal(t, start, int64(0))
-	assert.Equal(t, end, int64(1))
+	require.Equal(t, chunkNum, int64(0))
+	require.Equal(t, start, int64(0))
+	require.Equal(t, end, int64(1))
 	chunkNum, start, end = chain.CalcChunkInfo(2)
-	assert.Equal(t, chunkNum, int64(1))
-	assert.Equal(t, start, int64(2))
-	assert.Equal(t, end, int64(3))
+	require.Equal(t, chunkNum, int64(1))
+	require.Equal(t, start, int64(2))
+	require.Equal(t, end, int64(3))
 	chunkNum, start, end = chain.CalcChunkInfo(3)
-	assert.Equal(t, chunkNum, int64(1))
-	assert.Equal(t, start, int64(2))
-	assert.Equal(t, end, int64(3))
+	require.Equal(t, chunkNum, int64(1))
+	require.Equal(t, start, int64(2))
+	require.Equal(t, end, int64(3))
 	chunkNum, start, end = chain.CalcChunkInfo(4)
-	assert.Equal(t, chunkNum, int64(2))
-	assert.Equal(t, start, int64(4))
-	assert.Equal(t, end, int64(5))
+	require.Equal(t, chunkNum, int64(2))
+	require.Equal(t, start, int64(4))
+	require.Equal(t, end, int64(5))
 }
 
 func TestGenChunkRecord(t *testing.T) {
@@ -277,28 +276,28 @@ func TestGenChunkRecord(t *testing.T) {
 		},
 	}
 	kvs := genChunkRecord(chunk, bodys)
-	assert.Equal(t, 2, len(kvs))
-	//assert.Equal(t, kvs[0].Key, calcBlockHashToChunkHash([]byte("123")))
-	//assert.Equal(t, kvs[0].Value, chunk.ChunkHash)
-	//assert.Equal(t, kvs[1].Key, calcBlockHashToChunkHash([]byte("456")))
-	//assert.Equal(t, kvs[1].Value, chunk.ChunkHash)
+	require.Equal(t, 2, len(kvs))
+	//require.Equal(t, kvs[0].Key, calcBlockHashToChunkHash([]byte("123")))
+	//require.Equal(t, kvs[0].Value, chunk.ChunkHash)
+	//require.Equal(t, kvs[1].Key, calcBlockHashToChunkHash([]byte("456")))
+	//require.Equal(t, kvs[1].Value, chunk.ChunkHash)
 
-	assert.Equal(t, kvs[0].Key, calcChunkNumToHash(1))
-	assert.Equal(t, kvs[0].Value, types.Encode(chunk))
-	assert.Equal(t, kvs[1].Key, calcChunkHashToNum(chunk.ChunkHash))
-	assert.Equal(t, kvs[1].Value, types.Encode(chunk))
+	require.Equal(t, kvs[0].Key, calcChunkNumToHash(1))
+	require.Equal(t, kvs[0].Value, types.Encode(chunk))
+	require.Equal(t, kvs[1].Key, calcChunkHashToNum(chunk.ChunkHash))
+	require.Equal(t, kvs[1].Value, types.Encode(chunk))
 }
 
 func TestFetchChunkBlock(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
 	chain := InitEnv()
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	// mock client
 	client := &qmocks.Client{}
@@ -331,14 +330,14 @@ func TestFetchChunkBlock(t *testing.T) {
 
 func TestFetchChunkRecords(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
 	chain := InitEnv()
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 	// mock client
 	client := &qmocks.Client{}

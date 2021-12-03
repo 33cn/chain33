@@ -20,7 +20,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -160,13 +159,13 @@ func TestGetParaTxByTitle(t *testing.T) {
 	req.Start = 3
 	req.End = 2
 	_, err = blockchain.GetParaTxByTitle(&req)
-	assert.Equal(t, err, types.ErrEndLessThanStartHeight)
+	require.Equal(t, err, types.ErrEndLessThanStartHeight)
 
 	req.Start = 1
 	req.End = 1
 	req.Title = "user.write"
 	_, err = blockchain.GetParaTxByTitle(&req)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 
 	//title 对应的交易不存在
 	req.Start = 1
@@ -174,13 +173,13 @@ func TestGetParaTxByTitle(t *testing.T) {
 	req.Title = "user.p.write"
 	paratxs, err := blockchain.GetParaTxByTitle(&req)
 	require.NoError(t, err)
-	assert.NotNil(t, paratxs)
+	require.NotNil(t, paratxs)
 	for _, paratx := range paratxs.Items {
-		assert.Equal(t, types.AddBlock, paratx.Type)
-		assert.Nil(t, paratx.TxDetails)
-		assert.Nil(t, paratx.ChildHash)
-		assert.Nil(t, paratx.Proofs)
-		assert.Equal(t, uint32(0), paratx.Index)
+		require.Equal(t, types.AddBlock, paratx.Type)
+		require.Nil(t, paratx.TxDetails)
+		require.Nil(t, paratx.ChildHash)
+		require.Nil(t, paratx.Proofs)
+		require.Equal(t, uint32(0), paratx.Index)
 	}
 	chainlog.Debug("TestGetParaTxByTitle end --------------------")
 }
@@ -191,29 +190,29 @@ func testgetParaTxByTitle(t *testing.T, blockchain *blockchain.BlockChain, req *
 		require.NoError(t, err)
 	}
 	if flag == 1 {
-		assert.Equal(t, err, types.ErrInvalidParam)
+		require.Equal(t, err, types.ErrInvalidParam)
 		return
 	}
 	itemsLen := len(ParaTxDetails.Items)
-	assert.Equal(t, count, int64(itemsLen))
+	require.Equal(t, count, int64(itemsLen))
 
 	for i, txDetail := range ParaTxDetails.Items {
 		if txDetail != nil {
-			assert.Equal(t, txDetail.Header.Height, req.Start+int64(i))
+			require.Equal(t, txDetail.Header.Height, req.Start+int64(i))
 			//chainlog.Debug("testgetParaTxByTitle:", "Height", txDetail.Header.Height)
 			for _, tx := range txDetail.TxDetails {
 				if tx != nil {
 					execer := string(tx.Tx.Execer)
 					if !strings.HasPrefix(execer, "user.p.hyb.") && tx.Tx.GetGroupCount() != 0 {
 						//chainlog.Debug("testgetParaTxByTitle:maintxingroup", "tx", tx)
-						assert.Equal(t, tx.Receipt.Ty, int32(types.ExecOk))
+						require.Equal(t, tx.Receipt.Ty, int32(types.ExecOk))
 					} else {
-						assert.Equal(t, tx.Receipt.Ty, int32(types.ExecPack))
+						require.Equal(t, tx.Receipt.Ty, int32(types.ExecPack))
 					}
 					if tx.Proofs != nil {
 						roothash := merkle.GetMerkleRootFromBranch(tx.Proofs, tx.Tx.Hash(), tx.Index)
 						ok := bytes.Equal(roothash, txDetail.Header.GetHash())
-						assert.Equal(t, ok, false)
+						require.Equal(t, ok, false)
 					}
 				}
 			}
@@ -228,10 +227,10 @@ func testGetParaTxByHeight(cfg *types.Chain33Config, t *testing.T, blockchain *b
 	require.NoError(t, err)
 
 	_, err = blockchain.LoadParaTxByHeight(-1, "", 0, 1)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	_, err = blockchain.LoadParaTxByHeight(height, "user.write", 0, 1)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	replyparaTxs, err := blockchain.LoadParaTxByHeight(height, "", 0, 1)
 	if height == 0 {
@@ -241,18 +240,18 @@ func testGetParaTxByHeight(cfg *types.Chain33Config, t *testing.T, blockchain *b
 	require.NoError(t, err)
 	var mThreePhashes [][]byte
 	for _, paratx := range replyparaTxs.Items {
-		assert.Equal(t, paratx.Height, height)
-		assert.Equal(t, paratx.Hash, block.Block.Hash(cfg))
+		require.Equal(t, paratx.Height, height)
+		require.Equal(t, paratx.Hash, block.Block.Hash(cfg))
 		mThreePhashes = append(mThreePhashes, paratx.ChildHash)
 	}
 	//子roothash的proof证明
 	for _, childchain := range replyparaTxs.Items {
 		branch := merkle.GetMerkleBranch(mThreePhashes, childchain.GetChildHashIndex())
 		root := merkle.GetMerkleRootFromBranch(branch, childchain.ChildHash, childchain.GetChildHashIndex())
-		assert.Equal(t, block.Block.TxHash, root)
+		require.Equal(t, block.Block.TxHash, root)
 	}
 	rootHash := merkle.GetMerkleRoot(mThreePhashes)
-	assert.Equal(t, block.Block.TxHash, rootHash)
+	require.Equal(t, block.Block.TxHash, rootHash)
 }
 func TestMultiLayerMerkleTree(t *testing.T) {
 	mock33 := testnode.New("", nil)
@@ -329,21 +328,21 @@ func testParaTxByHeight(cfg *types.Chain33Config, t *testing.T, blockchain *bloc
 		//证明txproof的正确性,
 		if txProof.GetProofs() != nil { //ForkRootHash 之前的proof证明
 			brroothash := merkle.GetMerkleRootFromBranch(txProof.GetProofs(), txhash, uint32(txindex))
-			assert.Equal(t, merkleroothash, brroothash)
+			require.Equal(t, merkleroothash, brroothash)
 		} else if txProof.GetTxProofs() != nil { //ForkRootHash 之后的proof证明
 			var childhash []byte
 			for i, txproof := range txProof.GetTxProofs() {
 				if i == 0 {
 					childhash = merkle.GetMerkleRootFromBranch(txproof.GetProofs(), txhash, txproof.GetIndex())
 					if txproof.GetRootHash() != nil {
-						assert.Equal(t, txproof.GetRootHash(), childhash)
+						require.Equal(t, txproof.GetRootHash(), childhash)
 					} else {
-						assert.Equal(t, txproof.GetIndex(), uint32(txindex))
-						assert.Equal(t, merkleroothash, childhash)
+						require.Equal(t, txproof.GetIndex(), uint32(txindex))
+						require.Equal(t, merkleroothash, childhash)
 					}
 				} else {
 					brroothash := merkle.GetMerkleRootFromBranch(txproof.GetProofs(), childhash, txproof.GetIndex())
-					assert.Equal(t, merkleroothash, brroothash)
+					require.Equal(t, merkleroothash, brroothash)
 				}
 			}
 		}

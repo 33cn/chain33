@@ -5,32 +5,22 @@
 package blockchain_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
-
-	"fmt"
-
-	"strings"
-	"sync"
 
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var once sync.Once
-
 func TestRollbackblock(t *testing.T) {
-	once.Do(func() {
-		types.RegFork("store-kvmvccmavl", func(cfg *types.Chain33Config) {
-			cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
-		})
-	})
 	str := types.GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
-	cfg := types.NewChain33Config(new)
+	cfg := types.NewChain33Config(types.MergeCfg(types.ReadFile("../cmd/chain33/chain33.fork.toml"), new))
+	cfg.SetDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
 	mfg := cfg.GetModuleConfig()
 	mfg.BlockChain.RollbackBlock = 0
 	mock33 := testnode.NewWithConfig(cfg, nil)
@@ -38,7 +28,7 @@ func TestRollbackblock(t *testing.T) {
 	chain.Rollbackblock()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), kvCount)
+	require.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 
 	//发送交易
@@ -48,15 +38,10 @@ func TestRollbackblock(t *testing.T) {
 }
 
 func TestNeedRollback(t *testing.T) {
-	once.Do(func() {
-		types.RegFork("store-kvmvccmavl", func(cfg *types.Chain33Config) {
-			cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
-		})
-	})
-
 	str := types.GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(new)
+	cfg.SetDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
 	mock33 := testnode.NewWithConfig(cfg, nil)
 	chain := mock33.GetBlockChain()
 
@@ -100,7 +85,7 @@ func TestRollback(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), kvCount)
+	require.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 
 	//发送交易
@@ -119,7 +104,7 @@ func TestRollbackSave(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, kvCount, len(kvs))
+	require.Equal(t, kvCount, len(kvs))
 	defer mock33.Close()
 
 	//发送交易
@@ -133,15 +118,15 @@ func TestRollbackSave(t *testing.T) {
 	for i := height; i > 2; i-- {
 		key := []byte(fmt.Sprintf("TB:%012d", i))
 		_, err := chain.GetDB().Get(key)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	}
 	value, err := chain.GetDB().Get([]byte("LTB:"))
-	assert.NoError(t, err)
-	assert.NotNil(t, value)
+	require.NoError(t, err)
+	require.NotNil(t, value)
 	h := &types.Int64{}
 	err = types.Decode(value, h)
-	assert.NoError(t, err)
-	assert.Equal(t, height, h.Data)
+	require.NoError(t, err)
+	require.Equal(t, height, h.Data)
 }
 
 func TestRollbackPara(t *testing.T) {
@@ -165,29 +150,29 @@ func testMockSendTx(t *testing.T, mock33 *testnode.Chain33Mock) {
 	txs := util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(1)
 	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(2)
 	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 1)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(3)
 	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 2)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(4)
 	time.Sleep(time.Second)

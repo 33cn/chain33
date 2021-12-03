@@ -13,7 +13,6 @@ import (
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util/testnode"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,23 +67,23 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	block, err := blockchain.GetStore().LoadBlock(curheight, nil)
 	require.NoError(t, err)
 
-	assert.Equal(t, header.GetHash(), block.Block.Hash(cfg))
-	assert.Equal(t, header.GetHash(), block.Block.MainHash)
-	assert.Equal(t, curheight, block.Block.MainHeight)
+	require.Equal(t, header.GetHash(), block.Block.Hash(cfg))
+	require.Equal(t, header.GetHash(), block.Block.MainHash)
+	require.Equal(t, curheight, block.Block.MainHeight)
 
 	//通过当前高度+hash获取block
 	block1, err := blockchain.GetStore().LoadBlockByHash(header.GetHash())
 	require.NoError(t, err)
-	assert.Equal(t, header.GetHash(), block1.Block.Hash(cfg))
-	assert.Equal(t, header.GetHash(), block1.Block.MainHash)
-	assert.Equal(t, curheight, block1.Block.MainHeight)
+	require.Equal(t, header.GetHash(), block1.Block.Hash(cfg))
+	require.Equal(t, header.GetHash(), block1.Block.MainHash)
+	require.Equal(t, curheight, block1.Block.MainHeight)
 
 	//获取当前高度上的所有平行链title
 	replyparaTxs, err := blockchain.LoadParaTxByHeight(curheight, "", 0, 0)
 	require.NoError(t, err)
 	for _, paratx := range replyparaTxs.Items {
-		assert.Equal(t, paratx.Height, curheight)
-		assert.Equal(t, paratx.Hash, header.GetHash())
+		require.Equal(t, paratx.Height, curheight)
+		require.Equal(t, paratx.Hash, header.GetHash())
 		if paratx.Title != "user.p.hyb." && paratx.Title != "user.p.fzm." {
 			t.Error("testBlockTable:Title:fail!")
 		}
@@ -99,7 +98,7 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	//获取平行链title="user.p.hyb."对应的区块高度
 	paraTxs, err := blockchain.LoadParaTxByTitle(&req)
 	require.NoError(t, err)
-	assert.Equal(t, paraTxs.Title, "user.p.hyb.")
+	require.Equal(t, paraTxs.Title, "user.p.hyb.")
 
 	//获取平行链title对应的区块高度,向前翻
 	startheight := curheight - 2
@@ -109,13 +108,13 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	count := 0
 	var req1 types.ReqParaTxByHeight
 	req1.Title = req.Title
-	assert.Equal(t, paraTxs.Title, "user.p.hyb.")
+	require.Equal(t, paraTxs.Title, "user.p.hyb.")
 
 	for _, paratx := range paraTxs.Items {
 		count++
 		req1.Items = append(req1.Items, paratx.Height)
 	}
-	assert.Equal(t, int64(count), startheight-1)
+	require.Equal(t, int64(count), startheight-1)
 
 	t.Log(paraTxs)
 	t.Log(req1.String())
@@ -123,8 +122,8 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	paraChainTxs, err := blockchain.GetParaTxByHeight(&req1)
 	require.NoError(t, err)
 	for index, pChainTx := range paraChainTxs.Items {
-		assert.Equal(t, pChainTx.Header.Height, paraTxs.Items[index].Height)
-		assert.Equal(t, pChainTx.Header.Hash, paraTxs.Items[index].Hash)
+		require.Equal(t, pChainTx.Header.Height, paraTxs.Items[index].Height)
+		require.Equal(t, pChainTx.Header.Hash, paraTxs.Items[index].Hash)
 		blockheight := pChainTx.Header.Height
 		//子roothash的proof证明验证
 		var hashes [][]byte
@@ -137,17 +136,17 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 		}
 		childHash := merkle.GetMerkleRoot(hashes)
 		root := merkle.GetMerkleRootFromBranch(pChainTx.GetProofs(), childHash, pChainTx.Index)
-		assert.Equal(t, childHash, root)
-		assert.Equal(t, childHash, pChainTx.ChildHash)
+		require.Equal(t, childHash, root)
+		require.Equal(t, childHash, pChainTx.ChildHash)
 		count--
 	}
-	assert.Equal(t, count, 0)
+	require.Equal(t, count, 0)
 
 	//获取平行链title对应的区块高度，向后翻
 	req.Direction = 1
 	paraTxs, err = blockchain.LoadParaTxByTitle(&req)
 	require.NoError(t, err)
-	assert.Equal(t, paraTxs.Title, "user.p.hyb.")
+	require.Equal(t, paraTxs.Title, "user.p.hyb.")
 	count = len(paraTxs.Items)
 
 	if count < 2 {
@@ -155,48 +154,48 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	}
 	//异常测试
 	_, err = blockchain.LoadParaTxByTitle(nil)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	req.Count = 100000
 	_, err = blockchain.LoadParaTxByTitle(nil)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	req.Count = 0
 	req.Direction = 3
 	_, err = blockchain.LoadParaTxByTitle(nil)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	req.Count = 0
 	req.Direction = 0
 	req.Title = ""
 	_, err = blockchain.LoadParaTxByTitle(nil)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	req.Count = 0
 	req.Direction = 0
 	req.Title = "user.write"
 	_, err = blockchain.LoadParaTxByTitle(nil)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	//GetParaTxByHeight入参检测test
 	_, err = blockchain.GetParaTxByHeight(nil)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	var reqPara types.ReqParaTxByHeight
 	reqPara.Title = "user.write"
 	reqPara.Items = append(reqPara.Items, 1)
 	_, err = blockchain.GetParaTxByHeight(&reqPara)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	reqPara.Title = "user.p.hyb."
 	reqPara.Items = append(reqPara.Items, 2)
 	reqPara.Items[0] = -1
 	_, err = blockchain.GetParaTxByHeight(&reqPara)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 
 	for i := 0; i < 10002; i++ {
 		reqPara.Items = append(reqPara.Items, int64(i))
 	}
 	_, err = blockchain.GetParaTxByHeight(&reqPara)
-	assert.Equal(t, types.ErrInvalidParam, err)
+	require.Equal(t, types.ErrInvalidParam, err)
 }

@@ -7,14 +7,14 @@ package blockchain
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCalcHeightToBlockHeaderKey(t *testing.T) {
 	key := calcHeightToBlockHeaderKey(1)
-	assert.Equal(t, key, []byte("HH:000000000001"))
+	require.Equal(t, key, []byte("HH:000000000001"))
 	key = calcHeightToBlockHeaderKey(0)
-	assert.Equal(t, key, []byte("HH:000000000000"))
+	require.Equal(t, key, []byte("HH:000000000000"))
 	key = calcHeightToBlockHeaderKey(10)
-	assert.Equal(t, key, []byte("HH:000000000010"))
+	require.Equal(t, key, []byte("HH:000000000010"))
 }

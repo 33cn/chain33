@@ -14,16 +14,16 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNeedReExec(t *testing.T) {
 	defer func() {
 		r := recover()
 		if r == "not support upgrade store to greater than 2.0.0" {
-			assert.Equal(t, r, "not support upgrade store to greater than 2.0.0")
+			require.Equal(t, r, "not support upgrade store to greater than 2.0.0")
 		} else if r == "not support degrade the program" {
-			assert.Equal(t, r, "not support degrade the program")
+			require.Equal(t, r, "not support degrade the program")
 		}
 	}()
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
@@ -57,7 +57,7 @@ func TestNeedReExec(t *testing.T) {
 	for i, c := range testcase {
 		version.SetStoreDBVersion(vsCase[i])
 		res := chain.NeedReExec(c)
-		assert.Equal(t, res, result[i])
+		require.Equal(t, res, result[i])
 	}
 }
 
@@ -85,43 +85,43 @@ func TestUpgradeStore(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), kvCount)
+	require.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 	txs := util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(1)
 	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(2)
 	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 1)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(3)
 	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 2)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(4)
 	time.Sleep(time.Second)
 	addr := address.PubKeyToAddress(mock33.GetGenesisKey().PubKey().Bytes()).String()
 	count1, err := GetAddrTxsCount(db, addr)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	version.SetStoreDBVersion("2.0.0")
 	chain.UpgradeStore()
 	count2, err := GetAddrTxsCount(db, addr)
-	assert.NoError(t, err)
-	assert.Equal(t, count1, count2)
+	require.NoError(t, err)
+	require.Equal(t, count1, count2)
 }

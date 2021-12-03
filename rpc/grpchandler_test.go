@@ -694,13 +694,10 @@ func TestGrpc_QueryRandNum(t *testing.T) {
 }
 
 func TestGrpc_GetFork(t *testing.T) {
-	types.RegFork("para", func(cfg *types.Chain33Config) {
-		cfg.SetDappFork("para", "fork100", 100)
-	})
-
 	str := types.GetDefaultCfgstring()
 	newstr := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(newstr)
+	cfg.SetDappFork("para", "fork100", 100)
 	Init(cfg)
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg)

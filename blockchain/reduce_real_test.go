@@ -10,7 +10,7 @@ import (
 	"github.com/33cn/chain33/blockchain"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTryReduceLocalDB(t *testing.T) {
@@ -20,7 +20,7 @@ func TestTryReduceLocalDB(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), kvCount)
+	require.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 
 	blockchain.ReduceHeight = 0
@@ -34,12 +34,12 @@ func TestTryReduceLocalDB(t *testing.T) {
 		txs := util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), int64(count))
 		for j := 0; j < len(txs); j++ {
 			reply, err := mock33.GetAPI().SendTx(txs[j])
-			assert.Nil(t, err)
-			assert.Equal(t, reply.IsOk, true)
+			require.Nil(t, err)
+			require.Equal(t, reply.IsOk, true)
 			waitH := i*count + (j + 1)
 			mock33.WaitHeight(int64(waitH))
 		}
 		flagHeight = chain.TryReduceLocalDB(flagHeight, int64(count))
-		assert.Equal(t, flagHeight, int64((i+1)*count+1))
+		require.Equal(t, flagHeight, int64((i+1)*count+1))
 	}
 }

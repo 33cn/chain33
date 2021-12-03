@@ -12,7 +12,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,19 +51,19 @@ func TestCheckDupTxHashList01(t *testing.T) {
 
 	//重复交易
 	duptxhashlist, err := checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), len(txs))
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), len(txs))
 	//非重复交易
 	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 50)
 	duptxhashlist, err = checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), 0)
 
 	txlist := util.GenTxsTxHeight(cfg, mock33.GetGenesisKey(), 50, 10)
 	txs = append(txs, txlist...)
 	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), 0)
 	chainlog.Debug("TestCheckDupTxHashList01 end --------------------")
 }
 
@@ -80,20 +79,20 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	txs := addTestBlock(t, mock33, 10, true)
 	//重复交易
 	duptxhashlist, err := checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), len(txs))
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), len(txs))
 
 	//非重复交易
 	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 50)
 	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), 0)
 
 	txList := util.GenTxsTxHeight(cfg, mock33.GetGenesisKey(), 50, 10)
 	txs = append(txs, txList...)
 	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), 0)
 
 	chainlog.Debug("TestCheckDupTxHashList02 end --------------------")
 }
@@ -111,19 +110,19 @@ func TestCheckDupTxHashList03(t *testing.T) {
 
 	//重复交易,不带TxHeight，cache没有会检查db
 	duptxhashlist, err := checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), len(txs))
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), len(txs))
 
 	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 50)
 	duptxhashlist, err = checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), 0)
 
 	txlist := util.GenTxsTxHeight(cfg, mock33.GetGenesisKey(), 50, 10)
 	txs = append(txs, txlist...)
 	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), 0)
 	chainlog.Debug("TestCheckDupTxHashList03 end --------------------")
 }
 
@@ -140,20 +139,20 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	txs := addTestBlock(t, mock33, 130, true)
 	time.Sleep(time.Second)
 	duptxhashlist, err := checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), len(txs))
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), len(txs))
 
 	//非重复交易
 	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 50)
 	duptxhashlist, err = checkDupTx(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), 0)
 
 	txlist := util.GenTxsTxHeight(cfg, mock33.GetGenesisKey(), 50, 10)
 	txs = append(txs, txlist...)
 	duptxhashlist, err = checkDupTxHeight(txs, blockchain)
-	assert.Nil(t, err)
-	assert.Equal(t, len(duptxhashlist.Hashes), 0)
+	require.Nil(t, err)
+	require.Equal(t, len(duptxhashlist.Hashes), 0)
 
 	chainlog.Debug("TestCheckDupTxHashList04 end --------------------")
 }
