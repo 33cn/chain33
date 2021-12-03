@@ -186,7 +186,7 @@ func Test_addSubscriber_InvalidURL(t *testing.T) {
 	subscribe.URL = ""
 	err := chain.push.addSubscriber(subscribe)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(),types.ErrInvalidParam.Error())
+	assert.Contains(t, err.Error(), types.ErrInvalidParam.Error())
 }
 
 func Test_addSubscriber_Encode(t *testing.T) {
@@ -206,7 +206,7 @@ func Test_addSubscriber_InvalidType(t *testing.T) {
 	subscribe.Name = "push-test"
 	subscribe.Type = int32(4)
 	err := chain.push.addSubscriber(subscribe)
-	assert.Contains(t, err.Error(),types.ErrInvalidParam.Error())
+	assert.Contains(t, err.Error(), types.ErrInvalidParam.Error())
 }
 
 func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
