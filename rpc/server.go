@@ -546,5 +546,5 @@ func checkFilterPrintFuncBlacklist(funcName string) bool {
 type PushType int32
 
 func (pushType PushType) string() string {
-	return []string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "NotSupported"}[pushType]
+	return []string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "PushEVMEvent", "NotSupported"}[pushType]
 }
