@@ -17,6 +17,36 @@ type Chain33Client struct {
 	mock.Mock
 }
 
+// AddPushSubscribe provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) AddPushSubscribe(ctx context.Context, in *types.PushSubscribeReq, opts ...grpc.CallOption) (*types.ReplySubscribePush, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.ReplySubscribePush
+	if rf, ok := ret.Get(0).(func(context.Context, *types.PushSubscribeReq, ...grpc.CallOption) *types.ReplySubscribePush); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplySubscribePush)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.PushSubscribeReq, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CloseQueue provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) CloseQueue(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.Reply, error) {
 	_va := make([]interface{}, len(opts))
@@ -39,6 +69,36 @@ func (_m *Chain33Client) CloseQueue(ctx context.Context, in *types.ReqNil, opts 
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ConvertExectoAddr provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) ConvertExectoAddr(ctx context.Context, in *types.ReqString, opts ...grpc.CallOption) (*types.ReplyString, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.ReplyString
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqString, ...grpc.CallOption) *types.ReplyString); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyString)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqString, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -587,6 +647,36 @@ func (_m *Chain33Client) GetBlockOverview(ctx context.Context, in *types.ReqHash
 	return r0, r1
 }
 
+// GetBlockSequences provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetBlockSequences(ctx context.Context, in *types.ReqBlocks, opts ...grpc.CallOption) (*types.BlockSequences, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.BlockSequences
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqBlocks, ...grpc.CallOption) *types.BlockSequences); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.BlockSequences)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqBlocks, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetBlocks provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetBlocks(ctx context.Context, in *types.ReqBlocks, opts ...grpc.CallOption) (*types.Reply, error) {
 	_va := make([]interface{}, len(opts))
@@ -634,6 +724,36 @@ func (_m *Chain33Client) GetChainConfig(ctx context.Context, in *types.ReqNil, o
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.ChainConfigInfo)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetCoinSymbol provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetCoinSymbol(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.ReplyString, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.ReplyString
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqNil, ...grpc.CallOption) *types.ReplyString); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyString)
 		}
 	}
 
@@ -1037,6 +1157,36 @@ func (_m *Chain33Client) GetProperFee(ctx context.Context, in *types.ReqProperFe
 	return r0, r1
 }
 
+// GetPushSeqLastNum provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) GetPushSeqLastNum(ctx context.Context, in *types.ReqString, opts ...grpc.CallOption) (*types.Int64, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.Int64
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqString, ...grpc.CallOption) *types.Int64); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Int64)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqString, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetSeed provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) GetSeed(ctx context.Context, in *types.GetSeedByPw, opts ...grpc.CallOption) (*types.ReplySeed, error) {
 	_va := make([]interface{}, len(opts))
@@ -1367,6 +1517,36 @@ func (_m *Chain33Client) IsSync(ctx context.Context, in *types.ReqNil, opts ...g
 	return r0, r1
 }
 
+// ListPushes provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) ListPushes(ctx context.Context, in *types.ReqNil, opts ...grpc.CallOption) (*types.PushSubscribes, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.PushSubscribes
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqNil, ...grpc.CallOption) *types.PushSubscribes); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.PushSubscribes)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqNil, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // LoadParaTxByTitle provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) LoadParaTxByTitle(ctx context.Context, in *types.ReqHeightByTitle, opts ...grpc.CallOption) (*types.ReplyHeightByTitle, error) {
 	_va := make([]interface{}, len(opts))
@@ -1629,6 +1809,36 @@ func (_m *Chain33Client) QueryTransaction(ctx context.Context, in *types.ReqHash
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqHash, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ReWriteTx provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) ReWriteTx(ctx context.Context, in *types.ReWriteRawTx, opts ...grpc.CallOption) (*types.UnsignTx, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.UnsignTx
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReWriteRawTx, ...grpc.CallOption) *types.UnsignTx); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.UnsignTx)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReWriteRawTx, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
@@ -1959,6 +2169,36 @@ func (_m *Chain33Client) SignWalletRecoverTx(ctx context.Context, in *types.ReqS
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqSignWalletRecoverTx, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SubEvent provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) SubEvent(ctx context.Context, in *types.ReqSubscribe, opts ...grpc.CallOption) (types.Chain33_SubEventClient, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 types.Chain33_SubEventClient
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqSubscribe, ...grpc.CallOption) types.Chain33_SubEventClient); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(types.Chain33_SubEventClient)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqSubscribe, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)

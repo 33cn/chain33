@@ -379,9 +379,9 @@ message PushSubscribeReq {
 }
 
 message PushWithStatus {
-    PushSubscribeReq push   = 1;
-    //1:active,2:noactive
-    int32            status = 2;
+    PushSubscribeReq push = 1;
+    // 1:active,2:noactive
+    int32 status = 2;
 }
 
 message PushSubscribes {
@@ -394,15 +394,15 @@ message ReplySubscribePush {
 }
 
 message ReqSubscribe {
-    string name          = 1;
+    string name = 1;
     // 0:代表区块；1:代表区块头信息；2：代表交易回执
     int32 type = 2;
     //允许订阅多个类型的交易回执
     map<string, bool> contract = 8;
 }
 
-message SubscribeStatus{
-    string name=1;
-    //1:active,2:noactive
-    int32  status=2;
+message SubscribeStatus {
+    string name = 1;
+    // 1:active,2:noactive
+    int32 status = 2;
 }
