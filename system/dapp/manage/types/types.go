@@ -43,10 +43,10 @@ func init() {
 
 //InitFork init
 func InitFork(cfg *types.Chain33Config) {
-	cfg.RegisterDappFork(ManageX, "Enable", 120000)
-	cfg.RegisterDappFork(ManageX, ForkManageExec, 400000)
+	cfg.RegisterDappFork(ManageX, "Enable", 0)
+	cfg.RegisterDappFork(ManageX, ForkManageExec, 0)
 	//支持autonomy委员会审批
-	cfg.RegisterDappFork(ManageX, ForkManageAutonomyEnable, 10000000)
+	cfg.RegisterDappFork(ManageX, ForkManageAutonomyEnable, 0)
 }
 
 //InitExecutor init Executor

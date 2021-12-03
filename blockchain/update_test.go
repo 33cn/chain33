@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/types"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/mock"
 
 	client "github.com/33cn/chain33/queue"
@@ -52,10 +52,10 @@ func TestUpgradePlugin(t *testing.T) {
 					expat = c1.wait
 				}
 				if err == nil {
-					assert.Nil(t, expat)
+					require.Nil(t, expat)
 				} else {
 					e1 := err.(error)
-					assert.Equal(t, expat.Error(), e1.Error())
+					require.Equal(t, expat.Error(), e1.Error())
 				}
 			}()
 

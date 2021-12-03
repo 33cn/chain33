@@ -396,6 +396,7 @@ func demoCalcLocalKey(addr string, id string) []byte {
 func TestExecLocalSameTime1(t *testing.T) {
 	mock33 := newMockNode()
 	defer mock33.Close()
+	types.AllowUserExec = append(types.AllowUserExec, []byte("demo2"))
 	cfg := mock33.GetClient().GetConfig()
 	orderflag = 1
 	genkey := mock33.GetGenesisKey()

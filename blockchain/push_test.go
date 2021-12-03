@@ -25,7 +25,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -150,14 +149,14 @@ func Test_procSubscribePush_pushSupport(t *testing.T) {
 	defer mock33.Close()
 	subscribe := new(types.PushSubscribeReq)
 	err := chain.procSubscribePush(subscribe)
-	assert.Equal(t, types.ErrPushNotSupport, err)
+	require.Equal(t, types.ErrPushNotSupport, err)
 }
 
 func Test_procSubscribePush_nilParacheck(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	defer mock33.Close()
 	err := chain.procSubscribePush(nil)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 }
 
 func Test_addSubscriber_Paracheck(t *testing.T) {
@@ -166,7 +165,7 @@ func Test_addSubscriber_Paracheck(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.LastSequence = 1
 	err := chain.procSubscribePush(subscribe)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 }
 
 func Test_addSubscriber_conflictPara(t *testing.T) {
@@ -175,7 +174,7 @@ func Test_addSubscriber_conflictPara(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.LastSequence = 1
 	err := chain.procSubscribePush(subscribe)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 }
 
 func Test_addSubscriber_InvalidURL(t *testing.T) {
@@ -185,7 +184,7 @@ func Test_addSubscriber_InvalidURL(t *testing.T) {
 	subscribe.Name = "push-test"
 	subscribe.URL = ""
 	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 }
 
 func Test_addSubscriber_InvalidType(t *testing.T) {
@@ -195,7 +194,7 @@ func Test_addSubscriber_InvalidType(t *testing.T) {
 	subscribe.Name = "push-test"
 	subscribe.Type = int32(4)
 	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 }
 
 func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
@@ -206,12 +205,12 @@ func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
 	subscribe.URL = "http://localhost"
 	subscribe.LastSequence = 1
 	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 
 	subscribe.LastSequence = 0
 	subscribe.LastHeight = 1
 	err = chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 }
 
 func Test_addSubscriber_Success(t *testing.T) {
@@ -222,22 +221,22 @@ func Test_addSubscriber_Success(t *testing.T) {
 	subscribe.URL = "http://localhost"
 	key := calcPushKey(subscribe.Name)
 	subInfo, err := chain.push.store.GetKey(key)
-	assert.NotEqual(t, err, nil)
-	assert.NotEqual(t, subInfo, nil)
+	require.NotEqual(t, err, nil)
+	require.NotEqual(t, subInfo, nil)
 
 	err = chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	subInfo, err = chain.push.store.GetKey(key)
-	assert.Equal(t, err, nil)
-	assert.NotEqual(t, subInfo, nil)
+	require.Equal(t, err, nil)
+	require.NotEqual(t, subInfo, nil)
 
 	var originSubInfo types.PushWithStatus
 	err = types.Decode(subInfo, &originSubInfo)
-	assert.Equal(t, err, nil)
-	assert.Equal(t, originSubInfo.Push.URL, subscribe.URL)
+	require.Equal(t, err, nil)
+	require.Equal(t, originSubInfo.Push.URL, subscribe.URL)
 
 	pushes, _ := chain.ProcListPush()
-	assert.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
+	require.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
 
 	//重新创建push，能够从数据库中恢复原先注册成功的push
 	chainAnother := &BlockChain{
@@ -246,7 +245,7 @@ func Test_addSubscriber_Success(t *testing.T) {
 	}
 	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	recoverpushes, _ := chainAnother.ProcListPush()
-	assert.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
+	require.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
 }
 
 func Test_addSubscriber_WithSeqHashHeight(t *testing.T) {
@@ -254,9 +253,9 @@ func Test_addSubscriber_WithSeqHashHeight(t *testing.T) {
 	defer mock33.Close()
 
 	blockSeq, err := chain.blockStore.GetBlockSequence(5)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	header, err := chain.blockStore.GetBlockHeaderByHash(blockSeq.Hash)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
@@ -266,25 +265,26 @@ func Test_addSubscriber_WithSeqHashHeight(t *testing.T) {
 	subscribe.LastBlockHash = common.ToHex(blockSeq.Hash)
 	key := calcPushKey(subscribe.Name)
 	_, err = chain.push.store.GetKey(key)
-	assert.NotEqual(t, err, nil)
+	require.NotEqual(t, err, nil)
 
 	err = chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	subInfo, err := chain.push.store.GetKey(key)
-	assert.Equal(t, err, nil)
-	assert.NotEqual(t, subInfo, nil)
+	require.Equal(t, err, nil)
+	require.NotEqual(t, subInfo, nil)
 
 	var originSubInfo types.PushWithStatus
 	err = types.Decode(subInfo, &originSubInfo)
-	assert.Equal(t, err, nil)
-	assert.Equal(t, originSubInfo.Push.URL, subscribe.URL)
+	require.Equal(t, err, nil)
+	require.Equal(t, originSubInfo.Push.URL, subscribe.URL)
 
 	pushes, _ := chain.ProcListPush()
-	assert.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
+	require.Equal(t, subscribe.Name, pushes.Pushes[0].Name)
 }
 
 func Test_PostBlockFail(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
 	chain.push.postService = ps
@@ -296,48 +296,46 @@ func Test_PostBlockFail(t *testing.T) {
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	createBlocks(t, mock33, chain, 10)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotify := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
-	assert.Equal(t, pushNotify.status, running)
+	require.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	require.Equal(t, pushNotify.status, running)
 	time.Sleep(1 * time.Second)
 	createBlocks(t, mock33, chain, 1)
 
-	assert.Greater(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
+	require.Greater(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
 	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
-	assert.Equal(t, lastSeq, int64(-1))
-
-	mock33.Close()
+	require.Equal(t, lastSeq, int64(-1))
 }
 
 func Test_GetLastPushSeqFailDue2RecordBlockSequence(t *testing.T) {
 	chain, mock33 := createBlockChainWithFalgSet(t, false, false)
+	defer mock33.Close()
 	_, err := chain.ProcGetLastPushSeq("test")
-	assert.Equal(t, types.ErrRecordBlockSequence, err)
-	mock33.Close()
+	require.Equal(t, types.ErrRecordBlockSequence, err)
 }
 
 func Test_GetLastPushSeqFailDue2enablePushSubscribe(t *testing.T) {
 	chain, mock33 := createBlockChainWithFalgSet(t, true, false)
+	defer mock33.Close()
 	_, err := chain.ProcGetLastPushSeq("test")
-	assert.Equal(t, types.ErrPushNotSupport, err)
-	mock33.Close()
+	require.Equal(t, types.ErrPushNotSupport, err)
 }
 
 func Test_GetLastPushSeqFailDue2NotSubscribed(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	_, err := chain.ProcGetLastPushSeq("test")
-	assert.Equal(t, types.ErrPushNotSubscribed, err)
-	mock33.Close()
+	require.Equal(t, types.ErrPushNotSubscribed, err)
 }
 
 func Test_PostDataFail(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
@@ -345,21 +343,20 @@ func Test_PostDataFail(t *testing.T) {
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	createBlocks(t, mock33, chain, 10)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotify := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
-	assert.Equal(t, pushNotify.status, running)
+	require.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	require.Equal(t, pushNotify.status, running)
 
 	err = chain.push.postService.PostData(subscribe, []byte("1"), 1)
-	assert.NotEqual(t, nil, err)
-
-	mock33.Close()
+	require.NotEqual(t, nil, err)
 }
 
 func Test_PostBlockSuccess(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -371,30 +368,29 @@ func Test_PostBlockSuccess(t *testing.T) {
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	createBlocks(t, mock33, chain, 10)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotify := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
-	assert.Equal(t, pushNotify.status, running)
+	require.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	require.Equal(t, pushNotify.status, running)
 	time.Sleep(1 * time.Second)
 	//注册相同的push，不会有什么问题
 	err = chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 
 	createBlocks(t, mock33, chain, 1)
 
-	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
+	require.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
 	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
-	assert.Greater(t, lastSeq, int64(21))
-
-	mock33.Close()
+	require.Greater(t, lastSeq, int64(21))
 }
 
 func Test_PostBlockHeaderSuccess(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -406,27 +402,25 @@ func Test_PostBlockHeaderSuccess(t *testing.T) {
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	createBlocks(t, mock33, chain, 10)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotify := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
-	assert.Equal(t, pushNotify.status, running)
+	require.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	require.Equal(t, pushNotify.status, running)
 
 	createBlocks(t, mock33, chain, 1)
 
-	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
+	require.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
 	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
-	assert.Greater(t, lastSeq, int64(21))
-
-	mock33.Close()
+	require.Greater(t, lastSeq, int64(21))
 }
 
 func Test_PostTxReceipt(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -438,21 +432,20 @@ func Test_PostTxReceipt(t *testing.T) {
 	subscribe.Contract["coins"] = true
 
 	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	createBlocks(t, mock33, chain, 1)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotify := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	require.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
 
-	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
+	require.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
-	defer mock33.Close()
+	require.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 }
 
 func Test_PostEVMEvent_Subscribe(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -515,20 +508,18 @@ func Test_PostEVMEvent_Subscribe(t *testing.T) {
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
 
 	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 
 	//createBlocks(t, mock33, chain, 1)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotify := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
-	assert.Equal(t, pushNotify.subscribe.Type, subscribe.Type)
-
-	defer mock33.Close()
+	require.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	require.Equal(t, pushNotify.subscribe.Type, subscribe.Type)
 }
 
 func Test_PostEVMEvent(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -605,20 +596,18 @@ func Test_PostEVMEvent(t *testing.T) {
 	seqCount := 5
 	maxSize := int(1024 * 1024)
 	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
-	assert.NotEqual(t, nil, data)
+	require.Equal(t, nil, err)
+	require.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
+	require.NotEqual(t, nil, data)
 	var evmlogs types.EVMTxLogsInBlks
 	_ = types.Decode(data, &evmlogs)
-	assert.Equal(t, 5, len(evmlogs.Logs4EVMPerBlk))
-	assert.Equal(t, 8, len(evmlogs.Logs4EVMPerBlk[0].TxAndLogs))
-
-	defer mock33.Close()
+	require.Equal(t, 5, len(evmlogs.Logs4EVMPerBlk))
+	require.Equal(t, 8, len(evmlogs.Logs4EVMPerBlk[0].TxAndLogs))
 }
 
 func Test_PostEVMEvent_bigsize(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -689,16 +678,14 @@ func Test_PostEVMEvent_bigsize(t *testing.T) {
 	seqCount := 5
 	maxSize := int(10)
 	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, int64(-1), updateSeq)
-	assert.Equal(t, 0, len(data))
-
-	defer mock33.Close()
+	require.Equal(t, nil, err)
+	require.Equal(t, int64(-1), updateSeq)
+	require.Equal(t, 0, len(data))
 }
 
 func Test_PostEVMEvent_notJson(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -769,16 +756,14 @@ func Test_PostEVMEvent_notJson(t *testing.T) {
 	seqCount := 5
 	maxSize := int(1024 * 1024)
 	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
-	assert.NotEqual(t, nil, data)
-
-	defer mock33.Close()
+	require.Equal(t, nil, err)
+	require.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
+	require.NotEqual(t, nil, data)
 }
 
 func Test_PostEVMEvent_badLog(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -844,16 +829,15 @@ func Test_PostEVMEvent_badLog(t *testing.T) {
 	seqCount := 5
 	maxSize := int(1)
 	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
-	assert.NotEqual(t, nil, err)
-	assert.Equal(t, int64(-1), updateSeq)
-	assert.Equal(t, 0, len(data))
+	require.NotEqual(t, nil, err)
+	require.Equal(t, int64(-1), updateSeq)
+	require.Equal(t, 0, len(data))
 
-	defer mock33.Close()
 }
 
 func Test_PostEVMEvent_nil(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -924,16 +908,15 @@ func Test_PostEVMEvent_nil(t *testing.T) {
 	seqCount := 5
 	maxSize := int(1)
 	data, updateSeq, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
-	assert.Equal(t, 0, len(data))
+	require.Equal(t, nil, err)
+	require.Equal(t, updateSeq, startSeq+int64(seqCount)-1)
+	require.Equal(t, 0, len(data))
 
-	defer mock33.Close()
 }
 
 func Test_PostEVMEvent_errProcess(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -961,17 +944,15 @@ func Test_PostEVMEvent_errProcess(t *testing.T) {
 	seqCount := 5
 	maxSize := int(1024 * 1024)
 	_, _, err := chain.push.getPushData(subscribe, startSeq, seqCount, maxSize)
-	assert.NotEqual(t, nil, err)
+	require.NotEqual(t, nil, err)
 
 	_, _, err = chain.push.getPushData(subscribe, startSeq+1, seqCount, maxSize)
-	assert.NotEqual(t, nil, err)
-
-	defer mock33.Close()
+	require.NotEqual(t, nil, err)
 }
 
 func Test_AddPush_reachMaxNum(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -985,7 +966,7 @@ func Test_AddPush_reachMaxNum(t *testing.T) {
 		subscribe.Contract["coins"] = true
 		subscribe.Name = "push-test-" + fmt.Sprintf("%d", i)
 		err := chain.push.addSubscriber(subscribe)
-		assert.Equal(t, err, nil)
+		require.Equal(t, err, nil)
 	}
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
@@ -995,13 +976,12 @@ func Test_AddPush_reachMaxNum(t *testing.T) {
 	subscribe.Contract["coins"] = true
 	subscribe.Name = "push-test-lastOne"
 	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, types.ErrTooManySeqCB)
-	defer mock33.Close()
+	require.Equal(t, err, types.ErrTooManySeqCB)
 }
 
 func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
-
+	defer mock33.Close()
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	chain.push.postService = ps
@@ -1017,9 +997,9 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 		subscribe.Name = "push-test-" + fmt.Sprintf("%d", i)
 		err := chain.push.addSubscriber(subscribe)
 		pushNames = append(pushNames, subscribe.Name)
-		assert.Equal(t, err, nil)
+		require.Equal(t, err, nil)
 	}
-	assert.Equal(t, len(chain.push.tasks), 10)
+	require.Equal(t, len(chain.push.tasks), 10)
 	//不允许注册相同name不同url的push
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
@@ -1030,7 +1010,7 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 	subscribe.Name = "push-test-" + fmt.Sprintf("%d", 9)
 	subscribe.URL = "http://localhost:8801"
 	err := chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, types.ErrNotAllowModifyPush)
+	require.Equal(t, err, types.ErrNotAllowModifyPush)
 
 	//push 能够正常从数据库恢复
 	chainAnother := &BlockChain{
@@ -1038,15 +1018,15 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 		enablePushSubscribe:   true,
 	}
 	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
-	assert.Equal(t, 10, len(chainAnother.push.tasks))
+	require.Equal(t, 10, len(chainAnother.push.tasks))
 	for _, name := range pushNames {
-		assert.NotEqual(t, chainAnother.push.tasks[string(calcPushKey(name))], nil)
+		require.NotEqual(t, chainAnother.push.tasks[string(calcPushKey(name))], nil)
 	}
-	defer mock33.Close()
 }
 
 func Test_rmPushFailTask(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
 	chain.push.postFail2Sleep = int32(1)
 	ps := &bcMocks.PostService{}
 	ps.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
@@ -1066,10 +1046,10 @@ func Test_rmPushFailTask(t *testing.T) {
 		subscribe.Name = fmt.Sprintf("%d", i) + "-push-test-"
 		err := chain.push.addSubscriber(subscribe)
 		pushNames = append(pushNames, subscribe.Name)
-		assert.Equal(t, err, nil)
+		require.Equal(t, err, nil)
 	}
 	chain.push.mu.Lock()
-	assert.Equal(t, len(chain.push.tasks), subCnt)
+	require.Equal(t, len(chain.push.tasks), subCnt)
 	chain.push.mu.Unlock()
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(1 * time.Second)
@@ -1100,10 +1080,8 @@ func Test_rmPushFailTask(t *testing.T) {
 	<-closeChan
 	fmt.Println("stoping Test_rmPushFailTask")
 	chain.push.mu.Lock()
-	assert.Equal(t, 0, len(chain.push.tasks))
+	require.Equal(t, 0, len(chain.push.tasks))
 	chain.push.mu.Unlock()
-
-	defer mock33.Close()
 }
 
 //推送失败之后能够重新激活并成功推送
@@ -1120,21 +1098,21 @@ func Test_ReactivePush(t *testing.T) {
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	createBlocks(t, mock33, chain, 10)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotify := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
-	assert.Equal(t, pushNotify.status, running)
+	require.Equal(t, pushNotify.subscribe.Name, subscribe.Name)
+	require.Equal(t, pushNotify.status, running)
 	time.Sleep(1 * time.Second)
 
 	createBlocks(t, mock33, chain, 1)
 
-	assert.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
+	require.Equal(t, atomic.LoadInt32(&pushNotify.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
 	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
-	assert.Greater(t, lastSeq, int64(21))
+	require.Greater(t, lastSeq, int64(21))
 
 	mockpsFail := &bcMocks.PostService{}
 	mockpsFail.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
@@ -1142,20 +1120,20 @@ func Test_ReactivePush(t *testing.T) {
 	chain.push.postFail2Sleep = int32(1)
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(4 * time.Second)
-	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), notRunning)
+	require.Equal(t, atomic.LoadInt32(&pushNotify.status), notRunning)
 	lastSeq, _ = chain.ProcGetLastPushSeq(subscribe.Name)
 
 	//重新激活
 	chain.push.postService = ps
 	err = chain.push.addSubscriber(subscribe)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	time.Sleep(1 * time.Second)
 	chain.push.mu.Lock()
 	pushNotify = chain.push.tasks[keyStr]
 	chain.push.mu.Unlock()
-	assert.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
+	require.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
 	lastSeqAfter, _ := chain.ProcGetLastPushSeq(subscribe.Name)
-	assert.Greater(t, lastSeqAfter, lastSeq)
+	require.Greater(t, lastSeqAfter, lastSeq)
 
 	mock33.Close()
 }
@@ -1174,21 +1152,21 @@ func Test_RecoverPush(t *testing.T) {
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
-	assert.Equal(t, err, nil)
+	require.Equal(t, err, nil)
 	createBlocks(t, mock33, chain, 10)
 	keyStr := string(calcPushKey(subscribe.Name))
 	pushNotifyInfo := chain.push.tasks[keyStr]
-	assert.Equal(t, pushNotifyInfo.subscribe.Name, subscribe.Name)
-	assert.Equal(t, pushNotifyInfo.status, running)
+	require.Equal(t, pushNotifyInfo.subscribe.Name, subscribe.Name)
+	require.Equal(t, pushNotifyInfo.status, running)
 	time.Sleep(1 * time.Second)
 
 	createBlocks(t, mock33, chain, 1)
 
-	assert.Equal(t, atomic.LoadInt32(&pushNotifyInfo.postFail2Sleep), int32(0))
+	require.Equal(t, atomic.LoadInt32(&pushNotifyInfo.postFail2Sleep), int32(0))
 	time.Sleep(1 * time.Second)
 
 	lastSeq, _ := chain.ProcGetLastPushSeq(subscribe.Name)
-	assert.Greater(t, lastSeq, int64(21))
+	require.Greater(t, lastSeq, int64(21))
 
 	mockpsFail := &bcMocks.PostService{}
 	mockpsFail.On("PostData", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("timeout"))
@@ -1196,7 +1174,7 @@ func Test_RecoverPush(t *testing.T) {
 	chain.push.postFail2Sleep = int32(1)
 	createBlocks(t, mock33, chain, 10)
 	time.Sleep(3 * time.Second)
-	assert.Equal(t, atomic.LoadInt32(&pushNotifyInfo.status), notRunning)
+	require.Equal(t, atomic.LoadInt32(&pushNotifyInfo.status), notRunning)
 	chain.ProcGetLastPushSeq(subscribe.Name)
 
 	//chain33的push服务重启后，不会将其添加到task中，
@@ -1206,7 +1184,7 @@ func Test_RecoverPush(t *testing.T) {
 	}
 	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
 	var nilInfo *pushNotify
-	assert.Equal(t, chainAnother.push.tasks[string(calcPushKey(subscribe.Name))], nilInfo)
+	require.Equal(t, chainAnother.push.tasks[string(calcPushKey(subscribe.Name))], nilInfo)
 
 	mock33.Close()
 }

@@ -21,7 +21,7 @@ import (
 func TestLoadDriverFork(t *testing.T) {
 	str := types.GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
-	exec, _ := initEnv(new)
+	exec, _ := initEnv(types.MergeCfg(types.ReadFile("../cmd/chain33/chain33.fork.toml"), new))
 	cfg := exec.client.GetConfig()
 	execInit(cfg)
 	drivers.Register(cfg, "notAllow", newAllowApp, 0)

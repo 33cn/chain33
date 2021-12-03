@@ -13,7 +13,6 @@ import (
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util/testnode"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,7 +46,7 @@ func TestExportBlockProc(t *testing.T) {
 
 	//异常测试
 	err = blockchain.ExportBlock(title, dbPath, 10000)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 
 	err = blockchain.ExportBlock(title, dbPath, 0)
 	require.NoError(t, err)
@@ -59,9 +58,9 @@ func TestExportBlockProc(t *testing.T) {
 	var fileHeader types.FileHeader
 	err = types.Decode(headertitle, &fileHeader)
 	require.NoError(t, err)
-	assert.Equal(t, driver, fileHeader.Driver)
-	assert.Equal(t, int64(0), fileHeader.GetStartHeight())
-	assert.Equal(t, title, fileHeader.GetTitle())
+	require.Equal(t, driver, fileHeader.Driver)
+	require.Equal(t, int64(0), fileHeader.GetStartHeight())
+	require.Equal(t, title, fileHeader.GetTitle())
 	db.Close()
 	mock33.Close()
 
@@ -69,10 +68,10 @@ func TestExportBlockProc(t *testing.T) {
 
 	//异常测试
 	err = blockchain.ExportBlock(title, dbPath, -1)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 
 	err = blockchain.ExportBlock("test", dbPath, 0)
-	assert.Equal(t, err, types.ErrInvalidParam)
+	require.Equal(t, err, types.ErrInvalidParam)
 
 	chainlog.Debug("TestExportBlock end --------------------")
 }
@@ -99,8 +98,8 @@ func testImportBlockProc(t *testing.T) {
 	require.NoError(t, err)
 	curHeader, err := blockchain.ProcGetLastHeaderMsg()
 	require.NoError(t, err)
-	assert.Equal(t, curHeader.Height, endBlock.GetHeight())
-	assert.Equal(t, curHeader.GetHash(), endBlock.GetHash())
+	require.Equal(t, curHeader.Height, endBlock.GetHeight())
+	require.Equal(t, curHeader.GetHash(), endBlock.GetHash())
 	file := title + ".db"
 	os.RemoveAll(file)
 
