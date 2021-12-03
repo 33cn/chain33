@@ -360,7 +360,7 @@ func (c *GrpcCtx) Run() (err error) {
 		errRet = err
 
 	case "GetCoinSymbol":
-		reply,err:=rpc.GetCoinSymbol(context.Background(),c.Params.(*types.ReqNil))
+		reply, err := rpc.GetCoinSymbol(context.Background(), c.Params.(*types.ReqNil))
 		if err == nil {
 			c.Res = reply
 		}

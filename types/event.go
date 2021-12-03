@@ -201,12 +201,11 @@ const (
 	//断开指定的节点
 	EventClosePeer = 364
 
-	EventPushBlock = 365
-	EventPushBlockHeader=366
-	EventPushTxReceipt=367
-	EventPushTxResult=368
-	EventPushEVM=369
-
+	EventPushBlock       = 365
+	EventPushBlockHeader = 366
+	EventPushTxReceipt   = 367
+	EventPushTxResult    = 368
+	EventPushEVM         = 369
 )
 
 var eventName = map[int]string{
@@ -370,9 +369,9 @@ var eventName = map[int]string{
 	EventShowBlacklist:              "EventShowBlacklist",
 	EventDialPeer:                   "EventDialPeer",
 	EventClosePeer:                  "EventClosePeer",
-	EventPushEVM:				"EventPushEVM",
-	EventPushBlock : "EventPushBlock",
-	EventPushBlockHeader:"EventPushBlockHeader",
-	EventPushTxReceipt:"EventPushTxReceipt",
-	EventPushTxResult:"EventPushTxResult",
+	EventPushEVM:                    "EventPushEVM",
+	EventPushBlock:                  "EventPushBlock",
+	EventPushBlockHeader:            "EventPushBlockHeader",
+	EventPushTxReceipt:              "EventPushTxReceipt",
+	EventPushTxResult:               "EventPushTxResult",
 }

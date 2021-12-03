@@ -3,6 +3,12 @@ package blockchain
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"os"
+	"sync/atomic"
+	"testing"
+	"time"
+
 	bcMocks "github.com/33cn/chain33/blockchain/mocks"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
@@ -22,11 +28,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"math/rand"
-	"os"
-	"sync/atomic"
-	"testing"
-	"time"
 )
 
 var sendTxWait = time.Millisecond * 5
