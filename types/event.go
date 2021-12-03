@@ -205,7 +205,8 @@ const (
 	EventPushBlockHeader=366
 	EventPushTxReceipt=367
 	EventPushTxResult=368
-	EventPushEVMEvent=369
+	EventPushEVM=369
+
 )
 
 var eventName = map[int]string{
@@ -369,4 +370,9 @@ var eventName = map[int]string{
 	EventShowBlacklist:              "EventShowBlacklist",
 	EventDialPeer:                   "EventDialPeer",
 	EventClosePeer:                  "EventClosePeer",
+	EventPushEVM:				"EventPushEVM",
+	EventPushBlock : "EventPushBlock",
+	EventPushBlockHeader:"EventPushBlockHeader",
+	EventPushTxReceipt:"EventPushTxReceipt",
+	EventPushTxResult:"EventPushTxResult",
 }

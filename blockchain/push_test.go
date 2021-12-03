@@ -3,12 +3,6 @@ package blockchain
 import (
 	"errors"
 	"fmt"
-	"math/rand"
-	"os"
-	"sync/atomic"
-	"testing"
-	"time"
-
 	bcMocks "github.com/33cn/chain33/blockchain/mocks"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
@@ -28,6 +22,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"math/rand"
+	"os"
+	"sync/atomic"
+	"testing"
+	"time"
 )
 
 var sendTxWait = time.Millisecond * 5
@@ -244,7 +243,7 @@ func Test_addSubscriber_Success(t *testing.T) {
 		isRecordBlockSequence: true,
 		enablePushSubscribe:   true,
 	}
-	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client)
 	recoverpushes, _ := chainAnother.ProcListPush()
 	assert.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
 }
@@ -579,6 +578,7 @@ func Test_PostEVMEvent(t *testing.T) {
 		Height: 1,
 		Txs:    txs,
 	}
+
 	//将第二笔交易的payload设置为不能反序列化的数据
 	txs[1].Payload = []byte{1, 2}
 
@@ -1037,7 +1037,7 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 		isRecordBlockSequence: true,
 		enablePushSubscribe:   true,
 	}
-	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client)
 	assert.Equal(t, 10, len(chainAnother.push.tasks))
 	for _, name := range pushNames {
 		assert.NotEqual(t, chainAnother.push.tasks[string(calcPushKey(name))], nil)
@@ -1204,7 +1204,7 @@ func Test_RecoverPush(t *testing.T) {
 		isRecordBlockSequence: true,
 		enablePushSubscribe:   true,
 	}
-	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client)
 	var nilInfo *pushNotify
 	assert.Equal(t, chainAnother.push.tasks[string(calcPushKey(subscribe.Name))], nilInfo)
 

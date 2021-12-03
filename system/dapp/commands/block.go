@@ -363,7 +363,7 @@ func addPushSubscribe(cmd *cobra.Command, args []string) {
 		LastSequence:  lastSeq,
 		LastHeight:    lastHeight,
 		LastBlockHash: lastBlockHash,
-		Type:          pushType,
+		Type: int32(pushType),
 	}
 
 	var res types.ReplySubscribePush

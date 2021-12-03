@@ -73,7 +73,7 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 func caculteRunningTime() string {
 	var runningTime string
 	mins := time.Since(processStart).Minutes()
-	runningTime = fmt.Sprintf("%.3f minues", mins)
+	runningTime = fmt.Sprintf("%.3f minutes", mins)
 	if mins > 60 {
 		hours := mins / 60
 		runningTime = fmt.Sprintf("%.3f hours", hours)

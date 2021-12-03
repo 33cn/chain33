@@ -48,7 +48,19 @@ type Chain33 struct {
 // Grpc a channelClient
 type Grpc struct {
 	cli channelClient
-	subChan chan interface{}
+
+	cachelock sync.Mutex
+	subCache  map[string]*subInfo // topic -->subInfo
+}
+
+type subInfo struct {
+	//订阅的主题名称，自定义
+	topic string
+	//订阅的消息类型
+	subType string
+	//订阅开始的时间
+	since   time.Time
+	subChan map[chan *queue.Message]string
 }
 
 // Grpcserver a object
@@ -58,9 +70,63 @@ type Grpcserver struct {
 	l    net.Listener
 }
 
+func (g *Grpc) AddSubInfo(in *subInfo) {
+	g.cachelock.Lock()
+	defer g.cachelock.Unlock()
+	//in.users+=1
+	g.subCache[in.topic] = in
+}
+func (g *Grpc) AddSubChan(topic string, dch chan *queue.Message) {
+	g.cachelock.Lock()
+	defer g.cachelock.Unlock()
+	info, ok := g.subCache[topic]
+	if ok {
+		info.subChan[dch] = topic
+	}
+}
+
+func (g *Grpc) DelSubInfo(topic string, dch chan *queue.Message) {
+	g.cachelock.Lock()
+	defer g.cachelock.Unlock()
+	info, ok := g.subCache[topic]
+	if ok {
+		delete(info.subChan, dch)
+		if len(info.subChan) == 0 {
+			delete(g.subCache, topic)
+		}
+	}
+
+}
+func (g *Grpc) HashTopic(topic string) *subInfo {
+	g.cachelock.Lock()
+	defer g.cachelock.Unlock()
+	info, _ := g.subCache[topic]
+	return info
+}
+
+func (g *Grpc) ListSubInfo() []*subInfo {
+	g.cachelock.Lock()
+	defer g.cachelock.Unlock()
+	var infos []*subInfo
+	for _, info := range g.subCache {
+		infos = append(infos, info)
+	}
+	return infos
+}
+
+func (g *Grpc) GetSubUsers(topic string) uint32 {
+	g.cachelock.Lock()
+	defer g.cachelock.Unlock()
+	info, ok := g.subCache[topic]
+	if ok {
+		return uint32(len(info.subChan))
+	}
+	return 0
+}
+
 // NewGrpcServer new  GrpcServer object
 func NewGrpcServer() *Grpcserver {
-	return &Grpcserver{grpc: &Grpc{subChan: make( chan interface{},128)}}
+	return &Grpcserver{grpc: &Grpc{}}
 }
 
 // JSONRPCServer  a json rpcserver object
@@ -178,6 +244,7 @@ func (j *Grpcserver) Close() {
 // NewGRpcServer new grpcserver object
 func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 	s := &Grpcserver{grpc: &Grpc{}}
+	s.grpc.subCache = make(map[string]*subInfo)
 	s.grpc.cli.Init(c, api)
 	var opts []grpc.ServerOption
 	//register interceptor
@@ -236,7 +303,7 @@ type RPC struct {
 	cfg  *types.RPC
 	gapi *Grpcserver
 	japi *JSONRPCServer
-	c    queue.Client
+	cli  queue.Client
 	api  client.QueueProtocolAPI
 }
 
@@ -268,14 +335,16 @@ func (r *RPC) SetAPI(api client.QueueProtocolAPI) {
 
 // SetQueueClient set queue client
 func (r *RPC) SetQueueClient(c queue.Client) {
+
 	gapi := NewGRpcServer(c, r.api)
 	japi := NewJSONRPCServer(c, r.api)
 	r.gapi = gapi
 	r.japi = japi
-	r.c = c
+	r.cli = c
+	go r.handleSysEvent()
+
 	//注册系统rpc
 	pluginmgr.AddRPC(r)
-	go r.handleSysEvent()
 	r.Listen()
 }
 
@@ -285,18 +354,39 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 	japi := NewJSONRPCServer(c, r.api)
 	r.gapi = gapi
 	r.japi = japi
-	r.c = c
+	r.cli = c
+
 }
 
-//处理订阅的rpc事件
-func (r *RPC)handleSysEvent(){
-	r.c.Sub("rpc")
-	for msg:=range r.c.Recv(){
-		r.gapi.grpc.subChan<-msg
+//处理订阅的rpc事件,目前只有订阅事件
+func (r *RPC) handleSysEvent() {
+	r.cli.Sub("rpc")
+	for msg := range r.cli.Recv() {
+		topicInfo := r.gapi.grpc.HashTopic(msg.GetData().(*types.PushData).GetName())
+		if topicInfo != nil {
+			go func(rmsg *queue.Message) {
+				var ticker = time.NewTicker(time.Millisecond * 200)
+				for ch := range topicInfo.subChan {
+					select {
+					case <-ticker.C:
+						log.Error("handleSysEvent", "ticketimeout", rmsg.GetData().(*types.PushData).GetName())
+					case ch <- rmsg:
+						//log.Info("handleSysEvent","users:",len(topicInfo.subChan))
+						msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
+
+					}
+				}
+
+			}(msg)
+
+		} else {
+			//要求blockchain模块停止推送
+			log.Error("handleSysEvent", "no subscriber", r.gapi.grpc.subCache, "topic:", msg.GetData().(*types.PushData).GetName(), "subchan:", topicInfo)
+			msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: false, Msg: []byte("no subscriber")}))
+		}
+
 	}
-	//for r.gapi.grpc.subChan =range r.c.Recv(){}
 }
-
 
 // Listen rpc listen
 func (r *RPC) Listen() (port1 int, port2 int) {
@@ -319,7 +409,7 @@ func (r *RPC) Listen() (port1 int, port2 int) {
 		}
 		break
 	}
-	log.Info("rpc Listen ports", "grpc", port1, "jrpc", port2)
+	log.Info("rpc Listen port", "grpc", port1, "jrpc", port2)
 	//sleep for a while
 	time.Sleep(time.Millisecond)
 	return port1, port2
@@ -327,7 +417,7 @@ func (r *RPC) Listen() (port1 int, port2 int) {
 
 // GetQueueClient get queue client
 func (r *RPC) GetQueueClient() queue.Client {
-	return r.c
+	return r.cli
 }
 
 // GRPC return grpc rpc
@@ -450,4 +540,11 @@ func checkFilterPrintFuncBlacklist(funcName string) bool {
 		return true
 	}
 	return false
+}
+
+// PushType ...
+type PushType int32
+
+func (pushType PushType) string() string {
+	return []string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "NotSupported"}[pushType]
 }

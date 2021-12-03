@@ -8,7 +8,6 @@ import "p2p.proto";
 import "account.proto";
 import "executor.proto";
 import "push_tx_receipt.proto";
-import "evm_event.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
@@ -66,16 +65,6 @@ message Replies {
     repeated Reply replyList = 1;
 }
 
-message SubData {
-    oneof value {
-        TxReceipts4Subscribe tx       = 1;
-        BlockSeqs            block    = 2;
-        HeaderSeqs           header   = 3;
-        TxResultSeqs         txResult = 4;
-        EVMTxLogsInBlks      evmlogs  = 5;
-
-    }
-}
 
 service chain33 {
     // chain33 对外提供服务的接口
@@ -269,9 +258,15 @@ service chain33 {
     rpc ReWriteTx(ReWriteRawTx)returns(UnsignTx){}
     //GetBlockSequences
     rpc GetBlockSequences(ReqBlocks)returns(BlockSequences){}
+    //兼容jrpc订阅接口
+    rpc AddPushSubscribe(PushSubscribeReq)returns(ReplySubscribePush){}
+
+    rpc ListPushes(ReqNil)returns(PushSubscribes){}
+
+    rpc GetPushSeqLastNum(ReqString)returns(Int64){}
 
     //发送订阅的数据到客户端
-    rpc SubTxBlcoks(PushSubscribeReq) returns (stream SubData) {}
+    rpc SubEvent(ReqSubscribe) returns (stream PushData) {}
 
 
 }
