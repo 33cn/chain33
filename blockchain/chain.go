@@ -412,7 +412,8 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	chainlog.Debug("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)))
 
 	msg := chain.client.NewMessage("p2p", types.EventBlockBroadcast, block.Block)
-	err := chain.client.Send(msg, false)
+	// wait reply情况消息队列走高速模式
+	err := chain.client.Send(msg, true)
 	if err != nil {
 		chainlog.Error("SendBlockBroadcast", "Height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)), "err", err)
 	}

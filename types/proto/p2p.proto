@@ -240,6 +240,12 @@ message LightBlock {
     repeated string sTxHashes = 4;
 }
 
+// dht pub sub 通信数据
+message PeerPubSubMsg {
+    int32 msgID    = 1;
+    bytes protoMsg = 2;
+}
+
 // 轻量级交易广播
 message LightTx {
     bytes    txHash = 1;

@@ -14,12 +14,13 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
 	//区块0产生的kv对数量
-	kvCount = 25
+	// 不需要保存hash->height的索引，所以少一个kv对
+	kvCount = 24
 )
 
 func TestReindex(t *testing.T) {
@@ -29,34 +30,34 @@ func TestReindex(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), kvCount)
+	require.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 	txs := util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(1)
 	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(2)
 	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 1)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(3)
 	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 2)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(4)
 	time.Sleep(time.Second)
@@ -64,7 +65,7 @@ func TestReindex(t *testing.T) {
 	version.SetLocalDBVersion("10000.0.0")
 	chain.UpgradeChain()
 	kvs2 := getAllKeys(db)
-	assert.Equal(t, kvs1, kvs2)
+	require.Equal(t, kvs1, kvs2)
 }
 
 func getAllKeys(db dbm.IteratorDB) (kvs []*types.KeyValue) {
@@ -102,34 +103,34 @@ func TestUpgradeChain(t *testing.T) {
 	chain := mock33.GetBlockChain()
 	db := chain.GetDB()
 	kvs := getAllKeys(db)
-	assert.Equal(t, len(kvs), kvCount)
+	require.Equal(t, len(kvs), kvCount)
 	defer mock33.Close()
 	txs := util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(1)
 	txs = util.GenCoinsTxs(cfg, mock33.GetGenesisKey(), 10)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(2)
 	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 1)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(3)
 	txs = util.GenNoneTxs(cfg, mock33.GetGenesisKey(), 2)
 	for i := 0; i < len(txs); i++ {
 		reply, err := mock33.GetAPI().SendTx(txs[i])
-		assert.Nil(t, err)
-		assert.Equal(t, reply.IsOk, true)
+		require.Nil(t, err)
+		require.Equal(t, reply.IsOk, true)
 	}
 	mock33.WaitHeight(4)
 	time.Sleep(time.Second)
@@ -137,15 +138,15 @@ func TestUpgradeChain(t *testing.T) {
 	version.SetLocalDBVersion("1.0.0")
 	chain.UpgradeChain()
 	ver, err := getUpgradeMeta(db)
-	assert.Nil(t, err)
-	assert.Equal(t, ver.GetVersion(), "1.0.0")
+	require.Nil(t, err)
+	require.Equal(t, ver.GetVersion(), "1.0.0")
 
 	version.SetLocalDBVersion("2.0.0")
 	chain.UpgradeChain()
 
 	ver, err = getUpgradeMeta(db)
-	assert.Nil(t, err)
-	assert.Equal(t, ver.GetVersion(), "2.0.0")
+	require.Nil(t, err)
+	require.Equal(t, ver.GetVersion(), "2.0.0")
 }
 
 //GetUpgradeMeta 获取blockchain的数据库版本号

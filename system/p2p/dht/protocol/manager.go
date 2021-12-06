@@ -44,27 +44,51 @@ func InitAllProtocol(env *P2PEnv) {
 	}
 }
 
-// EventHandler handles chain33 event
-type EventHandler func(*queue.Message)
+// EventHandler chain33 internal event handler
+type EventHandler struct {
+	CallBack EventHandlerFunc
+	Inline   bool
+}
+
+// EventHandlerFunc event handler call back
+type EventHandlerFunc func(*queue.Message)
+
+// EventOpt event options
+type EventOpt func(*EventHandler) error
 
 var (
-	eventHandlers = make(map[int64]EventHandler)
+	eventHandlers = make(map[int64]*EventHandler)
 	mu            sync.RWMutex
 )
 
+// WithEventOptInline invoke event callback inline
+func WithEventOptInline(handler *EventHandler) error {
+	handler.Inline = true
+	return nil
+}
+
 // RegisterEventHandler registers a handler with an event ID.
-func RegisterEventHandler(eventID int64, handler EventHandler) {
-	if handler == nil {
+func RegisterEventHandler(eventID int64, cb EventHandlerFunc, opts ...EventOpt) {
+	if cb == nil {
 		panic(fmt.Sprintf("addEventHandler, handler is nil, id=%d", eventID))
 	}
 	if _, dup := eventHandlers[eventID]; dup {
 		panic(fmt.Sprintf("addEventHandler, duplicate handler, id=%d, len=%d", eventID, len(eventHandlers)))
 	}
-	eventHandlers[eventID] = EventHandlerWithRecover(handler)
+
+	handler := &EventHandler{
+		CallBack: EventHandlerWithRecover(cb),
+	}
+
+	for _, opt := range opts {
+		opt(handler)
+	}
+
+	eventHandlers[eventID] = handler
 }
 
 // GetEventHandler gets event handler by event ID.
-func GetEventHandler(eventID int64) EventHandler {
+func GetEventHandler(eventID int64) *EventHandler {
 	mu.RLock()
 	defer mu.RUnlock()
 	return eventHandlers[eventID]

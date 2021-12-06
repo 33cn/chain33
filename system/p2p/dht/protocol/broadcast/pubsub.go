@@ -11,16 +11,22 @@ import (
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 
-	"github.com/33cn/chain33/p2p/utils"
-	net "github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/snappy"
+	"github.com/libp2p/go-libp2p-core/peer"
+
+	net "github.com/33cn/chain33/system/p2p/dht/extension"
 )
 
 const (
-	psTxTopic          = "tx/v1.0.0"
-	psBlockTopic       = "block/v1.0.0"
-	blkHeaderCacheSize = 128
+	//监听发布给本节点的信息, 以pid作为topic
+	psBroadcast          = "ps-broadcast"
+	psPeerMsgTopicPrefix = "peermsg/"
+	psTxTopic            = "tx/v1.0.0"
+	psBatchTxTopic       = "batchtx/v1.0"
+	psBlockTopic         = "block/v1.0.0"
+	psLtBlockTopic       = "ltblk/v1.0"
+	blkHeaderCacheSize   = 128
 )
 
 // 基于libp2p pubsub插件广播
@@ -29,56 +35,46 @@ type pubSub struct {
 	blkHeaderCache   map[int64]*types.Header
 	maxRecvBlkHeight int64
 	lock             sync.RWMutex
+	peerTopic        string
 }
 
 // new pub sub
 func newPubSub(b *broadcastProtocol) *pubSub {
 	p := &pubSub{broadcastProtocol: b}
 	p.blkHeaderCache = make(map[int64]*types.Header)
+	p.peerTopic = p.getPeerTopic(p.Host.ID())
 	return p
 }
 
 // 广播入口函数，处理相关初始化
 func (p *pubSub) broadcast() {
 
-	//TODO check net is sync
+	incoming := make(chan net.SubMsg, 1024) //sub 接收通道, 订阅外部广播消息
+	outgoing := p.ps.Sub(psBroadcast)       //publish 发送通道, 订阅内部广播消息
 
-	txIncoming := make(chan net.SubMsg, 1024) //交易接收通道, 订阅外部广播消息
-	txOutgoing := p.ps.Sub(psTxTopic)         //交易发送通道, 订阅内部广播消息
-	//区块
-	blockIncoming := make(chan net.SubMsg, 128)
-	blockOutgoing := p.ps.Sub(psBlockTopic)
+	psTopics := []string{psTxTopic, psBatchTxTopic, psBlockTopic, psLtBlockTopic, p.peerTopic}
 
-	// pub sub topic注册
-	err := p.Pubsub.JoinAndSubTopic(psTxTopic, p.callback(txIncoming))
-	if err != nil {
-		log.Error("pubsub broadcast", "join tx topic err", err)
-		return
-	}
-	err = p.Pubsub.JoinAndSubTopic(psBlockTopic, p.callback(blockIncoming))
-	if err != nil {
-		log.Error("pubsub broadcast", "join block topic err", err)
-		return
+	for _, topic := range psTopics {
+		// pub sub topic注册
+		err := p.Pubsub.JoinAndSubTopic(topic, p.callback(incoming))
+		if err != nil {
+			log.Error("pubsub broadcast", "topic", topic, "join topic err", err)
+			return
+		}
 	}
 
 	p.Pubsub.RegisterTopicValidator(psBlockTopic, p.validateBlock, pubsub.WithValidatorInline(true))
-	p.Pubsub.RegisterTopicValidator(psTxTopic, p.validateTx, pubsub.WithValidatorInline(true))
 
-	//发送和接收用多个函数并发处理，提高效率
-	//交易广播, 使用多个协程并发处理，提高效率
-	cpu := runtime.NumCPU()
-	for i := 0; i < cpu; i++ {
-		go p.handlePubMsg(psTxTopic, txOutgoing)
-		go p.handleSubMsg(psTxTopic, txIncoming, p.txFilter)
+	//使用多个协程并发处理，提高效率
+	concurrency := runtime.NumCPU() * 2
+	for i := 0; i < concurrency; i++ {
+		go p.handlePubMsg(outgoing)
+		go p.handleSubMsg(incoming)
 	}
-
-	//区块广播
-	go p.handlePubMsg(psBlockTopic, blockOutgoing)
-	go p.handleSubMsg(psBlockTopic, blockIncoming, p.blockFilter)
 }
 
 // 处理广播消息发布
-func (p *pubSub) handlePubMsg(topic string, out chan interface{}) {
+func (p *pubSub) handlePubMsg(out chan interface{}) {
 
 	defer p.ps.Unsub(out)
 	buf := make([]byte, 0)
@@ -89,16 +85,16 @@ func (p *pubSub) handlePubMsg(topic string, out chan interface{}) {
 			if !ok {
 				return
 			}
-			msg := data.(types.Message)
-			raw := p.encodeMsg(msg, &buf)
+			psMsg := data.(publishMsg)
+			raw := p.encodeMsg(psMsg.msg, &buf)
 			if err != nil {
-				log.Error("handlePubMsg", "topic", topic, "hash", p.getMsgHash(topic, msg), "err", err)
+				log.Error("handlePubMsg", "topic", psMsg.topic, "err", err)
 				break
 			}
 
-			err = p.Pubsub.Publish(topic, raw)
+			err = p.Pubsub.Publish(psMsg.topic, raw)
 			if err != nil {
-				log.Error("handlePubMsg", "topic", topic, "publish err", err)
+				log.Error("handlePubMsg", "topic", psMsg.topic, "publish err", err)
 			}
 
 		case <-p.Ctx.Done():
@@ -108,7 +104,7 @@ func (p *pubSub) handlePubMsg(topic string, out chan interface{}) {
 }
 
 // 处理广播消息订阅
-func (p *pubSub) handleSubMsg(topic string, in chan net.SubMsg, filter *utils.Filterdata) {
+func (p *pubSub) handleSubMsg(in chan net.SubMsg) {
 
 	buf := make([]byte, 0)
 	var err error
@@ -119,30 +115,19 @@ func (p *pubSub) handleSubMsg(topic string, in chan net.SubMsg, filter *utils.Fi
 			if !ok {
 				return
 			}
-			// reject receive broadcast from self
-			if data.ReceivedFrom == p.Host.ID() {
-				break
-			}
+			topic := *data.Topic
 			msg = p.newMsg(topic)
 			err = p.decodeMsg(data.Data, &buf, msg)
 			if err != nil {
 				log.Error("handleSubMsg", "topic", topic, "decodeMsg err", err)
 				break
 			}
-			hash := p.getMsgHash(topic, msg)
-
-			// 将接收的交易或区块 转发到内部对应模块
-			if topic == psTxTopic {
-				err = p.postMempool(hash, msg.(*types.Transaction))
-			} else {
-				block := msg.(*types.Block)
-				log.Debug("recvBlkPs", "height", block.GetHeight(), "hash", hash, "from", data.ReceivedFrom.String())
-				err = p.postBlockChain(hash, data.ReceivedFrom.String(), block)
-			}
-
-			if err != nil {
-				log.Error("handleSubMsg", "topic", topic, "hash", hash, "post msg err", err)
-			}
+			p.handleBroadcastReceive(subscribeMsg{
+				topic:       topic,
+				value:       msg,
+				receiveFrom: data.ReceivedFrom,
+				publisher:   peer.ID(data.From),
+			})
 
 		case <-p.Ctx.Done():
 			return
@@ -155,16 +140,26 @@ func (p *pubSub) handleSubMsg(topic string, in chan net.SubMsg, filter *utils.Fi
 func (p *pubSub) getMsgHash(topic string, msg types.Message) string {
 	if topic == psTxTopic {
 		return hex.EncodeToString(msg.(*types.Transaction).Hash())
+	} else if topic == psBlockTopic {
+		return hex.EncodeToString(msg.(*types.Block).Hash(p.ChainCfg))
 	}
-	return hex.EncodeToString(msg.(*types.Block).Hash(p.ChainCfg))
+	return ""
 }
 
 // 构造接收消息对象s
 func (p *pubSub) newMsg(topic string) types.Message {
-	if topic == psTxTopic {
+	switch topic {
+	case psTxTopic:
 		return &types.Transaction{}
+	case psBatchTxTopic:
+		return &types.Transactions{}
+	case psBlockTopic:
+		return &types.Block{}
+	case psLtBlockTopic:
+		return &types.LightBlock{}
+	default:
+		return &types.PeerPubSubMsg{}
 	}
-	return &types.Block{}
 }
 
 // 生成订阅消息回调

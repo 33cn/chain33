@@ -23,10 +23,8 @@ func TestConfigFlat(t *testing.T) {
 }
 
 func TestConfigMverInit(t *testing.T) {
-	RegFork("store-kvmvccmavl", func(cfg *Chain33Config) {
-		cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", MaxHeight)
-	})
 	cfg := NewChain33ConfigNoInit(ReadFile("testdata/local.mvertest.toml"))
+	cfg.RegisterDappFork("store-kvmvccmavl", "ForkKvmvccmavl", MaxHeight)
 	cfg.DisableCheckFork(true)
 	cfg.chain33CfgInit(cfg.GetModuleConfig())
 	assert.Equal(t, cfg.MGStr("mver.consensus.name2", 0), "ticket-bityuan")
@@ -86,7 +84,7 @@ func initChainBityuanV3() {
 }
 
 func TestInitChainParam(t *testing.T) {
-	cfg := NewChain33Config(ReadFile("../cmd/chain33/chain33.toml"))
+	cfg := NewChain33Config(MergeCfg(ReadFile("../cmd/chain33/chain33.toml"), ReadFile("../cmd/chain33/chain33.fork.toml")))
 	forkid := cfg.GetFork("ForkChainParamV1")
 	assert.Equal(t, cfg.GetP(0), getP(cfg, 0))
 	assert.Equal(t, cfg.GetP(forkid-1), getP(cfg, forkid-1))

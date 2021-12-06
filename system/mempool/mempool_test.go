@@ -177,7 +177,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	if size == 0 {
 		size = 100
 	}
-	cfg := types.NewChain33Config(types.ReadFile("../../cmd/chain33/chain33.test.toml"))
+	cfg := types.NewChain33Config(types.MergeCfg(types.ReadFile("../../cmd/chain33/chain33.test.toml"), types.ReadFile("../../cmd/chain33/chain33.fork.toml")))
 	mcfg := cfg.GetModuleConfig()
 	var q = queue.New("channel")
 	q.SetConfig(cfg)
@@ -198,7 +198,7 @@ func initEnv4(size int) (queue.Queue, *Mempool) {
 	if size == 0 {
 		size = 100
 	}
-	cfg := types.NewChain33Config(types.ReadFile("testdata/chain33.test.toml"))
+	cfg := types.NewChain33Config(types.MergeCfg(types.ReadFile("../../cmd/chain33/chain33.fork.toml"), types.ReadFile("testdata/chain33.test.toml")))
 	mcfg := cfg.GetModuleConfig()
 	var q = queue.New("channel")
 	q.SetConfig(cfg)

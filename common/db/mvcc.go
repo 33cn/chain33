@@ -6,7 +6,6 @@ package db
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 
 	log "github.com/33cn/chain33/common/log/log15"
@@ -425,43 +424,56 @@ func getVersion(key []byte) (int64, error) {
 }
 
 func pad(version int64) []byte {
-	s := fmt.Sprintf("%020d", version)
-	return []byte(s)
+	//equals to `[]byte(fmt.Sprintf("%020d", version))`
+	sInt := strconv.FormatInt(version, 10)
+	result := []byte("00000000000000000000")
+	copy(result[20-len(sInt):], sInt)
+	return result
 }
 
 //GetKeyPerfix 获取key前缀
 func GetKeyPerfix(key []byte) []byte {
-	b := append([]byte{}, mvccData...)
-	newkey := append(b, key...)
-	newkey = append(newkey, []byte(".")...)
-	return newkey
+	result := make([]byte, 0, len(mvccData)+len(key)+1)
+	result = append(result, mvccData...)
+	result = append(result, key...)
+	result = append(result, []byte(".")...)
+	return result
 }
 
 //GetKey 获取键
 func GetKey(key []byte, version int64) ([]byte, error) {
-	newkey := append(GetKeyPerfix(key), pad(version)...)
-	return newkey, nil
+	result := make([]byte, 0, len(mvccData)+len(key)+21)
+	result = append(result, mvccData...)
+	result = append(result, key...)
+	result = append(result, []byte(".")...)
+	result = append(result, pad(version)...)
+	return result, nil
 }
 
 func getLastKey(key []byte) []byte {
-	b := append([]byte{}, mvccLast...)
-	return append(b, key...)
+	result := make([]byte, 0, len(mvccLast)+len(key))
+	result = append(result, mvccLast...)
+	result = append(result, key...)
+	return result
 }
 
 func getVersionHashKey(hash []byte) []byte {
-	b := append([]byte{}, mvccMeta...)
-	key := append(b, hash...)
-	return key
+	result := make([]byte, 0, len(mvccMeta)+len(hash))
+	result = append(result, mvccMeta...)
+	result = append(result, hash...)
+	return result
 }
 
 func getVersionKey(version int64) []byte {
-	b := append([]byte{}, mvccMetaVersion...)
-	key := append(b, pad(version)...)
-	return key
+	result := make([]byte, 0, len(mvccMetaVersion)+20)
+	result = append(result, mvccMetaVersion...)
+	result = append(result, pad(version)...)
+	return result
 }
 
 func getVersionKeyListKey(version int64) []byte {
-	b := append([]byte{}, mvccMetaVersionKeyList...)
-	key := append(b, pad(version)...)
-	return key
+	result := make([]byte, 0, len(mvccMetaVersionKeyList)+20)
+	result = append(result, mvccMetaVersionKeyList...)
+	result = append(result, pad(version)...)
+	return result
 }

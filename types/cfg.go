@@ -194,6 +194,8 @@ type BlockChain struct {
 	EnableTxQuickIndex bool `json:"enableTxQuickIndex,omitempty"`
 	// 升级storedb是否重新执行localdb
 	EnableReExecLocal bool `json:"enableReExecLocal,omitempty"`
+	// 关闭ExecLocal，不会影响ExecLocalSameTime的合约
+	DisableExecLocal bool `json:"disableExecLocal,omitempty"`
 	// 区块回退
 	RollbackBlock int64 `json:"rollbackBlock,omitempty"`
 	// 回退是否保存区块
@@ -206,8 +208,6 @@ type BlockChain struct {
 	DisableShard bool `protobuf:"varint,19,opt,name=disableShard" json:"disableShard,omitempty"`
 	// 使能从P2pStore中获取数据
 	EnableFetchP2pstore bool `json:"enableFetchP2pstore,omitempty"`
-	// 使能假设已删除已归档数据后,获取数据情况
-	EnableIfDelLocalChunk bool `json:"enableIfDelLocalChunk,omitempty"`
 	// 使能注册推送区块、区块头或交易回执
 	EnablePushSubscribe bool `json:"EnablePushSubscribe,omitempty"`
 	// 当前活跃区块的缓存数量
@@ -288,6 +288,7 @@ type Exec struct {
 	DisableTxIndex     bool `json:"disableTxIndex,omitempty"`
 	DisableFeeIndex    bool `json:"disableFeeIndex,omitempty"`
 	DisableTxDupCheck  bool `json:"disableTxDupCheck,omitempty"`
+	DisableExecLocal   bool `json:"disableExecLocal,omitempty"`
 }
 
 // Pprof 配置

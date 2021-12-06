@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	net "github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/libp2p/go-libp2p"
 	core "github.com/libp2p/go-libp2p-core"
@@ -24,31 +26,12 @@ import (
 	prototypes "github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
 	commlog.SetLogLevel("error")
 }
-
-var (
-	payload = []byte("testpayload")
-	minerTx = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 14600, Expire: 200}
-	tx      = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 4600, Expire: 2}
-	tx1     = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 460000000, Expire: 0}
-	tx2     = &types.Transaction{Execer: []byte("coins"), Payload: payload, Fee: 100, Expire: 1}
-	txList  = append([]*types.Transaction{}, minerTx, tx, tx1, tx2)
-
-	testBlock = &types.Block{
-		TxHash: []byte("test"),
-		Height: 10,
-		Txs:    txList,
-	}
-	testAddr   = "testPeerAddr"
-	testPidStr = "16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U"
-	testPid, _ = peer.Decode("16Uiu2HAm14hiGBFyFChPdG98RaNAMtcFJmgZjEQLuL87xsSkv72U")
-)
 
 func newHost(port int32) core.Host {
 	priv, _, _ := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
@@ -100,16 +83,15 @@ func newTestEnv(q queue.Queue) (*prototypes.P2PEnv, context.CancelFunc) {
 	return env, cancel
 }
 
-func newTestProtocolWithQueue(q queue.Queue) *broadcastProtocol {
+func newTestProtocolWithQueue(q queue.Queue) (*broadcastProtocol, context.CancelFunc) {
 	env, cancel := newTestEnv(q)
 	prototypes.ClearEventHandler()
 	p := &broadcastProtocol{syncStatus: true}
 	p.init(env)
-	cancel()
-	return p
+	return p, cancel
 }
 
-func newTestProtocol() *broadcastProtocol {
+func newTestProtocol() (*broadcastProtocol, context.CancelFunc) {
 
 	q := queue.New("test")
 	return newTestProtocolWithQueue(q)
@@ -117,43 +99,52 @@ func newTestProtocol() *broadcastProtocol {
 
 func TestBroadCastProtocol_InitProtocol(t *testing.T) {
 
-	protocol := newTestProtocol()
-	assert.Equal(t, defaultMinLtBlockSize, int(protocol.p2pCfg.MinLtBlockSize))
-	assert.Equal(t, defaultLtTxBroadCastTTL, int(protocol.p2pCfg.LightTxTTL))
+	protocol, cancel := newTestProtocol()
+	defer cancel()
+	assert.Equal(t, defaultMinLtBlockSize*1024, protocol.cfg.MinLtBlockSize)
+	assert.Equal(t, defaultLtBlockTimeout, int(protocol.cfg.LtBlockPendTimeout))
 }
 
-func testHandleEvent(protocol *broadcastProtocol, msg *queue.Message) {
-
-	defer func() {
-		if r := recover(); r != nil {
-		}
-	}()
-
-	protocol.handleBroadCastEvent(msg)
-}
-
-func TestBroadCastEvent(t *testing.T) {
-	protocol := newTestProtocol()
-	msgs := make([]*queue.Message, 0)
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{}))
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{}))
-	msgs = append(msgs, protocol.QueueClient.NewMessage("p2p", types.EventTx, &types.LightTx{}))
-
+func TestBroadcastSend(t *testing.T) {
+	protocol, cancel := newTestProtocol()
+	defer cancel()
+	msgs := []*queue.Message{
+		protocol.QueueClient.NewMessage("p2p", types.EventTxBroadcast, &types.Transaction{}),
+		protocol.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{}),
+		protocol.QueueClient.NewMessage("p2p", types.EventAddBlock, &types.Block{}),
+		protocol.QueueClient.NewMessage("p2p", types.EventBlockBroadcast, &types.Block{Txs: []*types.Transaction{tx1, tx2}}),
+	}
+	protocol.cfg.MinLtBlockSize = 0
 	for _, msg := range msgs {
-		testHandleEvent(protocol, msg)
+		protocol.handleBroadcastSend(msg)
 	}
 	_, ok := protocol.txFilter.Get(hex.EncodeToString((&types.Transaction{}).Hash()))
 	assert.True(t, ok)
 	_, ok = protocol.blockFilter.Get(hex.EncodeToString((&types.Block{}).Hash(protocol.ChainCfg)))
 	assert.True(t, ok)
+	_, ok = protocol.blockFilter.Get(hex.EncodeToString((&types.Block{Txs: []*types.Transaction{tx1, tx2}}).Hash(protocol.ChainCfg)))
+	assert.True(t, ok)
 }
 
-func Test_util(t *testing.T) {
-	proto := newTestProtocol()
-	exist := addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid1")
-	assert.False(t, exist)
-	exist = addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid2")
-	assert.False(t, exist)
-	exist = addIgnoreSendPeerAtomic(proto.txSendFilter, "hash", "pid1")
-	assert.True(t, exist)
+func TestBroadCastReceive(t *testing.T) {
+
+	p, cancel := newTestProtocol()
+	defer cancel()
+	pid := p.Host.ID()
+	peerTopic := p.getPeerTopic(pid)
+	msgs := []subscribeMsg{
+		{value: &types.Transaction{}, topic: psTxTopic},
+		{value: &types.Block{}, topic: psBlockTopic},
+		{value: &types.LightBlock{}, topic: psLtBlockTopic},
+		{value: &types.PeerPubSubMsg{MsgID: blockReqMsgID, ProtoMsg: types.Encode(&types.ReqInt{})}, topic: peerTopic},
+		{value: &types.PeerPubSubMsg{MsgID: blockRespMsgID}, topic: peerTopic},
+		{value: &types.PeerPubSubMsg{}, topic: peerTopic},
+	}
+	for _, msg := range msgs {
+		msg.receiveFrom = pid
+		msg.publisher = pid
+		p.handleBroadcastReceive(msg)
+	}
+	require.Equal(t, 0, p.ltB.pendBlockList.Len())
+	require.Equal(t, 0, p.ltB.blockRequestList.Len())
 }

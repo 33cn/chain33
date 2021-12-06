@@ -41,13 +41,14 @@ func DisableLog() {
 
 // Executor executor struct
 type Executor struct {
-	disableLocal   bool
-	client         queue.Client
-	qclient        client.QueueProtocolAPI
-	grpccli        types.Chain33Client
-	pluginEnable   map[string]bool
-	alias          map[string]string
-	noneDriverPool *sync.Pool
+	disableExecLocal bool
+	disableLocal     bool
+	client           queue.Client
+	qclient          client.QueueProtocolAPI
+	grpccli          types.Chain33Client
+	pluginEnable     map[string]bool
+	alias            map[string]string
+	noneDriverPool   *sync.Pool
 }
 
 func execInit(cfg *typ.Chain33Config) {
@@ -65,6 +66,7 @@ func New(cfg *typ.Chain33Config) *Executor {
 	mcfg := cfg.GetModuleConfig().Exec
 	exec := &Executor{}
 	exec.pluginEnable = make(map[string]bool)
+	exec.disableExecLocal = mcfg.DisableExecLocal
 	exec.pluginEnable["stat"] = mcfg.EnableStat
 	exec.pluginEnable["mvcc"] = mcfg.EnableMVCC
 	exec.pluginEnable["addrindex"] = !mcfg.DisableAddrIndex
@@ -436,16 +438,19 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 			}
 		}
 	}
-	for i := 0; i < len(b.Txs); i++ {
-		tx := b.Txs[i]
-		execute.localDB.(*LocalDB).StartTx()
-		kv, err := execute.execLocalTx(tx, datas.Receipts[i], i)
-		if err != nil {
-			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-			return
-		}
-		if kv != nil && kv.KV != nil {
-			kvset.KV = append(kvset.KV, kv.KV...)
+
+	if !exec.disableExecLocal {
+		for i := 0; i < len(b.Txs); i++ {
+			tx := b.Txs[i]
+			execute.localDB.(*LocalDB).StartTx()
+			kv, err := execute.execLocalTx(tx, datas.Receipts[i], i)
+			if err != nil {
+				msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+				return
+			}
+			if kv != nil && kv.KV != nil {
+				kvset.KV = append(kvset.KV, kv.KV...)
+			}
 		}
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
@@ -505,23 +510,25 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 			kvset.KV = append(kvset.KV, kvs...)
 		}
 	}
-	for i := len(b.Txs) - 1; i >= 0; i-- {
-		tx := b.Txs[i]
-		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
-		if err == types.ErrActionNotSupport {
-			continue
-		}
-		if err != nil {
-			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
-			return
-		}
-		if kv != nil && kv.KV != nil {
-			err := execute.checkPrefix(tx.Execer, kv.KV)
+	if !exec.disableExecLocal {
+		for i := len(b.Txs) - 1; i >= 0; i-- {
+			tx := b.Txs[i]
+			kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
+			if err == types.ErrActionNotSupport {
+				continue
+			}
 			if err != nil {
 				msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 				return
 			}
-			kvset.KV = append(kvset.KV, kv.KV...)
+			if kv != nil && kv.KV != nil {
+				err := execute.checkPrefix(tx.Execer, kv.KV)
+				if err != nil {
+					msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
+					return
+				}
+				kvset.KV = append(kvset.KV, kv.KV...)
+			}
 		}
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventDelBlock, &kvset))

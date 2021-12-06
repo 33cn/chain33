@@ -227,12 +227,11 @@ func DelDupKey(kvs []*types.KeyValue) []*types.KeyValue {
 	dupindex := make(map[string]int)
 	n := 0
 	for _, kv := range kvs {
-		skey := string(kv.Key)
-		if index, ok := dupindex[skey]; ok {
+		if index, ok := dupindex[string(kv.Key)]; ok {
 			//重复的key 替换老的key
 			kvs[index] = kv
 		} else {
-			dupindex[skey] = n
+			dupindex[string(kv.Key)] = n
 			kvs[n] = kv
 			n++
 		}

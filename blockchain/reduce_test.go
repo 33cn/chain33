@@ -10,17 +10,16 @@ import (
 	"os"
 	"testing"
 
+	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
-
-	dbm "github.com/33cn/chain33/common/db"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInitReduceLocaldb(t *testing.T) {
 
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
@@ -29,7 +28,7 @@ func TestInitReduceLocaldb(t *testing.T) {
 	chain := InitEnv()
 	//cfg := chain.client.GetConfig()
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 
 	// for test initReduceLocaldb
@@ -54,19 +53,19 @@ func TestInitReduceLocaldb(t *testing.T) {
 	}
 
 	flag, err = blockStore.loadFlag(types.FlagReduceLocaldb)
-	assert.NoError(t, err)
-	assert.Equal(t, flag, int64(1))
+	require.NoError(t, err)
+	require.Equal(t, flag, int64(1))
 
 	flagHeight, err = blockStore.loadFlag(types.ReduceLocaldbHeight)
-	assert.NoError(t, err)
-	assert.Equal(t, flagHeight, endHeight)
+	require.NoError(t, err)
+	require.Equal(t, flagHeight, endHeight)
 
 }
 
 func TestInitReduceLocaldb1(t *testing.T) {
 
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 
@@ -75,7 +74,7 @@ func TestInitReduceLocaldb1(t *testing.T) {
 	chain := InitEnv()
 	//cfg := chain.client.GetConfig()
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 
 	// for test initReduceLocaldb
@@ -86,12 +85,12 @@ func TestInitReduceLocaldb1(t *testing.T) {
 		defer func() {
 			if r := recover(); r != nil {
 				flag, err = blockStore.loadFlag(types.FlagReduceLocaldb)
-				assert.NoError(t, err)
-				assert.Equal(t, flag, int64(0))
+				require.NoError(t, err)
+				require.Equal(t, flag, int64(0))
 
 				flagHeight, err = blockStore.loadFlag(types.ReduceLocaldbHeight)
-				assert.NoError(t, err)
-				assert.NotEqual(t, flagHeight, endHeight)
+				require.NoError(t, err)
+				require.NotEqual(t, flagHeight, endHeight)
 				return
 			}
 		}()
@@ -118,14 +117,14 @@ func TestInitReduceLocaldb1(t *testing.T) {
 
 func TestReduceBody(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	chain := InitEnv()
 	cfg := chain.client.GetConfig()
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 
 	// generate blockdetail
@@ -147,15 +146,15 @@ func TestReduceBody(t *testing.T) {
 	// save blockdetail
 	newbatch := blockStore.NewBatch(true)
 	_, err = blockStore.SaveBlock(newbatch, blockdetail, 0)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	newbatch.Write()
 
 	// check
 	blockDetail, err := blockStore.LoadBlock(0, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {
-			assert.NotNil(t, log.Log)
+			require.NotNil(t, log.Log)
 		}
 	}
 
@@ -167,24 +166,24 @@ func TestReduceBody(t *testing.T) {
 	// check
 	cfg.S("reduceLocaldb", true)
 	blockDetail, err = blockStore.LoadBlock(0, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {
-			assert.Nil(t, log.Log)
+			require.Nil(t, log.Log)
 		}
 	}
 }
 
 func TestReduceBodyInit(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 100)
 	chain := InitEnv()
 	cfg := chain.client.GetConfig()
 	blockStore := NewBlockStore(chain, blockStoreDB, chain.client)
-	assert.NotNil(t, blockStore)
+	require.NotNil(t, blockStore)
 	chain.blockStore = blockStore
 
 	// generate blockdetail
@@ -206,7 +205,7 @@ func TestReduceBodyInit(t *testing.T) {
 	// save blockdetail
 	newbatch := blockStore.NewBatch(true)
 	_, err = blockStore.SaveBlock(newbatch, blockdetail, 0)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	newbatch.Write()
 
 	// save tx TxResult
@@ -232,23 +231,23 @@ func TestReduceBodyInit(t *testing.T) {
 	// check
 	// 1 body
 	blockDetail, err := blockStore.LoadBlock(0, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	for _, recep := range blockDetail.Receipts {
 		for _, log := range recep.Logs {
-			assert.Nil(t, log.Log)
+			require.Nil(t, log.Log)
 		}
 	}
 	// 2 tx
 	for _, tx := range txs {
 		hash := tx.Hash()
 		_, err := blockStore.db.Get(hash)
-		assert.Error(t, err, types.ErrNotFound)
+		require.Error(t, err, types.ErrNotFound)
 		v, err := blockStore.db.Get(cfg.CalcTxKey(hash))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		var txresult types.TxResult
 		err = types.Decode(v, &txresult)
-		assert.NoError(t, err)
-		assert.Nil(t, txresult.Receiptdate)
+		require.NoError(t, err)
+		require.Nil(t, txresult.Receiptdate)
 	}
 }
 
@@ -267,16 +266,16 @@ func TestReduceReceipts(t *testing.T) {
 	// check
 	for _, recpt := range body.Receipts {
 		for _, log := range recpt.Logs {
-			assert.NotNil(t, log.Log)
+			require.NotNil(t, log.Log)
 		}
 	}
 
 	for _, recpt := range dstReceipts {
 		for _, log := range recpt.Logs {
 			if log.Ty == types.TyLogErr {
-				assert.NotNil(t, log.Log)
+				require.NotNil(t, log.Log)
 			} else {
-				assert.Nil(t, log.Log)
+				require.Nil(t, log.Log)
 			}
 		}
 	}
