@@ -29,8 +29,8 @@ const (
 	subscribeStatusNotActive = int32(2)
 	postFail2Sleep           = int32(60) //一次发送失败，sleep的次数
 	chanBufCap               = int(10)
-	encodeJSON            = "jrpc"
-	encodeGrpc            = "grpc"
+	encodeJSON               = "jrpc"
+	encodeGrpc               = "grpc"
 )
 
 // PushType ...
@@ -48,6 +48,7 @@ const (
 	//PushEVMEvent push evem tx event
 	PushEVMEvent
 )
+
 //String format string
 func (p PushType) String() string {
 	str := [...]string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "PushEVMEvent", "NotSupported"}
@@ -115,7 +116,7 @@ type Push struct {
 
 //PushClient ...
 type PushClient struct {
-	client *http.Client
+	client  *http.Client
 	qclient queue.Client
 }
 
