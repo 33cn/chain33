@@ -431,8 +431,8 @@ func (push *Push) hasSubscriberExist(subscribe *types.PushSubscribeReq) (bool, *
 	if err == nil {
 		var pushWithStatus types.PushWithStatus
 		err = types.Decode(value, &pushWithStatus)
-		if err!=nil{
-			return false,nil
+		if err != nil {
+			return false, nil
 		}
 		return true, pushWithStatus.Push
 	}
