@@ -892,6 +892,7 @@ func mockblockchain(t *testing.T, q queue.Queue) {
 	}()
 }
 
+
 func TestGrpc_SubEvent(t *testing.T) {
 	c := queue.New("mytest")
 	chain33Cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
@@ -902,6 +903,7 @@ func TestGrpc_SubEvent(t *testing.T) {
 
 	qcli := c.Client()
 	api, err := client.New(qcli, nil)
+	assert.Nil(t, err)
 	gapi := NewGRpcServer(qcli, api)
 	rpc := new(RPC)
 	rpc.cfg = rpcCfg
@@ -930,7 +932,7 @@ func TestGrpc_SubEvent(t *testing.T) {
 		t.Log("SubEvent err:", err)
 		return
 	}
-	data, err := stream.Recv()
+	_, err = stream.Recv()
 	assert.NotNil(t, err)
 	in.Contract = make(map[string]bool)
 	in.Contract["token"] = true
@@ -940,7 +942,7 @@ func TestGrpc_SubEvent(t *testing.T) {
 		return
 	}
 
-	data, err = stream.Recv()
+	data, err := stream.Recv()
 	assert.Nil(t, err)
 	t.Log("data:", data)
 

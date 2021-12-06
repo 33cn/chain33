@@ -6,6 +6,7 @@ package rpc
 
 import (
 	"errors"
+	"github.com/33cn/chain33/queue"
 	"net/http"
 	"testing"
 	"time"
@@ -230,8 +231,8 @@ func TestGrpc_Call(t *testing.T) {
 func TestRPC(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	rpcCfg := cfg.GetModuleConfig().RPC
-	rpcCfg.JrpcBindAddr = "8801"
-	rpcCfg.GrpcBindAddr = "8802"
+	rpcCfg.JrpcBindAddr = "localhost:8801"
+	rpcCfg.GrpcBindAddr = "localhost:8802"
 	rpcCfg.Whitlist = []string{"127.0.0.1"}
 	rpcCfg.JrpcFuncBlacklist = []string{"CloseQueue"}
 	rpcCfg.GrpcFuncBlacklist = []string{"CloseQueue"}
@@ -240,6 +241,9 @@ func TestRPC(t *testing.T) {
 	rpc := New(cfg)
 	client := &qmocks.Client{}
 	client.On("GetConfig", mock.Anything).Return(cfg)
+	client.On("Sub",mock.Anything).Return(mock.Anything)
+	var ret chan *queue.Message
+	client.On("Recv",mock.Anything).Return(ret)
 	rpc.SetQueueClient(client)
 
 	assert.Equal(t, client, rpc.GetQueueClient())
