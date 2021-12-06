@@ -374,9 +374,8 @@ func (r *RPC) handleSysEvent() {
 				for ch := range topicInfo.subChan {
 					select {
 					case <-ticker.C:
-						log.Error("handleSysEvent", "ticketimeout", rmsg.GetData().(*types.PushData).GetName())
+						log.Error("handleSysEvent", "ticker timeout", rmsg.GetData().(*types.PushData).GetName())
 					case ch <- rmsg:
-						//log.Info("handleSysEvent","users:",len(topicInfo.subChan))
 						msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
 
 					}
