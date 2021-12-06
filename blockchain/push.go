@@ -29,23 +29,26 @@ const (
 	subscribeStatusNotActive = int32(2)
 	postFail2Sleep           = int32(60) //一次发送失败，sleep的次数
 	chanBufCap               = int(10)
-	subEncodeJson            = "jrpc"
-	subEncodeGrpc            = "grpc"
-	subEncodeProto           = "proto"
+	encodeJSON            = "jrpc"
+	encodeGrpc            = "grpc"
 )
 
-// Push types ID
 // PushType ...
 type PushType int32
 
 const (
+	//PushBlock push block
 	PushBlock PushType = iota
+	//PushBlockHeader push block header
 	PushBlockHeader
+	//PushTxReceipt push tx receipt
 	PushTxReceipt
+	//PushTxResult push tx result
 	PushTxResult
+	//PushEVMEvent push evem tx event
 	PushEVMEvent
 )
-
+//String format string
 func (p PushType) String() string {
 	str := [...]string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "PushEVMEvent", "NotSupported"}
 	if p < 0 || int(p) >= len(str) {
@@ -113,11 +116,10 @@ type Push struct {
 //PushClient ...
 type PushClient struct {
 	client *http.Client
-	//pubCli  *pubsub.PubSub
 	qclient queue.Client
 }
 
-func buildRpcData(data []byte, subscribe *types.PushSubscribeReq) (*types.PushData, int64, error) {
+func buildRPCData(data []byte, subscribe *types.PushSubscribeReq) (*types.PushData, int64, error) {
 	var ty int64
 	var pushData types.PushData
 	pushData.Name = subscribe.GetName()
@@ -158,10 +160,8 @@ func buildRpcData(data []byte, subscribe *types.PushSubscribeReq) (*types.PushDa
 //PostData ...
 func (pushClient *PushClient) PostData(subscribe *types.PushSubscribeReq, postdata []byte, seq int64) (err error) {
 	//post data in body
-
-	if subscribe.GetEncode() == subEncodeGrpc && subscribe.GetURL() == "" { //通过queue模块推送给rpc订阅者 GRPC订阅模式
-		//chainlog.Debug("PostData","sub type",(PushType)(subscribe.Type).String(),"encode:",subscribe.Encode)
-		data, ty, err := buildRpcData(postdata, subscribe)
+	if subscribe.GetEncode() == encodeGrpc && subscribe.GetURL() == "" { //通过queue模块推送给rpc订阅者 GRPC订阅模式
+		data, ty, err := buildRPCData(postdata, subscribe)
 		if err != nil {
 			return err
 		}
@@ -789,7 +789,7 @@ func (push *Push) getEVMEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 
 	var postdata []byte
 	var err error
-	if subscribe.Encode == "json" {
+	if subscribe.Encode == encodeJSON {
 		postdata, err = types.PBToJSON(evmlogs)
 		if err != nil {
 			return nil, -1, err
@@ -854,7 +854,7 @@ func (push *Push) getTxReceipts(subscribe *types.PushSubscribeReq, startSeq int6
 
 	var postdata []byte
 	var err error
-	if subscribe.Encode == "json" {
+	if subscribe.Encode == encodeJSON {
 		postdata, err = types.PBToJSON(txReceipts)
 		if err != nil {
 			return nil, -1, err
@@ -904,7 +904,7 @@ func (push *Push) getTxResults(encode string, seq int64, seqCount int) ([]byte, 
 
 	var postdata []byte
 	var err error
-	if encode == "json" {
+	if encode == encodeJSON {
 		postdata, err = types.PBToJSON(&txResultSeqs)
 		if err != nil {
 			return nil, -1, err
@@ -934,7 +934,7 @@ func (push *Push) getBlockSeqs(encode string, seq int64, seqCount, maxSize int) 
 
 	var postdata []byte
 	var err error
-	if encode == "json" {
+	if encode == encodeJSON {
 		postdata, err = types.PBToJSON(seqs)
 		if err != nil {
 			return nil, -1, err
@@ -965,7 +965,7 @@ func (push *Push) getHeaderSeqs(encode string, seq int64, seqCount, maxSize int)
 	var postdata []byte
 	var err error
 
-	if encode == "json" {
+	if encode == encodeJSON {
 		postdata, err = types.PBToJSON(seqs)
 		if err != nil {
 			return nil, -1, err

@@ -6,10 +6,11 @@ package rpc
 
 import (
 	"errors"
-	"github.com/33cn/chain33/queue"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/33cn/chain33/queue"
 
 	"github.com/golang/protobuf/proto"
 
@@ -241,9 +242,9 @@ func TestRPC(t *testing.T) {
 	rpc := New(cfg)
 	client := &qmocks.Client{}
 	client.On("GetConfig", mock.Anything).Return(cfg)
-	client.On("Sub",mock.Anything).Return(mock.Anything)
+	client.On("Sub", mock.Anything).Return(mock.Anything)
 	var ret chan *queue.Message
-	client.On("Recv",mock.Anything).Return(ret)
+	client.On("Recv", mock.Anything).Return(ret)
 	rpc.SetQueueClient(client)
 
 	assert.Equal(t, client, rpc.GetQueueClient())

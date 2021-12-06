@@ -70,13 +70,13 @@ type Grpcserver struct {
 	l    net.Listener
 }
 
-func (g *Grpc) AddSubInfo(in *subInfo) {
+func (g *Grpc) addSubInfo(in *subInfo) {
 	g.cachelock.Lock()
 	defer g.cachelock.Unlock()
-	//in.users+=1
 	g.subCache[in.topic] = in
 }
-func (g *Grpc) AddSubChan(topic string, dch chan *queue.Message) {
+
+func (g *Grpc) addSubChan(topic string, dch chan *queue.Message) {
 	g.cachelock.Lock()
 	defer g.cachelock.Unlock()
 	info, ok := g.subCache[topic]
@@ -85,7 +85,7 @@ func (g *Grpc) AddSubChan(topic string, dch chan *queue.Message) {
 	}
 }
 
-func (g *Grpc) DelSubInfo(topic string, dch chan *queue.Message) {
+func (g *Grpc) delSubInfo(topic string, dch chan *queue.Message) {
 	g.cachelock.Lock()
 	defer g.cachelock.Unlock()
 	info, ok := g.subCache[topic]
@@ -97,14 +97,14 @@ func (g *Grpc) DelSubInfo(topic string, dch chan *queue.Message) {
 	}
 
 }
-func (g *Grpc) HashTopic(topic string) *subInfo {
+func (g *Grpc) hashTopic(topic string) *subInfo {
 	g.cachelock.Lock()
 	defer g.cachelock.Unlock()
-	info, _ := g.subCache[topic]
+	info := g.subCache[topic]
 	return info
 }
 
-func (g *Grpc) ListSubInfo() []*subInfo {
+func (g *Grpc) listSubInfo() []*subInfo {
 	g.cachelock.Lock()
 	defer g.cachelock.Unlock()
 	var infos []*subInfo
@@ -114,7 +114,7 @@ func (g *Grpc) ListSubInfo() []*subInfo {
 	return infos
 }
 
-func (g *Grpc) GetSubUsers(topic string) uint32 {
+func (g *Grpc) getSubUsers(topic string) uint32 {
 	g.cachelock.Lock()
 	defer g.cachelock.Unlock()
 	info, ok := g.subCache[topic]
@@ -362,7 +362,7 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 func (r *RPC) handleSysEvent() {
 	r.cli.Sub("rpc")
 	for msg := range r.cli.Recv() {
-		topicInfo := r.gapi.grpc.HashTopic(msg.GetData().(*types.PushData).GetName())
+		topicInfo := r.gapi.grpc.hashTopic(msg.GetData().(*types.PushData).GetName())
 		if topicInfo != nil {
 			go func(rmsg *queue.Message) {
 				var ticker = time.NewTicker(time.Millisecond * 200)

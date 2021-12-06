@@ -892,7 +892,6 @@ func mockblockchain(t *testing.T, q queue.Queue) {
 	}()
 }
 
-
 func TestGrpc_SubEvent(t *testing.T) {
 	c := queue.New("mytest")
 	chain33Cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
