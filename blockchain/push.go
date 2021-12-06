@@ -20,7 +20,7 @@ import (
 
 const (
 	notRunning               = int32(1)
-	running                  = int32(1)
+	running                  = int32(2)
 	pushBlockMaxSeq          = 10
 	pushTxReceiptMaxSeq      = 100
 	pushMaxSize              = 1 * 1024 * 1024
