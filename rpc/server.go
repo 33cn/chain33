@@ -101,7 +101,10 @@ func (g *Grpc) hashTopic(topic string) *subInfo {
 	g.cachelock.Lock()
 	defer g.cachelock.Unlock()
 	info := g.subCache[topic]
-	return info
+	//clone subinfo
+	var cinfo subInfo
+	cinfo = *info
+	return &cinfo
 }
 
 func (g *Grpc) listSubInfo() []*subInfo {
