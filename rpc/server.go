@@ -47,8 +47,7 @@ type Chain33 struct {
 
 // Grpc a channelClient
 type Grpc struct {
-	cli channelClient
-
+	cli       channelClient
 	cachelock sync.Mutex
 	subCache  map[string]*subInfo // topic -->subInfo
 }
@@ -59,7 +58,8 @@ type subInfo struct {
 	//订阅的消息类型
 	subType string
 	//订阅开始的时间
-	since   time.Time
+	since time.Time
+	//同一个topic下多个订阅者分配不同的channel来接收订阅的消息
 	subChan map[chan *queue.Message]string
 }
 
@@ -100,11 +100,12 @@ func (g *Grpc) delSubInfo(topic string, dch chan *queue.Message) {
 func (g *Grpc) hashTopic(topic string) *subInfo {
 	g.cachelock.Lock()
 	defer g.cachelock.Unlock()
-	info := g.subCache[topic]
-	//clone subinfo
-	var cinfo subInfo
-	cinfo = *info
-	return &cinfo
+	if info, ok := g.subCache[topic]; ok {
+		//clone subinfo
+		cinfo := *info
+		return &cinfo
+	}
+	return nil
 }
 
 func (g *Grpc) listSubInfo() []*subInfo {
@@ -368,7 +369,8 @@ func (r *RPC) handleSysEvent() {
 		topicInfo := r.gapi.grpc.hashTopic(msg.GetData().(*types.PushData).GetName())
 		if topicInfo != nil {
 			go func(rmsg *queue.Message) {
-				var ticker = time.NewTicker(time.Millisecond * 200)
+				ticker := time.NewTicker(time.Millisecond * 200)
+				defer ticker.Stop()
 				for ch := range topicInfo.subChan {
 					select {
 					case <-ticker.C:

@@ -618,7 +618,6 @@ func (push *Push) runTask(input *pushNotify) {
 				}
 
 				if data != nil {
-					chainlog.Info("PostData", "topic", subscribe.GetName(), "data size", len(data))
 					err = push.postService.PostData(subscribe, data, updateSeq)
 					if err != nil {
 						continueFailCount++
