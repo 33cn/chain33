@@ -359,6 +359,12 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 
+	case "GetCoinSymbol":
+		reply, err := rpc.GetCoinSymbol(context.Background(), c.Params.(*types.ReqNil))
+		if err == nil {
+			c.Res = reply
+		}
+		errRet = err
 	default:
 		errRet = errors.New(fmt.Sprintf("Unsupport method %v", c.Method))
 	}

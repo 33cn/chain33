@@ -7,6 +7,7 @@ import "wallet.proto";
 import "p2p.proto";
 import "account.proto";
 import "executor.proto";
+import "push_tx_receipt.proto";
 
 package types;
 option go_package = "github.com/33cn/chain33/types";
@@ -244,4 +245,24 @@ service chain33 {
 
     // 获取节点配置信息
     rpc GetChainConfig(ReqNil) returns (ChainConfigInfo) {}
+
+    //根据执行期名称创建对应的地址
+    rpc ConvertExectoAddr(ReqString) returns (ReplyString) {}
+
+    // get coin symbol
+    rpc GetCoinSymbol(ReqNil) returns (ReplyString) {}
+
+    // ReWriteRawTx
+    rpc ReWriteTx(ReWriteRawTx) returns (UnsignTx) {}
+    // GetBlockSequences
+    rpc GetBlockSequences(ReqBlocks) returns (BlockSequences) {}
+    //兼容jrpc订阅接口
+    rpc AddPushSubscribe(PushSubscribeReq) returns (ReplySubscribePush) {}
+
+    rpc ListPushes(ReqNil) returns (PushSubscribes) {}
+
+    rpc GetPushSeqLastNum(ReqString) returns (Int64) {}
+
+    //发送订阅的数据到客户端
+    rpc SubEvent(ReqSubscribe) returns (stream PushData) {}
 }

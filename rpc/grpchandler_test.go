@@ -7,8 +7,15 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
-	"testing"
+	"time"
 
+	"github.com/33cn/chain33/queue"
+	"google.golang.org/grpc"
+
+	//"sync"
+	"testing"
+	//"time"
+	"github.com/33cn/chain33/client"
 	"github.com/stretchr/testify/require"
 
 	"strings"
@@ -597,7 +604,7 @@ func TestReWriteRawTx(t *testing.T) {
 		Index:  0,
 	}
 
-	data, err := g.ReWriteRawTx(getOkCtx(), in)
+	data, err := g.ReWriteTx(getOkCtx(), in)
 	assert.Nil(t, err)
 	assert.NotNil(t, data.Data)
 	rtTx := hex.EncodeToString(data.Data)
@@ -666,6 +673,12 @@ func TestGrpc_ExecWallet(t *testing.T) {
 func TestGrpc_GetLastBlockSequence(t *testing.T) {
 	qapi.On("GetLastBlockSequence", mock.Anything).Return(nil, nil)
 	_, err := g.GetLastBlockSequence(getOkCtx(), &types.ReqNil{})
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetBlockSequences(t *testing.T) {
+	qapi.On("GetBlockSequences", mock.Anything).Return(nil, nil)
+	_, err := g.GetBlockSequences(getOkCtx(), &types.ReqBlocks{})
 	assert.NoError(t, err)
 }
 
@@ -784,4 +797,149 @@ func TestGrpc_SendTransactions(t *testing.T) {
 
 	require.Equal(t, testMsg, reply.GetReplyList()[txCount-1].Msg)
 	require.True(t, reply.GetReplyList()[txCount-1].IsOk)
+}
+
+func TestGrpc_ConvertExectoAddr(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	g := Grpc{}
+	qapi = new(mocks.QueueProtocolAPI)
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
+	g.cli.QueueProtocolAPI = qapi
+	replyStr, err := g.ConvertExectoAddr(getOkCtx(), &types.ReqString{Data: "coins"})
+	assert.NoError(t, err)
+	t.Log("execAddr:", replyStr)
+	assert.Equal(t, "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt", replyStr.GetData())
+}
+
+func TestGrpc_GetCoinSymbol(t *testing.T) {
+
+	reply, err := g.GetCoinSymbol(context.Background(), &types.ReqNil{})
+	assert.NoError(t, err)
+	t.Log(reply.GetData())
+}
+
+func TestGrpc_ListPushes(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	g := Grpc{}
+	qapi = new(mocks.QueueProtocolAPI)
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
+	g.cli.QueueProtocolAPI = qapi
+	qapi.On("ListPushes", mock.Anything).Return(&types.PushSubscribes{
+		Pushes: []*types.PushSubscribeReq{{Name: "mytest-block", Encode: "grpc", Type: 0}},
+	}, nil)
+	list, err := g.ListPushes(getOkCtx(), &types.ReqNil{})
+	assert.NoError(t, err)
+	t.Log(list)
+	assert.Equal(t, 1, len(list.Pushes))
+	assert.Equal(t, "mytest-block", list.Pushes[0].GetName())
+	qapi.On("GetPushSeqLastNum", mock.Anything).Return(&types.Int64{Data: 122}, nil)
+	seq, err := g.GetPushSeqLastNum(getOkCtx(), &types.ReqString{})
+	assert.NoError(t, err)
+	assert.Equal(t, int64(122), seq.GetData())
+
+}
+
+func TestGrpc_AddPushSubscribe(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	g := Grpc{}
+	qapi = new(mocks.QueueProtocolAPI)
+	qapi.On("GetConfig", mock.Anything).Return(cfg)
+	g.cli.QueueProtocolAPI = qapi
+	qapi.On("AddPushSubscribe", &types.PushSubscribeReq{}).Return(&types.ReplySubscribePush{IsOk: false}, types.ErrInvalidParam)
+	_, err := g.AddPushSubscribe(getOkCtx(), &types.PushSubscribeReq{})
+	assert.NotNil(t, err)
+
+}
+
+func mockblockchain(t *testing.T, q queue.Queue) {
+	go func() {
+		blockchainKey := "blockchain"
+		client := q.Client()
+		client.Sub(blockchainKey)
+		for msg := range client.Recv() {
+			t.Log("mockblockchain recv:", msg)
+			switch msg.Ty {
+			case types.EventSubscribePush:
+				//checkparam
+				req, _ := msg.GetData().(*types.PushSubscribeReq)
+				if req.GetType() == 2 || req.GetType() == 4 {
+					if len(req.GetContract()) == 0 {
+						t.Log("no config contractparam")
+						msg.Reply(client.NewMessage("rpc", types.EventReplySubscribePush, &types.ReplySubscribePush{IsOk: false, Msg: types.ErrInvalidParam.Error() + ":contractor must be configure"}))
+						continue
+					}
+				}
+
+				msg.Reply(client.NewMessage("rpc", types.EventReplySubscribePush, &types.ReplySubscribePush{IsOk: true}))
+				var txreceipt types.TxReceipts4Subscribe
+				var senddata types.PushData
+				senddata.Name = req.GetName()
+				senddata.Value = &types.PushData_TxReceipts{
+					TxReceipts: &txreceipt,
+				}
+				time.Sleep(time.Millisecond * 300)
+				cmsg := client.NewMessage("rpc", types.EventPushTxReceipt, &senddata)
+				client.SendTimeout(cmsg, false, time.Second)
+
+				t.Log("sendata", cmsg)
+			default:
+				t.Log("unsupport msg type", msg.Ty)
+			}
+		}
+	}()
+}
+
+func TestGrpc_SubEvent(t *testing.T) {
+	c := queue.New("mytest")
+	chain33Cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
+	c.SetConfig(chain33Cfg)
+	go mockblockchain(t, c)
+	rpcCfg = new(types.RPC)
+	rpcCfg.GrpcBindAddr = "127.0.0.1:18802"
+
+	qcli := c.Client()
+	api, err := client.New(qcli, nil)
+	assert.Nil(t, err)
+	gapi := NewGRpcServer(qcli, api)
+	rpc := new(RPC)
+	rpc.cfg = rpcCfg
+	rpc.gapi = gapi
+	rpc.cli = qcli
+	rpc.api = api
+	go rpc.handleSysEvent()
+	defer gapi.Close()
+
+	go gapi.Listen()
+
+	time.Sleep(time.Millisecond * 500)
+	conn, err := grpc.Dial("127.0.0.1:18802", grpc.WithInsecure())
+	if err != nil {
+		t.Log("err", err)
+		return
+	}
+
+	gcli := types.NewChain33Client(conn)
+	var in types.ReqSubscribe
+	in.Name = "test-tx"
+	in.Type = 2
+
+	stream, err := gcli.SubEvent(context.Background(), &in)
+	if err != nil {
+		t.Log("SubEvent err:", err)
+		return
+	}
+	_, err = stream.Recv()
+	assert.NotNil(t, err)
+	in.Contract = make(map[string]bool)
+	in.Contract["token"] = true
+	stream, err = gcli.SubEvent(context.Background(), &in)
+	if err != nil {
+		t.Log("SubEvent err:", err)
+		return
+	}
+
+	data, err := stream.Recv()
+	assert.Nil(t, err)
+	t.Log("data:", data)
+
 }

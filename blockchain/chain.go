@@ -277,7 +277,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
 	if chain.enablePushSubscribe && chain.isRecordBlockSequence {
-		chain.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+		chain.push = newpush(chain.blockStore, chain.blockStore, chain.client)
 		chainlog.Info("chain push is setup")
 	}
 

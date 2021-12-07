@@ -25,6 +25,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/wallet"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -184,7 +185,18 @@ func Test_addSubscriber_InvalidURL(t *testing.T) {
 	subscribe.Name = "push-test"
 	subscribe.URL = ""
 	err := chain.push.addSubscriber(subscribe)
-	require.Equal(t, err, types.ErrInvalidParam)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), types.ErrInvalidParam.Error())
+}
+
+func Test_addSubscriber_Encode(t *testing.T) {
+	chain, mock33 := createBlockChain(t)
+	defer mock33.Close()
+	subscribe := new(types.PushSubscribeReq)
+	subscribe.Name = "push-test"
+	subscribe.Encode = "grpc"
+	err := chain.push.addSubscriber(subscribe)
+	assert.Nil(t, err)
 }
 
 func Test_addSubscriber_InvalidType(t *testing.T) {
@@ -194,7 +206,7 @@ func Test_addSubscriber_InvalidType(t *testing.T) {
 	subscribe.Name = "push-test"
 	subscribe.Type = int32(4)
 	err := chain.push.addSubscriber(subscribe)
-	require.Equal(t, err, types.ErrInvalidParam)
+	assert.Contains(t, err.Error(), types.ErrInvalidParam.Error())
 }
 
 func Test_addSubscriber_inconsistentSeqHash(t *testing.T) {
@@ -243,7 +255,7 @@ func Test_addSubscriber_Success(t *testing.T) {
 		isRecordBlockSequence: true,
 		enablePushSubscribe:   true,
 	}
-	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client)
 	recoverpushes, _ := chainAnother.ProcListPush()
 	require.Equal(t, subscribe.Name, recoverpushes.Pushes[0].Name)
 }
@@ -292,7 +304,7 @@ func Test_PostBlockFail(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushBlock
+	subscribe.Type = int32(PushBlock)
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
@@ -339,7 +351,7 @@ func Test_PostDataFail(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushBlock
+	subscribe.Type = int32(PushBlock)
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
@@ -364,7 +376,7 @@ func Test_PostBlockSuccess(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushBlock
+	subscribe.Type = int32(PushBlock)
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
@@ -398,7 +410,7 @@ func Test_PostBlockHeaderSuccess(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushBlockHeader
+	subscribe.Type = int32(PushBlockHeader)
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
@@ -427,7 +439,7 @@ func Test_PostTxReceipt(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushTxReceipt
+	subscribe.Type = int32(PushTxReceipt)
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["coins"] = true
 
@@ -502,7 +514,7 @@ func Test_PostEVMEvent_Subscribe(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test-evm-event"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushEVMEvent
+	subscribe.Type = int32(PushEVMEvent)
 	subscribe.Encode = "json"
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
@@ -570,6 +582,7 @@ func Test_PostEVMEvent(t *testing.T) {
 		Height: 1,
 		Txs:    txs,
 	}
+
 	//将第二笔交易的payload设置为不能反序列化的数据
 	txs[1].Payload = []byte{1, 2}
 
@@ -587,7 +600,7 @@ func Test_PostEVMEvent(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test-evm-event"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushEVMEvent
+	subscribe.Type = int32(PushEVMEvent)
 	subscribe.Encode = "proto"
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
@@ -669,7 +682,7 @@ func Test_PostEVMEvent_bigsize(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test-evm-event"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushEVMEvent
+	subscribe.Type = int32(PushEVMEvent)
 	subscribe.Encode = "json"
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
@@ -747,7 +760,7 @@ func Test_PostEVMEvent_notJson(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test-evm-event"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushEVMEvent
+	subscribe.Type = int32(PushEVMEvent)
 	subscribe.Encode = "other"
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
@@ -820,7 +833,7 @@ func Test_PostEVMEvent_badLog(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test-evm-event"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushEVMEvent
+	subscribe.Type = int32(PushEVMEvent)
 	subscribe.Encode = "not json"
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
@@ -899,7 +912,7 @@ func Test_PostEVMEvent_nil(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test-evm-event"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushEVMEvent
+	subscribe.Type = int32(PushEVMEvent)
 	subscribe.Encode = "not json"
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
@@ -935,7 +948,7 @@ func Test_PostEVMEvent_errProcess(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test-evm-event"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushEVMEvent
+	subscribe.Type = int32(PushEVMEvent)
 	subscribe.Encode = "json"
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["165UZpSHske8hryahjM91kAWMJRW47Hn7E"] = true
@@ -961,7 +974,7 @@ func Test_AddPush_reachMaxNum(t *testing.T) {
 		subscribe := new(types.PushSubscribeReq)
 		subscribe.Name = "push-test"
 		subscribe.URL = "http://localhost"
-		subscribe.Type = PushTxReceipt
+		subscribe.Type = int32(PushTxReceipt)
 		subscribe.Contract = make(map[string]bool)
 		subscribe.Contract["coins"] = true
 		subscribe.Name = "push-test-" + fmt.Sprintf("%d", i)
@@ -971,7 +984,7 @@ func Test_AddPush_reachMaxNum(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushTxReceipt
+	subscribe.Type = int32(PushTxReceipt)
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["coins"] = true
 	subscribe.Name = "push-test-lastOne"
@@ -991,7 +1004,7 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 		subscribe := new(types.PushSubscribeReq)
 		subscribe.Name = "push-test"
 		subscribe.URL = "http://localhost"
-		subscribe.Type = PushTxReceipt
+		subscribe.Type = int32(PushTxReceipt)
 		subscribe.Contract = make(map[string]bool)
 		subscribe.Contract["coins"] = true
 		subscribe.Name = "push-test-" + fmt.Sprintf("%d", i)
@@ -1004,7 +1017,7 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushTxReceipt
+	subscribe.Type = int32(PushTxReceipt)
 	subscribe.Contract = make(map[string]bool)
 	subscribe.Contract["coins"] = true
 	subscribe.Name = "push-test-" + fmt.Sprintf("%d", 9)
@@ -1017,8 +1030,8 @@ func Test_AddPush_PushNameShouldDiff(t *testing.T) {
 		isRecordBlockSequence: true,
 		enablePushSubscribe:   true,
 	}
-	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
-	require.Equal(t, 10, len(chainAnother.push.tasks))
+	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client)
+	assert.Equal(t, 10, len(chainAnother.push.tasks))
 	for _, name := range pushNames {
 		require.NotEqual(t, chainAnother.push.tasks[string(calcPushKey(name))], nil)
 	}
@@ -1039,7 +1052,7 @@ func Test_rmPushFailTask(t *testing.T) {
 		subscribe := new(types.PushSubscribeReq)
 		subscribe.Name = "push-test"
 		subscribe.URL = "http://localhost"
-		subscribe.Type = PushTxReceipt
+		subscribe.Type = int32(PushTxReceipt)
 		subscribe.Contract = make(map[string]bool)
 		subscribe.Contract["coins"] = true
 
@@ -1094,7 +1107,7 @@ func Test_ReactivePush(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushBlock
+	subscribe.Type = int32(PushBlock)
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
@@ -1148,7 +1161,7 @@ func Test_RecoverPush(t *testing.T) {
 	subscribe := new(types.PushSubscribeReq)
 	subscribe.Name = "push-test"
 	subscribe.URL = "http://localhost"
-	subscribe.Type = PushBlock
+	subscribe.Type = int32(PushBlock)
 
 	err := chain.push.addSubscriber(subscribe)
 	time.Sleep(2 * time.Second)
@@ -1182,7 +1195,7 @@ func Test_RecoverPush(t *testing.T) {
 		isRecordBlockSequence: true,
 		enablePushSubscribe:   true,
 	}
-	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client.GetConfig())
+	chainAnother.push = newpush(chain.blockStore, chain.blockStore, chain.client)
 	var nilInfo *pushNotify
 	require.Equal(t, chainAnother.push.tasks[string(calcPushKey(subscribe.Name))], nilInfo)
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/33cn/chain33/common"
 	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 )
 
@@ -28,16 +29,34 @@ const (
 	subscribeStatusNotActive = int32(2)
 	postFail2Sleep           = int32(60) //一次发送失败，sleep的次数
 	chanBufCap               = int(10)
+	encodeJSON               = "jrpc"
+	encodeGrpc               = "grpc"
 )
 
-// Push types ID
+// PushType ...
+type PushType int32
+
 const (
-	PushBlock       = int32(0)
-	PushBlockHeader = int32(1)
-	PushTxReceipt   = int32(2)
-	PushTxResult    = int32(3)
-	PushEVMEvent    = int32(4)
+	//PushBlock push block
+	PushBlock PushType = iota
+	//PushBlockHeader push block header
+	PushBlockHeader
+	//PushTxReceipt push tx receipt
+	PushTxReceipt
+	//PushTxResult push tx result
+	PushTxResult
+	//PushEVMEvent push evem tx event
+	PushEVMEvent
 )
+
+//String format string
+func (p PushType) String() string {
+	str := [...]string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "PushEVMEvent", "NotSupported"}
+	if p < 0 || int(p) >= len(str) {
+		return "(unrecognized)"
+	}
+	return str[p]
+}
 
 // CommonStore 通用的store 接口
 // 修改大一点，可能可以用 db.KVDB
@@ -65,7 +84,7 @@ type SequenceStore interface {
 	GetSequenceByHash(hash []byte) (int64, error)
 }
 
-//PostService ...
+//PostService ... post rawdata to subscriber
 type PostService interface {
 	PostData(subscribe *types.PushSubscribeReq, postdata []byte, seq int64) (err error)
 }
@@ -97,20 +116,71 @@ type Push struct {
 
 //PushClient ...
 type PushClient struct {
-	client *http.Client
+	client  *http.Client
+	qclient queue.Client
 }
 
-// PushType ...
-type PushType int32
+func buildRPCData(data []byte, subscribe *types.PushSubscribeReq) (*types.PushData, int64, error) {
+	var ty int64
+	var pushData types.PushData
+	pushData.Name = subscribe.GetName()
+	switch (PushType)(subscribe.Type) {
+	case PushBlock:
+		var block types.BlockSeqs
+		types.Decode(data, &block)
+		pushData.Value = &types.PushData_BlockSeqs{BlockSeqs: &block}
+		ty = types.EventPushBlock
+	case PushBlockHeader:
+		var header types.HeaderSeqs
+		types.Decode(data, &header)
+		pushData.Value = &types.PushData_HeaderSeqs{HeaderSeqs: &header}
+		ty = types.EventPushBlockHeader
+	case PushTxReceipt:
+		var txreceipt types.TxReceipts4Subscribe
+		types.Decode(data, &txreceipt)
+		pushData.Value = &types.PushData_TxReceipts{TxReceipts: &txreceipt}
+		ty = types.EventPushTxReceipt
+	case PushTxResult:
+		var rxResult types.TxResultSeqs
+		types.Decode(data, &rxResult)
+		pushData.Value = &types.PushData_TxResult{TxResult: &rxResult}
+		ty = types.EventPushTxResult
+	case PushEVMEvent:
+		var evmlogs types.EVMTxLogsInBlks
+		types.Decode(data, &evmlogs)
+		pushData.Value = &types.PushData_EvmLogs{EvmLogs: &evmlogs}
+		ty = types.EventPushEVM
+	default:
+		return nil, ty, errors.New("wrong pushType")
 
-func (pushType PushType) string() string {
-	return []string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "NotSupported"}[pushType]
+	}
+	return &pushData, ty, nil
+
 }
 
 //PostData ...
 func (pushClient *PushClient) PostData(subscribe *types.PushSubscribeReq, postdata []byte, seq int64) (err error) {
 	//post data in body
-	chainlog.Info("postData begin", "seq", seq, "subscribe name", subscribe.Name)
+	if subscribe.GetEncode() == encodeGrpc && subscribe.GetURL() == "" { //通过queue模块推送给rpc订阅者 GRPC订阅模式
+		data, ty, err := buildRPCData(postdata, subscribe)
+		if err != nil {
+			return err
+		}
+		pmsg := pushClient.qclient.NewMessage("rpc", ty, data)
+		err = pushClient.qclient.SendTimeout(pmsg, true, time.Second)
+		if err != nil {
+			chainlog.Debug("PostData", "err:", err, "sub type", (PushType)(subscribe.Type).String(), "encode:", subscribe.Encode)
+			return err
+		}
+		resp, err := pushClient.qclient.WaitTimeout(pmsg, time.Second)
+		if err != nil {
+			return err
+		}
+		if !resp.GetData().(*types.Reply).GetIsOk() {
+			return errors.New(string(resp.GetData().(*types.Reply).GetMsg()))
+		}
+		return nil
+	}
 	var buf bytes.Buffer
 	g := gzip.NewWriter(&buf)
 	if _, err = g.Write(postdata); err != nil {
@@ -156,7 +226,7 @@ func (chain *BlockChain) procSubscribePush(subscribe *types.PushSubscribeReq) er
 	}
 
 	if !chain.isRecordBlockSequence {
-		chainlog.Error("procSubscribePush not support sequence")
+		chainlog.Error("procSubscribePush can be enable after the RecordBlockSequence is configured ")
 		return types.ErrRecordBlockSequence
 	}
 
@@ -165,7 +235,7 @@ func (chain *BlockChain) procSubscribePush(subscribe *types.PushSubscribeReq) er
 		return types.ErrInvalidParam
 	}
 
-	if chain.client.GetConfig().IsEnable("reduceLocaldb") && subscribe.Type == PushTxReceipt {
+	if chain.client.GetConfig().IsEnable("reduceLocaldb") && PushType(subscribe.Type) == PushTxReceipt {
 		chainlog.Error("Tx receipts are reduced on this node")
 		return types.ErrTxReceiptReduced
 	}
@@ -222,10 +292,11 @@ func (chain *BlockChain) ProcGetLastPushSeq(name string) (int64, error) {
 	return n, nil
 }
 
-func newpush(commonStore CommonStore, seqStore SequenceStore, cfg *types.Chain33Config) *Push {
+func newpush(commonStore CommonStore, seqStore SequenceStore, qclient queue.Client) *Push {
 	tasks := make(map[string]*pushNotify)
 
 	pushClient := &PushClient{
+		qclient: qclient,
 		client: &http.Client{Transport: &http.Transport{
 			Dial: (&net.Dialer{
 				Timeout:   30 * time.Second,
@@ -240,7 +311,7 @@ func newpush(commonStore CommonStore, seqStore SequenceStore, cfg *types.Chain33
 		sequenceStore:  seqStore,
 		tasks:          tasks,
 		postService:    pushClient,
-		cfg:            cfg,
+		cfg:            qclient.GetConfig(),
 		postFail2Sleep: postFail2Sleep,
 		postwg:         &sync.WaitGroup{},
 	}
@@ -266,7 +337,7 @@ func (push *Push) init() {
 		if err != nil {
 			chainlog.Error("Push init", "Failed to decode subscribe due to err:", err)
 			return
-		}
+		} //过滤掉grpc的推送
 		if pushWithStatus.Status == subscribeStatusActive {
 			subscribes = append(subscribes, pushWithStatus.Push)
 		}
@@ -293,9 +364,17 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		return types.ErrInvalidParam
 	}
 
-	if subscribe.Type < PushBlock || subscribe.Type > PushEVMEvent {
+	if PushType(subscribe.Type) < PushBlock || PushType(subscribe.Type) > PushEVMEvent {
 		chainlog.Error("addSubscriber input type is error", "type", subscribe.Type)
 		return types.ErrInvalidParam
+	}
+
+	//在订阅类型为PushTxReceipt，PushEVMEvent 下必须要求配置Contract 变量
+	if PushType(subscribe.Type) == PushTxReceipt || PushEVMEvent == PushType(subscribe.Type) {
+		if len(subscribe.GetContract()) == 0 {
+			chainlog.Error("addSubscriber input type is error", "type", subscribe.Type)
+			return errors.New(types.ErrInvalidParam.Error() + ":Contract must be configure")
+		}
 	}
 
 	//如果需要配置起始的块的信息，则为了保持一致性，三项缺一不可
@@ -353,7 +432,10 @@ func (push *Push) hasSubscriberExist(subscribe *types.PushSubscribeReq) (bool, *
 	if err == nil {
 		var pushWithStatus types.PushWithStatus
 		err = types.Decode(value, &pushWithStatus)
-		return err == nil, pushWithStatus.Push
+		if err != nil {
+			return false, nil
+		}
+		return true, pushWithStatus.Push
 	}
 	return false, nil
 }
@@ -364,10 +446,16 @@ func (push *Push) subscriberCount() int64 {
 
 //向数据库添加交易回执订阅信息
 func (push *Push) persisAndStart(subscribe *types.PushSubscribeReq) error {
-	if len(subscribe.Name) > 128 || len(subscribe.URL) > 1024 || len(subscribe.URL) == 0 {
+	if len(subscribe.Name) > 128 || len(subscribe.URL) > 1024 {
 		storeLog.Error("Invalid para to persisAndStart due to wrong length", "len(subscribe.Name)=", len(subscribe.Name),
-			"len(subscribe.URL)=", len(subscribe.URL), "len(subscribe.Contract)=", len(subscribe.Contract))
-		return types.ErrInvalidParam
+			"len(subscribe.Contract)=", len(subscribe.Contract))
+		return errors.New(types.ErrInvalidParam.Error() + ": Name or URL exceeds limit（len(Name)<128),len(URL)<1024")
+	}
+
+	if subscribe.GetURL() == "" && subscribe.GetEncode() != "grpc" {
+		//非grpc通信必须要求配置url
+		storeLog.Info("persisAndStart", "url empty", subscribe.GetURL(), "encode:", subscribe.GetEncode())
+		return errors.New(types.ErrInvalidParam.Error() + ": URL must be configure")
 	}
 	key := calcPushKey(subscribe.Name)
 	storeLog.Info("persisAndStart", "key", string(key), "subscribe", subscribe)
@@ -473,11 +561,11 @@ func (push *Push) runTask(input *pushNotify) {
 
 		runChan := make(chan struct{}, 10)
 		pushMaxSeq := pushBlockMaxSeq
-		if subscribe.Type == PushTxReceipt {
+		if PushType(subscribe.Type) == PushTxReceipt {
 			pushMaxSeq = pushTxReceiptMaxSeq
 		}
 
-		chainlog.Debug("start push with info", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string())
+		chainlog.Debug("start push with info", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).String())
 		for {
 			select {
 			case <-runChan:
@@ -490,7 +578,7 @@ func (push *Push) runTask(input *pushNotify) {
 				}
 
 			case lastestSeq := <-in.seqUpdateChan:
-				chainlog.Debug("runTask recv:", "lastestSeq", lastestSeq, "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string())
+				chainlog.Debug("runTask recv:", "lastestSeq", lastestSeq, "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).String())
 				//首先判断是否存在发送失败的情况，如果存在，则进行进行sleep操作
 				if atomic.LoadInt32(&input.postFail2Sleep) > 0 {
 					if postFail2SleepNew := atomic.AddInt32(&input.postFail2Sleep, -1); postFail2SleepNew > 0 {
@@ -509,7 +597,11 @@ func (push *Push) runTask(input *pushNotify) {
 				if lastProcessedseq >= lastesBlockSeq {
 					continue
 				}
-				chainlog.Debug("another new block", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).string(),
+				if lastProcessedseq <= 0 { //如果不配置startSeq 则默认从最新的seq开始
+					lastProcessedseq = lastesBlockSeq
+					continue
+				}
+				chainlog.Debug("another new block", "subscribe name", subscribe.Name, "Type", PushType(subscribe.Type).String(),
 					"last push sequence", lastProcessedseq, "lastest sequence", lastesBlockSeq,
 					"time second", time.Now().Second())
 				//确定一次推送的数量，如果需要更新的数量少于门限值，则一次只推送一个区块的交易数据
@@ -521,7 +613,7 @@ func (push *Push) runTask(input *pushNotify) {
 				data, updateSeq, err := push.getPushData(subscribe, lastProcessedseq+1, seqCount, pushMaxSize)
 				if err != nil {
 					chainlog.Error("getPushData", "err", err, "seqCurrent", lastProcessedseq+1, "maxSeq", seqCount,
-						"Name", subscribe.Name, "pushType:", PushType(subscribe.Type).string())
+						"Name", subscribe.Name, "pushType:", PushType(subscribe.Type).String())
 					continue
 				}
 
@@ -530,7 +622,7 @@ func (push *Push) runTask(input *pushNotify) {
 					if err != nil {
 						continueFailCount++
 						chainlog.Error("postdata failed", "err", err, "lastProcessedseq", lastProcessedseq,
-							"Name", subscribe.Name, "pushType:", PushType(subscribe.Type).string(), "continueFailCount", continueFailCount)
+							"Name", subscribe.Name, "pushType:", PushType(subscribe.Type).String(), "continueFailCount", continueFailCount)
 						if continueFailCount >= 3 {
 							atomic.StoreInt32(&in.status, notRunning)
 							chainlog.Error("postdata failed exceed 3 times", "Name", subscribe.Name, "in.status", atomic.LoadInt32(&in.status))
@@ -544,6 +636,7 @@ func (push *Push) runTask(input *pushNotify) {
 							push.mu.Lock()
 							delete(push.tasks, string(key))
 							push.mu.Unlock()
+							//多次Post失败后，把这个subscriber设置为NoActive状态，停止这个task的运行
 							_ = push.store.SetSync(key, types.Encode(pushWithStatus))
 							push.postwg.Done()
 							return
@@ -585,15 +678,15 @@ func (push *Push) UpdateSeq(seq int64) {
 	for _, notify := range push.tasks {
 		//再写入seq（一定不会block，因为加了lock，不存在两个同时写channel的情况）
 		if len(notify.seqUpdateChan) < chanBufCap {
-			chainlog.Info("new block Update Seq notified", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan))
+			chainlog.Info("new block Update Seq notified", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan), "status", notify.status)
 			notify.seqUpdateChan <- seq
 		}
-		chainlog.Info("new block UpdateSeq", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan))
+		chainlog.Info("new block UpdateSeq", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan), "status", notify.status)
 	}
 }
 
 func (push *Push) getPushData(subscribe *types.PushSubscribeReq, startSeq int64, seqCount, maxSize int) ([]byte, int64, error) {
-	switch subscribe.Type {
+	switch PushType(subscribe.Type) {
 	case PushBlock:
 		return push.getBlockSeqs(subscribe.Encode, startSeq, seqCount, maxSize)
 	case PushBlockHeader:
@@ -696,7 +789,7 @@ func (push *Push) getEVMEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 
 	var postdata []byte
 	var err error
-	if subscribe.Encode == "json" {
+	if subscribe.Encode == encodeJSON {
 		postdata, err = types.PBToJSON(evmlogs)
 		if err != nil {
 			return nil, -1, err
@@ -761,7 +854,7 @@ func (push *Push) getTxReceipts(subscribe *types.PushSubscribeReq, startSeq int6
 
 	var postdata []byte
 	var err error
-	if subscribe.Encode == "json" {
+	if subscribe.Encode == encodeJSON {
 		postdata, err = types.PBToJSON(txReceipts)
 		if err != nil {
 			return nil, -1, err
@@ -811,7 +904,7 @@ func (push *Push) getTxResults(encode string, seq int64, seqCount int) ([]byte, 
 
 	var postdata []byte
 	var err error
-	if encode == "json" {
+	if encode == encodeJSON {
 		postdata, err = types.PBToJSON(&txResultSeqs)
 		if err != nil {
 			return nil, -1, err
@@ -841,7 +934,7 @@ func (push *Push) getBlockSeqs(encode string, seq int64, seqCount, maxSize int) 
 
 	var postdata []byte
 	var err error
-	if encode == "json" {
+	if encode == encodeJSON {
 		postdata, err = types.PBToJSON(seqs)
 		if err != nil {
 			return nil, -1, err
@@ -872,7 +965,7 @@ func (push *Push) getHeaderSeqs(encode string, seq int64, seqCount, maxSize int)
 	var postdata []byte
 	var err error
 
-	if encode == "json" {
+	if encode == encodeJSON {
 		postdata, err = types.PBToJSON(seqs)
 		if err != nil {
 			return nil, -1, err

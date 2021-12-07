@@ -5,11 +5,15 @@
 package rpc
 
 import (
+	"errors"
 	"time"
+
+	"github.com/33cn/chain33/queue"
 
 	"strings"
 
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 )
@@ -91,8 +95,8 @@ func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.U
 	return &pb.UnsignTx{Data: reply}, nil
 }
 
-// ReWriteRawTx re-write raw tx parameters of grpc
-func (g *Grpc) ReWriteRawTx(ctx context.Context, in *pb.ReWriteRawTx) (*pb.UnsignTx, error) {
+// ReWriteTx re-write raw tx parameters of grpc
+func (g *Grpc) ReWriteTx(ctx context.Context, in *pb.ReWriteRawTx) (*pb.UnsignTx, error) {
 	reply, err := g.cli.ReWriteRawTx(in)
 	if err != nil {
 		return nil, err
@@ -601,4 +605,79 @@ func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConf
 		MaxTxFeeRate:   cfg.GetMaxTxFeeRate(),
 		IsPara:         cfg.IsPara(),
 	}, nil
+}
+
+//ConvertExectoAddr 根据执行器的名字创建地址
+func (g *Grpc) ConvertExectoAddr(ctx context.Context, in *pb.ReqString) (*pb.ReplyString, error) {
+	addr := address.ExecAddress(in.GetData())
+	return &pb.ReplyString{Data: addr}, nil
+}
+
+//GetCoinSymbol get coin symbol
+func (g *Grpc) GetCoinSymbol(ctx context.Context, in *pb.ReqNil) (*pb.ReplyString, error) {
+	return &pb.ReplyString{Data: g.cli.GetConfig().GetCoinSymbol()}, nil
+}
+
+//GetBlockSequences ...
+func (g *Grpc) GetBlockSequences(ctx context.Context, in *pb.ReqBlocks) (*pb.BlockSequences, error) {
+	return g.cli.GetBlockSequences(in)
+}
+
+//AddPushSubscribe ...
+func (g *Grpc) AddPushSubscribe(ctx context.Context, in *pb.PushSubscribeReq) (*pb.ReplySubscribePush, error) {
+	return g.cli.AddPushSubscribe(in)
+}
+
+//ListPushes  列举推送服务
+func (g *Grpc) ListPushes(ctx context.Context, in *pb.ReqNil) (*pb.PushSubscribes, error) {
+	resp, err := g.cli.ListPushes()
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// GetPushSeqLastNum  Get Seq Call Back Last Num
+func (g *Grpc) GetPushSeqLastNum(ctx context.Context, in *pb.ReqString) (*pb.Int64, error) {
+	return g.cli.GetPushSeqLastNum(in)
+}
+
+//SubEvent 订阅消息推送服务
+func (g *Grpc) SubEvent(in *pb.ReqSubscribe, resp pb.Chain33_SubEventServer) error {
+	sub := g.hashTopic(in.Name)
+	dataChan := make(chan *queue.Message, 128)
+	if sub == nil {
+		var subReq pb.PushSubscribeReq
+		subReq.Encode = "grpc"
+		subReq.Name = in.GetName()
+		subReq.Contract = in.GetContract()
+		subReq.Type = in.GetType()
+		reply, err := g.cli.AddPushSubscribe(&subReq)
+		if err != nil {
+			return err
+		}
+		if !reply.GetIsOk() {
+			return errors.New(reply.GetMsg())
+		}
+		sub = &subInfo{topic: in.GetName(), subType: (PushType)(in.Type).string(), subChan: make(map[chan *queue.Message]string), since: time.Now()}
+		//相关订阅信息加入到缓存中
+		g.addSubInfo(sub)
+	}
+
+	g.addSubChan(in.GetName(), dataChan)
+	defer g.delSubInfo(in.GetName(), dataChan)
+	var err error
+	for msg := range dataChan {
+		pushData, ok := msg.GetData().(*pb.PushData)
+		if ok {
+			err = resp.Send(pushData)
+			if err != nil {
+				break
+			}
+		} else {
+			log.Error("grpc SubEvent", msg)
+		}
+	}
+
+	return err
 }

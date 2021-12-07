@@ -1649,6 +1649,7 @@ func TestChain33_ConvertExectoAddr(t *testing.T) {
 	var testResult string
 	err := client.ConvertExectoAddr(rpctypes.ExecNameParm{ExecName: "coins"}, &testResult)
 	assert.NoError(t, err)
+	t.Log("result:", testResult)
 }
 
 func Test_fmtTxDetail(t *testing.T) {

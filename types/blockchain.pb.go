@@ -3088,8 +3088,9 @@ type PushWithStatus struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Push   *PushSubscribeReq `protobuf:"bytes,1,opt,name=push,proto3" json:"push,omitempty"`
-	Status int32             `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
+	Push *PushSubscribeReq `protobuf:"bytes,1,opt,name=push,proto3" json:"push,omitempty"`
+	// 1:active,2:noactive
+	Status int32 `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
 }
 
 func (x *PushWithStatus) Reset() {
@@ -3238,6 +3239,127 @@ func (x *ReplySubscribePush) GetMsg() string {
 		return x.Msg
 	}
 	return ""
+}
+
+type ReqSubscribe struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// 0:代表区块；1:代表区块头信息；2：代表交易回执
+	Type int32 `protobuf:"varint,2,opt,name=type,proto3" json:"type,omitempty"`
+	//允许订阅多个类型的交易回执
+	Contract map[string]bool `protobuf:"bytes,8,rep,name=contract,proto3" json:"contract,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+}
+
+func (x *ReqSubscribe) Reset() {
+	*x = ReqSubscribe{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_blockchain_proto_msgTypes[50]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ReqSubscribe) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReqSubscribe) ProtoMessage() {}
+
+func (x *ReqSubscribe) ProtoReflect() protoreflect.Message {
+	mi := &file_blockchain_proto_msgTypes[50]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReqSubscribe.ProtoReflect.Descriptor instead.
+func (*ReqSubscribe) Descriptor() ([]byte, []int) {
+	return file_blockchain_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *ReqSubscribe) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ReqSubscribe) GetType() int32 {
+	if x != nil {
+		return x.Type
+	}
+	return 0
+}
+
+func (x *ReqSubscribe) GetContract() map[string]bool {
+	if x != nil {
+		return x.Contract
+	}
+	return nil
+}
+
+type SubscribeStatus struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// 1:active,2:noactive
+	Status int32 `protobuf:"varint,2,opt,name=status,proto3" json:"status,omitempty"`
+}
+
+func (x *SubscribeStatus) Reset() {
+	*x = SubscribeStatus{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_blockchain_proto_msgTypes[51]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SubscribeStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubscribeStatus) ProtoMessage() {}
+
+func (x *SubscribeStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_blockchain_proto_msgTypes[51]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubscribeStatus.ProtoReflect.Descriptor instead.
+func (*SubscribeStatus) Descriptor() ([]byte, []int) {
+	return file_blockchain_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *SubscribeStatus) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SubscribeStatus) GetStatus() int32 {
+	if x != nil {
+		return x.Status
+	}
+	return 0
 }
 
 var File_blockchain_proto protoreflect.FileDescriptor
@@ -3571,9 +3693,24 @@ var file_blockchain_proto_rawDesc = []byte{
 	0x53, 0x75, 0x62, 0x73, 0x63, 0x72, 0x69, 0x62, 0x65, 0x50, 0x75, 0x73, 0x68, 0x12, 0x12, 0x0a,
 	0x04, 0x69, 0x73, 0x4f, 0x6b, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x04, 0x69, 0x73, 0x4f,
 	0x6b, 0x12, 0x10, 0x0a, 0x03, 0x6d, 0x73, 0x67, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03,
-	0x6d, 0x73, 0x67, 0x42, 0x1f, 0x5a, 0x1d, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
-	0x6d, 0x2f, 0x33, 0x33, 0x63, 0x6e, 0x2f, 0x63, 0x68, 0x61, 0x69, 0x6e, 0x33, 0x33, 0x2f, 0x74,
-	0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6d, 0x73, 0x67, 0x22, 0xb2, 0x01, 0x0a, 0x0c, 0x52, 0x65, 0x71, 0x53, 0x75, 0x62, 0x73, 0x63,
+	0x72, 0x69, 0x62, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x3d, 0x0a, 0x08,
+	0x63, 0x6f, 0x6e, 0x74, 0x72, 0x61, 0x63, 0x74, 0x18, 0x08, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x21,
+	0x2e, 0x74, 0x79, 0x70, 0x65, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x53, 0x75, 0x62, 0x73, 0x63, 0x72,
+	0x69, 0x62, 0x65, 0x2e, 0x43, 0x6f, 0x6e, 0x74, 0x72, 0x61, 0x63, 0x74, 0x45, 0x6e, 0x74, 0x72,
+	0x79, 0x52, 0x08, 0x63, 0x6f, 0x6e, 0x74, 0x72, 0x61, 0x63, 0x74, 0x1a, 0x3b, 0x0a, 0x0d, 0x43,
+	0x6f, 0x6e, 0x74, 0x72, 0x61, 0x63, 0x74, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03,
+	0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14,
+	0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x05, 0x76,
+	0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x3d, 0x0a, 0x0f, 0x53, 0x75, 0x62, 0x73,
+	0x63, 0x72, 0x69, 0x62, 0x65, 0x53, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x6e,
+	0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12,
+	0x16, 0x0a, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52,
+	0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x42, 0x1f, 0x5a, 0x1d, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x33, 0x33, 0x63, 0x6e, 0x2f, 0x63, 0x68, 0x61, 0x69, 0x6e,
+	0x33, 0x33, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -3588,7 +3725,7 @@ func file_blockchain_proto_rawDescGZIP() []byte {
 	return file_blockchain_proto_rawDescData
 }
 
-var file_blockchain_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
+var file_blockchain_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_blockchain_proto_goTypes = []interface{}{
 	(*Header)(nil),               // 0: types.Header
 	(*Block)(nil),                // 1: types.Block
@@ -3640,17 +3777,20 @@ var file_blockchain_proto_goTypes = []interface{}{
 	(*PushWithStatus)(nil),       // 47: types.PushWithStatus
 	(*PushSubscribes)(nil),       // 48: types.PushSubscribes
 	(*ReplySubscribePush)(nil),   // 49: types.ReplySubscribePush
-	nil,                          // 50: types.PushSubscribeReq.ContractEntry
-	(*Signature)(nil),            // 51: types.Signature
-	(*Transaction)(nil),          // 52: types.Transaction
-	(*ReceiptData)(nil),          // 53: types.ReceiptData
-	(*KeyValue)(nil),             // 54: types.KeyValue
-	(*Receipt)(nil),              // 55: types.Receipt
+	(*ReqSubscribe)(nil),         // 50: types.ReqSubscribe
+	(*SubscribeStatus)(nil),      // 51: types.SubscribeStatus
+	nil,                          // 52: types.PushSubscribeReq.ContractEntry
+	nil,                          // 53: types.ReqSubscribe.ContractEntry
+	(*Signature)(nil),            // 54: types.Signature
+	(*Transaction)(nil),          // 55: types.Transaction
+	(*ReceiptData)(nil),          // 56: types.ReceiptData
+	(*KeyValue)(nil),             // 57: types.KeyValue
+	(*Receipt)(nil),              // 58: types.Receipt
 }
 var file_blockchain_proto_depIdxs = []int32{
-	51, // 0: types.Header.signature:type_name -> types.Signature
-	51, // 1: types.Block.signature:type_name -> types.Signature
-	52, // 2: types.Block.txs:type_name -> types.Transaction
+	54, // 0: types.Header.signature:type_name -> types.Signature
+	54, // 1: types.Block.signature:type_name -> types.Signature
+	55, // 2: types.Block.txs:type_name -> types.Transaction
 	1,  // 3: types.Blocks.items:type_name -> types.Block
 	22, // 4: types.BlockSeq.seq:type_name -> types.BlockSequence
 	10, // 5: types.BlockSeq.detail:type_name -> types.BlockDetail
@@ -3661,19 +3801,19 @@ var file_blockchain_proto_depIdxs = []int32{
 	7,  // 10: types.HeadersPid.headers:type_name -> types.Headers
 	0,  // 11: types.BlockOverview.head:type_name -> types.Header
 	1,  // 12: types.BlockDetail.block:type_name -> types.Block
-	53, // 13: types.BlockDetail.receipts:type_name -> types.ReceiptData
-	54, // 14: types.BlockDetail.KV:type_name -> types.KeyValue
-	55, // 15: types.Receipts.receipts:type_name -> types.Receipt
-	52, // 16: types.BlockBody.txs:type_name -> types.Transaction
-	53, // 17: types.BlockBody.receipts:type_name -> types.ReceiptData
-	53, // 18: types.BlockReceipt.receipts:type_name -> types.ReceiptData
+	56, // 13: types.BlockDetail.receipts:type_name -> types.ReceiptData
+	57, // 14: types.BlockDetail.KV:type_name -> types.KeyValue
+	58, // 15: types.Receipts.receipts:type_name -> types.Receipt
+	55, // 16: types.BlockBody.txs:type_name -> types.Transaction
+	56, // 17: types.BlockBody.receipts:type_name -> types.ReceiptData
+	56, // 18: types.BlockReceipt.receipts:type_name -> types.ReceiptData
 	22, // 19: types.BlockSequences.items:type_name -> types.BlockSequence
 	10, // 20: types.ParaChainBlockDetail.blockdetail:type_name -> types.BlockDetail
 	26, // 21: types.ParaTxDetails.items:type_name -> types.ParaTxDetail
 	0,  // 22: types.ParaTxDetail.header:type_name -> types.Header
 	27, // 23: types.ParaTxDetail.txDetails:type_name -> types.TxDetail
-	52, // 24: types.TxDetail.tx:type_name -> types.Transaction
-	53, // 25: types.TxDetail.receipt:type_name -> types.ReceiptData
+	55, // 24: types.TxDetail.tx:type_name -> types.Transaction
+	56, // 25: types.TxDetail.receipt:type_name -> types.ReceiptData
 	22, // 26: types.HeaderSeq.seq:type_name -> types.BlockSequence
 	0,  // 27: types.HeaderSeq.header:type_name -> types.Header
 	31, // 28: types.HeaderSeqs.seqs:type_name -> types.HeaderSeq
@@ -3682,14 +3822,15 @@ var file_blockchain_proto_depIdxs = []int32{
 	1,  // 31: types.CmpBlock.block:type_name -> types.Block
 	17, // 32: types.BlockBodys.items:type_name -> types.BlockBody
 	44, // 33: types.ChunkRecords.infos:type_name -> types.ChunkInfo
-	50, // 34: types.PushSubscribeReq.contract:type_name -> types.PushSubscribeReq.ContractEntry
+	52, // 34: types.PushSubscribeReq.contract:type_name -> types.PushSubscribeReq.ContractEntry
 	46, // 35: types.PushWithStatus.push:type_name -> types.PushSubscribeReq
 	46, // 36: types.PushSubscribes.pushes:type_name -> types.PushSubscribeReq
-	37, // [37:37] is the sub-list for method output_type
-	37, // [37:37] is the sub-list for method input_type
-	37, // [37:37] is the sub-list for extension type_name
-	37, // [37:37] is the sub-list for extension extendee
-	0,  // [0:37] is the sub-list for field type_name
+	53, // 37: types.ReqSubscribe.contract:type_name -> types.ReqSubscribe.ContractEntry
+	38, // [38:38] is the sub-list for method output_type
+	38, // [38:38] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
 func init() { file_blockchain_proto_init() }
@@ -4300,6 +4441,30 @@ func file_blockchain_proto_init() {
 				return nil
 			}
 		}
+		file_blockchain_proto_msgTypes[50].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ReqSubscribe); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_blockchain_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SubscribeStatus); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -4307,7 +4472,7 @@ func file_blockchain_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_blockchain_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   51,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
