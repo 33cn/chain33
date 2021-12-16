@@ -96,8 +96,9 @@ func (mgr *Manager) PubBroadCast(hash string, data interface{}, eventTy int) (*q
 	}
 	if err != nil {
 		log.Error("PubBroadCast", "eventTy", eventTy, "sendMsgErr", err)
+		return nil, err
 	}
-	return msg, err
+	return msg, nil
 }
 
 //

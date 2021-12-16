@@ -110,6 +110,7 @@ type subscribeMsg struct {
 type broadcastMsg struct {
 	msg       *queue.Message
 	publisher peer.ID
+	hash      string
 }
 
 // 处理系统广播发送事件，交易及区块
@@ -276,13 +277,17 @@ func (p *broadcastProtocol) pubPeerMsg(peerID peer.ID, msgID int32, msg types.Me
 
 func (p *broadcastProtocol) postBlockChain(blockHash, receiveFrom string, block *types.Block, publisher peer.ID) error {
 	msg, err := p.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: receiveFrom, Block: block}, types.EventBroadcastAddBlock)
-	p.val.addBroadcastMsg(&broadcastMsg{msg: msg, publisher: publisher})
+	if err == nil {
+		p.val.addBroadcastMsg(&broadcastMsg{msg: msg, publisher: publisher, hash: blockHash})
+	}
 	return err
 }
 
 func (p *broadcastProtocol) postMempool(txHash string, tx *types.Transaction, publisher peer.ID) error {
 	msg, err := p.P2PManager.PubBroadCast(txHash, tx, types.EventTx)
-	p.val.addBroadcastMsg(&broadcastMsg{msg: msg, publisher: publisher})
+	if err == nil {
+		p.val.addBroadcastMsg(&broadcastMsg{msg: msg, publisher: publisher, hash: txHash})
+	}
 	return err
 }
 
