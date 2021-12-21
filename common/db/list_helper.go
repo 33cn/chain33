@@ -84,7 +84,11 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 		listlog.Error("PrefixScan it.Value()", "error", it.Error())
 		return nil
 	}
-	for it.Next(); it.Valid(); it.Next() {
+	// key存在时, 需要指向下一个
+	if bytes.Equal(it.Key(), key) {
+		it.Next()
+	}
+	for ; it.Valid(); it.Next() {
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			return nil
