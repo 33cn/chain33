@@ -483,9 +483,9 @@ func (dbit *goLevelDBIt) Next() bool {
 func (dbit *goLevelDBIt) Seek(key []byte) bool {
 
 	exist := dbit.Iterator.Seek(key)
-	if dbit.reverse {
-		prev := dbit.Iterator.Prev()
-		return prev
+	dbKey := dbit.Key()
+	if dbit.reverse && !bytes.Equal(dbKey, key) {
+		return dbit.Iterator.Prev() && dbit.Valid()
 	}
 	return exist
 }

@@ -61,7 +61,7 @@ func TestMergeIterSeek(t *testing.T) {
 	db2 := newGoMemDB(t)
 	db3, dir := newGoLevelDB(t)
 	defer os.RemoveAll(dir) // clean up
-	os.RemoveAll(dir)       //删除已存在目录
+
 	db1.Set([]byte("1"), []byte("1"))
 	db2.Set([]byte("3"), []byte("3"))
 	db3.Set([]byte("5"), []byte("5"))
