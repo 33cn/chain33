@@ -146,11 +146,6 @@ func (a *action) applyConfig(apply *mty.ApplyConfig) (*types.Receipt, error) {
 		return nil, errors.Wrapf(mty.ErrBadConfigOp, "op=%s", apply.Config.Op)
 	}
 
-	_, err := a.db.Get([]byte(types.ManageKey(apply.Config.Key)))
-	if err == nil {
-		return nil, errors.Wrapf(types.ErrNotAllow, "key=%s existed", apply.Config.Key)
-	}
-
 	configStatus := &mty.ConfigStatus{
 		Id:       common.ToHex(a.txhash),
 		Config:   apply.Config,

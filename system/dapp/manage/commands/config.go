@@ -50,7 +50,7 @@ func addConfigTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("config_key", "c", "", "config key string")
 	cmd.MarkFlagRequired("config_key")
 
-	cmd.Flags().StringP("operation", "o", "", "adding or deletion operation")
+	cmd.Flags().StringP("operation", "o", "", "add or delete object")
 	cmd.MarkFlagRequired("operation")
 
 	cmd.Flags().StringP("value", "v", "", "operating object")
@@ -91,7 +91,7 @@ func addConfigApplyFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("config_key", "c", "", "config key string")
 	cmd.MarkFlagRequired("config_key")
 
-	cmd.Flags().StringP("operation", "o", "", "adding or deletion operation")
+	cmd.Flags().StringP("operation", "o", "", "add or delete object")
 	cmd.MarkFlagRequired("operation")
 
 	cmd.Flags().StringP("value", "v", "", "operating object")
