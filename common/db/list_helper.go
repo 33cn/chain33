@@ -73,8 +73,8 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) [][]byte 
 
 //IteratorScan 迭代
 func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direction int32) [][]byte {
-	reserse := isRervese(direction)
-	it := db.db.Iterator(prefix, nil, reserse)
+	reverse := isReverse(direction)
+	it := db.db.Iterator(prefix, nil, reverse)
 	defer it.Close()
 	results := newCollector(direction)
 
@@ -161,7 +161,7 @@ func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 
 //IteratorCallback 迭代回滚
 func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, direction int32, fn func(key, value []byte) bool) {
-	reserse := isRervese(direction)
+	reserse := isReverse(direction)
 	it := db.db.Iterator(start, end, reserse)
 	defer it.Close()
 	var i int32
@@ -204,7 +204,7 @@ func isASC(direction int32) bool {
 	return direction&ListASC == ListASC
 }
 
-func isRervese(direction int32) bool {
+func isReverse(direction int32) bool {
 	return !isASC(direction)
 }
 
