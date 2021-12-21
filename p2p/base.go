@@ -86,9 +86,9 @@ func (mgr *Manager) Wait() {}
 // Close close p2p
 func (mgr *Manager) Close() {
 
-	for _, p2p := range mgr.p2ps {
+	for i, p2p := range mgr.p2ps {
 		p2p.CloseP2P()
-		p2p = nil
+		mgr.p2ps[i] = nil
 	}
 	mgr.p2ps = nil
 	//mgr.PubSub.Unsub(mgr.subChan)
