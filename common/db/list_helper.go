@@ -212,25 +212,14 @@ func isReverse(direction int32) bool {
 func (db *ListHelper) nextKeyValue(prefix, key []byte, count, direction int32) (values [][]byte) {
 	it := db.db.Iterator(prefix, nil, true)
 	defer it.Close()
-	flag := it.Seek(key)
+	it.Seek(key)
 	//判断是已经删除的key
 	for it.Valid() && isdeleted(it.Value()) {
 		it.Next()
-		if !it.Valid() {
-			return nil
-		}
 	}
-	if !flag || !bytes.Equal(key, it.Key()) {
-		it.Next()
-		if !it.Valid() {
-			return nil
-		}
-		for isdeleted(it.Value()) {
-			it.Next()
-			if !it.Valid() {
-				return nil
-			}
-		}
+
+	if !it.Valid() {
+		return nil
 	}
 	return [][]byte{cloneByte(it.Key()), cloneByte(it.Value())}
 }

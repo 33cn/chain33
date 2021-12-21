@@ -97,7 +97,7 @@ func (i *mergedIterator) Seek(key []byte) bool {
 		}
 	}
 	i.dir = dirSOI
-	if i.next(true) {
+	if i.next(!i.reverse) {
 		i.dir = dirSeek
 		return true
 	}
