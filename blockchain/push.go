@@ -678,10 +678,10 @@ func (push *Push) UpdateSeq(seq int64) {
 	for _, notify := range push.tasks {
 		//再写入seq（一定不会block，因为加了lock，不存在两个同时写channel的情况）
 		if len(notify.seqUpdateChan) < chanBufCap {
-			chainlog.Info("new block Update Seq notified", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan), "status", notify.status)
+			chainlog.Info("new block Update Seq notified", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan), "status", atomic.LoadInt32(&notify.status))
 			notify.seqUpdateChan <- seq
 		}
-		chainlog.Info("new block UpdateSeq", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan), "status", notify.status)
+		chainlog.Info("new block UpdateSeq", "subscribe", notify.subscribe.Name, "current sequence", seq, "length", len(notify.seqUpdateChan), "status", atomic.LoadInt32(&notify.status))
 	}
 }
 
