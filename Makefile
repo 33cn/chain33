@@ -149,8 +149,7 @@ ineffassign:
 
 test: ## Run unittests
 	@go clean -testcache
-# 	@go test -v -race -timeout=100s `go list ./... | grep -v mocks | grep queue`
-	@go test -v -short -race `go list ./... | grep -v "mocks"`
+	@go test -short -race `go list ./... | grep -v "mocks"`
 
 testq: ## Run unittests
 	@go test `go list ./... | grep -v "mocks"`
