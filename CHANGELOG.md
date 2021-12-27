@@ -1,5 +1,19 @@
 changelog
 
+<a name="1.67.0"></a>
+# [1.67.0](https://github.com/33cn/chain33/compare/v1.66.0...v1.67.0) (2021-12-27)
+
+
+### Features
+
+* release 1.66.0 ([edefa66](https://github.com/33cn/chain33/commit/edefa66))
+
+
+
+
+
+# [1.67.0](https://github.com/33cn/chain33/compare/v1.66.0...v1.67.0) (2021-12-27)
+
 <a name="1.66.0"></a>
 # [1.66.0](https://github.com/33cn/chain33/compare/v1.65.5...v1.66.0) (2021-12-27)
 
