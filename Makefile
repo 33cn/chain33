@@ -22,6 +22,7 @@ BUILD_FLAGS := -ldflags '-X "github.com/33cn/chain33/common/version.GitCommit=$(
                          -X "github.com/33cn/chain33/common/version.Version=$(VERSION)" \
                          -X "github.com/33cn/chain33/common/version.BuildTime=[$(BUILDTIME)]"'
 
+
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
 DAPP := ""
