@@ -1,5 +1,24 @@
 changelog
 
+<a name="1.66.0"></a>
+# [1.66.0](https://github.com/33cn/chain33/compare/v1.65.5...v1.66.0) (2021-12-28)
+
+
+### Features
+
+* release 1.66.0 ([edefa66](https://github.com/33cn/chain33/commit/edefa66))
+
+
+
+
+
+# [1.66.0](https://github.com/33cn/chain33/compare/v1.65.5...v1.66.0) (2021-12-28)
+
+
+### Performance Improvements
+
+* update key generator ([5c5d864](https://github.com/33cn/chain33/commit/5c5d86450bafd3edcad471591e11afead7fad0fe))
+
 ## [1.65.5](https://github.com/33cn/chain33/compare/v1.65.4...v1.65.5) (2021-10-19)
 
 
