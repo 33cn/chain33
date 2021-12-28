@@ -22,7 +22,6 @@ BUILD_FLAGS := -ldflags '-X "github.com/33cn/chain33/common/version.GitCommit=$(
                          -X "github.com/33cn/chain33/common/version.Version=$(VERSION)" \
                          -X "github.com/33cn/chain33/common/version.BuildTime=[$(BUILDTIME)]"'
 
-
 MKPATH=$(abspath $(lastword $(MAKEFILE_LIST)))
 MKDIR=$(dir $(MKPATH))
 DAPP := ""
@@ -150,7 +149,8 @@ ineffassign:
 
 test: ## Run unittests
 	@go clean -testcache
-	@go test -short -race `go list ./... | grep -v "mocks"`
+# 	@go test -v -race -timeout=100s `go list ./... | grep -v mocks | grep queue`
+	@go test -v -short -race `go list ./... | grep -v "mocks"`
 
 testq: ## Run unittests
 	@go test `go list ./... | grep -v "mocks"`
