@@ -50,6 +50,7 @@ type chanSub struct {
 	high    chan *Message
 	low     chan *Message
 	isClose int32
+	done    chan struct{}
 }
 
 // Queue only one obj in project
@@ -183,6 +184,7 @@ func (q *queue) chanSub(topic string) *chanSub {
 			high:    make(chan *Message, defaultChanBuffer),
 			low:     make(chan *Message, defaultLowChanBuffer),
 			isClose: 0,
+			done:    make(chan struct{}),
 		}
 	}
 	return q.chanSubs[topic]
@@ -199,6 +201,7 @@ func (q *queue) closeTopic(topic string) {
 		sub.high <- &Message{}
 		sub.low <- &Message{}
 	}
+	close(sub.done)
 	q.chanSubs[topic] = &chanSub{isClose: 1}
 }
 
@@ -211,8 +214,12 @@ func (q *queue) send(msg *Message, timeout time.Duration) (err error) {
 		return types.ErrChannelClosed
 	}
 	if timeout == -1 {
-		sub.high <- msg
-		return nil
+		select {
+		case sub.high <- msg:
+			return nil
+		case <-sub.done:
+			return types.ErrChannelClosed
+		}
 	}
 	defer func() {
 		res := recover()
