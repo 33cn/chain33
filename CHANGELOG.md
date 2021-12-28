@@ -1,5 +1,19 @@
 changelog
 
+<a name="1.66.1"></a>
+## [1.66.1](https://github.com/33cn/chain33/compare/v1.66.0...v1.66.1) (2021-12-28)
+
+
+### Bug Fixes
+
+* close a closed queue ([971ba67](https://github.com/33cn/chain33/commit/971ba67))
+
+
+
+
+
+## [1.66.1](https://github.com/33cn/chain33/compare/v1.66.0...v1.66.1) (2021-12-28)
+
 <a name="1.66.0"></a>
 # [1.66.0](https://github.com/33cn/chain33/compare/v1.65.5...v1.66.0) (2021-12-28)
 
