@@ -197,6 +197,9 @@ func (q *queue) closeTopic(topic string) {
 	if !ok {
 		return
 	}
+	if sub.isClose == 1 {
+		return
+	}
 	if sub.isClose == 0 {
 		sub.high <- &Message{}
 		sub.low <- &Message{}
