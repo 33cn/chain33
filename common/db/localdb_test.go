@@ -72,3 +72,17 @@ func TestLocalDB(t *testing.T) {
 	assert.Equal(t, data[1], []byte("value2"))
 	assert.Equal(t, data[2], []byte("value1"))
 }
+
+func TestLocalDBDel(t *testing.T) {
+
+	db1 := newGoMemDB(t)
+	db := NewLocalDB(db1, false)
+
+	db1.Set([]byte("key1"), []byte("value1"))
+	db.Begin()
+	db.Set([]byte("key1"), nil)
+	db.Set([]byte("key2"), []byte("value2"))
+	db.Commit()
+	_, err := db.Get([]byte("key1"))
+	assert.Equal(t, types.ErrNotFound, err)
+}
