@@ -3,6 +3,8 @@ package executor_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/executor"
 	"github.com/33cn/chain33/types"
@@ -174,4 +176,46 @@ func TestLocalDB(t *testing.T) {
 	assert.Equal(t, len(values), 2)
 	assert.Equal(t, string(values[0]), "v2")
 	assert.Equal(t, string(values[1]), "v11")
+}
+
+func TestLocalDBDel(t *testing.T) {
+
+	mock33 := testnode.New("", nil)
+	defer mock33.Close()
+	db := executor.NewLocalDB(mock33.GetClient(), false)
+	defer db.(*executor.LocalDB).Close()
+
+	db.Begin()
+	err := db.Set([]byte("key1"), []byte("value1"))
+	require.Nil(t, err)
+	require.Nil(t, db.Commit())
+	db.Begin()
+	val, err := db.Get([]byte("key1"))
+	require.Nil(t, err)
+	require.Equal(t, []byte("value1"), val)
+	db.Set([]byte("key1"), nil)
+	db.Commit()
+
+	_, err = db.Get([]byte("key1"))
+	require.Equal(t, types.ErrNotFound, err)
+}
+
+func TestStateDBDel(t *testing.T) {
+
+	mock33 := testnode.New("", nil)
+	defer mock33.Close()
+	db := executor.NewStateDB(mock33.GetClient(), nil, nil, nil)
+	db.Begin()
+	err := db.Set([]byte("key1"), []byte("value1"))
+	require.Nil(t, err)
+	db.Commit()
+	db.Begin()
+	val, err := db.Get([]byte("key1"))
+	require.Nil(t, err)
+	require.Equal(t, []byte("value1"), val)
+	db.Set([]byte("key1"), nil)
+	db.Commit()
+
+	_, err = db.Get([]byte("key1"))
+	require.Equal(t, types.ErrNotFound, err)
 }
