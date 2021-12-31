@@ -109,7 +109,7 @@ func (s *StateDB) resetTx() {
 func (s *StateDB) Get(key []byte) ([]byte, error) {
 	v, err := s.get(key)
 	debugAccount("==get==", key, v)
-	return v, err
+	return assertValue(v, err)
 }
 
 func (s *StateDB) get(key []byte) ([]byte, error) {
@@ -196,11 +196,17 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 }
 
 func setmap(data map[string][]byte, key string, value []byte) {
-	if value == nil {
-		delete(data, key)
-		return
-	}
 	data[key] = value
+}
+
+func assertValue(value []byte, err error) ([]byte, error) {
+	if err != nil {
+		return nil, err
+	}
+	if value == nil {
+		return nil, types.ErrNotFound
+	}
+	return value, nil
 }
 
 // BatchGet batch get keys from state db

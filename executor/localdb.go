@@ -148,8 +148,14 @@ func (l *LocalDB) Rollback() {
 	l.resetTx()
 }
 
-//Get 获取key
+// Get get key
 func (l *LocalDB) Get(key []byte) ([]byte, error) {
+
+	v, err := l.get(key)
+	return assertValue(v, err)
+}
+
+func (l *LocalDB) get(key []byte) ([]byte, error) {
 	if l.disableread {
 		return nil, types.ErrDisableRead
 	}
@@ -170,14 +176,9 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	if err != nil {
 		panic(err) //no happen for ever
 	}
-	if nil == resp.Values {
-		l.cache[skey] = nil
-		return nil, types.ErrNotFound
-	}
-	value := resp.Values[0]
-	if value == nil {
-		l.cache[skey] = nil
-		return nil, types.ErrNotFound
+	var value []byte
+	if len(resp.GetValues()) > 0 {
+		value = resp.GetValues()[0]
 	}
 	l.cache[skey] = value
 	return value, nil
