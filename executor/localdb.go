@@ -1,8 +1,6 @@
 package executor
 
 import (
-	"fmt"
-
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
@@ -256,7 +254,6 @@ func (db *CacheDB) Reset() {
 
 func (db *CacheDB) Merge(db2 *CacheDB) {
 	for k, v := range db2.data {
-		fmt.Println(string(k), string(v))
 		db.data[k] = v
 	}
 }
