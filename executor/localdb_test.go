@@ -36,7 +36,6 @@ func TestLocalDBEnable(t *testing.T) {
 	assert.Equal(t, err, types.ErrNotFound)
 	ldb.DisableRead()
 	_, err = ldb.Get([]byte("hello"))
-
 	assert.Equal(t, err, types.ErrDisableRead)
 	_, err = ldb.List(nil, nil, 0, 0)
 	assert.Equal(t, err, types.ErrDisableRead)
@@ -51,7 +50,6 @@ func TestLocalDBEnable(t *testing.T) {
 	ldb.EnableWrite()
 	err = ldb.Set([]byte("hello"), nil)
 	assert.Equal(t, err, nil)
-
 }
 
 func BenchmarkLocalDBGet(b *testing.B) {
@@ -124,6 +122,47 @@ func testTxGet(t *testing.T, db dbm.KV) {
 	v, err = db.Get([]byte("k1"))
 	assert.Nil(t, err)
 	assert.Equal(t, v, []byte("v11"))
+}
+
+func TestLocalDBDel(t *testing.T) {
+	mock33 := testnode.New("", nil)
+	defer mock33.Close()
+	db := executor.NewLocalDB(mock33.GetClient(), false)
+	//设置key
+	db.Begin()
+	err := db.Set([]byte("k1"), []byte("v1"))
+	assert.Nil(t, err)
+	db.Commit()
+
+	//modify key
+	db.Begin()
+	err = db.Set([]byte("k1"), []byte("v11"))
+	assert.Nil(t, err)
+	db.Commit()
+
+	//test key
+	db.Begin()
+	v, err := db.Get([]byte("k1"))
+	assert.Nil(t, err)
+	assert.Equal(t, v, []byte("v11"))
+	db.Commit()
+
+	//删除key
+	db.Begin()
+	err = db.Set([]byte("k1"), nil)
+	assert.Nil(t, err)
+	//在transaction 内部读取
+	v, err = db.Get([]byte("k1"))
+	assert.Equal(t, err, types.ErrNotFound)
+	assert.Equal(t, v, []byte(nil))
+	db.Commit()
+
+	//在transaction 外部读取key
+	db.Begin()
+	v, err = db.Get([]byte("k1"))
+	assert.Equal(t, err, types.ErrNotFound)
+	assert.Equal(t, v, []byte(nil))
+	db.Commit()
 }
 
 func TestLocalDB(t *testing.T) {
