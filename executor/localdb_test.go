@@ -138,6 +138,15 @@ func TestLocalDBDel(t *testing.T) {
 	db.Begin()
 	err = db.Set([]byte("k1"), []byte("v11"))
 	assert.Nil(t, err)
+	err = db.Set([]byte("k2"), []byte("v2"))
+	assert.Nil(t, err)
+
+	//读取列表
+	values, err := db.List([]byte("k"), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, len(values), 2)
+	assert.Equal(t, string(values[0]), "v2")
+	assert.Equal(t, string(values[1]), "v11")
 	db.Commit()
 
 	//test key
@@ -155,6 +164,12 @@ func TestLocalDBDel(t *testing.T) {
 	v, err = db.Get([]byte("k1"))
 	assert.Equal(t, err, types.ErrNotFound)
 	assert.Equal(t, v, []byte(nil))
+
+	values, err = db.List([]byte("k"), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, len(values), 1)
+	assert.Equal(t, string(values[0]), "v2")
+	//测试列表
 	db.Commit()
 
 	//在transaction 外部读取key
@@ -162,6 +177,10 @@ func TestLocalDBDel(t *testing.T) {
 	v, err = db.Get([]byte("k1"))
 	assert.Equal(t, err, types.ErrNotFound)
 	assert.Equal(t, v, []byte(nil))
+	values, err = db.List([]byte("k"), nil, 0, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, len(values), 1)
+	assert.Equal(t, string(values[0]), "v2")
 	db.Commit()
 }
 
