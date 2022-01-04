@@ -14,8 +14,8 @@ import (
 
 // StateDB state db for store mavl
 type StateDB struct {
-	cache     map[string][]byte
-	txcache   map[string][]byte
+	cache     *cacheDB
+	txcache   *cacheDB
 	keys      []string
 	intx      bool
 	client    queue.Client
@@ -39,8 +39,8 @@ func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *Sta
 	}
 	db := &StateDB{
 		//预分配一个单位
-		cache:     make(map[string][]byte, 1),
-		txcache:   make(map[string][]byte),
+		cache:     newcacheDB(),
+		txcache:   newcacheDB(),
 		intx:      false,
 		client:    client,
 		stateHash: stateHash,
@@ -86,9 +86,7 @@ func (s *StateDB) Rollback() {
 
 // Commit canche tx
 func (s *StateDB) Commit() error {
-	for k, v := range s.txcache {
-		s.cache[k] = v
-	}
+	s.cache.Merge(s.txcache)
 	s.intx = false
 	s.keys = nil
 	types.AssertConfig(s.client)
@@ -101,26 +99,26 @@ func (s *StateDB) Commit() error {
 
 func (s *StateDB) resetTx() {
 	s.intx = false
-	s.txcache = nil
+	s.txcache.Reset()
 	s.keys = nil
 }
 
 // Get get value from state db
 func (s *StateDB) Get(key []byte) ([]byte, error) {
 	v, err := s.get(key)
-	debugAccount("==get==", key, v)
+	//debugAccount("==get==", key, v)
 	return v, err
 }
 
 func (s *StateDB) get(key []byte) ([]byte, error) {
-	skey := types.Bytes2Str(key)
-	if s.intx && s.txcache != nil {
-		if value, ok := s.txcache[skey]; ok {
-			return value, nil
+
+	if s.intx {
+		if value, exist, err := s.txcache.Get(key); exist {
+			return value, err
 		}
 	}
-	if value, ok := s.cache[skey]; ok {
-		return value, nil
+	if value, exist, err := s.cache.Get(key); exist {
+		return value, err
 	}
 	//mvcc 是有效的情况下，直接从mvcc中获取
 	if s.version >= 0 {
@@ -151,7 +149,7 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 		return nil, types.ErrNotFound
 	}
 	//get 的值可以写入cache，因为没有对系统的值做修改
-	s.cache[string(key)] = value
+	s.cache.Set(key, value)
 	return value, nil
 }
 
@@ -181,26 +179,14 @@ func (s *StateDB) GetSetKeys() (keys []string) {
 
 // Set set key value to state db
 func (s *StateDB) Set(key []byte, value []byte) error {
-	debugAccount("==set==", key, value)
-	skey := string(key)
+	//debugAccount("==set==", key, value)
 	if s.intx {
-		if s.txcache == nil {
-			s.txcache = make(map[string][]byte)
-		}
-		s.keys = append(s.keys, skey)
-		setmap(s.txcache, skey, value)
+		s.keys = append(s.keys, string(key))
+		s.txcache.Set(key, value)
 	} else {
-		setmap(s.cache, skey, value)
+		s.cache.Set(key, value)
 	}
 	return nil
-}
-
-func setmap(data map[string][]byte, key string, value []byte) {
-	if value == nil {
-		delete(data, key)
-		return
-	}
-	data[key] = value
 }
 
 // BatchGet batch get keys from state db
