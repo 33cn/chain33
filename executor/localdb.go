@@ -12,8 +12,8 @@ import (
 //数据的get set 主要经过 cache
 //如果需要进行list, 那么把get set 的内容加入到 后端数据库
 type LocalDB struct {
-	cache        *CacheDB
-	txcache      *CacheDB
+	cache        *cacheDB
+	txcache      *cacheDB
 	keys         []string
 	intx         bool
 	hasbegin     bool
@@ -36,8 +36,8 @@ func NewLocalDB(cli queue.Client, readOnly bool) db.KVDB {
 		panic(err)
 	}
 	return &LocalDB{
-		cache:   NewCacheDB(),
-		txcache: NewCacheDB(),
+		cache:   newcacheDB(),
+		txcache: newcacheDB(),
 		txid:    txid,
 		client:  cli,
 		api:     api,
@@ -219,18 +219,18 @@ func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
 	panic("localdb not support PrefixCount")
 }
 
-type CacheDB struct {
+type cacheDB struct {
 	data map[string][]byte
 }
 
-func NewCacheDB() *CacheDB {
-	return &CacheDB{
+func newcacheDB() *cacheDB {
+	return &cacheDB{
 		data: make(map[string][]byte, 1024),
 	}
 }
 
 //return a flag: is key is in cache
-func (db *CacheDB) Get(key []byte) (value []byte, incache bool, err error) {
+func (db *cacheDB) Get(key []byte) (value []byte, incache bool, err error) {
 	if db.data == nil {
 		return nil, false, types.ErrNotFound
 	}
@@ -241,18 +241,18 @@ func (db *CacheDB) Get(key []byte) (value []byte, incache bool, err error) {
 	return nil, ok, types.ErrNotFound
 }
 
-func (db *CacheDB) Set(key []byte, value []byte) {
+func (db *cacheDB) Set(key []byte, value []byte) {
 	if db.data == nil {
 		db.data = make(map[string][]byte, 1024)
 	}
 	db.data[string(key)] = value
 }
 
-func (db *CacheDB) Reset() {
+func (db *cacheDB) Reset() {
 	db.data = nil
 }
 
-func (db *CacheDB) Merge(db2 *CacheDB) {
+func (db *cacheDB) Merge(db2 *cacheDB) {
 	for k, v := range db2.data {
 		db.data[k] = v
 	}
