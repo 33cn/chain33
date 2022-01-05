@@ -75,7 +75,7 @@ func (s *StateDB) Begin() {
 	types.AssertConfig(s.client)
 	cfg := s.client.GetConfig()
 	if cfg.IsFork(s.height, "ForkExecRollback") {
-		s.txcache = nil
+		s.txcache.Reset()
 	}
 }
 

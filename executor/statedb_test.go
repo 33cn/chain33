@@ -2,10 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package executor
+package executor_test
 
 import (
 	"testing"
+
+	"github.com/33cn/chain33/executor"
+	"github.com/33cn/chain33/util/testnode"
+	"github.com/stretchr/testify/require"
 
 	"strings"
 
@@ -19,15 +23,15 @@ import (
 func newStateDbForTest(height int64, cfg *types.Chain33Config) dbm.KV {
 	q := queue.New("channel")
 	q.SetConfig(cfg)
-	return NewStateDB(q.Client(), nil, nil, &StateDBOption{Height: height})
+	return executor.NewStateDB(q.Client(), nil, nil, &executor.StateDBOption{Height: height})
 }
 func TestStateDBGet(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	db := newStateDbForTest(0, cfg)
-	testDBGet(t, db)
+	testStateDBGet(t, db)
 }
 
-func testDBGet(t *testing.T, db dbm.KV) {
+func testStateDBGet(t *testing.T, db dbm.KV) {
 	err := db.Set([]byte("k1"), []byte("v1"))
 	assert.Nil(t, err)
 	v, err := db.Get([]byte("k1"))
@@ -40,7 +44,7 @@ func testDBGet(t *testing.T, db dbm.KV) {
 	assert.Nil(t, err)
 	assert.Equal(t, v, []byte("v11"))
 
-	stateDb := db.(*StateDB)
+	stateDb := db.(*executor.StateDB)
 	vs, err := stateDb.BatchGet([][]byte{[]byte("k1")})
 	assert.NoError(t, err)
 	assert.Equal(t, [][]byte{[]byte("v11")}, vs)
@@ -57,7 +61,7 @@ func TestStateDBTxGetOld(t *testing.T) {
 	s := store.New(cfg)
 	s.SetQueueClient(q.Client())
 	// exec
-	db := NewStateDB(q.Client(), nil, nil, &StateDBOption{Height: cfg.GetFork("ForkExecRollback") - 1})
+	db := executor.NewStateDB(q.Client(), nil, nil, &executor.StateDBOption{Height: cfg.GetFork("ForkExecRollback") - 1})
 	defer func() {
 		s.Close()
 		q.Close()
@@ -101,7 +105,7 @@ func TestStateDBTxGetOld(t *testing.T) {
 	db.Commit()
 }
 
-func testTxGet(t *testing.T, db dbm.KV) {
+func testStateDBTxGet(t *testing.T, db dbm.KV) {
 	//新版本
 	db.Begin()
 	err := db.Set([]byte("k1"), []byte("v1"))
@@ -139,5 +143,25 @@ func testTxGet(t *testing.T, db dbm.KV) {
 func TestStateDBTxGet(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	db := newStateDbForTest(cfg.GetFork("ForkExecRollback"), cfg)
-	testTxGet(t, db)
+	testStateDBTxGet(t, db)
+}
+
+func TestStateDBCache(t *testing.T) {
+
+	mock33 := testnode.New("", nil)
+	defer mock33.Close()
+	db := executor.NewStateDB(mock33.GetClient(), nil, nil, nil)
+	db.Begin()
+	err := db.Set([]byte("key1"), []byte("value1"))
+	require.Nil(t, err)
+	db.Commit()
+	db.Begin()
+	val, err := db.Get([]byte("key1"))
+	require.Nil(t, err)
+	require.Equal(t, []byte("value1"), val)
+	db.Set([]byte("key1"), nil)
+	db.Commit()
+
+	_, err = db.Get([]byte("key1"))
+	require.Equal(t, types.ErrNotFound, err)
 }
