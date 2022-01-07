@@ -883,6 +883,7 @@ func CloneTx(tx *Transaction) *Transaction {
 	copytx.Header = tx.Header
 	copytx.Next = tx.Next
 	copytx.ChainID = tx.ChainID
+	copytx.FromAddr = tx.FromAddr
 	return copytx
 }
 
