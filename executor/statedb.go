@@ -153,19 +153,19 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
-func debugAccount(prefix string, key []byte, value []byte) {
-	//println(prefix, string(key), string(value))
-	/*
-		if !types.Debug {
-			return
-		}
-		var msg types.Account
-		err := types.Decode(value, &msg)
-		if err == nil {
-			elog.Info(prefix, "key", string(key), "value", msg)
-		}
-	*/
-}
+//func debugAccount(prefix string, key []byte, value []byte) {
+//println(prefix, string(key), string(value))
+/*
+	if !types.Debug {
+		return
+	}
+	var msg types.Account
+	err := types.Decode(value, &msg)
+	if err == nil {
+		elog.Info(prefix, "key", string(key), "value", msg)
+	}
+*/
+//}
 
 // StartTx reset state db keys
 func (s *StateDB) StartTx() {
