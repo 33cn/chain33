@@ -18,8 +18,9 @@ var (
 )
 
 var (
-	drivers     = make(map[string]*BaseDriver)
-	driverMutex sync.Mutex
+	drivers       = make(map[string]*BaseDriver)
+	defaultDriver Driver
+	driverMutex   sync.Mutex
 )
 
 // Driver address driver
@@ -69,6 +70,11 @@ func Load(name string, blockHeight int64) (Driver, error) {
 	}
 
 	return base.driver, nil
+}
+
+//  LoadDefault load default driver
+func LoadDefault() Driver {
+	return defaultDriver
 }
 
 // LoadByAddr 根据地址加载驱动
