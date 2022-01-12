@@ -69,31 +69,27 @@ func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte
 	if isPrimaryIndex(indexName) || indexName == query.table.getOpt().Primary {
 		return query.listPrimary(prefix, primaryKey, count, direction)
 	}
-	p := query.table.indexPrefix(indexName)
-	var k []byte
+	keyPrefix := append(query.table.indexPrefix(indexName), prefix...)
+	var key []byte
 	if len(primaryKey) > 0 {
 		row, err := query.table.GetData(primaryKey)
 		if err != nil {
 			return nil, err
 		}
-		key, err := query.table.index(row, indexName)
+		indexKey, err := query.table.index(row, indexName)
 		if err != nil {
 			return nil, err
 		}
-		//如果存在prefix
+		////assert prefix
 		if prefix != nil {
-			p2 := commonPrefix(prefix, key)
-			if len(p2) != len(prefix) {
+			cp := commonPrefix(prefix, indexKey)
+			if len(cp) != len(prefix) {
 				return nil, types.ErrNotFound
 			}
-			p = append(p, p2...)
 		}
-		k = query.table.getIndexKey(indexName, key, row.Primary)
-	} else {
-		//这个情况下 k == nil
-		p = append(p, prefix...)
+		key = query.table.getIndexKey(indexName, indexKey, row.Primary)
 	}
-	values, err := query.kvdb.List(p, k, count, direction)
+	values, err := query.kvdb.List(keyPrefix, key, count, direction)
 	if err != nil {
 		return nil, err
 	}
@@ -112,21 +108,20 @@ func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte
 
 //ListPrimary list primary data
 func (query *Query) listPrimary(prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
-	p := query.table.primaryPrefix()
-	var k []byte
+	metaPrefix := query.table.primaryPrefix()
+	var key []byte
 	if primaryKey != nil {
+		//asset primary key prefix
 		if prefix != nil {
-			p2 := commonPrefix(prefix, primaryKey)
-			if len(p2) != len(prefix) {
+			cp := commonPrefix(prefix, primaryKey)
+			if len(cp) != len(prefix) {
 				return nil, types.ErrNotFound
 			}
-			p = append(p, p2...)
 		}
-		k = append(p, primaryKey...)
-	} else {
-		p = append(p, prefix...)
+		key = append(metaPrefix, primaryKey...)
 	}
-	values, err := query.kvdb.List(p, k, count, direction)
+	keyPrefix := append(metaPrefix, prefix...)
+	values, err := query.kvdb.List(keyPrefix, key, count, direction)
 	if err != nil {
 		return nil, err
 	}
