@@ -5,6 +5,7 @@ package table
 
 import (
 	"bytes"
+	"log"
 	"testing"
 
 	"github.com/33cn/chain33/common/db"
@@ -13,6 +14,79 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )
+
+func testTxTable(t *testing.T) (string, db.DB, db.KVDB, *Table) {
+	dir, ldb, kvdb := util.CreateTestDB()
+	opt := &Option{
+		Prefix:  "prefix",
+		Name:    "name",
+		Primary: "Hash",
+		Index:   []string{"From", "To"},
+	}
+	table, err := NewTable(NewTransactionRow(), kvdb, opt)
+	assert.Nil(t, err)
+	return dir, ldb, kvdb, table
+}
+
+func TestTableListPrimary(t *testing.T) {
+
+	dir, ldb, _, table := testTxTable(t)
+	defer util.CloseTestDB(dir, ldb)
+
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	addr1, priv1 := util.Genaddress()
+	_, priv2 := util.Genaddress()
+	tx1 := util.CreateNoneTx(cfg, priv1)
+	assert.Nil(t, table.Add(tx1))
+	tx2 := util.CreateNoneTx(cfg, priv2)
+	assert.Nil(t, table.Add(tx2))
+	kvs, err := table.Save()
+	assert.Nil(t, err)
+	//save to database
+	util.SaveKVList(ldb, kvs)
+	// get smaller key
+	hash := tx1.Hash()
+	if bytes.Compare(hash, tx2.Hash()) > 0 {
+		hash = tx2.Hash()
+	}
+
+	// List
+	rows, err := table.ListIndex("primary", nil, nil, 10, db.ListASC)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(rows))
+	assert.Equal(t, hash, rows[0].Primary)
+
+	// List with prefix
+	rows, _ = table.ListIndex("primary", hash[:20], nil, 10, db.ListASC)
+	assert.Equal(t, 1, len(rows))
+
+	// List with primary
+	rows, _ = table.ListIndex("primary", nil, hash, 10, db.ListASC)
+	assert.Equal(t, 1, len(rows))
+	_, err = table.ListIndex("primary", nil, hash, 10, db.ListDESC)
+	assert.Equal(t, types.ErrNotFound, err)
+
+	// List with primary and prefix
+	row, err := table.ListIndex("primary", hash[:20], hash, 10, db.ListASC)
+	assert.Equal(t, types.ErrNotFound, err)
+	log.Println(row)
+	row, err = table.ListIndex("primary", hash[:20], hash, 10, db.ListDESC)
+	assert.Equal(t, types.ErrNotFound, err)
+	log.Println(row)
+	// List index
+	rows, err = table.ListIndex("From", nil, nil, 10, db.ListDESC)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(rows))
+
+	// List with prefix
+	rows, _ = table.ListIndex("From", []byte(addr1[:20]), nil, 10, db.ListDESC)
+	assert.Equal(t, 1, len(rows))
+	assert.Equal(t, tx1.Hash(), rows[0].Primary)
+
+	// List with primary and prefix
+	_, err = table.ListIndex("From", []byte(addr1)[:20], tx1.Hash(), 10, db.ListASC)
+	assert.Equal(t, types.ErrNotFound, err)
+}
 
 func TestTransactinList(t *testing.T) {
 	dir, ldb, kvdb := util.CreateTestDB()

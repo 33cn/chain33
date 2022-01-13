@@ -60,11 +60,11 @@ func isPrimaryIndex(indexName string) bool {
 }
 
 //ListIndex 根据索引查询列表
-//index 用哪个index
-//prefix 必须要符合的前缀, 可以为空
-//primaryKey 开始查询的位置(不包含数据本身)
-//count 最多取的数量
-//direction 方向
+//index 用哪个index(可以选择 主键查询)
+//prefix 必须要符合的前缀, 可以为空（查询数据的前缀 类似sql 里面的 like abc% 表示abc 前缀开始的数据）
+//primaryKey 开始查询的位置(不包含数据本身) （开始的位置 类似 sql 里面的 where id > xxxx (asc) or id < xxxx (desc)）
+//count 最多取的数量 (数量 limit)
+//direction 方向 (asc or desc)
 func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	if isPrimaryIndex(indexName) || indexName == query.table.getOpt().Primary {
 		return query.listPrimary(prefix, primaryKey, count, direction)
