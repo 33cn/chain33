@@ -482,19 +482,19 @@ func TestTableListPrimary(t *testing.T) {
 	assert.Equal(t, hash, rows[0].Primary)
 
 	// List with prefix
-	rows, err = table.ListIndex("Hash", hash[:20], nil, 10, db.ListASC)
+	rows, _ = table.ListIndex("Hash", hash[:20], nil, 10, db.ListASC)
 	assert.Equal(t, 1, len(rows))
 
 	// List with primary
-	rows, err = table.ListIndex("Hash", nil, hash, 10, db.ListASC)
+	rows, _ = table.ListIndex("Hash", nil, hash, 10, db.ListASC)
 	assert.Equal(t, 1, len(rows))
-	rows, err = table.ListIndex("Hash", nil, hash, 10, db.ListDESC)
+	_, err = table.ListIndex("Hash", nil, hash, 10, db.ListDESC)
 	assert.Equal(t, types.ErrNotFound, err)
 
 	// List with primary and prefix
-	rows, err = table.ListIndex("Hash", hash[:20], hash, 10, db.ListASC)
+	_, err = table.ListIndex("Hash", hash[:20], hash, 10, db.ListASC)
 	assert.Equal(t, types.ErrNotFound, err)
-	rows, err = table.ListIndex("Hash", hash[:20], hash, 10, db.ListDESC)
+	_, err = table.ListIndex("Hash", hash[:20], hash, 10, db.ListDESC)
 	assert.Equal(t, types.ErrNotFound, err)
 
 	// List index
@@ -503,18 +503,18 @@ func TestTableListPrimary(t *testing.T) {
 	assert.Equal(t, 2, len(rows))
 
 	// List with prefix
-	rows, err = table.ListIndex("From", []byte(addr1[:20]), nil, 10, db.ListDESC)
+	rows, _ = table.ListIndex("From", []byte(addr1[:20]), nil, 10, db.ListDESC)
 	assert.Equal(t, 1, len(rows))
 	assert.Equal(t, tx1.Hash(), rows[0].Primary)
 
 	// List with primary
-	rows, err = table.ListIndex("From", nil, hash, 10, db.ListASC)
+	rows, _ = table.ListIndex("From", nil, hash, 10, db.ListASC)
 	assert.Equal(t, 1, len(rows))
 	assert.NotEqual(t, hash, rows[0].Primary)
-	rows, err = table.ListIndex("From", nil, hash, 10, db.ListDESC)
+	_, err = table.ListIndex("From", nil, hash, 10, db.ListDESC)
 	assert.Equal(t, types.ErrNotFound, err)
 
 	// List with primary and prefix
-	rows, err = table.ListIndex("From", []byte(addr1)[:20], tx1.Hash(), 10, db.ListASC)
+	_, err = table.ListIndex("From", []byte(addr1)[:20], tx1.Hash(), 10, db.ListASC)
 	assert.Equal(t, types.ErrNotFound, err)
 }
