@@ -470,6 +470,7 @@ func TestTableListPrimary(t *testing.T) {
 	assert.Nil(t, err)
 	//save to database
 	util.SaveKVList(ldb, kvs)
+	// get smaller key
 	hash := tx1.Hash()
 	if bytes.Compare(hash, tx2.Hash()) > 0 {
 		hash = tx2.Hash()
@@ -506,13 +507,6 @@ func TestTableListPrimary(t *testing.T) {
 	rows, _ = table.ListIndex("From", []byte(addr1[:20]), nil, 10, db.ListDESC)
 	assert.Equal(t, 1, len(rows))
 	assert.Equal(t, tx1.Hash(), rows[0].Primary)
-
-	// List with primary
-	rows, _ = table.ListIndex("From", nil, hash, 10, db.ListASC)
-	assert.Equal(t, 1, len(rows))
-	assert.NotEqual(t, hash, rows[0].Primary)
-	_, err = table.ListIndex("From", nil, hash, 10, db.ListDESC)
-	assert.Equal(t, types.ErrNotFound, err)
 
 	// List with primary and prefix
 	_, err = table.ListIndex("From", []byte(addr1)[:20], tx1.Hash(), 10, db.ListASC)
