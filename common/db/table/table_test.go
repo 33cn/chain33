@@ -48,8 +48,8 @@ func TestTableListPrimary(t *testing.T) {
 	//save to database
 	util.SaveKVList(ldb, kvs)
 	// get smaller key
-	hashsmall := []byte(hex.EncodeToString(tx1.Hash()))
-	hashbig := []byte(hex.EncodeToString(tx2.Hash()))
+	hashsmall := []byte("[" + hex.EncodeToString(tx1.Hash()) + "]")
+	hashbig := []byte("[" + hex.EncodeToString(tx2.Hash()) + "]")
 	if bytes.Compare(hashsmall, hashbig) > 0 {
 		hashsmall, hashbig = hashbig, hashsmall
 	}
@@ -549,7 +549,7 @@ func (tx *TransactionRow) Get(key string) ([]byte, error) {
 
 func (tx *TransactionRow) get(key string) ([]byte, error) {
 	if key == "Hash" {
-		return []byte(hex.EncodeToString(tx.Hash())), nil
+		return []byte("[" + hex.EncodeToString(tx.Hash()) + "]"), nil
 	} else if key == "From" {
 		return []byte(tx.From()), nil
 	} else if key == "To" {
