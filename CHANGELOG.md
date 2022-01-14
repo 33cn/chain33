@@ -1,5 +1,19 @@
 changelog
 
+<a name="1.66.3"></a>
+## [1.66.3](https://github.com/33cn/chain33/compare/v1.66.2...v1.66.3) (2022-01-14)
+
+
+### Bug Fixes
+
+* fix list table primary key(#1203) ([b82008a](https://github.com/33cn/chain33/commit/b82008a)), closes [#1203](https://github.com/33cn/chain33/issues/1203)
+
+
+
+
+
+## [1.66.3](https://github.com/33cn/chain33/compare/v1.66.2...v1.66.3) (2022-01-14)
+
 <a name="1.66.2"></a>
 ## [1.66.2](https://github.com/33cn/chain33/compare/v1.66.1...v1.66.2) (2022-01-10)
 

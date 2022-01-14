@@ -6,7 +6,7 @@
 package version
 
 //Version chain33 version
-var Version = "1.66.2"
+var Version = "1.66.3"
 
 //var version key
 var (
