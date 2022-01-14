@@ -28,7 +28,6 @@ func NewListHelper(db IteratorDB) *ListHelper {
 func (db *ListHelper) PrefixScan(prefix []byte) [][]byte {
 	it := db.db.Iterator(prefix, nil, false)
 	defer it.Close()
-
 	resutls := newCollector(0)
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
@@ -79,18 +78,22 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 	results := newCollector(direction)
 
 	var i int32
+	fmt.Println("prefix", string(prefix))
+	fmt.Println("key", string(key))
 	it.Seek(key)
 	if !it.Valid() {
-		listlog.Error("PrefixScan it.Value()", "error", it.Error())
+		listlog.Error("IteratorScan Seek key", "error", it.Error())
 		return nil
 	}
 	// key存在时, 需要指向下一个
+	fmt.Println(string(it.Key()), "<-:->", string(key))
 	if bytes.Equal(it.Key(), key) {
+		fmt.Println("skip a key")
 		it.Next()
 	}
 	for ; it.Valid(); it.Next() {
 		if it.Error() != nil {
-			listlog.Error("PrefixScan it.Value()", "error", it.Error())
+			listlog.Error("IteratorScan Next key", "error", it.Error())
 			return nil
 		}
 		if isdeleted(it.Value()) {
@@ -112,7 +115,7 @@ func (db *ListHelper) iteratorScan(prefix []byte, count int32, reverse bool, dir
 	var i int32
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
-			listlog.Error("PrefixScan it.Value()", "error", it.Error())
+			listlog.Error("iteratorScan it.Value()", "error", it.Error())
 			return nil
 		}
 		if isdeleted(it.Value()) {
@@ -168,7 +171,7 @@ func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, di
 	for it.Rewind(); it.Valid(); it.Next() {
 		value := it.Value()
 		if it.Error() != nil {
-			listlog.Error("PrefixScan it.Value()", "error", it.Error())
+			listlog.Error("IteratorCallback it.Value()", "error", it.Error())
 			return
 		}
 		if isdeleted(it.Value()) {
@@ -236,13 +239,11 @@ func newCollector(direction int32) *collector {
 }
 
 func (c *collector) collect(it Iterator) {
-	//blog.Debug("collect", "key", string(item.Key()), "value", value)
 	if c.direction&ListKeyOnly != 0 {
 		c.results = append(c.results, cloneByte(it.Key()))
 	} else if c.direction&ListWithKey != 0 {
 		v := types.KeyValue{Key: cloneByte(it.Key()), Value: cloneByte(it.Value())}
 		c.results = append(c.results, types.Encode(&v))
-		// c.results = append(c.results, Key: cloneByte(it.Key()), Value: cloneByte(it.Value()))
 	} else {
 		c.results = append(c.results, cloneByte(it.Value()))
 	}
