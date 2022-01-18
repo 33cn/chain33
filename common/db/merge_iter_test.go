@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -42,6 +43,14 @@ func newGoLevelDB(t *testing.T) (DB, string) {
 	dir, err := ioutil.TempDir("", "goleveldb")
 	assert.Nil(t, err)
 	db, err := NewGoLevelDB("test", dir, 16)
+	assert.Nil(t, err)
+	return db, dir
+}
+
+func newGoBadgerDB(t *testing.T) (DB, string) {
+	dir, err := ioutil.TempDir("", "badgerdb")
+	assert.Nil(t, err)
+	db, err := NewGoBadgerDB("test", dir, 16)
 	assert.Nil(t, err)
 	return db, dir
 }
@@ -278,4 +287,121 @@ func TestIterSearch(t *testing.T) {
 	assert.Equal(t, 2, len(list0))
 	assert.Equal(t, "db2-key-3", string(list0[0]))
 	assert.Equal(t, "db2-key-4", string(list0[1]))
+}
+
+func TestMergeIterList(t *testing.T) {
+	levelDB, dir := newGoLevelDB(t)
+	testMergeIterList(t, newGoMemDB(t), newGoMemDB(t), levelDB)
+	_ = os.RemoveAll(dir)
+	badgerDB, dir := newGoBadgerDB(t)
+	testMergeIterList(t, newGoMemDB(t), newGoMemDB(t), badgerDB)
+	_ = os.RemoveAll(dir)
+	levelDB, dir1 := newGoLevelDB(t)
+	badgerDB, dir2 := newGoBadgerDB(t)
+	testMergeIterList(t, badgerDB, levelDB, newGoMemDB(t))
+	_ = os.RemoveAll(dir1)
+	_ = os.RemoveAll(dir2)
+}
+
+func testMergeIterList(t *testing.T, db1, db2, db3 DB) {
+
+	for i := 0; i < 10; i++ {
+		db3.Set([]byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("%d", i)))
+	}
+	//合并以后:
+	db := NewMergedIteratorDB([]IteratorDB{db1, db2, db3})
+	it := NewListHelper(db)
+
+	//key9 ~ key1
+	listAll := func(totalCount int, direction int32) [][]byte {
+		var values [][]byte
+		var primary []byte
+		for i := 0; i < 3; i++ {
+			data := it.List([]byte("key"), primary, 4, direction)
+			values = append(values, data...)
+			primary = []byte(fmt.Sprintf("key%s", data[len(data)-1]))
+		}
+		assert.Equal(t, totalCount, len(values))
+		return values
+	}
+
+	values := listAll(10, ListDESC)
+	for i, val := range values {
+		assert.Equal(t, []byte(fmt.Sprintf("%d", 9-i)), val)
+	}
+	values = listAll(10, ListASC)
+	for i, val := range values {
+		assert.Equal(t, []byte(fmt.Sprintf("%d", i)), val)
+	}
+
+	// db2数据覆盖
+	db2.Set([]byte("key3"), []byte("33"))
+	values = listAll(10, ListDESC)
+	for i, val := range values {
+		value := []byte(fmt.Sprintf("%d", 9-i))
+		if i == 6 {
+			value = []byte("33")
+		}
+		assert.Equal(t, value, val)
+	}
+	values = listAll(10, ListASC)
+	for i, val := range values {
+		value := []byte(fmt.Sprintf("%d", i))
+		if i == 3 {
+			value = []byte("33")
+		}
+		assert.Equal(t, value, val)
+	}
+
+	// db1数据覆盖
+	db1.Set([]byte("key3"), []byte("333"))
+	db1.Set([]byte("key5"), []byte("555"))
+	values = listAll(10, ListDESC)
+	for i, val := range values {
+		value := []byte(fmt.Sprintf("%d", 9-i))
+		if i == 4 {
+			value = []byte("555")
+		}
+		if i == 6 {
+			value = []byte("333")
+		}
+		assert.Equal(t, value, val)
+	}
+	values = listAll(10, ListASC)
+	for i, val := range values {
+		value := []byte(fmt.Sprintf("%d", i))
+		if i == 5 {
+			value = []byte("555")
+		}
+		if i == 3 {
+			value = []byte("333")
+		}
+		assert.Equal(t, value, val)
+	}
+
+	// 新增key
+	db1.Set([]byte("key91"), []byte("10"))
+	db2.Set([]byte("key92"), []byte("11"))
+	values = listAll(12, ListDESC)
+	for i, val := range values {
+		value := []byte(fmt.Sprintf("%d", 11-i))
+		if i == 6 {
+			value = []byte("555")
+		}
+		if i == 8 {
+			value = []byte("333")
+		}
+		assert.Equal(t, value, val)
+	}
+	values = listAll(12, ListASC)
+	for i, val := range values {
+		value := []byte(fmt.Sprintf("%d", i))
+		if i == 5 {
+			value = []byte("555")
+		}
+		if i == 3 {
+			value = []byte("333")
+		}
+		assert.Equal(t, value, val)
+	}
 }
