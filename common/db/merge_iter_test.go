@@ -289,6 +289,26 @@ func TestIterSearch(t *testing.T) {
 	assert.Equal(t, "db2-key-4", string(list0[1]))
 }
 
+func TestMergeIterListIssue1211(t *testing.T) {
+	db1 := newGoMemDB(t)
+	db2, dir := newGoLevelDB(t)
+	defer os.RemoveAll(dir)
+	db := NewMergedIteratorDB([]IteratorDB{db1, db2})
+	it := NewListHelper(db)
+
+	for i := 6; i <= 9; i++ {
+		db1.Set([]byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("%d", i)))
+	}
+	for i := 0; i < 6; i++ {
+		db2.Set([]byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("%d", i)))
+	}
+	values := it.List([]byte("key"), []byte("key5"), 5, ListDESC)
+	assert.Equal(t, 5, len(values))
+	for i, val := range values {
+		assert.Equal(t, []byte(fmt.Sprintf("%d", 4-i)), val)
+	}
+}
+
 func TestMergeIterList(t *testing.T) {
 	levelDB, dir := newGoLevelDB(t)
 	testMergeIterList(t, newGoMemDB(t), newGoMemDB(t), levelDB)

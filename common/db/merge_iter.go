@@ -221,7 +221,7 @@ func (i *mergedIterator) Error() error {
 //
 // If strict is true the any 'corruption errors' (i.e errors.IsCorrupted(err) == true)
 // won't be ignored and will halt 'merged iterator', otherwise the iterator will
-// continue to the selectKey 'input iterator'.
+// continue to the next 'input iterator'.
 func NewMergedIterator(iters []Iterator) Iterator {
 	reverse := true
 	if len(iters) >= 2 {
