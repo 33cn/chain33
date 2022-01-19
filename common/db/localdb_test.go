@@ -1,7 +1,11 @@
 package db
 
 import (
+	"fmt"
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
@@ -71,4 +75,53 @@ func TestLocalDB(t *testing.T) {
 	assert.Equal(t, data[0], []byte("value3"))
 	assert.Equal(t, data[1], []byte("value2"))
 	assert.Equal(t, data[2], []byte("value1"))
+}
+
+func TestLocalDBList(t *testing.T) {
+
+	db, dir := newGoLevelDB(t)
+	defer os.RemoveAll(dir)
+	ldb := NewLocalDB(db, false)
+
+	for i := 0; i < 10; i++ {
+		db.Set([]byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("%d", i)))
+	}
+
+	//交易开始执行
+	ldb.Begin()
+	for i := 5; i < 10; i++ {
+		ldb.Set([]byte(fmt.Sprintf("key%d", i)), nil)
+	}
+	//交易执行中
+	testList := func() {
+		values, err := ldb.List([]byte("key"), nil, 20, ListASC)
+		require.Nil(t, err)
+		require.Equal(t, 5, len(values))
+		for i := 0; i < 5; i++ {
+			require.Equal(t, []byte(fmt.Sprintf("%d", i)), values[i])
+		}
+		values, err = ldb.List([]byte("key"), nil, 20, ListDESC)
+		require.Nil(t, err)
+		require.Equal(t, 5, len(values))
+		for i := 0; i < 5; i++ {
+			require.Equal(t, []byte(fmt.Sprintf("%d", 4-i)), values[i])
+		}
+	}
+	testList()
+	ldb.Commit()
+
+	// 交易执行结束
+	testList()
+
+	ldb.Begin()
+	for i := 0; i < 5; i++ {
+		ldb.Set([]byte(fmt.Sprintf("key%d", i)), nil)
+	}
+	for i := 5; i < 10; i++ {
+		ldb.Set([]byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("%d", i-5)))
+	}
+
+	testList()
+	ldb.Commit()
+	testList()
 }
