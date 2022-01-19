@@ -1,5 +1,19 @@
 changelog
 
+<a name="1.66.4"></a>
+## [1.66.4](https://github.com/33cn/chain33/compare/v1.66.3...v1.66.4) (2022-01-19)
+
+
+### Bug Fixes
+
+* fix merge iterator reverse list(#1211) ([fd5b2dd](https://github.com/33cn/chain33/commit/fd5b2dd)), closes [#1211](https://github.com/33cn/chain33/issues/1211)
+
+
+
+
+
+## [1.66.4](https://github.com/33cn/chain33/compare/v1.66.3...v1.66.4) (2022-01-19)
+
 <a name="1.66.3"></a>
 ## [1.66.3](https://github.com/33cn/chain33/compare/v1.66.2...v1.66.3) (2022-01-14)
 
