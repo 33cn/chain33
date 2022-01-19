@@ -393,7 +393,12 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 			return types.ErrNotAllowModifyPush
 		}
 		//使用保存在数据库中的push配置，而不是最新的配置信息
-		return push.check2ResumePush(subscribeInDB)
+		if err := push.check2ResumePush(subscribeInDB); nil != err {
+			return err
+		}
+
+		//当前可能是notActive的情况，重新激活后，则直接将其状态设置为active
+		return push.setActive(subscribe)
 	}
 
 	push.mu.Lock()
@@ -469,6 +474,27 @@ func (push *Push) persisAndStart(subscribe *types.PushSubscribeReq) error {
 	}
 
 	return push.store.SetSync(key, types.Encode(pushWithStatus))
+}
+
+func (push *Push) setActive(subscribe *types.PushSubscribeReq) error {
+	key := calcPushKey(subscribe.Name)
+	value, err := push.store.GetKey(key)
+	if nil != err {
+		return err
+	}
+	var pushWithStatus types.PushWithStatus
+	err = types.Decode(value, &pushWithStatus)
+	if err != nil {
+		return err
+	}
+	//如果本身就是active状态，则不进行状态的更新
+	if pushWithStatus.Status == subscribeStatusActive {
+		return nil
+	}
+
+	pushWithStatus.Status = subscribeStatusActive
+	storeLog.Info("setActive", "key", string(key), "subscribe", subscribe)
+	return push.store.SetSync(key, types.Encode(&pushWithStatus))
 }
 
 func (push *Push) check2ResumePush(subscribe *types.PushSubscribeReq) error {
