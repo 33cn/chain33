@@ -338,12 +338,14 @@ func (push *Push) init() {
 			chainlog.Error("Push init", "Failed to decode subscribe due to err:", err)
 			return
 		} //过滤掉grpc的推送
+		chainlog.Info("Push init", "Push Name", pushWithStatus.Push.Name, "pushWithStatus.Status", pushWithStatus.Status)
 		if pushWithStatus.Status == subscribeStatusActive {
 			subscribes = append(subscribes, pushWithStatus.Push)
 		}
 
 	}
 	for _, subscribe := range subscribes {
+		chainlog.Info("Push init", "Going to add Task to Push for Name", subscribe.Name)
 		push.addTask(subscribe)
 	}
 }
