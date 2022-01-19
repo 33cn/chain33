@@ -302,6 +302,13 @@ func TestMergeIterListIssue1211(t *testing.T) {
 	for i := 0; i < 6; i++ {
 		db2.Set([]byte(fmt.Sprintf("key%d", i)), []byte(fmt.Sprintf("%d", i)))
 	}
+
+	it2 := db.Iterator(nil, nil, false)
+	for i := 0; i < 10; i++ {
+		it2.Next()
+		assert.Equal(t, []byte(fmt.Sprintf("key%d", i)), it2.Key())
+	}
+
 	values := it.List([]byte("key"), []byte("key5"), 5, ListDESC)
 	assert.Equal(t, 5, len(values))
 	for i, val := range values {

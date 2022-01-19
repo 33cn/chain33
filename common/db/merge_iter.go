@@ -143,6 +143,11 @@ func (i *mergedIterator) selectKey() bool {
 func (i *mergedIterator) Next() bool {
 	for {
 
+		// 首次next, 需要对内部各迭代器都重置
+		if i.dir == dirSOI {
+			return i.Rewind()
+		}
+
 		if !i.next() {
 			return false
 		}
