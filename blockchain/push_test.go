@@ -1136,6 +1136,13 @@ func Test_ReactivePush(t *testing.T) {
 	require.Equal(t, atomic.LoadInt32(&pushNotify.status), notRunning)
 	lastSeq, _ = chain.ProcGetLastPushSeq(subscribe.Name)
 
+	///////////////check status/////////////////////////////////
+	key := calcPushKey(subscribe.Name)
+	value, _ := chain.push.store.GetKey(key)
+	var pushWithStatus types.PushWithStatus
+	_ = types.Decode(value, &pushWithStatus)
+	assert.Equal(t, pushWithStatus.Status, subscribeStatusNotActive)
+
 	//重新激活
 	chain.push.postService = ps
 	err = chain.push.addSubscriber(subscribe)
@@ -1147,6 +1154,12 @@ func Test_ReactivePush(t *testing.T) {
 	require.Equal(t, atomic.LoadInt32(&pushNotify.status), running)
 	lastSeqAfter, _ := chain.ProcGetLastPushSeq(subscribe.Name)
 	require.Greater(t, lastSeqAfter, lastSeq)
+
+	///////////////check status/////////////////////////////////
+	key = calcPushKey(subscribe.Name)
+	value, _ = chain.push.store.GetKey(key)
+	_ = types.Decode(value, &pushWithStatus)
+	assert.Equal(t, pushWithStatus.Status, subscribeStatusActive)
 
 	mock33.Close()
 }
