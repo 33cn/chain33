@@ -432,3 +432,18 @@ func testMergeIterList(t *testing.T, db1, db2, db3 DB) {
 		assert.Equal(t, value, val)
 	}
 }
+
+func TestUpdatePrevKey(t *testing.T) {
+
+	it := &mergedIterator{prevKey: make([]byte, 0, 3)}
+	it.updatePrevKey([]byte("k"))
+	require.Equal(t, []byte("k"), it.prevKey)
+	it.updatePrevKey([]byte("k1"))
+	require.Equal(t, []byte("k1"), it.prevKey)
+	it.updatePrevKey([]byte("key1"))
+	require.Equal(t, []byte("key1"), it.prevKey)
+	it.updatePrevKey([]byte("ke"))
+	require.Equal(t, []byte("ke"), it.prevKey)
+	it.updatePrevKey([]byte("key10"))
+	require.Equal(t, []byte("key10"), it.prevKey)
+}
