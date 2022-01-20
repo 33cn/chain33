@@ -823,9 +823,15 @@ func NewTx() *Transaction {
 // FreeTx free tx object
 func FreeTx(txs ...*Transaction) {
 	for _, tx := range txs {
-		tx.Reset()
+		resetTx(tx)
 		txPool.Put(tx)
 	}
+}
+
+// reset tx value
+// protobuf内部Reset方法含有unsafe不稳定操作, 可能导致交易哈希计算不稳定
+func resetTx(tx *Transaction) {
+	*tx = Transaction{}
 }
 
 //Hash 交易的hash不包含header的值，引入tx group的概念后，做了修改
