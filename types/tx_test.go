@@ -10,12 +10,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
 
 	"strings"
 
 	_ "github.com/33cn/chain33/system/crypto/init"
+	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -496,4 +499,17 @@ func modifyTxExec(tx1, tx2, tx3 *Transaction, tx1exec, tx2exec, tx3exec string) 
 	tx13.Execer = []byte(tx3exec)
 
 	return tx11, tx12, tx13
+}
+
+func TestTxReset(t *testing.T) {
+
+	txStr := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	txByte, err := hex.DecodeString(txStr)
+	require.Nil(t, err)
+	tx := &Transaction{}
+	err = Decode(txByte, tx)
+	require.Equal(t, 100000, int(tx.Fee))
+	require.Nil(t, err)
+	resetTx(tx)
+	require.True(t, proto.Equal(tx, &Transaction{}))
 }
