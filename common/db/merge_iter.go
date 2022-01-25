@@ -152,11 +152,21 @@ func (i *mergedIterator) Next() bool {
 			return false
 		}
 
-		if i.compare(i.Key(), i.prevKey) != 0 {
-			i.prevKey = cloneByte(i.Key())
+		currKey := i.Key()
+		if i.compare(currKey, i.prevKey) != 0 {
+			i.updatePrevKey(currKey)
 			return true
 		}
 	}
+}
+
+func (i *mergedIterator) updatePrevKey(currKey []byte) {
+
+	if cap(i.prevKey) < len(currKey) {
+		i.prevKey = make([]byte, len(currKey))
+	}
+	i.prevKey = i.prevKey[:len(currKey)]
+	copy(i.prevKey, currKey)
 }
 
 func (i *mergedIterator) next() bool {
@@ -243,6 +253,7 @@ func NewMergedIterator(iters []Iterator) Iterator {
 		cmp:     comparer.DefaultComparer,
 		strict:  true,
 		keys:    make([][]byte, len(iters)),
+		prevKey: make([]byte, 128),
 	}
 }
 
