@@ -9,7 +9,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/tjfoc/gmsm/sm3"
 	"golang.org/x/crypto/ripemd160"
@@ -77,8 +76,13 @@ func WithRegOptionDefaultDisable() RegOption {
 	}
 }
 
-// MaxManualTypeID 手动指定ID最大值 65534
-const MaxManualTypeID = math.MaxUint16 - 1
+// MaxManualTypeID 手动指定ID最大值 4095
+const MaxManualTypeID = 1<<12 - 1
+
+const (
+	// TypeIDMask type id mask, typeID = signID & mask
+	TypeIDMask = 0xffff8fff
+)
 
 // WithRegOptionTypeID 手动指定typeID， 不指定情况，系统将根据name自动生成typeID
 func WithRegOptionTypeID(id int32) RegOption {
@@ -107,10 +111,11 @@ func WithRegOptionInitFunc(fn DriverInitFunc) RegOption {
 
 // GenDriverTypeID 根据名称生成driver type id
 func GenDriverTypeID(name string) int32 {
-	buf := Sha256([]byte(name))
-	id := int32(binary.BigEndian.Uint32(buf) % 1e8)
-	// 自动生成的在区间[65535, 1e8+65535)
-	return id + MaxManualTypeID + 1
+	//分别生成高16位和低16位, 错开地址位
+	highVal := int32(binary.BigEndian.Uint32(Sha256([]byte(name)))%MaxManualTypeID+1) << 16
+	lowVal := int32(binary.BigEndian.Uint32(Ripemd160([]byte(name))) % MaxManualTypeID)
+
+	return highVal | lowVal
 }
 
 // WithLoadOptionEnableCheck 在New阶段根据当前区块高度进行插件使能检测
