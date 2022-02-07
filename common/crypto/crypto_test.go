@@ -307,7 +307,15 @@ func TestInitSubCfg(t *testing.T) {
 
 func TestGenDriverTypeID(t *testing.T) {
 	id := crypto.GenDriverTypeID("TestGenDriverTypeID")
-	require.Equal(t, int32(81208513), id)
+	require.Equal(t, int32(180488522), id)
+
+	for i := 0; i < 8; i++ {
+		signID := int32(i)<<12 | id
+		typeID := int(signID) & crypto.TypeIDMask
+		addressID := int(signID) & 0x00007000 >> 12
+		require.Equal(t, int(id), typeID)
+		require.Equal(t, i, addressID)
+	}
 }
 
 func TestWithOption(t *testing.T) {
