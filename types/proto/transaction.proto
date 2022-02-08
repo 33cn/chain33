@@ -99,7 +99,6 @@ message Transaction {
     bytes  header     = 9;
     bytes  next       = 10;
     int32  chainID    = 11;
-    string fromAddr   = 12;
 }
 
 message Transactions {
