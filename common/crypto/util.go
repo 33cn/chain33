@@ -76,10 +76,9 @@ func WithRegOptionDefaultDisable() RegOption {
 	}
 }
 
-// MaxManualTypeID 手动指定ID最大值 4095
-const MaxManualTypeID = 1<<12 - 1
-
 const (
+	// MaxManualTypeID 手动指定ID最大值 4095
+	MaxManualTypeID = 1<<12 - 1
 	// TypeIDMask type id mask, typeID = signID & mask
 	TypeIDMask = 0xffff8fff
 )
