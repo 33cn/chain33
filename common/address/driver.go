@@ -6,6 +6,7 @@ package address
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -18,7 +19,7 @@ var (
 )
 
 var (
-	drivers       = make(map[string]*BaseDriver)
+	drivers       = make(map[int32]*DriverInfo)
 	defaultDriver Driver
 	driverMutex   sync.Mutex
 )
@@ -26,41 +27,58 @@ var (
 // Driver address driver
 type Driver interface {
 
-	// Format format to address
-	Format(pubKey []byte) string
-	// Validate address validation
-	Validate(addr string) error
+	// PubKeyToAddr public key to address
+	PubKeyToAddr(pubKey []byte) string
+	// ValidateAddr address validation
+	ValidateAddr(addr string) error
+	// GetName get driver name
+	GetName(id int32) string
 }
 
-type BaseDriver struct {
-	name         string
+// DriverInfo driver info
+type DriverInfo struct {
 	driver       Driver
 	enableHeight int64
 }
 
-// Register 注册地址驱动
+const (
+	// MaxID 最大id值
+	MaxID = 7
+	// IDMask
+	IDMask   = 0x00007000
+	IDOffset = 12
+)
+
+// DecodeAddressID, decode address id from signature type id
+func DecodeAddressID(signID int32) int32 {
+	return int32(IDMask) & signID >> IDOffset
+}
+
+// RegisterDriver 注册地址驱动
 // enableHeight, 设置默认启用高度, 负数表示不启用
-func Register(name string, driver Driver, enableHeight int64) {
+func RegisterDriver(id int32, driver Driver, enableHeight int64) {
 
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
-	_, ok := drivers[name]
-	if ok {
-		panic("Register duplicate Address driver, name=" + name)
+	if id < 0 || id > MaxID {
+		panic(fmt.Sprintf("address id must in range [0, %d]", MaxID))
 	}
-	base := &BaseDriver{
+	_, ok := drivers[id]
+	if ok {
+		panic(fmt.Sprintf("Register duplicate Address id %d", id))
+	}
+	info := &DriverInfo{
 		driver:       driver,
-		name:         name,
 		enableHeight: enableHeight,
 	}
-	drivers[name] = base
+	drivers[id] = info
 }
 
-// Load 根据名称加载插件, 根据区块高度判定是否已启动
+// LoadDriver 根据ID加载插件, 根据区块高度判定是否已启动
 // 不关心启用状态, blockHeight传-1
-func Load(name string, blockHeight int64) (Driver, error) {
+func LoadDriver(id int32, blockHeight int64) (Driver, error) {
 
-	base, ok := drivers[name]
+	base, ok := drivers[id]
 	if !ok {
 		return nil, ErrUnknownAddressDriver
 	}
@@ -72,27 +90,12 @@ func Load(name string, blockHeight int64) (Driver, error) {
 	return base.driver, nil
 }
 
-//  LoadDefault load default driver
-func LoadDefault() Driver {
-	return defaultDriver
-}
+// GetDriverList get driver list
+func GetDriverList() []Driver {
 
-// LoadByAddr 根据地址加载驱动
-func LoadByAddr(addr string, blockHeight int64) (Driver, error) {
-
-	name := GetDriverName(addr)
-	return Load(name, blockHeight)
-}
-
-// GetDriverName 基于地址格式, 判定驱动名称
-// 每个地址驱动生成的地址格式特征不同, 新增驱动需要调整这个接口
-func GetDriverName(addr string) string {
-
-	// 这里遍历所有驱动, 返回第一个合法的, 驱动间如果有相似格式,会导致潜在问题
-	for name, base := range drivers {
-		if base.driver.Validate(addr) != nil {
-			return name
-		}
+	list := make([]Driver, 0, len(drivers))
+	for _, d := range drivers {
+		list = append(list, d.driver)
 	}
-	return ""
+	return list
 }
