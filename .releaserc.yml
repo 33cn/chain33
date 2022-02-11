@@ -1,4 +1,4 @@
-{ "branches": ["master", "next"],
+{ "branches": [ "master", "next" ],
   "plugins": [
     [
         "@semantic-release/commit-analyzer",
@@ -12,13 +12,12 @@
         "preset": "jshint"
       }
     ],
-    "@semantic-release/release-notes-generator", #Default 2
     [
         "@google/semantic-release-replace-plugin",
       {
         "replacements": [
           {
-            "files": ["common/version/version.go"],
+            "files": [ "common/version/version.go" ],
             "from": "var Version.*",
             "to": 'var Version = "${nextRelease.version}"',
             "results": [
@@ -35,23 +34,23 @@
       }
     ],
     [
-      "@semantic-release/changelog",
-       { "changelogFile": "CHANGELOG.md", "changelogTitle": "changelog" },
+        "@semantic-release/changelog",
+        { "changelogFile": "CHANGELOG.md", "changelogTitle": "changelog" },
     ],
     # "@semantic-release/npm", #Default 3
     # "@semantic-release/github", #Default 4
     [
-      "@semantic-release/github",
-      {"assets": ["build/*.tar.gz","build/*.zip"]}
+        "@semantic-release/github",
+        { "assets": [ "build/*.tar.gz","build/*.zip" ] }
     ],
     [
         "@semantic-release/git",
       {
-        "assets": ["common/version/version.go","CHANGELOG.md"],
+        "assets": [ "common/version/version.go","CHANGELOG.md" ],
       }
     ],
     [
-      "@semantic-release/exec", {
+        "@semantic-release/exec", {
       "prepareCmd": "make all-arch VERSION=${nextRelease.version}"
     }
     ]
