@@ -280,12 +280,12 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 	return set, err
 }
 
-// CheckAddress check address
+// CheckBtcAddress check address
 func CheckAddress(cfg *types.Chain33Config, addr string, height int64) error {
 	if IsDriverAddress(addr, height) {
 		return nil
 	}
-	err := address.CheckAddress(addr)
+	err := address.CheckAddress(addr, height)
 	if !cfg.IsFork(height, "ForkMultiSignAddress") && err == address.ErrCheckVersion {
 		return nil
 	}

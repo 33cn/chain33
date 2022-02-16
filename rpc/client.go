@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/33cn/chain33/system/address/btc"
+
 	"github.com/33cn/chain33/system/crypto/btcscript"
 	"github.com/33cn/chain33/system/crypto/btcscript/script"
 
@@ -50,7 +52,7 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	}
 	//构建交易时to地址不为空时需要检测地址的合法性
 	if param.GetTo() != "" {
-		if err := address.CheckAddress(param.GetTo()); err != nil {
+		if err := address.CheckAddress(param.GetTo(), -1); err != nil {
 			return nil, types.ErrInvalidAddress
 		}
 	}
@@ -292,7 +294,7 @@ func decodeTx(hexstr string) (*types.Transaction, error) {
 
 // GetAddrOverview get overview of address
 func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
-	err := address.CheckAddress(parm.Addr)
+	err := address.CheckAddress(parm.Addr, -1)
 	if err != nil {
 		return nil, types.ErrInvalidAddress
 	}
@@ -338,11 +340,9 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.A
 	types.AssertConfig(c.QueueProtocolAPI)
 	cfg := c.QueueProtocolAPI.GetConfig()
 	addr := in.Addr
-	err := address.CheckAddress(addr)
+	err := address.CheckAddress(addr, -1)
 	if err != nil {
-		if err = address.CheckMultiSignAddress(addr); err != nil {
-			return nil, types.ErrInvalidAddress
-		}
+		return nil, types.ErrInvalidAddress
 	}
 	var addrs []string
 	addrs = append(addrs, addr)
@@ -454,7 +454,7 @@ func (c *channelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr)
 		return nil, err
 	}
 	reply := &types.ReplyString{}
-	reply.Data = address.PubKeyToAddr(script.Script2PubKey(pkScript))
+	reply.Data = btc.FormatBtcAddr(address.NormalVer, pkScript)
 	return reply, nil
 }
 

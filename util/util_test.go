@@ -68,7 +68,7 @@ func TestResetDatadir(t *testing.T) {
 
 func TestHexToPrivkey(t *testing.T) {
 	key := HexToPrivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01")
-	addr := address.PubKeyToAddress(key.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddr(address.DefaultID, key.PubKey().Bytes())
 	assert.Equal(t, addr, "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv")
 }
 

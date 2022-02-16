@@ -1042,9 +1042,6 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 
 		} else { // 默认的执行器类型处理
 			// TODO: 钱包基础功能模块，将会重新建立一个处理策略，将钱包变成一个容器
-			//获取from地址
-			pubkey := block.Block.Txs[index].Signature.GetPubkey()
-			addr := address.PubKeyToAddress(pubkey)
 			param := &buildStoreWalletTxDetailParam{
 				tokenname:  "",
 				block:      block,
@@ -1056,12 +1053,12 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				//utxos:      nil,
 			}
 			//from addr
-			fromaddress := addr.String()
-			param.senderRecver = fromaddress
-			if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
+			fromAddr := tx.From()
+			param.senderRecver = fromAddr
+			if len(fromAddr) != 0 && wallet.AddrInWallet(fromAddr) {
 				param.sendRecvFlag = sendTx
 				wallet.buildAndStoreWalletTxDetail(param)
-				walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress)
+				walletlog.Debug("ProcWalletAddBlock", "fromAddr", fromAddr)
 				continue
 			}
 			//toaddr获取交易中真实的接收地址，主要是针对para
@@ -1159,10 +1156,8 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		} else { // 默认的合约处理流程
 			// TODO:将钱包基础功能移动到专属钱包基础业务的模块中，将钱包模块变成容器
 			//获取from地址
-			pubkey := tx.Signature.GetPubkey()
-			addr := address.PubKeyToAddress(pubkey)
-			fromaddress := addr.String()
-			if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
+			fromAddr := tx.From()
+			if len(fromAddr) != 0 && wallet.AddrInWallet(fromAddr) {
 				newbatch.Delete(wcom.CalcTxKey(heightstr))
 				continue
 			}

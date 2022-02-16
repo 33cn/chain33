@@ -62,7 +62,7 @@ func oneStepSend(cmd *cobra.Command, cmdName string, params []string) {
 	}
 
 	//构造签名命令的key参数
-	if address.CheckAddress(key) == nil {
+	if address.CheckAddress(key, -1) == nil {
 		keyParams = append([]string{}, "-a", key)
 	} else {
 		keyParams = append([]string{}, "-k", key)

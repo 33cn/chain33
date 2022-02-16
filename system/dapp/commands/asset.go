@@ -59,12 +59,10 @@ func assetBalance(cmd *cobra.Command, args []string) {
 	assetExec, _ := cmd.Flags().GetString("asset_exec")
 	height, _ := cmd.Flags().GetInt("height")
 
-	err := address.CheckAddress(addr)
+	err := address.CheckAddress(addr, -1)
 	if err != nil {
-		if err = address.CheckMultiSignAddress(addr); err != nil {
-			fmt.Fprintln(os.Stderr, types.ErrInvalidAddress)
-			return
-		}
+		fmt.Fprintln(os.Stderr, types.ErrInvalidAddress)
+		return
 	}
 	if execer == "" {
 		execer = assetExec

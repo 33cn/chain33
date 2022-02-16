@@ -333,10 +333,10 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	priv, err := cr.PrivKeyFromBytes(privkeybyte)
 	require.NoError(t, err)
 
-	addr := address.PubKeyToAddress(priv.PubKey().Bytes())
-	FromAddr = addr.String()
+	addr := address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())
+	FromAddr = addr
 	var acc types.Account
-	acc.Addr = addr.String()
+	acc.Addr = addr
 	acc.Balance = int64(1e16)
 	acc.Currency = int32(10)
 	acc.Frozen = int64(10)
@@ -402,7 +402,7 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	privKey.Label = "ImportPrivKey-Label"
 	resp, _ := wallet.GetAPI().ExecWalletFunc("wallet", "WalletImportPrivkey", privKey)
 	importedAcc := resp.(*types.WalletAccount)
-	if importedAcc.Label != "ImportPrivKey-Label" || importedAcc.Acc.Addr != address.PubKeyToAddress(priv.PubKey().Bytes()).String() {
+	if importedAcc.Label != "ImportPrivKey-Label" || importedAcc.Acc.Addr != address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes()) {
 		t.Error("testProcImportPrivKey failed")
 		return
 	}
@@ -414,7 +414,7 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 
 	wallet.GetAPI().ExecWalletFunc("wallet", "WalletImportPrivkey", privKey)
 
-	addr := &types.ReqString{Data: address.PubKeyToAddress(priv.PubKey().Bytes()).String()}
+	addr := &types.ReqString{Data: address.PubKeyToAddr(address.DefaultID, priv.PubKey().Bytes())}
 	_, err = wallet.GetAPI().ExecWalletFunc("wallet", "DumpPrivkey", &types.ReqString{Data: "wrongaddr"})
 	assert.Equal(t, err.Error(), types.ErrAddrNotExist.Error())
 

@@ -146,12 +146,10 @@ func balance(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	execer, _ := cmd.Flags().GetString("exec")
 	height, _ := cmd.Flags().GetInt("height")
-	err := address.CheckAddress(addr)
+	err := address.CheckAddress(addr, -1)
 	if err != nil {
-		if err = address.CheckMultiSignAddress(addr); err != nil {
-			fmt.Fprintln(os.Stderr, types.ErrInvalidAddress)
-			return
-		}
+		fmt.Fprintln(os.Stderr, types.ErrInvalidAddress)
+		return
 	}
 	if execer == "" && height == -1 {
 		req := types.ReqAllExecBalance{Addr: addr}

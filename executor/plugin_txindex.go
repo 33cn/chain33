@@ -7,7 +7,6 @@ package executor
 import (
 	"fmt"
 
-	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/types"
 )
 
@@ -96,7 +95,7 @@ func getTxIndex(executor *executor, tx *types.Transaction, receipt *types.Receip
 	heightstr := fmt.Sprintf("%018d", executor.height*types.MaxTxsPerBlock+int64(index))
 	txIndexInfo.heightstr = heightstr
 
-	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	txIndexInfo.from = tx.From()
 	txIndexInfo.to = tx.GetRealToAddr()
 	return &txIndexInfo
 }

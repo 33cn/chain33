@@ -295,7 +295,7 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var exaddrs []string
 		for _, addr := range addrs {
-			if err := address.CheckAddress(addr); err != nil {
+			if err := address.CheckAddress(addr, -1); err != nil {
 				addr = address.ExecAddress(addr)
 			}
 			exaddrs = append(exaddrs, addr)

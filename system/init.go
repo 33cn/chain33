@@ -6,6 +6,7 @@
 package system
 
 import (
+	_ "github.com/33cn/chain33/system/address"
 	_ "github.com/33cn/chain33/system/consensus/init" //register consensus init package
 	_ "github.com/33cn/chain33/system/crypto/init"
 	_ "github.com/33cn/chain33/system/dapp/init"
