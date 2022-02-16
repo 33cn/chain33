@@ -198,7 +198,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	//检查地址的有效性
-	if err := address.CheckAddress(tx.To); err != nil {
+	if err := address.CheckAddress(tx.To, e.height); err != nil {
 		return err
 	}
 	var exec drivers.Driver

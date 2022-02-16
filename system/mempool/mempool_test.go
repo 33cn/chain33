@@ -44,7 +44,7 @@ var (
 	privKey, _ = c.PrivKeyFromBytes(a)
 	random     *rand.Rand
 	mainPriv   crypto.PrivKey
-	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	toAddr     = address.PubKeyToAddr(address.DefaultID, privKey.PubKey().Bytes())
 	amount     = int64(1e8)
 	v          = &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
 	bigByte    = make([]byte, 99510)
@@ -80,9 +80,6 @@ var (
 	bigTx10 = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 18, To: toAddr}
 	bigTx11 = &types.Transaction{Execer: []byte("user.write"), Payload: bigByte, Fee: 1001000000, Expire: 19, To: toAddr}
 )
-
-//var privTo, _ = c.GenKey()
-//var ad = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 
 var blk = &types.Block{
 	Version:    1,
@@ -234,8 +231,8 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
-	return addrto.String(), privto
+	addrto := address.PubKeyToAddr(address.DefaultID, privKey.PubKey().Bytes())
+	return addrto, privto
 }
 
 func TestAddEmptyTx(t *testing.T) {
@@ -791,7 +788,7 @@ func TestGetAddrTxs(t *testing.T) {
 		return
 	}
 
-	ad := address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	ad := address.PubKeyToAddr(address.DefaultID, privKey.PubKey().Bytes())
 	addrs := []string{ad}
 	msg := mem.client.NewMessage("mempool", types.EventGetAddrTxs, &types.ReqAddrs{Addrs: addrs})
 	mem.client.Send(msg, true)

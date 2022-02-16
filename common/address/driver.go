@@ -32,7 +32,7 @@ type Driver interface {
 	// ValidateAddr address validation
 	ValidateAddr(addr string) error
 	// GetName get driver name
-	GetName(id int32) string
+	GetName() string
 }
 
 // DriverInfo driver info
@@ -45,13 +45,30 @@ const (
 	// MaxID 最大id值
 	MaxID = 7
 	// IDMask
-	IDMask   = 0x00007000
+	IDMask = 0x00007000
+	// offset
 	IDOffset = 12
+	// AnyID any valid id, not specified
+	AnyID = MaxID + 1
+	// DefaultID specify as default id
+	DefaultID = -1
+)
+
+var (
+	defaultAddressID int32 // btc address format as default
 )
 
 // DecodeAddressID, decode address id from signature type id
 func DecodeAddressID(signID int32) int32 {
 	return int32(IDMask) & signID >> IDOffset
+}
+
+// EncodeAddressID, encode address id to sign id
+func EncodeAddressID(signTy, addressID int32) int32 {
+	if addressID == DefaultID {
+		addressID = defaultAddressID
+	}
+	return addressID<<IDOffset | signTy
 }
 
 // RegisterDriver 注册地址驱动
@@ -78,24 +95,33 @@ func RegisterDriver(id int32, driver Driver, enableHeight int64) {
 // 不关心启用状态, blockHeight传-1
 func LoadDriver(id int32, blockHeight int64) (Driver, error) {
 
-	base, ok := drivers[id]
+	d, ok := drivers[id]
 	if !ok {
 		return nil, ErrUnknownAddressDriver
 	}
 
-	if blockHeight >= 0 && base.enableHeight > blockHeight {
+	if !isEnable(blockHeight, d.enableHeight) {
 		return nil, ErrAddressDriverNotEnable
 	}
 
-	return base.driver, nil
+	return d.driver, nil
+}
+
+// check driver enable height with block height
+func isEnable(blockHeight, enableHeight int64) bool {
+
+	if blockHeight >= 0 && enableHeight > blockHeight {
+		return false
+	}
+	return true
 }
 
 // GetDriverList get driver list
-func GetDriverList() []Driver {
+func GetDriverList() map[int32]Driver {
 
-	list := make([]Driver, 0, len(drivers))
-	for _, d := range drivers {
-		list = append(list, d.driver)
+	list := make(map[int32]Driver, len(drivers))
+	for id, d := range drivers {
+		list[id] = d.driver
 	}
 	return list
 }

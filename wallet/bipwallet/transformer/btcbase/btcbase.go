@@ -10,6 +10,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/33cn/chain33/system/address/btc"
+
 	"github.com/33cn/chain33/common/address"
 
 	"github.com/33cn/chain33/common/crypto"
@@ -78,7 +80,7 @@ func checksum(input []byte) (cksum [4]byte) {
 func (t btcBaseTransformer) PubKeyToAddress(pub []byte) (addr string, err error) {
 	if len(pub) != 33 && len(pub) != 65 { //压缩格式 与 非压缩格式
 		//return "", fmt.Errorf("invalid public key byte:%v", len(pub))
-		return address.PubKeyToAddr(pub), nil
+		return btc.FormatBtcAddr(address.NormalVer, pub), nil
 	}
 
 	sha256h := sha256.New()

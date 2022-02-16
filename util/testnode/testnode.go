@@ -485,7 +485,7 @@ func (mock *Chain33Mock) GetHotKey() crypto.PrivKey {
 
 //GetHotAddress :
 func (mock *Chain33Mock) GetHotAddress() string {
-	return address.PubKeyToAddress(mock.GetHotKey().PubKey().Bytes()).String()
+	return address.PubKeyToAddr(address.DefaultID, mock.GetHotKey().PubKey().Bytes())
 }
 
 //GetGenesisKey :
@@ -495,7 +495,7 @@ func (mock *Chain33Mock) GetGenesisKey() crypto.PrivKey {
 
 //GetGenesisAddress :
 func (mock *Chain33Mock) GetGenesisAddress() string {
-	return address.PubKeyToAddress(mock.GetGenesisKey().PubKey().Bytes()).String()
+	return address.PubKeyToAddr(address.DefaultID, mock.GetGenesisKey().PubKey().Bytes())
 }
 
 type mockP2P struct {

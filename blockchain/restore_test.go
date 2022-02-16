@@ -116,7 +116,7 @@ func TestUpgradeStore(t *testing.T) {
 	}
 	mock33.WaitHeight(4)
 	time.Sleep(time.Second)
-	addr := address.PubKeyToAddress(mock33.GetGenesisKey().PubKey().Bytes()).String()
+	addr := address.PubKeyToAddr(address.DefaultID, mock33.GetGenesisKey().PubKey().Bytes())
 	count1, err := GetAddrTxsCount(db, addr)
 	require.NoError(t, err)
 	version.SetStoreDBVersion("2.0.0")

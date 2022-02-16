@@ -864,11 +864,9 @@ func (c *Chain33) GetWalletStatus(in *types.ReqNil, result *interface{}) error {
 func (c *Chain33) GetBalance(in *types.ReqBalance, result *interface{}) error {
 	//增加addr地址的校验
 	for _, addr := range in.GetAddresses() {
-		err := address.CheckAddress(addr)
+		err := address.CheckAddress(addr, -1)
 		if err != nil {
-			if err = address.CheckMultiSignAddress(addr); err != nil {
-				return types.ErrInvalidAddress
-			}
+			return types.ErrInvalidAddress
 		}
 	}
 	balances, err := c.cli.GetBalance(in)
