@@ -16,7 +16,7 @@ func (c *Manage) checkAddress(addr string) error {
 	if dapp.IsDriverAddress(addr, c.GetHeight()) {
 		return nil
 	}
-	return address.CheckAddress(addr)
+	return address.CheckAddress(addr, c.GetHeight())
 }
 
 func (c *Manage) checkTxToAddress(tx *types.Transaction, index int) error {

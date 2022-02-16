@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package address
+package address_test
 
 import (
 	"encoding/hex"
@@ -11,7 +11,8 @@ import (
 	"testing"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/system/address/btc"
 
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/crypto/init"
@@ -33,18 +34,16 @@ func genkey() crypto.PrivKey {
 func TestAddress(t *testing.T) {
 	key := genkey()
 	t.Logf("%X", key.Bytes())
-	addr := PubKeyToAddress(key.PubKey().Bytes())
+	addr := address.PubKeyToAddr(address.DefaultID, key.PubKey().Bytes())
 	t.Log(addr)
 }
 
 func TestMultiSignAddress(t *testing.T) {
 	key := genkey()
-	addr1 := MultiSignAddress(key.PubKey().Bytes())
-	addr := MultiSignAddress(key.PubKey().Bytes())
-	assert.Equal(t, addr1, addr)
-	err := CheckAddress(addr)
-	assert.Equal(t, ErrCheckVersion, err)
-	err = CheckMultiSignAddress(addr)
+	addr := address.PubKeyToAddr(btc.MultiSignAddressID, key.PubKey().Bytes())
+	err := address.CheckBase58Address(address.NormalVer, addr)
+	assert.Equal(t, address.ErrCheckVersion, err)
+	err = address.CheckBase58Address(address.MultiSignVer, addr)
 	assert.Nil(t, err)
 	t.Log(addr)
 }
@@ -57,7 +56,7 @@ func TestPubkeyToAddress(t *testing.T) {
 		return
 	}
 	t.Logf("%X", b)
-	addr := PubKeyToAddress(b)
+	addr := address.PubKeyToAddr(address.DefaultID, b)
 	t.Log(addr)
 }
 
@@ -72,27 +71,25 @@ func TestCheckAddress(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	addr := PubKeyToAddress(key.PubKey().Bytes())
-	err = CheckAddress(addr.String())
+	addr := address.PubKeyToAddr(address.DefaultID, key.PubKey().Bytes())
+	err = address.CheckBase58Address(address.NormalVer, addr)
 	require.NoError(t, err)
 
-	err = CheckAddress(addr.String() + addr.String())
-	require.Equal(t, err, ErrAddressChecksum)
+	err = address.CheckBase58Address(address.NormalVer, addr+addr)
+	require.Equal(t, err, address.ErrAddressChecksum)
 }
 
 func TestExecAddress(t *testing.T) {
-	assert.Equal(t, "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp", ExecAddress("ticket"))
-	assert.Equal(t, "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp", ExecAddress("ticket"))
-	addr, err := NewAddrFromString(ExecAddress("ticket"))
+	assert.Equal(t, "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp", address.ExecAddress("ticket"))
+	err := address.CheckBase58Address(address.NormalVer, "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
 	assert.Nil(t, err)
-	assert.Equal(t, addr.Version, NormalVer)
 }
 
 func BenchmarkExecAddress(b *testing.B) {
 	start := time.Now().UnixNano() / 1000000
 	fmt.Println(start)
 	for i := 0; i < b.N; i++ {
-		ExecAddress("ticket")
+		address.ExecAddress("ticket")
 	}
 	end := time.Now().UnixNano() / 1000000
 	fmt.Println(end)
@@ -102,20 +99,10 @@ func BenchmarkExecAddress(b *testing.B) {
 	start = time.Now().UnixNano() / 1000000
 	fmt.Println(start)
 	for i := 0; i < b.N; i++ {
-		GetExecAddress("ticket")
+		address.GetExecAddress("ticket")
 	}
 	end = time.Now().UnixNano() / 1000000
 	fmt.Println(end)
 	duration = end - start
 	fmt.Println("duration without cache:", strconv.FormatInt(duration, 10))
-}
-
-func TestExecPubKey(t *testing.T) {
-	execPubKeyCache, _ = lru.New(10)
-	pub := ExecPubKey("test")
-	ExecPubKey("test2")
-	cachePub := ExecPubKey("test")
-	assert.True(t, len(pub) == 32)
-	assert.Equal(t, 2, execPubKeyCache.Len())
-	assert.Equal(t, pub, cachePub)
 }

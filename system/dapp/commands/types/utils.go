@@ -93,7 +93,7 @@ func CreateRawTx(paraName string, to string, amount float64, note string, isWith
 	}
 	//检测to地址的合法性
 	if to != "" {
-		if err := address.CheckAddress(to); err != nil {
+		if err := address.CheckAddress(to, -1); err != nil {
 			return "", types.ErrInvalidAddress
 		}
 	}

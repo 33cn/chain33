@@ -27,7 +27,7 @@ import (
 
 var (
 	transfer = &cty.CoinsAction{Value: nil, Ty: cty.CoinsActionTransfer}
-	to       = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	to       = address.PubKeyToAddr(address.DefaultID, privKey.PubKey().Bytes())
 	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: to}
 	tx2      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: to}
 	tx3      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: to}
@@ -52,7 +52,7 @@ var (
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
 		Fee:     1000000,
 		Expire:  2,
-		To:      address.PubKeyToAddress(privKey.PubKey().Bytes()).String(),
+		To:      address.PubKeyToAddr(address.DefaultID, privKey.PubKey().Bytes()),
 	}
 )
 
@@ -287,7 +287,7 @@ func TestChckSignWithSm2(t *testing.T) {
 	privKeysm2, _ := sm2.PrivKeyFromBytes(privRaw)
 	tx15 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
-		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKeysm2.PubKey().Bytes()).String()}
+		Fee:     1000000, Expire: 2, To: address.PubKeyToAddr(address.DefaultID, privKey.PubKey().Bytes())}
 
 	cfg, err := initEnv()
 	if err != nil {

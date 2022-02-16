@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"errors"
+	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/common"
@@ -64,7 +65,7 @@ func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 func (mem *Mempool) checkTx(msg *queue.Message) *queue.Message {
 	tx := msg.GetData().(types.TxGroup).Tx()
 	// 检查接收地址是否合法
-	if err := address.CheckAddress(tx.To); err != nil {
+	if err := address.CheckAddress(tx.To, atomic.LoadInt64(&mem.currHeight)); err != nil {
 		msg.Data = types.ErrInvalidAddress
 		return msg
 	}

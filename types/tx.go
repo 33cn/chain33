@@ -461,7 +461,7 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	pub := priv.PubKey()
 	sign := priv.Sign(data)
 	tx.Signature = &Signature{
-		Ty:        ty,
+		Ty:        address.EncodeAddressID(ty, address.DefaultID),
 		Pubkey:    pub.Bytes(),
 		Signature: sign.Bytes(),
 	}
@@ -588,7 +588,8 @@ func (tx *Transaction) GetTxFee() int64 {
 
 //From 交易from地址
 func (tx *Transaction) From() string {
-	return address.PubKeyToAddr(tx.GetSignature().GetPubkey())
+	return address.PubKeyToAddr(address.DecodeAddressID(tx.GetSignature().GetTy()),
+		tx.GetSignature().GetPubkey())
 }
 
 //检查交易是否过期，过期返回true，未过期返回false

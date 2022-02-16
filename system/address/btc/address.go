@@ -2,11 +2,12 @@ package btc
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/decred/base58"
 	lru "github.com/hashicorp/golang-lru"
-	"strings"
 )
 
 const (
@@ -19,9 +20,9 @@ const (
 )
 
 var (
-	normalAddrCache    *lru.Cache
-	multiSignAddrCache *lru.Cache
-	normalAddrPrefix string
+	normalAddrCache     *lru.Cache
+	multiSignAddrCache  *lru.Cache
+	normalAddrPrefix    string
 	multiSignAddrPrefix string
 	// ErrInvalidAddrFormat invalid address format
 	ErrInvalidAddrFormat = errors.New("ErrInvalidAddrFormat")
@@ -50,18 +51,18 @@ func (b *btc) PubKeyToAddr(pubKey []byte) string {
 	if value, ok := normalAddrCache.Get(pubStr); ok {
 		return value.(string)
 	}
-	addr := formatBtcAddr(address.NormalVer, pubKey)
+	addr := FormatBtcAddr(address.NormalVer, pubKey)
 	normalAddrCache.Add(pubStr, addr)
 	return addr
 }
 
 // ValidateAddr address validation
 func (b *btc) ValidateAddr(addr string) error {
-	return address.CheckBtcAddress(addr)
+	return address.CheckBase58Address(address.MultiSignVer, addr)
 }
 
 // GetName get driver name
-func (b *btc) GetName(id int32) string {
+func (b *btc) GetName() string {
 	return normalName
 }
 
@@ -74,7 +75,7 @@ func (b *btcMultiSign) PubKeyToAddr(pubKey []byte) string {
 	if value, ok := multiSignAddrCache.Get(pubStr); ok {
 		return value.(string)
 	}
-	addr := formatBtcAddr(address.MultiSignVer, pubKey)
+	addr := FormatBtcAddr(address.MultiSignVer, pubKey)
 	multiSignAddrCache.Add(pubStr, addr)
 	return addr
 }
@@ -84,15 +85,16 @@ func (b *btcMultiSign) ValidateAddr(addr string) error {
 	if !strings.HasPrefix(addr, "3") {
 		return ErrInvalidAddrFormat
 	}
-	return address.CheckBtcMultiSignAddress(addr)
+	return address.CheckBase58Address(address.MultiSignVer, addr)
 }
 
 // GetName get driver name
-func (b *btcMultiSign) GetName(id int32) string {
+func (b *btcMultiSign) GetName() string {
 	return multiSignName
 }
 
-func formatBtcAddr(version byte, pubKey []byte) string {
+// FormatBtcAddr
+func FormatBtcAddr(version byte, pubKey []byte) string {
 
 	var ad [25]byte
 	ad[0] = version

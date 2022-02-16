@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/33cn/chain33/common"
-	"github.com/33cn/chain33/common/address"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 )
@@ -78,7 +77,7 @@ func getTxFeeIndex(executor *executor, tx *types.Transaction, receipt *types.Rec
 	txinf.Fee = tx.Fee
 	txinf.Exec = string(tx.Execer)
 	txinf.TxStatus = receipt.Ty
-	txinf.FromAddr = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	txinf.FromAddr = tx.From()
 	txinf.ToAddr = tx.GetRealToAddr()
 
 	txFeeIndexInfo.index = &txinf

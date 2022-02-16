@@ -8,9 +8,7 @@ package address
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/hex"
 	"errors"
-	"unsafe"
 
 	"github.com/33cn/chain33/common"
 	"github.com/decred/base58"
@@ -18,11 +16,10 @@ import (
 )
 
 var addrSeed = []byte("address seed bytes for public key")
-var addressCache *lru.Cache
+var execAddrCache *lru.Cache
 var pubkey2AddrCache *lru.Cache
 var checkAddressCache *lru.Cache
 var multisignCache *lru.Cache
-var multiCheckAddressCache *lru.Cache
 var execPubKeyCache *lru.Cache
 
 // ErrCheckVersion :
@@ -34,6 +31,13 @@ var ErrCheckChecksum = errors.New("Address Checksum error")
 //ErrAddressChecksum :
 var ErrAddressChecksum = errors.New("address checksum error")
 
+var (
+	// ErrDecodeBase58 error decode
+	ErrDecodeBase58 = errors.New("ErrDecodeBase58")
+	// ErrAddressLength error length
+	ErrAddressLength = errors.New("ErrAddressLength")
+)
+
 //MaxExecNameLength 执行器名最大长度
 const MaxExecNameLength = 100
 
@@ -44,24 +48,13 @@ var NormalVer byte
 var MultiSignVer byte = 5
 
 func init() {
+
 	var err error
-	multisignCache, err = lru.New(10240)
-	if err != nil {
-		panic(err)
-	}
-	pubkey2AddrCache, err = lru.New(10240)
-	if err != nil {
-		panic(err)
-	}
-	addressCache, err = lru.New(10240)
+	execAddrCache, err = lru.New(10240)
 	if err != nil {
 		panic(err)
 	}
 	checkAddressCache, err = lru.New(10240)
-	if err != nil {
-		panic(err)
-	}
-	multiCheckAddressCache, err = lru.New(10240)
 	if err != nil {
 		panic(err)
 	}
@@ -72,26 +65,14 @@ func init() {
 }
 
 //ExecAddress 计算量有点大，做一次cache
+//contract address
 func ExecAddress(name string) string {
-	if value, ok := addressCache.Get(name); ok {
+	if value, ok := execAddrCache.Get(name); ok {
 		return value.(string)
 	}
 	addr := GetExecAddress(name)
-	addrstr := addr.String()
-	addressCache.Add(name, addrstr)
-	return addrstr
-}
-
-//MultiSignAddress create a multi sign address
-func MultiSignAddress(pubkey []byte) string {
-	skey := *(*string)(unsafe.Pointer(&pubkey))
-	if value, ok := multisignCache.Get(skey); ok {
-		return value.(string)
-	}
-	addr := HashToAddress(MultiSignVer, pubkey)
-	addrstr := addr.String()
-	multisignCache.Add(string(pubkey), addrstr)
-	return addrstr
+	execAddrCache.Add(name, addr)
+	return addr
 }
 
 //ExecPubKey 计算公钥
@@ -111,26 +92,44 @@ func ExecPubKey(name string) []byte {
 }
 
 //GetExecAddress 获取地址
-func GetExecAddress(name string) *Address {
+func GetExecAddress(name string) string {
 	hash := ExecPubKey(name)
-	addr := PubKeyToAddress(hash[:])
+	addr := PubKeyToAddr(defaultAddressID, hash[:])
 	return addr
-}
-
-//PubKeyToAddress 公钥转为地址
-func PubKeyToAddress(in []byte) *Address {
-	return HashToAddress(NormalVer, in)
 }
 
 //PubKeyToAddr 公钥转为地址
-func PubKeyToAddr(in []byte) string {
-	instr := *(*string)(unsafe.Pointer(&in))
-	if value, ok := pubkey2AddrCache.Get(instr); ok {
-		return value.(string)
+func PubKeyToAddr(addressID int32, pubKey []byte) string {
+
+	d, err := LoadDriver(addressID, -1)
+	if err != nil {
+		d, _ = LoadDriver(defaultAddressID, -1)
 	}
-	addr := HashToAddress(NormalVer, in).String()
-	pubkey2AddrCache.Add(string(in), addr)
-	return addr
+	return d.PubKeyToAddr(pubKey)
+}
+
+// CheckAddress check address validity
+// blockHeight is used for enable check, pass -1 if there is no block height context
+func CheckAddress(addr string, blockHeight int64) (e error) {
+
+	if value, ok := checkAddressCache.Get(addr); ok {
+		if value != nil {
+			return value.(error)
+		}
+		return nil
+	}
+	for _, d := range drivers {
+		e = d.driver.ValidateAddr(addr)
+		if e == nil {
+			// not enable at blockHeight, return directly
+			if !isEnable(blockHeight, d.enableHeight) {
+				return ErrAddressDriverNotEnable
+			}
+			break
+		}
+	}
+	checkAddressCache.Add(addr, e)
+	return e
 }
 
 //HashToAddress hash32 to address
@@ -150,23 +149,19 @@ func checksum(input []byte) (cksum [4]byte) {
 	return
 }
 
-func checkAddress(ver byte, addr string) (e error) {
+// CheckBase58Address check base58 format address, usually refers to
+func CheckBase58Address(ver byte, addr string) (e error) {
 
 	dec := base58.Decode(addr)
 	if dec == nil {
-		e = errors.New("Cannot decode b58 string '" + addr + "'")
-		checkAddressCache.Add(addr, e)
-		return
+		return ErrDecodeBase58
 	}
 	if len(dec) < 25 {
-		e = errors.New("Address too short " + hex.EncodeToString(dec))
-		checkAddressCache.Add(addr, e)
-		return
+		return ErrAddressLength
 	}
 	//version 的错误优先
 	if dec[0] != ver {
-		e = ErrCheckVersion
-		return
+		return ErrCheckVersion
 	}
 	//需要兼容以前的错误(以前的错误，是一种特殊的情况)
 	if len(dec) == 25 {
@@ -183,59 +178,6 @@ func checkAddress(ver byte, addr string) (e error) {
 		e = ErrAddressChecksum
 	}
 	return e
-}
-
-//CheckMultiSignAddress 检查多重签名地址的有效性
-func CheckMultiSignAddress(addr string) (e error) {
-	if value, ok := multiCheckAddressCache.Get(addr); ok {
-		if value == nil {
-			return nil
-		}
-		return value.(error)
-	}
-	e = checkAddress(MultiSignVer, addr)
-	multiCheckAddressCache.Add(addr, e)
-	return
-}
-
-//CheckAddress 检查地址
-func CheckAddress(addr string) (e error) {
-	if value, ok := checkAddressCache.Get(addr); ok {
-		if value == nil {
-			return nil
-		}
-		return value.(error)
-	}
-	e = checkAddress(NormalVer, addr)
-	checkAddressCache.Add(addr, e)
-	return
-}
-
-//NewAddrFromString new 地址
-func NewAddrFromString(hs string) (a *Address, e error) {
-	dec := base58.Decode(hs)
-	if dec == nil {
-		e = errors.New("Cannot decode b58 string '" + hs + "'")
-		return
-	}
-	if len(dec) < 25 {
-		e = errors.New("Address too short " + hex.EncodeToString(dec))
-		return
-	}
-	if len(dec) == 25 {
-		sh := common.Sha2Sum(dec[0:21])
-		if !bytes.Equal(sh[:4], dec[21:25]) {
-			e = ErrCheckChecksum
-		} else {
-			a = new(Address)
-			a.Version = dec[0]
-			copy(a.Hash160[:], dec[1:21])
-			a.Checksum = make([]byte, 4)
-			copy(a.Checksum, dec[21:25])
-			a.Enc58str = hs
-		}
-	}
-	return
 }
 
 //Address 地址

@@ -103,8 +103,8 @@ func genaddrlist(seed string) (map[string]bool, error) {
 			log.Println("GetPrivkeyBySeed NewKeyPair", "err", err)
 			return nil, types.ErrNewKeyPair
 		}
-		addr := address.PubKeyToAddress(pub)
-		addrlist[addr.String()] = true
+		addr := address.PubKeyToAddr(address.DefaultID, pub)
+		addrlist[addr] = true
 	}
 	return addrlist, err
 }
