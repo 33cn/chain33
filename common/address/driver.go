@@ -45,13 +45,7 @@ type DriverInfo struct {
 const (
 	// MaxID 最大id值
 	MaxID = 7
-	// IDMask
-	IDMask = 0x00007000
-	// offset
-	IDOffset = 12
-	// AnyID any valid id, not specified
-	AnyID = MaxID + 1
-	// DefaultID specify as default id
+	// DefaultID default id flag
 	DefaultID = -1
 )
 
@@ -85,19 +79,6 @@ func Init(config *Config) {
 		panic(fmt.Sprintf("default driver \"%s\" enable height should be 0", config.DefaultDriver))
 	}
 	defaultAddressID = defaultID
-}
-
-// DecodeAddressID, decode address id from signature type id
-func DecodeAddressID(signID int32) int32 {
-	return int32(IDMask) & signID >> IDOffset
-}
-
-// EncodeAddressID, encode address id to sign id
-func EncodeAddressID(signTy, addressID int32) int32 {
-	if !IsValidAddressID(addressID) {
-		addressID = defaultAddressID
-	}
-	return addressID<<IDOffset | signTy
 }
 
 // RegisterDriver 注册地址驱动
