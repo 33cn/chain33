@@ -116,7 +116,7 @@ func Register(name string, crypto Crypto, options ...RegOption) {
 //GetName 获取name
 func GetName(ty int) string {
 
-	name, ok := driversType[int32(ty&TypeIDMask)]
+	name, ok := driversType[int32(ty)]
 	if ok {
 		return name
 	}

@@ -20,7 +20,6 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
-	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -299,38 +298,6 @@ func GetEventName(event int) string {
 		return name
 	}
 	return "unknow-event"
-}
-
-//GetSignName  获取签名类型
-func GetSignName(execer string, signType int) string {
-	//优先加载执行器的签名类型
-	if execer != "" {
-		exec := LoadExecutorType(execer)
-		if exec != nil {
-			name, err := exec.GetCryptoDriver(signType)
-			if err == nil {
-				return name
-			}
-		}
-	}
-	//加载系统执行器的签名类型
-	return crypto.GetName(signType)
-}
-
-//GetSignType  获取签名类型
-func GetSignType(execer string, name string) int {
-	//优先加载执行器的签名类型
-	if execer != "" {
-		exec := LoadExecutorType(execer)
-		if exec != nil {
-			ty, err := exec.GetCryptoType(name)
-			if err == nil {
-				return ty
-			}
-		}
-	}
-	//加载系统执行器的签名类型
-	return crypto.GetType(name)
 }
 
 // ConfigPrefix 配置前缀key
