@@ -94,7 +94,8 @@ func ExecPubKey(name string) []byte {
 //GetExecAddress 获取地址
 func GetExecAddress(name string) string {
 	pubKey := ExecPubKey(name)
-	return defaultDriver.PubKeyToAddr(pubKey)
+	d, _ := LoadDriver(defaultAddressID, -1)
+	return d.PubKeyToAddr(pubKey)
 }
 
 //PubKeyToAddr 公钥转为地址
@@ -102,7 +103,7 @@ func PubKeyToAddr(addressID int32, pubKey []byte) string {
 
 	d, err := LoadDriver(addressID, -1)
 	if err != nil {
-		d = defaultDriver
+		d, _ = LoadDriver(defaultAddressID, -1)
 	}
 	return d.PubKeyToAddr(pubKey)
 }
