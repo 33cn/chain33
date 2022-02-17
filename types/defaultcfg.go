@@ -12,6 +12,11 @@ TxHeight=true
 CoinSymbol="bty"
 ChainID=33
 
+[address]
+defaultDriver="btc"
+[address.enableHeight]
+eth=-2
+
 # crypto模块配置
 [crypto]
 enableTypes=[]    #设置启用的加密插件名称，不配置启用所有

@@ -13,17 +13,17 @@ import (
 const (
 	// NormalAddressID normal address id
 	NormalAddressID = 0
-	normalName      = "btc"
+	// NormalName driver name
+	NormalName = "btc"
 	// MultiSignAddressID multi sign address id
 	MultiSignAddressID = 1
-	multiSignName      = "btcMultiSign"
+	// MultiSignName multi sign driver name
+	MultiSignName = "btcMultiSign"
 )
 
 var (
-	normalAddrCache     *lru.Cache
-	multiSignAddrCache  *lru.Cache
-	normalAddrPrefix    string
-	multiSignAddrPrefix string
+	normalAddrCache    *lru.Cache
+	multiSignAddrCache *lru.Cache
 	// ErrInvalidAddrFormat invalid address format
 	ErrInvalidAddrFormat = errors.New("ErrInvalidAddrFormat")
 )
@@ -58,12 +58,12 @@ func (b *btc) PubKeyToAddr(pubKey []byte) string {
 
 // ValidateAddr address validation
 func (b *btc) ValidateAddr(addr string) error {
-	return address.CheckBase58Address(address.MultiSignVer, addr)
+	return address.CheckBase58Address(address.NormalVer, addr)
 }
 
 // GetName get driver name
 func (b *btc) GetName() string {
-	return normalName
+	return NormalName
 }
 
 type btcMultiSign struct{}
@@ -90,7 +90,7 @@ func (b *btcMultiSign) ValidateAddr(addr string) error {
 
 // GetName get driver name
 func (b *btcMultiSign) GetName() string {
-	return multiSignName
+	return MultiSignName
 }
 
 // FormatBtcAddr
