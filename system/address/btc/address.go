@@ -16,7 +16,7 @@ const (
 	normalName      = "btc"
 	// MultiSignAddressID multi sign address id
 	MultiSignAddressID = 1
-	multiSignName      = "btc-multi-sign"
+	multiSignName      = "btcMultiSign"
 )
 
 var (

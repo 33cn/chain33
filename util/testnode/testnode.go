@@ -109,6 +109,7 @@ func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolA
 	mock := &Chain33Mock{cfg: mfg, sub: sub, q: q, datadir: datadir}
 	mock.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 
+	address.Init(mfg.Address)
 	mock.crypto = cryptocli.New()
 	mock.crypto.SetQueueClient(q.Client())
 	mock.exec = executor.New(cfg)

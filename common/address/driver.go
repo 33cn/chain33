@@ -19,9 +19,11 @@ var (
 )
 
 var (
-	drivers       = make(map[int32]*DriverInfo)
-	defaultDriver Driver
-	driverMutex   sync.Mutex
+	drivers          = make(map[int32]*DriverInfo)
+	driverName       = make(map[string]int32)
+	defaultDriver    Driver
+	defaultAddressID int32 // btc address format as default
+	driverMutex      sync.Mutex
 )
 
 // Driver address driver
@@ -54,9 +56,33 @@ const (
 	DefaultID = -1
 )
 
-var (
-	defaultAddressID int32 // btc address format as default
-)
+// Init init with config
+func Init(config *Config) {
+
+	driverMutex.Lock()
+	defer driverMutex.Unlock()
+
+	for name, enableHeight := range config.EnableHeight {
+
+		id, ok := driverName[name]
+		if !ok {
+			panic(fmt.Sprintf("config address enable height, unkonwn driver \"%s\"", name))
+		}
+		drivers[id].enableHeight = enableHeight
+	}
+
+	defaultID, ok := driverName[config.DefaultDriver]
+	if !ok {
+		panic(fmt.Sprintf("config default driver, unknown driver \"%s\"", config.DefaultDriver))
+	}
+
+	info := drivers[defaultID]
+	if info.enableHeight != 0 {
+		panic(fmt.Sprintf("default driver \"%s\" enable height not equal 0", config.DefaultDriver))
+	}
+	defaultAddressID = defaultID
+	defaultDriver = info.driver
+}
 
 // DecodeAddressID, decode address id from signature type id
 func DecodeAddressID(signID int32) int32 {
@@ -65,7 +91,7 @@ func DecodeAddressID(signID int32) int32 {
 
 // EncodeAddressID, encode address id to sign id
 func EncodeAddressID(signTy, addressID int32) int32 {
-	if addressID == DefaultID {
+	if !isValidAddressID(addressID) {
 		addressID = defaultAddressID
 	}
 	return addressID<<IDOffset | signTy
@@ -77,18 +103,25 @@ func RegisterDriver(id int32, driver Driver, enableHeight int64) {
 
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
-	if id < 0 || id > MaxID {
+	if !isValidAddressID(id) {
 		panic(fmt.Sprintf("address id must in range [0, %d]", MaxID))
 	}
 	_, ok := drivers[id]
 	if ok {
 		panic(fmt.Sprintf("Register duplicate Address id %d", id))
 	}
+
+	_, ok = driverName[driver.GetName()]
+	if ok {
+		panic(fmt.Sprintf("Register duplicate driver name %s", driver.GetName()))
+	}
+
 	info := &DriverInfo{
 		driver:       driver,
 		enableHeight: enableHeight,
 	}
 	drivers[id] = info
+	driverName[driver.GetName()] = id
 }
 
 // LoadDriver 根据ID加载插件, 根据区块高度判定是否已启动
@@ -107,10 +140,17 @@ func LoadDriver(id int32, blockHeight int64) (Driver, error) {
 	return d.driver, nil
 }
 
+func isValidAddressID(id int32) bool {
+	return id >= 0 && id <= MaxID
+}
+
 // check driver enable height with block height
 func isEnable(blockHeight, enableHeight int64) bool {
 
-	if blockHeight >= 0 && enableHeight > blockHeight {
+	if blockHeight < 0 {
+		return true
+	}
+	if enableHeight < 0 || enableHeight > blockHeight {
 		return false
 	}
 	return true
