@@ -21,6 +21,8 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/33cn/chain33/common/address"
+
 	cryptocli "github.com/33cn/chain33/common/crypto/client"
 
 	"github.com/33cn/chain33/p2p"
@@ -159,6 +161,7 @@ func RunChain33(name, defCfg string) {
 	q := queue.New("channel")
 	q.SetConfig(chain33Cfg)
 
+	address.Init(cfg.Address)
 	crypto := cryptocli.New()
 	crypto.SetQueueClient(q.Client())
 	log.Info("loading mempool module")
