@@ -21,7 +21,6 @@ var (
 var (
 	drivers          = make(map[int32]*DriverInfo)
 	driverName       = make(map[string]int32)
-	defaultDriver    Driver
 	defaultAddressID int32 // btc address format as default
 	driverMutex      sync.Mutex
 )
@@ -71,6 +70,11 @@ func Init(config *Config) {
 		drivers[id].enableHeight = enableHeight
 	}
 
+	// set default value
+	if config.DefaultDriver == "" {
+		config.DefaultDriver = drivers[defaultAddressID].driver.GetName()
+	}
+
 	defaultID, ok := driverName[config.DefaultDriver]
 	if !ok {
 		panic(fmt.Sprintf("config default driver, unknown driver \"%s\"", config.DefaultDriver))
@@ -78,10 +82,9 @@ func Init(config *Config) {
 
 	info := drivers[defaultID]
 	if info.enableHeight != 0 {
-		panic(fmt.Sprintf("default driver \"%s\" enable height not equal 0", config.DefaultDriver))
+		panic(fmt.Sprintf("default driver \"%s\" enable height should be 0", config.DefaultDriver))
 	}
 	defaultAddressID = defaultID
-	defaultDriver = info.driver
 }
 
 // DecodeAddressID, decode address id from signature type id
@@ -91,7 +94,7 @@ func DecodeAddressID(signID int32) int32 {
 
 // EncodeAddressID, encode address id to sign id
 func EncodeAddressID(signTy, addressID int32) int32 {
-	if !isValidAddressID(addressID) {
+	if !IsValidAddressID(addressID) {
 		addressID = defaultAddressID
 	}
 	return addressID<<IDOffset | signTy
@@ -103,7 +106,7 @@ func RegisterDriver(id int32, driver Driver, enableHeight int64) {
 
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
-	if !isValidAddressID(id) {
+	if !IsValidAddressID(id) {
 		panic(fmt.Sprintf("address id must in range [0, %d]", MaxID))
 	}
 	_, ok := drivers[id]
@@ -140,8 +143,14 @@ func LoadDriver(id int32, blockHeight int64) (Driver, error) {
 	return d.driver, nil
 }
 
-func isValidAddressID(id int32) bool {
+// IsValidAddressID is valid
+func IsValidAddressID(id int32) bool {
 	return id >= 0 && id <= MaxID
+}
+
+// GetDefaultAddressID get default id
+func GetDefaultAddressID() int32 {
+	return defaultAddressID
 }
 
 // check driver enable height with block height

@@ -118,3 +118,11 @@ func TestCheckPrecision(t *testing.T) {
 	assert.Equal(t, false, r)
 
 }
+
+func TestAddressConfig(t *testing.T) {
+
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	addrConfig := cfg.GetModuleConfig().Address
+	assert.Equal(t, "btc", addrConfig.DefaultDriver)
+	assert.Equal(t, int64(-2), addrConfig.EnableHeight["eth"])
+}
