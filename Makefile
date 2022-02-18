@@ -3,6 +3,7 @@
 # 2. make dep
 # 3. make build
 # ...
+
 export GO111MODULE=on
 SRC := github.com/33cn/chain33/cmd/chain33
 SRC_CLI := github.com/33cn/chain33/cmd/cli
