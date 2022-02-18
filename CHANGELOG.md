@@ -1,5 +1,13 @@
 changelog
 
+<a name="1.66.5"></a>
+## [1.66.5](https://github.com/33cn/chain33/compare/v1.66.4...v1.66.5) (2022-02-18)
+
+
+### Bug Fixes
+
+* fix reset transaction ([96eccb0](https://github.com/33cn/chain33/commit/96eccb0))
+
 <a name="1.66.4"></a>
 ## [1.66.4](https://github.com/33cn/chain33/compare/v1.66.3...v1.66.4) (2022-01-19)
 
