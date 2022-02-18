@@ -10,11 +10,12 @@ require (
 	github.com/decred/base58 v1.0.3
 	github.com/dgraph-io/badger v1.6.2
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
+	github.com/ethereum/go-ethereum v1.10.16
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.5.2
-	github.com/golang/snappy v0.0.2-0.20190904063534-ff6b7dc882cf
+	github.com/golang/snappy v0.0.4
 	github.com/google/uuid v1.3.0
-	github.com/hashicorp/golang-lru v0.5.4
+	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/influxdata/influxdb v1.9.5
 	github.com/ipfs/go-log/v2 v2.3.0
 	github.com/kevinms/leakybucket-go v0.0.0-20200115003610-082473db97ca
@@ -36,11 +37,11 @@ require (
 	github.com/qianlnk/pgbar v0.0.0-20210208085217-8c19b9f2477e
 	github.com/qianlnk/to v0.0.0-20191230085244-91e712717368 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
-	github.com/rs/cors v1.6.0
+	github.com/rs/cors v1.7.0
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.7.0
-	github.com/syndtr/goleveldb v1.0.0
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/tjfoc/gmsm v1.3.2
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/mod v0.5.0 // indirect
