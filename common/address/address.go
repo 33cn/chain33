@@ -132,8 +132,9 @@ func CheckAddress(addr string, blockHeight int64) (e error) {
 	return e
 }
 
-//HashToAddress hash32 to address
-func HashToAddress(version byte, in []byte) *Address {
+//Deprecated: btc address legacy
+//BytesToBtcAddress hash32 to address
+func BytesToBtcAddress(version byte, in []byte) *Address {
 	a := new(Address)
 	a.Pubkey = make([]byte, len(in))
 	copy(a.Pubkey[:], in[:])
@@ -180,7 +181,8 @@ func CheckBase58Address(ver byte, addr string) (e error) {
 	return e
 }
 
-//Address 地址
+//Deprecated
+//Address btc address
 type Address struct {
 	Version  byte
 	Hash160  [20]byte // For a stealth address: it's HASH160
@@ -217,4 +219,29 @@ func SetNormalAddrVer(ver byte) {
 
 	}
 	NormalVer = ver
+}
+
+//Deprecated: legacy btc address
+//NewBtcAddress new btc address
+func NewBtcAddress(addr string) (*Address, error) {
+	dec := base58.Decode(addr)
+	if dec == nil {
+		return nil, ErrDecodeBase58
+	}
+	if len(dec) != 25 {
+		return nil, ErrAddressLength
+	}
+
+	sh := common.Sha2Sum(dec[0:21])
+	if !bytes.Equal(sh[:4], dec[21:25]) {
+		return nil, ErrCheckChecksum
+	}
+
+	a := new(Address)
+	a.Version = dec[0]
+	copy(a.Hash160[:], dec[1:21])
+	a.Checksum = make([]byte, 4)
+	copy(a.Checksum, dec[21:25])
+	a.Enc58str = addr
+	return a, nil
 }
