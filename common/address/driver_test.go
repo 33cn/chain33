@@ -7,6 +7,8 @@ package address_test
 import (
 	"testing"
 
+	"github.com/33cn/chain33/system/address/eth"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/system/address/btc"
 	"github.com/stretchr/testify/require"
@@ -53,11 +55,9 @@ func Test_RegisterDriver(t *testing.T) {
 
 func Test_LoadDriver(t *testing.T) {
 
-	m := &mockDriver{}
-	_, err := address.LoadDriver(address.MaxID, 0)
+	_, err := address.LoadDriver(-1, 0)
 	require.Equal(t, address.ErrUnknownAddressDriver, err)
-	address.RegisterDriver(address.MaxID, m, -1)
-	_, err = address.LoadDriver(address.MaxID, 0)
+	_, err = address.LoadDriver(eth.ID, 0)
 	require.Equal(t, address.ErrAddressDriverNotEnable, err)
 	d, err := address.LoadDriver(btc.NormalAddressID, 0)
 	require.Equal(t, btc.NormalName, d.GetName())
