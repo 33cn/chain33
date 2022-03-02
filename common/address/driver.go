@@ -52,6 +52,9 @@ const (
 // Init init with config
 func Init(config *Config) {
 
+	if config == nil {
+		return
+	}
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
 
