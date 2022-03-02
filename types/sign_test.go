@@ -21,6 +21,8 @@ func TestAddressID(t *testing.T) {
 			signID := EncodeSignID(cryptoID, addressID)
 			require.Equal(t, addressID, ExtractAddressID(signID))
 			require.Equal(t, cryptoID, ExtractCryptoID(signID))
+			dupSignID := EncodeSignID(signID, addressID)
+			require.Equal(t, signID, dupSignID)
 		}
 	}
 }
