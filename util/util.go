@@ -24,7 +24,7 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
-	_ "github.com/33cn/chain33/system/address"
+	_ "github.com/33cn/chain33/system/address" //init address driver
 	"github.com/33cn/chain33/types"
 	"github.com/pkg/errors"
 )

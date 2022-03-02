@@ -32,9 +32,7 @@ func init() {
 	}
 }
 
-type eth struct {
-	ethAddress common.Address
-}
+type eth struct{}
 
 // PubKeyToAddr public key to address
 func (e *eth) PubKeyToAddr(pubKey []byte) string {

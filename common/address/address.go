@@ -17,9 +17,7 @@ import (
 
 var addrSeed = []byte("address seed bytes for public key")
 var execAddrCache *lru.Cache
-var pubkey2AddrCache *lru.Cache
 var checkAddressCache *lru.Cache
-var multisignCache *lru.Cache
 var execPubKeyCache *lru.Cache
 
 // ErrCheckVersion :
@@ -132,8 +130,8 @@ func CheckAddress(addr string, blockHeight int64) (e error) {
 	return e
 }
 
-//Deprecated: btc address legacy
 //BytesToBtcAddress hash32 to address
+//Deprecated: btc address legacy
 func BytesToBtcAddress(version byte, in []byte) *Address {
 	a := new(Address)
 	a.Pubkey = make([]byte, len(in))
@@ -181,8 +179,8 @@ func CheckBase58Address(ver byte, addr string) (e error) {
 	return e
 }
 
-//Deprecated
 //Address btc address
+//Deprecated
 type Address struct {
 	Version  byte
 	Hash160  [20]byte // For a stealth address: it's HASH160
@@ -221,8 +219,8 @@ func SetNormalAddrVer(ver byte) {
 	NormalVer = ver
 }
 
-//Deprecated: legacy btc address
 //NewBtcAddress new btc address
+//Deprecated: legacy
 func NewBtcAddress(addr string) (*Address, error) {
 	dec := base58.Decode(addr)
 	if dec == nil {
