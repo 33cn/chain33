@@ -65,5 +65,5 @@ func GetSignType(execer string, name string) int {
 		}
 	}
 
-	return int(EncodeSignID(int32(crypto.GetType(name)), address.GetDefaultAddressID()))
+	return crypto.GetType(name)
 }
