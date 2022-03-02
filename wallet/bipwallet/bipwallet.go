@@ -9,8 +9,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/33cn/chain33/system/address/btc"
-
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	log "github.com/33cn/chain33/common/log/log15"
@@ -144,7 +142,7 @@ func PrivkeyToPub(coinType, keyTy uint32, priv []byte) ([]byte, error) {
 
 // PubToAddress 将公钥转换成地址
 func PubToAddress(pub []byte) (string, error) {
-	return btc.FormatBtcAddr(address.NormalVer, pub), nil
+	return address.PubKeyToAddr(address.DefaultID, pub), nil
 }
 
 //NewMnemonicString 创建助记词 lang=0 英文助记词，lang=1 中文助记词bitsize=[128,256]并且bitsize%32=0
