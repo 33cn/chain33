@@ -93,7 +93,7 @@ func (b *btcMultiSign) GetName() string {
 	return MultiSignName
 }
 
-// FormatBtcAddr
+// FormatBtcAddr format bitcoin address
 func FormatBtcAddr(version byte, pubKey []byte) string {
 
 	var ad [25]byte

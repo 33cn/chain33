@@ -62,7 +62,7 @@ func Init(config *Config) {
 
 		id, ok := driverName[name]
 		if !ok {
-			panic(fmt.Sprintf("config address enable height, unkonwn driver \"%s\"", name))
+			panic(fmt.Sprintf("config address enable height, unknown driver \"%s\"", name))
 		}
 		drivers[id].enableHeight = enableHeight
 	}

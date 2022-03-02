@@ -280,7 +280,7 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 	return set, err
 }
 
-// CheckBtcAddress check address
+// CheckAddress check address
 func CheckAddress(cfg *types.Chain33Config, addr string, height int64) error {
 	if IsDriverAddress(addr, height) {
 		return nil
