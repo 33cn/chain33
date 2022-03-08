@@ -96,7 +96,8 @@ func GetExecAddress(name string) string {
 	return d.PubKeyToAddr(pubKey)
 }
 
-//PubKeyToAddr 公钥转为地址
+//PubKeyToAddr pubKey to specific address
+// pass DefaultID for default address format
 func PubKeyToAddr(addressID int32, pubKey []byte) string {
 
 	d, err := LoadDriver(addressID, -1)
