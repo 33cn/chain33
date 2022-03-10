@@ -754,6 +754,12 @@ func TestGrpc_GetCryptoList(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestGrpc_GetAddressDrivers(t *testing.T) {
+	qapi.On("GetAddressDrivers").Return(nil)
+	_, err := g.GetAddressDrivers(getOkCtx(), nil)
+	assert.NoError(t, err)
+}
+
 func TestGrpc_SendDelayTransaction(t *testing.T) {
 	qapi.On("SendDelayTx", mock.Anything, mock.Anything).Return(nil, nil)
 	_, err := g.SendDelayTransaction(getOkCtx(), nil)

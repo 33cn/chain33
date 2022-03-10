@@ -26,6 +26,15 @@ message cryptoList {
     repeated crypto cryptos = 1;
 }
 
+message addressDriver {
+    string name   = 1;
+    int32  typeID = 2;
+}
+
+message addressDrivers {
+    repeated addressDriver drivers = 1;
+}
+
 // 延时交易
 message delayTx {
     Transaction tx           = 1;
@@ -233,6 +242,9 @@ service chain33 {
 
     // 获取加密算法列表，用于签名等
     rpc GetCryptoList(ReqNil) returns (cryptoList) {}
+
+    // 获取地址格式插件列表
+    rpc GetAddressDrivers(ReqNil) returns (addressDrivers) {}
 
     // 发送延时交易
     rpc SendDelayTransaction(delayTx) returns (Reply) {}

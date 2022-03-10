@@ -1576,6 +1576,12 @@ func (c *Chain33) GetCryptoList(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
+// GetAddressDrivers 获取系统已注册地址插件
+func (c *Chain33) GetAddressDrivers(in *types.ReqNil, result *interface{}) error {
+	*result = c.cli.GetAddressDrivers()
+	return nil
+}
+
 // SendDelayTransaction send delay tx
 func (c *Chain33) SendDelayTransaction(in *types.ReqString, result *interface{}) error {
 

@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/common/address"
+
 	"github.com/33cn/chain33/common/crypto"
 
 	"github.com/33cn/chain33/client"
@@ -1292,6 +1294,16 @@ func TestQueueProtocol_GetCryptoList(t *testing.T) {
 		id := int(driver.TypeID)
 		require.Equal(t, crypto.GetType(driver.Name), id)
 		require.Equal(t, crypto.GetName(id), driver.Name)
+	}
+}
+
+func TestQueueProtocol_GetAddressDrivers(t *testing.T) {
+	q := client.QueueProtocol{}
+	list := q.GetAddressDrivers()
+	for _, driver := range list.Drivers {
+		d, err := address.LoadDriver(driver.TypeID, -1)
+		require.Nil(t, err)
+		require.Equal(t, d.GetName(), driver.Name)
 	}
 }
 
