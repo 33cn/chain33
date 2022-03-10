@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/33cn/chain33/common/address"
+
 	"github.com/33cn/chain33/common"
 
 	"github.com/33cn/chain33/common/crypto"
@@ -1056,6 +1058,16 @@ func (q *QueueProtocol) GetCryptoList() *types.CryptoList {
 	list := &types.CryptoList{Cryptos: make([]*types.Crypto, len(names))}
 	for i, name := range names {
 		list.Cryptos[i] = &types.Crypto{Name: name, TypeID: ids[i]}
+	}
+	return list
+}
+
+// GetAddressDrivers 获取已注册地址插件
+func (q *QueueProtocol) GetAddressDrivers() *types.AddressDrivers {
+	drivers := address.GetDriverList()
+	list := &types.AddressDrivers{Drivers: make([]*types.AddressDriver, 0, len(drivers))}
+	for id, driver := range drivers {
+		list.Drivers = append(list.Drivers, &types.AddressDriver{Name: driver.GetName(), TypeID: id})
 	}
 	return list
 }

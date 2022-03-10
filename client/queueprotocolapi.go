@@ -136,6 +136,8 @@ type QueueProtocolAPI interface {
 
 	// get crypto list
 	GetCryptoList() *types.CryptoList
+	// get address drivers
+	GetAddressDrivers() *types.AddressDrivers
 
 	// send delay tx
 	SendDelayTx(param *types.DelayTx, waitReply bool) (*types.Reply, error)

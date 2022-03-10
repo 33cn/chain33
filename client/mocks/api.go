@@ -226,6 +226,22 @@ func (_m *QueueProtocolAPI) GetAddrOverview(param *types.ReqAddr) (*types.AddrOv
 	return r0, r1
 }
 
+// GetAddressDrivers provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetAddressDrivers() *types.AddressDrivers {
+	ret := _m.Called()
+
+	var r0 *types.AddressDrivers
+	if rf, ok := ret.Get(0).(func() *types.AddressDrivers); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.AddressDrivers)
+		}
+	}
+
+	return r0
+}
+
 // GetBlockByHashes provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
 	ret := _m.Called(param)

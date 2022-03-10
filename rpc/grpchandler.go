@@ -575,6 +575,11 @@ func (g *Grpc) GetCryptoList(ctx context.Context, in *pb.ReqNil) (*pb.CryptoList
 	return g.cli.GetCryptoList(), nil
 }
 
+// GetAddressDrivers 获取已注册地址插件
+func (g *Grpc) GetAddressDrivers(ctx context.Context, in *pb.ReqNil) (*pb.AddressDrivers, error) {
+	return g.cli.GetAddressDrivers(), nil
+}
+
 // SendDelayTransaction send delay tx
 func (g *Grpc) SendDelayTransaction(ctx context.Context, in *pb.DelayTx) (*pb.Reply, error) {
 	return g.cli.SendDelayTx(in, true)
