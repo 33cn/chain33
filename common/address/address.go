@@ -68,7 +68,7 @@ func ExecAddress(name string) string {
 	if value, ok := execAddrCache.Get(name); ok {
 		return value.(string)
 	}
-	addr := GetExecAddress(name)
+	addr, _ := GetExecAddress(name, defaultAddressID)
 	execAddrCache.Add(name, addr)
 	return addr
 }
@@ -90,10 +90,13 @@ func ExecPubKey(name string) []byte {
 }
 
 //GetExecAddress 获取地址
-func GetExecAddress(name string) string {
-	pubKey := ExecPubKey(name)
-	d, _ := LoadDriver(defaultAddressID, -1)
-	return d.PubKeyToAddr(pubKey)
+func GetExecAddress(execName string, addressType int32) (string, error) {
+	d, err := LoadDriver(addressType, -1)
+	if err != nil {
+		return "", err
+	}
+	pubKey := ExecPubKey(execName)
+	return d.PubKeyToAddr(pubKey), nil
 }
 
 //PubKeyToAddr pubKey to specific address
