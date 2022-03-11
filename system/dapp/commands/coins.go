@@ -102,16 +102,16 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 	note, _ := cmd.Flags().GetString("note")
 	paraName, _ := cmd.Flags().GetString("paraName")
 	realExec := getRealExecName(paraName, exec)
-	execAddr, err := commandtypes.GetExecAddr(realExec)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
 
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
+		return
+	}
+	execAddr, err := commandtypes.GetExecAddr(realExec, cfg.DefaultAddressID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
@@ -150,17 +150,20 @@ func sendToExec(cmd *cobra.Command, args []string) {
 	note, _ := cmd.Flags().GetString("note")
 	paraName, _ := cmd.Flags().GetString("paraName")
 	realExec := getRealExecName(paraName, exec)
-	execAddr, err := commandtypes.GetExecAddr(realExec)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
+
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
 		return
 	}
+
+	execAddr, err := commandtypes.GetExecAddr(realExec, cfg.DefaultAddressID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
 	txHex, err := commandtypes.CreateRawTx(paraName, execAddr, amount, note, false, "", realExec, cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "CreateRawTx"))

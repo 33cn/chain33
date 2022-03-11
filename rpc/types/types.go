@@ -467,14 +467,15 @@ type ChainIDInfo struct {
 
 //ChainConfigInfo parameter
 type ChainConfigInfo struct {
-	Title          string `json:"title,omitempty"`
-	CoinExec       string `json:"coinExec,omitempty"`
-	CoinSymbol     string `json:"coinSymbol,omitempty"`
-	CoinPrecision  int64  `json:"coinPrecision,omitempty"`
-	TokenPrecision int64  `json:"tokenPrecision,omitempty"`
-	ChainID        int32  `json:"chainID,omitempty"`
-	MaxTxFee       int64  `json:"maxTxFee,omitempty"`
-	MinTxFeeRate   int64  `json:"minTxFeeRate,omitempty"`
-	MaxTxFeeRate   int64  `json:"maxTxFeeRate,omitempty"`
-	IsPara         bool   `json:"isPara,omitempty"`
+	Title            string `json:"title,omitempty"`
+	CoinExec         string `json:"coinExec,omitempty"`
+	CoinSymbol       string `json:"coinSymbol,omitempty"`
+	CoinPrecision    int64  `json:"coinPrecision,omitempty"`
+	TokenPrecision   int64  `json:"tokenPrecision,omitempty"`
+	ChainID          int32  `json:"chainID,omitempty"`
+	MaxTxFee         int64  `json:"maxTxFee,omitempty"`
+	MinTxFeeRate     int64  `json:"minTxFeeRate,omitempty"`
+	MaxTxFeeRate     int64  `json:"maxTxFeeRate,omitempty"`
+	IsPara           bool   `json:"isPara,omitempty"`
+	DefaultAddressID int32  `json:"defaultAddressID"`
 }
