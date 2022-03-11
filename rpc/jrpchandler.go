@@ -1069,9 +1069,7 @@ func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error
 
 // SignRawTx signature the rawtransaction
 func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
-	req := types.ReqSignRawTx{Addr: in.Addr, Privkey: in.Privkey, TxHex: in.TxHex, Expire: in.Expire,
-		Index: in.Index, Token: in.Token, Fee: in.Fee, NewToAddr: in.NewToAddr}
-	reply, err := c.cli.ExecWalletFunc("wallet", "SignRawTx", &req)
+	reply, err := c.cli.ExecWalletFunc("wallet", "SignRawTx", in)
 	if err != nil {
 		return err
 	}
