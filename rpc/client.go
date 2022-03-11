@@ -10,6 +10,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/33cn/chain33/common/crypto"
+
 	"github.com/33cn/chain33/system/address/btc"
 
 	"github.com/33cn/chain33/system/crypto/btcscript"
@@ -511,4 +513,24 @@ func (c *channelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 	reply := &types.ReplySignRawTx{}
 	reply.TxHex = hex.EncodeToString(types.Encode(tx))
 	return reply, nil
+}
+
+// GetCryptoList 获取加密算法列表
+func (c *channelClient) GetCryptoList() *types.CryptoList {
+	names, ids := crypto.GetCryptoList()
+	list := &types.CryptoList{Cryptos: make([]*types.Crypto, len(names))}
+	for i, name := range names {
+		list.Cryptos[i] = &types.Crypto{Name: name, TypeID: ids[i]}
+	}
+	return list
+}
+
+// GetAddressDrivers 获取已注册地址插件
+func (c *channelClient) GetAddressDrivers() *types.AddressDrivers {
+	drivers := address.GetDriverList()
+	list := &types.AddressDrivers{Drivers: make([]*types.AddressDriver, 0, len(drivers))}
+	for id, driver := range drivers {
+		list.Drivers = append(list.Drivers, &types.AddressDriver{Name: driver.GetName(), TypeID: id})
+	}
+	return list
 }

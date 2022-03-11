@@ -1813,26 +1813,18 @@ func TestChain33_ChainID(t *testing.T) {
 }
 
 func TestChain33_GetCryptoList(t *testing.T) {
-	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	api := new(mocks.QueueProtocolAPI)
-	api.On("GetConfig", mock.Anything).Return(cfg)
-	client := newTestChain33(api)
+	chain33 := &Chain33{cli: channelClient{}}
 	var result interface{}
-	api.On("GetCryptoList").Return(nil)
-	err := client.GetCryptoList(&types.ReqNil{}, &result)
+	err := chain33.GetCryptoList(&types.ReqNil{}, &result)
 	assert.Nil(t, err)
 }
 
 func TestChain33_GetAddressDrivers(t *testing.T) {
-	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	api := new(mocks.QueueProtocolAPI)
-	api.On("GetConfig", mock.Anything).Return(cfg)
-	client := newTestChain33(api)
+	chain33 := &Chain33{cli: channelClient{}}
 	var result interface{}
-	api.On("GetAddressDrivers").Return(&types.AddressDrivers{})
-	err := client.GetAddressDrivers(&types.ReqNil{}, &result)
+	err := chain33.GetAddressDrivers(&types.ReqNil{}, &result)
 	assert.Nil(t, err)
-	assert.Equal(t, 0, len(result.(*types.AddressDrivers).GetDrivers()))
+	assert.True(t, len(result.(*types.AddressDrivers).GetDrivers()) > 0)
 }
 
 func TestChain33_SendDelayTransaction(t *testing.T) {

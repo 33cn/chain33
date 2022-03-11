@@ -226,22 +226,6 @@ func (_m *QueueProtocolAPI) GetAddrOverview(param *types.ReqAddr) (*types.AddrOv
 	return r0, r1
 }
 
-// GetAddressDrivers provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetAddressDrivers() *types.AddressDrivers {
-	ret := _m.Called()
-
-	var r0 *types.AddressDrivers
-	if rf, ok := ret.Get(0).(func() *types.AddressDrivers); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.AddressDrivers)
-		}
-	}
-
-	return r0
-}
-
 // GetBlockByHashes provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
 	ret := _m.Called(param)
@@ -390,22 +374,6 @@ func (_m *QueueProtocolAPI) GetConfig() *types.Chain33Config {
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Chain33Config)
-		}
-	}
-
-	return r0
-}
-
-// GetCryptoList provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetCryptoList() *types.CryptoList {
-	ret := _m.Called()
-
-	var r0 *types.CryptoList
-	if rf, ok := ret.Get(0).(func() *types.CryptoList); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.CryptoList)
 		}
 	}
 
