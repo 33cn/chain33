@@ -134,6 +134,17 @@ func CheckAddress(addr string, blockHeight int64) (e error) {
 	return e
 }
 
+// GetAddressType get address type id
+func GetAddressType(addr string) (int32, error) {
+	for ty, d := range drivers {
+		e := d.driver.ValidateAddr(addr)
+		if e == nil {
+			return ty, nil
+		}
+	}
+	return -1, ErrUnknownAddressType
+}
+
 //BytesToBtcAddress hash32 to address
 //Deprecated: btc address legacy
 func BytesToBtcAddress(version byte, in []byte) *Address {
