@@ -599,16 +599,17 @@ func (g *Grpc) SignWalletRecoverTx(ctx context.Context, in *pb.ReqSignWalletReco
 func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConfigInfo, error) {
 	cfg := g.cli.GetConfig()
 	return &pb.ChainConfigInfo{
-		Title:          cfg.GetTitle(),
-		CoinExec:       cfg.GetCoinExec(),
-		CoinSymbol:     cfg.GetCoinSymbol(),
-		CoinPrecision:  cfg.GetCoinPrecision(),
-		TokenPrecision: cfg.GetTokenPrecision(),
-		ChainID:        cfg.GetChainID(),
-		MaxTxFee:       cfg.GetMaxTxFee(),
-		MinTxFeeRate:   cfg.GetMinTxFeeRate(),
-		MaxTxFeeRate:   cfg.GetMaxTxFeeRate(),
-		IsPara:         cfg.IsPara(),
+		Title:            cfg.GetTitle(),
+		CoinExec:         cfg.GetCoinExec(),
+		CoinSymbol:       cfg.GetCoinSymbol(),
+		CoinPrecision:    cfg.GetCoinPrecision(),
+		TokenPrecision:   cfg.GetTokenPrecision(),
+		ChainID:          cfg.GetChainID(),
+		MaxTxFee:         cfg.GetMaxTxFee(),
+		MinTxFeeRate:     cfg.GetMinTxFeeRate(),
+		MaxTxFeeRate:     cfg.GetMaxTxFeeRate(),
+		IsPara:           cfg.IsPara(),
+		DefaultAddressID: address.GetDefaultAddressID(),
 	}, nil
 }
 

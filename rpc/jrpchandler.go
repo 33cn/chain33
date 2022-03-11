@@ -1630,16 +1630,17 @@ func (c *Chain33) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx, result 
 func (c *Chain33) GetChainConfig(in *types.ReqNil, result *interface{}) error {
 	cfg := c.cli.GetConfig()
 	info := rpctypes.ChainConfigInfo{
-		Title:          cfg.GetTitle(),
-		CoinExec:       cfg.GetCoinExec(),
-		CoinSymbol:     cfg.GetCoinSymbol(),
-		CoinPrecision:  cfg.GetCoinPrecision(),
-		TokenPrecision: cfg.GetTokenPrecision(),
-		ChainID:        cfg.GetChainID(),
-		MaxTxFee:       cfg.GetMaxTxFee(),
-		MinTxFeeRate:   cfg.GetMinTxFeeRate(),
-		MaxTxFeeRate:   cfg.GetMaxTxFeeRate(),
-		IsPara:         cfg.IsPara(),
+		Title:            cfg.GetTitle(),
+		CoinExec:         cfg.GetCoinExec(),
+		CoinSymbol:       cfg.GetCoinSymbol(),
+		CoinPrecision:    cfg.GetCoinPrecision(),
+		TokenPrecision:   cfg.GetTokenPrecision(),
+		ChainID:          cfg.GetChainID(),
+		MaxTxFee:         cfg.GetMaxTxFee(),
+		MinTxFeeRate:     cfg.GetMinTxFeeRate(),
+		MaxTxFeeRate:     cfg.GetMaxTxFeeRate(),
+		IsPara:           cfg.IsPara(),
+		DefaultAddressID: address.GetDefaultAddressID(),
 	}
 	*result = info
 	return nil
