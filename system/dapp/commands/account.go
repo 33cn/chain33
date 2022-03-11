@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/33cn/chain33/common"
+	"github.com/pkg/errors"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -269,21 +272,24 @@ func addImportKeyFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("label", "l", "", "label for private key")
 	cmd.MarkFlagRequired("label")
+
+	cmd.Flags().Int32P("addressType", "t", 0, "address type ID, btc(0), btcMultiSign(1), eth(2)")
 }
 
 func importKey(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	key, _ := cmd.Flags().GetString("key")
 	label, _ := cmd.Flags().GetString("label")
-
+	addressType, _ := cmd.Flags().GetInt32("addressType")
 	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	params := types.ReqWalletImportPrivkey{
-		Privkey: key,
-		Label:   label,
+		Privkey:   key,
+		Label:     label,
+		AddressID: addressType,
 	}
 	var res types.WalletAccount
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.ImportPrivkey", &params, &res)
@@ -315,20 +321,22 @@ func NewAccountCmd() *cobra.Command {
 
 func addCreateAccountFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("label", "l", "", "account label")
+	cmd.Flags().Int32P("addressType", "t", 0, "address type ID, btc(0), btcMultiSign(1), eth(2)")
 	cmd.MarkFlagRequired("label")
 }
 
 func createAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	label, _ := cmd.Flags().GetString("label")
-
+	addressType, _ := cmd.Flags().GetInt32("addressType")
 	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 	params := types.ReqNewAccount{
-		Label: label,
+		Label:     label,
+		AddressID: addressType,
 	}
 	var res types.WalletAccount
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewAccount", &params, &res)
@@ -384,19 +392,26 @@ func PubKeyToAddrCmd() *cobra.Command {
 	return cmd
 }
 func addPubKeyFlags(cmd *cobra.Command) {
+	cmd.Flags().Int32P("addressType", "t", 0, "address type ID, btc(0), btcMultiSign(1), eth(2)")
 	cmd.Flags().StringP("pub", "p", "", "pub key string")
 	cmd.MarkFlagRequired("pub")
 }
 func getPubToAddr(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	pub, _ := cmd.Flags().GetString("pub")
 
-	params := types.ReqString{
-		Data: pub,
+	pub, _ := cmd.Flags().GetString("pub")
+	addressType, _ := cmd.Flags().GetInt32("addressType")
+
+	driver, err := address.LoadDriver(addressType, -1)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrap(err, "LoadAddressDriver"))
+		return
 	}
-	var res types.ReplyString
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.PubKeyToAddr", &params, &res)
-	ctx.Run()
+	pubHex, err := common.FromHex(pub)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrap(err, "PubKeyFromHex"))
+		return
+	}
+	fmt.Println(driver.PubKeyToAddr(pubHex))
 }
 
 //GetAccountCmd get account by label
