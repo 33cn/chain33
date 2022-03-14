@@ -209,15 +209,15 @@ var (
 )
 
 func init() {
-	enablesign = flag.Bool("enablesign", false, "enable tx sign")
+	enablesign = flag.Bool("sign", false, "enable tx sign")
 	sendtxgrpc = flag.Bool("grpc", true, "send tx in grpc")
-	enabletxfee = flag.Bool("txfee", false, "enable tx fee")
-	enabledupcheck = flag.Bool("dupcheck", false, "enable dup check")
-	enabletxindex = flag.Bool("txindex", false, "enable tx index")
-	enableexeccheck = flag.Bool("execcheck", false, "enabletxindex")
-	maxtxnum = flag.Int64("maxtxnum", 10000, "max tx num in block")
+	enabletxfee = flag.Bool("fee", false, "enable transaction fee")
+	enabledupcheck = flag.Bool("dupcheck", true, "disableTxDupCheck config")
+	enabletxindex = flag.Bool("txindex", false, "disableTxIndex config")
+	enableexeccheck = flag.Bool("execcheck", false, "disableExecCheck config")
+	maxtxnum = flag.Int64("maxtx", 10000, "max tx num in block, maxTxNumber config")
 	txtype = flag.String("txtype", "none", "set tx type, coins/none")
-	accountnum = flag.Int("accountnum", 10, "set account num for transfer bench, default 10")
+	accountnum = flag.Int("accnum", 10, "set account num for transfer bench, default 10")
 	txsize = flag.Int("txsize", 32, "set none tx size byte")
 	port = flag.Int("port", 9902, "set grpc port")
 	testing.Init()
@@ -254,7 +254,7 @@ func BenchmarkSolo(b *testing.B) {
 	if *accountnum < 10 {
 		*accountnum = 10
 	}
-	if *maxtxnum > 10000 {
+	if *maxtxnum > 100 {
 		str := fmt.Sprintf("maxTxNumber = %d", *maxtxnum)
 		cfgStr = strings.Replace(cfgStr, "maxTxNumber = 10000", str, -1)
 	}
