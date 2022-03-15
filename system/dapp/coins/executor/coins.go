@@ -26,7 +26,8 @@ var clog = log.New("module", "execs.coins")
 var driverName = "coins"
 
 type subConfig struct {
-	DisableAddrReceiver bool `json:"disableAddrReceiver"`
+	DisableAddrReceiver  bool `json:"disableAddrReceiver"`
+	DisableCheckTxAmount bool `json:"disableCheckTxAmount"`
 }
 
 var subCfg subConfig
@@ -74,13 +75,17 @@ func (c *Coins) GetDriverName() string {
 
 // CheckTx check transaction amount 必须不能为负数
 func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
-	ety := c.GetExecutorType()
-	amount, err := ety.Amount(tx)
-	if err != nil {
-		return err
-	}
-	if amount < 0 {
-		return types.ErrAmount
+
+	//TODO 数额在账户操作中会做检测, 此处不需要(提升性能), 需要确认在现有链中是否有分叉
+	if !subCfg.DisableCheckTxAmount {
+		ety := c.GetExecutorType()
+		amount, err := ety.Amount(tx)
+		if err != nil {
+			return err
+		}
+		if amount < 0 {
+			return types.ErrAmount
+		}
 	}
 	return nil
 }
