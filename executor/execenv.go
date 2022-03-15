@@ -516,10 +516,10 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 }
 
 func (e *executor) checkKV(memset []string, kvs []*types.KeyValue) error {
-	keys := make(map[string]bool)
+	keys := make(map[string]struct{}, len(kvs))
 	for _, kv := range kvs {
 		k := kv.GetKey()
-		keys[string(k)] = true
+		keys[string(k)] = struct{}{}
 	}
 	for _, key := range memset {
 		if _, ok := keys[key]; !ok {
