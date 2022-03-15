@@ -1,11 +1,14 @@
 package eth_rpc
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	rpcclient "github.com/33cn/chain33/rpc/client"
 	"github.com/33cn/chain33/rpc/eth_rpc/types"
+	rpctypes "github.com/33cn/chain33/rpc/types"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
@@ -138,8 +141,7 @@ func(e*EthApi) GetBlockByHash(txhash string ,full bool ) (*types.Block,error){
 
 }
 
-//eth_getTransactionByHash
-
+//GetTransactionByHash eth_getTransactionByHash
 func(e *EthApi)GetTransactionByHash(txhash string)(*types.Transaction,error){
 	var req  ctypes.ReqHashes
 	req.Hashes=append(req.Hashes,common.FromHex(txhash))
@@ -156,15 +158,110 @@ func(e *EthApi)GetTransactionByHash(txhash string)(*types.Transaction,error){
 
 
 //GetTransactionReceipt eth_getTransactionReceipt
-func(e *EthApi)GetTransactionReceipt(txhash string){
+func(e *EthApi)GetTransactionReceipt(txhash string)(*types.Receipt,error){
 	var req  ctypes.ReqHashes
 	req.Hashes=append(req.Hashes,common.FromHex(txhash))
 	txdetails,err:=e.cli.GetTransactionByHash(&req)
 	if err!=nil{
 		return nil,err
 	}
+	receipts,err:= types.TxDetailsToEthReceipt(txdetails,e.cfg)
+	if err!=nil{
+		return nil,err
+	}
+	return receipts[0],nil
+
+}
+//GetBlockTransactionCountByNumber eth_getBlockTransactionCountByNumber
+func(e *EthApi)GetBlockTransactionCountByNumber(blockNum string )(string,error){
+	var blockHeight int64
+	if common.FromHex(blockNum)!=nil{
+		bn:=big.NewInt(1)
+		var ok bool
+		bn,ok=bn.SetString(blockNum,16)
+		if !ok{
+			return "",errors.New("wrong param")
+		}
+		blockHeight = bn.Int64()
+
+	}else{
+		bn,ok:= big.NewInt(1).SetString(blockNum,10)
+		if !ok{
+			return "",errors.New("wrong param")
+		}
+		blockHeight = bn.Int64()
+	}
+	var req ctypes.ReqBlocks
+	req.Start= blockHeight
+	req.End= blockHeight
+	blockdetails,err:= e.cli.GetBlocks(&req)
+	if err!=nil{
+		return "",err
+	}
+	return fmt.Sprintf("0x%x",len(blockdetails.GetItems()[0].Block.GetTxs())),nil
 
 }
 
 
 
+
+
+//eth_accounts
+func(e *EthApi)Accounts()(*rpctypes.WalletAccounts,error){
+	req := &ctypes.ReqAccountList{WithoutBalance: true}
+	msg,err:=e.cli.ExecWalletFunc("wallet","WalletGetAccountList",req)
+	if err!=nil{
+		return nil,err
+	}
+	accountsList := msg.(*ctypes.WalletAccounts)
+	var accounts rpctypes.WalletAccounts
+	for _, wallet := range accountsList.Wallets {
+		accounts.Wallets = append(accounts.Wallets, &rpctypes.WalletAccount{Label: wallet.GetLabel(),
+			Acc: &rpctypes.Account{Currency: wallet.GetAcc().GetCurrency(), Balance: wallet.GetAcc().GetBalance(),
+				Frozen: wallet.GetAcc().GetFrozen(), Addr: wallet.GetAcc().GetAddr()}})
+	}
+
+	return &accounts,nil
+
+}
+
+//eth_call evm合约相关操作
+func(e *EthApi)Call(msg types.CallMsg,tag *string )(interface{},error){
+	var param rpctypes.Query4Jrpc
+	type EvmQueryReq struct {
+		Address              string
+		Input                string
+	}
+
+	param.Execer = e.cfg.GetCoinExec()
+	param.FuncName = "Query"
+	jsonData:=fmt.Sprintf(`{"input:%v","address":"%s"}`,msg.Data,msg.To)
+	param.Payload = []byte(jsonData)
+	log.Info("eth_call", "QueryCall param", param, "payload", string(param.Payload))
+
+	execty := ctypes.LoadExecutorType(param.Execer)
+	if execty == nil {
+		log.Error("Query", "funcname", param.FuncName, "err", ctypes.ErrNotSupport)
+		return nil,ctypes.ErrNotSupport
+	}
+	decodePayload, err := execty.CreateQuery(param.FuncName, param.Payload)
+	if err != nil {
+		log.Error("EventQuery1", "err", err.Error(), "funcName", param.FuncName)
+		return nil,err
+	}
+
+	resp,err := e.cli.Query(e.cfg.ExecName(param.Execer), 	param.FuncName , decodePayload)
+	if err != nil {
+		log.Error("eth_call", "error", err)
+		return nil, err
+	}
+
+	log.Debug("eth_call", "QueryCall resp", resp)
+	var jsonmsg json.RawMessage
+	jsonmsg, err = execty.QueryToJSON(param.FuncName, resp)
+	return jsonmsg,nil
+}
+
+
+
+//

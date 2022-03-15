@@ -86,3 +86,29 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails,cfg *ctypes.Chain33Co
 	return
 
 }
+
+
+func TxDetailsToEthReceipt(txdetails *ctypes.TransactionDetails,cfg *ctypes.Chain33Config )([]*Receipt, err error){
+	var receipts []*Receipt
+	for _,detail:=range txdetails.GetTxs(){
+		var receipt Receipt
+		receipt.To= detail.Tx.To
+		receipt.From=detail.Fromaddr
+		if detail.Receipt.Ty==2{
+			receipt.Type="0x1"
+		}else{
+			receipt.Type="0x2"
+		}
+		receipt.TxHash=fmt.Sprintf("0x%x",detail.GetFullHash())
+		receipt.BlockNumber=fmt.Sprintf("0x%x",detail.Height)
+		receipt.TransactionIndex=fmt.Sprintf("0x%x",detail.GetIndex())
+		if len(txdetails.GetTxs()[0].Tx.Payload)!=0{
+			receipt.ContractAddress=detail.Tx.To
+			//TODO 解析payload 提取to地址
+			//receipt.To=
+		}
+		receipts=append(receipts,&receipt)
+	}
+	return receipts ,nil
+
+}
