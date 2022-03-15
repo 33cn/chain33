@@ -36,8 +36,8 @@ func NewLocalDB(cli queue.Client, readOnly bool) db.KVDB {
 		panic(err)
 	}
 	return &LocalDB{
-		cache:   newcacheDB(),
-		txcache: newcacheDB(),
+		cache:   newcacheDB(1024),
+		txcache: newcacheDB(32),
 		txid:    txid,
 		client:  cli,
 		api:     api,
@@ -223,9 +223,9 @@ type cacheDB struct {
 	data map[string][]byte
 }
 
-func newcacheDB() *cacheDB {
+func newcacheDB(size int) *cacheDB {
 	return &cacheDB{
-		data: make(map[string][]byte, 1024),
+		data: make(map[string][]byte, size),
 	}
 }
 
@@ -242,14 +242,13 @@ func (db *cacheDB) Get(key []byte) (value []byte, incache bool, err error) {
 }
 
 func (db *cacheDB) Set(key []byte, value []byte) {
-	if db.data == nil {
-		db.data = make(map[string][]byte, 1024)
-	}
 	db.data[string(key)] = value
 }
 
 func (db *cacheDB) Reset() {
-	db.data = nil
+	for k := range db.data {
+		delete(db.data, k)
+	}
 }
 
 func (db *cacheDB) Merge(db2 *cacheDB) {
