@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package rpc chain33 RPC模块包含JSONRpc以及grpc
-package rpc
+package client
 
 import (
 	"bytes"
@@ -24,15 +24,15 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-var log = log15.New("module", "rpc")
+var log = log15.New("module", "rpc_client")
 
-type channelClient struct {
+type ChannelClient struct {
 	client.QueueProtocolAPI
 	accountdb *account.DB
 }
 
 // Init channel client
-func (c *channelClient) Init(q queue.Client, api client.QueueProtocolAPI) {
+func (c *ChannelClient) Init(q queue.Client, api client.QueueProtocolAPI) {
 	if api == nil {
 		var err error
 		api, err = client.New(q, nil)
@@ -45,7 +45,7 @@ func (c *channelClient) Init(q queue.Client, api client.QueueProtocolAPI) {
 }
 
 // CreateRawTransaction create rawtransaction
-func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
+func (c *ChannelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
 	if param == nil {
 		log.Error("CreateRawTransaction", "Error", types.ErrInvalidParam)
 		return nil, types.ErrInvalidParam
@@ -95,7 +95,7 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	return types.Encode(tx), nil
 }
 
-func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) {
+func (c *ChannelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) {
 	types.AssertConfig(c.QueueProtocolAPI)
 	cfg := c.QueueProtocolAPI.GetConfig()
 	if param == nil || param.Tx == "" {
@@ -103,7 +103,7 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 		return nil, types.ErrInvalidParam
 	}
 
-	tx, err := decodeTx(param.Tx)
+	tx, err := DecodeTx(param.Tx)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func (c *channelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 }
 
 // CreateRawTxGroup create rawtransaction for group
-func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([]byte, error) {
+func (c *ChannelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([]byte, error) {
 	types.AssertConfig(c.QueueProtocolAPI)
 	cfg := c.QueueProtocolAPI.GetConfig()
 	if param == nil || len(param.Txs) <= 1 {
@@ -209,7 +209,7 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 
 // CreateNoBalanceTxs create the multiple transaction with no balance
 // 实际使用的时候要注意，一般情况下，不要传递 private key 到服务器端，除非是本地localhost 的服务。
-func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Transaction, error) {
+func (c *ChannelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Transaction, error) {
 	types.AssertConfig(c.QueueProtocolAPI)
 	cfg := c.QueueProtocolAPI.GetConfig()
 	txNone := &types.Transaction{Execer: []byte(cfg.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
@@ -231,7 +231,7 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	isParaTx := false
 	transactions := []*types.Transaction{txNone}
 	for _, txhex := range in.TxHexs {
-		tx, err := decodeTx(txhex)
+		tx, err := DecodeTx(txhex)
 		if err != nil {
 			return nil, err
 		}
@@ -274,12 +274,12 @@ func (c *channelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 		if err != nil {
 			return nil, err
 		}
-		return decodeTx(signedTx.(*types.ReplySignRawTx).TxHex)
+		return DecodeTx(signedTx.(*types.ReplySignRawTx).TxHex)
 	}
 	return newtx, nil
 }
 
-func decodeTx(hexstr string) (*types.Transaction, error) {
+func DecodeTx(hexstr string) (*types.Transaction, error) {
 	var tx types.Transaction
 	data, err := common.FromHex(hexstr)
 	if err != nil {
@@ -293,7 +293,7 @@ func decodeTx(hexstr string) (*types.Transaction, error) {
 }
 
 // GetAddrOverview get overview of address
-func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
+func (c *ChannelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
 	err := address.CheckAddress(parm.Addr, -1)
 	if err != nil {
 		return nil, types.ErrInvalidAddress
@@ -318,7 +318,7 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 }
 
 // GetBalance get balance
-func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
+func (c *ChannelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
 	// in.AssetExec & in.AssetSymbol 新增参数，
 	// 不填时兼容原来的调用
 	if in.AssetExec == "" || in.AssetSymbol == "" {
@@ -336,7 +336,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 }
 
 // GetAllExecBalance get balance of exec
-func (c *channelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.AllExecBalance, error) {
+func (c *ChannelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.AllExecBalance, error) {
 	types.AssertConfig(c.QueueProtocolAPI)
 	cfg := c.QueueProtocolAPI.GetConfig()
 	addr := in.Addr
@@ -374,7 +374,7 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAllExecBalance) (*types.A
 }
 
 // GetTotalCoins get total of coins
-func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
+func (c *ChannelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
 	//获取地址账户的余额通过account模块
 	resp, err := c.accountdb.GetTotalCoins(c.QueueProtocolAPI, in)
 	if err != nil {
@@ -384,7 +384,7 @@ func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyG
 }
 
 // DecodeRawTransaction decode rawtransaction
-func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
+func (c *ChannelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
 	var tx types.Transaction
 	bytes, err := common.FromHex(param.TxHex)
 	if err != nil {
@@ -398,7 +398,7 @@ func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransactio
 }
 
 // GetTimeStatus get status of time
-func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
+func (c *ChannelClient) GetTimeStatus() (*types.TimeStatus, error) {
 	ntpTime := common.GetRealTimeRetry(c.GetConfig().GetModuleConfig().NtpHosts, 2)
 	local := time.Now()
 	if ntpTime.IsZero() {
@@ -409,7 +409,7 @@ func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
 }
 
 // GetExecBalance get balance with exec by channelclient
-func (c *channelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.ReplyGetExecBalance, error) {
+func (c *ChannelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.ReplyGetExecBalance, error) {
 	//通过account模块获取地址账户在合约中的余额
 	resp, err := c.accountdb.GetExecBalance(c.QueueProtocolAPI, in)
 	if err != nil {
@@ -418,7 +418,7 @@ func (c *channelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.Repl
 	return resp, nil
 }
 
-func (c *channelClient) getWalletRecoverAddr(param *types.ReqGetWalletRecoverAddr) ([]byte, []byte, error) {
+func (c *ChannelClient) getWalletRecoverAddr(param *types.ReqGetWalletRecoverAddr) ([]byte, []byte, error) {
 
 	ctrPub, err := common.FromHex(param.GetCtrPubKey())
 	if err != nil {
@@ -441,7 +441,7 @@ func (c *channelClient) getWalletRecoverAddr(param *types.ReqGetWalletRecoverAdd
 }
 
 // GetWalletRecoverAddr get wallet recover chain33 address
-func (c *channelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr) (*types.ReplyString, error) {
+func (c *ChannelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr) (*types.ReplyString, error) {
 
 	if len(req.GetCtrPubKey()) <= 0 || len(req.GetRecoverPubKey()) <= 0 ||
 		req.GetRelativeDelayHeight() <= 0 {
@@ -459,7 +459,7 @@ func (c *channelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr)
 }
 
 // SignWalletRecoverTx sign wallet recover transaction
-func (c *channelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (*types.ReplySignRawTx, error) {
+func (c *ChannelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (*types.ReplySignRawTx, error) {
 
 	if req.GetWalletRecoverParam() == nil || len(req.GetRawTx()) <= 0 {
 		log.Error("SignWalletRecoverTx", "invalid req", req.String())

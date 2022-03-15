@@ -7,13 +7,14 @@ package rpc
 import (
 	"bytes"
 	"errors"
+	"github.com/33cn/chain33/queue"
+	client2 "github.com/33cn/chain33/rpc/client"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"encoding/hex"
 
-	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
@@ -376,12 +377,12 @@ func TestDecodeLogModifyConfig(t *testing.T) {
 
 func newTestChain33(api client.QueueProtocolAPI) *Chain33 {
 	types.AssertConfig(api)
-	return &Chain33{
-		cli: channelClient{
-			QueueProtocolAPI: api,
-			accountdb:        account.NewCoinsAccount(api.GetConfig()),
-		},
-	}
+	obj:= &Chain33{}
+	q:=queue.New("test")
+	obj.cli=client2.ChannelClient{}
+	obj.cli.Init(q.Client(),api)
+
+	return obj
 }
 
 func TestChain33_CreateRawTransaction(t *testing.T) {
@@ -460,7 +461,7 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 	}
 	err = testChain33.CreateRawTxGroup(txs, &testResult)
 	assert.Nil(t, err)
-	tx, err := decodeTx(testResult.(string))
+	tx, err := client2.DecodeTx(testResult.(string))
 	assert.Nil(t, err)
 	tg, err := tx.GetTxGroup()
 	assert.Nil(t, err)
@@ -1844,7 +1845,7 @@ func TestChain33_SendDelayTransaction(t *testing.T) {
 
 func TestChain33_WalletRecoverScript(t *testing.T) {
 
-	chain33 := &Chain33{cli: channelClient{}}
+	chain33 := &Chain33{cli: client2.ChannelClient{}}
 	var result interface{}
 	err := chain33.GetWalletRecoverAddress(nil, &result)
 	require.Equal(t, types.ErrInvalidParam, err)

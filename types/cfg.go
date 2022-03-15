@@ -254,6 +254,8 @@ type RPC struct {
 	JrpcBindAddr string `json:"jrpcBindAddr,omitempty"`
 	// grpc绑定地址
 	GrpcBindAddr string `json:"grpcBindAddr,omitempty"`
+	//ethereum rpc bindaddr
+	ErpcBindAddr string  `json:"erpcBindAddr,omitempty"`
 	// 白名单列表，允许访问的IP地址，默认是“*”，允许所有IP访问
 	Whitlist  []string `json:"whitlist,omitempty"`
 	Whitelist []string `json:"whitelist,omitempty"`
@@ -265,6 +267,8 @@ type RPC struct {
 	JrpcFuncBlacklist []string `json:"jrpcFuncBlacklist,omitempty"`
 	// grpc方法请求黑名单，禁止调用黑名单里配置的rpc方法，一般和白名单配合使用，默认是空
 	GrpcFuncBlacklist []string `json:"grpcFuncBlacklist,omitempty"`
+	//eth erpc法请求黑名单，禁止调用黑名单里配置的rpc方法，一般和白名单配合使用，默认是空
+	ErpcFuncBlacklist []string `json:"erpcFuncBlacklist,omitempty"`
 	// 是否开启https
 	EnableTLS   bool `json:"enableTLS,omitempty"`
 	EnableTrace bool `json:"enableTrace,omitempty"`

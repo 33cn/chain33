@@ -7,6 +7,7 @@ package rpc
 import (
 	"encoding/base64"
 	"fmt"
+	client2 "github.com/33cn/chain33/rpc/client"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/rpc/grpcclient"
@@ -36,18 +38,20 @@ var (
 	grpcFuncBlacklist           = make(map[string]bool)
 	rpcFilterPrintFuncBlacklist = make(map[string]bool)
 	grpcFuncListLock            = sync.RWMutex{}
+	log = log15.New("module", "rpc_client")
+
 )
 
 // Chain33  a channel client
 type Chain33 struct {
-	cli channelClient
+	cli client2.ChannelClient
 	//for communicate with main chain in parallel chain
 	mainGrpcCli types.Chain33Client
 }
 
 // Grpc a channelClient
 type Grpc struct {
-	cli       channelClient
+	cli       client2.ChannelClient
 	cachelock sync.Mutex
 	subCache  map[string]*subInfo // topic -->subInfo
 }
@@ -153,6 +157,8 @@ func (s *JSONRPCServer) Close() {
 	}
 }
 
+
+
 func checkBasicAuth(r *http.Request) bool {
 	if rpcCfg.JrpcUserName == "" && rpcCfg.JrpcUserPasswd == "" {
 		return true
@@ -237,7 +243,7 @@ func (j *Grpcserver) Close() {
 	if j.l != nil {
 		err := j.l.Close()
 		if err != nil {
-			log.Error("Grpcserver close", "err", err)
+			 log.Error("Grpcserver close", "err", err)
 		}
 	}
 	if j.grpc != nil {
@@ -302,11 +308,13 @@ func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServe
 	return j
 }
 
+
 // RPC a type object
 type RPC struct {
 	cfg  *types.RPC
 	gapi *Grpcserver
 	japi *JSONRPCServer
+	eapi *EthRpcServer
 	cli  queue.Client
 	api  client.QueueProtocolAPI
 }
@@ -342,6 +350,7 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 
 	gapi := NewGRpcServer(c, r.api)
 	japi := NewJSONRPCServer(c, r.api)
+	r.eapi=NewEthJsonRpcServer(c, r.api)
 	r.gapi = gapi
 	r.japi = japi
 	r.cli = c

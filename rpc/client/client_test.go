@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package rpc
+package client
 
 import (
 	"encoding/hex"
@@ -30,11 +30,11 @@ func Init(cfg *types.Chain33Config) {
 	pluginmgr.InitExec(cfg)
 }
 
-func newTestChannelClient() *channelClient {
+func newTestChannelClient() *ChannelClient {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
-	return &channelClient{
+	return &ChannelClient{
 		QueueProtocolAPI: api,
 	}
 }
@@ -204,7 +204,7 @@ func testChannelClientGetAddrOverviewErr(t *testing.T) {
 		Addr: "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt",
 	}
 	api := new(mocks.QueueProtocolAPI)
-	client := &channelClient{
+	client := &ChannelClient{
 		QueueProtocolAPI: api,
 	}
 
@@ -217,7 +217,7 @@ func testChannelClientGetAddrOverviewErr(t *testing.T) {
 func testChannelClientGetAddrOverviewOK(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	db := new(account.DB)
-	client := &channelClient{
+	client := &ChannelClient{
 		QueueProtocolAPI: api,
 		accountdb:        db,
 	}
@@ -255,7 +255,7 @@ func testChannelClientGetBalanceCoin(t *testing.T) {
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	db := new(account.DB)
-	client := &channelClient{
+	client := &ChannelClient{
 		QueueProtocolAPI: api,
 		accountdb:        db,
 	}
@@ -289,7 +289,7 @@ func testChannelClientGetBalanceOther(t *testing.T) {
 	api := &mocks.QueueProtocolAPI{}
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	db := new(account.DB)
-	client := &channelClient{
+	client := &ChannelClient{
 		QueueProtocolAPI: api,
 		accountdb:        db,
 	}
@@ -325,7 +325,7 @@ func TestChannelClient_GetBalance(t *testing.T) {
 
 func TestChannelClient_GetTotalCoins(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	client := new(channelClient)
+	client := new(ChannelClient)
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	qm := &qmock.Client{}
@@ -350,7 +350,7 @@ func TestChannelClient_GetTotalCoins(t *testing.T) {
 
 func TestChannelClient_CreateNoBalanceTransaction(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	client := new(channelClient)
+	client := new(ChannelClient)
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	qm := &qmock.Client{}
@@ -440,7 +440,7 @@ func TestClientReWriteRawTx(t *testing.T) {
 }
 
 func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
-	cli := &channelClient{}
+	cli := &ChannelClient{}
 	req := &types.ReqGetWalletRecoverAddr{}
 	_, err := cli.GetWalletRecoverAddr(req)
 	require.Equal(t, types.ErrInvalidParam, err)
@@ -479,7 +479,7 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 
 func TestChannelClient_SignWalletRecoverTx(t *testing.T) {
 
-	cli := &channelClient{}
+	cli := &ChannelClient{}
 	req := &types.ReqGetWalletRecoverAddr{}
 	signReq := &types.ReqSignWalletRecoverTx{}
 

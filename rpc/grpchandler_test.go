@@ -7,6 +7,7 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
+	client2 "github.com/33cn/chain33/rpc/client"
 	"time"
 
 	"github.com/33cn/chain33/queue"
@@ -74,7 +75,7 @@ func init() {
 	//remoteIpWhitelist[addr] = true
 	//grpcFuncWhitelist["*"] = true
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	Init(cfg)
+	client2.Init(cfg)
 	qapi = new(mocks.QueueProtocolAPI)
 	qapi.On("GetConfig", mock.Anything).Return(cfg)
 	g.cli.QueueProtocolAPI = qapi
@@ -711,7 +712,7 @@ func TestGrpc_GetFork(t *testing.T) {
 	newstr := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	cfg := types.NewChain33Config(newstr)
 	cfg.SetDappFork("para", "fork100", 100)
-	Init(cfg)
+	client2.Init(cfg)
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	grpc := Grpc{}
@@ -721,7 +722,7 @@ func TestGrpc_GetFork(t *testing.T) {
 	assert.Equal(t, int64(100), val.Data)
 
 	cfg1 := types.NewChain33Config(types.GetDefaultCfgstring())
-	Init(cfg1)
+	client2.Init(cfg1)
 	api1 := new(mocks.QueueProtocolAPI)
 	api1.On("GetConfig", mock.Anything).Return(cfg1)
 	grpc1 := Grpc{}
