@@ -17,7 +17,7 @@ const (
 	// TyCommitDelayTxAction commit delay transaction action id
 	TyCommitDelayTxAction = iota + 101
 
-	// UnknownActionName unknown action name
+	// UnknownActionName unknown action name, 即存证类型交易
 	UnknownActionName = "UnknownNoneActionName"
 	// NameCommitDelayTxAction commit delay transaction action name
 	NameCommitDelayTxAction = "CommitDelayTx"
@@ -85,19 +85,31 @@ func (n *NoneType) GetPayload() types.Message {
 	return &NoneAction{}
 }
 
+//DecodePayloadValue 为了性能考虑，coins 是最常用的合约，我们这里不用反射吗，做了特殊化的优化
+func (n *NoneType) DecodePayloadValue(tx *types.Transaction) (string, reflect.Value, error) {
+	name, value, err := n.decodePayload(tx)
+	return name, value, err
+}
+
 // ActionName return action a string name
-func (n NoneType) ActionName(tx *types.Transaction) string {
+func (n *NoneType) ActionName(tx *types.Transaction) string {
+	name, _, _ := n.decodePayload(tx)
+	return name
+}
+
+func (n *NoneType) decodePayload(tx *types.Transaction) (string, reflect.Value, error) {
+
 	action := &NoneAction{}
 	err := types.Decode(tx.Payload, action)
 	if err != nil {
-		return UnknownActionName
+		return UnknownActionName, reflect.ValueOf(nil), types.ErrActionNotSupport
 	}
 
 	if action.Ty == TyCommitDelayTxAction {
-		return NameCommitDelayTxAction
+		return NameCommitDelayTxAction, reflect.ValueOf(action.GetCommitDelayTx()), nil
 	}
 
-	return UnknownActionName
+	return UnknownActionName, reflect.ValueOf(nil), types.ErrActionNotSupport
 }
 
 // GetLogMap  get log for map
