@@ -217,7 +217,7 @@ func init() {
 	enableexeccheck = flag.Bool("execcheck", false, "enable mempool exec tx check")
 	maxtxnum = flag.Int64("maxtx", 10000, "max tx num in block, maxTxNumber config")
 	txtype = flag.String("txtype", "none", "set tx type, coins/none")
-	accountnum = flag.Int("accnum", 10, "set account num for transfer bench, default 10")
+	accountnum = flag.Int("accnum", 10, "set account num for transfer bench")
 	txsize = flag.Int("txsize", 32, "set none tx size byte")
 	port = flag.Int("port", 9902, "set grpc port")
 	testing.Init()
