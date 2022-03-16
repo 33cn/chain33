@@ -23,6 +23,7 @@ import (
 func TestMultiAddrAssetTransfer(t *testing.T) {
 
 	cfg := testnode.GetDefaultConfig()
+	cfg.GetModuleConfig().Address.EnableHeight["eth"] = 0
 	cfg.GetModuleConfig().Mempool.MinTxFeeRate = 0
 	cfg.SetMinFee(0)
 	mock33 := testnode.NewWithConfig(cfg, nil)
