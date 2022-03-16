@@ -15,7 +15,7 @@ ChainID=33
 [address]
 defaultDriver="btc"
 [address.enableHeight]
-eth=0
+eth=-2
 
 # crypto模块配置
 [crypto]
