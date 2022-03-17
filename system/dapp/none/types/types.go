@@ -85,7 +85,7 @@ func (n *NoneType) GetPayload() types.Message {
 	return &NoneAction{}
 }
 
-//DecodePayloadValue 为了性能考虑，coins 是最常用的合约，我们这里不用反射吗，做了特殊化的优化
+//DecodePayloadValue decode payload value
 func (n *NoneType) DecodePayloadValue(tx *types.Transaction) (string, reflect.Value, error) {
 	name, value, err := n.decodePayload(tx)
 	return name, value, err
