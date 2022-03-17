@@ -130,13 +130,8 @@ type QueueProtocolAPI interface {
 	LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.ReplyHeightByTitle, error)
 	// types.EventGetParaTxByTitleAndHeight
 	GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error)
-
 	// get chain config
 	GetConfig() *types.Chain33Config
-
-	// get crypto list
-	GetCryptoList() *types.CryptoList
-
 	// send delay tx
 	SendDelayTx(param *types.DelayTx, waitReply bool) (*types.Reply, error)
 	//AddBlacklist add blacklist

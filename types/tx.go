@@ -461,7 +461,7 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	pub := priv.PubKey()
 	sign := priv.Sign(data)
 	tx.Signature = &Signature{
-		Ty:        EncodeSignID(ty, address.DefaultID),
+		Ty:        ty,
 		Pubkey:    pub.Bytes(),
 		Signature: sign.Bytes(),
 	}

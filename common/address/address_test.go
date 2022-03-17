@@ -99,7 +99,7 @@ func BenchmarkExecAddress(b *testing.B) {
 	start = time.Now().UnixNano() / 1000000
 	fmt.Println(start)
 	for i := 0; i < b.N; i++ {
-		address.GetExecAddress("ticket")
+		address.ExecAddress("ticket")
 	}
 	end = time.Now().UnixNano() / 1000000
 	fmt.Println(end)

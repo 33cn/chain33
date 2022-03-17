@@ -14,6 +14,8 @@ var (
 
 	//ErrUnknownAddressDriver 未注册驱动
 	ErrUnknownAddressDriver = errors.New("ErrUnknownAddressDriver")
+	//ErrUnknownAddressType unknown address type
+	ErrUnknownAddressType = errors.New("ErrUnknownAddressType")
 	//ErrAddressDriverNotEnable 驱动未启用
 	ErrAddressDriverNotEnable = errors.New("ErrAddressDriverNotEnable")
 )

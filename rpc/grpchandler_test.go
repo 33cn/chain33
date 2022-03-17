@@ -749,8 +749,12 @@ func TestGrpc_GetServerTime(t *testing.T) {
 }
 
 func TestGrpc_GetCryptoList(t *testing.T) {
-	qapi.On("GetCryptoList").Return(nil)
 	_, err := g.GetCryptoList(getOkCtx(), nil)
+	assert.NoError(t, err)
+}
+
+func TestGrpc_GetAddressDrivers(t *testing.T) {
+	_, err := g.GetAddressDrivers(getOkCtx(), nil)
 	assert.NoError(t, err)
 }
 

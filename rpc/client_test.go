@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/33cn/chain33/common/crypto"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/require"
@@ -488,4 +490,24 @@ func TestChannelClient_SignWalletRecoverTx(t *testing.T) {
 	signReq.WalletRecoverParam = req
 	_, err = cli.SignWalletRecoverTx(signReq)
 	require.Equal(t, types.ErrInvalidParam, err)
+}
+
+func TestQueueProtocol_GetCryptoList(t *testing.T) {
+	q := &channelClient{}
+	list := q.GetCryptoList()
+	for _, driver := range list.Cryptos {
+		id := int(driver.TypeID)
+		require.Equal(t, crypto.GetType(driver.Name), id)
+		require.Equal(t, crypto.GetName(id), driver.Name)
+	}
+}
+
+func TestQueueProtocol_GetAddressDrivers(t *testing.T) {
+	q := &channelClient{}
+	list := q.GetAddressDrivers()
+	for _, driver := range list.Drivers {
+		d, err := address.LoadDriver(driver.TypeID, -1)
+		require.Nil(t, err)
+		require.Equal(t, d.GetName(), driver.Name)
+	}
 }

@@ -93,7 +93,8 @@ func TestCreateRawTx(t *testing.T) {
 }
 
 func TestGetExecAddr(t *testing.T) {
-	_, err := GetExecAddr("coins")
+	addr, err := GetExecAddr("coins", 0)
+	assert.Equal(t, "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt", addr)
 	assert.Nil(t, err)
 }
 
