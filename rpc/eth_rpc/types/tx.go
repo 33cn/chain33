@@ -88,7 +88,7 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails,cfg *ctypes.Chain33Co
 }
 
 
-func TxDetailsToEthReceipt(txdetails *ctypes.TransactionDetails,cfg *ctypes.Chain33Config )([]*Receipt, err error){
+func TxDetailsToEthReceipt(txdetails *ctypes.TransactionDetails,cfg *ctypes.Chain33Config )([]*Receipt,  error){
 	var receipts []*Receipt
 	for _,detail:=range txdetails.GetTxs(){
 		var receipt Receipt

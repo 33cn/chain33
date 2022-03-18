@@ -15,6 +15,7 @@ import (
 const(
 	EthNameSpace="eth"
 	NetNameSpace="net"
+	PersonalNameSpace = "personal"
 	DefaultEthRpcPort=8545
 
 )
@@ -56,6 +57,9 @@ func InitEthRpc(cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtoco
 	server := rpc.NewServer()
 	//defer server.Stop()
 	if err := server.RegisterName(EthNameSpace, NewEthApi(cfg,c,api)); err != nil {
+		panic(err)
+	}
+	if err := server.RegisterName(PersonalNameSpace, NewEthApi(cfg, c, api)); err != nil {
 		panic(err)
 	}
 	return server
