@@ -1,5 +1,13 @@
 changelog
 
+<a name="1.67.0"></a>
+# [1.67.0](https://github.com/33cn/chain33/compare/v1.66.5...v1.67.0) (2022-03-21)
+
+
+### Features
+
+* add multiple address format support(#1181) ([659f342](https://github.com/33cn/chain33/commit/659f342)), closes [#1181](https://github.com/33cn/chain33/issues/1181)
+
 <a name="1.66.5"></a>
 ## [1.66.5](https://github.com/33cn/chain33/compare/v1.66.4...v1.66.5) (2022-02-18)
 
