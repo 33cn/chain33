@@ -206,7 +206,8 @@ func (p *broadcastProtocol) handleBroadcastReceive(msg subscribeMsg) {
 	} else if topic == psBlockTopic {
 		block := msg.value.(*types.Block)
 		hash = hex.EncodeToString(block.Hash(p.ChainCfg))
-		log.Debug("recvBlkPs", "height", block.GetHeight(), "hash", hash)
+		log.Debug("recvBlk", "height", block.GetHeight(), "hash", hash,
+			"size(KB)", float32(block.Size())/1024, "from", msg.publisher.String())
 		err = p.postBlockChain(hash, msg.receiveFrom.String(), block, msg.publisher)
 
 	} else if topic == psLtBlockTopic {
@@ -216,14 +217,15 @@ func (p *broadcastProtocol) handleBroadcastReceive(msg subscribeMsg) {
 			return
 		}
 		p.ltB.addLtBlock(lb, msg.receiveFrom, msg.publisher)
-		log.Debug("recvLtBlk", "height", lb.GetHeader().GetHeight(), "hash", hash)
+		log.Debug("recvLtBlk", "height", lb.GetHeader().GetHeight(), "hash", hash,
+			"size(KB)", float32(lb.GetSize())/1024, "from", msg.publisher.String())
 
 	} else if strings.HasPrefix(topic, psPeerMsgTopicPrefix) {
 		err = p.handlePeerMsg(msg.value.(*types.PeerPubSubMsg), msg.receiveFrom, msg.publisher)
 	}
 
 	if err != nil {
-		log.Error("receivePs", "topic", topic, "hash", hash, "post msg err", err)
+		log.Error("handleBroadcastReceive", "topic", topic, "hash", hash, "post msg err", err)
 	}
 }
 
