@@ -92,11 +92,12 @@ func Test_validateBlock(t *testing.T) {
 	proto, cancel := newTestProtocol()
 	defer cancel()
 	val.broadcastProtocol = proto
-
-	require.Equal(t, ps.ValidationAccept, val.validateBlock(val.Ctx, val.Host.ID(), nil))
+	msg := &ps.Message{Message: &pubsub_pb.Message{From: []byte(val.Host.ID())}}
+	require.Equal(t, ps.ValidationAccept, val.validateBlock(val.Ctx, val.Host.ID(), msg))
 	val.addDeniedPeer("errpid", 10)
-	require.Equal(t, ps.ValidationReject, val.validateBlock(val.Ctx, "errpid", nil))
-	msg := &ps.Message{Message: &pubsub_pb.Message{Data: []byte("errmsg")}}
+	msg = &ps.Message{Message: &pubsub_pb.Message{From: []byte("errpid")}}
+	require.Equal(t, ps.ValidationReject, val.validateBlock(val.Ctx, "errpid", msg))
+	msg = &ps.Message{Message: &pubsub_pb.Message{Data: []byte("errmsg")}}
 	require.Equal(t, ps.ValidationReject, val.validateBlock(val.Ctx, "testpid", msg))
 
 	testBlock := &types.Block{Height: 1}
@@ -113,7 +114,8 @@ func Test_validatePeer(t *testing.T) {
 	val := newValidator(newTestPubSub())
 	val.addDeniedPeer("errpid", 10)
 	topic := "tx"
-	msg := &ps.Message{Message: &pubsub_pb.Message{Topic: &topic}}
-	require.Equal(t, ps.ValidationReject, val.validatePeer(val.Ctx, "errpid", msg))
-	require.Equal(t, ps.ValidationAccept, val.validatePeer(val.Ctx, "normalpid", msg))
+	msg := &ps.Message{Message: &pubsub_pb.Message{Topic: &topic, From: []byte("errpid")}}
+	require.Equal(t, ps.ValidationReject, val.validatePeer(val.Ctx, "", msg))
+	msg.From = []byte("normalPid")
+	require.Equal(t, ps.ValidationAccept, val.validatePeer(val.Ctx, "", msg))
 }

@@ -177,8 +177,9 @@ func (v *validator) addBlockHeader(header *types.Header) {
 	}
 }
 
-func (v *validator) validateBlock(ctx context.Context, id peer.ID, msg *ps.Message) ps.ValidationResult {
+func (v *validator) validateBlock(ctx context.Context, _ peer.ID, msg *ps.Message) ps.ValidationResult {
 
+	id := msg.GetFrom()
 	if id == v.Host.ID() {
 		return ps.ValidationAccept
 	}
@@ -249,10 +250,39 @@ func (v *validator) validateBlock(ctx context.Context, id peer.ID, msg *ps.Messa
 }
 
 //
-func (v *validator) validatePeer(ctx context.Context, id peer.ID, msg *ps.Message) ps.ValidationResult {
+func (v *validator) validatePeer(ctx context.Context, _ peer.ID, msg *ps.Message) ps.ValidationResult {
+	id := msg.GetFrom()
 	if v.isDeniedPeer(id) {
 		log.Debug("validatePeer", "topic", *msg.Topic, "denied peer", id.Pretty())
 		return ps.ValidationReject
 	}
+	return ps.ValidationAccept
+}
+
+func (v *validator) validateTx(ctx context.Context, _ peer.ID, msg *ps.Message) ps.ValidationResult {
+
+	from := msg.GetFrom()
+	if from == v.Host.ID() {
+		return ps.ValidationAccept
+	}
+
+	tx := &types.Transaction{}
+	err := v.decodeMsg(msg.Data, nil, tx)
+	if err != nil {
+		log.Error("validateTx", "decodeMsg err", err)
+		return ps.ValidationReject
+	}
+
+	//重复检测
+	if v.txFilter.AddWithCheckAtomic(hex.EncodeToString(tx.Hash()), struct{}{}) {
+		return ps.ValidationIgnore
+	}
+
+	_, err = v.API.SendTx(tx)
+	if err != nil {
+		log.Debug("validateTx", "hash", hex.EncodeToString(tx.Hash()), "err", err)
+		return ps.ValidationIgnore
+	}
+
 	return ps.ValidationAccept
 }
