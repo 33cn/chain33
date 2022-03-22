@@ -91,6 +91,6 @@ type CallMsg struct {
 	Nonce    *hexutil.Uint64 `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
 	// newer name and should be preferred by clients.
-	Data  *hexutil.Bytes `json:"data"`
-	Input *hexutil.Bytes `json:"input"`
+	Data  string `json:"data"`
+	Input string `json:"input"`
 }
