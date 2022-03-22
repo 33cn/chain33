@@ -9,10 +9,13 @@ import (
 	rpcclient "github.com/33cn/chain33/rpc/client"
 	"github.com/33cn/chain33/rpc/eth_rpc/types"
 	rpctypes "github.com/33cn/chain33/rpc/types"
+	dtypes "github.com/33cn/chain33/system/dapp/coins/types"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"
+	"math/rand"
+	"time"
 )
 type EthApi struct {
 	cli rpcclient.ChannelClient
@@ -27,23 +30,12 @@ func NewEthApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtoco
 	return e
 }
 
-/**
-params: [
-   '0x407d73d8a49eeb85d32cf465507dd71d507100c1',
-   'latest'
-]
 
-return: {
-  "id":1,
-  "jsonrpc": "2.0",
-  "result": "0x0234c8a3397aab58" // 158972490234375000
-}
-*/
 //GetBalance eth_getBalance  tag:"latest", "earliest" or "pending"
 func (e *EthApi) GetBalance(address string, tag *string) ( string,  error) {
-	if !common.IsHexAddress(address) {
-		return "", Err_AddressFormat
-	}
+	//if !common.IsHexAddress(address) {
+	//	return "", Err_AddressFormat
+	//}
 	var req ctypes.ReqBalance
 	req.AssetSymbol=e.cfg.GetCoinSymbol()
 	req.Execer=e.cfg.GetCoinExec()
@@ -207,21 +199,19 @@ func(e *EthApi)GetBlockTransactionCountByNumber(blockNum string )(string,error){
 
 
 //eth_accounts
-func(e *EthApi)Accounts()(*rpctypes.WalletAccounts,error){
+func(e *EthApi)Accounts()([]string ,error){
 	req := &ctypes.ReqAccountList{WithoutBalance: true}
 	msg,err:=e.cli.ExecWalletFunc("wallet","WalletGetAccountList",req)
 	if err!=nil{
 		return nil,err
 	}
 	accountsList := msg.(*ctypes.WalletAccounts)
-	var accounts rpctypes.WalletAccounts
+	var accounts []string
 	for _, wallet := range accountsList.Wallets {
-		accounts.Wallets = append(accounts.Wallets, &rpctypes.WalletAccount{Label: wallet.GetLabel(),
-			Acc: &rpctypes.Account{Currency: wallet.GetAcc().GetCurrency(), Balance: wallet.GetAcc().GetBalance(),
-				Frozen: wallet.GetAcc().GetFrozen(), Addr: wallet.GetAcc().GetAddr()}})
+		accounts=append(accounts,wallet.GetAcc().GetAddr())
 	}
 
-	return &accounts,nil
+	return accounts,nil
 
 }
 
@@ -264,4 +254,68 @@ func(e *EthApi)Call(msg types.CallMsg,tag *string )(interface{},error){
 
 
 
-//
+//SendRawTransaction eth_sendRawTransaction 发送交易
+func(e *EthApi)SendRawTransaction(rawData string )(string,error){
+	hexData:= common.FromHex(rawData)
+	if hexData==nil{
+		return "",errors.New("wrong data")
+	}
+	var parm ctypes.Transaction
+	//暂按照Chain33交易格式进行解析
+	err := ctypes.Decode(hexData, &parm)
+	if err != nil {
+		return "",err
+	}
+	log.Debug("SendTransaction", "param", parm.String())
+	reply,err:= e.cli.SendTx(&parm)
+	if err != nil {
+		return "",err
+	}
+
+	return  "0x"+common.Bytes2Hex(reply.GetMsg()),nil
+
+}
+
+
+//TODO 后面实现
+//Sign eth_sign,
+func(e *EthApi)Sign()(string,error){
+	return "",errors.New("no support")
+
+}
+
+//SignTransaction eth_signTransaction
+func(e *EthApi)SignTransaction(msg *types.CallMsg)(string,error){
+	//把
+	var tx *ctypes.Transaction
+	var data []byte
+	if msg.Data==""{
+		//普通的coins 转账
+		amount,ok:=big.NewInt(1).SetString(msg.Data,16)
+		if !ok{
+			return "",errors.New("wrong data")
+		}
+		v := &dtypes.CoinsAction_Transfer{Transfer: &ctypes.AssetsTransfer{Cointoken: e.cfg.GetCoinSymbol(), Amount: amount.Int64(), Note: []byte("")}}
+		transfer := &dtypes.CoinsAction{Value: v, Ty: dtypes.CoinsActionTransfer}
+		data=ctypes.Encode(transfer)
+		tx = &ctypes.Transaction{Execer: []byte(e.cfg.GetCoinExec()), Payload: data, Fee: 1e5, To: msg.To, Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63()}
+	}else{
+		//evm tx
+		//TOOD 暂时不支持，因为不知道evm具体数据要执行何种执行
+		return "",errors.New("no support unpack data")
+	}
+
+	//对TX 进行签名
+	unsigned := &ctypes.ReqSignRawTx{
+		Addr:   msg.From,
+		TxHex:  common.Bytes2Hex(ctypes.Encode(tx)),
+		Expire: "0",
+	}
+	signedTx,err:= e.cli.ExecWalletFunc("wallet","SignRawTx",unsigned)
+	if err!=nil{
+		return "",err
+	}
+
+	return signedTx.(*ctypes.ReplySignRawTx).TxHex,nil
+
+}
