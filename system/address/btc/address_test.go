@@ -45,3 +45,9 @@ func TestBtcMultiSignDriver(t *testing.T) {
 		require.Nil(t, driver.ValidateAddr(driver.PubKeyToAddr(priv.PubKey().Bytes())))
 	}
 }
+
+func Test_ErrAddr(t *testing.T) {
+	addr := "DsYQcck3QFK9Wt1UWd5eoskWjk8JdYSCMoK"
+	err := address.CheckAddress(addr, 0)
+	require.Equal(t, address.ErrCheckVersion, err)
+}

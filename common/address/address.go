@@ -121,12 +121,11 @@ func CheckAddress(addr string, blockHeight int64) (e error) {
 		return nil
 	}
 	for _, d := range drivers {
+		if !isEnable(blockHeight, d.enableHeight) {
+			continue
+		}
 		e = d.driver.ValidateAddr(addr)
 		if e == nil {
-			// not enable at blockHeight, return directly
-			if !isEnable(blockHeight, d.enableHeight) {
-				return ErrAddressDriverNotEnable
-			}
 			break
 		}
 	}
