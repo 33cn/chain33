@@ -30,7 +30,7 @@ var (
 
 func init() {
 	address.RegisterDriver(NormalAddressID, &btc{}, 0)
-	address.RegisterDriver(MultiSignAddressID, &btcMultiSign{}, 0)
+	address.RegisterDriver(MultiSignAddressID, &btcMultiSign{}, -1)
 
 	var err error
 	multiSignAddrCache, err = lru.New(10240)
