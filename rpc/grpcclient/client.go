@@ -1,6 +1,7 @@
 package grpcclient
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -35,9 +36,20 @@ func NewMainChainClient(cfg *types.Chain33Config, grpcaddr string) (types.Chain3
 		Timeout:             time.Second * 20,
 		PermitWithoutStream: true,
 	}
-	conn, err := grpc.Dial(NewMultipleURL(paraRemoteGrpcClient), grpc.WithInsecure(),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(paraChainGrpcRecSize)),
-		grpc.WithKeepaliveParams(kp))
+
+	var conn *grpc.ClientConn
+	var err error
+	useLBSync := types.Conf(cfg, "config.consensus.sub.para").IsEnable("useGrpcLBSync")
+	if useLBSync {
+		conn, err = grpc.Dial(NewSyncURL(paraRemoteGrpcClient), grpc.WithInsecure(),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(paraChainGrpcRecSize)),
+			grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, SyncLbName)),
+			grpc.WithKeepaliveParams(kp))
+	} else {
+		conn, err = grpc.Dial(NewMultipleURL(paraRemoteGrpcClient), grpc.WithInsecure(),
+			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(paraChainGrpcRecSize)),
+			grpc.WithKeepaliveParams(kp))
+	}
 	if err != nil {
 		return nil, err
 	}
