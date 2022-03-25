@@ -259,7 +259,7 @@ func (v *validator) validatePeer(ctx context.Context, _ peer.ID, msg *ps.Message
 	return ps.ValidationAccept
 }
 
-func (v *validator) validateTx(ctx context.Context, _ peer.ID, msg *ps.Message) ps.ValidationResult {
+func (v *validator) validateTx(ctx context.Context, id peer.ID, msg *ps.Message) ps.ValidationResult {
 
 	from := msg.GetFrom()
 	if from == v.Host.ID() {
@@ -281,7 +281,11 @@ func (v *validator) validateTx(ctx context.Context, _ peer.ID, msg *ps.Message) 
 	_, err = v.API.SendTx(tx)
 	if err != nil {
 		log.Debug("validateTx", "hash", hex.EncodeToString(tx.Hash()), "err", err)
-		return ps.ValidationIgnore
+		if err == types.ErrNotSync {
+			return ps.ValidationIgnore
+		}
+		return ps.ValidationReject
+
 	}
 
 	return ps.ValidationAccept
