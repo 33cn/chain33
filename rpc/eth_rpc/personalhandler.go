@@ -1,8 +1,24 @@
 package eth_rpc
 
 import (
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/queue"
 	ctypes "github.com/33cn/chain33/types"
+	rpcclient "github.com/33cn/chain33/rpc/client"
 )
+
+type PersonalApi struct {
+	cli rpcclient.ChannelClient
+	cfg *ctypes.Chain33Config
+
+}
+
+func NewPersonalApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtocolAPI) *PersonalApi {
+	p :=&PersonalApi{}
+	p.cli.Init(c,api)
+	p.cfg=cfg
+	return p
+}
 
 /**
 #personal_listAccounts
@@ -26,7 +42,7 @@ response
 }
 ```
  */
-func (p *EthApi) ListAccounts() ([]string, error){
+func (p *PersonalApi) ListAccounts() ([]string, error){
 	req := &ctypes.ReqAccountList{WithoutBalance: true}
 	msg,err:= p.cli.ExecWalletFunc("wallet","WalletGetAccountList",req)
 	if err!=nil{
@@ -65,7 +81,7 @@ response
 }
 ```
  */
-func (p *EthApi) NewAccount(lable string) (string, error){
+func (p *PersonalApi) NewAccount(lable string) (string, error){
 	req := &ctypes.ReqNewAccount{Label:lable}
 	resp, err := p.cli.ExecWalletFunc("wallet", "NewAccount", req)
 	if err != nil {
@@ -98,7 +114,7 @@ response
     "result": true
 }
  */
-func (p *EthApi)UnlockAccount(account, passwd  string,  duration int64) bool {
+func (p *PersonalApi)UnlockAccount(account, passwd  string,  duration int64) bool {
 	req := &ctypes.WalletUnLock{Passwd:passwd, Timeout: duration}
 	resp, err := p.cli.ExecWalletFunc("wallet", "WalletUnLock", req)
 	if err != nil {
@@ -133,7 +149,7 @@ response
     "result": "12dyEw2De26DZH6bnWg1pNx72FiPirNkTU"
 }
  */
-func (p *EthApi)ImportRawKey(keydata, label string) (string, error) {
+func (p *PersonalApi)ImportRawKey(keydata, label string) (string, error) {
 	req := &ctypes.ReqWalletImportPrivkey{Privkey: keydata, Label:label}
 	resp, err := p.cli.ExecWalletFunc("wallet", "WalletImportPrivkey", req)
 	if err != nil {

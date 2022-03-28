@@ -16,6 +16,7 @@ const(
 	EthNameSpace="eth"
 	NetNameSpace="net"
 	PersonalNameSpace = "personal"
+	AdminNameSpace = "admin"
 	DefaultEthRpcPort=8545
 
 )
@@ -59,7 +60,10 @@ func InitEthRpc(cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtoco
 	if err := server.RegisterName(EthNameSpace, NewEthApi(cfg,c,api)); err != nil {
 		panic(err)
 	}
-	if err := server.RegisterName(PersonalNameSpace, NewEthApi(cfg, c, api)); err != nil {
+	if err := server.RegisterName(PersonalNameSpace, NewPersonalApi(cfg, c, api)); err != nil {
+		panic(err)
+	}
+	if err := server.RegisterName(AdminNameSpace, NewAdminApi(cfg,c, api));err != nil {
 		panic(err)
 	}
 	return server
