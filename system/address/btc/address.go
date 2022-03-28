@@ -2,7 +2,6 @@ package btc
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -30,7 +29,7 @@ var (
 
 func init() {
 	address.RegisterDriver(NormalAddressID, &btc{}, 0)
-	address.RegisterDriver(MultiSignAddressID, &btcMultiSign{}, -1)
+	address.RegisterDriver(MultiSignAddressID, &btcMultiSign{}, 0)
 
 	var err error
 	multiSignAddrCache, err = lru.New(10240)
@@ -82,9 +81,6 @@ func (b *btcMultiSign) PubKeyToAddr(pubKey []byte) string {
 
 // ValidateAddr address validation
 func (b *btcMultiSign) ValidateAddr(addr string) error {
-	if !strings.HasPrefix(addr, "3") {
-		return ErrInvalidAddrFormat
-	}
 	return address.CheckBase58Address(address.MultiSignVer, addr)
 }
 
