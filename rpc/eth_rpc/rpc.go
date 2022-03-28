@@ -66,5 +66,8 @@ func InitEthRpc(cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtoco
 	if err := server.RegisterName(AdminNameSpace, NewAdminApi(cfg,c, api));err != nil {
 		panic(err)
 	}
+	if err := server.RegisterName(NetNameSpace, NewNetApi(cfg,c, api));err != nil {
+		panic(err)
+	}
 	return server
 }
