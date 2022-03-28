@@ -1,5 +1,14 @@
 changelog
 
+<a name="1.67.1"></a>
+## [1.67.1](https://github.com/33cn/chain33/compare/v1.67.0...v1.67.1) (2022-03-28)
+
+
+### Bug Fixes
+
+* fix 32 bit machine build ([a494d18](https://github.com/33cn/chain33/commit/a494d18))
+* update patch version ([c0c2d0b](https://github.com/33cn/chain33/commit/c0c2d0b))
+
 <a name="1.67.0"></a>
 # [1.67.0](https://github.com/33cn/chain33/compare/v1.66.5...v1.67.0) (2022-03-21)
 
