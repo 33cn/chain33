@@ -38,6 +38,8 @@ func MakeDERSigToRSV(eipSigner etypes.EIP155Signer,sig []byte)(r,s,v *big.Int,er
 }
 
 func  paraseDERCode(sig []byte)(r,s []byte,err error){
+	//0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S]
+
 	if len(sig)<70{
 
 		return nil,nil,errors.New(fmt.Sprintf("wrong sig data size:%v,must beyound length 70 bytes",len(sig)))
@@ -58,21 +60,6 @@ func  paraseDERCode(sig []byte)(r,s []byte,err error){
 	return
 }
 
-/*
-Tx         *Transaction `protobuf:"bytes,1,opt,name=tx,proto3" json:"tx,omitempty"`
-	Receipt    *ReceiptData `protobuf:"bytes,2,opt,name=receipt,proto3" json:"receipt,omitempty"`
-	Proofs     [][]byte     `protobuf:"bytes,3,rep,name=proofs,proto3" json:"proofs,omitempty"`
-	Height     int64        `protobuf:"varint,4,opt,name=height,proto3" json:"height,omitempty"`
-	Index      int64        `protobuf:"varint,5,opt,name=index,proto3" json:"index,omitempty"`
-	Blocktime  int64        `protobuf:"varint,6,opt,name=blocktime,proto3" json:"blocktime,omitempty"`
-	Amount     int64        `protobuf:"varint,7,opt,name=amount,proto3" json:"amount,omitempty"`
-	Fromaddr   string       `protobuf:"bytes,8,opt,name=fromaddr,proto3" json:"fromaddr,omitempty"`
-	ActionName string       `protobuf:"bytes,9,opt,name=actionName,proto3" json:"actionName,omitempty"`
-	Assets     []*Asset     `protobuf:"bytes,10,rep,name=assets,proto3" json:"assets,omitempty"`
-	TxProofs   []*TxProof   `protobuf:"bytes,11,rep,name=txProofs,proto3" json:"txProofs,omitempty"`
-	FullHash   []byte       `protobuf:"bytes,12,opt,name=fullHash,proto3" json:"fullHash,omitempty"`
-
-*/
 func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails,cfg *ctypes.Chain33Config )(txs Transactions, err error){
 	for _,detail:=range txdetails.GetTxs(){
 		var tx Transaction

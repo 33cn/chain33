@@ -35,8 +35,8 @@ type Transaction struct {
 	Data string `json:"input,omitempty"`
 	TransactionIndex string `json:"transactionIndex,omitempty"`
 	Value string `json:"value,omitempty"`
-	Type string
-	V, R, S  *big.Int        // signature values
+	Type string `json:"type,omitempty"`
+	V, R, S  *big.Int      `json:"v,r,s ,omitempty"`  // signature values
 
 
 }
@@ -44,13 +44,13 @@ type Transaction struct {
 type Transactions []*Transaction
 //Block ETH 交易结构体
 type Block struct {
-	Header       *Header
-	Uncles       []*Header
+	Header       *Header  `json:"header,omitempty"`
+	Uncles       []*Header `json:"uncles,omitempty"`
 	//TODO 保留ETH的交易结构类型还是替换为chain33的Transaction
-	Transactions  Transactions
+	Transactions  Transactions `json:"transactions,omitempty"`
 	//Transactions chain33Types.Transactions
 	// caches
-	Hash string
+	Hash string `json:"hash,omitempty"`
 }
 
 
