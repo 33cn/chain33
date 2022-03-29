@@ -1,13 +1,14 @@
-package eth_rpc
+package ethrpc
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/queue"
 	rpcclient "github.com/33cn/chain33/rpc/client"
-	"github.com/33cn/chain33/rpc/eth_rpc/types"
+	"github.com/33cn/chain33/rpc/ethrpc/types"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	dtypes "github.com/33cn/chain33/system/dapp/coins/types"
 	ctypes "github.com/33cn/chain33/types"
@@ -118,7 +119,7 @@ func (e*EthApi)GetBlockByNumber(number string,full bool ) (*types.Block,error){
 		tx.V=v
 		tx.R=r
 		tx.S=s
-		log.Info("r:",common.Bytes2Hex(tx.R.Bytes()))
+		//log.Info("r:",common.Bytes2Hex(tx.R.Bytes()))
 		txs=append(txs,&tx)
 	}
 	block.Header=&header
@@ -304,10 +305,30 @@ func(e *EthApi)SendRawTransaction(rawData string )(string,error){
 //TODO 后面实现
 //Sign
 //method:eth_sign
-func(e *EthApi)Sign()(string,error){
-	return "",errors.New("no support")
+func(e *EthApi)Sign(address,message string)(string,error){
+	//导出私钥
+	reply, err := e.cli.ExecWalletFunc("wallet", "DumpPrivkey", &ctypes.ReqString{Data: address})
+	if err != nil {
+		log.Error("SignWalletRecoverTx", "execWalletFunc err", err)
+		return "", err
+	}
+	privKeyHex := reply.(*ctypes.ReplyString).GetData()
 
+	msg:= common.FromHex(message)
+	if len(msg)==0{
+		return "",errors.New("invalid argument 1: must hex string")
+	}
+
+	c, err := crypto.Load("secp256k1", -1)
+	signKey, err := c.PrivKeyFromBytes(common.FromHex(privKeyHex))
+	if err!=nil{
+		return "",err
+	}
+
+	return "0x"+common.Bytes2Hex(signKey.Sign(msg).Bytes()),nil
 }
+
+
 
 //SignTransaction
 //method:eth_signTransaction

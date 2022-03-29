@@ -1,4 +1,4 @@
-package eth_rpc
+package ethrpc
 
 import (
 	"github.com/33cn/chain33/rpc/eth_rpc/types"

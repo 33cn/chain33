@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/rpc/eth_rpc"
+	eth "github.com/33cn/chain33/rpc/ethrpc"
 	"github.com/ethereum/go-ethereum/rpc"
 	"net"
 	"net/http"
@@ -21,10 +21,10 @@ func (e*EthRpcServer)Close(){
 
 //NewEthJsonRpcServer eth json rpcserver object
 func NewEthJsonRpcServer(c queue.Client, api client.QueueProtocolAPI)*EthRpcServer{
-	server:=eth_rpc.InitEthRpc(c.GetConfig(),c,api)
-	srv := &eth_rpc.RPCServer{server}
+	server:= eth.InitEthRpc(c.GetConfig(),c,api)
+	srv := &eth.RPCServer{server}
 	s := &http.Server{Handler: srv}
-	bindAddr:=fmt.Sprintf("localhost:%d",eth_rpc.DefaultEthRpcPort)
+	bindAddr:=fmt.Sprintf("localhost:%d", eth.DefaultEthRpcPort)
 	if c.GetConfig().GetModuleConfig().RPC.ErpcBindAddr!=""{
 		bindAddr=c.GetConfig().GetModuleConfig().RPC.ErpcBindAddr
 	}
