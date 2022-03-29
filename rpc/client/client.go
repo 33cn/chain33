@@ -512,3 +512,8 @@ func (c *ChannelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 	reply.TxHex = hex.EncodeToString(types.Encode(tx))
 	return reply, nil
 }
+
+//func (c *ChannelClient)GetHighestBlockNum(param *types.ReqNil)(*types.ReplyBlockHeight,error){
+//
+//	return c.GetHighestBlockNum(param)
+//}

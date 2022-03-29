@@ -50,6 +50,8 @@ type QueueProtocol struct {
 	option QueueProtocolOption
 }
 
+
+
 // New New QueueProtocolAPI interface
 func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, error) {
 	if client == nil {
@@ -1167,4 +1169,18 @@ func (q *QueueProtocol) ClosePeer(req *types.SetPeer) (*types.Reply, error) {
 	}
 	return nil, types.ErrInvalidParam
 
+}
+
+//GetHighestBlockNum
+func (q *QueueProtocol) GetHighestBlockNum(param *types.ReqNil) (*types.ReplyBlockHeight, error) {
+	msg, err := q.send(blockchainKey, types.EventHighestBlock, param)
+	if err != nil {
+		log.Error("ClosePeer", "Error", err.Error())
+		return nil, err
+	}
+
+	if reply, ok := msg.GetData().(*types.ReplyBlockHeight); ok {
+		return reply, nil
+	}
+	return nil, types.ErrInvalidParam
 }

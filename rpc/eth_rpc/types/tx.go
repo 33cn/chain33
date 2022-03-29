@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	ctypes "github.com/33cn/chain33/types"
+	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
@@ -21,7 +22,8 @@ func DecodeSignature(sig []byte) (r, s, v *big.Int) {
 func MakeDERSigToRSV(eipSigner etypes.EIP155Signer,sig []byte)(r,s,v *big.Int,err error){
 	rb,sb,err := paraseDERCode(sig)
 	if err!=nil{
-		return
+		fmt.Println("MakeDERSigToRSV","err",err.Error())
+		return nil,nil,nil,err
 	}
 	var signature []byte
 	signature=append(signature,rb...)
@@ -32,18 +34,25 @@ func MakeDERSigToRSV(eipSigner etypes.EIP155Signer,sig []byte)(r,s,v *big.Int,er
 		v = big.NewInt(int64(signature[64] + 35))
 		v.Add(v, new(big.Int).Mul(eipSigner.ChainID(), big.NewInt(2)))
 	}
-	return
+	return r,s,v,nil
 }
 
 func  paraseDERCode(sig []byte)(r,s []byte,err error){
-	if len(sig)!=70{
-		return nil,nil,errors.New("wrong sig data")
+	if len(sig)<70{
+
+		return nil,nil,errors.New(fmt.Sprintf("wrong sig data size:%v,must beyound length 70 bytes",len(sig)))
 	}
-	if sig[0]==0x30&&sig[3]==0x20{
-		r=sig[4:36]
+
+	fmt.Println("sig hex",common.Bytes2Hex(sig))
+	//3045022100af5778b81ae8817c6ae29fad8c1113d501e521c885a65c2c4d71763c4963984b022020687b73f5c90243dc16c99427d6593a711c52c8bf09ca6331cdd42c66edee74
+	if sig[0]==0x30 &&sig[2]==0x02{
+		r=sig[4:int(sig[3])+4]
+		if r[0]==0x0{
+			r=r[1:]
+		}
 	}
-	if sig[37]==0x20{
-		s=sig[38:70]
+	if sig[int(sig[3])+4]==0x02{//&&sig[int(sig[3])+5]==0x20
+		s=sig[int(sig[3])+6:int(sig[3])+6+int(sig[int(sig[3])+5])]
 	}
 
 	return

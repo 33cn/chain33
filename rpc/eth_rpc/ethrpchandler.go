@@ -33,19 +33,14 @@ func NewEthApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtoco
 
 //GetBalance eth_getBalance  tag:"latest", "earliest" or "pending"
 func (e *EthApi) GetBalance(address string, tag *string) ( string,  error) {
-	//if !common.IsHexAddress(address) {
-	//	return "", Err_AddressFormat
-	//}
 	var req ctypes.ReqBalance
 	req.AssetSymbol=e.cfg.GetCoinSymbol()
 	req.Execer=e.cfg.GetCoinExec()
 	req.Addresses=append(req.GetAddresses(),address)
-	log.Debug("GetBalance","execer:",req.Execer,"assertsymbol:",req.AssetSymbol)
 	accounts,err:=e.cli.GetBalance(&req)
 	if err!=nil{
 		return "",err
 	}
-
 	bf:=big.NewInt(accounts[0].GetBalance())
 	return "0x"+common.Bytes2Hex(bf.Bytes()),nil
 }
@@ -68,15 +63,21 @@ func (e *EthApi) BlockNumber() ( string ,  error) {
 }
 
 //GetBlockByNumber  eth_getBlockByNumber
-func (e*EthApi)GetBlockByNumber(number uint64,full bool ) *types.Block{
+func (e*EthApi)GetBlockByNumber(number string,full bool ) (*types.Block,error){
+	nb:=common.FromHex(number)
+	if nb==nil{
+		return nil ,errors.New("invalid argument 0")
+	}
+	bn:=big.NewInt(1).SetBytes(nb)
 	var req ctypes.ReqBlocks
-	req.Start= int64(number)
-	req.End= int64(number)
+	req.Start= bn.Int64()
+	req.End= bn.Int64()
 	req.IsDetail=full
+	log.Info("GetBlockByNumber","start",req.Start)
 	details,err:= e.cli.GetBlocks(&req)
 	if err!=nil{
 		log.Error("GetBlockByNumber","err",err)
-		return nil
+		return nil,err
 	}
 
 	var block types.Block
@@ -99,24 +100,32 @@ func (e*EthApi)GetBlockByNumber(number uint64,full bool ) *types.Block{
 	var tx types.Transaction
 	var txs types.Transactions
 	tx.Type= fmt.Sprint(etypes.LegacyTxType)
-	for _,itx:=range fullblock.GetBlock().GetTxs(){
+	ftxs:=fullblock.GetBlock().GetTxs()
+	for _,itx:=range ftxs{
 		tx.To=itx.To
-		amount,_:=itx.Amount()
+		amount,err:=itx.Amount()
+		if err!=nil{
+			return nil,err
+		}
 		tx.Value="0x"+common.Bytes2Hex(big.NewInt(amount).Bytes())
 		r,s,v ,err:= types.MakeDERSigToRSV(eipSigner,itx.Signature.GetSignature())
 		if err!=nil{
 			log.Error("makeDERSigToRSV","err",err)
-			return nil
+			//return nil,err
+			continue
 		}
+
 		tx.V=v
 		tx.R=r
 		tx.S=s
+		log.Info("r:",common.Bytes2Hex(tx.R.Bytes()))
 		txs=append(txs,&tx)
 	}
 	block.Header=&header
 	block.Transactions=txs
 	block.Hash=common.BytesToHash(fullblock.GetBlock().Hash(e.cfg)).Hex()
-	return &block
+
+	return &block,nil
 }
 
 
@@ -194,7 +203,22 @@ func(e *EthApi)GetBlockTransactionCountByNumber(blockNum string )(string,error){
 
 }
 
-
+//GetBlockTransactionCountByHash
+//method:eth_getBlockTransactionCountByHash
+//parameters: 32 Bytes - hash of a block
+//Returns: integer of the number of transactions in this block.
+func (e *EthApi)GetBlockTransactionCountByHash(hash string)(string,error){
+	var req ctypes.ReqHashes
+	req.Hashes=append(req.Hashes,common.FromHex(hash))
+	details,err:= e.cli.GetBlockByHashes(&req)
+	if err!=nil{
+		log.Error("GetBlockByNumber","err",err)
+		return "", err
+	}
+	txNum:=len(details.GetItems()[0].GetBlock().GetTxs())
+	bn:=big.NewInt(int64(txNum))
+	return "0x"+common.Bytes2Hex(bn.Bytes()),nil
+}
 
 
 
@@ -278,24 +302,22 @@ func(e *EthApi)SendRawTransaction(rawData string )(string,error){
 
 
 //TODO 后面实现
-//Sign eth_sign,
+//Sign
+//method:eth_sign
 func(e *EthApi)Sign()(string,error){
 	return "",errors.New("no support")
 
 }
 
-//SignTransaction eth_signTransaction
+//SignTransaction
+//method:eth_signTransaction
 func(e *EthApi)SignTransaction(msg *types.CallMsg)(string,error){
 	//把
 	var tx *ctypes.Transaction
 	var data []byte
 	if msg.Data==""{
 		//普通的coins 转账
-		amount,ok:=big.NewInt(1).SetString(msg.Data,16)
-		if !ok{
-			return "",errors.New("wrong data")
-		}
-		v := &dtypes.CoinsAction_Transfer{Transfer: &ctypes.AssetsTransfer{Cointoken: e.cfg.GetCoinSymbol(), Amount: amount.Int64(), Note: []byte("")}}
+		v := &dtypes.CoinsAction_Transfer{Transfer: &ctypes.AssetsTransfer{Cointoken: e.cfg.GetCoinSymbol(), Amount: msg.Value.ToInt().Int64(), Note: []byte("")}}
 		transfer := &dtypes.CoinsAction{Value: v, Ty: dtypes.CoinsActionTransfer}
 		data=ctypes.Encode(transfer)
 		tx = &ctypes.Transaction{Execer: []byte(e.cfg.GetCoinExec()), Payload: data, Fee: 1e5, To: msg.To, Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63()}
@@ -319,3 +341,81 @@ func(e *EthApi)SignTransaction(msg *types.CallMsg)(string,error){
 	return signedTx.(*ctypes.ReplySignRawTx).TxHex,nil
 
 }
+
+//Syncing :Returns an object with data about the sync status or false.
+//Returns: FALSE:when not syncing,
+//method:eth_syncing
+//params:[]
+func (e *EthApi)Syncing()(interface{},error){
+	var syncing struct{
+		StartingBlock string `json:"startingBlock,omitempty"`
+		CurrentBlock string `json:"currentBlock,omitempty"`
+		HighestBlock string `json:"highestBlock,omitempty"`
+	}
+	reply,err:= e.cli.IsSync()
+	if err ==nil{
+		var caughtUp ctypes.IsCaughtUp
+		err= ctypes.Decode(reply.GetMsg(),&caughtUp)
+		if err==nil{
+			if caughtUp.Iscaughtup{// when not syncing
+				return false,nil
+			}else{//when suncing
+				header,err:= e.cli.GetLastHeader()
+				if err==nil{
+					bn:=big.NewInt(header.Height)
+					syncing.CurrentBlock="0x"+common.Bytes2Hex(bn.Bytes())
+					syncing.StartingBlock=syncing.CurrentBlock
+					replyBlockNum,err:= e.cli.GetHighestBlockNum(&ctypes.ReqNil{})
+					if err==nil{
+						bn= big.NewInt(replyBlockNum.GetHeight())
+						syncing.HighestBlock="0x"+common.Bytes2Hex(bn.Bytes())
+						return &syncing,nil
+					}
+
+				}
+
+			}
+		}
+	}
+
+	return nil,err
+}
+
+//GasPrice
+//method:eth_gasPrice
+//Parameters: none
+//Returns:Returns the current price per gas in wei.
+func (e *EthApi)GasPrice()(interface{},error){
+	//TODO 支持gasprice的获取
+	return nil,errors.New("no support")
+}
+
+//Mining
+//method:eth_mining
+//Paramtesrs:none
+//Returns:Returns true if client is actively mining new blocks.
+func (e *EthApi)Mining()(bool,error){
+
+	msg,err:=e.cli.ExecWalletFunc("wallet","GetWalletStatus",&ctypes.ReqNil{})
+	if err==nil{
+		status:=msg.(*ctypes.WalletStatus)
+		if status.IsAutoMining{
+			return true ,nil
+		}
+		return false ,nil
+	}
+	return false,err
+}
+
+//GetTransactionCount
+//methpd:eth_getTransactionCount
+//Returns:Returns the number of transactions sent from an address.
+//Paramters: address,tag(disable):latest,pending,earliest
+func (e *EthApi)GetTransactionCount(address ,tag string)(string,error){
+	return "0x0",nil
+}
+
+
+
+
+
