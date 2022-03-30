@@ -12,6 +12,9 @@ import (
 	"strings"
 	"time"
 
+	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
+	"github.com/pkg/errors"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/types"
 	"github.com/spf13/cobra"
@@ -55,9 +58,20 @@ func getAddrByExec(cmd *cobra.Command, args []string) {
 		fmt.Println(types.ErrExecNameNotAllow.Error())
 		return
 	}
-	addrResult := address.ExecAddress(execer)
-	result := addrResult
-	fmt.Println(result)
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	cfg, err := commandtypes.GetChainConfig(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "GetChainConfig"))
+		return
+	}
+
+	execAddr, err := commandtypes.GetExecAddr(execer, cfg.DefaultAddressID)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	fmt.Println(execAddr)
 }
 
 // UserDataCmd  create user data

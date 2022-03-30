@@ -39,8 +39,9 @@ func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *Sta
 	}
 	db := &StateDB{
 		//预分配一个单位
-		cache:     newcacheDB(),
-		txcache:   newcacheDB(),
+		cache:     newcacheDB(1024),
+		txcache:   newcacheDB(32),
+		keys:      make([]string, 0, 32),
 		intx:      false,
 		client:    client,
 		stateHash: stateHash,
@@ -71,7 +72,7 @@ func (s *StateDB) enableMVCC(hash []byte) {
 // Begin 开启内存事务处理
 func (s *StateDB) Begin() {
 	s.intx = true
-	s.keys = nil
+	s.keys = s.keys[:0]
 	types.AssertConfig(s.client)
 	cfg := s.client.GetConfig()
 	if cfg.IsFork(s.height, "ForkExecRollback") {
@@ -88,7 +89,7 @@ func (s *StateDB) Rollback() {
 func (s *StateDB) Commit() error {
 	s.cache.Merge(s.txcache)
 	s.intx = false
-	s.keys = nil
+	s.keys = s.keys[:0]
 	types.AssertConfig(s.client)
 	cfg := s.client.GetConfig()
 	if cfg.IsFork(s.height, "ForkExecRollback") {
@@ -100,7 +101,7 @@ func (s *StateDB) Commit() error {
 func (s *StateDB) resetTx() {
 	s.intx = false
 	s.txcache.Reset()
-	s.keys = nil
+	s.keys = s.keys[:0]
 }
 
 // Get get value from state db
@@ -169,7 +170,7 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 
 // StartTx reset state db keys
 func (s *StateDB) StartTx() {
-	s.keys = nil
+	s.keys = s.keys[:0]
 }
 
 // GetSetKeys  get state db set keys

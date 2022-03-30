@@ -12,7 +12,7 @@ import (
 const (
 
 	// CryptoIDMask crypto type id mask
-	CryptoIDMask = 0xffff8fff
+	CryptoIDMask = 0x3fff8fff
 	// AddressIDMask address id mask
 	AddressIDMask = 0x00007000
 	// AddressIDOffset offset len
@@ -34,7 +34,7 @@ func ExtractAddressID(signID int32) int32 {
 
 // ExtractCryptoID extract crypto id from signature type id
 func ExtractCryptoID(signID int32) int32 {
-	return int32(int(signID) & CryptoIDMask)
+	return signID & CryptoIDMask
 }
 
 //GetSignName  获取签名类型

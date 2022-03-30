@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/33cn/chain33/common/crypto"
-
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/pluginmgr"
@@ -1283,16 +1281,6 @@ func TestGetParaTxByHeight(t *testing.T) {
 	q := client.QueueProtocol{}
 	_, err := q.GetParaTxByHeight(nil)
 	assert.NotNil(t, err)
-}
-
-func TestQueueProtocol_GetCryptoList(t *testing.T) {
-	q := client.QueueProtocol{}
-	list := q.GetCryptoList()
-	for _, driver := range list.Cryptos {
-		id := int(driver.TypeID)
-		require.Equal(t, crypto.GetType(driver.Name), id)
-		require.Equal(t, crypto.GetName(id), driver.Name)
-	}
 }
 
 func TestQueueProtocol_SendDelayTx(t *testing.T) {

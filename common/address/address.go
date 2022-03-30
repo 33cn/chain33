@@ -68,7 +68,7 @@ func ExecAddress(name string) string {
 	if value, ok := execAddrCache.Get(name); ok {
 		return value.(string)
 	}
-	addr := GetExecAddress(name)
+	addr, _ := GetExecAddress(name, defaultAddressID)
 	execAddrCache.Add(name, addr)
 	return addr
 }
@@ -90,10 +90,13 @@ func ExecPubKey(name string) []byte {
 }
 
 //GetExecAddress 获取地址
-func GetExecAddress(name string) string {
-	pubKey := ExecPubKey(name)
-	d, _ := LoadDriver(defaultAddressID, -1)
-	return d.PubKeyToAddr(pubKey)
+func GetExecAddress(execName string, addressType int32) (string, error) {
+	d, err := LoadDriver(addressType, -1)
+	if err != nil {
+		return "", err
+	}
+	pubKey := ExecPubKey(execName)
+	return d.PubKeyToAddr(pubKey), nil
 }
 
 //PubKeyToAddr pubKey to specific address
@@ -118,17 +121,27 @@ func CheckAddress(addr string, blockHeight int64) (e error) {
 		return nil
 	}
 	for _, d := range drivers {
+		if !isEnable(blockHeight, d.enableHeight) {
+			continue
+		}
 		e = d.driver.ValidateAddr(addr)
 		if e == nil {
-			// not enable at blockHeight, return directly
-			if !isEnable(blockHeight, d.enableHeight) {
-				return ErrAddressDriverNotEnable
-			}
 			break
 		}
 	}
 	checkAddressCache.Add(addr, e)
 	return e
+}
+
+// GetAddressType get address type id
+func GetAddressType(addr string) (int32, error) {
+	for ty, d := range drivers {
+		e := d.driver.ValidateAddr(addr)
+		if e == nil {
+			return ty, nil
+		}
+	}
+	return -1, ErrUnknownAddressType
 }
 
 //BytesToBtcAddress hash32 to address

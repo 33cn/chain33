@@ -2,7 +2,6 @@ package btc
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -82,9 +81,6 @@ func (b *btcMultiSign) PubKeyToAddr(pubKey []byte) string {
 
 // ValidateAddr address validation
 func (b *btcMultiSign) ValidateAddr(addr string) error {
-	if !strings.HasPrefix(addr, "3") {
-		return ErrInvalidAddrFormat
-	}
 	return address.CheckBase58Address(address.MultiSignVer, addr)
 }
 

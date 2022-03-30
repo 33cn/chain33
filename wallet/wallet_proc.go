@@ -78,6 +78,8 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	} else {
 		return "", types.ErrNoPrivKeyOrAddr
 	}
+	// signID integrate crypto ID with address ID
+	signID := types.EncodeSignID(int32(wallet.SignType), unsigned.GetAddressID())
 
 	txByteData, err := common.FromHex(unsigned.GetTxHex())
 	if err != nil {
@@ -127,7 +129,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", err
 	}
 	if group == nil {
-		tx.Sign(int32(wallet.SignType), key)
+		tx.Sign(signID, key)
 		txHex := types.Encode(&tx)
 		signedTx := hex.EncodeToString(txHex)
 		return signedTx, nil
@@ -140,7 +142,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		group.SetExpire(cfg, 0, time.Duration(expire))
 		group.RebuiltGroup()
 		for i := range group.Txs {
-			err := group.SignN(i, int32(wallet.SignType), key)
+			err := group.SignN(i, signID, key)
 			if err != nil {
 				return "", err
 			}
@@ -151,7 +153,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return signedTx, nil
 	}
 	index--
-	err = group.SignN(int(index), int32(wallet.SignType), key)
+	err = group.SignN(int(index), signID, key)
 	if err != nil {
 		return "", err
 	}
@@ -317,11 +319,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 			seedlog.Error("ProcCreateNewAccount PrivkeyToPub", "err", err)
 			return nil, types.ErrPrivkeyToPub
 		}
-		addr, err = bipwallet.PubToAddress(pub)
-		if err != nil {
-			seedlog.Error("ProcCreateNewAccount PubToAddress", "err", err)
-			return nil, types.ErrPrivkeyToPub
-		}
+		addr = address.PubKeyToAddr(Label.GetAddressID(), pub)
 		//通过新生成的账户地址查询钱包数据库，如果查询返回的账户信息是空，
 		//说明新生成的账户没有被使用，否则继续使用下一个index生成私钥对
 		account, err := wallet.walletStore.GetAccountByAddr(addr)
@@ -506,11 +504,7 @@ func (wallet *Wallet) procImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 		return nil, types.ErrPrivkeyToPub
 	}
 
-	addr, err := bipwallet.PubToAddress(pub)
-	if err != nil {
-		seedlog.Error("ProcImportPrivKey PrivkeyToPub", "err", err)
-		return nil, types.ErrPrivkeyToPub
-	}
+	addr := address.PubKeyToAddr(PrivKey.GetAddressID(), pub)
 
 	//对私钥加密
 	Encryptered := wcom.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)

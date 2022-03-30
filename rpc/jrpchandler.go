@@ -1069,9 +1069,7 @@ func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error
 
 // SignRawTx signature the rawtransaction
 func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
-	req := types.ReqSignRawTx{Addr: in.Addr, Privkey: in.Privkey, TxHex: in.TxHex, Expire: in.Expire,
-		Index: in.Index, Token: in.Token, Fee: in.Fee, NewToAddr: in.NewToAddr}
-	reply, err := c.cli.ExecWalletFunc("wallet", "SignRawTx", &req)
+	reply, err := c.cli.ExecWalletFunc("wallet", "SignRawTx", in)
 	if err != nil {
 		return err
 	}
@@ -1576,6 +1574,12 @@ func (c *Chain33) GetCryptoList(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
+// GetAddressDrivers 获取系统已注册地址插件
+func (c *Chain33) GetAddressDrivers(in *types.ReqNil, result *interface{}) error {
+	*result = c.cli.GetAddressDrivers()
+	return nil
+}
+
 // SendDelayTransaction send delay tx
 func (c *Chain33) SendDelayTransaction(in *types.ReqString, result *interface{}) error {
 
@@ -1624,16 +1628,17 @@ func (c *Chain33) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx, result 
 func (c *Chain33) GetChainConfig(in *types.ReqNil, result *interface{}) error {
 	cfg := c.cli.GetConfig()
 	info := rpctypes.ChainConfigInfo{
-		Title:          cfg.GetTitle(),
-		CoinExec:       cfg.GetCoinExec(),
-		CoinSymbol:     cfg.GetCoinSymbol(),
-		CoinPrecision:  cfg.GetCoinPrecision(),
-		TokenPrecision: cfg.GetTokenPrecision(),
-		ChainID:        cfg.GetChainID(),
-		MaxTxFee:       cfg.GetMaxTxFee(),
-		MinTxFeeRate:   cfg.GetMinTxFeeRate(),
-		MaxTxFeeRate:   cfg.GetMaxTxFeeRate(),
-		IsPara:         cfg.IsPara(),
+		Title:            cfg.GetTitle(),
+		CoinExec:         cfg.GetCoinExec(),
+		CoinSymbol:       cfg.GetCoinSymbol(),
+		CoinPrecision:    cfg.GetCoinPrecision(),
+		TokenPrecision:   cfg.GetTokenPrecision(),
+		ChainID:          cfg.GetChainID(),
+		MaxTxFee:         cfg.GetMaxTxFee(),
+		MinTxFeeRate:     cfg.GetMinTxFeeRate(),
+		MaxTxFeeRate:     cfg.GetMaxTxFeeRate(),
+		IsPara:           cfg.IsPara(),
+		DefaultAddressID: address.GetDefaultAddressID(),
 	}
 	*result = info
 	return nil

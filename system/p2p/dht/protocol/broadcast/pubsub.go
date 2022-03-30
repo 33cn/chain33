@@ -62,7 +62,7 @@ func (p *pubSub) init() {
 	if !p.cfg.DisableValidation {
 		p.val = initValidator(p)
 		p.Pubsub.RegisterTopicValidator(psBlockTopic, p.val.validateBlock, pubsub.WithValidatorInline(true))
-		p.Pubsub.RegisterTopicValidator(psTxTopic, p.val.validatePeer, pubsub.WithValidatorInline(true))
+		p.Pubsub.RegisterTopicValidator(psTxTopic, p.val.validateTx, pubsub.WithValidatorInline(true))
 		p.Pubsub.RegisterTopicValidator(psLtBlockTopic, p.val.validatePeer, pubsub.WithValidatorInline(true))
 	}
 
@@ -117,6 +117,10 @@ func (p *pubSub) handleSubMsg(in chan net.SubMsg) {
 				return
 			}
 			topic := *data.Topic
+			// 交易在pubsub内部验证时已经发送至mempool, 此处直接忽略
+			if topic == psTxTopic {
+				break
+			}
 			msg = p.newMsg(topic)
 			err = p.decodeMsg(data.Data, &buf, msg)
 			if err != nil {

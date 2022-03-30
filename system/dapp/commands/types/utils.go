@@ -127,7 +127,8 @@ func CreateRawTx(paraName string, to string, amount float64, note string, isWith
 	if paraName == "" {
 		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: to}
 	} else {
-		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: address.ExecAddress(string(execer))}
+		execAddr, _ := address.GetExecAddress(string(execer), cfg.DefaultAddressID)
+		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: execAddr}
 	}
 
 	tx, err = types.FormatTxExt(cfg.ChainID, len(paraName) > 0, cfg.MinTxFeeRate, string(execer), tx)
@@ -139,14 +140,13 @@ func CreateRawTx(paraName string, to string, amount float64, note string, isWith
 }
 
 // GetExecAddr get exec address func
-func GetExecAddr(exec string) (string, error) {
+// addressID should based on server side(node)
+func GetExecAddr(exec string, addressID int32) (string, error) {
 	if ok := types.IsAllowExecName([]byte(exec), []byte(exec)); !ok {
 		return "", types.ErrExecNameNotAllow
 	}
-
-	addrResult := address.ExecAddress(exec)
-	result := addrResult
-	return result, nil
+	addrResult, err := address.GetExecAddress(exec, addressID)
+	return addrResult, err
 }
 
 func getRealExecName(paraName string, name string) string {
