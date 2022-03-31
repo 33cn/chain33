@@ -3,7 +3,6 @@ package types
 import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"math/big"
 )
 
 type Header struct {
@@ -14,17 +13,17 @@ type Header struct {
 	TxHash      string    `json:"transactionsRoot" gencodec:"required"`
 	ReceiptHash string    `json:"receiptsRoot"     gencodec:"required"`
 	Bloom       types.Bloom          `json:"logsBloom"        gencodec:"required"`
-	Difficulty  *big.Int       `json:"difficulty"       gencodec:"required"`
-	Number      *big.Int       `json:"number"           gencodec:"required"`
-	GasLimit    uint64         `json:"gasLimit"         gencodec:"required"`
-	GasUsed     uint64         `json:"gasUsed"          gencodec:"required"`
-	Time        uint64         `json:"timestamp"        gencodec:"required"`
+	Difficulty  string       `json:"difficulty"       gencodec:"required"`
+	Number      string       `json:"number"           gencodec:"required"`
+	GasLimit    string         `json:"gasLimit"         gencodec:"required"`
+	GasUsed     string         `json:"gasUsed"          gencodec:"required"`
+	Time        string         `json:"timestamp"        gencodec:"required"`
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   string   `json:"mixHash"`
-	Nonce       uint32     `json:"nonce"`
+	Nonce       string     `json:"nonce"`
 
 	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
-	BaseFee *big.Int `json:"baseFeePerGas" rlp:"optional"`
+	BaseFee string `json:"baseFeePerGas" rlp:"optional"`
 }
 // Transaction LegacyTx is the transaction data of regular Ethereum transactions.
 type Transaction struct {
@@ -36,7 +35,9 @@ type Transaction struct {
 	TransactionIndex string `json:"transactionIndex,omitempty"`
 	Value string `json:"value,omitempty"`
 	Type string `json:"type,omitempty"`
-	V, R, S  *big.Int      `json:"v,r,s ,omitempty"`  // signature values
+	V string   `json:"v,omitempty"`
+	R string   `json:"r,omitempty"`
+	S  string    `json:"s,omitempty"`
 
 
 }
@@ -44,13 +45,11 @@ type Transaction struct {
 type Transactions []*Transaction
 //Block ETH 交易结构体
 type Block struct {
-	Header       *Header  `json:"header,omitempty"`
-	Uncles       []*Header `json:"uncles,omitempty"`
+	*Header
+	Uncles       []*Header `json:"uncles"`
 	//TODO 保留ETH的交易结构类型还是替换为chain33的Transaction
-	Transactions  Transactions `json:"transactions,omitempty"`
-	//Transactions chain33Types.Transactions
-	// caches
-	Hash string `json:"hash,omitempty"`
+	Transactions  Transactions `json:"transactions"`
+	Hash string `json:"hash"`
 }
 
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 )
@@ -12,10 +13,10 @@ func BlockDetailToEthBlock(details *types.BlockDetails,cfg *types.Chain33Config 
 	var block Block
 	var header Header
 	fullblock:=details.GetItems()[0]
-	header.Time= uint64(fullblock.GetBlock().GetBlockTime())
-	header.Number=big.NewInt(fullblock.GetBlock().Height)
+	header.Time= hexutil.Uint(fullblock.GetBlock().GetBlockTime()).String()
+	header.Number=hexutil.Uint(fullblock.GetBlock().Height).String()
 	header.TxHash=common.BytesToHash(fullblock.GetBlock().GetHeader(cfg).TxHash).Hex()
-	header.Difficulty=big.NewInt(int64(fullblock.GetBlock().GetDifficulty()))
+	header.Difficulty=hexutil.Uint(int64(fullblock.GetBlock().GetDifficulty())).String()
 	header.ParentHash=common.BytesToHash(fullblock.GetBlock().ParentHash).Hex()
 	header.Root=common.BytesToHash(fullblock.GetBlock().GetStateHash()).Hex()
 	header.Coinbase=fullblock.GetBlock().GetTxs()[0].From()
@@ -39,9 +40,9 @@ func BlockDetailToEthBlock(details *types.BlockDetails,cfg *types.Chain33Config 
 			//log.Error("makeDERSigToRSV","err",err)
 			return nil,err
 		}
-		tx.V=v
-		tx.R=r
-		tx.S=s
+		tx.V=hexutil.EncodeBig(v)
+		tx.R=hexutil.EncodeBig(r)
+		tx.S=hexutil.EncodeBig(s)
 		txs=append(txs,&tx)
 	}
 	block.Header=&header

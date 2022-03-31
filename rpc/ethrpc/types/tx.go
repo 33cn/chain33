@@ -5,6 +5,7 @@ import (
 	"fmt"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"math/big"
@@ -74,9 +75,9 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails,cfg *ctypes.Chain33Co
 		if err!=nil{
 			return nil,err
 		}
-		tx.V=v
-		tx.R=r
-		tx.S=s
+		tx.V=hexutil.EncodeBig(v)
+		tx.R=hexutil.EncodeBig(r)
+		tx.S=hexutil.EncodeBig(s)
 		txs=append(txs,&tx)
 	}
 	return
