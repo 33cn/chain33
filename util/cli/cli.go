@@ -99,6 +99,7 @@ func Run(RPCAddr, ParaName, name string) {
 		commands.BlacklistCmd(),
 		closeCmd,
 		commands.AssetCmd(),
+		commands.NoneCmd(),
 	)
 
 	//test tls is enable
