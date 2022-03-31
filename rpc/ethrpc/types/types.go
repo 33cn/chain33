@@ -31,6 +31,7 @@ type Transaction struct {
 	BlockNumber string `json:"blockNumber,omitempty"`
 	From string `json:"from,omitempty"`
 	To string `json:"to,omitempty"`
+	Hash string `json:"hash,omitempty"`
 	Data string `json:"input,omitempty"`
 	TransactionIndex string `json:"transactionIndex,omitempty"`
 	Value string `json:"value,omitempty"`
@@ -48,7 +49,7 @@ type Block struct {
 	*Header
 	Uncles       []*Header `json:"uncles"`
 	//TODO 保留ETH的交易结构类型还是替换为chain33的Transaction
-	Transactions  Transactions `json:"transactions"`
+	Transactions  interface{} `json:"transactions"`
 	Hash string `json:"hash"`
 }
 

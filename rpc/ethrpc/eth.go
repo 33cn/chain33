@@ -100,11 +100,16 @@ func (e*EthApi)GetBlockByNumber(number string,full bool ) (*types.Block,error){
 	//采用BTY 默认的chainID =0如果要采用ETH的默认chainID=1,则为1
 	eipSigner:= etypes.NewEIP155Signer(big.NewInt(int64(e.cfg.GetChainID())))
 
-	var txs types.Transactions
+	var txs []interface{}
 
 	ftxs:=fullblock.GetBlock().GetTxs()
 	for _,itx:=range ftxs{
 		var tx types.Transaction
+		tx.Hash=hexutil.Encode(itx.Hash())
+		if !full{
+			txs=append(txs,tx.Hash)
+			continue
+		}
 		tx.Type= fmt.Sprint(etypes.LegacyTxType)
 		tx.From=itx.From()
 		tx.To=itx.To
