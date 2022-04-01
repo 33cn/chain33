@@ -44,23 +44,25 @@ func (e *EthApi) GetBalance(address string, tag *string) ( string,  error) {
 		return "",err
 	}
 	bf:=big.NewInt(accounts[0].GetBalance())
-	return "0x"+common.Bytes2Hex(bf.Bytes()),nil
+	return hexutil.EncodeBig(bf),nil
+	//return "0x"+common.Bytes2Hex(bf.Bytes()),nil
 }
 
 //ChainId eth_chainId
 func (e *EthApi) ChainId() (string, error) {
-	return fmt.Sprintf("0x%x",e.cfg.GetChainID()),nil
+	return hexutil.Uint64(e.cfg.GetChainID()).String(),nil
 }
 
 //BlockNumber eth_blockNumber 获取区块高度
-func (e *EthApi) BlockNumber() ( string ,  error) {
+func (e *EthApi) BlockNumber() (string,error) {
 	header,err:=e.cli.GetLastHeader()
 	if err != nil {
 		return "",err
 	}
 
 	bf:=big.NewInt(header.Height)
-	return "0x"+common.Bytes2Hex(bf.Bytes()),nil
+	return hexutil.EncodeBig(bf),nil
+
 
 }
 
