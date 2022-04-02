@@ -1,7 +1,7 @@
 package ethrpc
 
 import (
-	"github.com/33cn/chain33/rpc/eth_rpc/types"
+	"github.com/33cn/chain33/rpc/ethrpc/types"
 	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"

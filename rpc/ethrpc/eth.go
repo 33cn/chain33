@@ -12,6 +12,7 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	dtypes "github.com/33cn/chain33/system/dapp/coins/types"
 	ctypes "github.com/33cn/chain33/types"
+	"github.com/Workiva/go-datastructures/threadsafe/err"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	etypes "github.com/ethereum/go-ethereum/core/types"
@@ -44,7 +45,10 @@ func (e *EthApi) GetBalance(address string, tag *string) ( string,  error) {
 		return "",err
 	}
 	bf:=big.NewInt(accounts[0].GetBalance())
-	return hexutil.EncodeBig(bf),nil
+	bf= bf.Mul(bf,big.NewInt(1e10))
+	result:=hexutil.EncodeBig(bf)
+	log.Info("GetBalance","addr:",address,"balance:",result)
+	return result,nil
 	//return "0x"+common.Bytes2Hex(bf.Bytes()),nil
 }
 
@@ -296,10 +300,12 @@ func(e *EthApi)SendRawTransaction(rawData string )(string,error){
 	if hexData==nil{
 		return "",errors.New("wrong data")
 	}
+
 	var parm ctypes.Transaction
 	//暂按照Chain33交易格式进行解析
 	err := ctypes.Decode(hexData, &parm)
 	if err != nil {
+		log.Error("SendRawTransaction", "param", parm.String(),"err",err.Error())
 		return "",err
 	}
 	log.Debug("SendTransaction", "param", parm.String())
@@ -413,14 +419,7 @@ func (e *EthApi)Syncing()(interface{},error){
 	return nil,err
 }
 
-//GasPrice
-//method:eth_gasPrice
-//Parameters: none
-//Returns:Returns the current price per gas in wei.
-func (e *EthApi)GasPrice()(interface{},error){
-	//TODO 支持gasprice的获取
-	return nil,errors.New("no support")
-}
+
 
 //Mining
 //method:eth_mining
@@ -447,6 +446,16 @@ func (e *EthApi)GetTransactionCount(address ,tag string)(string,error){
 	return "0x0",nil
 }
 
+
+
+func (e*EthApi)GasPrice()(string,error){
+		return hexutil.EncodeBig(big.NewInt(15e9)),nil
+}
+
+
+func (e*EthApi)EstimateGas(callMsg types.CallMsg)(string,error){
+	return hexutil.EncodeBig(big.NewInt(21000)),nil
+}
 
 
 
