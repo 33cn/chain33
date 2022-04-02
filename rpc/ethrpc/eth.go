@@ -45,7 +45,7 @@ func (e *EthApi) GetBalance(address string, tag *string) ( string,  error) {
 		return "",err
 	}
 	bf:=big.NewInt(accounts[0].GetBalance())
-	bf= bf.Mul(bf,big.NewInt(1e10))
+	//bf= bf.Mul(bf,big.NewInt(1e10))
 	result:=hexutil.EncodeBig(bf)
 	log.Info("GetBalance","addr:",address,"balance:",result)
 	return result,nil
