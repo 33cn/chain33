@@ -6,6 +6,7 @@ package util
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -414,6 +415,9 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	}
 	// 本节点打包区块不检查, 检查其他节点的区块, 其他节点errReturn = true
 	if errReturn && !bytes.Equal(txHash, block.TxHash) {
+		ulog.Error("PreExecBlock", "height", block.GetHeight(), "blkHash", block.Hash(config),
+			"txHash", hex.EncodeToString(txHash), "errTxHash", hex.EncodeToString(block.TxHash),
+			"blkData", hex.EncodeToString(types.Encode(block)))
 		return nil, nil, types.ErrCheckTxHash
 	}
 	// 共识模块未设置txHash, 需要进行赋值
