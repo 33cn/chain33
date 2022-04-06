@@ -12,7 +12,6 @@ import (
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	dtypes "github.com/33cn/chain33/system/dapp/coins/types"
 	ctypes "github.com/33cn/chain33/types"
-	"github.com/Workiva/go-datastructures/threadsafe/err"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	etypes "github.com/ethereum/go-ethereum/core/types"
@@ -20,6 +19,26 @@ import (
 	"math/rand"
 	"time"
 )
+// mockery -name=Eth
+type Eth interface {
+	GetBalance(address string, tag *string) ( string,  error)
+	ChainId() (string, error)
+	BlockNumber() (string,error)
+	GetBlockByNumber(number string,full bool ) (*types.Block,error)
+	GetBlockByHash(txhash string ,full bool ) (*types.Block,error)
+	GetTransactionReceipt(txhash string)(*types.Receipt,error)
+	GetBlockTransactionCountByNumber(blockNum string )(string,error)
+	Accounts()([]string ,error)
+	Call(msg types.CallMsg,tag *string )(interface{},error)
+	SendRawTransaction(rawData string )(string,error)
+	Sign(address,message string)(string,error)
+	SignTransaction(msg *types.CallMsg)(string,error)
+	Syncing()(interface{},error)
+	Mining()(bool,error)
+	GasPrice()(string,error)
+	EstimateGas(callMsg types.CallMsg)(string,error)
+}
+
 type EthApi struct {
 	cli rpcclient.ChannelClient
 	cfg *ctypes.Chain33Config
@@ -37,8 +56,8 @@ func NewEthApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtoco
 //GetBalance eth_getBalance  tag:"latest", "earliest" or "pending"
 func (e *EthApi) GetBalance(address string, tag *string) ( string,  error) {
 	var req ctypes.ReqBalance
-	req.AssetSymbol=e.cfg.GetCoinSymbol()
-	req.Execer=e.cfg.GetCoinExec()
+	req.AssetSymbol=e.cli.GetConfig().GetCoinSymbol()
+	req.Execer=e.cli.GetConfig().GetCoinExec()
 	req.Addresses=append(req.GetAddresses(),address)
 	accounts,err:=e.cli.GetBalance(&req)
 	if err!=nil{
@@ -63,11 +82,8 @@ func (e *EthApi) BlockNumber() (string,error) {
 	if err != nil {
 		return "",err
 	}
-
 	bf:=big.NewInt(header.Height)
 	return hexutil.EncodeBig(bf),nil
-
-
 }
 
 //GetBlockByNumber  eth_getBlockByNumber
@@ -92,22 +108,16 @@ func (e*EthApi)GetBlockByNumber(number string,full bool ) (*types.Block,error){
 	var header types.Header
 	fullblock:=details.GetItems()[0]
 	header.Time= hexutil.Uint(fullblock.GetBlock().GetBlockTime()).String()
-	header.Number=hexutil.Uint(fullblock.GetBlock().Height).String() //big.NewInt(fullblock.GetBlock().Height)
+	header.Number=hexutil.Uint(fullblock.GetBlock().GetHeight()).String() //big.NewInt(fullblock.GetBlock().Height)
 	header.TxHash=common.BytesToHash(fullblock.GetBlock().GetHeader(e.cfg).TxHash).Hex()
 	header.Difficulty=hexutil.Uint(fullblock.GetBlock().GetDifficulty()).String() //big.NewInt(int64(fullblock.GetBlock().GetDifficulty()))
-	header.ParentHash=common.BytesToHash(fullblock.GetBlock().ParentHash).Hex()
+	header.ParentHash=common.BytesToHash(fullblock.GetBlock().GetParentHash()).Hex()
 	header.Root=common.BytesToHash(fullblock.GetBlock().GetStateHash()).Hex()
 	header.Coinbase=fullblock.GetBlock().GetTxs()[0].From()
-	//暂不支持ReceiptHash,UncleHash
-	//header.ReceiptHash=
-	//header.UncleHash
-
 	//处理交易
 	//采用BTY 默认的chainID =0如果要采用ETH的默认chainID=1,则为1
 	eipSigner:= etypes.NewEIP155Signer(big.NewInt(int64(e.cfg.GetChainID())))
-
 	var txs []interface{}
-
 	ftxs:=fullblock.GetBlock().GetTxs()
 	for _,itx:=range ftxs{
 		var tx types.Transaction
@@ -121,6 +131,7 @@ func (e*EthApi)GetBlockByNumber(number string,full bool ) (*types.Block,error){
 		tx.To=itx.To
 		amount,err:=itx.Amount()
 		if err!=nil{
+			log.Error("getamount","err",err)
 			return nil,err
 		}
 		tx.Value="0x"+common.Bytes2Hex(big.NewInt(amount).Bytes())
@@ -140,7 +151,6 @@ func (e*EthApi)GetBlockByNumber(number string,full bool ) (*types.Block,error){
 	block.Header=&header
 	block.Transactions=txs
 	block.Hash=common.BytesToHash(fullblock.GetBlock().Hash(e.cfg)).Hex()
-
 	return &block,nil
 }
 
@@ -233,7 +243,7 @@ func (e *EthApi)GetBlockTransactionCountByHash(hash string)(string,error){
 	}
 	txNum:=len(details.GetItems()[0].GetBlock().GetTxs())
 	bn:=big.NewInt(int64(txNum))
-	return "0x"+common.Bytes2Hex(bn.Bytes()),nil
+	return hexutil.EncodeBig(bn),nil
 }
 
 
@@ -300,9 +310,8 @@ func(e *EthApi)SendRawTransaction(rawData string )(string,error){
 	if hexData==nil{
 		return "",errors.New("wrong data")
 	}
-
 	var parm ctypes.Transaction
-	//暂按照Chain33交易格式进行解析
+	//按照Chain33交易格式进行解析
 	err := ctypes.Decode(hexData, &parm)
 	if err != nil {
 		log.Error("SendRawTransaction", "param", parm.String(),"err",err.Error())
@@ -313,9 +322,7 @@ func(e *EthApi)SendRawTransaction(rawData string )(string,error){
 	if err != nil {
 		return "",err
 	}
-
-	return  "0x"+common.Bytes2Hex(reply.GetMsg()),nil
-
+	return hexutil.Encode(reply.GetMsg()),nil
 }
 
 

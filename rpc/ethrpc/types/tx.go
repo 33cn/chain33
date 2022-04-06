@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	ctypes "github.com/33cn/chain33/types"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -46,7 +45,7 @@ func  paraseDERCode(sig []byte)(r,s []byte,err error){
 		return nil,nil,errors.New(fmt.Sprintf("wrong sig data size:%v,must beyound length 70 bytes",len(sig)))
 	}
 
-	fmt.Println("sig hex",common.Bytes2Hex(sig))
+	//fmt.Println("sig hex",common.Bytes2Hex(sig))
 	//3045022100af5778b81ae8817c6ae29fad8c1113d501e521c885a65c2c4d71763c4963984b022020687b73f5c90243dc16c99427d6593a711c52c8bf09ca6331cdd42c66edee74
 	if sig[0]==0x30 &&sig[2]==0x02{
 		r=sig[4:int(sig[3])+4]
