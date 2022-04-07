@@ -462,7 +462,7 @@ func (chain *BlockChain) getActivePeersByHeight(height int64) []string {
 	defer chain.peerMaxBlklock.Unlock()
 	peers := make([]string, 0, 8)
 	for _, peer := range chain.peerList {
-		if peer.Height > height {
+		if peer.Height >= height {
 			peers = append(peers, peer.Name)
 		}
 	}
