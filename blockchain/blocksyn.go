@@ -165,7 +165,7 @@ func (chain *BlockChain) SynRoutine() {
 	mode := chain.GetDownloadSyncStatus()
 	chain.UpdateDownloadSyncStatus(forkChainDetectMode)
 	// make sure not on fork chain when node start
-	go chain.forkChainDectection(mode)
+	go chain.forkChainDetection(mode)
 
 	//节点下载模式
 	go chain.DownLoadBlocks()
@@ -679,8 +679,8 @@ func (chain *BlockChain) SynBlocksFromPeers() {
 	}
 }
 
-// dectect if run in fork chain, try to correct
-func (chain *BlockChain) forkChainDectection(prevMode int) {
+// Detect if run in fork chain, try to correct
+func (chain *BlockChain) forkChainDetection(prevMode int) {
 
 	// restore download mode
 	defer chain.UpdateDownloadSyncStatus(prevMode)
@@ -691,32 +691,32 @@ func (chain *BlockChain) forkChainDectection(prevMode int) {
 		cmpPeer = chain.getForkComparePeer()
 	}
 	localHeight := chain.GetBlockHeight()
-	chainlog.Debug("forkDectectInfo", "height", localHeight, "peerHeight", cmpPeer.Height)
+	chainlog.Debug("forkDetectInfo", "height", localHeight, "peerHeight", cmpPeer.Height)
 	if cmpPeer.Height < localHeight+BackwardBlockNum {
 		return
 	}
 
 	if err := chain.FetchBlockHeaders(localHeight-BackwardBlockNum, localHeight, cmpPeer.Name); err != nil {
-		chainlog.Error("forkDectectFetchHeaders", "err", err)
+		chainlog.Error("forkDetectFetchHeaders", "err", err)
 	}
 
 	// wait for finding fork point
 	var forkHeight int64
 	select {
 	case <-time.After(time.Minute * 2):
-		chainlog.Error("forkDectect wait fork point timeout")
+		chainlog.Error("forkDetect wait fork point timeout")
 		return
 	case forkHeight = <-chain.forkPointChan:
 	}
 
 	// no forks
 	if forkHeight >= localHeight {
-		chainlog.Debug("forkDectectNoForks")
+		chainlog.Debug("forkDetectNoForks")
 		return
 	}
 
 	activePeer := chain.getActivePeersByHeight(cmpPeer.Height)
-	chainlog.Debug("forkDectect", "activePeer", len(activePeer))
+	chainlog.Debug("forkDetect", "activePeer", len(activePeer))
 	if len(activePeer) <= 0 {
 		return
 	}
@@ -732,7 +732,7 @@ func (chain *BlockChain) forkChainDectection(prevMode int) {
 
 	select {
 	case <-time.After(time.Minute * 5):
-		chainlog.Error("forkDectect wait download task timeout")
+		chainlog.Error("forkDetect wait download task timeout")
 		chain.downLoadTask.Cancel()
 	case <-readyDownload:
 	}
@@ -741,11 +741,11 @@ func (chain *BlockChain) forkChainDectection(prevMode int) {
 	}
 
 	if chain.GetBlockHeight() > localHeight {
-		chainlog.Info("forkDectectBlkHeightIncreased", "prev", localHeight, "curr", chain.GetBlockHeight())
+		chainlog.Info("forkDetectBlkHeightIncreased", "prev", localHeight, "curr", chain.GetBlockHeight())
 		return
 	}
 
-	chainlog.Info("forkDectectDownBlk", "localHeight", localHeight, "forkHeight", forkHeight, "peers", len(activePeer))
+	chainlog.Info("forkDetectDownBlk", "localHeight", localHeight, "forkHeight", forkHeight, "peers", len(activePeer))
 	go chain.ProcDownLoadBlocks(forkHeight, localHeight+1, activePeer)
 
 }
@@ -772,7 +772,7 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 		return
 	}
 	chain.UpdateDownloadSyncStatus(forkChainDetectMode)
-	chain.forkChainDectection(mode)
+	chain.forkChainDetection(mode)
 }
 
 //FetchBlockHeaders 从指定pid获取start到end之间的headers
@@ -887,10 +887,11 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	synlog.Info("ProcBlockHeaders find fork point", "height", ForkHeight, "hash", common.ToHex(forkhash))
 
 	if chain.GetDownloadSyncStatus() == forkChainDetectMode {
-		synlog.Error("ProcBlockHeaders forkDetect")
+		synlog.Error("ProcBlockHeaders forkDetect", "forkHeight", ForkHeight)
 		select {
 		case chain.forkPointChan <- ForkHeight:
 		default:
+			synlog.Error("ProcBlockHeaders forkDetect channel block")
 		}
 		return nil
 	}
