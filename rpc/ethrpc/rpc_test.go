@@ -4,7 +4,6 @@ import (
 	"errors"
 	clientMocks "github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/rpc/ethrpc/mocks"
 	"github.com/33cn/chain33/system/dapp/coins/types"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,7 +16,7 @@ import (
 
 var(
 
-	mockEthObj *mocks.Eth
+	//mockEthObj *mocks.Eth
 	//tojb *Tobj
 	ethOjb *EthApi
 	qapi *clientMocks.QueueProtocolAPI
@@ -26,7 +25,7 @@ var(
 
 
 func init(){
-	mockEthObj=&mocks.Eth{}
+	//mockEthObj=&mocks.Eth{}
 	qapi =&clientMocks.QueueProtocolAPI{}
 	cfg:=ctypes.NewChain33Config(ctypes.GetDefaultCfgstring())
 	q.SetConfig(cfg)

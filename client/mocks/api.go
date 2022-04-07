@@ -14,6 +14,10 @@ type QueueProtocolAPI struct {
 	mock.Mock
 }
 
+func (_m *QueueProtocolAPI) GetHighestBlockNum(param *types.ReqNil) (*types.ReplyBlockHeight, error) {
+	panic("implement me")
+}
+
 // AddBlacklist provides a mock function with given fields: req
 func (_m *QueueProtocolAPI) AddBlacklist(req *types.BlackPeer) (*types.Reply, error) {
 	ret := _m.Called(req)
