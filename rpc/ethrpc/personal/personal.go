@@ -1,10 +1,10 @@
-package ethrpc
+package personal
 
 import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
-	ctypes "github.com/33cn/chain33/types"
 	rpcclient "github.com/33cn/chain33/rpc/client"
+	ctypes "github.com/33cn/chain33/types"
 )
 
 type PersonalApi struct {

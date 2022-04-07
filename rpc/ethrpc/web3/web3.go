@@ -1,4 +1,4 @@
-package ethrpc
+package web3
 
 import (
 	"github.com/33cn/chain33/client"

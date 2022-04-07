@@ -1,4 +1,4 @@
-package ethrpc
+package eth
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	rpcclient "github.com/33cn/chain33/rpc/client"
 	"github.com/33cn/chain33/rpc/ethrpc/types"
@@ -44,7 +45,9 @@ type EthApi struct {
 	cfg *ctypes.Chain33Config
 
 }
-
+var(
+	log = log15.New("module", "eth")
+)
 func NewEthApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtocolAPI) *EthApi {
 	e:=&EthApi{}
 	e.cli.Init(c,api)
@@ -68,7 +71,6 @@ func (e *EthApi) GetBalance(address string, tag *string) ( string,  error) {
 	result:=hexutil.EncodeBig(bf)
 	log.Info("GetBalance","addr:",address,"balance:",result)
 	return result,nil
-	//return "0x"+common.Bytes2Hex(bf.Bytes()),nil
 }
 
 //ChainId eth_chainId

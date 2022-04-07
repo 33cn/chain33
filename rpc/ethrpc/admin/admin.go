@@ -1,4 +1,4 @@
-package ethrpc
+package admin
 
 import (
 	"github.com/33cn/chain33/client"

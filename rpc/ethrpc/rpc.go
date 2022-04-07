@@ -6,6 +6,10 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/rpc/ethrpc/admin"
+	"github.com/33cn/chain33/rpc/ethrpc/eth"
+	"github.com/33cn/chain33/rpc/ethrpc/net"
+	"github.com/33cn/chain33/rpc/ethrpc/personal"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/rpc"
 	"io/ioutil"
@@ -57,16 +61,16 @@ func (r *RPCServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func InitEthRpc(cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtocolAPI)*rpc.Server{
 	server := rpc.NewServer()
 	//defer server.Stop()
-	if err := server.RegisterName(EthNameSpace, NewEthApi(cfg,c,api)); err != nil {
+	if err := server.RegisterName(EthNameSpace, eth.NewEthApi(cfg,c,api)); err != nil {
 		panic(err)
 	}
-	if err := server.RegisterName(PersonalNameSpace, NewPersonalApi(cfg, c, api)); err != nil {
+	if err := server.RegisterName(PersonalNameSpace, personal.NewPersonalApi(cfg, c, api)); err != nil {
 		panic(err)
 	}
-	if err := server.RegisterName(AdminNameSpace, NewAdminApi(cfg,c, api));err != nil {
+	if err := server.RegisterName(AdminNameSpace, admin.NewAdminApi(cfg,c, api));err != nil {
 		panic(err)
 	}
-	if err := server.RegisterName(NetNameSpace, NewNetApi(cfg,c, api));err != nil {
+	if err := server.RegisterName(NetNameSpace, net.NewNetApi(cfg,c, api));err != nil {
 		panic(err)
 	}
 	return server

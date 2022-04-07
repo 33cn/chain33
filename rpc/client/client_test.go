@@ -493,7 +493,7 @@ func TestChannelClient_SignWalletRecoverTx(t *testing.T) {
 }
 
 func TestQueueProtocol_GetCryptoList(t *testing.T) {
-	q := &channelClient{}
+	q := &ChannelClient{}
 	list := q.GetCryptoList()
 	for _, driver := range list.Cryptos {
 		id := int(driver.TypeID)
@@ -503,7 +503,7 @@ func TestQueueProtocol_GetCryptoList(t *testing.T) {
 }
 
 func TestQueueProtocol_GetAddressDrivers(t *testing.T) {
-	q := &channelClient{}
+	q := &ChannelClient{}
 	list := q.GetAddressDrivers()
 	for _, driver := range list.Drivers {
 		d, err := address.LoadDriver(driver.TypeID, -1)
