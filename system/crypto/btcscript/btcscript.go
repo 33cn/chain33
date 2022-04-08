@@ -27,7 +27,7 @@ const (
 )
 
 func init() {
-	// 默认启用高度-1， 不开启
+	// 默认开启
 	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID))
 }
 
