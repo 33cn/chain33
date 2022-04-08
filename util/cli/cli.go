@@ -100,6 +100,7 @@ func Run(RPCAddr, ParaName, name string) {
 		closeCmd,
 		commands.AssetCmd(),
 		commands.NoneCmd(),
+		commands.BtcScriptCmd(),
 	)
 
 	//test tls is enable
