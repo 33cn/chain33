@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
@@ -293,4 +295,20 @@ func GetChainConfig(rpcAddr string) (*rpctypes.ChainConfigInfo, error) {
 		return nil, errors.Wrapf(err, "get chain config")
 	}
 	return &res, nil
+}
+
+// SendCreateTxRPC create transaction json rpc
+func SendCreateTxRPC(cmd *cobra.Command, exec, actionName string, req types.Message) {
+	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
+	payLoad := types.MustPBToJSON(req)
+	pm := &rpctypes.CreateTxIn{
+		Execer:     types.GetExecName(exec, paraName),
+		ActionName: actionName,
+		Payload:    payLoad,
+	}
+
+	var res string
+	ctx := jsonclient.NewRPCCtx(rpcAddr, "Chain33.CreateTransaction", pm, &res)
+	ctx.RunWithoutMarshal()
 }
