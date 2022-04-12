@@ -1,10 +1,10 @@
 package eth
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -15,32 +15,12 @@ import (
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	etypes "github.com/ethereum/go-ethereum/core/types"
-	"math/big"
 	"math/rand"
 	"time"
 )
-// mockery -name=Eth
-type Eth interface {
-	GetBalance(address string, tag *string) ( string,  error)
-	ChainId() (string, error)
-	BlockNumber() (string,error)
-	GetBlockByNumber(number string,full bool ) (*types.Block,error)
-	GetBlockByHash(txhash string ,full bool ) (*types.Block,error)
-	GetTransactionReceipt(txhash string)(*types.Receipt,error)
-	GetBlockTransactionCountByNumber(blockNum string )(string,error)
-	Accounts()([]string ,error)
-	Call(msg types.CallMsg,tag *string )(interface{},error)
-	SendRawTransaction(rawData string )(string,error)
-	Sign(address,message string)(string,error)
-	SignTransaction(msg *types.CallMsg)(string,error)
-	Syncing()(interface{},error)
-	Mining()(bool,error)
-	GasPrice()(string,error)
-	EstimateGas(callMsg types.CallMsg)(string,error)
-}
 
-type EthApi struct {
+
+type Eth struct {
 	cli rpcclient.ChannelClient
 	cfg *ctypes.Chain33Config
 
@@ -48,8 +28,8 @@ type EthApi struct {
 var(
 	log = log15.New("module", "eth")
 )
-func NewEthApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtocolAPI) *EthApi {
-	e:=&EthApi{}
+func NewEthApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtocolAPI) *Eth {
+	e:=&Eth{}
 	e.cli.Init(c,api)
 	e.cfg=cfg
 	return e
@@ -57,108 +37,60 @@ func NewEthApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtoco
 
 
 //GetBalance eth_getBalance  tag:"latest", "earliest" or "pending"
-func (e *EthApi) GetBalance(address string, tag *string) ( string,  error) {
+func (e *Eth) GetBalance(address string, tag *string) ( hexutil.Uint64,  error) {
 	var req ctypes.ReqBalance
 	req.AssetSymbol=e.cli.GetConfig().GetCoinSymbol()
 	req.Execer=e.cli.GetConfig().GetCoinExec()
 	req.Addresses=append(req.GetAddresses(),address)
 	accounts,err:=e.cli.GetBalance(&req)
 	if err!=nil{
-		return "",err
+		return 0,err
 	}
-	bf:=big.NewInt(accounts[0].GetBalance())
-	//bf= bf.Mul(bf,big.NewInt(1e10))
-	result:=hexutil.EncodeBig(bf)
-	log.Info("GetBalance","addr:",address,"balance:",result)
-	return result,nil
+	return hexutil.Uint64(accounts[0].GetBalance()),nil
+
 }
 
 //ChainId eth_chainId
-func (e *EthApi) ChainId() (string, error) {
-	return hexutil.Uint64(e.cfg.GetChainID()).String(),nil
+func (e *Eth) ChainId() (hexutil.Uint64, error) {
+	return hexutil.Uint64(e.cfg.GetChainID()),nil
 }
 
 //BlockNumber eth_blockNumber 获取区块高度
-func (e *EthApi) BlockNumber() (string,error) {
+func (e *Eth) BlockNumber() (hexutil.Uint64,error) {
 	header,err:=e.cli.GetLastHeader()
 	if err != nil {
-		return "",err
+		return 0,err
 	}
-	bf:=big.NewInt(header.Height)
-	return hexutil.EncodeBig(bf),nil
+
+	return hexutil.Uint64(header.Height),nil
 }
 
 //GetBlockByNumber  eth_getBlockByNumber
-func (e*EthApi)GetBlockByNumber(number string,full bool ) (*types.Block,error){
-	nb:=common.FromHex(number)
-	if nb==nil{
-		return nil ,errors.New("invalid argument 0")
-	}
-	bn:=big.NewInt(1).SetBytes(nb)
+func (e*Eth)GetBlockByNumber(number *hexutil.Big,full bool ) (*types.Block,error){
 	var req ctypes.ReqBlocks
-	req.Start= bn.Int64()
-	req.End= bn.Int64()
+	req.Start=number.ToInt().Int64()
+	req.End=req.Start
 	req.IsDetail=full
-	log.Info("GetBlockByNumber","start",req.Start)
+	log.Debug("GetBlockByNumber","start",req.Start)
 	details,err:= e.cli.GetBlocks(&req)
 	if err!=nil{
 		log.Error("GetBlockByNumber","err",err)
 		return nil,err
 	}
 
-	var block types.Block
-	var header types.Header
 	fullblock:=details.GetItems()[0]
-	header.Time= hexutil.Uint(fullblock.GetBlock().GetBlockTime()).String()
-	header.Number=hexutil.Uint(fullblock.GetBlock().GetHeight()).String() //big.NewInt(fullblock.GetBlock().Height)
-	header.TxHash=common.BytesToHash(fullblock.GetBlock().GetHeader(e.cfg).TxHash).Hex()
-	header.Difficulty=hexutil.Uint(fullblock.GetBlock().GetDifficulty()).String() //big.NewInt(int64(fullblock.GetBlock().GetDifficulty()))
-	header.ParentHash=common.BytesToHash(fullblock.GetBlock().GetParentHash()).Hex()
-	header.Root=common.BytesToHash(fullblock.GetBlock().GetStateHash()).Hex()
-	header.Coinbase=fullblock.GetBlock().GetTxs()[0].From()
-	//处理交易
-	//采用BTY 默认的chainID =0如果要采用ETH的默认chainID=1,则为1
-	eipSigner:= etypes.NewEIP155Signer(big.NewInt(int64(e.cfg.GetChainID())))
-	var txs []interface{}
-	ftxs:=fullblock.GetBlock().GetTxs()
-	for _,itx:=range ftxs{
-		var tx types.Transaction
-		tx.Hash=hexutil.Encode(itx.Hash())
-		if !full{
-			txs=append(txs,tx.Hash)
-			continue
-		}
-		tx.Type= fmt.Sprint(etypes.LegacyTxType)
-		tx.From=itx.From()
-		tx.To=itx.To
-		amount,err:=itx.Amount()
-		if err!=nil{
-			log.Error("getamount","err",err)
-			return nil,err
-		}
-		tx.Value="0x"+common.Bytes2Hex(big.NewInt(amount).Bytes())
-		r,s,v ,err:= types.MakeDERSigToRSV(eipSigner,itx.Signature.GetSignature())
-		if err!=nil{
-			log.Error("makeDERSigToRSV","err",err)
-			//return nil,err
-			continue
-		}
-
-		tx.V=hexutil.EncodeBig(v)
-		tx.R=hexutil.EncodeBig(r)
-		tx.S=hexutil.EncodeBig(s)
-		//log.Info("r:",common.Bytes2Hex(tx.R.Bytes()))
-		txs=append(txs,&tx)
+	block,err:= types.BlockDetailToEthBlock(&ctypes.BlockDetails{
+		Items: []*ctypes.BlockDetail{fullblock},
+	},e.cfg,full)
+	if err!=nil{
+		return nil,err
 	}
-	block.Header=&header
-	block.Transactions=txs
-	block.Hash=common.BytesToHash(fullblock.GetBlock().Hash(e.cfg)).Hex()
-	return &block,nil
+	return block,nil
 }
 
 
 //GetBlockByHash eth_getBlockByHash 通过区块哈希获取区块交易详情
-func(e*EthApi) GetBlockByHash(txhash string ,full bool ) (*types.Block,error){
+func(e*Eth) GetBlockByHash(txhash string ,full bool ) (*types.Block,error){
 	var req ctypes.ReqHashes
 	req.Hashes=append(req.Hashes,common.FromHex(txhash))
 	details,err:= e.cli.GetBlockByHashes(&req)
@@ -166,19 +98,19 @@ func(e*EthApi) GetBlockByHash(txhash string ,full bool ) (*types.Block,error){
 		log.Error("GetBlockByNumber","err",err)
 		return nil, err
 	}
-	return types.BlockDetailToEthBlock(details,e.cfg)
+	return types.BlockDetailToEthBlock(details,e.cfg,full)
 
 }
 
 //GetTransactionByHash eth_getTransactionByHash
-func(e *EthApi)GetTransactionByHash(txhash string)(*types.Transaction,error){
+func(e *Eth)GetTransactionByHash(txhash string)(*types.Transaction,error){
 	var req  ctypes.ReqHashes
 	req.Hashes=append(req.Hashes,common.FromHex(txhash))
 	txdetails,err:=e.cli.GetTransactionByHash(&req)
 	if err!=nil{
 		return nil,err
 	}
-	txs,err:= types.TxDetailsToEthTx(txdetails,e.cfg)
+	txs,_,err:= types.TxDetailsToEthTx(txdetails,e.cfg)
 	if err!=nil{
 		return nil,err
 	}
@@ -187,14 +119,14 @@ func(e *EthApi)GetTransactionByHash(txhash string)(*types.Transaction,error){
 
 
 //GetTransactionReceipt eth_getTransactionReceipt
-func(e *EthApi)GetTransactionReceipt(txhash string)(*types.Receipt,error){
+func(e *Eth)GetTransactionReceipt(txhash string)(*types.Receipt,error){
 	var req  ctypes.ReqHashes
 	req.Hashes=append(req.Hashes,common.FromHex(txhash))
 	txdetails,err:=e.cli.GetTransactionByHash(&req)
 	if err!=nil{
 		return nil,err
 	}
-	receipts,err:= types.TxDetailsToEthReceipt(txdetails,e.cfg)
+	_,receipts,err:= types.TxDetailsToEthTx(txdetails,e.cfg)
 	if err!=nil{
 		return nil,err
 	}
@@ -202,32 +134,16 @@ func(e *EthApi)GetTransactionReceipt(txhash string)(*types.Receipt,error){
 
 }
 //GetBlockTransactionCountByNumber eth_getBlockTransactionCountByNumber
-func(e *EthApi)GetBlockTransactionCountByNumber(blockNum string )(string,error){
-	var blockHeight int64
-	if common.FromHex(blockNum)!=nil{
-		bn:=big.NewInt(1)
-		var ok bool
-		bn,ok=bn.SetString(blockNum,16)
-		if !ok{
-			return "",errors.New("wrong param")
-		}
-		blockHeight = bn.Int64()
-
-	}else{
-		bn,ok:= big.NewInt(1).SetString(blockNum,10)
-		if !ok{
-			return "",errors.New("wrong param")
-		}
-		blockHeight = bn.Int64()
-	}
+func(e *Eth)GetBlockTransactionCountByNumber(blockNum *hexutil.Big )(hexutil.Uint64,error){
 	var req ctypes.ReqBlocks
-	req.Start= blockHeight
-	req.End= blockHeight
+	req.Start= blockNum.ToInt().Int64()
+	req.End= req.Start
 	blockdetails,err:= e.cli.GetBlocks(&req)
 	if err!=nil{
-		return "",err
+		return 0,err
 	}
-	return fmt.Sprintf("0x%x",len(blockdetails.GetItems()[0].Block.GetTxs())),nil
+	return hexutil.Uint64(len(blockdetails.GetItems()[0].GetBlock().GetTxs())),nil
+
 
 }
 
@@ -235,23 +151,22 @@ func(e *EthApi)GetBlockTransactionCountByNumber(blockNum string )(string,error){
 //method:eth_getBlockTransactionCountByHash
 //parameters: 32 Bytes - hash of a block
 //Returns: integer of the number of transactions in this block.
-func (e *EthApi)GetBlockTransactionCountByHash(hash string)(string,error){
+func (e *Eth)GetBlockTransactionCountByHash(hash string)(hexutil.Uint64,error){
 	var req ctypes.ReqHashes
 	req.Hashes=append(req.Hashes,common.FromHex(hash))
-	details,err:= e.cli.GetBlockByHashes(&req)
+	blockdetails,err:= e.cli.GetBlockByHashes(&req)
 	if err!=nil{
 		log.Error("GetBlockByNumber","err",err)
-		return "", err
+		return 0, err
 	}
-	txNum:=len(details.GetItems()[0].GetBlock().GetTxs())
-	bn:=big.NewInt(int64(txNum))
-	return hexutil.EncodeBig(bn),nil
+
+	return hexutil.Uint64(len(blockdetails.GetItems()[0].GetBlock().GetTxs())),nil
 }
 
 
-
+//Accounts
 //eth_accounts
-func(e *EthApi)Accounts()([]string ,error){
+func(e *Eth)Accounts()([]string ,error){
 	req := &ctypes.ReqAccountList{WithoutBalance: true}
 	msg,err:=e.cli.ExecWalletFunc("wallet","WalletGetAccountList",req)
 	if err!=nil{
@@ -267,20 +182,20 @@ func(e *EthApi)Accounts()([]string ,error){
 
 }
 
-//eth_call evm合约相关操作
-func(e *EthApi)Call(msg types.CallMsg,tag *string )(interface{},error){
+//Call
+//eth_call evm合约相关操作,合约相关信息查询
+func(e *Eth)Call(msg types.CallMsg,tag *string )(interface{},error){
 	var param rpctypes.Query4Jrpc
 	type EvmQueryReq struct {
 		Address              string
 		Input                string
 	}
 
-	param.Execer = e.cfg.GetCoinExec()
+	//暂定evm
+	param.Execer = "evm"
 	param.FuncName = "Query"
-	jsonData:=fmt.Sprintf(`{"input:%v","address":"%s"}`,msg.Data,msg.To)
-	param.Payload = []byte(jsonData)
-	log.Info("eth_call", "QueryCall param", param, "payload", string(param.Payload))
-
+	param.Payload = []byte(fmt.Sprintf(`{"input:%v","address":"%s"}`,msg.Data,msg.To))
+	log.Debug("eth_call", "QueryCall param", param, "payload", string(param.Payload))
 	execty := ctypes.LoadExecutorType(param.Execer)
 	if execty == nil {
 		log.Error("Query", "funcname", param.FuncName, "err", ctypes.ErrNotSupport)
@@ -298,16 +213,14 @@ func(e *EthApi)Call(msg types.CallMsg,tag *string )(interface{},error){
 		return nil, err
 	}
 
-	log.Debug("eth_call", "QueryCall resp", resp)
-	var jsonmsg json.RawMessage
-	jsonmsg, err = execty.QueryToJSON(param.FuncName, resp)
-	return jsonmsg,nil
+	log.Debug("Call", "QueryCall resp", resp)
+	return  execty.QueryToJSON(param.FuncName, resp)
+
 }
 
 
-
 //SendRawTransaction eth_sendRawTransaction 发送交易
-func(e *EthApi)SendRawTransaction(rawData string )(string,error){
+func(e *Eth)SendRawTransaction(rawData string )(string,error){
 	hexData:= common.FromHex(rawData)
 	if hexData==nil{
 		return "",errors.New("wrong data")
@@ -328,10 +241,9 @@ func(e *EthApi)SendRawTransaction(rawData string )(string,error){
 }
 
 
-//TODO 后面实现
 //Sign
 //method:eth_sign
-func(e *EthApi)Sign(address,message string)(string,error){
+func(e *Eth)Sign(address,message string)(string,error){
 	//导出私钥
 	reply, err := e.cli.ExecWalletFunc("wallet", "DumpPrivkey", &ctypes.ReqString{Data: address})
 	if err != nil {
@@ -339,7 +251,6 @@ func(e *EthApi)Sign(address,message string)(string,error){
 		return "", err
 	}
 	privKeyHex := reply.(*ctypes.ReplyString).GetData()
-
 	msg:= common.FromHex(message)
 	if len(msg)==0{
 		return "",errors.New("invalid argument 1: must hex string")
@@ -350,30 +261,43 @@ func(e *EthApi)Sign(address,message string)(string,error){
 	if err!=nil{
 		return "",err
 	}
-
-	return "0x"+common.Bytes2Hex(signKey.Sign(msg).Bytes()),nil
+	return hexutil.Encode(signKey.Sign(msg).Bytes()),nil
 }
 
 
 
 //SignTransaction
 //method:eth_signTransaction
-func(e *EthApi)SignTransaction(msg *types.CallMsg)(string,error){
-	//把
+func(e *Eth)SignTransaction(msg *types.CallMsg)(string,error){
 	var tx *ctypes.Transaction
 	var data []byte
 	if msg.Data==""{
 		//普通的coins 转账
+		exec  := e.cfg.ExecName("coins")  //e.cfg.GetParaName() +"coins"
 		v := &dtypes.CoinsAction_Transfer{Transfer: &ctypes.AssetsTransfer{Cointoken: e.cfg.GetCoinSymbol(), Amount: msg.Value.ToInt().Int64(), Note: []byte("")}}
 		transfer := &dtypes.CoinsAction{Value: v, Ty: dtypes.CoinsActionTransfer}
 		data=ctypes.Encode(transfer)
-		tx = &ctypes.Transaction{Execer: []byte(e.cfg.GetCoinExec()), Payload: data, Fee: 1e5, To: msg.To, Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63()}
+		tx = &ctypes.Transaction{Execer: []byte(exec), Payload: data, Fee: 0, To: msg.To, Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63()}
 	}else{
 		//evm tx
-		//TOOD 暂时不支持，因为不知道evm具体数据要执行何种执行
-		return "",errors.New("no support unpack data")
-	}
+		action:= ctypes.EVMContractAction4Chain33{
+			Amount:       msg.Value.ToInt().Uint64(),
+			GasLimit:     0,
+			GasPrice:     0,
+			Code:         nil,
+			Para:         common.FromHex(msg.Data),
+			Alias:        "",
+			Note:         "",
+			ContractAddr: msg.To,
+		}
 
+		exec := e.cfg.ExecName("evm") // e.cfg.GetParaName() +"evm"
+		tx = &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(&action), Fee: 0, To: address.ExecAddress(exec)}
+	}
+	tx.Fee, _ = tx.GetRealFee(e.cfg.GetMinTxFeeRate())
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	tx.ChainID = e.cfg.GetChainID()
 	//对TX 进行签名
 	unsigned := &ctypes.ReqSignRawTx{
 		Addr:   msg.From,
@@ -393,7 +317,7 @@ func(e *EthApi)SignTransaction(msg *types.CallMsg)(string,error){
 //Returns: FALSE:when not syncing,
 //method:eth_syncing
 //params:[]
-func (e *EthApi)Syncing()(interface{},error){
+func (e *Eth)Syncing()(interface{},error){
 	var syncing struct{
 		StartingBlock string `json:"startingBlock,omitempty"`
 		CurrentBlock string `json:"currentBlock,omitempty"`
@@ -406,16 +330,14 @@ func (e *EthApi)Syncing()(interface{},error){
 		if err==nil{
 			if caughtUp.Iscaughtup{// when not syncing
 				return false,nil
-			}else{//when suncing
+			}else{//when syncing
 				header,err:= e.cli.GetLastHeader()
 				if err==nil{
-					bn:=big.NewInt(header.Height)
-					syncing.CurrentBlock="0x"+common.Bytes2Hex(bn.Bytes())
+					syncing.CurrentBlock=hexutil.EncodeUint64(uint64(header.GetHeight()))
 					syncing.StartingBlock=syncing.CurrentBlock
 					replyBlockNum,err:= e.cli.GetHighestBlockNum(&ctypes.ReqNil{})
 					if err==nil{
-						bn= big.NewInt(replyBlockNum.GetHeight())
-						syncing.HighestBlock="0x"+common.Bytes2Hex(bn.Bytes())
+						syncing.HighestBlock=hexutil.EncodeUint64(uint64(replyBlockNum.GetHeight()))
 						return &syncing,nil
 					}
 
@@ -434,8 +356,7 @@ func (e *EthApi)Syncing()(interface{},error){
 //method:eth_mining
 //Paramtesrs:none
 //Returns:Returns true if client is actively mining new blocks.
-func (e *EthApi)Mining()(bool,error){
-
+func (e *Eth)Mining()(bool,error){
 	msg,err:=e.cli.ExecWalletFunc("wallet","GetWalletStatus",&ctypes.ReqNil{})
 	if err==nil{
 		status:=msg.(*ctypes.WalletStatus)
@@ -447,25 +368,57 @@ func (e *EthApi)Mining()(bool,error){
 	return false,err
 }
 
-//GetTransactionCount
+//GetTransactionCount 获取nonce
 //methpd:eth_getTransactionCount
 //Returns:Returns the number of transactions sent from an address.
 //Paramters: address,tag(disable):latest,pending,earliest
-func (e *EthApi)GetTransactionCount(address ,tag string)(string,error){
-	return "0x0",nil
+func (e *Eth)GetTransactionCount(address ,tag string)(interface{},error){
+	exec:=e.cfg.ExecName("evm")
+	execty := ctypes.LoadExecutorType(exec)
+	if execty == nil {
+		return "",ctypes.ErrNotSupport
+	}
+	var param rpctypes.Query4Jrpc
+	param.FuncName="GetNonce"
+	param.Execer=exec
+	param.Payload=[]byte(fmt.Sprintf(`{"address":"%v"}`,address))
+	queryparam, err := execty.CreateQuery(param.FuncName, param.Payload)
+	resp,err:= e.cli.Query(param.Execer,param.FuncName,queryparam)
+	if err!=nil{
+		return "",err
+	}
+
+	return  execty.QueryToJSON(param.FuncName, resp)
 }
 
 
+//EstimateGas 获取gas
+//methpd:eth_estimateGas
+func (e*Eth)EstimateGas(callMsg *types.CallMsg)(interface{},error){
+	//组装tx
+	exec:=e.cfg.ExecName("evm")
+	execty := ctypes.LoadExecutorType(exec)
+	if execty == nil {
+		return "",ctypes.ErrNotSupport
+	}
 
-func (e*EthApi)GasPrice()(string,error){
-		return hexutil.EncodeBig(big.NewInt(15e9)),nil
+	action := &ctypes.EVMContractAction4Chain33{Amount: callMsg.Value.ToInt().Uint64(), GasLimit: 0, GasPrice: 0, Note: "", Para: common.FromHex(callMsg.Data),ContractAddr:callMsg.To}
+	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	var p rpctypes.Query4Jrpc
+	p.Execer =  exec
+	p.FuncName = "EstimateGas"
+	p.Payload=[]byte(fmt.Sprintf(`{"tx":"%v","from":"%v"}`,common.Bytes2Hex(ctypes.Encode(tx)),callMsg.From))
+	queryparam, err := execty.CreateQuery(p.FuncName, p.Payload)
+	e.cli.Query(p.Execer,p.FuncName,queryparam)
+	resp,err:= e.cli.Query(p.Execer,p.FuncName,queryparam)
+	if err!=nil{
+		return "",err
+	}
+
+	return  execty.QueryToJSON(p.FuncName, resp)
 }
-
-
-func (e*EthApi)EstimateGas(callMsg types.CallMsg)(string,error){
-	return hexutil.EncodeBig(big.NewInt(21000)),nil
-}
-
 
 
 

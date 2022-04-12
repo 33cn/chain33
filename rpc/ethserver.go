@@ -24,6 +24,7 @@ func NewEthJsonRpcServer(c queue.Client, api client.QueueProtocolAPI)*EthRpcServ
 	server:= eth.InitEthRpc(c.GetConfig(),c,api)
 	srv := &eth.RPCServer{server}
 	s := &http.Server{Handler: srv}
+	//默认绑定localhost
 	bindAddr:=fmt.Sprintf("localhost:%d", eth.DefaultEthRpcPort)
 	if c.GetConfig().GetModuleConfig().RPC.ErpcBindAddr!=""{
 		bindAddr=c.GetConfig().GetModuleConfig().RPC.ErpcBindAddr

@@ -57,10 +57,9 @@ func (r *RPCServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	r.Server.ServeHTTP(w, req)
 }
-
+//InitEthRpc 注册eth rpc
 func InitEthRpc(cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtocolAPI)*rpc.Server{
 	server := rpc.NewServer()
-	//defer server.Stop()
 	if err := server.RegisterName(EthNameSpace, eth.NewEthApi(cfg,c,api)); err != nil {
 		panic(err)
 	}

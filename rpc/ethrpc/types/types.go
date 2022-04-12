@@ -65,7 +65,7 @@ type Receipt struct {
 	Status            string `json:"status"`
 	CumulativeGasUsed uint64 `json:"cumulativeGasUsed" gencodec:"required"`
 	//Bloom             Bloom  `json:"logsBloom"         gencodec:"required"`
-	Logs              []string `json:"logs"              gencodec:"required"`
+	Logs              interface{} `json:"logs"              gencodec:"required"`
 
 	// Implementation fields: These fields are added by geth when processing a transaction.
 	// They are stored in the chain database.
@@ -93,4 +93,10 @@ type CallMsg struct {
 	// newer name and should be preferred by clients.
 	Data  string `json:"data"`
 	Input string `json:"input"`
+}
+
+
+type EvmLog struct{
+	Topic []hexutil.Bytes `json:"topic,omitempty"`
+	Data  hexutil.Bytes `json:"data,omitempty"`
 }
