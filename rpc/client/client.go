@@ -515,7 +515,6 @@ func (c *ChannelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 	return reply, nil
 }
 
-
 // GetCryptoList 获取加密算法列表
 func (c *ChannelClient) GetCryptoList() *types.CryptoList {
 	names, ids := crypto.GetCryptoList()
@@ -535,4 +534,3 @@ func (c *ChannelClient) GetAddressDrivers() *types.AddressDrivers {
 	}
 	return list
 }
-

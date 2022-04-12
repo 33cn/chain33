@@ -10,21 +10,17 @@ import (
 	ctypes "github.com/33cn/chain33/types"
 )
 
-
 type AdminApi struct {
 	cli rpcclient.ChannelClient
 	cfg *ctypes.Chain33Config
-
 }
 
-func NewAdminApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtocolAPI) *AdminApi {
-	p :=&AdminApi{}
-	p.cli.Init(c,api)
-	p.cfg=cfg
+func NewAdminApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) *AdminApi {
+	p := &AdminApi{}
+	p.cli.Init(c, api)
+	p.cfg = cfg
 	return p
 }
-
-
 
 /**
 #admin_peers
@@ -69,7 +65,7 @@ response
 */
 
 func (p *AdminApi) Peers() ([]*rpctypes.Peer, error) {
-	var in  = types.P2PGetPeerReq{}
+	var in = types.P2PGetPeerReq{}
 	reply, err := p.cli.PeerInfo(&in)
 	if err != nil {
 		return nil, err
@@ -106,7 +102,6 @@ func (p *AdminApi) Peers() ([]*rpctypes.Peer, error) {
 	return peerlist.Peers, nil
 }
 
-
 /**
 #admin_datadir
 
@@ -132,7 +127,6 @@ func (p *AdminApi) Datadir() (string, error) {
 	dbpath := mcfg.BlockChain.DbPath
 	return dbpath, nil
 }
-
 
 /**
 #admin_nodeInfo
@@ -172,8 +166,8 @@ response
         "runningTime": "0.262 minutes"
     }
 }
- */
-func (p *AdminApi)NodeInfo() (*rpctypes.Peer, error)  {
+*/
+func (p *AdminApi) NodeInfo() (*rpctypes.Peer, error) {
 
 	peers, err := p.Peers()
 	if err != nil {
@@ -188,5 +182,3 @@ func (p *AdminApi)NodeInfo() (*rpctypes.Peer, error)  {
 
 	return nil, nil
 }
-
-

@@ -11,17 +11,15 @@ import (
 	"strconv"
 )
 
-
 type NetApi struct {
 	cli rpcclient.ChannelClient
 	cfg *ctypes.Chain33Config
-
 }
 
-func NewNetApi( cfg *ctypes.Chain33Config,c queue.Client,api client.QueueProtocolAPI) *NetApi {
-	p :=&NetApi{}
-	p.cli.Init(c,api)
-	p.cfg=cfg
+func NewNetApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) *NetApi {
+	p := &NetApi{}
+	p.cli.Init(c, api)
+	p.cfg = cfg
 	return p
 }
 
@@ -37,10 +35,10 @@ response
     "id": 74,
     "result": "0x01"
 }
- */
+*/
 func (n *NetApi) PeerCount() (string, error) {
 
-	var in  = types.P2PGetPeerReq{}
+	var in = types.P2PGetPeerReq{}
 	reply, err := n.cli.PeerInfo(&in)
 	if err != nil {
 		return "0x0", err
@@ -48,7 +46,7 @@ func (n *NetApi) PeerCount() (string, error) {
 
 	numPeers := len(reply.Peers)
 
-	return 	common.ToHex(big.NewInt(int64(numPeers)).Bytes()), nil
+	return common.ToHex(big.NewInt(int64(numPeers)).Bytes()), nil
 }
 
 /**
@@ -63,11 +61,10 @@ response
     "id": 74,
     "result": true
 }
- */
+*/
 func (n *NetApi) Listening() (bool, error) {
 	return true, nil
 }
-
 
 /**
 #net_version
@@ -81,7 +78,7 @@ response
     "id": 67,
     "result": "0"
 }
- */
+*/
 func (n *NetApi) Version() (string, error) {
-	return strconv.FormatInt(int64(n.cfg.GetChainID()), 10),nil
+	return strconv.FormatInt(int64(n.cfg.GetChainID()), 10), nil
 }

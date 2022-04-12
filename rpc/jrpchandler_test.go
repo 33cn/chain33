@@ -377,10 +377,10 @@ func TestDecodeLogModifyConfig(t *testing.T) {
 
 func newTestChain33(api client.QueueProtocolAPI) *Chain33 {
 	types.AssertConfig(api)
-	obj:= &Chain33{}
-	q:=queue.New("test")
-	obj.cli=client2.ChannelClient{}
-	obj.cli.Init(q.Client(),api)
+	obj := &Chain33{}
+	q := queue.New("test")
+	obj.cli = client2.ChannelClient{}
+	obj.cli.Init(q.Client(), api)
 
 	return obj
 }
