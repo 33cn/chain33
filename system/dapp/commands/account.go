@@ -5,8 +5,11 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
+
+	"github.com/33cn/chain33/system/crypto/secp256k1"
 
 	"github.com/33cn/chain33/common"
 	"github.com/pkg/errors"
@@ -39,6 +42,7 @@ func AccountCmd() *cobra.Command {
 		DumpKeysFileCmd(),
 		ImportKeysFileCmd(),
 		GetAccountCmd(),
+		getPubKeyCmd(),
 	)
 
 	return cmd
@@ -379,6 +383,44 @@ func getRandAccount(cmd *cobra.Command, args []string) {
 	var res types.AccountInfo
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.NewRandAccount", &params, &res)
 	ctx.Run()
+}
+
+func getPubKeyCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "pubkey",
+		Short: "get ecdsa public key from private key",
+		Run:   getPubKey,
+	}
+	addGetPubKeyFlags(cmd)
+	return cmd
+}
+
+func addGetPubKeyFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("key", "k", "", "ecdsa private key(hex)")
+	cmd.MarkFlagRequired("key")
+}
+func getPubKey(cmd *cobra.Command, args []string) {
+
+	key, _ := cmd.Flags().GetString("key")
+
+	if key == "" {
+		fmt.Fprintln(os.Stderr, "empty private key")
+		return
+	}
+	keyBytes, err := common.FromHex(key)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrap(err, "keyFromHex"))
+		return
+	}
+
+	driver := secp256k1.Driver{}
+	priv, err := driver.PrivKeyFromBytes(keyBytes)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrap(err, "PrivKeyFromBytes"))
+		return
+	}
+
+	fmt.Println(hex.EncodeToString(priv.PubKey().Bytes()))
 }
 
 //PubKeyToAddrCmd get rand account
