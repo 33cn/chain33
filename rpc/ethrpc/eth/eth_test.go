@@ -60,7 +60,7 @@ func TestEthApi_BlockNumber(t *testing.T) {
 	assert.Nil(t, err)
 	t.Log("blocknum:", bnum)
 	bn := big.NewInt(header.Height)
-	assert.Equal(t, hexutil.EncodeBig(bn), bnum)
+	assert.Equal(t, hexutil.EncodeBig(bn), bnum.String())
 }
 
 func TestEthApi_Mining(t *testing.T) {
@@ -98,7 +98,7 @@ func TestEthApi_GetBalance(t *testing.T) {
 	balanceHexStr, err := ethCli.GetBalance(addr, &tag)
 	assert.Nil(t, err)
 	t.Log("balance", balanceHexStr)
-	assert.Equal(t, balanceHexStr, "0x1dcd6500")
+	assert.Equal(t, balanceHexStr.String(), "0x1dcd6500")
 }
 
 func TestEthApi_GetBlock(t *testing.T) {
@@ -171,7 +171,7 @@ func testEthApi_GetBlockByNumber(t *testing.T, resp *ctypes.BlockDetails) {
 func TestEthApi_ChainId(t *testing.T) {
 	id, err := ethCli.ChainId()
 	assert.Nil(t, err)
-	assert.Equal(t, id, "0x21")
+	assert.Equal(t, id.String(), "0x21")
 }
 
 func TestWeb3_Sha3(t *testing.T) {
@@ -205,8 +205,6 @@ func TestEthApi_GetTxCount(t *testing.T){
 			Block: &ctypes.Block{
 				Txs: []*ctypes.Transaction{
 					{},
-					{},
-					{},
 				},
 			},
 		},
@@ -216,12 +214,12 @@ func TestEthApi_GetTxCount(t *testing.T){
 	var hash="0x660f78e492bf2630ecd4d8fdf09ec64f0e141bdfeb7636ed4992b31dd81338bd"
 	count,err:= ethCli.GetBlockTransactionCountByHash(hash)
 	assert.Nil(t, err)
-	assert.Equal(t, 3,int(count))
+	assert.Equal(t, 1,int(count))
 
 	qapi.On("GetBlocks",mock.Anything).Return(blockdetails,nil)
 	count,err= ethCli.GetBlockTransactionCountByNumber((*hexutil.Big)(big.NewInt(70)))
 	assert.Nil(t, err)
-	assert.Equal(t, 3,int(count))
+	assert.Equal(t, 1,int(count))
 }
 
 
