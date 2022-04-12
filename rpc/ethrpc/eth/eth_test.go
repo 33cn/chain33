@@ -42,7 +42,7 @@ func TestEthApi_Accounts(t *testing.T) {
 	qapi.On("ExecWalletFunc", "wallet", "WalletGetAccountList", req).Return(nil, errors.New("wrong param"))
 	accs, err := ethCli.Accounts()
 	assert.NotNil(t, err)
-
+	assert.Equal(t, 0,len(accs))
 	qapi = &clientMocks.QueueProtocolAPI{}
 	qapi.On("ExecWalletFunc", "wallet", "WalletGetAccountList", req).Return(resp, nil)
 	var addrs = []string{"0xa42431Da868c58877a627CC71Dc95F01bf40c196", "0xBe807Dddb074639cD9fA61b47676c064fc50D62C"}
@@ -90,10 +90,6 @@ func TestEthApi_GetBalance(t *testing.T) {
 	storevalue := &ctypes.StoreReplyValue{}
 	storevalue.Values = append(storevalue.Values, accv)
 	qapi.On("StoreGet", mock.Anything).Return(storevalue, nil)
-
-	var addrs = make([]string, 1)
-	addrs = append(addrs, "0x1E79307966B830bCdfEAB1Ed09871d248c2fE171")
-
 	var tag = "latest"
 	balanceHexStr, err := ethCli.GetBalance(addr, &tag)
 	assert.Nil(t, err)

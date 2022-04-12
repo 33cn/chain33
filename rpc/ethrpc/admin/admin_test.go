@@ -23,12 +23,12 @@ func init() {
 	q.SetConfig(cfg)
 	admin = &AdminApi{}
 	admin.cfg = cfg
+	admin.cli.Init(q.Client(),qapi)
 }
 
 func TestAdminApi_Peers(t *testing.T) {
 
 	var peerlist types.PeerList
-
 	var peer = &types.Peer{
 		Addr:        "192.168.0.19",
 		Port:        13803,
@@ -62,6 +62,7 @@ func testAdminApi_Peers(t *testing.T, plist *types.PeerList) {
 	peers, err := admin.Peers()
 	assert.Nil(t, err)
 	t.Log("peers", peers)
+	assert.Equal(t, "16Uiu2HAmBdwm5i6Ao6hBedNXHSM44ZUhM4243s5yJGAKPyHRjESw",peers[0].Name)
 }
 
 func TestAdminApi_NodeInfo(t *testing.T) {

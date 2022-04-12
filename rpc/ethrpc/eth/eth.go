@@ -256,7 +256,7 @@ func(e *Eth)Sign(address,message string)(string,error){
 		return "",errors.New("invalid argument 1: must hex string")
 	}
 
-	c, err := crypto.Load("secp256k1", -1)
+	c, _ := crypto.Load("secp256k1", -1)
 	signKey, err := c.PrivKeyFromBytes(common.FromHex(privKeyHex))
 	if err!=nil{
 		return "",err
@@ -383,6 +383,9 @@ func (e *Eth)GetTransactionCount(address ,tag string)(interface{},error){
 	param.Execer=exec
 	param.Payload=[]byte(fmt.Sprintf(`{"address":"%v"}`,address))
 	queryparam, err := execty.CreateQuery(param.FuncName, param.Payload)
+	if err!=nil{
+		return nil,err
+	}
 	resp,err:= e.cli.Query(param.Execer,param.FuncName,queryparam)
 	if err!=nil{
 		return "",err
@@ -411,6 +414,9 @@ func (e*Eth)EstimateGas(callMsg *types.CallMsg)(interface{},error){
 	p.FuncName = "EstimateGas"
 	p.Payload=[]byte(fmt.Sprintf(`{"tx":"%v","from":"%v"}`,common.Bytes2Hex(ctypes.Encode(tx)),callMsg.From))
 	queryparam, err := execty.CreateQuery(p.FuncName, p.Payload)
+	if err!=nil{
+		return nil,err
+	}
 	e.cli.Query(p.Execer,p.FuncName,queryparam)
 	resp,err:= e.cli.Query(p.Execer,p.FuncName,queryparam)
 	if err!=nil{
