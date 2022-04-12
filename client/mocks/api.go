@@ -14,10 +14,6 @@ type QueueProtocolAPI struct {
 	mock.Mock
 }
 
-func (_m *QueueProtocolAPI) GetHighestBlockNum(param *types.ReqNil) (*types.ReplyBlockHeight, error) {
-	panic("implement me")
-}
-
 // AddBlacklist provides a mock function with given fields: req
 func (_m *QueueProtocolAPI) AddBlacklist(req *types.BlackPeer) (*types.Reply, error) {
 	ret := _m.Called(req)
@@ -399,6 +395,29 @@ func (_m *QueueProtocolAPI) GetHeaders(param *types.ReqBlocks) (*types.Headers, 
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.ReqBlocks) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetHighestBlockNum provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetHighestBlockNum(param *types.ReqNil) (*types.ReplyBlockHeight, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyBlockHeight
+	if rf, ok := ret.Get(0).(func(*types.ReqNil) *types.ReplyBlockHeight); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyBlockHeight)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqNil) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
