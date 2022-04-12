@@ -2,12 +2,11 @@ package net
 
 import (
 	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
 	rpcclient "github.com/33cn/chain33/rpc/client"
 	"github.com/33cn/chain33/types"
 	ctypes "github.com/33cn/chain33/types"
-	"math/big"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"strconv"
 )
 
@@ -23,19 +22,6 @@ func NewNetApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 	return p
 }
 
-/**
-#net_peerCount
-
-req
-{"jsonrpc":"2.0","method":"net_peerCount","params":[],"id":74}
-
-response
-{
-    "jsonrpc": "2.0",
-    "id": 74,
-    "result": "0x01"
-}
-*/
 func (n *NetApi) PeerCount() (string, error) {
 
 	var in = types.P2PGetPeerReq{}
@@ -45,40 +31,13 @@ func (n *NetApi) PeerCount() (string, error) {
 	}
 
 	numPeers := len(reply.Peers)
-
-	return common.ToHex(big.NewInt(int64(numPeers)).Bytes()), nil
+	return hexutil.EncodeUint64(uint64(numPeers)), nil
 }
 
-/**
-#net_listening
-
-req
-{"jsonrpc":"2.0","method":"net_listening","params":[],"id":74}
-
-response
-{
-    "jsonrpc": "2.0",
-    "id": 74,
-    "result": true
-}
-*/
 func (n *NetApi) Listening() (bool, error) {
 	return true, nil
 }
 
-/**
-#net_version
-
-req
-{"jsonrpc":"2.0","method":"net_version","params":[],"id":67}
-
-response
-{
-    "jsonrpc": "2.0",
-    "id": 67,
-    "result": "0"
-}
-*/
 func (n *NetApi) Version() (string, error) {
 	return strconv.FormatInt(int64(n.cfg.GetChainID()), 10), nil
 }

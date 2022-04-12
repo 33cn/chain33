@@ -7,7 +7,7 @@ package rpc
 import (
 	"encoding/base64"
 	"fmt"
-	client2 "github.com/33cn/chain33/rpc/client"
+	rclient "github.com/33cn/chain33/rpc/client"
 	"github.com/33cn/chain33/rpc/ethrpc"
 	"net"
 	"net/http"
@@ -44,14 +44,14 @@ var (
 
 // Chain33  a channel client
 type Chain33 struct {
-	cli client2.ChannelClient
+	cli rclient.ChannelClient
 	//for communicate with main chain in parallel chain
 	mainGrpcCli types.Chain33Client
 }
 
 // Grpc a channelClient
 type Grpc struct {
-	cli       client2.ChannelClient
+	cli       rclient.ChannelClient
 	cachelock sync.Mutex
 	subCache  map[string]*subInfo // topic -->subInfo
 }
