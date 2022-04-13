@@ -48,8 +48,6 @@ type QueueProtocol struct {
 	option QueueProtocolOption
 }
 
-
-
 // New New QueueProtocolAPI interface
 func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, error) {
 	if client == nil {

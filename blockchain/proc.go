@@ -117,7 +117,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventAddChunkBlock:
 			go chain.processMsg(msg, reqnum, chain.addChunkBlock)
 		case types.EventHighestBlock:
-			go chain.processMsg(msg,reqnum,chain.highestBlockNum)
+			go chain.processMsg(msg, reqnum, chain.highestBlockNum)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -726,9 +726,9 @@ func (chain *BlockChain) subscribePush(msg *queue.Message) {
 	msg.Reply(chain.client.NewMessage("rpc", types.EventReplySubscribePush, reply))
 }
 
-func (chain *BlockChain)highestBlockNum(msg*queue.Message){
+func (chain *BlockChain) highestBlockNum(msg *queue.Message) {
 	var replyBlockHeight types.ReplyBlockHeight
 	replyBlockHeight.Height = chain.GetPeerMaxBlkHeight()
-	msg.Reply(chain.client.NewMessage("rpc",types.EventHighestBlock,&replyBlockHeight))
+	msg.Reply(chain.client.NewMessage("rpc", types.EventHighestBlock, &replyBlockHeight))
 
 }

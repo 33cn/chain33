@@ -100,7 +100,7 @@ type QueueProtocolAPI interface {
 	GetLastBlockMainSequence() (*types.Int64, error)
 	//types.EventGetSequenceByHash:
 	GetMainSequenceByHash(param *types.ReqHash) (*types.Int64, error)
-	GetHighestBlockNum(param *types.ReqNil)(*types.ReplyBlockHeight,error)
+	GetHighestBlockNum(param *types.ReqNil) (*types.ReplyBlockHeight, error)
 	// --------------- blockchain interfaces end
 
 	// +++++++++++++++ store interfaces begin

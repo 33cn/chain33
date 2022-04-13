@@ -385,14 +385,12 @@ func newTestChain33(api client.QueueProtocolAPI) *Chain33 {
 
 	return obj
 
-
-
 }
 
 func TestChain33_CreateRawTransaction(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	api.On("GetConfig", mock.Anything).Return(cfg,nil)
+	api.On("GetConfig", mock.Anything).Return(cfg, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	err := testChain33.CreateRawTransaction(nil, &testResult)

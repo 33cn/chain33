@@ -255,7 +255,7 @@ type RPC struct {
 	// grpc绑定地址
 	GrpcBindAddr string `json:"grpcBindAddr,omitempty"`
 	//ethereum rpc bindaddr
-	ErpcBindAddr string  `json:"erpcBindAddr,omitempty"`
+	ErpcBindAddr string `json:"erpcBindAddr,omitempty"`
 	// 白名单列表，允许访问的IP地址，默认是“*”，允许所有IP访问
 	Whitlist  []string `json:"whitlist,omitempty"`
 	Whitelist []string `json:"whitelist,omitempty"`
