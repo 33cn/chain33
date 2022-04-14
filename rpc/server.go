@@ -308,12 +308,13 @@ func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServe
 
 // RPC a type object
 type RPC struct {
-	cfg  *types.RPC
-	gapi *Grpcserver
-	japi *JSONRPCServer
-	eapi *ethrpc.EthRpcServer
-	cli  queue.Client
-	api  client.QueueProtocolAPI
+	cfg    *types.RPC
+	gapi   *Grpcserver
+	japi   *JSONRPCServer
+	eapi   *ethrpc.HttpServer
+	ewsapi *ethrpc.HttpServer
+	cli    queue.Client
+	api    client.QueueProtocolAPI
 }
 
 // InitCfg  interfaces
@@ -347,10 +348,14 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 
 	gapi := NewGRpcServer(c, r.api)
 	japi := NewJSONRPCServer(c, r.api)
-	r.eapi = ethrpc.NewEthRpcServer(c, r.api)
+	r.eapi = ethrpc.NewHttpServer(c, r.api)
+	r.ewsapi = ethrpc.NewHttpServer(c, r.api)
 	r.gapi = gapi
 	r.japi = japi
 	r.cli = c
+
+	r.eapi.EnableRpc(ethrpc.DefaultApis)
+	r.ewsapi.EnableWS(ethrpc.DefaultApis)
 	go r.handleSysEvent()
 
 	//注册系统rpc
@@ -362,6 +367,10 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 	gapi := NewGRpcServer(c, r.api)
 	japi := NewJSONRPCServer(c, r.api)
+	r.eapi = ethrpc.NewHttpServer(c, r.api)
+	r.eapi.EnableRpc(ethrpc.DefaultApis)
+	r.ewsapi = ethrpc.NewHttpServer(c, r.api)
+	r.ewsapi.EnableWS(ethrpc.DefaultApis)
 	r.gapi = gapi
 	r.japi = japi
 	r.cli = c
@@ -399,7 +408,7 @@ func (r *RPC) handleSysEvent() {
 }
 
 // Listen rpc listen
-func (r *RPC) Listen() (port1 int, port2 int) {
+func (r *RPC) Listen() (port1 int, port2 int, port3, port4 int) {
 	var err error
 	for i := 0; i < 10; i++ {
 		port1, err = r.gapi.Listen()
@@ -419,10 +428,22 @@ func (r *RPC) Listen() (port1 int, port2 int) {
 		}
 		break
 	}
-	log.Info("rpc Listen port", "grpc", port1, "jrpc", port2)
+
+	port3, err = r.eapi.Start()
+	if err != nil {
+		log.Error("Erpc Listen", "err", err)
+	}
+
+	port4, err = r.ewsapi.Start()
+	if err != nil {
+		log.Error("Erpc Listen", "err", err)
+	}
+	log.Info("rpc Listen port", "grpc", port1, "jrpc", port2, "erpc", port3, "wsport:", port4)
 	//sleep for a while
+
 	time.Sleep(time.Millisecond)
-	return port1, port2
+	return port1, port2, port3, port4
+
 }
 
 // GetQueueClient get queue client
@@ -447,6 +468,12 @@ func (r *RPC) Close() {
 	}
 	if r.japi != nil {
 		r.japi.Close()
+	}
+	if r.eapi != nil {
+		r.eapi.Close()
+	}
+	if r.ewsapi != nil {
+		r.ewsapi.Close()
 	}
 }
 

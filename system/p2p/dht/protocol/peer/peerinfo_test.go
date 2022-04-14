@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/33cn/chain33/common/utils"
 	"sync"
 	"testing"
 	"time"
@@ -224,7 +225,7 @@ func Test_isPublicIP(t *testing.T) {
 		{"192.169.0.0", true},
 	}
 	for _, c := range cases {
-		require.Equal(t, c.output, isPublicIP(c.input))
+		require.Equal(t, c.output, utils.IsPublicIP(c.input))
 	}
 }
 

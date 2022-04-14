@@ -15,7 +15,7 @@ type NetApi struct {
 	cfg *ctypes.Chain33Config
 }
 
-func NewNetApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) *NetApi {
+func NewNetApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
 	p := &NetApi{}
 	p.cli.Init(c, api)
 	p.cfg = cfg

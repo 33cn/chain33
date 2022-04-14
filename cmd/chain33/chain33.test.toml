@@ -76,6 +76,10 @@ grpcFuncWhitelist=["*"]
 enableTLS=false
 certFile="cert.pem"
 keyFile="key.pem"
+[rpc.sub.eth]
+enable=false
+# jrpc绑定地址
+jrpcBindAddr="localhost:8545"
 
 [mempool]
 name="timeline"

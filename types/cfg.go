@@ -52,6 +52,7 @@ type ConfigSubModule struct {
 	Metrics   map[string][]byte
 	P2P       map[string][]byte
 	Crypto    map[string][]byte
+	RPC       map[string][]byte
 }
 
 // subModule 子模块结构体
@@ -64,6 +65,7 @@ type subModule struct {
 	Metrics   map[string]interface{}
 	P2P       map[string]interface{}
 	Crypto    map[string]interface{}
+	RPC       map[string]interface{}
 }
 
 // ForkList fork列表配置

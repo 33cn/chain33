@@ -15,7 +15,7 @@ type AdminApi struct {
 	cfg *ctypes.Chain33Config
 }
 
-func NewAdminApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) *AdminApi {
+func NewAdminApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
 	p := &AdminApi{}
 	p.cli.Init(c, api)
 	p.cfg = cfg

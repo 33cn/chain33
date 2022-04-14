@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"math/rand"
 	"testing"
+	"time"
 )
 
 func Test_parseDer(t *testing.T) {
@@ -35,7 +36,8 @@ func Test_checkSig(t *testing.T) {
 		return
 	}
 	var key [32]byte
-	rand.Read(key[:])
+	rd:= rand.New(rand.NewSource(time.Now().UnixNano()))
+	rd.Read(key[:])
 	signKey, err := c.PrivKeyFromBytes(key[:])
 	if err != nil {
 		t.Log("err:", err)

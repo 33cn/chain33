@@ -14,7 +14,7 @@ type Web3 struct {
 	cfg *ctypes.Chain33Config
 }
 
-func NewWeb3(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) *Web3 {
+func NewWeb3Api(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
 	w := &Web3{}
 	w.cli.Init(c, api)
 	w.cfg = cfg

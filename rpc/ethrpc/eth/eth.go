@@ -28,7 +28,7 @@ var (
 	log = log15.New("module", "eth")
 )
 
-func NewEthApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) *Eth {
+func NewEthApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
 	e := &Eth{}
 	e.cli.Init(c, api)
 	e.cfg = cfg

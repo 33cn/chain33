@@ -116,6 +116,11 @@ certFile="cert.pem"
 # 私钥文件
 keyFile="key.pem"
 
+[rpc.sub.eth]
+enable=false
+# jrpc绑定地址
+jrpcBindAddr="localhost:8545"
+
 [mempool]
 # mempool队列名称，可配，timeline，score，price
 name="timeline"

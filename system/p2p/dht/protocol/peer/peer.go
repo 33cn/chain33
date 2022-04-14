@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"github.com/33cn/chain33/common/utils"
 	"strconv"
 	"strings"
 	"sync"
@@ -84,7 +85,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	for _, multiAddr := range p.Host.Addrs() {
 		addr := multiAddr.String()
 		// 如果找到公网ip直接break，否则预设置一个内网ip
-		if isPublicIP(strings.Split(addr, "/")[2]) {
+		if utils.IsPublicIP(strings.Split(addr, "/")[2]) {
 			p.mutex.Lock()
 			p.externalAddr = addr
 			p.mutex.Unlock()
