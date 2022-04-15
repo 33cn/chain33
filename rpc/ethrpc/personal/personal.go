@@ -7,19 +7,21 @@ import (
 	ctypes "github.com/33cn/chain33/types"
 )
 
-type PersonalApi struct {
+type personalHandler struct {
 	cli rpcclient.ChannelClient
 	cfg *ctypes.Chain33Config
 }
 
-func NewPersonalApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
-	p := &PersonalApi{}
+//NewPersonalApi new persional object
+func NewPersonalAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
+	p := &personalHandler{}
 	p.cli.Init(c, api)
 	p.cfg = cfg
 	return p
 }
 
-func (p *PersonalApi) ListAccounts() ([]string, error) {
+//ListAccounts personal_listAccounts show all account
+func (p *personalHandler) ListAccounts() ([]string, error) {
 	req := &ctypes.ReqAccountList{WithoutBalance: true}
 	msg, err := p.cli.ExecWalletFunc("wallet", "WalletGetAccountList", req)
 	if err != nil {
@@ -34,9 +36,9 @@ func (p *PersonalApi) ListAccounts() ([]string, error) {
 	return accounts, nil
 }
 
-func (p *PersonalApi) NewAccount(label string, addrID int32) (string, error) {
-
-	req := &ctypes.ReqNewAccount{Label: label, AddressID: addrID}
+//NewAccount  personal_newaccount
+func (p *personalHandler) NewAccount(label string) (string, error) {
+	req := &ctypes.ReqNewAccount{Label: label, AddressID: 2}
 	resp, err := p.cli.ExecWalletFunc("wallet", "NewAccount", req)
 	if err != nil {
 		return "", err
@@ -45,7 +47,8 @@ func (p *PersonalApi) NewAccount(label string, addrID int32) (string, error) {
 	return account.Acc.Addr, nil
 }
 
-func (p *PersonalApi) UnlockAccount(account, passwd string, duration int64) bool {
+//UnlockAccount personal_unlockAccount
+func (p *personalHandler) UnlockAccount(account, passwd string, duration int64) bool {
 	req := &ctypes.WalletUnLock{Passwd: passwd, Timeout: duration}
 	resp, err := p.cli.ExecWalletFunc("wallet", "WalletUnLock", req)
 	if err != nil {
@@ -55,7 +58,8 @@ func (p *PersonalApi) UnlockAccount(account, passwd string, duration int64) bool
 	return result
 }
 
-func (p *PersonalApi) ImportRawKey(keydata, label string) (string, error) {
+//ImportRawKey personal_importRawKey
+func (p *personalHandler) ImportRawKey(keydata, label string) (string, error) {
 	req := &ctypes.ReqWalletImportPrivkey{Privkey: keydata, Label: label}
 	resp, err := p.cli.ExecWalletFunc("wallet", "WalletImportPrivkey", req)
 	if err != nil {

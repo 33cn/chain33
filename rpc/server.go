@@ -7,14 +7,15 @@ package rpc
 import (
 	"encoding/base64"
 	"fmt"
-	rclient "github.com/33cn/chain33/rpc/client"
-	"github.com/33cn/chain33/rpc/ethrpc"
 	"net"
 	"net/http"
 	"net/rpc"
 	"strings"
 	"sync"
 	"time"
+
+	rclient "github.com/33cn/chain33/rpc/client"
+	"github.com/33cn/chain33/rpc/ethrpc"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/log/log15"
@@ -311,8 +312,8 @@ type RPC struct {
 	cfg    *types.RPC
 	gapi   *Grpcserver
 	japi   *JSONRPCServer
-	eapi   *ethrpc.HttpServer
-	ewsapi *ethrpc.HttpServer
+	eapi   ethrpc.ServerAPI
+	ewsapi ethrpc.ServerAPI
 	cli    queue.Client
 	api    client.QueueProtocolAPI
 }
@@ -348,13 +349,13 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 
 	gapi := NewGRpcServer(c, r.api)
 	japi := NewJSONRPCServer(c, r.api)
-	r.eapi = ethrpc.NewHttpServer(c, r.api)
-	r.ewsapi = ethrpc.NewHttpServer(c, r.api)
+	r.eapi = ethrpc.NewHTTPServer(c, r.api)
+	r.ewsapi = ethrpc.NewHTTPServer(c, r.api)
 	r.gapi = gapi
 	r.japi = japi
 	r.cli = c
-
-	r.eapi.EnableRpc(ethrpc.DefaultApis)
+	//配置rpc,websocket
+	r.eapi.EnableRPC(ethrpc.DefaultApis)
 	r.ewsapi.EnableWS(ethrpc.DefaultApis)
 	go r.handleSysEvent()
 
@@ -367,9 +368,9 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 	gapi := NewGRpcServer(c, r.api)
 	japi := NewJSONRPCServer(c, r.api)
-	r.eapi = ethrpc.NewHttpServer(c, r.api)
-	r.eapi.EnableRpc(ethrpc.DefaultApis)
-	r.ewsapi = ethrpc.NewHttpServer(c, r.api)
+	r.eapi = ethrpc.NewHTTPServer(c, r.api)
+	r.eapi.EnableRPC(ethrpc.DefaultApis)
+	r.ewsapi = ethrpc.NewHTTPServer(c, r.api)
 	r.ewsapi.EnableWS(ethrpc.DefaultApis)
 	r.gapi = gapi
 	r.japi = japi

@@ -5,6 +5,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
+//Header block header
 type Header struct {
 	ParentHash  string      `json:"parentHash"       gencodec:"required"`
 	UncleHash   string      `json:"sha3Uncles"       gencodec:"required"`
@@ -42,6 +43,7 @@ type Transaction struct {
 	S                string `json:"s,omitempty"`
 }
 
+//Transactions txs types
 type Transactions []*Transaction
 
 //Block ETH 交易结构体
@@ -79,6 +81,7 @@ type Receipt struct {
 	TransactionIndex string `json:"transactionIndex"`
 }
 
+//CallMsg eth api param
 type CallMsg struct {
 	From     string          `json:"from"`
 	To       string          `json:"to"`
@@ -92,7 +95,40 @@ type CallMsg struct {
 	Input string `json:"input"`
 }
 
+//EvmLog evm log
 type EvmLog struct {
 	Topic []hexutil.Bytes `json:"topic,omitempty"`
 	Data  hexutil.Bytes   `json:"data,omitempty"`
+}
+
+type Peer struct {
+	Id         string     `json:"id,omitempty"`
+	Name       string     `json:"name,omitempty"`
+	NetWork    *Network   `json:"netWork,omitempty"`
+	Protocols  *Protocols `json:"protocols,omitempty"`
+	Self       bool       `json:"self,omitempty"`
+	Ports      *Ports     `json:"ports,omitempty"`
+	Encode     string     `json:"encode,omitempty"`
+	ListenAddr string     `json:"listenAddr,omitempty"`
+}
+
+type Network struct {
+	LocalAddress  string `json:"localAddress,omitempty"`
+	RemoteAddress string `json:"remoteAddress,omitempty"`
+}
+
+type Protocols struct {
+	EthProto *EthProto `json:"eth,omitempty"`
+}
+
+type EthProto struct {
+	Difficulty uint32 `json:"difficulty,omitempty"`
+	Head       string `json:"head,omitempty"`
+	Version    string `json:"version,omitempty"`
+	NetworkID  int    `json:"network,omitempty"`
+}
+
+type Ports struct {
+	Discovery int32 `json:"discovery,omitempty"`
+	Listener  int32 `json:"listener,omitempty"`
 }

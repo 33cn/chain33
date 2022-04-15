@@ -9,13 +9,14 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-type Web3 struct {
+type web3Handler struct {
 	cli rpcclient.ChannelClient
 	cfg *ctypes.Chain33Config
 }
 
-func NewWeb3Api(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
-	w := &Web3{}
+//NewWeb3Api nwe web3 api object
+func NewWeb3API(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
+	w := &web3Handler{}
 	w.cli.Init(c, api)
 	w.cfg = cfg
 	return w
@@ -23,7 +24,7 @@ func NewWeb3Api(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProto
 
 //Sha3   web3_sha3
 //Returns Keccak-256 (not the standardized SHA3-256) of the given data.
-func (w *Web3) Sha3(input string) (string, error) {
+func (w *web3Handler) Sha3(input string) (string, error) {
 	data, err := common.FromHex(input)
 	if err != nil {
 		return "", err

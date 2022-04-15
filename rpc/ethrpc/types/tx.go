@@ -12,15 +12,9 @@ import (
 	"strings"
 )
 
-func DecodeSignature(sig []byte) (r, s, v *big.Int) {
-	if len(sig) != crypto.SignatureLength {
-		panic(fmt.Sprintf("wrong size for signature: got %d, want %d", len(sig), crypto.SignatureLength))
-	}
-	r = new(big.Int).SetBytes(sig[:32])
-	s = new(big.Int).SetBytes(sig[32:64])
-	v = new(big.Int).SetBytes([]byte{sig[64] + 27})
-	return r, s, v
-}
+
+
+//MakeDERSigToRSV der sig data to rsv
 func MakeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.Int, err error) {
 	//fmt.Println("len:",len(sig),"sig",hexutil.Encode(sig))
 	rb, sb, err := paraseDERCode(sig)
@@ -32,12 +26,22 @@ func MakeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.In
 	signature = append(signature, rb...)
 	signature = append(signature, sb...)
 	signature = append(signature, 0x00)
-	r, s, v = DecodeSignature(signature)
+	r, s, v = decodeSignature(signature)
 	if eipSigner.ChainID().Sign() != 0 {
 		v = big.NewInt(int64(signature[64] + 35))
 		v.Add(v, new(big.Int).Mul(eipSigner.ChainID(), big.NewInt(2)))
 	}
 	return r, s, v, nil
+}
+
+func decodeSignature(sig []byte) (r, s, v *big.Int) {
+	if len(sig) != crypto.SignatureLength {
+		panic(fmt.Sprintf("wrong size for signature: got %d, want %d", len(sig), crypto.SignatureLength))
+	}
+	r = new(big.Int).SetBytes(sig[:32])
+	s = new(big.Int).SetBytes(sig[32:64])
+	v = new(big.Int).SetBytes([]byte{sig[64] + 27})
+	return r, s, v
 }
 
 func paraseDERCode(sig []byte) (r, s []byte, err error) {
@@ -84,6 +88,7 @@ func makeDERsignature(rb, sb []byte) []byte {
 	return b
 }
 
+//TxsToEthTxs chain33 txs format transfer to eth txs format
 func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full bool) (txs []interface{}, err error) {
 	eipSigner := etypes.NewEIP155Signer(big.NewInt(int64(cfg.GetChainID())))
 	for _, itx := range ctxs {
@@ -128,7 +133,7 @@ func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full boo
 	}
 	return txs, nil
 }
-
+//TxDetailsToEthTx chain33 txdetails transfer to eth tx
 func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33Config) (txs Transactions, receipts []*Receipt, err error) {
 	for _, detail := range txdetails.GetTxs() {
 		var tx Transaction

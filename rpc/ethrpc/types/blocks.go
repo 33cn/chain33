@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
+//BlockDetailToEthBlock chain33 blockdetails transfer to  eth block format
 func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config, full bool) (*Block, error) {
 	var block Block
 	var header Header

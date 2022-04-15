@@ -3,6 +3,9 @@ package eth
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"time"
+
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
@@ -15,11 +18,9 @@ import (
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"math/rand"
-	"time"
 )
 
-type Eth struct {
+type ethHandler struct {
 	cli rpcclient.ChannelClient
 	cfg *ctypes.Chain33Config
 }
@@ -28,15 +29,16 @@ var (
 	log = log15.New("module", "eth")
 )
 
-func NewEthApi(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
-	e := &Eth{}
+//NewEthApi new eth api
+func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
+	e := &ethHandler{}
 	e.cli.Init(c, api)
 	e.cfg = cfg
 	return e
 }
 
 //GetBalance eth_getBalance  tag:"latest", "earliest" or "pending"
-func (e *Eth) GetBalance(address string, tag *string) (hexutil.Uint64, error) {
+func (e *ethHandler) GetBalance(address string, tag *string) (hexutil.Uint64, error) {
 	var req ctypes.ReqBalance
 	req.AssetSymbol = e.cli.GetConfig().GetCoinSymbol()
 	req.Execer = e.cli.GetConfig().GetCoinExec()
@@ -50,12 +52,12 @@ func (e *Eth) GetBalance(address string, tag *string) (hexutil.Uint64, error) {
 }
 
 //ChainId eth_chainId
-func (e *Eth) ChainId() (hexutil.Uint64, error) {
+func (e *ethHandler) ChainId() (hexutil.Uint64, error) {
 	return hexutil.Uint64(e.cfg.GetChainID()), nil
 }
 
 //BlockNumber eth_blockNumber 获取区块高度
-func (e *Eth) BlockNumber() (hexutil.Uint64, error) {
+func (e *ethHandler) BlockNumber() (hexutil.Uint64, error) {
 	header, err := e.cli.GetLastHeader()
 	if err != nil {
 		return 0, err
@@ -65,7 +67,7 @@ func (e *Eth) BlockNumber() (hexutil.Uint64, error) {
 }
 
 //GetBlockByNumber  eth_getBlockByNumber
-func (e *Eth) GetBlockByNumber(number *hexutil.Big, full bool) (*types.Block, error) {
+func (e *ethHandler) GetBlockByNumber(number *hexutil.Big, full bool) (*types.Block, error) {
 	var req ctypes.ReqBlocks
 	req.Start = number.ToInt().Int64()
 	req.End = req.Start
@@ -88,7 +90,7 @@ func (e *Eth) GetBlockByNumber(number *hexutil.Big, full bool) (*types.Block, er
 }
 
 //GetBlockByHash eth_getBlockByHash 通过区块哈希获取区块交易详情
-func (e *Eth) GetBlockByHash(txhash string, full bool) (*types.Block, error) {
+func (e *ethHandler) GetBlockByHash(txhash string, full bool) (*types.Block, error) {
 	var req ctypes.ReqHashes
 	req.Hashes = append(req.Hashes, common.FromHex(txhash))
 	details, err := e.cli.GetBlockByHashes(&req)
@@ -101,7 +103,7 @@ func (e *Eth) GetBlockByHash(txhash string, full bool) (*types.Block, error) {
 }
 
 //GetTransactionByHash eth_getTransactionByHash
-func (e *Eth) GetTransactionByHash(txhash string) (*types.Transaction, error) {
+func (e *ethHandler) GetTransactionByHash(txhash string) (*types.Transaction, error) {
 	var req ctypes.ReqHashes
 	req.Hashes = append(req.Hashes, common.FromHex(txhash))
 	txdetails, err := e.cli.GetTransactionByHash(&req)
@@ -116,7 +118,7 @@ func (e *Eth) GetTransactionByHash(txhash string) (*types.Transaction, error) {
 }
 
 //GetTransactionReceipt eth_getTransactionReceipt
-func (e *Eth) GetTransactionReceipt(txhash string) (*types.Receipt, error) {
+func (e *ethHandler) GetTransactionReceipt(txhash string) (*types.Receipt, error) {
 	var req ctypes.ReqHashes
 	req.Hashes = append(req.Hashes, common.FromHex(txhash))
 	txdetails, err := e.cli.GetTransactionByHash(&req)
@@ -132,7 +134,7 @@ func (e *Eth) GetTransactionReceipt(txhash string) (*types.Receipt, error) {
 }
 
 //GetBlockTransactionCountByNumber eth_getBlockTransactionCountByNumber
-func (e *Eth) GetBlockTransactionCountByNumber(blockNum *hexutil.Big) (hexutil.Uint64, error) {
+func (e *ethHandler) GetBlockTransactionCountByNumber(blockNum *hexutil.Big) (hexutil.Uint64, error) {
 	var req ctypes.ReqBlocks
 	req.Start = blockNum.ToInt().Int64()
 	req.End = req.Start
@@ -148,7 +150,7 @@ func (e *Eth) GetBlockTransactionCountByNumber(blockNum *hexutil.Big) (hexutil.U
 //method:eth_getBlockTransactionCountByHash
 //parameters: 32 Bytes - hash of a block
 //Returns: integer of the number of transactions in this block.
-func (e *Eth) GetBlockTransactionCountByHash(hash string) (hexutil.Uint64, error) {
+func (e *ethHandler) GetBlockTransactionCountByHash(hash string) (hexutil.Uint64, error) {
 	var req ctypes.ReqHashes
 	req.Hashes = append(req.Hashes, common.FromHex(hash))
 	blockdetails, err := e.cli.GetBlockByHashes(&req)
@@ -160,9 +162,8 @@ func (e *Eth) GetBlockTransactionCountByHash(hash string) (hexutil.Uint64, error
 	return hexutil.Uint64(len(blockdetails.GetItems()[0].GetBlock().GetTxs())), nil
 }
 
-//Accounts
-//eth_accounts
-func (e *Eth) Accounts() ([]string, error) {
+//Accounts eth_accounts
+func (e *ethHandler) Accounts() ([]string, error) {
 	req := &ctypes.ReqAccountList{WithoutBalance: true}
 	msg, err := e.cli.ExecWalletFunc("wallet", "WalletGetAccountList", req)
 	if err != nil {
@@ -178,9 +179,8 @@ func (e *Eth) Accounts() ([]string, error) {
 
 }
 
-//Call
-//eth_call evm合约相关操作,合约相关信息查询
-func (e *Eth) Call(msg types.CallMsg, tag *string) (interface{}, error) {
+//Call eth_call evm合约相关操作,合约相关信息查询
+func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 	var param rpctypes.Query4Jrpc
 	type EvmQueryReq struct {
 		Address string
@@ -215,7 +215,7 @@ func (e *Eth) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 }
 
 //SendRawTransaction eth_sendRawTransaction 发送交易
-func (e *Eth) SendRawTransaction(rawData string) (string, error) {
+func (e *ethHandler) SendRawTransaction(rawData string) (string, error) {
 	hexData := common.FromHex(rawData)
 	if hexData == nil {
 		return "", errors.New("wrong data")
@@ -235,9 +235,8 @@ func (e *Eth) SendRawTransaction(rawData string) (string, error) {
 	return hexutil.Encode(reply.GetMsg()), nil
 }
 
-//Sign
-//method:eth_sign
-func (e *Eth) Sign(address, message string) (string, error) {
+//Sign method:eth_sign
+func (e *ethHandler) Sign(address, message string) (string, error) {
 	//导出私钥
 	reply, err := e.cli.ExecWalletFunc("wallet", "DumpPrivkey", &ctypes.ReqString{Data: address})
 	if err != nil {
@@ -258,9 +257,8 @@ func (e *Eth) Sign(address, message string) (string, error) {
 	return hexutil.Encode(signKey.Sign(msg).Bytes()), nil
 }
 
-//SignTransaction
-//method:eth_signTransaction
-func (e *Eth) SignTransaction(msg *types.CallMsg) (string, error) {
+//SignTransaction method:eth_signTransaction
+func (e *ethHandler) SignTransaction(msg *types.CallMsg) (string, error) {
 	var tx *ctypes.Transaction
 	var data []byte
 	if msg.Data == "" {
@@ -305,11 +303,12 @@ func (e *Eth) SignTransaction(msg *types.CallMsg) (string, error) {
 
 }
 
-//Syncing :Returns an object with data about the sync status or false.
+//Syncing ...
+//Returns an object with data about the sync status or false.
 //Returns: FALSE:when not syncing,
 //method:eth_syncing
 //params:[]
-func (e *Eth) Syncing() (interface{}, error) {
+func (e *ethHandler) Syncing() (interface{}, error) {
 	var syncing struct {
 		StartingBlock string `json:"startingBlock,omitempty"`
 		CurrentBlock  string `json:"currentBlock,omitempty"`
@@ -322,31 +321,32 @@ func (e *Eth) Syncing() (interface{}, error) {
 		if err == nil {
 			if caughtUp.Iscaughtup { // when not syncing
 				return false, nil
-			} else { //when syncing
-				header, err := e.cli.GetLastHeader()
+			}
+			//when syncing
+			header, err := e.cli.GetLastHeader()
+			if err == nil {
+				syncing.CurrentBlock = hexutil.EncodeUint64(uint64(header.GetHeight()))
+				syncing.StartingBlock = syncing.CurrentBlock
+				replyBlockNum, err := e.cli.GetHighestBlockNum(&ctypes.ReqNil{})
 				if err == nil {
-					syncing.CurrentBlock = hexutil.EncodeUint64(uint64(header.GetHeight()))
-					syncing.StartingBlock = syncing.CurrentBlock
-					replyBlockNum, err := e.cli.GetHighestBlockNum(&ctypes.ReqNil{})
-					if err == nil {
-						syncing.HighestBlock = hexutil.EncodeUint64(uint64(replyBlockNum.GetHeight()))
-						return &syncing, nil
-					}
-
+					syncing.HighestBlock = hexutil.EncodeUint64(uint64(replyBlockNum.GetHeight()))
+					return &syncing, nil
 				}
 
 			}
+
 		}
 	}
 
 	return nil, err
 }
 
-//Mining
+//Mining...
 //method:eth_mining
 //Paramtesrs:none
 //Returns:Returns true if client is actively mining new blocks.
-func (e *Eth) Mining() (bool, error) {
+
+func (e *ethHandler) Mining() (bool, error) {
 	msg, err := e.cli.ExecWalletFunc("wallet", "GetWalletStatus", &ctypes.ReqNil{})
 	if err == nil {
 		status := msg.(*ctypes.WalletStatus)
@@ -358,11 +358,11 @@ func (e *Eth) Mining() (bool, error) {
 	return false, err
 }
 
-//GetTransactionCount 获取nonce
-//methpd:eth_getTransactionCount
+//method:eth_getTransactionCount
 //Returns:Returns the number of transactions sent from an address.
 //Paramters: address,tag(disable):latest,pending,earliest
-func (e *Eth) GetTransactionCount(address, tag string) (interface{}, error) {
+//GetTransactionCount 获取nonce
+func (e *ethHandler) GetTransactionCount(address, tag string) (interface{}, error) {
 	exec := e.cfg.ExecName("evm")
 	execty := ctypes.LoadExecutorType(exec)
 	if execty == nil {
@@ -384,9 +384,9 @@ func (e *Eth) GetTransactionCount(address, tag string) (interface{}, error) {
 	return execty.QueryToJSON(param.FuncName, resp)
 }
 
+//method:eth_estimateGas
 //EstimateGas 获取gas
-//methpd:eth_estimateGas
-func (e *Eth) EstimateGas(callMsg *types.CallMsg) (interface{}, error) {
+func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (interface{}, error) {
 	//组装tx
 	exec := e.cfg.ExecName("evm")
 	execty := ctypes.LoadExecutorType(exec)
@@ -406,7 +406,6 @@ func (e *Eth) EstimateGas(callMsg *types.CallMsg) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	e.cli.Query(p.Execer, p.FuncName, queryparam)
 	resp, err := e.cli.Query(p.Execer, p.FuncName, queryparam)
 	if err != nil {
 		return "", err

@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	netOjb *NetApi
+	netOjb *netHandler
 	qapi   *clientMocks.QueueProtocolAPI
 	q      = queue.New("test")
 )
@@ -20,7 +20,7 @@ func init() {
 	qapi = &clientMocks.QueueProtocolAPI{}
 	cfg := ctypes.NewChain33Config(ctypes.GetDefaultCfgstring())
 	q.SetConfig(cfg)
-	netOjb = &NetApi{}
+	netOjb = &netHandler{}
 	netOjb.cfg = cfg
 	netOjb.cli.Init(q.Client(), qapi)
 

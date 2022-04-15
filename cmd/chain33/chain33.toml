@@ -120,6 +120,8 @@ keyFile="key.pem"
 enable=false
 # jrpc绑定地址
 jrpcBindAddr="localhost:8545"
+# websocket 绑定地址
+websocketAddr="localhost:8546"
 
 [mempool]
 # mempool队列名称，可配，timeline，score，price

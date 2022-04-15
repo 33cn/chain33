@@ -1,18 +1,19 @@
 package admin
 
 import (
+	"encoding/json"
+	"testing"
+
 	clientMocks "github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/queue"
-	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 var (
-	admin *AdminApi
+	admin *adminHandler
 	qapi  *clientMocks.QueueProtocolAPI
 	q     = queue.New("test")
 )
@@ -21,7 +22,7 @@ func init() {
 	qapi = &clientMocks.QueueProtocolAPI{}
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	q.SetConfig(cfg)
-	admin = &AdminApi{}
+	admin = &adminHandler{}
 	admin.cfg = cfg
 	admin.cli.Init(q.Client(), qapi)
 }
@@ -52,24 +53,23 @@ func TestAdminApi_Peers(t *testing.T) {
 
 	peerlist.Peers = append(peerlist.Peers, peer)
 
-	testAdminApi_Peers(t, &peerlist)
+	testAdminAPIPeers(t, &peerlist)
 
 }
 
-func testAdminApi_Peers(t *testing.T, plist *types.PeerList) {
+func testAdminAPIPeers(t *testing.T, plist *types.PeerList) {
 	qapi.On("PeerInfo", mock.Anything).Return(plist, nil)
 
 	peers, err := admin.Peers()
 	assert.Nil(t, err)
 	t.Log("peers", peers)
-	assert.Equal(t, "16Uiu2HAmBdwm5i6Ao6hBedNXHSM44ZUhM4243s5yJGAKPyHRjESw", peers[0].Name)
+	assert.Equal(t, "16Uiu2HAmBdwm5i6Ao6hBedNXHSM44ZUhM4243s5yJGAKPyHRjESw", peers[0].Id)
+	jmb, _ := json.MarshalIndent(peers, "", "\t")
+	t.Log("jmb:", string(jmb))
 }
 
 func TestAdminApi_NodeInfo(t *testing.T) {
-	var peerlist *types.PeerList = new(types.PeerList)
-
-	var getPeer = types.P2PGetPeerReq{}
-
+	var peerlist = new(types.PeerList)
 	var peer = &types.Peer{
 		Addr:        "192.168.0.19",
 		Port:        13803,
@@ -113,49 +113,14 @@ func TestAdminApi_NodeInfo(t *testing.T) {
 	}
 
 	peerlist.Peers = append(peerlist.Peers, peer, peer2)
-
-	qapi.On("PeerInfo", mock.Anything).Return(&getPeer, peerlist)
+	qapi = &clientMocks.QueueProtocolAPI{}
 	admin.cli.Init(q.Client(), qapi)
-
-	var pr rpctypes.Peer
-	for _, peer := range peerlist.Peers {
-
-		if peer.Self != true {
-			continue
-		}
-
-		pr.Addr = peer.GetAddr()
-		pr.MempoolSize = peer.GetMempoolSize()
-		pr.Name = peer.GetName()
-		pr.Port = peer.GetPort()
-		pr.Self = peer.GetSelf()
-		pr.Header = &rpctypes.Header{
-			BlockTime:  peer.Header.GetBlockTime(),
-			Height:     peer.Header.GetHeight(),
-			ParentHash: common.Bytes2Hex(peer.GetHeader().GetParentHash()),
-			StateHash:  common.Bytes2Hex(peer.GetHeader().GetStateHash()),
-			TxHash:     common.Bytes2Hex(peer.GetHeader().GetTxHash()),
-			Version:    peer.GetHeader().GetVersion(),
-			Hash:       common.Bytes2Hex(peer.GetHeader().GetHash()),
-			TxCount:    peer.GetHeader().GetTxCount(),
-		}
-
-		pr.Version = peer.GetVersion()
-		pr.LocalDBVersion = peer.GetLocalDBVersion()
-		pr.StoreDBVersion = peer.GetStoreDBVersion()
-		pr.RunningTime = peer.GetRunningTime()
-		pr.FullNode = peer.GetFullNode()
-		pr.Blocked = peer.GetBlocked()
-	}
-
-	testAdminApi_NodeInfo(t, &pr)
-}
-
-func testAdminApi_NodeInfo(t *testing.T, peer *rpctypes.Peer) {
-
-	qapi.On("PeerInfo", mock.Anything).Return(peer, nil)
-
+	qapi.On("PeerInfo", mock.Anything).Return(peerlist, nil)
 	node, err := admin.NodeInfo()
 	assert.Nil(t, err)
 	t.Log("node", node)
+	jmb, _ := json.MarshalIndent(node, "", "\t")
+	t.Log("jmb:", string(jmb))
+
+	assert.Equal(t, "16Uiu2HAmBdwm5i6Ao6hBedNXHSM44ZUhM4243s5yJGAKPyHRjESw", node.Id)
 }
