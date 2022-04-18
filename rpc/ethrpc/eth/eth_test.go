@@ -27,6 +27,7 @@ func init() {
 	qapi = &clientMocks.QueueProtocolAPI{}
 	cfg := ctypes.NewChain33Config(ctypes.GetDefaultCfgstring())
 	q.SetConfig(cfg)
+	ethCli = &ethHandler{}
 	ethCli.cfg = cfg
 	ethCli.cli.Init(q.Client(), qapi)
 
