@@ -1,7 +1,7 @@
+// Package client ...
 // Copyright Fuzamei Corp. 2018 All Rights Reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package rpc chain33 RPC模块包含JSONRpc以及grpc
 package client
 
@@ -26,6 +26,7 @@ import (
 
 var log = log15.New("module", "rpc_client")
 
+//ChannelClient ...
 type ChannelClient struct {
 	client.QueueProtocolAPI
 	accountdb *account.DB
@@ -95,6 +96,7 @@ func (c *ChannelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	return types.Encode(tx), nil
 }
 
+//ReWriteRawTx rewrite tx
 func (c *ChannelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) {
 	types.AssertConfig(c.QueueProtocolAPI)
 	cfg := c.QueueProtocolAPI.GetConfig()
@@ -279,6 +281,7 @@ func (c *ChannelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	return newtx, nil
 }
 
+//DecodeTx decode hextx
 func DecodeTx(hexstr string) (*types.Transaction, error) {
 	var tx types.Transaction
 	data, err := common.FromHex(hexstr)

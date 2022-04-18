@@ -4,6 +4,7 @@ import (
 	"net"
 )
 
+// IsPublicIP ...
 /*
 tcp/ip协议中，专门保留了三个IP地址区域作为私有地址，其地址范围如下：
 10.0.0.0/8：10.0.0.0～10.255.255.255
@@ -30,6 +31,7 @@ func IsPublicIP(ip string) bool {
 	return false
 }
 
+//LocalIPv4s ...
 // LocalIPs return all non-loopback IPv4 addresses
 func LocalIPv4s() ([]string, error) {
 	var ips []string

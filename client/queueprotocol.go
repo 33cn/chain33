@@ -1157,7 +1157,7 @@ func (q *QueueProtocol) ClosePeer(req *types.SetPeer) (*types.Reply, error) {
 
 }
 
-//GetHighestBlockNum
+//GetHighestBlockNum return heightest block num.
 func (q *QueueProtocol) GetHighestBlockNum(param *types.ReqNil) (*types.ReplyBlockHeight, error) {
 	msg, err := q.send(blockchainKey, types.EventHighestBlock, param)
 	if err != nil {

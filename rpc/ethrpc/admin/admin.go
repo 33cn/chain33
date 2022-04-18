@@ -36,7 +36,7 @@ func (p *adminHandler) Peers() ([]*etypes.Peer, error) {
 	var peerlist []*etypes.Peer
 	for _, peer := range reply.Peers {
 		var pr etypes.Peer
-		pr.Id = peer.GetName()
+		pr.ID = peer.GetName()
 		pr.Self = peer.GetSelf()
 		pr.NetWork = &etypes.Network{
 			RemoteAddress: fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort()),
@@ -51,7 +51,7 @@ func (p *adminHandler) Peers() ([]*etypes.Peer, error) {
 		}
 		if pr.Self {
 			//ip4/ip/tcp/port/p2p/id
-			pr.Encode = fmt.Sprintf("/ip4/%v/tcp/%v/p2p/%v", peer.GetAddr(), peer.GetPort(), pr.Id)
+			pr.Encode = fmt.Sprintf("/ip4/%v/tcp/%v/p2p/%v", peer.GetAddr(), peer.GetPort(), pr.ID)
 			pr.ListenAddr = fmt.Sprintf("%v:%v", peer.GetAddr(), peer.GetPort())
 			pr.Ports = &etypes.Ports{
 				Listener:  peer.GetPort(),

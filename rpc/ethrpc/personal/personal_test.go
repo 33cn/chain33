@@ -13,10 +13,10 @@ import (
 
 var (
 	personalObj *personalHandler
-	qapi   *clientMocks.QueueProtocolAPI
-	q      = queue.New("test")
-
+	qapi        *clientMocks.QueueProtocolAPI
+	q           = queue.New("test")
 )
+
 func init() {
 	qapi = &clientMocks.QueueProtocolAPI{}
 	cfg := ctypes.NewChain33Config(ctypes.GetDefaultCfgstring())
@@ -35,53 +35,51 @@ func TestPersonalHandler_ListAccounts(t *testing.T) {
 	}
 	req := &ctypes.ReqAccountList{WithoutBalance: true}
 	qapi.On("ExecWalletFunc", "wallet", "WalletGetAccountList", req).Return(resp, nil)
-	accs,err:= personalObj.ListAccounts()
-	if err!=nil{
+	accs, err := personalObj.ListAccounts()
+	if err != nil {
 		t.Log(err)
 		return
 	}
 
-	t.Log("accs",accs)
-	assert.Equal(t, 2,len(accs))
-
+	t.Log("accs", accs)
+	assert.Equal(t, 2, len(accs))
 
 }
 
 func TestPersonalHandler_NewAccount(t *testing.T) {
 	req := &ctypes.ReqNewAccount{Label: "test", AddressID: 2}
-	resp:=&ctypes.WalletAccount{Acc: &ctypes.Account{Addr: "0xa42431Da868c58877a627CC71Dc95F01bf40c196"}, Label: "test1"}
-	qapi.On("ExecWalletFunc", "wallet", "NewAccount",req ).Return(resp, nil)
-	acc,err:= personalObj.NewAccount("test")
-	if err!=nil{
+	resp := &ctypes.WalletAccount{Acc: &ctypes.Account{Addr: "0xa42431Da868c58877a627CC71Dc95F01bf40c196"}, Label: "test1"}
+	qapi.On("ExecWalletFunc", "wallet", "NewAccount", req).Return(resp, nil)
+	acc, err := personalObj.NewAccount("test")
+	if err != nil {
 		t.Log(err)
 		return
 	}
 
-	t.Log("acc",acc)
-	assert.Equal(t, "0xa42431Da868c58877a627CC71Dc95F01bf40c196",acc)
+	t.Log("acc", acc)
+	assert.Equal(t, "0xa42431Da868c58877a627CC71Dc95F01bf40c196", acc)
 }
 
 func TestPersonalHandler_UnlockAccount(t *testing.T) {
-	req := &ctypes.WalletUnLock{Passwd: "passwd", Timeout:60}
+	req := &ctypes.WalletUnLock{Passwd: "passwd", Timeout: 60}
 	var resp ctypes.Reply
-	resp.IsOk=true
+	resp.IsOk = true
 	qapi.On("ExecWalletFunc", "wallet", "WalletUnLock", req).Return(&resp, nil)
-	ok:= personalObj.UnlockAccount("0xa42431Da868c58877a627CC71Dc95F01bf40c196","passwd",60)
-	assert.Equal(t, true,ok)
+	ok := personalObj.UnlockAccount("0xa42431Da868c58877a627CC71Dc95F01bf40c196", "passwd", 60)
+	assert.Equal(t, true, ok)
 }
-
 
 func TestPersonalHandler_ImportRawKey(t *testing.T) {
 	var key [32]byte
-	rd:= rand.New(rand.NewSource(time.Now().UnixNano()))
+	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rd.Read(key[:])
-	label:="test"
+	label := "test"
 	req := &ctypes.ReqWalletImportPrivkey{Privkey: common.Bytes2Hex(key[:]), Label: label}
 	qapi.On("ExecWalletFunc", "wallet", "WalletImportPrivkey", req).Return(&ctypes.WalletAccount{
 		Acc: &ctypes.Account{Addr: "0xa42431Da868c58877a627CC71Dc95F01bf40c196"}, Label: label,
 	}, nil)
 
-	acc,err:= personalObj.ImportRawKey(common.Bytes2Hex(key[:]),label)
+	acc, err := personalObj.ImportRawKey(common.Bytes2Hex(key[:]), label)
 	assert.Nil(t, err)
-	assert.Equal(t, "0xa42431Da868c58877a627CC71Dc95F01bf40c196",acc)
+	assert.Equal(t, "0xa42431Da868c58877a627CC71Dc95F01bf40c196", acc)
 }

@@ -1,10 +1,15 @@
 package eth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
 	"time"
+
+	"google.golang.org/grpc"
+
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/address"
@@ -20,20 +25,32 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
+type subinfo struct {
+	subscription *rpc.Subscription
+	unsub        chan struct{}
+	notifier     *rpc.Notifier
+}
+
 type ethHandler struct {
-	cli rpcclient.ChannelClient
-	cfg *ctypes.Chain33Config
+	cli     rpcclient.ChannelClient
+	cfg     *ctypes.Chain33Config
+	grpcCli ctypes.Chain33Client
 }
 
 var (
 	log = log15.New("module", "eth")
 )
 
-//NewEthApi new eth api
+//NewEthAPI new eth api
 func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
 	e := &ethHandler{}
 	e.cli.Init(c, api)
 	e.cfg = cfg
+	conn, err := grpc.Dial(e.cfg.GetModuleConfig().RPC.GrpcBindAddr, grpc.WithInsecure())
+	if err != nil {
+		return nil
+	}
+	e.grpcCli = ctypes.NewChain33Client(conn)
 	return e
 }
 
@@ -51,7 +68,7 @@ func (e *ethHandler) GetBalance(address string, tag *string) (hexutil.Uint64, er
 
 }
 
-//ChainId eth_chainId
+//ChainId ...
 func (e *ethHandler) ChainId() (hexutil.Uint64, error) {
 	return hexutil.Uint64(e.cfg.GetChainID()), nil
 }
@@ -412,4 +429,51 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (interface{}, error) {
 	}
 
 	return execty.QueryToJSON(p.FuncName, resp)
+}
+
+//NewHeads ...
+//eth_subscribe
+//params:["newHeads"]
+func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
+	notifier, supported := rpc.NotifierFromContext(ctx)
+	if !supported {
+		return nil, rpc.ErrNotificationsUnsupported
+	}
+	subscription := notifier.CreateSubscription()
+	//通过Grpc 客户端
+	var subreq ctypes.PushSubscribeReq
+	subreq.Type = 1 //sub head
+	subreq.Name = string(subscription.ID)
+	var in ctypes.ReqSubscribe
+	in.Name = string(subscription.ID)
+	in.Type = 1
+	stream, err := e.grpcCli.SubEvent(context.Background(), &in)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+
+		for {
+			select {
+			case <-subscription.Err():
+				//取消订阅
+				return
+			default:
+				msg, err := stream.Recv()
+				if err != nil {
+					log.Error("NewHeads read", "err", err)
+					return
+				}
+				ehead, _ := types.BlockHeaderToEthHeader(msg.GetHeaderSeqs().GetSeqs()[0].GetHeader())
+				if err := notifier.Notify(subscription.ID, ehead); err != nil {
+					log.Error("notify", "err", err)
+					return
+
+				}
+			}
+
+		}
+	}()
+
+	return subscription, nil
 }

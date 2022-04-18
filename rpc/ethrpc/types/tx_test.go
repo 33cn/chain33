@@ -36,7 +36,7 @@ func Test_checkSig(t *testing.T) {
 		return
 	}
 	var key [32]byte
-	rd:= rand.New(rand.NewSource(time.Now().UnixNano()))
+	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rd.Read(key[:])
 	signKey, err := c.PrivKeyFromBytes(key[:])
 	if err != nil {

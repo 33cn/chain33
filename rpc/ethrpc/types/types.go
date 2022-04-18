@@ -101,8 +101,9 @@ type EvmLog struct {
 	Data  hexutil.Bytes   `json:"data,omitempty"`
 }
 
+//Peer peer info
 type Peer struct {
-	Id         string     `json:"id,omitempty"`
+	ID         string     `json:"id,omitempty"`
 	Name       string     `json:"name,omitempty"`
 	NetWork    *Network   `json:"netWork,omitempty"`
 	Protocols  *Protocols `json:"protocols,omitempty"`
@@ -112,15 +113,18 @@ type Peer struct {
 	ListenAddr string     `json:"listenAddr,omitempty"`
 }
 
+//Network networkinfo
 type Network struct {
 	LocalAddress  string `json:"localAddress,omitempty"`
 	RemoteAddress string `json:"remoteAddress,omitempty"`
 }
 
+//Protocols  peer protocols
 type Protocols struct {
 	EthProto *EthProto `json:"eth,omitempty"`
 }
 
+//EthProto eth proto
 type EthProto struct {
 	Difficulty uint32 `json:"difficulty,omitempty"`
 	Head       string `json:"head,omitempty"`
@@ -128,7 +132,15 @@ type EthProto struct {
 	NetworkID  int    `json:"network,omitempty"`
 }
 
+//Ports ...
 type Ports struct {
 	Discovery int32 `json:"discovery,omitempty"`
 	Listener  int32 `json:"listener,omitempty"`
+}
+
+//SubLogs ...
+//logs Subscription
+type SubLogs struct {
+	Address string   `json:"address,omitempty"`
+	Topics  []string `json:"topics,omitempty"`
 }

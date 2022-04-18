@@ -32,3 +32,15 @@ func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config
 	block.Hash = common.BytesToHash(fullblock.GetBlock().Hash(cfg)).Hex()
 	return &block, nil
 }
+
+//BlockHeaderToEthHeader transfer chain33 header to eth header
+func BlockHeaderToEthHeader(cHeader *types.Header) (*Header, error) {
+	var header Header
+	header.Time = hexutil.Uint(cHeader.GetBlockTime()).String()
+	header.Number = hexutil.Uint(cHeader.Height).String()
+	header.TxHash = common.BytesToHash(cHeader.TxHash).Hex()
+	header.Difficulty = hexutil.Uint(int64(cHeader.GetDifficulty())).String()
+	header.ParentHash = common.BytesToHash(cHeader.ParentHash).Hex()
+	header.Root = common.BytesToHash(cHeader.GetStateHash()).Hex()
+	return &header, nil
+}

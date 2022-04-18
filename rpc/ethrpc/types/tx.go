@@ -1,18 +1,16 @@
 package types
 
 import (
-	"errors"
 	"fmt"
+	"math/big"
+	"strings"
+
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"math/big"
-	"strings"
 )
-
-
 
 //MakeDERSigToRSV der sig data to rsv
 func MakeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.Int, err error) {
@@ -48,7 +46,7 @@ func paraseDERCode(sig []byte) (r, s []byte, err error) {
 	//0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S]
 
 	if len(sig) < 70 || len(sig) > 71 {
-		return nil, nil, errors.New(fmt.Sprintf("wrong sig data size:%v,must beyound length 70 bytes", len(sig)))
+		return nil, nil, fmt.Errorf("wrong sig data size:%v,must beyound length 70 bytes", len(sig))
 	}
 	//3045022100af5778b81ae8817c6ae29fad8c1113d501e521c885a65c2c4d71763c4963984b022020687b73f5c90243dc16c99427d6593a711c52c8bf09ca6331cdd42c66edee74
 	if sig[0] == 0x30 && sig[2] == 0x02 {
@@ -133,6 +131,7 @@ func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full boo
 	}
 	return txs, nil
 }
+
 //TxDetailsToEthTx chain33 txdetails transfer to eth tx
 func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33Config) (txs Transactions, receipts []*Receipt, err error) {
 	for _, detail := range txdetails.GetTxs() {
