@@ -63,7 +63,7 @@ func testAdminAPIPeers(t *testing.T, plist *types.PeerList) {
 	peers, err := admin.Peers()
 	assert.Nil(t, err)
 	t.Log("peers", peers)
-	assert.Equal(t, "16Uiu2HAmBdwm5i6Ao6hBedNXHSM44ZUhM4243s5yJGAKPyHRjESw", peers[0].Id)
+	assert.Equal(t, "16Uiu2HAmBdwm5i6Ao6hBedNXHSM44ZUhM4243s5yJGAKPyHRjESw", peers[0].ID)
 	jmb, _ := json.MarshalIndent(peers, "", "\t")
 	t.Log("jmb:", string(jmb))
 }
@@ -122,5 +122,5 @@ func TestAdminApi_NodeInfo(t *testing.T) {
 	jmb, _ := json.MarshalIndent(node, "", "\t")
 	t.Log("jmb:", string(jmb))
 
-	assert.Equal(t, "16Uiu2HAmBdwm5i6Ao6hBedNXHSM44ZUhM4243s5yJGAKPyHRjESw", node.Id)
+	assert.Equal(t, "16Uiu2HAmBdwm5i6Ao6hBedNXHSM44ZUhM4243s5yJGAKPyHRjESw", node.ID)
 }

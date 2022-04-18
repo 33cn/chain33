@@ -1,11 +1,12 @@
 package peer
 
 import (
-	"github.com/33cn/chain33/common/utils"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/common/utils"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"

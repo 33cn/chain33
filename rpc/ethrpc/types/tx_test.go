@@ -2,15 +2,16 @@ package types
 
 import (
 	"encoding/json"
+	"math/big"
+	"math/rand"
+	"testing"
+	"time"
+
 	"github.com/33cn/chain33/common/crypto"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"math/rand"
-	"testing"
-	"time"
 )
 
 func Test_parseDer(t *testing.T) {

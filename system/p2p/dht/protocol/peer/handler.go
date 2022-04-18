@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/33cn/chain33/common/utils"
 	"time"
+
+	"github.com/33cn/chain33/common/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 

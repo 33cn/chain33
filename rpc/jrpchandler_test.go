@@ -7,9 +7,10 @@ package rpc
 import (
 	"bytes"
 	"errors"
+	"testing"
+
 	"github.com/33cn/chain33/queue"
 	rpcclient "github.com/33cn/chain33/rpc/client"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 

@@ -3,12 +3,13 @@ package peer
 import (
 	"context"
 	"fmt"
-	"github.com/33cn/chain33/common/utils"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/common/utils"
 
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"

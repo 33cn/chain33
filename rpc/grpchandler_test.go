@@ -7,9 +7,10 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
+
 	slog "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/pluginmgr"
-	"time"
 
 	"github.com/33cn/chain33/queue"
 	"google.golang.org/grpc"

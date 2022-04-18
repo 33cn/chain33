@@ -1,13 +1,14 @@
 package net
 
 import (
+	"testing"
+
 	clientMocks "github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/queue"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 var (

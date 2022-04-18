@@ -8,10 +8,11 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/33cn/chain33/common/utils"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/33cn/chain33/common/utils"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/extension"
