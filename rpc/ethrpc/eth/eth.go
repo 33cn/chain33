@@ -25,12 +25,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-type subinfo struct {
-	subscription *rpc.Subscription
-	unsub        chan struct{}
-	notifier     *rpc.Notifier
-}
-
 type ethHandler struct {
 	cli     rpcclient.ChannelClient
 	cfg     *ctypes.Chain33Config
@@ -68,7 +62,7 @@ func (e *ethHandler) GetBalance(address string, tag *string) (hexutil.Uint64, er
 
 }
 
-//ChainId ...
+//nolint
 func (e *ethHandler) ChainId() (hexutil.Uint64, error) {
 	return hexutil.Uint64(e.cfg.GetChainID()), nil
 }

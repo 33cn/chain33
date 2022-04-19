@@ -12,7 +12,7 @@ type personalHandler struct {
 	cfg *ctypes.Chain33Config
 }
 
-//NewPersonalApi new persional object
+//NewPersonalAPI new persional object
 func NewPersonalAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
 	p := &personalHandler{}
 	p.cli.Init(c, api)

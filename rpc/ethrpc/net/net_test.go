@@ -64,10 +64,10 @@ func TestNewNetApi_PeerCount(t *testing.T) {
 
 	plist.Peers = append(plist.Peers, peer)
 
-	testNewNetApi_GetPeers(t, &plist)
+	testNewNetAPIGetPeers(t, &plist)
 }
 
-func testNewNetApi_GetPeers(t *testing.T, plist *ctypes.PeerList) {
+func testNewNetAPIGetPeers(t *testing.T, plist *ctypes.PeerList) {
 	qapi.On("PeerInfo", mock.Anything).Return(plist, nil)
 
 	count, err := netOjb.PeerCount()
