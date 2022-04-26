@@ -227,6 +227,7 @@ func TestEthRpc_Subscribe(t *testing.T) {
 	ws.Write([]byte(fmt.Sprintf(`{"id": 1, "method": "eth_subscribe", "params": ["newHeads"]}`)))
 	var data string
 	err = websocket.Message.Receive(ws, &data)
+	assert.Nil(t, err)
 	var subID struct {
 		Result string `json:"result,omitempty"`
 	}
@@ -256,6 +257,8 @@ func TestEthRpc_Subscribe(t *testing.T) {
 	assert.Nil(t, err)
 	ws.Write([]byte(fmt.Sprintf(`{"id": 1, "method": "eth_subscribe", "params": ["logs",{"address":"1JX6b8qpVFZ4FPqP4KT2HRTjYJrzRZGw7t"}]}`)))
 	err = websocket.Message.Receive(ws, &data)
+	assert.Nil(t, err)
+
 	err = json.Unmarshal([]byte(data), &subID)
 	assert.Nil(t, err)
 	t.Log("subid", subID.Result)
@@ -287,6 +290,7 @@ func TestEthRpc_Subscribe(t *testing.T) {
 		}},
 	})
 	err = q.Client().Send(sendMsg, false)
+	assert.Nil(t, err)
 	err = websocket.Message.Receive(ws, &data)
 	assert.Nil(t, err)
 	t.Log("data", data)
