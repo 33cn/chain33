@@ -137,10 +137,9 @@ func (chain *BlockChain) blockExists(hash []byte) bool {
 	if blockheader == nil || err != nil {
 		return false
 	}
-	//block存在数据库中时，需要进一步确认是否在主链上。不在主链上返回false
-	//因为maybeAccept会存header,但是如果还没connect执行就重启了，也不能认为存在，需要执行此区块
-	_, err = chain.blockStore.GetBlockHashByHeight(blockheader.Height)
-	return err == nil
+	//assert block hash(not equal for side chain)
+	storeHash, err := chain.blockStore.GetBlockHashByHeight(blockheader.Height)
+	return err == nil && bytes.Equal(storeHash, hash)
 }
 
 // 尝试接受此block

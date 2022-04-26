@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // register gzip
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/reflection"
 )
 
 var (
@@ -279,6 +280,7 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 	server := grpc.NewServer(opts...)
 	s.s = server
 	types.RegisterChain33Server(server, s.grpc)
+	reflection.Register(server)
 	return s
 }
 

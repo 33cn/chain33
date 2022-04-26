@@ -28,9 +28,10 @@ const (
 	//快速下载时需要的最少peer数量
 	bestPeerCount = 2
 
-	normalDownLoadMode = 0
-	fastDownLoadMode   = 1
-	chunkDownLoadMode  = 2
+	normalDownLoadMode  = 0
+	fastDownLoadMode    = 1
+	chunkDownLoadMode   = 2
+	forkChainDetectMode = 3
 )
 
 //DownLoadInfo blockchain模块下载block处理结构体
@@ -431,6 +432,10 @@ func (chain *BlockChain) DownLoadTimeOutProc(height int64) {
 
 // DownLoadBlocks 下载区块
 func (chain *BlockChain) DownLoadBlocks() {
+	// wait fork chain detection
+	for chain.GetDownloadSyncStatus() == forkChainDetectMode {
+		time.Sleep(time.Second)
+	}
 	if !chain.cfg.DisableShard && chain.cfg.EnableFetchP2pstore {
 		// 1.节点开启时候首先尝试进行chunkDownLoad下载
 		chain.UpdateDownloadSyncStatus(chunkDownLoadMode) // 默认模式是fastDownLoadMode

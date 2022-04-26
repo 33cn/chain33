@@ -12,8 +12,6 @@ import (
 
 	"github.com/33cn/chain33/common/crypto"
 
-	"github.com/33cn/chain33/system/address/btc"
-
 	"github.com/33cn/chain33/system/crypto/btcscript"
 	"github.com/33cn/chain33/system/crypto/btcscript/script"
 
@@ -456,7 +454,7 @@ func (c *channelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr)
 		return nil, err
 	}
 	reply := &types.ReplyString{}
-	reply.Data = btc.FormatBtcAddr(address.NormalVer, pkScript)
+	reply.Data = address.PubKeyToAddr(address.GetDefaultAddressID(), script.Script2PubKey(pkScript))
 	return reply, nil
 }
 
@@ -506,7 +504,7 @@ func (c *channelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 	}
 
 	tx.Signature = &types.Signature{
-		Ty:        btcscript.ID,
+		Ty:        types.EncodeSignID(btcscript.ID, address.GetDefaultAddressID()),
 		Signature: sig,
 		Pubkey:    pubKey,
 	}

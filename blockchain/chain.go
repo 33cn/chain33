@@ -64,6 +64,8 @@ type BlockChain struct {
 	//记录本节点已经同步的block高度,用于节点追赶active链,处理节点分叉不同步的场景
 	synBlockHeight int64
 
+	forkPointChan chan int64
+
 	//记录peer的最新block高度,用于节点追赶active链
 	peerList PeerInfoList
 	recvwg   *sync.WaitGroup
@@ -194,6 +196,7 @@ func New(cfg *types.Chain33Config) *BlockChain {
 		downloadMode:        fastDownLoadMode,
 		blockOnChain:        &BlockOnChain{},
 		onChainTimeout:      0,
+		forkPointChan:       make(chan int64, 1),
 	}
 	blockchain.initConfig(cfg)
 	blockchain.blockCache = newBlockCache(cfg, defaultBlockHashCacheSize)

@@ -1,5 +1,13 @@
 changelog
 
+<a name="1.67.2"></a>
+## [1.67.2](https://github.com/33cn/chain33/compare/v1.67.1...v1.67.2) (2022-04-18)
+
+
+### Bug Fixes
+
+* add fork chain detection(#1236) ([192058e](https://github.com/33cn/chain33/commit/192058e)), closes [#1236](https://github.com/33cn/chain33/issues/1236)
+
 <a name="1.67.1"></a>
 ## [1.67.1](https://github.com/33cn/chain33/compare/v1.67.0...v1.67.1) (2022-03-28)
 
