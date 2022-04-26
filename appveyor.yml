@@ -9,7 +9,7 @@ clone_folder: c:\gopath\src\github.com\33cn\chain33
 environment:
   GOPATH: c:\gopath
   DEPTESTBYPASS501: 1
-  GOVERSION: 1.16
+  GOVERSION: 1.16.15
   GO111MODULE: on
 
 #init:
