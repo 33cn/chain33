@@ -32,7 +32,7 @@ PROJ := "build"
 default: build cli depends
 
 dep: ## Get the dependencies
-	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.17.1
+	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
 	@go get -u golang.org/x/tools/cmd/goimports
 	@go get -u github.com/vektra/mockery/.../
 	@go get -u mvdan.cc/sh/cmd/shfmt
