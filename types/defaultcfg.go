@@ -90,6 +90,8 @@ grpcBindAddr="localhost:0"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
+[rpc.sub.eth]
+enable=false
 
 [mempool]
 name="timeline"

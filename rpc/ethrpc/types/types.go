@@ -144,3 +144,14 @@ type SubLogs struct {
 	Address string   `json:"address,omitempty"`
 	Topics  []string `json:"topics,omitempty"`
 }
+
+// EvmLogInfo  ...
+type EvmLogInfo struct {
+	Address          string      `json:"address,omitempty"`
+	BlockHash        string      `json:"blockHash,omitempty"`
+	BlockNumber      string      `json:"blockNumber,omitempty"`
+	LogIndex         string      `json:"logIndex,omitempty"`
+	Topics           interface{} `json:"topics,omitempty"`
+	TransactionHash  string      `json:"transactionHash,omitempty"`
+	TransactionIndex string      `json:"transactionIndex,omitempty"`
+}

@@ -355,8 +355,8 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 	r.japi = japi
 	r.cli = c
 	//配置rpc,websocket
-	r.eapi.EnableRPC(ethrpc.DefaultApis)
-	r.ewsapi.EnableWS(ethrpc.DefaultApis)
+	r.eapi.EnableRPC()
+	r.ewsapi.EnableWS()
 	go r.handleSysEvent()
 
 	//注册系统rpc
@@ -369,9 +369,9 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 	gapi := NewGRpcServer(c, r.api)
 	japi := NewJSONRPCServer(c, r.api)
 	r.eapi = ethrpc.NewHTTPServer(c, r.api)
-	r.eapi.EnableRPC(ethrpc.DefaultApis)
 	r.ewsapi = ethrpc.NewHTTPServer(c, r.api)
-	r.ewsapi.EnableWS(ethrpc.DefaultApis)
+	r.eapi.EnableRPC()
+	r.ewsapi.EnableWS()
 	r.gapi = gapi
 	r.japi = japi
 	r.cli = c
@@ -401,14 +401,14 @@ func (r *RPC) handleSysEvent() {
 
 		} else {
 			//要求blockchain模块停止推送
-			log.Error("handleSysEvent", "no subscriber", r.gapi.grpc.subCache, "topic:", msg.GetData().(*types.PushData).GetName(), "subchan:", topicInfo)
+			log.Error("handleSysEvent", "no subscriber,all topic", r.gapi.grpc.subCache, "no topic:", msg.GetData().(*types.PushData).GetName(), "subchan:", topicInfo)
 			msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: false, Msg: []byte("no subscriber")}))
 		}
 
 	}
 }
 
-// Listen rpc listen
+// Listen rpc listen，http port,grpc port,ethrpc port,ethrpc websocket port
 func (r *RPC) Listen() (port1 int, port2 int, port3, port4 int) {
 	var err error
 	for i := 0; i < 10; i++ {

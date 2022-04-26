@@ -117,11 +117,11 @@ certFile="cert.pem"
 keyFile="key.pem"
 
 [rpc.sub.eth]
-enable=false
-# jrpc绑定地址
-jrpcBindAddr="localhost:8545"
+httpAddr="localhost:8545"
+httpApi=["eth","web3","personal","admin","net"]
 # websocket 绑定地址
-websocketAddr="localhost:8546"
+wsAddr="localhost:8546"
+wsApi=["eth","web3","personal","admin","net"]
 
 [mempool]
 # mempool队列名称，可配，timeline，score，price

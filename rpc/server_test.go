@@ -5,12 +5,16 @@
 package rpc
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/rpc/ethrpc"
+	"golang.org/x/net/websocket"
 
 	"github.com/golang/protobuf/proto"
 
@@ -177,6 +181,117 @@ func testCreateTxCoins(t *testing.T, cfg *types.Chain33Config, jsonClient *jsonc
 	tx = testDecodeTxHex(t, res)
 	fee, _ := tx.GetRealFee(2)
 	assert.Equal(t, fee, tx.Fee)
+}
+
+func TestEthRpc_Subscribe(t *testing.T) {
+
+	rpcCfg := new(types.RPC)
+	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
+	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
+	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
+	rpcCfg.JrpcFuncWhitelist = []string{"*"}
+	rpcCfg.GrpcFuncWhitelist = []string{"*"}
+	InitCfg(rpcCfg)
+
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	subcfg := cfg.GetSubConfig()
+	sub, _ := types.ModifySubConfig(subcfg.RPC["eth"], "enable", true)
+	subcfg.RPC["eth"] = sub
+	cfg.GetModuleConfig().RPC = rpcCfg
+	api := new(mocks.QueueProtocolAPI)
+	q := queue.New("test")
+	q.SetConfig(cfg)
+	qm := q.Client()
+	server := NewGRpcServer(qm, api)
+	assert.NotNil(t, server)
+	go server.Listen()
+
+	rpc := new(RPC)
+	rpc.cfg = rpcCfg
+	rpc.gapi = server
+	rpc.cli = q.Client()
+	rpc.api = api
+	go rpc.handleSysEvent()
+	defer rpc.gapi.Close()
+
+	wsServer := ethrpc.NewHTTPServer(qm, api)
+	wsServer.EnableWS()
+	go wsServer.Start()
+
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	api.On("AddPushSubscribe", mock.Anything).Return(&types.ReplySubscribePush{IsOk: true}, nil)
+	api.On("Close", mock.Anything).Return()
+	//websocket client
+	ws, err := websocket.Dial("ws://localhost:8546", "", "http://localhost:8546")
+	assert.Nil(t, err)
+	ws.Write([]byte(fmt.Sprintf(`{"id": 1, "method": "eth_subscribe", "params": ["newHeads"]}`)))
+	var data string
+	err = websocket.Message.Receive(ws, &data)
+	var subID struct {
+		Result string `json:"result,omitempty"`
+	}
+	err = json.Unmarshal([]byte(data), &subID)
+	assert.Nil(t, err)
+	t.Log("subid", subID.Result)
+	time.Sleep(time.Second)
+	err = q.Client().Send(qm.NewMessage("rpc", types.EventPushBlock, &types.PushData{Name: subID.Result, Value: &types.PushData_HeaderSeqs{
+		HeaderSeqs: &types.HeaderSeqs{
+			Seqs: []*types.HeaderSeq{
+				{
+					Num: 1,
+					Header: &types.Header{
+						Height: 1024,
+					},
+				},
+			},
+		},
+	}}), false)
+	err = websocket.Message.Receive(ws, &data)
+	assert.Nil(t, err)
+	t.Log("data", data)
+
+	//test evm logs
+
+	ws, err = websocket.Dial("ws://localhost:8546", "", "http://localhost:8546")
+	assert.Nil(t, err)
+	ws.Write([]byte(fmt.Sprintf(`{"id": 1, "method": "eth_subscribe", "params": ["logs",{"address":"1JX6b8qpVFZ4FPqP4KT2HRTjYJrzRZGw7t"}]}`)))
+	err = websocket.Message.Receive(ws, &data)
+	err = json.Unmarshal([]byte(data), &subID)
+	assert.Nil(t, err)
+	t.Log("subid", subID.Result)
+	time.Sleep(time.Second)
+	topic, _ := common.FromHex("0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef")
+	var topics [][]byte
+	topics = append(topics, topic)
+	var evmlog types.EVMLog
+	evmlog.Topic = topics
+	sendMsg := qm.NewMessage("rpc", types.EventPushBlock, &types.PushData{Name: subID.Result, Value: &types.PushData_EvmLogs{
+		EvmLogs: &types.EVMTxLogsInBlks{
+			Logs4EVMPerBlk: []*types.EVMTxLogPerBlk{
+				{
+					Height: 1024,
+					TxAndLogs: []*types.EVMTxAndLogs{
+						{
+							Tx: &types.Transaction{
+								To: "1JX6b8qpVFZ4FPqP4KT2HRTjYJrzRZGw7t",
+							},
+							LogsPerTx: &types.EVMLogsPerTx{
+								Logs: []*types.EVMLog{
+									&evmlog,
+								},
+							},
+						},
+					},
+				},
+			},
+		}},
+	})
+	err = q.Client().Send(sendMsg, false)
+	err = websocket.Message.Receive(ws, &data)
+	assert.Nil(t, err)
+	t.Log("data", data)
+	wsServer.Close()
+	ws.Close()
 }
 
 func TestGrpc_Call(t *testing.T) {

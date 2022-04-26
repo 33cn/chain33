@@ -38,8 +38,8 @@ type rpcAPIs map[string]initAPI
 
 var (
 	log = log15.New("module", "eth_rpc")
-	// DefaultApis default apis
-	DefaultApis = map[string]initAPI{
+	// default apis
+	defaultApis = map[string]initAPI{
 		ethNameSpace:      eth.NewEthAPI,
 		netNameSpace:      rpcNet.NewNetAPI,
 		personalNameSpace: personal.NewPersonalAPI,
@@ -50,15 +50,17 @@ var (
 
 type subConfig struct {
 	//ethereum json rpc bindaddr
-	Enable        bool   `json:"enable,omitempty"`
-	JrpcBindAddr  string `json:"jrpcBindAddr,omitempty"`
-	WebsocketAddr string `json:"websocketAddr,omitempty"`
+	Enable   bool     `json:"enable,omitempty"`
+	HTTPAddr string   `json:"httpAddr,omitempty"`
+	HTTPAPI  []string `json:"httpApi,omitempty"` //eth,admin,net,web3/personal
+	WsAddr   string   `json:"wsAddr,omitempty"`
+	WsAPI    []string `json:"wsApi,omitempty"` ////eth,admin,net,web3/personal
 }
 
 //ServerAPI ...
 type ServerAPI interface {
-	EnableRPC(apis rpcAPIs)
-	EnableWS(apis rpcAPIs)
+	EnableRPC()
+	EnableWS()
 	Start() (int, error)
 	Close()
 }
@@ -91,6 +93,9 @@ type rpcHandler struct {
 //initRpcHandler 注册eth rpc
 func initRPCHandler(apis rpcAPIs, cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) *rpcHandler {
 	server := rpc.NewServer()
+	if len(apis) == 0 {
+		apis = defaultApis
+	}
 	for namespace, newAPI := range apis {
 		server.RegisterName(namespace, newAPI(cfg, c, api))
 	}
@@ -121,27 +126,41 @@ func (h *httpServer) setEndPoint(listenAddr string) {
 	h.endpoint = listenAddr
 }
 
-//EnableRpc http rpc
-func (h *httpServer) EnableRPC(apis rpcAPIs) {
+//EnableRpc  register http rpc
+func (h *httpServer) EnableRPC() {
+	var apis = make(rpcAPIs)
+	for _, namespace := range h.subCfg.HTTPAPI {
+		if api, ok := defaultApis[namespace]; ok {
+			apis[namespace] = api
+		}
+	}
+
 	rpcHandler := initRPCHandler(apis, h.cfg, h.qclient, h.api)
 	rpcHandler.Handler = node.NewHTTPHandlerStack(rpcHandler.server, []string{"*"}, []string{"*"})
 	h.httpHandler = rpcHandler
-	if h.subCfg.JrpcBindAddr == "" {
-		h.subCfg.JrpcBindAddr = fmt.Sprintf("localhost:%d", defaultEthRPCPort)
+	if h.subCfg.HTTPAddr == "" {
+		h.subCfg.HTTPAddr = fmt.Sprintf("localhost:%d", defaultEthRPCPort)
 	}
-	h.setEndPoint(h.subCfg.JrpcBindAddr)
+	h.setEndPoint(h.subCfg.HTTPAddr)
 	log.Debug("EnableRpc", "httpaddr", h.endpoint)
 }
 
-//EnableWS websocket rpc
-func (h *httpServer) EnableWS(apis rpcAPIs) {
+//EnableWS register websocket rpc
+func (h *httpServer) EnableWS() {
+	var apis = make(rpcAPIs)
+	for _, namespace := range h.subCfg.WsAPI {
+		if api, ok := defaultApis[namespace]; ok {
+			apis[namespace] = api
+		}
+	}
+
 	rpcHandler := initRPCHandler(apis, h.cfg, h.qclient, h.api)
 	rpcHandler.Handler = rpcHandler.server.WebsocketHandler([]string{"*"})
 	h.wsHander = rpcHandler
-	if h.subCfg.WebsocketAddr == "" {
-		h.subCfg.WebsocketAddr = fmt.Sprintf("localhost:%d", defaultEthWsRPCPort)
+	if h.subCfg.WsAddr == "" {
+		h.subCfg.WsAddr = fmt.Sprintf("localhost:%d", defaultEthWsRPCPort)
 	}
-	h.setEndPoint(h.subCfg.WebsocketAddr)
+	h.setEndPoint(h.subCfg.WsAddr)
 	log.Debug("EnableWS", "websocketaddr", h.endpoint)
 }
 

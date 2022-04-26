@@ -2,9 +2,12 @@ package eth
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"math/rand"
+	"net"
 	"time"
 
 	"google.golang.org/grpc"
@@ -32,7 +35,7 @@ type ethHandler struct {
 }
 
 var (
-	log = log15.New("module", "eth")
+	log = log15.New("module", "ethrpc_eth")
 )
 
 //NewEthAPI new eth api
@@ -40,7 +43,9 @@ func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 	e := &ethHandler{}
 	e.cli.Init(c, api)
 	e.cfg = cfg
-	conn, err := grpc.Dial(e.cfg.GetModuleConfig().RPC.GrpcBindAddr, grpc.WithInsecure())
+	grpcBindAddr := e.cfg.GetModuleConfig().RPC.GrpcBindAddr
+	_, port, _ := net.SplitHostPort(grpcBindAddr)
+	conn, err := grpc.Dial(fmt.Sprintf("localhost:%v", port), grpc.WithInsecure())
 	if err != nil {
 		return nil
 	}
@@ -91,13 +96,10 @@ func (e *ethHandler) GetBlockByNumber(number *hexutil.Big, full bool) (*types.Bl
 	}
 
 	fullblock := details.GetItems()[0]
-	block, err := types.BlockDetailToEthBlock(&ctypes.BlockDetails{
+	return types.BlockDetailToEthBlock(&ctypes.BlockDetails{
 		Items: []*ctypes.BlockDetail{fullblock},
 	}, e.cfg, full)
-	if err != nil {
-		return nil, err
-	}
-	return block, nil
+
 }
 
 //GetBlockByHash eth_getBlockByHash 通过区块哈希获取区块交易详情
@@ -193,15 +195,18 @@ func (e *ethHandler) Accounts() ([]string, error) {
 //Call eth_call evm合约相关操作,合约相关信息查询
 func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 	var param rpctypes.Query4Jrpc
-	type EvmQueryReq struct {
-		Address string
-		Input   string
+	var evmResult struct {
+		Address  string `json:"address,omitempty"`
+		Input    string `json:"input,omitempty"`
+		Caller   string `json:"caller,omitempty"`
+		RawData  string `json:"rawData,omitempty"`
+		JsonData string `json:"jsonData,omitempty"`
 	}
 
 	//暂定evm
-	param.Execer = "evm"
+	param.Execer = e.cfg.ExecName("evm") //"evm"
 	param.FuncName = "Query"
-	param.Payload = []byte(fmt.Sprintf(`{"input:%v","address":"%s"}`, msg.Data, msg.To))
+	param.Payload = []byte(fmt.Sprintf(`{"input":"%v","address":"%s"}`, msg.Data, msg.To))
 	log.Debug("eth_call", "QueryCall param", param, "payload", string(param.Payload))
 	execty := ctypes.LoadExecutorType(param.Execer)
 	if execty == nil {
@@ -220,8 +225,15 @@ func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 		return nil, err
 	}
 
-	log.Debug("Call", "QueryCall resp", resp)
-	return execty.QueryToJSON(param.FuncName, resp)
+	//log.Info("Eth_Call", "QueryCall resp", resp.String(),"execer",e.cfg.ExecName(param.Execer),"json ",string(jmb))
+	result, err := execty.QueryToJSON(param.FuncName, resp)
+	if err != nil {
+		log.Error("QueryToJSON", "error", err)
+		return nil, err
+	}
+	err = json.Unmarshal(result, &evmResult)
+	//log.Info("result",hexutil.Encode(result),"str result",string(result))
+	return evmResult.RawData, err
 
 }
 
@@ -392,7 +404,18 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (interface{}, erro
 		return "", err
 	}
 
-	return execty.QueryToJSON(param.FuncName, resp)
+	result, err := execty.QueryToJSON(param.FuncName, resp)
+	if err != nil {
+		return "", err
+	}
+
+	//log.Info("result", hexutil.Encode(result), "str result", string(result))
+	var nonce struct {
+		Nonce string `json:"nonce,omitempty"`
+	}
+	err = json.Unmarshal(result, &nonce)
+	gitNonce, _ := new(big.Int).SetString(nonce.Nonce, 10)
+	return hexutil.EncodeBig(gitNonce), err
 }
 
 //method:eth_estimateGas
@@ -422,7 +445,17 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (interface{}, error) {
 		return "", err
 	}
 
-	return execty.QueryToJSON(p.FuncName, resp)
+	result, err := execty.QueryToJSON(p.FuncName, resp)
+	if err != nil {
+		return "", err
+	}
+	var gas struct {
+		Gas string `json:"gas,omitempty"`
+	}
+	err = json.Unmarshal(result, &gas)
+	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
+	return hexutil.EncodeBig(bigGas), err
+
 }
 
 //NewHeads ...
@@ -435,9 +468,6 @@ func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
 	}
 	subscription := notifier.CreateSubscription()
 	//通过Grpc 客户端
-	var subreq ctypes.PushSubscribeReq
-	subreq.Type = 1 //sub head
-	subreq.Name = string(subscription.ID)
 	var in ctypes.ReqSubscribe
 	in.Name = string(subscription.ID)
 	in.Type = 1
@@ -460,6 +490,60 @@ func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
 				}
 				ehead, _ := types.BlockHeaderToEthHeader(msg.GetHeaderSeqs().GetSeqs()[0].GetHeader())
 				if err := notifier.Notify(subscription.ID, ehead); err != nil {
+					log.Error("notify", "err", err)
+					return
+
+				}
+			}
+
+		}
+	}()
+
+	return subscription, nil
+}
+
+//Logs ...
+//eth_subscribe
+//params:["logs",{"address":"","topics":[""]}]
+//address：要监听日志的源地址或地址数组，可选
+//topics：要监听日志的主题匹配条件，可选
+func (e *ethHandler) Logs(ctx context.Context, options *types.SubLogs) (*rpc.Subscription, error) {
+	notifier, supported := rpc.NotifierFromContext(ctx)
+	if !supported {
+		return nil, rpc.ErrNotificationsUnsupported
+	}
+	subscription := notifier.CreateSubscription()
+	//通过Grpc 客户端
+	var in ctypes.ReqSubscribe
+	in.Name = string(subscription.ID)
+	in.Contract = make(map[string]bool)
+	in.Contract[options.Address] = true
+	in.Type = 4
+
+	stream, err := e.grpcCli.SubEvent(context.Background(), &in)
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+
+		for {
+			select {
+			case <-subscription.Err():
+				//取消订阅
+				return
+			default:
+				msg, err := stream.Recv()
+				if err != nil {
+					log.Error("Logs read", "err", err)
+					return
+				}
+				var evmlogs []*types.EvmLogInfo
+				for _, item := range msg.GetEvmLogs().GetLogs4EVMPerBlk() {
+					logs := types.FilterEvmLogs(item, options)
+					evmlogs = append(evmlogs, logs...)
+				}
+				//推送到订阅者
+				if err := notifier.Notify(subscription.ID, evmlogs); err != nil {
 					log.Error("notify", "err", err)
 					return
 

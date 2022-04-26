@@ -2,9 +2,6 @@ package eth
 
 import (
 	"errors"
-	"math/big"
-	"testing"
-
 	clientMocks "github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/queue"
 	etypes "github.com/33cn/chain33/rpc/ethrpc/types"
@@ -14,6 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"math/big"
+	"testing"
 )
 
 var (
@@ -181,6 +180,13 @@ func TestEthHandler_EstimateGas(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestEthHandler_GetTransactionCount(t *testing.T) {
+	qapi.On("Query", mock.Anything).Return("0x12", nil)
+	_, err := ethCli.GetTransactionCount("1N2aNfWXqGe9kWcL8u9TYpj5RzVQbjwKAP", "latest")
+	assert.NotNil(t, err)
+
+}
+
 func TestEthHandler_GetTxCount(t *testing.T) {
 	blockdetails := &ctypes.BlockDetails{Items: []*ctypes.BlockDetail{
 		{
@@ -222,8 +228,4 @@ func TestEthHandler_GetTransaction(t *testing.T) {
 	receipt, err := ethCli.GetTransactionReceipt(hexhash)
 	assert.Nil(t, err)
 	assert.Equal(t, "1N2aNfWXqGe9kWcL8u9TYpj5RzVQbjwKAP", receipt.From)
-}
-
-func TestEthHandler_NewHeads(t *testing.T) {
-
 }

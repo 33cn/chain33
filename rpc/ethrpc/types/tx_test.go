@@ -52,7 +52,7 @@ func Test_checkSig(t *testing.T) {
 	t.Log("ps:", common.Bytes2Hex(ps))
 	cfg := ctypes.NewChain33Config(ctypes.GetDefaultCfgstring())
 	eipSigner := etypes.NewEIP155Signer(big.NewInt(int64(cfg.GetChainID())))
-	r, s, v, _ := MakeDERSigToRSV(eipSigner, sigbytes)
+	r, s, v, _ := makeDERSigToRSV(eipSigner, sigbytes)
 	t.Log("r:", common.Bytes2Hex(r.Bytes()))
 	t.Log("s:", common.Bytes2Hex(s.Bytes()))
 	t.Log("v:", common.Bytes2Hex(v.Bytes()))

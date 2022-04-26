@@ -2,22 +2,21 @@ package types
 
 import (
 	"fmt"
-	"math/big"
-	"strings"
-
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
+	"math/big"
+	"strings"
 )
 
-//MakeDERSigToRSV der sig data to rsv
-func MakeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.Int, err error) {
+//makeDERSigToRSV der sig data to rsv
+func makeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.Int, err error) {
 	//fmt.Println("len:",len(sig),"sig",hexutil.Encode(sig))
 	rb, sb, err := paraseDERCode(sig)
 	if err != nil {
-		fmt.Println("MakeDERSigToRSV", "err", err.Error(), "sig", hexutil.Encode(sig))
+		fmt.Println("makeDERSigToRSV", "err", err.Error(), "sig", hexutil.Encode(sig))
 		return nil, nil, nil, err
 	}
 	var signature []byte
@@ -118,7 +117,7 @@ func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full boo
 			//如果是EVM交易，to为合约交易
 			tx.To = action.ContractAddr
 		}
-		r, s, v, err := MakeDERSigToRSV(eipSigner, itx.Signature.GetSignature())
+		r, s, v, err := makeDERSigToRSV(eipSigner, itx.Signature.GetSignature())
 		if err != nil {
 			log.Error("makeDERSigToRSV", "err", err)
 			txs = append(txs, &tx)
@@ -140,7 +139,6 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 		//处理 execer=EVM
 		tx.To = detail.Tx.To
 		receipt.To = detail.GetTx().GetTo()
-
 		if strings.HasSuffix(string(detail.Tx.Execer), "evm") {
 			var action ctypes.EVMContractAction4Chain33
 			err := ctypes.Decode(detail.GetTx().GetPayload(), &action)
@@ -160,7 +158,7 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 		tx.BlockNumber = hexutil.EncodeBig(big.NewInt(detail.GetHeight()))     //fmt.Sprintf("0x%x",detail.Height)
 		tx.TransactionIndex = hexutil.EncodeBig(big.NewInt(detail.GetIndex())) //fmt.Sprintf("0x%x",detail.GetIndex())
 		eipSigner := etypes.NewEIP155Signer(big.NewInt(int64(cfg.GetChainID())))
-		r, s, v, err := MakeDERSigToRSV(eipSigner, detail.Tx.GetSignature().GetSignature())
+		r, s, v, err := makeDERSigToRSV(eipSigner, detail.Tx.GetSignature().GetSignature())
 		if err != nil {
 			return nil, nil, err
 		}
@@ -176,31 +174,87 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 		} else {
 			receipt.Status = "0x2"
 		}
-		var logs []*EvmLog
-		for _, lg := range detail.Receipt.Logs {
 
-			if lg.Ty != 605 { //evm event
-				continue
-			}
-
-			var evmLog ctypes.EVMLog
-			err := ctypes.Decode(lg.Log, &evmLog)
-			if nil != err {
-				return nil, nil, err
-			}
-			var log EvmLog
-			log.Data = evmLog.Data
-			for _, topic := range evmLog.Topic {
-				log.Topic = append(log.Topic, topic)
-			}
-			logs = append(logs, &log)
-		}
-
-		receipt.Logs = logs
+		receipt.Logs = receiptLogs2EvmLog(detail.Receipt.Logs, nil)
 		receipt.TxHash = hexutil.Encode(detail.GetTx().Hash())
 		receipt.BlockNumber = hexutil.EncodeUint64(uint64(detail.Height))
 		receipt.TransactionIndex = hexutil.EncodeUint64(uint64(detail.GetIndex()))
 		receipts = append(receipts, &receipt)
 	}
+	return
+}
+
+func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*EvmLog) {
+	var filterTopics = make(map[string]bool)
+	if option != nil {
+		for _, topic := range option.Topics {
+			filterTopics[topic] = true
+		}
+	}
+	for _, lg := range logs {
+		if lg.Ty != 605 { //evm event
+			continue
+		}
+
+		var evmLog ctypes.EVMLog
+		err := ctypes.Decode(lg.Log, &evmLog)
+		if nil != err {
+			continue
+		}
+		var log EvmLog
+		log.Data = evmLog.Data
+
+		for _, topic := range evmLog.Topic {
+			if option != nil {
+				if _, ok := filterTopics[hexutil.Encode(topic)]; !ok {
+					continue
+				}
+			}
+
+			log.Topic = append(log.Topic, topic)
+		}
+		elogs = append(elogs, &log)
+	}
+	return
+}
+
+func FilterEvmLogs(logs *ctypes.EVMTxLogPerBlk, option *SubLogs) (evmlogs []*EvmLogInfo) {
+	var address string
+	var filterTopics = make(map[string]bool)
+	if option != nil {
+		for _, topic := range option.Topics {
+			if topic == "" {
+				continue
+			}
+			filterTopics[topic] = true
+		}
+	}
+
+	if option != nil {
+		address = option.Address
+	}
+	for i, txlog := range logs.TxAndLogs {
+		var info EvmLogInfo
+		if txlog.GetTx().GetTo() == address {
+			for j, tlog := range txlog.GetLogsPerTx().GetLogs() {
+				var topics []string
+				if _, ok := filterTopics[hexutil.Encode(tlog.Topic[0])]; ok || len(filterTopics) == 0 {
+					topics = append(topics, hexutil.Encode(tlog.Topic[0]))
+				}
+
+				if len(topics) != 0 {
+					info.LogIndex = hexutil.EncodeUint64(uint64(j))
+					info.Topics = topics
+				}
+				info.Address = address
+				info.TransactionIndex = hexutil.EncodeUint64(uint64(i))
+				info.BlockHash = hexutil.Encode(logs.BlockHash)
+				info.TransactionHash = hexutil.Encode(txlog.GetTx().Hash())
+				info.BlockNumber = hexutil.EncodeUint64(uint64(logs.Height))
+				evmlogs = append(evmlogs, &info)
+			}
+		}
+	}
+
 	return
 }
