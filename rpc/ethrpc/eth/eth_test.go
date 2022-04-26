@@ -2,6 +2,9 @@ package eth
 
 import (
 	"errors"
+	"math/big"
+	"testing"
+
 	clientMocks "github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/queue"
 	etypes "github.com/33cn/chain33/rpc/ethrpc/types"
@@ -11,8 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"math/big"
-	"testing"
 )
 
 var (

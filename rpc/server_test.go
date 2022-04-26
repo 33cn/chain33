@@ -247,6 +247,7 @@ func TestEthRpc_Subscribe(t *testing.T) {
 			},
 		},
 	}}), false)
+	assert.Nil(t, err)
 	err = websocket.Message.Receive(ws, &data)
 	assert.Nil(t, err)
 	t.Log("data", data)

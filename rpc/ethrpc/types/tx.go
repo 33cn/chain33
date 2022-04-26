@@ -2,13 +2,14 @@ package types
 
 import (
 	"fmt"
+	"math/big"
+	"strings"
+
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/log"
-	"math/big"
-	"strings"
 )
 
 //makeDERSigToRSV der sig data to rsv
