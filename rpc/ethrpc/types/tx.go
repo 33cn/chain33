@@ -219,6 +219,7 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 	return
 }
 
+//FilterEvmLogs filter evm logs by option
 func FilterEvmLogs(logs *ctypes.EVMTxLogPerBlk, option *SubLogs) (evmlogs []*EvmLogInfo) {
 	var address string
 	var filterTopics = make(map[string]bool)

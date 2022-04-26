@@ -200,7 +200,7 @@ func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 		Input    string `json:"input,omitempty"`
 		Caller   string `json:"caller,omitempty"`
 		RawData  string `json:"rawData,omitempty"`
-		JsonData string `json:"jsonData,omitempty"`
+		JSONData string `json:"jsonData,omitempty"`
 	}
 
 	//暂定evm
