@@ -1,6 +1,5 @@
-version: "{build}"
 
-# Source Config
+os: Visual Studio 2019
 
 build: off
 
