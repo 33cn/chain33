@@ -30,6 +30,7 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.5.4
 	github.com/libp2p/go-libp2p-swarm v0.5.3
 	github.com/libp2p/go-msgio v0.0.6
+	github.com/lucas-clemente/quic-go v0.26.0 // indirect
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mr-tron/base58 v1.2.0
 	github.com/multiformats/go-multiaddr v0.4.1
