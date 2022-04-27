@@ -394,7 +394,7 @@ func (r *RPC) handleSysEvent() {
 					case <-ticker.C:
 						log.Error("handleSysEvent", "ticker timeout", rmsg.GetData().(*types.PushData).GetName())
 					case ch <- rmsg:
-						msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
+						rmsg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
 
 					}
 				}
@@ -434,12 +434,12 @@ func (r *RPC) Listen() (port1 int, port2 int, port3, port4 int) {
 
 	port3, err = r.eapi.Start()
 	if err != nil {
-		log.Error("Erpc Listen", "err", err)
+		log.Error("ethrpc Listen", "err", err)
 	}
 
 	port4, err = r.ewsapi.Start()
 	if err != nil {
-		log.Error("Erpc Listen", "err", err)
+		log.Error("wsrpc Listen", "err", err)
 	}
 	log.Info("rpc Listen port", "grpc", port1, "jrpc", port2, "erpc", port3, "wsport:", port4)
 	//sleep for a while

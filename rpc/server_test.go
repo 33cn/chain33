@@ -201,17 +201,17 @@ func TestEthRpc_Subscribe(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	q := queue.New("test")
 	q.SetConfig(cfg)
+
 	qcli := q.Client()
 	server := NewGRpcServer(qcli, api)
 	assert.NotNil(t, server)
-	go server.Listen()
-
 	rpc := new(RPC)
 	rpc.cfg = rpcCfg
 	rpc.gapi = server
 	rpc.cli = qcli
 	rpc.api = api
 	go rpc.handleSysEvent()
+	go server.Listen()
 	defer rpc.gapi.Close()
 
 	wsServer := ethrpc.NewHTTPServer(qcli, api)
@@ -221,6 +221,8 @@ func TestEthRpc_Subscribe(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	api.On("AddPushSubscribe", mock.Anything).Return(&types.ReplySubscribePush{IsOk: true}, nil)
 	api.On("Close", mock.Anything).Return()
+
+	time.Sleep(time.Millisecond * 500)
 	//websocket client
 	ws, err := websocket.Dial("ws://localhost:8546", "", "http://localhost:8546")
 	assert.Nil(t, err)
