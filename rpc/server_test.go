@@ -201,20 +201,20 @@ func TestEthRpc_Subscribe(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	q := queue.New("test")
 	q.SetConfig(cfg)
-	qm := q.Client()
-	server := NewGRpcServer(qm, api)
+	qcli := q.Client()
+	server := NewGRpcServer(qcli, api)
 	assert.NotNil(t, server)
 	go server.Listen()
 
 	rpc := new(RPC)
 	rpc.cfg = rpcCfg
 	rpc.gapi = server
-	rpc.cli = q.Client()
+	rpc.cli = qcli
 	rpc.api = api
 	go rpc.handleSysEvent()
 	defer rpc.gapi.Close()
 
-	wsServer := ethrpc.NewHTTPServer(qm, api)
+	wsServer := ethrpc.NewHTTPServer(qcli, api)
 	wsServer.EnableWS()
 	go wsServer.Start()
 
@@ -235,7 +235,7 @@ func TestEthRpc_Subscribe(t *testing.T) {
 	assert.Nil(t, err)
 	t.Log("subid", subID.Result)
 	time.Sleep(time.Second)
-	err = q.Client().Send(qm.NewMessage("rpc", types.EventPushBlock, &types.PushData{Name: subID.Result, Value: &types.PushData_HeaderSeqs{
+	err = q.Client().Send(qcli.NewMessage("rpc", types.EventPushBlock, &types.PushData{Name: subID.Result, Value: &types.PushData_HeaderSeqs{
 		HeaderSeqs: &types.HeaderSeqs{
 			Seqs: []*types.HeaderSeq{
 				{
@@ -269,7 +269,7 @@ func TestEthRpc_Subscribe(t *testing.T) {
 	topics = append(topics, topic)
 	var evmlog types.EVMLog
 	evmlog.Topic = topics
-	sendMsg := qm.NewMessage("rpc", types.EventPushBlock, &types.PushData{Name: subID.Result, Value: &types.PushData_EvmLogs{
+	sendMsg := qcli.NewMessage("rpc", types.EventPushBlock, &types.PushData{Name: subID.Result, Value: &types.PushData_EvmLogs{
 		EvmLogs: &types.EVMTxLogsInBlks{
 			Logs4EVMPerBlk: []*types.EVMTxLogPerBlk{
 				{
