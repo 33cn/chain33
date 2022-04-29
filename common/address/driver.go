@@ -36,6 +36,10 @@ type Driver interface {
 	ValidateAddr(addr string) error
 	// GetName get driver name
 	GetName() string
+	// Bytes2Str trans to string format
+	Bytes2Str(addr []byte) string
+	// Str2Bytes trans to byte format
+	Str2Bytes(addr string) ([]byte, error)
 }
 
 // DriverInfo driver info
