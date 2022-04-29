@@ -182,7 +182,7 @@ func (mock *Chain33Mock) Listen() {
 	pluginmgr.AddRPC(mock.rpc)
 	var portgrpc, portjsonrpc int
 	for {
-		portgrpc, portjsonrpc = mock.rpc.Listen()
+		portgrpc, portjsonrpc, _, _ = mock.rpc.Listen()
 		if portgrpc != 0 && portjsonrpc != 0 {
 			break
 		}

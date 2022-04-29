@@ -1,16 +1,17 @@
-package peer
+package utils
 
 import (
 	"net"
 )
 
+// IsPublicIP ...
 /*
 tcp/ip协议中，专门保留了三个IP地址区域作为私有地址，其地址范围如下：
 10.0.0.0/8：10.0.0.0～10.255.255.255
 172.16.0.0/12：172.16.0.0～172.31.255.255
 192.168.0.0/16：192.168.0.0～192.168.255.255
 */
-func isPublicIP(ip string) bool {
+func IsPublicIP(ip string) bool {
 	IP := net.ParseIP(ip)
 	if IP == nil || IP.IsLoopback() || IP.IsLinkLocalMulticast() || IP.IsLinkLocalUnicast() {
 		return false
@@ -30,8 +31,9 @@ func isPublicIP(ip string) bool {
 	return false
 }
 
+//LocalIPv4s ...
 // LocalIPs return all non-loopback IPv4 addresses
-func localIPv4s() ([]string, error) {
+func LocalIPv4s() ([]string, error) {
 	var ips []string
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {

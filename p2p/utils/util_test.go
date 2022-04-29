@@ -51,6 +51,7 @@ func Test_ChannelVersion(t *testing.T) {
 
 	testChannelVersion(t, 0, 100)
 	testChannelVersion(t, 128, 100)
+	testChannelVersion(t, 1099, 10030)
 }
 
 func TestFilter(t *testing.T) {

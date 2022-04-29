@@ -116,6 +116,13 @@ certFile="cert.pem"
 # 私钥文件
 keyFile="key.pem"
 
+[rpc.sub.eth]
+httpAddr="localhost:8545"
+httpApi=["eth","web3","personal","admin","net"]
+# websocket 绑定地址
+wsAddr="localhost:8546"
+wsApi=["eth","web3","personal","admin","net"]
+
 [mempool]
 # mempool队列名称，可配，timeline，score，price
 name="timeline"

@@ -9,11 +9,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/33cn/chain33/queue"
+	rpcclient "github.com/33cn/chain33/rpc/client"
+
 	"github.com/stretchr/testify/require"
 
 	"encoding/hex"
 
-	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/common"
@@ -376,20 +378,20 @@ func TestDecodeLogModifyConfig(t *testing.T) {
 
 func newTestChain33(api client.QueueProtocolAPI) *Chain33 {
 	types.AssertConfig(api)
-	return &Chain33{
-		cli: channelClient{
-			QueueProtocolAPI: api,
-			accountdb:        account.NewCoinsAccount(api.GetConfig()),
-		},
-	}
+	obj := &Chain33{}
+	q := queue.New("test")
+	q.SetConfig(api.GetConfig())
+	obj.cli = rpcclient.ChannelClient{}
+	obj.cli.Init(q.Client(), api)
+
+	return obj
+
 }
 
 func TestChain33_CreateRawTransaction(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	// var result interface{}
-	// api.On("CreateRawTransaction", nil, &result).Return()
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
-	api.On("GetConfig", mock.Anything).Return(cfg)
+	api.On("GetConfig", mock.Anything).Return(cfg, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	err := testChain33.CreateRawTransaction(nil, &testResult)
@@ -460,7 +462,7 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 	}
 	err = testChain33.CreateRawTxGroup(txs, &testResult)
 	assert.Nil(t, err)
-	tx, err := decodeTx(testResult.(string))
+	tx, err := rpcclient.DecodeTx(testResult.(string))
 	assert.Nil(t, err)
 	tg, err := tx.GetTxGroup()
 	assert.Nil(t, err)
@@ -1813,14 +1815,14 @@ func TestChain33_ChainID(t *testing.T) {
 }
 
 func TestChain33_GetCryptoList(t *testing.T) {
-	chain33 := &Chain33{cli: channelClient{}}
+	chain33 := &Chain33{cli: rpcclient.ChannelClient{}}
 	var result interface{}
 	err := chain33.GetCryptoList(&types.ReqNil{}, &result)
 	assert.Nil(t, err)
 }
 
 func TestChain33_GetAddressDrivers(t *testing.T) {
-	chain33 := &Chain33{cli: channelClient{}}
+	chain33 := &Chain33{cli: rpcclient.ChannelClient{}}
 	var result interface{}
 	err := chain33.GetAddressDrivers(&types.ReqNil{}, &result)
 	assert.Nil(t, err)
@@ -1848,7 +1850,7 @@ func TestChain33_SendDelayTransaction(t *testing.T) {
 
 func TestChain33_WalletRecoverScript(t *testing.T) {
 
-	chain33 := &Chain33{cli: channelClient{}}
+	chain33 := &Chain33{cli: rpcclient.ChannelClient{}}
 	var result interface{}
 	err := chain33.GetWalletRecoverAddress(nil, &result)
 	require.Equal(t, types.ErrInvalidParam, err)

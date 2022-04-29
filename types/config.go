@@ -791,6 +791,7 @@ func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
 	subcfg.Metrics = parseItem(cfg.Metrics)
 	subcfg.P2P = parseItem(cfg.P2P)
 	subcfg.Crypto = parseItem(cfg.Crypto)
+	subcfg.RPC = parseItem(cfg.RPC)
 	return &subcfg, nil
 }
 

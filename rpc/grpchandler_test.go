@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"time"
 
+	slog "github.com/33cn/chain33/common/log"
+	"github.com/33cn/chain33/pluginmgr"
+
 	"github.com/33cn/chain33/queue"
 	"google.golang.org/grpc"
 
@@ -67,6 +70,10 @@ func (_m *Addr) String() string {
 	}
 
 	return r0
+}
+func Init(cfg *types.Chain33Config) {
+	slog.SetLogLevel("error")
+	pluginmgr.InitExec(cfg)
 }
 
 func init() {
@@ -855,13 +862,12 @@ func TestGrpc_AddPushSubscribe(t *testing.T) {
 
 }
 
-func mockblockchain(t *testing.T, q queue.Queue) {
+func mockblockchain(t *testing.T, client queue.Client) {
 	go func() {
 		blockchainKey := "blockchain"
-		client := q.Client()
+		//client := q.Client()
 		client.Sub(blockchainKey)
 		for msg := range client.Recv() {
-			t.Log("mockblockchain recv:", msg)
 			switch msg.Ty {
 			case types.EventSubscribePush:
 				//checkparam
@@ -897,7 +903,7 @@ func TestGrpc_SubEvent(t *testing.T) {
 	c := queue.New("mytest")
 	chain33Cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	c.SetConfig(chain33Cfg)
-	go mockblockchain(t, c)
+	go mockblockchain(t, c.Client())
 	rpcCfg = new(types.RPC)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:18802"
 

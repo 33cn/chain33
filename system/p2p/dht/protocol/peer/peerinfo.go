@@ -9,6 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/33cn/chain33/common/utils"
+
 	"github.com/33cn/chain33/common/version"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
@@ -177,7 +179,7 @@ func (p *Protocol) detectNodeAddr() {
 			time.Sleep(time.Second * 10)
 		}
 		for _, pid := range p.RoutingTable.ListPeers() {
-			if isPublicIP(p.getPublicIP()) && p.containsPublicIP(pid) {
+			if utils.IsPublicIP(p.getPublicIP()) && p.containsPublicIP(pid) {
 				continue
 			}
 			err := p.queryVersionOld(pid)
@@ -281,7 +283,7 @@ func (p *Protocol) queryVersionOld(pid peer.ID) error {
 		_, port := parseIPAndPort(stream.Conn().RemoteMultiaddr().String())
 		msg.AddrFrom = fmt.Sprintf("/ip4/%s/tcp/%d", msg.AddrFrom, port)
 	}
-	if ip, _ := parseIPAndPort(msg.GetAddrFrom()); isPublicIP(ip) {
+	if ip, _ := parseIPAndPort(msg.GetAddrFrom()); utils.IsPublicIP(ip) {
 		remoteMAddr, err := multiaddr.NewMultiaddr(msg.GetAddrFrom())
 		if err != nil {
 			return err
@@ -321,7 +323,7 @@ func (p *Protocol) queryVersion(pid peer.ID) error {
 	addr := resp.GetAddrRecv()
 	p.setExternalAddr(addr)
 
-	if ip, _ := parseIPAndPort(resp.GetAddrFrom()); isPublicIP(ip) {
+	if ip, _ := parseIPAndPort(resp.GetAddrFrom()); utils.IsPublicIP(ip) {
 		remoteMAddr, err := multiaddr.NewMultiaddr(resp.GetAddrFrom())
 		if err != nil {
 			return err
@@ -333,7 +335,7 @@ func (p *Protocol) queryVersion(pid peer.ID) error {
 
 func (p *Protocol) setExternalAddr(addr string) {
 	ip, _ := parseIPAndPort(addr)
-	if isPublicIP(ip) {
+	if utils.IsPublicIP(ip) {
 		p.mutex.Lock()
 		p.externalAddr = addr
 		p.mutex.Unlock()
@@ -355,7 +357,7 @@ func (p *Protocol) getPublicIP() string {
 
 func (p *Protocol) containsPublicIP(pid peer.ID) bool {
 	for _, maddr := range p.Host.Peerstore().Addrs(pid) {
-		if ip, _ := parseIPAndPort(maddr.String()); isPublicIP(ip) {
+		if ip, _ := parseIPAndPort(maddr.String()); utils.IsPublicIP(ip) {
 			return true
 		}
 	}

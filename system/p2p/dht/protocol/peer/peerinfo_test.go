@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/common/utils"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
@@ -224,7 +226,7 @@ func Test_isPublicIP(t *testing.T) {
 		{"192.169.0.0", true},
 	}
 	for _, c := range cases {
-		require.Equal(t, c.output, isPublicIP(c.input))
+		require.Equal(t, c.output, utils.IsPublicIP(c.input))
 	}
 }
 

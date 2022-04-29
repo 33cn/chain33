@@ -14,7 +14,11 @@ import (
 	"sync"
 	"time"
 
+	rclient "github.com/33cn/chain33/rpc/client"
+	"github.com/33cn/chain33/rpc/ethrpc"
+
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/rpc/grpcclient"
@@ -37,18 +41,19 @@ var (
 	grpcFuncBlacklist           = make(map[string]bool)
 	rpcFilterPrintFuncBlacklist = make(map[string]bool)
 	grpcFuncListLock            = sync.RWMutex{}
+	log                         = log15.New("module", "rpc_client")
 )
 
 // Chain33  a channel client
 type Chain33 struct {
-	cli channelClient
+	cli rclient.ChannelClient
 	//for communicate with main chain in parallel chain
 	mainGrpcCli types.Chain33Client
 }
 
 // Grpc a channelClient
 type Grpc struct {
-	cli       channelClient
+	cli       rclient.ChannelClient
 	cachelock sync.Mutex
 	subCache  map[string]*subInfo // topic -->subInfo
 }
@@ -306,11 +311,13 @@ func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServe
 
 // RPC a type object
 type RPC struct {
-	cfg  *types.RPC
-	gapi *Grpcserver
-	japi *JSONRPCServer
-	cli  queue.Client
-	api  client.QueueProtocolAPI
+	cfg    *types.RPC
+	gapi   *Grpcserver
+	japi   *JSONRPCServer
+	eapi   ethrpc.ServerAPI
+	ewsapi ethrpc.ServerAPI
+	cli    queue.Client
+	api    client.QueueProtocolAPI
 }
 
 // InitCfg  interfaces
@@ -344,9 +351,14 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 
 	gapi := NewGRpcServer(c, r.api)
 	japi := NewJSONRPCServer(c, r.api)
+	r.eapi = ethrpc.NewHTTPServer(c, r.api)
+	r.ewsapi = ethrpc.NewHTTPServer(c, r.api)
 	r.gapi = gapi
 	r.japi = japi
 	r.cli = c
+	//配置rpc,websocket
+	r.eapi.EnableRPC()
+	r.ewsapi.EnableWS()
 	go r.handleSysEvent()
 
 	//注册系统rpc
@@ -358,6 +370,10 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 	gapi := NewGRpcServer(c, r.api)
 	japi := NewJSONRPCServer(c, r.api)
+	r.eapi = ethrpc.NewHTTPServer(c, r.api)
+	r.ewsapi = ethrpc.NewHTTPServer(c, r.api)
+	r.eapi.EnableRPC()
+	r.ewsapi.EnableWS()
 	r.gapi = gapi
 	r.japi = japi
 	r.cli = c
@@ -378,7 +394,7 @@ func (r *RPC) handleSysEvent() {
 					case <-ticker.C:
 						log.Error("handleSysEvent", "ticker timeout", rmsg.GetData().(*types.PushData).GetName())
 					case ch <- rmsg:
-						msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
+						rmsg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
 
 					}
 				}
@@ -387,15 +403,15 @@ func (r *RPC) handleSysEvent() {
 
 		} else {
 			//要求blockchain模块停止推送
-			log.Error("handleSysEvent", "no subscriber", r.gapi.grpc.subCache, "topic:", msg.GetData().(*types.PushData).GetName(), "subchan:", topicInfo)
+			log.Error("handleSysEvent", "no subscriber,all topic", r.gapi.grpc.subCache, "no topic:", msg.GetData().(*types.PushData).GetName(), "subchan:", topicInfo)
 			msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: false, Msg: []byte("no subscriber")}))
 		}
 
 	}
 }
 
-// Listen rpc listen
-func (r *RPC) Listen() (port1 int, port2 int) {
+// Listen rpc listen，http port,grpc port,ethrpc port,ethrpc websocket port
+func (r *RPC) Listen() (port1 int, port2 int, port3, port4 int) {
 	var err error
 	for i := 0; i < 10; i++ {
 		port1, err = r.gapi.Listen()
@@ -415,10 +431,22 @@ func (r *RPC) Listen() (port1 int, port2 int) {
 		}
 		break
 	}
-	log.Info("rpc Listen port", "grpc", port1, "jrpc", port2)
+
+	port3, err = r.eapi.Start()
+	if err != nil {
+		log.Error("ethrpc Listen", "err", err)
+	}
+
+	port4, err = r.ewsapi.Start()
+	if err != nil {
+		log.Error("wsrpc Listen", "err", err)
+	}
+	log.Info("rpc Listen port", "grpc", port1, "jrpc", port2, "erpc", port3, "wsport:", port4)
 	//sleep for a while
+
 	time.Sleep(time.Millisecond)
-	return port1, port2
+	return port1, port2, port3, port4
+
 }
 
 // GetQueueClient get queue client
@@ -443,6 +471,12 @@ func (r *RPC) Close() {
 	}
 	if r.japi != nil {
 		r.japi.Close()
+	}
+	if r.eapi != nil {
+		r.eapi.Close()
+	}
+	if r.ewsapi != nil {
+		r.ewsapi.Close()
 	}
 }
 

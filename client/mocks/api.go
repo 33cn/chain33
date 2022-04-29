@@ -403,6 +403,29 @@ func (_m *QueueProtocolAPI) GetHeaders(param *types.ReqBlocks) (*types.Headers, 
 	return r0, r1
 }
 
+// GetHighestBlockNum provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetHighestBlockNum(param *types.ReqNil) (*types.ReplyBlockHeight, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyBlockHeight
+	if rf, ok := ret.Get(0).(func(*types.ReqNil) *types.ReplyBlockHeight); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyBlockHeight)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqNil) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetLastBlockMainSequence provides a mock function with given fields:
 func (_m *QueueProtocolAPI) GetLastBlockMainSequence() (*types.Int64, error) {
 	ret := _m.Called()

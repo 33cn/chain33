@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/33cn/chain33/common/utils"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 
 	"github.com/33cn/chain33/queue"
@@ -42,7 +44,7 @@ func (p *Protocol) handleStreamVersion(stream network.Stream) {
 		return
 	}
 
-	if ip, _ := parseIPAndPort(req.GetAddrFrom()); isPublicIP(ip) {
+	if ip, _ := parseIPAndPort(req.GetAddrFrom()); utils.IsPublicIP(ip) {
 		remoteMAddr, err := multiaddr.NewMultiaddr(req.GetAddrFrom())
 		if err != nil {
 			return
@@ -111,7 +113,7 @@ func (p *Protocol) handleStreamVersionOld(stream network.Stream) {
 		_ = stream.Conn().Close()
 		return
 	}
-	if ip, _ := parseIPAndPort(msg.GetAddrFrom()); isPublicIP(ip) {
+	if ip, _ := parseIPAndPort(msg.GetAddrFrom()); utils.IsPublicIP(ip) {
 		remoteMAddr, err := multiaddr.NewMultiaddr(msg.GetAddrFrom())
 		if err != nil {
 			return
@@ -166,7 +168,7 @@ func (p *Protocol) handleEventNetInfo(msg *queue.Message) {
 	var netinfo types.NodeNetInfo
 
 	netinfo.Externaladdr = p.getPublicIP()
-	localips, _ := localIPv4s()
+	localips, _ := utils.LocalIPv4s()
 	if len(localips) != 0 {
 		log.Info("handleEventNetInfo", "localIps", localips)
 		netinfo.Localaddr = localips[0]
