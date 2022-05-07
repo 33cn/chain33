@@ -4,7 +4,6 @@ import (
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/system/address/eth"
 	"github.com/33cn/chain33/system/crypto/secp256k1"
-
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"testing"
@@ -30,4 +29,18 @@ func TestFormatEthAddr(t *testing.T) {
 		require.Equal(t, ethAddr, addr)
 	}
 	require.Equal(t, eth.Name, ethDriver.GetName())
+}
+
+func TestHexAddr(t *testing.T) {
+
+	addr := "0x6c0d7be0d2c8350042890a77393158181716b0d6"
+	checksumAddr := "0x6c0d7BE0d2C8350042890a77393158181716b0d6"
+	ethDriver, err := address.LoadDriver(eth.ID, -1)
+	require.Nil(t, err)
+	err = ethDriver.ValidateAddr(addr)
+	require.Nil(t, err)
+
+	raw, err := ethDriver.FromString(addr)
+	require.Nil(t, err)
+	require.Equal(t, checksumAddr, ethDriver.ToString(raw))
 }
