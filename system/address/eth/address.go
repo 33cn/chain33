@@ -58,6 +58,19 @@ func (e *eth) GetName() string {
 	return Name
 }
 
+// ToString trans to string format
+func (e *eth) ToString(addr []byte) string {
+	return common.BytesToAddress(addr).Hex()
+}
+
+// FromString trans to byte format
+func (e *eth) FromString(addr string) ([]byte, error) {
+	if err := e.ValidateAddr(addr); err != nil {
+		return nil, err
+	}
+	return common.HexToAddress(addr).Bytes(), nil
+}
+
 // FormatEthAddr format eth addr
 func FormatEthAddr(pubKey []byte) string {
 
