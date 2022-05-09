@@ -1,9 +1,12 @@
 package eth_test
 
 import (
+	"strings"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/system/address/eth"
 	"github.com/33cn/chain33/system/crypto/secp256k1"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
 	"testing"
@@ -26,7 +29,7 @@ func TestFormatEthAddr(t *testing.T) {
 		err = ethDriver.ValidateAddr(ethAddr)
 		require.Nil(t, err)
 		addr := ethDriver.PubKeyToAddr(chain33Priv.PubKey().Bytes())
-		require.Equal(t, ethAddr, addr)
+		require.Equal(t, eth.ToLower(ethAddr), addr)
 	}
 	require.Equal(t, eth.Name, ethDriver.GetName())
 }
@@ -34,13 +37,30 @@ func TestFormatEthAddr(t *testing.T) {
 func TestHexAddr(t *testing.T) {
 
 	addr := "0x6c0d7be0d2c8350042890a77393158181716b0d6"
-	checksumAddr := "0x6c0d7BE0d2C8350042890a77393158181716b0d6"
+	upperCaseAddr := "0x6c0d7BE0d2C8350042890a77393158181716b0d6"
 	ethDriver, err := address.LoadDriver(eth.ID, -1)
 	require.Nil(t, err)
-	err = ethDriver.ValidateAddr(addr)
+	err = ethDriver.ValidateAddr(upperCaseAddr)
 	require.Nil(t, err)
 
-	raw, err := ethDriver.FromString(addr)
+	raw, err := ethDriver.FromString(upperCaseAddr)
 	require.Nil(t, err)
-	require.Equal(t, checksumAddr, ethDriver.ToString(raw))
+	require.Equal(t, addr, ethDriver.ToString(raw))
+}
+
+func BenchmarkFormatToStandard(b *testing.B) {
+
+	addr := "0x6c0d7BE0d2C8350042890a77393158181716b0d6"
+	b.ResetTimer()
+	b.Run("toLower", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			strings.ToLower(addr)
+		}
+	})
+
+	b.Run("toChecksumValid", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			common.HexToAddress(addr).Hex()
+		}
+	})
 }

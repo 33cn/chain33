@@ -2,6 +2,7 @@ package eth
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/ethereum/go-ethereum/common"
@@ -32,6 +33,7 @@ func init() {
 	}
 }
 
+// eth地址驱动, chain33中统一采用小写格式
 type eth struct{}
 
 // PubKeyToAddr public key to address
@@ -40,14 +42,14 @@ func (e *eth) PubKeyToAddr(pubKey []byte) string {
 	if value, ok := addrCache.Get(pubStr); ok {
 		return value.(string)
 	}
-	addr := FormatEthAddr(pubKey)
+	addr := PubKey2EthAddr(pubKey)
 	addrCache.Add(pubStr, addr)
 	return addr
 }
 
 // ValidateAddr address validation
 func (e *eth) ValidateAddr(addr string) error {
-	if common.IsHexAddress(addr) {
+	if IsEthAddress(addr) {
 		return nil
 	}
 	return ErrInvalidEthAddr
@@ -60,7 +62,7 @@ func (e *eth) GetName() string {
 
 // ToString trans to string format
 func (e *eth) ToString(addr []byte) string {
-	return common.BytesToAddress(addr).Hex()
+	return ToLower(common.BytesToAddress(addr).String())
 }
 
 // FromString trans to byte format
@@ -71,16 +73,27 @@ func (e *eth) FromString(addr string) ([]byte, error) {
 	return common.HexToAddress(addr).Bytes(), nil
 }
 
-// FormatEthAddr format eth addr
-func FormatEthAddr(pubKey []byte) string {
+// PubKey2EthAddr format eth addr
+func PubKey2EthAddr(pubKey []byte) string {
 
 	pub, err := crypto.DecompressPubkey(pubKey)
 	// ecdsa public key, compatible with ethereum, get address from eth api
 	if err == nil {
-		return crypto.PubkeyToAddress(*pub).String()
+		return ToLower(crypto.PubkeyToAddress(*pub).String())
 	}
 	// just format as eth address if pubkey not compatible
 	var a common.Address
 	a.SetBytes(crypto.Keccak256(pubKey[1:])[12:])
-	return a.Hex()
+	return ToLower(a.String())
+}
+
+// IsEthAddress verifies whether a string can represent
+// a valid hex-encoded eth address
+func IsEthAddress(addr string) bool {
+	return common.IsHexAddress(addr)
+}
+
+// ToLower to lower case string
+func ToLower(addr string) string {
+	return strings.ToLower(addr)
 }
