@@ -44,6 +44,10 @@ func (m *mockDriver) ValidateAddr(addr string) error { return nil }
 
 func (m *mockDriver) GetName() string { return "mock" }
 
+func (m *mockDriver) ToString([]byte) string {return ""}
+
+func (m *mockDriver) FromString(string) ([]byte, error) {return nil, nil}
+
 func Test_RegisterDriver(t *testing.T) {
 
 	m := &mockDriver{}
@@ -68,5 +72,11 @@ func Test_util(t *testing.T) {
 
 	id := address.GetDefaultAddressID()
 	require.Equal(t, int32(0), id)
-	address.GetDriverList()
+	list := address.GetDriverList()
+
+	for id, driver := range list {
+		ty, err := address.GetDriverType(driver.GetName())
+		require.Nil(t, err)
+		require.Equal(t, id, ty)
+	}
 }
