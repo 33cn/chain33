@@ -44,9 +44,9 @@ func (m *mockDriver) ValidateAddr(addr string) error { return nil }
 
 func (m *mockDriver) GetName() string { return "mock" }
 
-func (m *mockDriver) ToString([]byte) string {return ""}
+func (m *mockDriver) ToString([]byte) string { return "" }
 
-func (m *mockDriver) FromString(string) ([]byte, error) {return nil, nil}
+func (m *mockDriver) FromString(string) ([]byte, error) { return nil, nil }
 
 func Test_RegisterDriver(t *testing.T) {
 

@@ -171,7 +171,6 @@ func GetDriverList() map[int32]Driver {
 	return list
 }
 
-
 // GetDriverType get type by name
 func GetDriverType(name string) (int32, error) {
 	ty, ok := driverName[name]
