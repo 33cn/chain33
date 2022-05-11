@@ -6,6 +6,7 @@ package common
 
 import (
 	"fmt"
+
 	"github.com/33cn/chain33/system/address/eth"
 )
 
