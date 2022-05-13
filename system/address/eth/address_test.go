@@ -29,7 +29,7 @@ func TestFormatEthAddr(t *testing.T) {
 		err = ethDriver.ValidateAddr(ethAddr)
 		require.Nil(t, err)
 		addr := ethDriver.PubKeyToAddr(chain33Priv.PubKey().Bytes())
-		require.Equal(t, eth.ToLower(ethAddr), addr)
+		require.Equal(t, address.ToLower(ethAddr), addr)
 	}
 	require.Equal(t, eth.Name, ethDriver.GetName())
 }

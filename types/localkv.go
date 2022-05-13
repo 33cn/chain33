@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/33cn/chain33/system/address/eth"
+	"github.com/33cn/chain33/common/address"
 )
 
 // 定义key值
@@ -64,36 +64,24 @@ func CalcTxShortKey(hash []byte) []byte {
 //CalcTxAddrHashKey 用于存储地址相关的hash列表，key=TxAddrHash:addr:height*100000 + index
 //地址下面所有的交易
 func CalcTxAddrHashKey(addr string, heightindex string) []byte {
-	if eth.IsEthAddress(addr) {
-		addr = eth.ToLower(addr)
-	}
-	return append(TxAddrHash, []byte(fmt.Sprintf("%s:%s", addr, heightindex))...)
+	return append(TxAddrHash, []byte(fmt.Sprintf("%s:%s", address.FormatAddrKey(addr), heightindex))...)
 }
 
 //CalcTxAddrDirHashKey 用于存储地址相关的hash列表，key=TxAddrHash:addr:flag:height*100000 + index
 //地址下面某个分类的交易
 func CalcTxAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
-	if eth.IsEthAddress(addr) {
-		addr = eth.ToLower(addr)
-	}
-	return append(TxAddrDirHash, []byte(fmt.Sprintf("%s:%d:%s", addr, flag, heightindex))...)
+	return append(TxAddrDirHash, []byte(fmt.Sprintf("%s:%d:%s", address.FormatAddrKey(addr), flag, heightindex))...)
 }
 
 //CalcTxFeeAddrDirHashKey 用于存储地址相关的hash列表，key=TxAddrHash:addr:flag:height*100000 + index
 //地址下面某个分类的交易
 func CalcTxFeeAddrDirHashKey(addr string, flag int32, heightindex string) []byte {
-	if eth.IsEthAddress(addr) {
-		addr = eth.ToLower(addr)
-	}
-	return append(TxFeeAddrDirHash, []byte(fmt.Sprintf("%s:%d:%s", addr, flag, heightindex))...)
+	return append(TxFeeAddrDirHash, []byte(fmt.Sprintf("%s:%d:%s", address.FormatAddrKey(addr), flag, heightindex))...)
 }
 
 //CalcAddrTxsCountKey 存储地址参与的交易数量。add时加一，del时减一
 func CalcAddrTxsCountKey(addr string) []byte {
-	if eth.IsEthAddress(addr) {
-		addr = eth.ToLower(addr)
-	}
-	return append(AddrTxsCount, []byte(addr)...)
+	return append(AddrTxsCount, address.FormatAddrKey(addr)...)
 }
 
 //StatisticFlag 用于记录统计的key
