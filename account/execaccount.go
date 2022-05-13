@@ -7,7 +7,6 @@ package account
 import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/address"
-	"github.com/33cn/chain33/system/address/eth"
 	"github.com/33cn/chain33/types"
 )
 
@@ -55,16 +54,12 @@ func (acc *DB) GetExecKVSet(execaddr string, acc1 *types.Account) (kvset []*type
 	return kvset
 }
 
-func (acc *DB) execAccountKey(address, execaddr string) (key []byte) {
-	// eth地址统一采用小写格式key存储(#1245)
-	if eth.IsEthAddress(address) {
-		address = eth.ToLower(address)
-	}
-	key = make([]byte, 0, len(acc.execAccountKeyPerfix)+len(execaddr)+len(address)+1)
+func (acc *DB) execAccountKey(addr, execaddr string) (key []byte) {
+	key = make([]byte, 0, len(acc.execAccountKeyPerfix)+len(execaddr)+len(addr)+1)
 	key = append(key, acc.execAccountKeyPerfix...)
 	key = append(key, []byte(execaddr)...)
 	key = append(key, []byte(":")...)
-	key = append(key, []byte(address)...)
+	key = append(key, address.FormatAddrKey(addr)...)
 	return key
 }
 

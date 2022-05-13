@@ -18,8 +18,6 @@ package account
 import (
 	"strings"
 
-	"github.com/33cn/chain33/system/address/eth"
-
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
@@ -82,12 +80,8 @@ func (acc *DB) SetDB(db dbm.KV) *DB {
 }
 
 func (acc *DB) accountReadKey(addr string) []byte {
-	// eth地址统一采用小写格式key存储(#1245)
-	if eth.IsEthAddress(addr) {
-		addr = eth.ToLower(addr)
-	}
 	acc.accountKeyBuffer = acc.accountKeyBuffer[0:len(acc.accountKeyPerfix)]
-	acc.accountKeyBuffer = append(acc.accountKeyBuffer, []byte(addr)...)
+	acc.accountKeyBuffer = append(acc.accountKeyBuffer, address.FormatAddrKey(addr)...)
 	return acc.accountKeyBuffer
 }
 
@@ -254,14 +248,10 @@ func (acc *DB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error)
 }
 
 // AccountKey return the key of address in DB
-func (acc *DB) AccountKey(address string) (key []byte) {
-	// eth地址统一采用小写格式key存储(#1245)
-	if eth.IsEthAddress(address) {
-		address = eth.ToLower(address)
-	}
-	key = make([]byte, 0, len(acc.accountKeyPerfix)+len(address))
+func (acc *DB) AccountKey(addr string) (key []byte) {
+	key = make([]byte, 0, len(acc.accountKeyPerfix)+len(addr))
 	key = append(key, acc.accountKeyPerfix...)
-	key = append(key, []byte(address)...)
+	key = append(key, address.FormatAddrKey(addr)...)
 	return key
 }
 
