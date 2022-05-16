@@ -50,6 +50,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	//}
 
 	var key crypto.PrivKey
+	addressID := unsigned.GetAddressID()
 	if unsigned.GetAddr() != "" {
 		ok, err := wallet.checkWalletStatus()
 		if !ok {
@@ -59,6 +60,11 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		if err != nil {
 			return "", err
 		}
+		addressID, err = address.GetAddressType(unsigned.Addr)
+		if err != nil {
+			return "", types.ErrInvalidAddress
+		}
+
 	} else if unsigned.GetPrivkey() != "" {
 		keyByte, err := common.FromHex(unsigned.GetPrivkey())
 		if err != nil {
@@ -79,7 +85,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", types.ErrNoPrivKeyOrAddr
 	}
 	// signID integrate crypto ID with address ID
-	signID := types.EncodeSignID(int32(wallet.SignType), unsigned.GetAddressID())
+	signID := types.EncodeSignID(int32(wallet.SignType), addressID)
 
 	txByteData, err := common.FromHex(unsigned.GetTxHex())
 	if err != nil {
