@@ -9,9 +9,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/33cn/chain33/common/address"
-	"github.com/pkg/errors"
-
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -430,14 +427,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	if addr != "" {
-		ty, err := address.GetAddressType(addr)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, errors.Wrap(err, "GetAddressType"))
-			return
-		}
-		addressType = ty
-	}
+
 	params := types.ReqSignRawTx{
 		Addr:      addr,
 		Privkey:   key,
