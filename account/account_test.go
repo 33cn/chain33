@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/33cn/chain33/system/address/eth"
-
 	"strings"
 
 	"github.com/33cn/chain33/client"
@@ -613,7 +611,7 @@ func TestAccountKey(t *testing.T) {
 
 	acc := NewCoinsAccount(types.NewChain33Config(types.GetDefaultCfgstring()))
 	addr := "0x6c0d7BE0d2C8350042890a77393158181716b0d6"
-	addr1 := eth.ToLower(addr)
+	addr1 := address.ToLower(addr)
 	accKey := acc.accountReadKey(addr)
 	require.Equal(t, accKey, acc.AccountKey(addr))
 	require.Equal(t, accKey, acc.AccountKey(addr1))
