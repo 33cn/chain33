@@ -10,12 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/system/crypto/ed25519"
+	_ "github.com/33cn/chain33/system/crypto/init"
 	"github.com/33cn/chain33/system/crypto/none"
 	"github.com/33cn/chain33/system/crypto/secp256k1"
-
-	"github.com/33cn/chain33/common/crypto"
-	_ "github.com/33cn/chain33/system/crypto/init"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,7 +27,8 @@ func TestGet(t *testing.T) {
 	require.Equal("ed25519", name)
 	name = crypto.GetName(258)
 	require.Equal("sm2", name)
-
+	name = crypto.GetName(260)
+	require.Equal("secp256k1sha3", name)
 	ty := crypto.GetType("secp256k1")
 	require.True(ty == 1)
 	ty = crypto.GetType("ed25519")
@@ -36,6 +36,10 @@ func TestGet(t *testing.T) {
 
 	ty = crypto.GetType("sm2")
 	require.True(ty == 258)
+
+	ty = crypto.GetType("secp256k1sha3")
+	require.True(ty == 260)
+
 }
 
 func TestRipemd160(t *testing.T) {
@@ -58,6 +62,9 @@ func TestAll(t *testing.T) {
 	testFromBytes(t, "sm2")
 	testCrypto(t, "secp256r1")
 	testFromBytes(t, "secp256r1")
+
+	testCrypto(t, "secp256k1sha3")
+	testFromBytes(t, "secp256k1sha3")
 }
 
 func testFromBytes(t *testing.T, name string) {

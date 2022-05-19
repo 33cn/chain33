@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"github.com/33cn/chain33/common/address"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -28,7 +29,12 @@ func Test_parseDer(t *testing.T) {
 	t.Log("jmstr", string(jmstr))
 	t.Log("s:", common.Bytes2Hex(s), "size:", len(s))
 }
+func Test_addr(t *testing.T) {
+	execPub := address.ExecPubKey("0xd741c9f9e0A1F5bb1ed898115A683253F14c1F8b" + "b42eb22d6de34617a18a648e052e9ea055a61dcf0d948429b6de49a3239ab83c")
+	execAddr := address.PubKeyToAddr(0, execPub)
+	t.Log("execaddr", execAddr)
 
+}
 func Test_checkSig(t *testing.T) {
 	var word = "hello"
 	c, err := crypto.Load("secp256k1", -1)
@@ -52,11 +58,11 @@ func Test_checkSig(t *testing.T) {
 	t.Log("ps:", common.Bytes2Hex(ps))
 	cfg := ctypes.NewChain33Config(ctypes.GetDefaultCfgstring())
 	eipSigner := etypes.NewEIP155Signer(big.NewInt(int64(cfg.GetChainID())))
-	r, s, v, _ := makeDERSigToRSV(eipSigner, sigbytes)
+	r, s, v, _ := MakeDERSigToRSV(eipSigner, sigbytes)
 	t.Log("r:", common.Bytes2Hex(r.Bytes()))
 	t.Log("s:", common.Bytes2Hex(s.Bytes()))
 	t.Log("v:", common.Bytes2Hex(v.Bytes()))
-	sig2 := makeDERsignature(r.Bytes(), s.Bytes())
+	sig2 := MakeDERsignature(r.Bytes(), s.Bytes())
 	t.Log("sig2:", common.Bytes2Hex(sig2))
 	assert.Equal(t, sig2, sigbytes)
 

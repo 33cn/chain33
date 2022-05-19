@@ -1,6 +1,8 @@
 package types
 
 import (
+	"math/big"
+
 	"github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -11,13 +13,13 @@ func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config
 	var block Block
 	var header Header
 	fullblock := details.GetItems()[0]
-	header.Time = hexutil.Uint(fullblock.GetBlock().GetBlockTime()).String()
-	header.Number = hexutil.Uint(fullblock.GetBlock().Height).String()
-	header.TxHash = common.BytesToHash(fullblock.GetBlock().GetHeader(cfg).TxHash).Hex()
-	header.Difficulty = hexutil.Uint(int64(fullblock.GetBlock().GetDifficulty())).String()
-	header.ParentHash = common.BytesToHash(fullblock.GetBlock().ParentHash).Hex()
-	header.Root = common.BytesToHash(fullblock.GetBlock().GetStateHash()).Hex()
-	header.Coinbase = fullblock.GetBlock().GetTxs()[0].From()
+	header.Time = hexutil.Uint64(fullblock.GetBlock().GetBlockTime())
+	header.Number = (*hexutil.Big)(big.NewInt(fullblock.GetBlock().Height))
+	header.TxHash = common.BytesToHash(fullblock.GetBlock().GetHeader(cfg).TxHash)
+	header.Difficulty = (*hexutil.Big)(big.NewInt(int64(fullblock.GetBlock().GetDifficulty())))
+	header.ParentHash = common.BytesToHash(fullblock.GetBlock().ParentHash)
+	header.Root = common.BytesToHash(fullblock.GetBlock().GetStateHash())
+	header.Coinbase = common.HexToAddress(fullblock.GetBlock().GetTxs()[0].From())
 	//暂不支持ReceiptHash,UncleHash
 	//header.ReceiptHash=
 	//header.UncleHash
@@ -36,11 +38,11 @@ func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config
 //BlockHeaderToEthHeader transfer chain33 header to eth header
 func BlockHeaderToEthHeader(cHeader *types.Header) (*Header, error) {
 	var header Header
-	header.Time = hexutil.Uint(cHeader.GetBlockTime()).String()
-	header.Number = hexutil.Uint(cHeader.Height).String()
-	header.TxHash = common.BytesToHash(cHeader.TxHash).Hex()
-	header.Difficulty = hexutil.Uint(int64(cHeader.GetDifficulty())).String()
-	header.ParentHash = common.BytesToHash(cHeader.ParentHash).Hex()
-	header.Root = common.BytesToHash(cHeader.GetStateHash()).Hex()
+	header.Time = hexutil.Uint64(cHeader.GetBlockTime())
+	header.Number = (*hexutil.Big)(big.NewInt(cHeader.Height))
+	header.TxHash = common.BytesToHash(cHeader.TxHash)
+	header.Difficulty = (*hexutil.Big)(big.NewInt(int64(cHeader.GetDifficulty())))
+	header.ParentHash = common.BytesToHash(cHeader.ParentHash)
+	header.Root = common.BytesToHash(cHeader.GetStateHash())
 	return &header, nil
 }

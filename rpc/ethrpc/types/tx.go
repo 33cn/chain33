@@ -1,9 +1,12 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -13,8 +16,15 @@ import (
 )
 
 //makeDERSigToRSV der sig data to rsv
-func makeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.Int, err error) {
+func MakeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.Int, err error) {
 	//fmt.Println("len:",len(sig),"sig",hexutil.Encode(sig))
+	if len(sig) == 65 {
+		r = new(big.Int).SetBytes(sig[:32])
+		s = new(big.Int).SetBytes(sig[32:64])
+		v = new(big.Int).SetBytes([]byte{sig[64]})
+		return
+	}
+
 	rb, sb, err := paraseDERCode(sig)
 	if err != nil {
 		fmt.Println("makeDERSigToRSV", "err", err.Error(), "sig", hexutil.Encode(sig))
@@ -62,7 +72,7 @@ func paraseDERCode(sig []byte) (r, s []byte, err error) {
 	return
 }
 
-func makeDERsignature(rb, sb []byte) []byte {
+func MakeDERsignature(rb, sb []byte) []byte {
 	if rb[0] > 0x7F {
 		rb = append([]byte{0}, rb...)
 	}
@@ -91,21 +101,23 @@ func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full boo
 	eipSigner := etypes.NewEIP155Signer(big.NewInt(int64(cfg.GetChainID())))
 	for _, itx := range ctxs {
 		var tx Transaction
-		tx.Hash = hexutil.Encode(itx.Hash())
+		tx.Hash = common.BytesToHash(itx.Hash())
 		if !full {
 			txs = append(txs, tx.Hash)
 			continue
 		}
 
-		tx.Type = fmt.Sprint(etypes.LegacyTxType)
-		tx.From = itx.From()
-		tx.To = itx.To
+		tx.Type = etypes.LegacyTxType
+		from := common.HexToAddress(itx.From())
+		to := common.HexToAddress(itx.To)
+		tx.From = &from
+		tx.To = &to
 		amount, err := itx.Amount()
 		if err != nil {
 			log.Error("TxsToEthTxs", "err", err)
 			return nil, err
 		}
-		tx.Value = hexutil.EncodeBig(big.NewInt(amount))
+		tx.Value = (*hexutil.Big)(big.NewInt(amount))
 
 		if strings.HasSuffix(string(itx.Execer), "evm") {
 			var action ctypes.EVMContractAction4Chain33
@@ -114,19 +126,21 @@ func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full boo
 				log.Error("TxDetailsToEthTx", "err", err)
 				continue
 			}
-			tx.Data = hexutil.Encode(action.Para)
+			data := (hexutil.Bytes)(action.Para)
+			tx.Data = &data
 			//如果是EVM交易，to为合约交易
-			tx.To = action.ContractAddr
+			caddr := common.HexToAddress(action.ContractAddr)
+			tx.To = &caddr
 		}
-		r, s, v, err := makeDERSigToRSV(eipSigner, itx.Signature.GetSignature())
+		r, s, v, err := MakeDERSigToRSV(eipSigner, itx.Signature.GetSignature())
 		if err != nil {
 			log.Error("makeDERSigToRSV", "err", err)
 			txs = append(txs, &tx)
 			continue
 		}
-		tx.V = hexutil.EncodeBig(v)
-		tx.R = hexutil.EncodeBig(r)
-		tx.S = hexutil.EncodeBig(s)
+		tx.V = (*hexutil.Big)(v)
+		tx.R = (*hexutil.Big)(r)
+		tx.S = (*hexutil.Big)(s)
 		txs = append(txs, &tx)
 	}
 	return txs, nil
@@ -138,8 +152,9 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 		var tx Transaction
 		var receipt Receipt
 		//处理 execer=EVM
-		tx.To = detail.Tx.To
-		receipt.To = detail.GetTx().GetTo()
+		to := common.HexToAddress(detail.Tx.To)
+		tx.To = &to
+		//receipt.To = tx.To
 		if strings.HasSuffix(string(detail.Tx.Execer), "evm") {
 			var action ctypes.EVMContractAction4Chain33
 			err := ctypes.Decode(detail.GetTx().GetPayload(), &action)
@@ -147,39 +162,51 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 				log.Error("TxDetailsToEthTx", "err", err)
 				continue
 			}
-			tx.Data = hexutil.Encode(action.Para)
+			var decodeData []byte
+			if len(action.Para) != 0 {
+				decodeData = action.Para
+			} else {
+				decodeData = action.Code
+			}
+			data := (hexutil.Bytes)(decodeData)
+			tx.Data = &data
 			//如果是EVM交易，to为合约交易
-			tx.To = action.ContractAddr
-			receipt.ContractAddress = action.ContractAddr
+			caddr := common.HexToAddress(action.ContractAddr)
+			tx.To = &caddr
+			receipt.ContractAddress = caddr
 		}
-
-		tx.From = detail.Fromaddr
-		tx.Value = hexutil.EncodeBig(big.NewInt(detail.GetAmount())) //fmt.Sprintf("0x%x",detail.GetAmount())//.
-		tx.Type = fmt.Sprint(detail.Receipt.Ty)
-		tx.BlockNumber = hexutil.EncodeBig(big.NewInt(detail.GetHeight()))     //fmt.Sprintf("0x%x",detail.Height)
-		tx.TransactionIndex = hexutil.EncodeBig(big.NewInt(detail.GetIndex())) //fmt.Sprintf("0x%x",detail.GetIndex())
+		from := common.HexToAddress(detail.Fromaddr)
+		tx.From = &from
+		tx.Value = (*hexutil.Big)(big.NewInt(detail.GetAmount())) //fmt.Sprintf("0x%x",detail.GetAmount())//.
+		tx.Type = 0
+		tx.BlockNumber = hexutil.Big(*big.NewInt(detail.GetHeight())) //fmt.Sprintf("0x%x",detail.Height)
+		//tx.TransactionIndex = hexutil.Uint(uint(detail.GetIndex()))   //fmt.Sprintf("0x%x",detail.GetIndex())
 		eipSigner := etypes.NewEIP155Signer(big.NewInt(int64(cfg.GetChainID())))
-		r, s, v, err := makeDERSigToRSV(eipSigner, detail.Tx.GetSignature().GetSignature())
+		r, s, v, err := MakeDERSigToRSV(eipSigner, detail.Tx.GetSignature().GetSignature())
 		if err != nil {
 			return nil, nil, err
 		}
-		tx.V = hexutil.EncodeBig(v)
-		tx.R = hexutil.EncodeBig(r)
-		tx.S = hexutil.EncodeBig(s)
-		tx.Hash = hexutil.Encode(detail.Tx.Hash())
+		tx.V = (*hexutil.Big)(v)
+		tx.R = (*hexutil.Big)(r)
+		tx.S = (*hexutil.Big)(s)
+		tx.Hash = common.BytesToHash(detail.Tx.Hash())
+
 		txs = append(txs, &tx)
-		receipt.To = detail.Tx.To
-		receipt.From = detail.Fromaddr
+		//receipt.To = detail.Tx.To
+		//receipt.From = detail.Fromaddr
 		if detail.Receipt.Ty == 2 { //success
-			receipt.Status = "0x1"
+			receipt.Status = 1
 		} else {
-			receipt.Status = "0x2"
+			receipt.Status = 0
 		}
+		//jbs, _ := json.MarshalIndent(detail.Receipt.Logs, " ", "\t")
+		//fmt.Println("detail.Receipt.Logs", string(jbs))
 
 		receipt.Logs = receiptLogs2EvmLog(detail.Receipt.Logs, nil)
-		receipt.TxHash = hexutil.Encode(detail.GetTx().Hash())
-		receipt.BlockNumber = hexutil.EncodeUint64(uint64(detail.Height))
-		receipt.TransactionIndex = hexutil.EncodeUint64(uint64(detail.GetIndex()))
+		receipt.Bloom = CreateBloom([]*Receipt{&receipt})
+		receipt.TxHash = common.BytesToHash(detail.GetTx().Hash())
+		receipt.BlockNumber = (*hexutil.Big)(big.NewInt(detail.Height))
+		receipt.TransactionIndex = hexutil.Uint(uint64(detail.GetIndex()))
 		receipts = append(receipts, &receipt)
 	}
 	return
@@ -212,7 +239,7 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 				}
 			}
 
-			log.Topic = append(log.Topic, topic)
+			log.Topics = append(log.Topics, common.BytesToHash(topic))
 		}
 		elogs = append(elogs, &log)
 	}
@@ -259,4 +286,47 @@ func FilterEvmLogs(logs *ctypes.EVMTxLogPerBlk, option *SubLogs) (evmlogs []*Evm
 	}
 
 	return
+}
+
+func ParaseEthSigData(sig []byte, chainID int32) ([]byte, error) {
+	if len(sig) != 65 {
+		return nil, errors.New("invalid pub key byte,must be 65 bytes")
+	}
+
+	if sig[64] != 0 && sig[64] != 1 {
+		if sig[64] == 27 || sig[64] == 28 {
+			sig[64] = sig[64] - 27
+			return sig, nil
+
+		} else {
+			//salt := 1
+			//if chainID == 0 {
+			//	salt = 0
+			//}
+			chainIDMul := 2 * chainID
+			sig[64] = sig[64] - byte(chainIDMul) - 35
+			return sig, nil
+		}
+
+	}
+
+	return sig, nil
+
+}
+
+// CreateBloom creates a bloom filter out of the give Receipts (+Logs)
+func CreateBloom(receipts []*Receipt) etypes.Bloom {
+	var bin etypes.Bloom
+	for _, receipt := range receipts {
+		for _, log := range receipt.Logs {
+			if log.Address.Bytes() != nil {
+				bin.Add(log.Address.Bytes())
+			}
+
+			for _, b := range log.Topics {
+				bin.Add(b[:])
+			}
+		}
+	}
+	return bin
 }

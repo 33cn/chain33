@@ -146,7 +146,7 @@ func testEthAPIGetBlockByHash(t *testing.T, resp *ctypes.BlockDetails) {
 	var req ctypes.ReqHashes
 	req.Hashes = append(req.Hashes, common.FromHex(hash))
 	qapi.On("GetBlockByHashes", &req).Return(resp, nil)
-	block, err := ethCli.GetBlockByHash(hash, true)
+	block, err := ethCli.GetBlockByHash(common.HexToHash(hash), true)
 	assert.Nil(t, err)
 	assert.Equal(t, block.Header.Number, "0x46")
 
@@ -159,7 +159,7 @@ func testEthAPIGetBlockByNumber(t *testing.T, resp *ctypes.BlockDetails) {
 	req.IsDetail = true
 	qapi.On("GetBlocks", &req).Return(resp, nil)
 	num := (*hexutil.Big)(big.NewInt(req.Start))
-	block, err := ethCli.GetBlockByNumber(num, true)
+	block, err := ethCli.GetBlockByNumber(num.String(), true)
 	assert.Nil(t, err)
 	assert.Equal(t, num.String(), block.Header.Number)
 }
@@ -201,7 +201,7 @@ func TestEthHandler_GetTxCount(t *testing.T) {
 
 	qapi.On("GetBlockByHashes", mock.Anything).Return(blockdetails, nil)
 	var hash = "0x660f78e492bf2630ecd4d8fdf09ec64f0e141bdfeb7636ed4992b31dd81338bd"
-	count, err := ethCli.GetBlockTransactionCountByHash(hash)
+	count, err := ethCli.GetBlockTransactionCountByHash(common.HexToHash(hash))
 	assert.Nil(t, err)
 	assert.Equal(t, 1, int(count))
 
@@ -222,11 +222,12 @@ func TestEthHandler_GetTransaction(t *testing.T) {
 	qapi.On("GetTransactionByHash", mock.Anything).Return(&details, nil)
 
 	hexhash := "0x8519b0db1e568724fd8f2d8bbce55b3ced2eaf9984f3ea08d1d8aefa328de513"
-	txs, err := ethCli.GetTransactionByHash(hexhash)
+
+	txs, err := ethCli.GetTransactionByHash(common.HexToHash(hexhash))
 	assert.Nil(t, err)
 	assert.Equal(t, txs.Hash, hexhash)
 
-	receipt, err := ethCli.GetTransactionReceipt(hexhash)
+	receipt, err := ethCli.GetTransactionReceipt(common.HexToHash(hexhash))
 	assert.Nil(t, err)
 	assert.Equal(t, "1N2aNfWXqGe9kWcL8u9TYpj5RzVQbjwKAP", receipt.From)
 }
