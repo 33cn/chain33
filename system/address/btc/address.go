@@ -1,6 +1,7 @@
 package btc
 
 import (
+	"bytes"
 	"errors"
 
 	"github.com/33cn/chain33/common"
@@ -65,6 +66,17 @@ func (b *btc) GetName() string {
 	return NormalName
 }
 
+// ToString trans to string format
+func (b *btc) ToString(addr []byte) string {
+	return encodeToString(address.NormalVer, addr)
+}
+
+// FromString trans to byte format
+func (b *btc) FromString(addr string) ([]byte, error) {
+
+	return decodeFromString(address.NormalVer, addr)
+}
+
 type btcMultiSign struct{}
 
 // PubKeyToAddr public key to address
@@ -87,6 +99,49 @@ func (b *btcMultiSign) ValidateAddr(addr string) error {
 // GetName get driver name
 func (b *btcMultiSign) GetName() string {
 	return MultiSignName
+}
+
+// ToString trans to string format
+func (b *btcMultiSign) ToString(addr []byte) string {
+	return encodeToString(address.MultiSignVer, addr)
+}
+
+// FromString trans to byte format
+func (b *btcMultiSign) FromString(addr string) ([]byte, error) {
+	return decodeFromString(address.MultiSignVer, addr)
+}
+
+func encodeToString(version byte, raw []byte) string {
+	var ad [25]byte
+	ad[0] = version
+	if len(raw) > 20 {
+		raw = raw[:20]
+	}
+	// ad[1:21], left padding with zero if len(raw) < 20
+	copy(ad[21-len(raw):], raw)
+	// ad[21:25]  checksum
+	copy(ad[21:25], common.Sha2Sum(ad[0:21])[:4])
+	return base58.Encode(ad[:])
+}
+
+func decodeFromString(version byte, addr string) ([]byte, error) {
+
+	raw := base58.Decode(addr)
+	if raw == nil {
+		return nil, address.ErrDecodeBase58
+	}
+	if len(raw) != 25 {
+		return nil, address.ErrAddressLength
+	}
+
+	sh := common.Sha2Sum(raw[:21])
+	if !bytes.Equal(sh[:4], raw[21:25]) {
+		return nil, address.ErrCheckChecksum
+	}
+	if raw[0] != version {
+		return nil, address.ErrCheckVersion
+	}
+	return raw[1:21], nil
 }
 
 // FormatBtcAddr format bitcoin address

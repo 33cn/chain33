@@ -36,6 +36,10 @@ type Driver interface {
 	ValidateAddr(addr string) error
 	// GetName get driver name
 	GetName() string
+	// FromString decode from string
+	FromString(addr string) ([]byte, error)
+	// ToString encode to string
+	ToString(addr []byte) string
 }
 
 // DriverInfo driver info
@@ -139,6 +143,12 @@ func GetDefaultAddressID() int32 {
 	return defaultAddressID
 }
 
+// GetDefaultAddressDriver get default driver
+func GetDefaultAddressDriver() Driver {
+	d, _ := LoadDriver(defaultAddressID, -1)
+	return d
+}
+
 // check driver enable height with block height
 func isEnable(blockHeight, enableHeight int64) bool {
 
@@ -159,4 +169,14 @@ func GetDriverList() map[int32]Driver {
 		list[id] = d.driver
 	}
 	return list
+}
+
+// GetDriverType get type by name
+func GetDriverType(name string) (int32, error) {
+	ty, ok := driverName[name]
+	if !ok {
+		return -1, ErrUnknownAddressDriver
+	}
+
+	return ty, nil
 }

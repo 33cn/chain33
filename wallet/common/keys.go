@@ -4,7 +4,11 @@
 
 package common
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/33cn/chain33/system/address/eth"
+)
 
 const (
 	keyAccount            = "Account"
@@ -20,11 +24,17 @@ const (
 
 // CalcAccountKey 用于所有Account账户的输出list，需要安装时间排序
 func CalcAccountKey(timestamp string, addr string) []byte {
+	if eth.IsEthAddress(addr) {
+		addr = eth.ToLower(addr)
+	}
 	return []byte(fmt.Sprintf("%s:%s:%s", keyAccount, timestamp, addr))
 }
 
 // CalcAddrKey 通过addr地址查询Account账户信息
 func CalcAddrKey(addr string) []byte {
+	if eth.IsEthAddress(addr) {
+		addr = eth.ToLower(addr)
+	}
 	return []byte(fmt.Sprintf("%s:%s", keyAddr, addr))
 }
 

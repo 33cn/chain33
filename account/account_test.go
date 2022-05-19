@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/33cn/chain33/system/address/eth"
+
 	"strings"
 
 	"github.com/33cn/chain33/client"
@@ -605,4 +607,16 @@ func TestDB_Burn(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("Token mint addr balance [%d]", tokenCoin.LoadAccount(addr1).Balance)
 	require.Equal(t, 1000*types.DefaultCoinPrecision-10*types.DefaultCoinPrecision, tokenCoin.LoadAccount(addr1).Balance)
+}
+
+func TestAccountKey(t *testing.T) {
+
+	acc := NewCoinsAccount(types.NewChain33Config(types.GetDefaultCfgstring()))
+	addr := "0x6c0d7BE0d2C8350042890a77393158181716b0d6"
+	addr1 := eth.ToLower(addr)
+	accKey := acc.accountReadKey(addr)
+	require.Equal(t, accKey, acc.AccountKey(addr))
+	require.Equal(t, accKey, acc.AccountKey(addr1))
+	execaddr := address.ExecAddress("coins")
+	require.Equal(t, acc.execAccountKey(addr, execaddr), acc.execAccountKey(addr1, execaddr))
 }
