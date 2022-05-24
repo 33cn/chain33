@@ -10,7 +10,7 @@ require (
 	github.com/decred/base58 v1.0.3
 	github.com/dgraph-io/badger v1.6.2
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
-	github.com/ethereum/go-ethereum v1.10.16
+	github.com/ethereum/go-ethereum v1.10.17
 	github.com/go-stack/stack v1.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
