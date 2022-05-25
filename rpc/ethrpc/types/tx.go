@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -171,12 +172,16 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 			data := (hexutil.Bytes)(decodeData)
 			tx.Data = &data
 			//如果是EVM交易，to为合约交易
-			caddr := common.HexToAddress(action.ContractAddr)
-			tx.To = &caddr
-			receipt.ContractAddress = caddr
+			if action.Para != nil {
+				caddr := common.HexToAddress(action.ContractAddr)
+				tx.To = &caddr
+				receipt.ContractAddress = caddr
+			}
+
 		}
 		from := common.HexToAddress(detail.Fromaddr)
 		tx.From = &from
+		receipt.From = tx.From
 		tx.Value = (*hexutil.Big)(big.NewInt(detail.GetAmount())) //fmt.Sprintf("0x%x",detail.GetAmount())//.
 		tx.Type = 0
 		tx.BlockNumber = hexutil.Big(*big.NewInt(detail.GetHeight())) //fmt.Sprintf("0x%x",detail.Height)
@@ -201,8 +206,9 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 		}
 		//jbs, _ := json.MarshalIndent(detail.Receipt.Logs, " ", "\t")
 		//fmt.Println("detail.Receipt.Logs", string(jbs))
-
-		receipt.Logs = receiptLogs2EvmLog(detail.Receipt.Logs, nil)
+		var gas uint64
+		receipt.Logs, gas = receiptLogs2EvmLog(detail.Receipt.Logs, nil)
+		receipt.GasUsed = hexutil.Uint64(gas)
 		receipt.Bloom = CreateBloom([]*Receipt{&receipt})
 		receipt.TxHash = common.BytesToHash(detail.GetTx().Hash())
 		receipt.BlockNumber = (*hexutil.Big)(big.NewInt(detail.Height))
@@ -212,15 +218,16 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 	return
 }
 
-func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*EvmLog) {
+func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*EvmLog, gasused uint64) {
 	var filterTopics = make(map[string]bool)
 	if option != nil {
 		for _, topic := range option.Topics {
 			filterTopics[topic] = true
 		}
 	}
+	var index int
 	for _, lg := range logs {
-		if lg.Ty != 605 { //evm event
+		if lg.Ty != 605 && lg.Ty != 603 { //evm event
 			continue
 		}
 
@@ -229,9 +236,29 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 		if nil != err {
 			continue
 		}
+		if lg.Ty == 603 { //获取消费的GAS
+			var receiptEVMContract struct {
+				Caller       string ` json:"caller,omitempty"`
+				ContractName string ` json:"contractName,omitempty"`
+				ContractAddr string ` json:"contractAddr,omitempty"`
+				UsedGas      uint64 `json:"usedGas,omitempty"`
+				// 创建合约返回的代码
+				Ret []byte `json:"ret,omitempty"`
+				// json格式化后的返回值
+				JsonRet string ` json:"jsonRet,omitempty"`
+			}
+			mbs, _ := json.Marshal(lg.Log)
+			err = json.Unmarshal(mbs, &receiptEVMContract)
+
+			if nil != err {
+				continue
+			}
+			gasused = receiptEVMContract.UsedGas
+			continue
+		}
 		var log EvmLog
 		log.Data = evmLog.Data
-
+		log.Index = hexutil.Uint(index)
 		for _, topic := range evmLog.Topic {
 			if option != nil {
 				if _, ok := filterTopics[hexutil.Encode(topic)]; !ok {
@@ -241,6 +268,7 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 
 			log.Topics = append(log.Topics, common.BytesToHash(topic))
 		}
+		index++
 		elogs = append(elogs, &log)
 	}
 	return

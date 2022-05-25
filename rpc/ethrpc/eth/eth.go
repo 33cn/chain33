@@ -280,6 +280,72 @@ func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 
 }
 
+//SendTransaction  eth_sendTransaction
+func (e *ethHandler) SendTransaction(msg *types.CallMsg) (string, error) {
+
+	reply, err := e.cli.ExecWalletFunc("wallet", "DumpPrivkey", &ctypes.ReqString{Data: msg.From})
+	if err != nil {
+		log.Error("SignWalletRecoverTx", "execWalletFunc err", err)
+		return "", err
+	}
+
+	key := reply.(*ctypes.ReplyString).GetData()
+	var data []byte
+	var tx *ctypes.Transaction
+	if msg.Data != nil {
+		exec := e.cfg.ExecName("evm")
+		action := ctypes.EVMContractAction4Chain33{
+			Amount:       0,
+			GasLimit:     uint64(*msg.Gas),
+			GasPrice:     1,
+			Code:         nil,
+			Para:         *msg.Data,
+			Alias:        "",
+			Note:         "",
+			ContractAddr: msg.To,
+		}
+		if msg.To == "" { // 部署合约
+			action.Para = nil
+			action.Code = *msg.Data
+			msg.To = address.ExecAddress(exec)
+			action.ContractAddr = msg.To
+		}
+
+		tx = &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(&action), Fee: 0, To: msg.To, Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63()}
+	} else {
+		exec := e.cfg.ExecName("coins") //e.cfg.GetParaName() +"coins"
+		bn := msg.Value.ToInt()
+		bn = bn.Div(bn, big.NewInt(1).SetUint64(1e10))
+		v := &dtypes.CoinsAction_Transfer{Transfer: &ctypes.AssetsTransfer{Cointoken: e.cfg.GetCoinSymbol(), Amount: bn.Int64(), Note: []byte("")}}
+		transfer := &dtypes.CoinsAction{Value: v, Ty: dtypes.CoinsActionTransfer}
+		data = ctypes.Encode(transfer)
+		tx = &ctypes.Transaction{Execer: []byte(exec), Payload: data, Fee: 0, To: msg.To, Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63()}
+	}
+
+	txCache := ctypes.NewTransactionCache(tx)
+	fee, err := txCache.GetRealFee(e.cfg.GetMinTxFeeRate())
+	if err != nil {
+		return "", err
+	}
+	tx.Fee = fee
+	if tx.Fee < int64(*msg.Gas) {
+		tx.Fee = int64(*msg.Gas)
+	}
+
+	c, err := crypto.Load("secp256k1sha3", -1)
+	if err != nil {
+		return "", err
+	}
+	signKey, err := c.PrivKeyFromBytes(common.FromHex(key))
+	if err != nil {
+		return "", err
+	}
+
+	sig := signKey.Sign(ctypes.Encode(tx)).Bytes()
+	return e.AssembleSign(common.Bytes2Hex(ctypes.Encode(tx)), common.Bytes2Hex(sig))
+
+}
+
 //SendRawTransaction eth_sendRawTransaction 发送交易
 func (e *ethHandler) SendRawTransaction(rawData string) (string, error) {
 	hexData := common.FromHex(rawData)
@@ -302,7 +368,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (string, error) {
 }
 
 //Sign method:eth_sign
-func (e *ethHandler) Sign(address, message string) (string, error) {
+func (e *ethHandler) Sign(address string, digestHash *hexutil.Bytes) (string, error) {
 	//导出私钥
 
 	if common.IsHexAddress(address) {
@@ -313,18 +379,17 @@ func (e *ethHandler) Sign(address, message string) (string, error) {
 		log.Error("SignWalletRecoverTx", "execWalletFunc err", err)
 		return "", err
 	}
-	privKeyHex := reply.(*ctypes.ReplyString).GetData()
-	msg := common.FromHex(message)
-	if len(msg) == 0 {
-		return "", errors.New("invalid argument 1: must hex string")
-	}
-
-	c, _ := crypto.Load("secp256k1sha3", -1)
-	signKey, err := c.PrivKeyFromBytes(common.FromHex(privKeyHex))
+	key := reply.(*ctypes.ReplyString).GetData()
+	signKey, err := ethcrypto.ToECDSA(common.FromHex(key))
 	if err != nil {
 		return "", err
 	}
-	return hexutil.Encode(signKey.Sign(chain33Common.Sha3SigHash(msg)).Bytes()), nil
+
+	sig, err := ethcrypto.Sign(*digestHash, signKey)
+	if err != nil {
+		return "", err
+	}
+	return hexutil.Encode(sig), nil
 }
 
 //AssembleSign eth_assembleSign
@@ -371,15 +436,20 @@ func (e *ethHandler) SignTransaction(msg *types.CallMsg) (string, error) {
 	var tx *ctypes.Transaction
 	var data []byte
 
-	if common.IsHexAddress(msg.To) {
-		msg.To = common.HexToAddress(msg.To).String()
-	}
+	//if common.IsHexAddress(msg.To) {
+	//	msg.To = common.HexToAddress(msg.To).String()
+	//}
+	//
+	//if common.IsHexAddress(msg.From) {
+	//	msg.From = common.HexToAddress(msg.From).String()
+	//}
 
-	if common.IsHexAddress(msg.From) {
-		msg.From = common.HexToAddress(msg.From).String()
-	}
 	if msg.Data == nil {
 		//普通的coins 转账
+		//if len(common.FromHex(msg.Value)) == 0 {
+		//	return "", errors.New("invalid hex string callMsg.Value")
+		//}
+
 		exec := e.cfg.ExecName("coins") //e.cfg.GetParaName() +"coins"
 		v := &dtypes.CoinsAction_Transfer{Transfer: &ctypes.AssetsTransfer{Cointoken: e.cfg.GetCoinSymbol(), Amount: msg.Value.ToInt().Int64(), Note: []byte("")}}
 		transfer := &dtypes.CoinsAction{Value: v, Ty: dtypes.CoinsActionTransfer}
@@ -387,10 +457,14 @@ func (e *ethHandler) SignTransaction(msg *types.CallMsg) (string, error) {
 		tx = &ctypes.Transaction{Execer: []byte(exec), Payload: data, Fee: 0, To: msg.To, Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63()}
 	} else {
 		//evm tx
+		//if len(common.FromHex(msg.Data)) == 0 {
+		//	return "", errors.New("invalid hex string callMsg.Data")
+		//}
+
 		action := ctypes.EVMContractAction4Chain33{
-			Amount:       msg.Value.ToInt().Uint64(),
-			GasLimit:     0,
-			GasPrice:     0,
+			Amount:       0,
+			GasLimit:     uint64(*msg.Gas),
+			GasPrice:     1,
 			Code:         nil,
 			Para:         *msg.Data,
 			Alias:        "",
@@ -531,15 +605,22 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (interface{}, error) {
 		callMsg.To = address.ExecAddress(exec)
 	}
 
-	if common.IsHexAddress(callMsg.To) {
-		callMsg.To = common.HexToAddress(callMsg.To).String()
-	}
+	//if common.IsHexAddress(callMsg.To) {
+	//	callMsg.To = common.HexToAddress(callMsg.To).String()
+	//}
 
-	action := &ctypes.EVMContractAction4Chain33{Amount: callMsg.Value.ToInt().Uint64(), GasLimit: 0, GasPrice: 0, Note: "", Para: *callMsg.Data, ContractAddr: callMsg.To}
-	if callMsg.To == address.ExecAddress(exec) {
+	//if len(common.FromHex(callMsg.Data)) == 0 {
+	//	return nil, errors.New("invalid hex string callMsg.Data")
+	//}
+
+	action := &ctypes.EVMContractAction4Chain33{Amount: callMsg.Value.ToInt().Uint64(), GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
+	if callMsg.To == address.ExecAddress(exec) { //创建合约
 		action.Code = *callMsg.Data
 		action.Para = nil
 
+	} else {
+		action.Para = *callMsg.Data
+		action.Code = nil
 	}
 	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: callMsg.To, ChainID: e.cfg.GetChainID()}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -687,34 +768,47 @@ func (e *ethHandler) Logs(ctx context.Context, options *types.SubLogs) (*rpc.Sub
 //CreateRawTransaction eth_createRawTransaction
 func (e *ethHandler) CreateRawTransaction(msg *types.CallMsg) (*types.HexRawTx, error) {
 
-	log.Info("CreateRawTransaction", "msg", msg, "value", msg.Value.String(), "gas:", msg.Gas)
+	log.Info("CreateRawTransaction", "msg", msg, "value", msg.Value, "gas:", msg.Gas, "msg.Data", msg.Data)
 	var execer = e.cfg.ExecName("evm")
 	var payload []byte
 	var evmdata *ctypes.EVMContractAction4Chain33
+	var gas uint64
 	if msg.Data != nil {
-		var code []byte
-		var para []byte = *msg.Data
+		var code, para []byte
+
 		if msg.To == "" || len(common.FromHex(msg.To)) == 0 {
 			msg.To = address.ExecAddress(execer)
 			code = *msg.Data
 			para = nil
-
+			log.Info("CreateRawTransaction", "code size", len(code), "para", len(para))
+		} else {
+			para = *msg.Data
+			code = nil
 		}
+		gas = uint64(*msg.Gas)
 		evmdata = &ctypes.EVMContractAction4Chain33{Amount: 0,
-			GasLimit:     uint64(*msg.Gas),
+			GasLimit:     gas,
 			GasPrice:     1, //uint32(msg.GasPrice.ToInt().Int64()),
 			ContractAddr: msg.To,
-			Alias:        "ERC20:" + "test",
+			Alias:        "ERC20:" + "token",
 			Para:         para,
 			Code:         code}
-		payload = ctypes.Encode(evmdata)
 
+		payload = ctypes.Encode(evmdata)
 	} else {
-		bn, ok := big.NewInt(1).SetString(msg.Value.String()[2:], 16)
-		if !ok {
-			return nil, errors.New("createtransaction error")
+		var bn *big.Int
+		if msg.Value != nil {
+			bn = msg.Value.ToInt()
+			bn = bn.Div(bn, big.NewInt(1).SetUint64(1e10))
+		} else {
+			return nil, errors.New("invalid hex string  msg.Value")
 		}
-		bn = bn.Div(bn, big.NewInt(1).SetUint64(1e10))
+
+		//bn, ok := big.NewInt(1).SetString(msg.Value[2:], 16)
+		//if !ok {
+		//	return nil, errors.New("createtransaction error")
+		//}
+		//bn = bn.Div(bn, big.NewInt(1).SetUint64(1e10))
 		execer = e.cfg.ExecName("coins")
 		action := dtypes.CoinsAction_Transfer{
 			Transfer: &ctypes.AssetsTransfer{
@@ -738,8 +832,8 @@ func (e *ethHandler) CreateRawTransaction(msg *types.CallMsg) (*types.HexRawTx, 
 		return nil, err
 	}
 	tx.Fee = fee
-	if msg.Gas != nil && tx.Fee < int64(*msg.Gas) {
-		tx.Fee = int64(*msg.Gas)
+	if tx.Fee < int64(gas) {
+		tx.Fee = int64(gas)
 	}
 
 	rawHex := &types.HexRawTx{
@@ -765,24 +859,20 @@ func (e *ethHandler) SendSignedTransaction(msg *types.HexRawTx) (hexutil.Bytes, 
 	if err != nil {
 		return nil, err
 	}
-	pubkey, err := ethcrypto.Ecrecover(chain33Common.Sha3SigHash(msg.RawTx), sig)
+	pubkey, err := ethcrypto.Ecrecover(chain33Common.Sha3(msg.RawTx), sig)
 	if err != nil {
 		log.Error("SendRawTransaction", "Ecrecover err:", err.Error())
 		return nil, err
 	}
 
-	epub, err := ethcrypto.UnmarshalPubkey(pubkey)
-	if err != nil {
-		return nil, err
-	}
 	sginTy := ctypes.EncodeSignID(ctypes.SECP256K1SHA3, eth.ID)
-	//if !common.IsHexAddress(tx.From()) {
+	//if !common.IsHexAddress(tx.From()) && tx.From() != "" {
 	//	sginTy = ctypes.EncodeSignID(ctypes.SECP256K1SHA3, btc.NormalAddressID)
 	//}
 	tx.Signature = &ctypes.Signature{
 		Signature: msg.Signature,
 		Ty:        sginTy,
-		Pubkey:    ethcrypto.CompressPubkey(epub),
+		Pubkey:    pubkey, //ethcrypto.CompressPubkey(epub),
 	}
 
 	log.Info("SendSignedTransaction", "rawtx:", common.Bytes2Hex(ctypes.Encode(&tx)), "sig", msg.Signature)

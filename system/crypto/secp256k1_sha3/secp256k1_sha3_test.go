@@ -34,14 +34,15 @@ func testCrypto(t *testing.T) {
 	ok := pub.VerifyBytes(msg, signature)
 	require.Equal(true, ok)
 	var key = ""
-
+	//test key
+	key = "427da8655959736f02d0e4e557a6c343e5ccc20e8516c3980bf948b430d511fb"
 	privKeyBytes := new([privKeyBytesLen]byte)
 	copy(privKeyBytes[:], common.FromHex(key))
 	var xpriv = PrivKeySecp256k1Sha3(*privKeyBytes)
 	hextx := ""
 
 	sig := xpriv.Sign(common.FromHex(hextx))
-	t.Log("sigxxxx", common.Bytes2Hex(sig.Bytes()))
+	t.Log("sigxxxx", "0x"+common.Bytes2Hex(sig.Bytes()))
 	pub = xpriv.PubKey()
 	ok = pub.VerifyBytes(common.FromHex(hextx), sig)
 	t.Log("publen:", len(pub.Bytes()))

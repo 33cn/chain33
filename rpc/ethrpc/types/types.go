@@ -104,18 +104,19 @@ type Block struct {
 	Hash         string      `json:"hash"`
 }
 type Receipt struct {
-	Type              hexutil.Uint64 `json:"type,omitempty"`
-	PostState         hexutil.Bytes  `json:"root"`
-	Status            hexutil.Uint64 `json:"status"`
-	CumulativeGasUsed hexutil.Uint64 `json:"cumulativeGasUsed" gencodec:"required"`
-	Bloom             types.Bloom    `json:"logsBloom"         gencodec:"required"`
-	Logs              []*EvmLog      `json:"logs"              gencodec:"required"`
-	TxHash            common.Hash    `json:"transactionHash" gencodec:"required"`
-	ContractAddress   common.Address `json:"contractAddress"`
-	GasUsed           hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
-	BlockHash         common.Hash    `json:"blockHash,omitempty"`
-	BlockNumber       *hexutil.Big   `json:"blockNumber,omitempty"`
-	TransactionIndex  hexutil.Uint   `json:"transactionIndex"`
+	Type              hexutil.Uint64  `json:"type,omitempty"`
+	PostState         hexutil.Bytes   `json:"root"`
+	Status            hexutil.Uint64  `json:"status"`
+	CumulativeGasUsed hexutil.Uint64  `json:"cumulativeGasUsed" gencodec:"required"`
+	Bloom             types.Bloom     `json:"logsBloom"         gencodec:"required"`
+	Logs              []*EvmLog       `json:"logs"              gencodec:"required"`
+	TxHash            common.Hash     `json:"transactionHash" gencodec:"required"`
+	ContractAddress   common.Address  `json:"contractAddress"`
+	GasUsed           hexutil.Uint64  `json:"gasUsed" gencodec:"required"`
+	BlockHash         common.Hash     `json:"blockHash,omitempty"`
+	BlockNumber       *hexutil.Big    `json:"blockNumber,omitempty"`
+	TransactionIndex  hexutil.Uint    `json:"transactionIndex"`
+	From              *common.Address `json:"from"`
 }
 
 // Receipt represents the results of a transaction.
@@ -154,8 +155,7 @@ type CallMsg struct {
 	Nonce    *hexutil.Uint64 `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
 	// newer name and should be preferred by clients.
-	Data  *hexutil.Bytes `json:"data"`
-	Input string         `json:"input"`
+	Data *hexutil.Bytes `json:"data"`
 }
 
 ////EvmLog evm log
@@ -166,15 +166,15 @@ type CallMsg struct {
 //	Data    hexutil.Bytes   `json:"data,omitempty"`
 //}
 type EvmLog struct {
-	Address     common.Address `json:"address" gencodec:"required"`
-	Topics      []common.Hash  `json:"topics" gencodec:"required"`
-	Data        hexutil.Bytes  `json:"data" gencodec:"required"`
-	BlockNumber hexutil.Uint64 `json:"blockNumber"`
-	TxHash      common.Hash    `json:"transactionHash" gencodec:"required"`
-	TxIndex     hexutil.Uint   `json:"transactionIndex"`
-	BlockHash   common.Hash    `json:"blockHash"`
-	Index       hexutil.Uint   `json:"logIndex"`
-	Removed     bool           `json:"removed"`
+	Address     common.Address `json:"address,omitempty"`
+	Topics      []common.Hash  `json:"topics,omitempty"`
+	Data        hexutil.Bytes  `json:"data,omitempty"`
+	BlockNumber hexutil.Uint64 `json:"blockNumber,omitempty"`
+	TxHash      common.Hash    `json:"transactionHash,omitempty"`
+	TxIndex     hexutil.Uint   `json:"transactionIndex,omitempty"`
+	BlockHash   common.Hash    `json:"blockHash,omitempty"`
+	Index       hexutil.Uint   `json:"logIndex,omitempty"`
+	Removed     bool           `json:"removed,omitempty"`
 }
 
 //Peer peer info

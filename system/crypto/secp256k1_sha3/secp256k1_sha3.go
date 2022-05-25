@@ -51,9 +51,10 @@ func (d Driver) PubKeyFromBytes(b []byte) (crypto.PubKey, error) {
 		}
 		b = ethcrypto.FromECDSAPub(p)
 	}
-	pubKeyBytes := new([pubkeyBytesLen]byte)
+	var pubKeyBytes [pubkeyBytesLen]byte
+	//pubKeyBytes := new([pubkeyBytesLen]byte)
 	copy(pubKeyBytes[:], b[:])
-	return PubKeySecp256k1Sha3(*pubKeyBytes), nil
+	return PubKeySecp256k1Sha3(pubKeyBytes), nil
 }
 
 //Validate check signature
@@ -84,7 +85,7 @@ func (privKey PrivKeySecp256k1Sha3) Sign(msg []byte) crypto.Signature {
 	if err != nil {
 		return nil
 	}
-	hash := signHash(msg)
+	hash := ethcrypto.Keccak256(msg)
 	sig, err := ethcrypto.Sign(hash, priv)
 	if err != nil {
 		panic("Error Sign calculates an ECDSA signature." + err.Error())
@@ -100,7 +101,8 @@ func (privKey PrivKeySecp256k1Sha3) PubKey() crypto.PubKey {
 	}
 	//uncompressed pubkey
 	var pubSecp256k1 PubKeySecp256k1Sha3
-	copy(pubSecp256k1[:], ethcrypto.FromECDSAPub(&priv.PublicKey))
+	pub := ethcrypto.FromECDSAPub(&priv.PublicKey)
+	copy(pubSecp256k1[:], pub)
 	return pubSecp256k1
 }
 
@@ -166,8 +168,12 @@ func (pubKey PubKeySecp256k1Sha3) Bytes() []byte {
 
 //VerifyBytes 验证字节
 func (pubKey PubKeySecp256k1Sha3) VerifyBytes(msg []byte, sig crypto.Signature) bool {
-	hash := signHash(msg)
-	recoverPub, err := ethcrypto.Ecrecover(hash, sig.Bytes())
+	hash := ethcrypto.Keccak256(msg)
+	sigBs := sig.Bytes()
+	if sigBs[64] == 27 || sigBs[64] == 28 {
+		sigBs[64] -= 27
+	}
+	recoverPub, err := ethcrypto.Ecrecover(hash, sigBs)
 	if err != nil {
 		return false
 	}
@@ -176,7 +182,7 @@ func (pubKey PubKeySecp256k1Sha3) VerifyBytes(msg []byte, sig crypto.Signature) 
 		return false
 	}
 
-	return ethcrypto.VerifySignature(pubKey[:], hash, sig.Bytes()[:64])
+	return ethcrypto.VerifySignature(pubKey[:], hash, sigBs[:64])
 
 }
 
@@ -197,17 +203,6 @@ func (pubKey PubKeySecp256k1Sha3) Equals(other crypto.PubKey) bool {
 	}
 	return false
 
-}
-
-// signHash is a helper function that calculates a hash for the given message
-// that can be safely used to calculate a signature from.
-//
-// The hash is calulcated as
-//   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
-func signHash(data []byte) []byte {
-	return ethcrypto.Keccak256(data)
-	//msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
-	//return ethcrypto.Keccak256([]byte(msg))
 }
 
 //const

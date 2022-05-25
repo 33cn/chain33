@@ -1,10 +1,9 @@
 package eth
 
 import (
+	"encoding/json"
 	"errors"
-	"math/big"
-	"testing"
-
+	"fmt"
 	clientMocks "github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/queue"
 	etypes "github.com/33cn/chain33/rpc/ethrpc/types"
@@ -12,8 +11,17 @@ import (
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"math/big"
+	"strings"
+	"testing"
+	"time"
 )
 
 var (
@@ -231,3 +239,174 @@ func TestEthHandler_GetTransaction(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "1N2aNfWXqGe9kWcL8u9TYpj5RzVQbjwKAP", receipt.From)
 }
+
+func Test_Eip712SignTypeData(t *testing.T) {
+	deadline := big.NewInt(time.Now().Unix() + 3600)
+	v := big.NewInt(1e8)
+	n := big.NewInt(0)
+	id := big.NewInt(22)
+	t.Log("deadline:", deadline.Int64())
+	var testTypedData = &apitypes.TypedData{
+		Domain: apitypes.TypedDataDomain{
+			Name:              "WLT",
+			Version:           "1",
+			ChainId:           (*math.HexOrDecimal256)(id),
+			VerifyingContract: "0xde17a85756815bf5755173603f2b07e69455f654",
+		},
+		Message: apitypes.TypedDataMessage{
+			"sender":    "0xd741c9f9e0A1F5bb1ed898115A683253F14c1F8b",
+			"recipient": "0xDe79A84DD3A16BB91044167075dE17a1CA4b1d6b",
+			"value":     (*math.HexOrDecimal256)(v),
+			"nonce":     (*math.HexOrDecimal256)(n),
+			"deadline":  (*math.HexOrDecimal256)(big.NewInt(1653046056)),
+		},
+		PrimaryType: "TransferFrom",
+		Types: apitypes.Types{
+			"EIP712Domain": {
+				{
+					Name: "name",
+					Type: "string",
+				},
+				{
+					Name: "version",
+					Type: "string",
+				},
+				{
+					Name: "chainId",
+					Type: "uint256",
+				},
+				{
+					Name: "verifyingContract",
+					Type: "address",
+				},
+			},
+			"TransferFrom": {
+				{
+					Name: "sender",
+					Type: "address",
+				},
+				{
+					Name: "recipient",
+					Type: "address",
+				},
+				{
+					Name: "value",
+					Type: "uint256",
+				},
+				{
+					Name: "nonce",
+					Type: "uint256",
+				},
+				{
+					Name: "deadline",
+					Type: "uint256",
+				},
+			},
+		},
+	}
+
+	jbs, _ := json.MarshalIndent(testTypedData, "", "\t")
+	t.Log("jsonstr:", string(jbs))
+	var privKey = "427da8655959736f02d0e4e557a6c343e5ccc20e8516c3980bf948b430d511fb"
+	pk, err := crypto.ToECDSA(common.FromHex(privKey))
+	if err != nil {
+		t.Log(err)
+		return
+	}
+	encodedData, err := testTypedData.EncodeData("EIP712Domain", testTypedData.Domain.Map(), 1)
+	if err != nil {
+		t.Log(err)
+		return
+	}
+
+	t.Log("encodeData:", common.Bytes2Hex(encodedData))
+	domainSeparator, err := testTypedData.HashStruct("EIP712Domain", testTypedData.Domain.Map())
+	if err != nil {
+		t.Log(err)
+		return
+	}
+
+	t.Log("domain hash", domainSeparator.String())
+	typedDataHash, err := testTypedData.HashStruct(testTypedData.PrimaryType, testTypedData.Message)
+	if err != nil {
+		t.Log(err)
+		return
+	}
+
+	rawData := []byte(fmt.Sprintf("\x19\x01%s%s", string(domainSeparator), string(typedDataHash)))
+	hash := crypto.Keccak256(rawData)
+	sig, err := crypto.Sign(hash, pk)
+	if err != nil {
+		t.Log(err)
+		return
+	}
+	//sig[64] += 27
+	t.Log("sigdata:", common.Bytes2Hex(sig))
+	//sig[64] -= 27
+	pub, err := crypto.Ecrecover(hash, sig)
+	if err != nil {
+		t.Log("err", err)
+
+		return
+	}
+	t.Log("pub", common.Bytes2Hex(pub))
+	epub, _ := crypto.UnmarshalPubkey(pub)
+	t.Log("addr:", crypto.PubkeyToAddress(*epub).String())
+}
+
+func TestSendSignTypeData(t *testing.T) {
+	eabi, _ := abi.JSON(strings.NewReader(abidata))
+	//parameter := fmt.Sprintf("transferFromWithSignature(%s, %s,%d,%d,%s)")
+	/*
+		transferFromWithSignature(
+		        address sender,
+		        address recipient,
+		        uint256 amount,
+		        uint256 deadline,
+		        bytes memory signature
+		    )
+
+	*/
+
+	var from = "0xd741c9f9e0A1F5bb1ed898115A683253F14c1F8b"
+	var to = "0xDe79A84DD3A16BB91044167075dE17a1CA4b1d6b"
+	var value = 1e8
+	var sig = "d6266993b09c1ae68df69e417b431466778e595467c1dd40ae31bab6ea974f0e3485679b965d3f411077e443ba1b39fd098a5a8d4507aaa91af767106164a4b501"
+	t.Log(len(common.FromHex(sig)))
+	var sigdata [65]byte
+	copy(sigdata[:], common.Hex2Bytes(sig)[:])
+	//param:= fmt.Sprintf("transferFromWithSignature(%s, %d ,%d, %d ,%s)",from,to,value,time.Now().Unix()+3600,sig)
+	var iargs []interface{}
+	iargs = append(iargs, common.HexToAddress(from), common.HexToAddress(to), big.NewInt(int64(value)), big.NewInt(1653046056), sigdata[:])
+	packdata, err := eabi.Pack("transferFromWithSignature", iargs...)
+	if err != nil {
+		t.Log("err", err)
+
+		//return
+	}
+	t.Log("packdata", common.Bytes2Hex(packdata))
+	return
+	sigb := common.Hex2Bytes(sig)
+	sigb[64] -= 27
+	pub, err := crypto.Ecrecover(crypto.Keccak256(packdata), sigb)
+	if err != nil {
+		t.Log("err", err)
+
+		return
+	}
+	t.Log("pub", common.Bytes2Hex(pub))
+	epub, _ := crypto.UnmarshalPubkey(pub)
+	t.Log("addr:", crypto.PubkeyToAddress(*epub).String())
+	return
+	packdata, err = eabi.Pack("nonces", common.HexToAddress(from))
+	if err != nil {
+		t.Log("err", err)
+
+		//return
+	}
+	t.Log("packdata", common.Bytes2Hex(packdata))
+	//hexpack := "c9bf726b000000000000000000000000d741c9f9e0a1f5bb1ed898115a683253f14c1f8b000000000000000000000000d741c9f9e0a1f5bb1ed898115a683253f14c1f8b0000000000000000000000000000000000000000000000000000000005f5e100000000000000000000000000000000000000000000000000000000006287161b00000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000416fc58c5db9182eeaae423a3a8138ae530595293211ced84468baf11fa0bb3f143a66cae70fcbaffe09a87ced31e8147a983b06d1475007cd79bd73e6ae5a76810100000000000000000000000000000000000000000000000000000000000000"
+
+}
+
+var abidata = "[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"name_\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol_\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"supply\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"decimals_\",\"type\":\"uint8\"},{\"internalType\":\"uint256\",\"name\":\"chainid_\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"hashStruct\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"hash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"signer\",\"type\":\"address\"}],\"name\":\"Log\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"DOMAIN_SEPARATOR\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"PERMIT_TYPEHASH\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"TRANSFERFROM_TYPEHASH\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"nonces\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"permit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"transferFromWithSignature\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"

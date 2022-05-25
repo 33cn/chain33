@@ -1,10 +1,16 @@
 package personal
 
 import (
+	"errors"
+	"fmt"
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
 	rpcclient "github.com/33cn/chain33/rpc/client"
 	ctypes "github.com/33cn/chain33/types"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 type personalHandler struct {
@@ -67,4 +73,32 @@ func (p *personalHandler) ImportRawKey(keydata, label string) (string, error) {
 	}
 	account := resp.(*ctypes.WalletAccount)
 	return account.Acc.Addr, nil
+}
+
+//Sign personal_sign
+func (p *personalHandler) Sign(data *hexutil.Bytes, address, passwd string) (string, error) {
+	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(*data), *data)
+	sha3Hash := common.Sha3([]byte(msg))
+	//解锁钱包
+	var key string
+	if passwd != "" && !p.UnlockAccount("", passwd, 5) {
+		return "", errors.New("unlock wallet faild")
+
+	}
+	//导出私钥
+	reply, err := p.cli.ExecWalletFunc("wallet", "DumpPrivkey", &ctypes.ReqString{Data: address})
+	if err != nil {
+		return "", err
+	}
+	key = reply.(*ctypes.ReplyString).GetData()
+	signKey, err := ethcrypto.ToECDSA(ethcommon.FromHex(key))
+	if err != nil {
+		return "", err
+	}
+	sig, err := ethcrypto.Sign(sha3Hash, signKey)
+	if err != nil {
+		return "", err
+	}
+
+	return ethcommon.Bytes2Hex(sig), nil
 }
