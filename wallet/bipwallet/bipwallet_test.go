@@ -99,3 +99,18 @@ func TestSm2PrivPub(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, tpub, pub)
 }
+
+func TestGetSLIP0044CoinType(t *testing.T) {
+	var coinNameType = map[string]uint32{
+		"ETH": 0x8000003c,
+		"BTC": 0x80000000,
+		"AS":  0x80000382,
+		"BTY": 0x80003333,
+		"YCC": 0x80003334,
+	}
+
+	for k, v := range coinNameType {
+		v1 := GetSLIP0044CoinType(k)
+		assert.Equal(t, v, v1)
+	}
+}
