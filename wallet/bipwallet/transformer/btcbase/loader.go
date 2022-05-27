@@ -14,6 +14,7 @@ var coinPrefix = map[string][]byte{
 	"BCH":  {0x00},
 	"BTY":  {0x00},
 	"YCC":  {0x00},
+	"AS":   {0x00},
 	"LTC":  {0x30},
 	"ZEC":  {0x1c, 0xb8},
 	"USDT": {0x00},
