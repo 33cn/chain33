@@ -1,6 +1,7 @@
 package types
 
 import (
+	_ "github.com/33cn/chain33/system/address" //init address
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 )
