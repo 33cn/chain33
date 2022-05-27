@@ -25,7 +25,6 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	// 注册system的crypto 加密算法
-	_ "github.com/33cn/chain33/system/address"
 	_ "github.com/33cn/chain33/system/crypto/init"
 )
 
