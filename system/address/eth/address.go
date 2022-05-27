@@ -3,6 +3,8 @@ package eth
 import (
 	"errors"
 
+	"github.com/33cn/chain33/common/crypto/client"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -41,7 +43,7 @@ func (e *eth) PubKeyToAddr(pubKey []byte) string {
 	if value, ok := addrCache.Get(pubStr); ok {
 		return value.(string)
 	}
-	addr := PubKey2EthAddr(pubKey)
+	addr := pubKey2EthAddr(pubKey)
 	addrCache.Add(pubStr, addr)
 	return addr
 }
@@ -61,7 +63,7 @@ func (e *eth) GetName() string {
 
 // ToString trans to string format
 func (e *eth) ToString(addr []byte) string {
-	return address.ToLower(common.BytesToAddress(addr).String())
+	return formatAddr(common.BytesToAddress(addr).String())
 }
 
 // FromString trans to byte format
@@ -72,16 +74,29 @@ func (e *eth) FromString(addr string) ([]byte, error) {
 	return common.HexToAddress(addr).Bytes(), nil
 }
 
-// PubKey2EthAddr format eth addr
-func PubKey2EthAddr(pubKey []byte) string {
+func (e *eth) FormatAddr(addr string) string {
+
+	return formatAddr(addr)
+}
+
+func formatAddr(addr string) string {
+	ctx := client.GetCryptoContext()
+	if ctx.API == nil || ctx.API.GetConfig().IsFork(ctx.CurrBlockHeight, address.ForkFormatAddressKey) {
+		return address.ToLower(addr)
+	}
+	return addr
+}
+
+// pubKey2EthAddr format eth addr
+func pubKey2EthAddr(pubKey []byte) string {
 
 	pub, err := crypto.DecompressPubkey(pubKey)
 	// ecdsa public key, compatible with ethereum, get address from eth api
 	if err == nil {
-		return address.ToLower(crypto.PubkeyToAddress(*pub).String())
+		return formatAddr(crypto.PubkeyToAddress(*pub).String())
 	}
 	// just format as eth address if pubkey not compatible
 	var a common.Address
 	a.SetBytes(crypto.Keccak256(pubKey[1:])[12:])
-	return address.ToLower(a.String())
+	return formatAddr(a.String())
 }

@@ -48,6 +48,8 @@ func (m *mockDriver) ToString([]byte) string { return "" }
 
 func (m *mockDriver) FromString(string) ([]byte, error) { return nil, nil }
 
+func (m *mockDriver) FormatAddr(addr string) string { return "" }
+
 func Test_RegisterDriver(t *testing.T) {
 
 	m := &mockDriver{}

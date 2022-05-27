@@ -40,6 +40,8 @@ type Driver interface {
 	FromString(addr string) ([]byte, error)
 	// ToString encode to string
 	ToString(addr []byte) string
+	// FormatAddr to unified format
+	FormatAddr(addr string) string
 }
 
 // DriverInfo driver info
