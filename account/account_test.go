@@ -16,6 +16,7 @@ import (
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
+	_ "github.com/33cn/chain33/system/address" //init address
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
