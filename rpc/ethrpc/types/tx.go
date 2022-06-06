@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	rpctypes "github.com/33cn/chain33/rpc/types"
 	"math/big"
 	"strings"
 
@@ -25,6 +26,7 @@ func MakeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.In
 		v = new(big.Int).SetBytes([]byte{sig[64]})
 		return
 	}
+	//return
 
 	rb, sb, err := paraseDERCode(sig)
 	if err != nil {
@@ -98,7 +100,7 @@ func MakeDERsignature(rb, sb []byte) []byte {
 }
 
 //TxsToEthTxs chain33 txs format transfer to eth txs format
-func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full bool) (txs []interface{}, err error) {
+func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full bool) (txs []interface{}, fee int64, err error) {
 	eipSigner := etypes.NewEIP155Signer(big.NewInt(int64(cfg.GetChainID())))
 	for _, itx := range ctxs {
 		var tx Transaction
@@ -107,6 +109,7 @@ func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full boo
 			txs = append(txs, tx.Hash)
 			continue
 		}
+		fee += itx.Fee
 
 		tx.Type = etypes.LegacyTxType
 		from := common.HexToAddress(itx.From())
@@ -116,10 +119,10 @@ func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full boo
 		amount, err := itx.Amount()
 		if err != nil {
 			log.Error("TxsToEthTxs", "err", err)
-			return nil, err
+			return nil, fee, err
 		}
 		tx.Value = (*hexutil.Big)(big.NewInt(amount))
-
+		tx.Input = &hexutil.Bytes{0}
 		if strings.HasSuffix(string(itx.Execer), "evm") {
 			var action ctypes.EVMContractAction4Chain33
 			err := ctypes.Decode(itx.GetPayload(), &action)
@@ -128,23 +131,31 @@ func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full boo
 				continue
 			}
 			data := (hexutil.Bytes)(action.Para)
-			tx.Data = &data
+			tx.Input = &data
 			//如果是EVM交易，to为合约交易
 			caddr := common.HexToAddress(action.ContractAddr)
 			tx.To = &caddr
 		}
+
 		r, s, v, err := MakeDERSigToRSV(eipSigner, itx.Signature.GetSignature())
 		if err != nil {
 			log.Error("makeDERSigToRSV", "err", err)
 			txs = append(txs, &tx)
 			continue
 		}
+
 		tx.V = (*hexutil.Big)(v)
 		tx.R = (*hexutil.Big)(r)
 		tx.S = (*hexutil.Big)(s)
+
+		var nonce = (uint64(itx.Nonce))
+		var gas = uint64(itx.Fee)
+		tx.Nonce = (*hexutil.Uint64)(&nonce)
+		tx.GasPrice = (*hexutil.Big)(big.NewInt(1))
+		tx.Gas = (*hexutil.Uint64)(&gas)
 		txs = append(txs, &tx)
 	}
-	return txs, nil
+	return txs, fee, nil
 }
 
 //TxDetailsToEthTx chain33 txdetails transfer to eth tx
@@ -156,6 +167,7 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 		to := common.HexToAddress(detail.Tx.To)
 		tx.To = &to
 		//receipt.To = tx.To
+		//var data []byte
 		if strings.HasSuffix(string(detail.Tx.Execer), "evm") {
 			var action ctypes.EVMContractAction4Chain33
 			err := ctypes.Decode(detail.GetTx().GetPayload(), &action)
@@ -169,8 +181,8 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 			} else {
 				decodeData = action.Code
 			}
-			data := (hexutil.Bytes)(decodeData)
-			tx.Data = &data
+			hdata := (hexutil.Bytes)(decodeData)
+			tx.Input = &hdata
 			//如果是EVM交易，to为合约交易
 			if action.Para != nil {
 				caddr := common.HexToAddress(action.ContractAddr)
@@ -204,8 +216,6 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 		} else {
 			receipt.Status = 0
 		}
-		//jbs, _ := json.MarshalIndent(detail.Receipt.Logs, " ", "\t")
-		//fmt.Println("detail.Receipt.Logs", string(jbs))
 		var gas uint64
 		receipt.Logs, gas = receiptLogs2EvmLog(detail.Receipt.Logs, nil)
 		receipt.GasUsed = hexutil.Uint64(gas)
@@ -237,23 +247,35 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 			continue
 		}
 		if lg.Ty == 603 { //获取消费的GAS
+
+			var recp rpctypes.ReceiptData
+			recp.Ty = 2
+			recp.Logs = append(recp.Logs, &rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.Bytes2Hex(lg.Log)})
+			recpResult, err := rpctypes.DecodeLog([]byte("evm"), &recp)
+			if err != nil {
+				log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
+				continue
+			}
 			var receiptEVMContract struct {
 				Caller       string ` json:"caller,omitempty"`
 				ContractName string ` json:"contractName,omitempty"`
 				ContractAddr string ` json:"contractAddr,omitempty"`
-				UsedGas      uint64 `json:"usedGas,omitempty"`
+				UsedGas      string `json:"usedGas,omitempty"`
 				// 创建合约返回的代码
-				Ret []byte `json:"ret,omitempty"`
+				Ret string `json:"ret,omitempty"`
 				// json格式化后的返回值
 				JsonRet string ` json:"jsonRet,omitempty"`
 			}
-			mbs, _ := json.Marshal(lg.Log)
-			err = json.Unmarshal(mbs, &receiptEVMContract)
 
-			if nil != err {
-				continue
+			jlg, _ := json.Marshal(recpResult.Logs[0].Log)
+			log.Info("receiptLogs2EvmLog", "jlg:", string(jlg))
+			err = json.Unmarshal(jlg, &receiptEVMContract)
+			if nil == err {
+				bn, _ := big.NewInt(1).SetString(receiptEVMContract.UsedGas, 10)
+				gasused = bn.Uint64()
+				log.Info("receiptLogs2EvmLog", "gasused:", gasused)
 			}
-			gasused = receiptEVMContract.UsedGas
+			//gasused = receiptEVMContract.UsedGas
 			continue
 		}
 		var log EvmLog

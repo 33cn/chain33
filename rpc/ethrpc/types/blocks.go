@@ -20,15 +20,18 @@ func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config
 	header.ParentHash = common.BytesToHash(fullblock.GetBlock().ParentHash)
 	header.Root = common.BytesToHash(fullblock.GetBlock().GetStateHash())
 	header.Coinbase = common.HexToAddress(fullblock.GetBlock().GetTxs()[0].From())
+	//header.GasUsed=
 	//暂不支持ReceiptHash,UncleHash
 	//header.ReceiptHash=
-	//header.UncleHash
+	header.UncleHash = common.BytesToHash([]byte{0x0})
 
 	//处理交易
-	txs, err := TxsToEthTxs(fullblock.GetBlock().GetTxs(), cfg, full)
+	txs, fee, err := TxsToEthTxs(fullblock.GetBlock().GetTxs(), cfg, full)
 	if err != nil {
 		return nil, err
 	}
+	header.GasUsed = hexutil.Uint64(fee)
+	header.GasLimit = header.GasUsed
 	block.Header = &header
 	block.Transactions = txs
 	block.Hash = common.BytesToHash(fullblock.GetBlock().Hash(cfg)).Hex()

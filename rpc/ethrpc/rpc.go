@@ -188,7 +188,7 @@ func (h *httpServer) Start() (int, error) {
 	if !h.cfg.GetModuleConfig().RPC.EnableTLS {
 		go h.server.Serve(h.listener)
 	} else {
-		go h.server.ServeTLS(h.listener, h.cfg.GetModuleConfig().RPC.KeyFile, h.cfg.GetModuleConfig().RPC.CertFile)
+		go h.server.ServeTLS(h.listener, h.cfg.GetModuleConfig().RPC.CertFile, h.cfg.GetModuleConfig().RPC.KeyFile)
 	}
 
 	if h.wsHander != nil {
@@ -211,6 +211,11 @@ func (h *httpServer) Close() {
 
 //ServeHTTP rewrite ServeHTTP
 func (h *httpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Info("ServeHTTP", "http method", r.Method)
+	if r.Method == "OPTION" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 	if utils.IsPublicIP(ip) {
 		log.Warn("ServeHTTP", "remote client", r.RemoteAddr)

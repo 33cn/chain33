@@ -41,7 +41,7 @@ func TestAddress(t *testing.T) {
 }
 
 func TestBase58AddrToEthAddress(t *testing.T) {
-	addr, _ := address.NewBtcAddress("1GfLLfvmh1kxGMbYxVkWcLL2cUyrLMQAUS")
+	addr, _ := address.NewBtcAddress("1KMTUYwqCudWsRu9VLfDS7SNWoLvu7rdGS")
 	t.Log("addr", "0x"+common.Bytes2Hex(addr.Hash160[:]))
 }
 

@@ -31,7 +31,7 @@ import (
 //Header block header
 type Header struct {
 	ParentHash  common.Hash      `json:"parentHash"       gencodec:"required"`
-	UncleHash   common.Hash      `json:"sha3Uncles"       gencodec:"required"`
+	UncleHash   common.Hash      `json:"sha3Uncles"   gencodec:"required"`
 	Coinbase    common.Address   `json:"miner"            gencodec:"required"`
 	Root        common.Hash      `json:"stateRoot"        gencodec:"required"`
 	TxHash      common.Hash      `json:"transactionsRoot" gencodec:"required"`
@@ -65,6 +65,7 @@ type Header struct {
 //}
 
 // Transaction LegacyTx is the transaction data of regular Ethereum transactions.
+
 type Transaction struct {
 	Type hexutil.Uint64 `json:"type"`
 
@@ -75,7 +76,7 @@ type Transaction struct {
 	MaxFeePerGas         *hexutil.Big    `json:"maxFeePerGas"`
 	Gas                  *hexutil.Uint64 `json:"gas"`
 	Value                *hexutil.Big    `json:"value"`
-	Data                 *hexutil.Bytes  `json:"input"`
+	Input                *hexutil.Bytes  `json:"input"`
 	V                    *hexutil.Big    `json:"v"`
 	R                    *hexutil.Big    `json:"r"`
 	S                    *hexutil.Big    `json:"s"`
@@ -98,7 +99,7 @@ type Transactions []*Transaction
 //Block ETH 交易结构体
 type Block struct {
 	*Header
-	Uncles []*Header `json:"uncles"`
+	//Uncles []*Header `json:"uncles"`
 	//TODO 保留ETH的交易结构类型还是替换为chain33的Transaction
 	Transactions interface{} `json:"transactions"`
 	Hash         string      `json:"hash"`
@@ -119,32 +120,6 @@ type Receipt struct {
 	From              *common.Address `json:"from"`
 }
 
-// Receipt represents the results of a transaction.
-//type Receipt struct {
-//	// Consensus fields: These fields are defined by the Yellow Paper
-//	Type      string `json:"type,omitempty"`
-//	PostState []byte `json:"root"`
-//	//0x1 表示交易成功，0x2 表示交易失败
-//	Status            string      `json:"status"`
-//	CumulativeGasUsed uint64      `json:"cumulativeGasUsed" `
-//	Bloom             types.Bloom `json:"logsBloom"`
-//	Logs              []*EvmLog   `json:"logs"`
-//
-//	// Implementation fields: These fields are added by geth when processing a transaction.
-//	// They are stored in the chain database.
-//	TxHash          string `json:"transactionHash" `
-//	ContractAddress string `json:"contractAddress"`
-//	GasUsed         uint64 `json:"gasUsed"`
-//	To              string `json:"to,omitempty"`
-//	From            string `json:"from,omitempty"`
-//	// Inclusion information: These fields provide information about the inclusion of the
-//	// transaction corresponding to this receipt.
-//	BlockHash string `json:"blockHash,omitempty"`
-//	//十六进制
-//	BlockNumber      string `json:"blockNumber,omitempty"`
-//	TransactionIndex string `json:"transactionIndex"`
-//}
-
 //CallMsg eth api param
 type CallMsg struct {
 	From     string          `json:"from"`
@@ -158,13 +133,7 @@ type CallMsg struct {
 	Data *hexutil.Bytes `json:"data"`
 }
 
-////EvmLog evm log
-//type EvmLog struct {
-//	//address of the contract that generated the event
-//	Address *common.Address `json:"address,omitempty"`
-//	Topic   []hexutil.Bytes `json:"topic,omitempty"`
-//	Data    hexutil.Bytes   `json:"data,omitempty"`
-//}
+//EvmLog evm log
 type EvmLog struct {
 	Address     common.Address `json:"address,omitempty"`
 	Topics      []common.Hash  `json:"topics,omitempty"`

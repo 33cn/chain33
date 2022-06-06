@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/33cn/chain33/rpc/jsonclient"
 	"math/big"
 	"math/rand"
 	"net"
@@ -88,6 +89,7 @@ func (e *ethHandler) ChainId() (hexutil.Big, error) {
 
 //BlockNumber eth_blockNumber 获取区块高度
 func (e *ethHandler) BlockNumber() (hexutil.Uint64, error) {
+	log.Info("BlockNumber", "...")
 	header, err := e.cli.GetLastHeader()
 	if err != nil {
 		return 0, err
@@ -131,6 +133,7 @@ func (e *ethHandler) GetBlockByNumber(in string, full bool) (*types.Block, error
 
 //GetBlockByHash eth_getBlockByHash 通过区块哈希获取区块交易详情
 func (e *ethHandler) GetBlockByHash(txhash common.Hash, full bool) (*types.Block, error) {
+	log.Info("GetBlockByHash", "txhash", txhash, "full", full)
 	var req ctypes.ReqHashes
 	req.Hashes = append(req.Hashes, txhash.Bytes())
 	details, err := e.cli.GetBlockByHashes(&req)
@@ -144,6 +147,7 @@ func (e *ethHandler) GetBlockByHash(txhash common.Hash, full bool) (*types.Block
 
 //GetTransactionByHash eth_getTransactionByHash
 func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transaction, error) {
+	log.Info("GetTransactionByHash", "txhash", txhash)
 	var req ctypes.ReqHashes
 	req.Hashes = append(req.Hashes, txhash.Bytes())
 	txdetails, err := e.cli.GetTransactionByHash(&req)
@@ -159,6 +163,7 @@ func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transactio
 
 //GetTransactionReceipt eth_getTransactionReceipt
 func (e *ethHandler) GetTransactionReceipt(txhash common.Hash) (*types.Receipt, error) {
+	log.Info("GetTransactionReceipt", "txhash", txhash)
 	var req ctypes.ReqHashes
 	req.Hashes = append(req.Hashes, txhash.Bytes())
 	txdetails, err := e.cli.GetTransactionByHash(&req)
@@ -175,6 +180,7 @@ func (e *ethHandler) GetTransactionReceipt(txhash common.Hash) (*types.Receipt, 
 
 //GetBlockTransactionCountByNumber eth_getBlockTransactionCountByNumber
 func (e *ethHandler) GetBlockTransactionCountByNumber(blockNum *hexutil.Big) (hexutil.Uint64, error) {
+	log.Info("GetBlockTransactionCountByNumber", "blockNum", blockNum)
 	var req ctypes.ReqBlocks
 	req.Start = blockNum.ToInt().Int64()
 	req.End = req.Start
@@ -191,6 +197,7 @@ func (e *ethHandler) GetBlockTransactionCountByNumber(blockNum *hexutil.Big) (he
 //parameters: 32 Bytes - hash of a block
 //Returns: integer of the number of transactions in this block.
 func (e *ethHandler) GetBlockTransactionCountByHash(hash common.Hash) (hexutil.Uint64, error) {
+	log.Info("GetBlockTransactionCountByHash", "hash", hash)
 	var req ctypes.ReqHashes
 	req.Hashes = append(req.Hashes, hash.Bytes())
 	blockdetails, err := e.cli.GetBlockByHashes(&req)
@@ -204,6 +211,7 @@ func (e *ethHandler) GetBlockTransactionCountByHash(hash common.Hash) (hexutil.U
 
 //Accounts eth_accounts
 func (e *ethHandler) Accounts() ([]string, error) {
+	log.Info("Accounts", "Accounts", "")
 	req := &ctypes.ReqAccountList{WithoutBalance: true}
 	msg, err := e.cli.ExecWalletFunc("wallet", "WalletGetAccountList", req)
 	if err != nil {
@@ -221,6 +229,7 @@ func (e *ethHandler) Accounts() ([]string, error) {
 
 //Call eth_call evm合约相关操作,合约相关信息查询
 func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
+	log.Info("Call", "eth_call", msg)
 	var param rpctypes.Query4Jrpc
 	var evmResult struct {
 		Address  string `json:"address,omitempty"`
@@ -282,7 +291,7 @@ func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 
 //SendTransaction  eth_sendTransaction
 func (e *ethHandler) SendTransaction(msg *types.CallMsg) (string, error) {
-
+	log.Info("SendTransaction", "eth_sendTransaction", msg)
 	reply, err := e.cli.ExecWalletFunc("wallet", "DumpPrivkey", &ctypes.ReqString{Data: msg.From})
 	if err != nil {
 		log.Error("SignWalletRecoverTx", "execWalletFunc err", err)
@@ -348,6 +357,7 @@ func (e *ethHandler) SendTransaction(msg *types.CallMsg) (string, error) {
 
 //SendRawTransaction eth_sendRawTransaction 发送交易
 func (e *ethHandler) SendRawTransaction(rawData string) (string, error) {
+	log.Info("SendRawTransaction", "eth_sendRawTransaction", rawData)
 	hexData := common.FromHex(rawData)
 	if hexData == nil {
 		return "", errors.New("wrong data")
@@ -370,7 +380,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (string, error) {
 //Sign method:eth_sign
 func (e *ethHandler) Sign(address string, digestHash *hexutil.Bytes) (string, error) {
 	//导出私钥
-
+	log.Info("Sign", "eth_sign,hash", digestHash, "addr", address)
 	if common.IsHexAddress(address) {
 		address = common.HexToAddress(address).String()
 	}
@@ -394,6 +404,7 @@ func (e *ethHandler) Sign(address string, digestHash *hexutil.Bytes) (string, er
 
 //AssembleSign eth_assembleSign
 func (e *ethHandler) AssembleSign(unSignTx, sigData string) (string, error) {
+	log.Info("AssembleSign", "eth_assembleSign,unSignTx", unSignTx, "sigData", sigData)
 	var tx ctypes.Transaction
 	err := ctypes.Decode(common.FromHex(unSignTx), &tx)
 	if err != nil {
@@ -433,16 +444,9 @@ func (e *ethHandler) AssembleSign(unSignTx, sigData string) (string, error) {
 
 //SignTransaction method:eth_signTransaction
 func (e *ethHandler) SignTransaction(msg *types.CallMsg) (string, error) {
+	log.Info("SignTransaction", "eth_signTransaction,unSignTx", msg)
 	var tx *ctypes.Transaction
 	var data []byte
-
-	//if common.IsHexAddress(msg.To) {
-	//	msg.To = common.HexToAddress(msg.To).String()
-	//}
-	//
-	//if common.IsHexAddress(msg.From) {
-	//	msg.From = common.HexToAddress(msg.From).String()
-	//}
 
 	if msg.Data == nil {
 		//普通的coins 转账
@@ -500,6 +504,7 @@ func (e *ethHandler) SignTransaction(msg *types.CallMsg) (string, error) {
 //method:eth_syncing
 //params:[]
 func (e *ethHandler) Syncing() (interface{}, error) {
+	log.Info("Syncing", "eth_syncing", "")
 	var syncing struct {
 		StartingBlock string `json:"startingBlock,omitempty"`
 		CurrentBlock  string `json:"currentBlock,omitempty"`
@@ -538,6 +543,7 @@ func (e *ethHandler) Syncing() (interface{}, error) {
 //Returns:Returns true if client is actively mining new blocks.
 
 func (e *ethHandler) Mining() (bool, error) {
+	log.Info("Mining", "eth_mining", "")
 	msg, err := e.cli.ExecWalletFunc("wallet", "GetWalletStatus", &ctypes.ReqNil{})
 	if err == nil {
 		status := msg.(*ctypes.WalletStatus)
@@ -554,6 +560,7 @@ func (e *ethHandler) Mining() (bool, error) {
 //Paramters: address,tag(disable):latest,pending,earliest
 //GetTransactionCount 获取nonce
 func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, error) {
+	log.Info("GetTransactionCount", "eth_getTransactionCount address", address)
 	exec := e.cfg.ExecName("evm")
 	execty := ctypes.LoadExecutorType(exec)
 	if execty == nil {
@@ -593,36 +600,37 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, e
 
 //method:eth_estimateGas
 //EstimateGas 获取gas
-func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (interface{}, error) {
+func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error) {
+	log.Info("EstimateGas", "eth_estimateGas callMsg", callMsg)
 	//组装tx
 	exec := e.cfg.ExecName("evm")
 	execty := ctypes.LoadExecutorType(exec)
 	if execty == nil {
-		return "", ctypes.ErrNotSupport
+		return 0, ctypes.ErrNotSupport
 	}
 
 	if callMsg.To == "" {
 		callMsg.To = address.ExecAddress(exec)
 	}
-
-	//if common.IsHexAddress(callMsg.To) {
-	//	callMsg.To = common.HexToAddress(callMsg.To).String()
-	//}
-
-	//if len(common.FromHex(callMsg.Data)) == 0 {
-	//	return nil, errors.New("invalid hex string callMsg.Data")
-	//}
-
-	action := &ctypes.EVMContractAction4Chain33{Amount: callMsg.Value.ToInt().Uint64(), GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
+	if callMsg.Data == nil {
+		return 1e5, nil
+	}
+	var amount uint64
+	if callMsg.Value != nil {
+		amount = callMsg.Value.ToInt().Uint64()
+	}
+	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
 	if callMsg.To == address.ExecAddress(exec) { //创建合约
+
 		action.Code = *callMsg.Data
+
 		action.Para = nil
 
 	} else {
 		action.Para = *callMsg.Data
 		action.Code = nil
 	}
-	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: callMsg.To, ChainID: e.cfg.GetChainID()}
+	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	var p rpctypes.Query4Jrpc
@@ -631,36 +639,39 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (interface{}, error) {
 	p.Payload = []byte(fmt.Sprintf(`{"tx":"%v","from":"%v"}`, common.Bytes2Hex(ctypes.Encode(tx)), callMsg.From))
 	queryparam, err := execty.CreateQuery(p.FuncName, p.Payload)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	resp, err := e.cli.Query(p.Execer, p.FuncName, queryparam)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
 	result, err := execty.QueryToJSON(p.FuncName, resp)
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 	var gas struct {
 		Gas string `json:"gas,omitempty"`
 	}
 	err = json.Unmarshal(result, &gas)
 	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
-	return hexutil.EncodeBig(bigGas), err
+	return hexutil.Uint64(bigGas.Uint64()), err
 
 }
 
 //GasPrice
 //funcname: eth_gasPrice
-func (e *ethHandler) GasPrice() (hexutil.Uint64, error) {
-	return hexutil.Uint64(1), nil
+func (e *ethHandler) GasPrice() (*hexutil.Big, error) {
+	log.Info("GasPrice", "eth_gasPrice ", "")
+	bn, _ := big.NewInt(1).SetString("10000000000", 10) //10gwei
+	return (*hexutil.Big)(bn), nil
 }
 
 //NewHeads ...
 //eth_subscribe
 //params:["newHeads"]
 func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
+	log.Info("NewHeads", "eth_subscribe ", "")
 	notifier, supported := rpc.NotifierFromContext(ctx)
 	if !supported {
 		return nil, rpc.ErrNotificationsUnsupported
@@ -707,6 +718,7 @@ func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
 //address：要监听日志的源地址或地址数组，可选
 //topics：要监听日志的主题匹配条件，可选
 func (e *ethHandler) Logs(ctx context.Context, options *types.SubLogs) (*rpc.Subscription, error) {
+	log.Info("Logs", "eth_subscribe ", "")
 	notifier, supported := rpc.NotifierFromContext(ctx)
 	if !supported {
 		return nil, rpc.ErrNotificationsUnsupported
@@ -767,7 +779,7 @@ func (e *ethHandler) Logs(ctx context.Context, options *types.SubLogs) (*rpc.Sub
 
 //CreateRawTransaction eth_createRawTransaction
 func (e *ethHandler) CreateRawTransaction(msg *types.CallMsg) (*types.HexRawTx, error) {
-
+	//log.Info("CreateRawTransaction", "eth_createRawTransaction ", msg)
 	log.Info("CreateRawTransaction", "msg", msg, "value", msg.Value, "gas:", msg.Gas, "msg.Data", msg.Data)
 	var execer = e.cfg.ExecName("evm")
 	var payload []byte
@@ -804,11 +816,6 @@ func (e *ethHandler) CreateRawTransaction(msg *types.CallMsg) (*types.HexRawTx, 
 			return nil, errors.New("invalid hex string  msg.Value")
 		}
 
-		//bn, ok := big.NewInt(1).SetString(msg.Value[2:], 16)
-		//if !ok {
-		//	return nil, errors.New("createtransaction error")
-		//}
-		//bn = bn.Div(bn, big.NewInt(1).SetUint64(1e10))
 		execer = e.cfg.ExecName("coins")
 		action := dtypes.CoinsAction_Transfer{
 			Transfer: &ctypes.AssetsTransfer{
@@ -846,7 +853,7 @@ func (e *ethHandler) CreateRawTransaction(msg *types.CallMsg) (*types.HexRawTx, 
 
 //SendSignedTransaction eth_sendSignedTransaction 发送交易
 func (e *ethHandler) SendSignedTransaction(msg *types.HexRawTx) (hexutil.Bytes, error) {
-
+	log.Info("SendSignedTransaction", "eth_sendSignedTransaction ", msg)
 	var tx ctypes.Transaction
 	//按照Chain33交易格式进行解析
 	err := ctypes.Decode(msg.RawTx, &tx)
@@ -887,10 +894,91 @@ func (e *ethHandler) SendSignedTransaction(msg *types.HexRawTx) (hexutil.Bytes, 
 //Hashrate
 //method: eth_hashrate
 func (e *ethHandler) Hashrate() (hexutil.Uint64, error) {
+	log.Info("Hashrate", "eth_hashrate ", "")
 	header, err := e.grpcCli.GetLastHeader(context.Background(), &ctypes.ReqNil{})
 	if err != nil {
 		return 0, err
 	}
 
 	return hexutil.Uint64(header.Difficulty), nil
+}
+
+//GetContractorAddress   eth_getContractorAddress
+func (e *ethHandler) GetContractorAddress(from common.Address, txhash string) (*common.Address, error) {
+
+	var res string
+	_, port, err := net.SplitHostPort(e.cfg.GetModuleConfig().RPC.JrpcBindAddr)
+	if err != nil {
+		return nil, errors.New("inner error")
+	}
+	httpStr := "http://"
+	if e.cfg.GetModuleConfig().RPC.EnableTLS {
+		httpStr = "https://"
+	}
+
+	rpcLaddr := fmt.Sprintf("%slocalhost:%v", httpStr, port)
+	var param struct {
+		Caller string `json:"caller,omitempty"`
+		Txhash string `json:"txhash,omitempty"`
+	}
+	param.Caller = from.String()
+	param.Txhash = txhash
+	jcli, err := jsonclient.New("evm", rpcLaddr, false)
+	if err != nil {
+		return nil, errors.New("inner error")
+	}
+
+	err = jcli.Call("CalcNewContractAddr", &param, &res)
+	if err != nil {
+		return nil, err
+	}
+	c := common.HexToAddress(res)
+	return &c, nil
+}
+
+//GetCode eth_getCode
+func (e *ethHandler) GetCode(addr *common.Address, tag string) (*hexutil.Bytes, error) {
+	exec := e.cfg.ExecName("evm")
+	execty := ctypes.LoadExecutorType(exec)
+	if execty == nil {
+		return nil, ctypes.ErrNotSupport
+	}
+
+	var p rpctypes.Query4Jrpc
+	p.Execer = exec
+	p.FuncName = "GetCode"
+	p.Payload = []byte(fmt.Sprintf(`{"addr":"%v"}`, addr.String()))
+	queryparam, err := execty.CreateQuery(p.FuncName, p.Payload)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := e.cli.Query(p.Execer, p.FuncName, queryparam)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := execty.QueryToJSON(p.FuncName, resp)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("GetCode", "resp", string(result))
+	var ret struct {
+		Creator  string         ` json:"creator,omitempty"`
+		Name     string         ` json:"name,omitempty"`
+		Alias    string         ` json:"alias,omitempty"`
+		Addr     string         ` json:"addr,omitempty"`
+		Code     *hexutil.Bytes ` json:"code,omitempty"`
+		CodeHash []byte         ` json:"codeHash,omitempty"`
+		// 绑定ABI数据 ForkEVMABI
+		Abi string `json:"abi,omitempty"`
+	}
+
+	err = json.Unmarshal(result, &ret)
+	if err != nil {
+		log.Error("GetCode", "unmarshal err", err)
+		return nil, err
+	}
+
+	return ret.Code, nil
+
 }
