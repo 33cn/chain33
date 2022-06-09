@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/33cn/chain33/common/merkle"
+
 	"strings"
 
 	"github.com/33cn/chain33/common"
@@ -290,8 +292,16 @@ func TestExecBlock(t *testing.T) {
 	txs = append(txs, tx)
 	//EventExecTxList returned 2 txs' receipt
 	txs = append(txs, tx)
-	_, _, err := ExecBlock(client, nil, &types.Block{Txs: txs}, false, true, false)
+	txHashes := [][]byte{tx.Hash(), tx.Hash()}
+	wrongTxHash := merkle.GetMerkleRoot(txHashes)
+	block := &types.Block{Txs: txs}
+	block.TxHash = wrongTxHash
+	_, _, err := ExecBlock(client, nil, block, true, true, false)
+	assert.Equal(t, types.ErrBlockExec, err)
+	_, _, err = ExecBlock(client, nil, block, false, true, false)
 	assert.NoError(t, err)
+	assert.NotEqual(t, wrongTxHash, block.TxHash)
+	assert.Equal(t, tx.Hash(), block.TxHash)
 }
 
 func TestExecBlockUpgrade(t *testing.T) {
