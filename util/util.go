@@ -402,28 +402,22 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 	if config.IsPara() {
 		height = block.MainHeight
 	}
-	//txHash有两种情况需要额外计算
-	//1. 本地共识模块过来的区块未对txHash设置
-	//2. 收到其他不可信节点的区块, 需要验证时重新计算
+
 	var txHash []byte
-	if len(block.TxHash) == 0 || errReturn {
-		if !config.IsFork(height, "ForkRootHash") {
-			txHash = merkle.CalcMerkleRootCache(cacheTxs)
-		} else {
-			txHash = merkle.CalcMerkleRoot(config, height, types.TransactionSort(block.Txs))
-		}
+	if !config.IsFork(height, "ForkRootHash") {
+		txHash = merkle.CalcMerkleRootCache(cacheTxs)
+	} else {
+		txHash = merkle.CalcMerkleRoot(config, height, types.TransactionSort(block.Txs))
 	}
-	// 本节点打包区块不检查, 检查其他节点的区块, 其他节点errReturn = true
+	// 非本节点产生的区块, 校验TxHash, 其他节点errReturn = true
 	if errReturn && !bytes.Equal(txHash, block.TxHash) {
 		ulog.Error("PreExecBlock", "height", block.GetHeight(), "blkHash", hex.EncodeToString(block.Hash(config)),
 			"txHash", hex.EncodeToString(txHash), "errTxHash", hex.EncodeToString(block.TxHash),
 			"blkData", hex.EncodeToString(types.Encode(block)))
 		return nil, nil, types.ErrCheckTxHash
 	}
-	// 共识模块未设置txHash, 需要进行赋值
-	if len(block.TxHash) == 0 {
-		block.TxHash = txHash
-	}
+	// 存在错误交易, 或共识生成区块时未设置TxHash, 需要重新赋值
+	block.TxHash = txHash
 	ulog.Debug("PreExecBlock", "CalcMerkleRootCache", types.Since(beg))
 	beg = types.Now()
 	kvset = DelDupKey(kvset)

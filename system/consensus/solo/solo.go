@@ -9,7 +9,6 @@ import (
 	"time"
 
 	log "github.com/33cn/chain33/common/log/log15"
-	"github.com/33cn/chain33/common/merkle"
 	"github.com/33cn/chain33/queue"
 	drivers "github.com/33cn/chain33/system/consensus"
 	cty "github.com/33cn/chain33/system/dapp/coins/types"
@@ -144,7 +143,6 @@ func (client *Client) CreateBlock() {
 		if cfg.IsFork(newblock.GetHeight(), "ForkRootHash") {
 			newblock.Txs = types.TransactionSort(newblock.Txs)
 		}
-		newblock.TxHash = merkle.CalcMerkleRoot(cfg, newblock.Height, newblock.Txs)
 		newblock.BlockTime = types.Now().Unix()
 
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
