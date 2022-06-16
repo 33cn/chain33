@@ -1,4 +1,4 @@
-package secp256k1sha3
+package secp256k1eth
 
 import (
 	"math/rand"

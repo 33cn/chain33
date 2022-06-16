@@ -2,16 +2,19 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package secp256k1sha3
+package secp256k1eth
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
-
+	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/system/crypto/secp256k1_eth/types"
 	secp256k1 "github.com/btcsuite/btcd/btcec"
+	etypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"math/big"
 )
 
 const privKeyBytesLen = 32
@@ -81,6 +84,7 @@ func (privKey PrivKeySecp256k1Sha3) Bytes() []byte {
 
 //Sign 签名 The produced signature is in the [R || S || V] format where V is 0 or 1.
 func (privKey PrivKeySecp256k1Sha3) Sign(msg []byte) crypto.Signature {
+
 	priv, err := ethcrypto.ToECDSA(privKey[:])
 	if err != nil {
 		return nil
@@ -168,11 +172,31 @@ func (pubKey PubKeySecp256k1Sha3) Bytes() []byte {
 
 //VerifyBytes 验证字节
 func (pubKey PubKeySecp256k1Sha3) VerifyBytes(msg []byte, sig crypto.Signature) bool {
-	hash := ethcrypto.Keccak256(msg)
-	sigBs := sig.Bytes()
-	if sigBs[64] == 27 || sigBs[64] == 28 {
-		sigBs[64] -= 27
+	var hash []byte
+	action := types.DecodeTxAction(msg)
+	if len(action.Note) == 0 {
+		//自组装的chain33格式交易，sha3哈希
+		hash = common.Sha3(msg)
+	} else {
+		var etx = new(etypes.Transaction)
+		err := etx.UnmarshalBinary(action.Note)
+		if err != nil {
+			return false
+		}
+		signer := etypes.NewLondonSigner(etx.ChainId())
+		hash = signer.Hash(etx).Bytes() //metamask,eth 兼容交易，取出eth 交易格式下的哈希
+		//checkout amount
+		amount := etx.Value().Div(etx.Value(), big.NewInt(1).SetUint64(1e10))
+		if amount.Uint64() != action.Amount { //防止自组装的chain33 Tx amount 被篡改
+			return false
+		}
+		//check evm code
+		if bytes.Compare(etx.Data(), action.Code) != 0 { // 防止合约代码被篡改
+			return false
+		}
 	}
+
+	sigBs := sig.Bytes()
 	recoverPub, err := ethcrypto.Ecrecover(hash, sigBs)
 	if err != nil {
 		return false
@@ -183,7 +207,6 @@ func (pubKey PubKeySecp256k1Sha3) VerifyBytes(msg []byte, sig crypto.Signature) 
 	}
 
 	return ethcrypto.VerifySignature(pubKey[:], hash, sigBs[:64])
-
 }
 
 func (pubKey PubKeySecp256k1Sha3) String() string {

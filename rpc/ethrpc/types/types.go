@@ -45,8 +45,8 @@ type Header struct {
 	Extra       hexutil.Bytes    `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash      `json:"mixHash"`
 	Nonce       types.BlockNonce `json:"nonce"`
-	BaseFee     *hexutil.Big     `json:"baseFeePerGas" rlp:"optional"`
-	Hash        common.Hash      `json:"hash"`
+	//BaseFee     *hexutil.Big     `json:"baseFeePerGas" rlp:"optional"`
+	Hash common.Hash `json:"hash"`
 }
 
 //type Transaction struct {
@@ -89,8 +89,8 @@ type Transaction struct {
 	// Only used for encoding:
 	Hash common.Hash `json:"hash"`
 
-	BlockNumber hexutil.Big `json:"blockNumber,omitempty"`
-	//BlockHash   common.Hash `json:"blockHash,omitempty"`
+	BlockNumber *hexutil.Big `json:"blockNumber,omitempty"`
+	BlockHash   common.Hash  `json:"blockHash,omitempty"`
 }
 
 //Transactions txs types
@@ -112,7 +112,7 @@ type Receipt struct {
 	Bloom             types.Bloom     `json:"logsBloom"         gencodec:"required"`
 	Logs              []*EvmLog       `json:"logs"              gencodec:"required"`
 	TxHash            common.Hash     `json:"transactionHash" gencodec:"required"`
-	ContractAddress   common.Address  `json:"contractAddress"`
+	ContractAddress   *common.Address `json:"contractAddress,omitempty"`
 	GasUsed           hexutil.Uint64  `json:"gasUsed" gencodec:"required"`
 	BlockHash         common.Hash     `json:"blockHash,omitempty"`
 	BlockNumber       *hexutil.Big    `json:"blockNumber,omitempty"`
@@ -203,7 +203,8 @@ type EvmLogInfo struct {
 
 //HexRawTx return rawhextx and hash256
 type HexRawTx struct {
-	RawTx      hexutil.Bytes `json:"rawTx,omitempty"`
-	Sha256Hash hexutil.Bytes `json:"sha256Hash,omitempty"`
-	Signature  hexutil.Bytes `json:"signature,omitempty"`
+	RawTx hexutil.Bytes `json:"rawTx,omitempty"`
+	//sha3Hash
+	Hash      hexutil.Bytes `json:"sha256Hash,omitempty"`
+	Signature hexutil.Bytes `json:"signature,omitempty"`
 }

@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	rpctypes "github.com/33cn/chain33/rpc/types"
 	"math/big"
 	"strings"
+
+	rpctypes "github.com/33cn/chain33/rpc/types"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -43,6 +44,28 @@ func MakeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.In
 		v.Add(v, new(big.Int).Mul(eipSigner.ChainID(), big.NewInt(2)))
 	}
 	return r, s, v, nil
+}
+
+//CaculateV  return v
+func CaculateV(v *big.Int, chainID uint64, txTyppe uint8) (byte, error) {
+
+	switch txTyppe {
+	case etypes.LegacyTxType:
+		if chainID != 0 {
+			chainIDMul := 2 * chainID
+			return byte(v.Uint64() - chainIDMul - 35), nil // -8-27
+		}
+		return byte(v.Uint64() - 27), nil
+
+	case etypes.DynamicFeeTxType:
+		return byte(v.Uint64()), nil
+
+	case etypes.AccessListTxType:
+		return byte(v.Uint64() - 27), nil
+	default:
+		return 0, errors.New(fmt.Sprintf("no support this tx type:%v", txTyppe))
+	}
+
 }
 
 func decodeSignature(sig []byte) (r, s, v *big.Int) {
@@ -100,7 +123,7 @@ func MakeDERsignature(rb, sb []byte) []byte {
 }
 
 //TxsToEthTxs chain33 txs format transfer to eth txs format
-func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full bool) (txs []interface{}, fee int64, err error) {
+func TxsToEthTxs(blocknum int64, ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full bool) (txs []interface{}, fee int64, err error) {
 	eipSigner := etypes.NewEIP155Signer(big.NewInt(int64(cfg.GetChainID())))
 	for _, itx := range ctxs {
 		var tx Transaction
@@ -151,8 +174,12 @@ func TxsToEthTxs(ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full boo
 		var nonce = (uint64(itx.Nonce))
 		var gas = uint64(itx.Fee)
 		tx.Nonce = (*hexutil.Uint64)(&nonce)
-		tx.GasPrice = (*hexutil.Big)(big.NewInt(1))
+		tx.GasPrice = (*hexutil.Big)(big.NewInt(10e9))
 		tx.Gas = (*hexutil.Uint64)(&gas)
+		tx.MaxFeePerGas = (*hexutil.Big)(big.NewInt(10e9))
+		tx.MaxPriorityFeePerGas = (*hexutil.Big)(big.NewInt(10e9))
+		tx.BlockNumber = (*hexutil.Big)(big.NewInt(blocknum))
+
 		txs = append(txs, &tx)
 	}
 	return txs, fee, nil
@@ -164,11 +191,12 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 		var tx Transaction
 		var receipt Receipt
 		//处理 execer=EVM
-		to := common.HexToAddress(detail.Tx.To)
+		to := common.HexToAddress(detail.GetTx().GetTo())
 		tx.To = &to
 		//receipt.To = tx.To
 		//var data []byte
-		if strings.HasSuffix(string(detail.Tx.Execer), "evm") {
+
+		if strings.HasSuffix(string(detail.GetTx().Execer), "evm") {
 			var action ctypes.EVMContractAction4Chain33
 			err := ctypes.Decode(detail.GetTx().GetPayload(), &action)
 			if err != nil {
@@ -179,6 +207,7 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 			if len(action.Para) != 0 {
 				decodeData = action.Para
 			} else {
+				//合约部署
 				decodeData = action.Code
 			}
 			hdata := (hexutil.Bytes)(decodeData)
@@ -187,16 +216,18 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 			if action.Para != nil {
 				caddr := common.HexToAddress(action.ContractAddr)
 				tx.To = &caddr
-				receipt.ContractAddress = caddr
+				receipt.ContractAddress = &caddr
+			} else {
+				tx.To = nil
+
 			}
 
 		}
 		from := common.HexToAddress(detail.Fromaddr)
 		tx.From = &from
 		receipt.From = tx.From
-		tx.Value = (*hexutil.Big)(big.NewInt(detail.GetAmount())) //fmt.Sprintf("0x%x",detail.GetAmount())//.
-		tx.Type = 0
-		tx.BlockNumber = hexutil.Big(*big.NewInt(detail.GetHeight())) //fmt.Sprintf("0x%x",detail.Height)
+		tx.Value = (*hexutil.Big)(big.NewInt(detail.GetAmount()))       //fmt.Sprintf("0x%x",detail.GetAmount())/
+		tx.BlockNumber = (*hexutil.Big)(big.NewInt(detail.GetHeight())) //fmt.Sprintf("0x%x",detail.Height)
 		//tx.TransactionIndex = hexutil.Uint(uint(detail.GetIndex()))   //fmt.Sprintf("0x%x",detail.GetIndex())
 		eipSigner := etypes.NewEIP155Signer(big.NewInt(int64(cfg.GetChainID())))
 		r, s, v, err := MakeDERSigToRSV(eipSigner, detail.Tx.GetSignature().GetSignature())
@@ -207,28 +238,37 @@ func TxDetailsToEthTx(txdetails *ctypes.TransactionDetails, cfg *ctypes.Chain33C
 		tx.R = (*hexutil.Big)(r)
 		tx.S = (*hexutil.Big)(s)
 		tx.Hash = common.BytesToHash(detail.Tx.Hash())
-
-		txs = append(txs, &tx)
-		//receipt.To = detail.Tx.To
-		//receipt.From = detail.Fromaddr
+		tx.ChainID = (*hexutil.Big)(big.NewInt(int64(detail.Tx.ChainID)))
+		tx.Type = 2
+		receipt.From = tx.From
 		if detail.Receipt.Ty == 2 { //success
 			receipt.Status = 1
 		} else {
 			receipt.Status = 0
 		}
 		var gas uint64
-		receipt.Logs, gas = receiptLogs2EvmLog(detail.Receipt.Logs, nil)
+		receipt.Logs, receipt.ContractAddress, gas = receiptLogs2EvmLog(detail.Receipt.Logs, nil)
+
 		receipt.GasUsed = hexutil.Uint64(gas)
+		if receipt.GasUsed == 0 {
+			receipt.GasUsed = hexutil.Uint64(detail.Tx.Fee)
+
+		}
+		receipt.CumulativeGasUsed = receipt.GasUsed
 		receipt.Bloom = CreateBloom([]*Receipt{&receipt})
 		receipt.TxHash = common.BytesToHash(detail.GetTx().Hash())
 		receipt.BlockNumber = (*hexutil.Big)(big.NewInt(detail.Height))
 		receipt.TransactionIndex = hexutil.Uint(uint64(detail.GetIndex()))
+		tx.Gas = &receipt.GasUsed
+		tx.GasPrice = (*hexutil.Big)(big.NewInt(10e9))
+		txs = append(txs, &tx)
+
 		receipts = append(receipts, &receipt)
 	}
 	return
 }
 
-func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*EvmLog, gasused uint64) {
+func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*EvmLog, contractorAddr *common.Address, gasused uint64) {
 	var filterTopics = make(map[string]bool)
 	if option != nil {
 		for _, topic := range option.Topics {
@@ -271,11 +311,16 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 			log.Info("receiptLogs2EvmLog", "jlg:", string(jlg))
 			err = json.Unmarshal(jlg, &receiptEVMContract)
 			if nil == err {
-				bn, _ := big.NewInt(1).SetString(receiptEVMContract.UsedGas, 10)
-				gasused = bn.Uint64()
-				log.Info("receiptLogs2EvmLog", "gasused:", gasused)
+				log.Info("receiptLogs2EvmLog", "gasused:", receiptEVMContract.UsedGas)
+				bn, ok := big.NewInt(1).SetString(receiptEVMContract.UsedGas, 10)
+				if ok {
+					gasused = bn.Uint64()
+				}
+				cadr := common.HexToAddress(receiptEVMContract.ContractAddr)
+				contractorAddr = &cadr
+
+				//log.Info("receiptLogs2EvmLog", "gasused:", gasused)
 			}
-			//gasused = receiptEVMContract.UsedGas
 			continue
 		}
 		var log EvmLog

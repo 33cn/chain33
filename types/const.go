@@ -7,7 +7,7 @@ package types
 import (
 	"reflect"
 
-	secp256k1sha3 "github.com/33cn/chain33/system/crypto/secp256k1_sha3"
+	secp256k1sha3 "github.com/33cn/chain33/system/crypto/secp256k1_eth"
 
 	"github.com/33cn/chain33/system/crypto/ed25519"
 	"github.com/33cn/chain33/system/crypto/secp256k1"

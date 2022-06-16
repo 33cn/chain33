@@ -26,7 +26,7 @@ func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config
 	header.UncleHash = common.BytesToHash([]byte{0x0})
 
 	//处理交易
-	txs, fee, err := TxsToEthTxs(fullblock.GetBlock().GetTxs(), cfg, full)
+	txs, fee, err := TxsToEthTxs(fullblock.GetBlock().Height, fullblock.GetBlock().GetTxs(), cfg, full)
 	if err != nil {
 		return nil, err
 	}
