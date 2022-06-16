@@ -18,9 +18,9 @@ func TestRandString(t *testing.T) {
 }
 
 func TestInt64Add(t *testing.T) {
-	i := math.MaxInt64
-	assert.Equal(t, i+1, -9223372036854775808)
-	assert.Equal(t, i+2, -9223372036854775807)
+	i := int64(math.MaxInt64)
+	assert.Equal(t, i+1, int64(-9223372036854775808))
+	assert.Equal(t, i+2, int64(-9223372036854775807))
 }
 
 func TestPointer(t *testing.T) {
