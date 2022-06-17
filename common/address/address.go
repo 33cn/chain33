@@ -37,7 +37,7 @@ var (
 )
 
 //MaxExecNameLength 执行器名最大长度
-const MaxExecNameLength = 128
+const MaxExecNameLength = 100
 
 //NormalVer 普通地址的版本号
 var NormalVer byte

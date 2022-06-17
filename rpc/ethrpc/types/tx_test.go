@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/33cn/chain33/common/address"
-
 	"github.com/33cn/chain33/common/crypto"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
@@ -30,12 +28,7 @@ func Test_parseDer(t *testing.T) {
 	t.Log("jmstr", string(jmstr))
 	t.Log("s:", common.Bytes2Hex(s), "size:", len(s))
 }
-func Test_addr(t *testing.T) {
-	execPub := address.ExecPubKey("0xd741c9f9e0A1F5bb1ed898115A683253F14c1F8b" + "b42eb22d6de34617a18a648e052e9ea055a61dcf0d948429b6de49a3239ab83c")
-	execAddr := address.PubKeyToAddr(0, execPub)
-	t.Log("execaddr", execAddr)
 
-}
 func Test_checkSig(t *testing.T) {
 	var word = "hello"
 	c, err := crypto.Load("secp256k1", -1)

@@ -11,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/system/address/btc"
 
@@ -38,11 +36,6 @@ func TestAddress(t *testing.T) {
 	t.Logf("%X", key.Bytes())
 	addr := address.PubKeyToAddr(address.DefaultID, key.PubKey().Bytes())
 	t.Log(addr)
-}
-
-func TestBase58AddrToEthAddress(t *testing.T) {
-	addr, _ := address.NewBtcAddress("1KMTUYwqCudWsRu9VLfDS7SNWoLvu7rdGS")
-	t.Log("addr", "0x"+common.Bytes2Hex(addr.Hash160[:]))
 }
 
 func TestMultiSignAddress(t *testing.T) {

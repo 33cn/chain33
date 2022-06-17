@@ -211,7 +211,6 @@ func (h *httpServer) Close() {
 
 //ServeHTTP rewrite ServeHTTP
 func (h *httpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Info("ServeHTTP", "http method", r.Method)
 	if r.Method == "OPTION" {
 		w.WriteHeader(http.StatusNoContent)
 		return

@@ -10,8 +10,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/33cn/chain33/common"
-
 	"github.com/tjfoc/gmsm/sm3"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -35,11 +33,6 @@ func Sm3Hash(msg []byte) []byte {
 	c := sm3.New()
 	c.Write(msg)
 	return c.Sum(nil)
-}
-
-//Sha3Hash 哈希算法
-func Sha3Hash(msg []byte) []byte {
-	return common.Sha3(msg)
 }
 
 // BasicValidation 公私钥数据签名验证基础实现

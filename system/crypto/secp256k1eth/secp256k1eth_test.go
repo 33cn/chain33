@@ -1,15 +1,12 @@
 package secp256k1eth
 
 import (
-	"math/rand"
+	"crypto/rand"
 	"strings"
 	"testing"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	//_ "github.com/33cn/chain33/system/address"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,30 +30,6 @@ func Test_Sign(t *testing.T) {
 
 }
 
-func Test_ComplexTx(t *testing.T) {
-	//合约交易
-	metamaskRawTx := "0xf8ac438502540be40083030d4094a7672ff66dfed1c506efd53638eff627e92639aa80b844a9059cbb000000000000000000000000643c5addddbf2734b8896aa74c38ffab6723cbf1000000000000000000000000000000000000000000000000000000001dcd6500821f61a09cfbbbe0ae7b4a5f698704fe900cf03fc58d01ee4dab7be142dc58a954d2f0e8a07efe0285dc17bfdb5a3c60b7cd8b54ea8fc280d7d9d1864975d6567519cf63d9"
-	sigstr := "9cfbbbe0ae7b4a5f698704fe900cf03fc58d01ee4dab7be142dc58a954d2f0e87efe0285dc17bfdb5a3c60b7cd8b54ea8fc280d7d9d1864975d6567519cf63d900"
-	pubkeystr := "04e822f01d1422502b6a19ebfa1ac94a87d7e6b13be232e3ff451e5ba05d59bb247855104cb0dc788d48e0e991027c9815ccb21f8e70277873606238a233bb9f1e"
-	contractAddr := "0xa7672fF66DfeD1c506efd53638efF627E92639AA"
-	rawData := common.FromHex(metamaskRawTx)
-	require.NotNil(t, rawData)
-	ntx := new(types.Transaction)
-	err := ntx.UnmarshalBinary(rawData)
-	require.Nil(t, err)
-	require.Equal(t, ntx.To().String(), contractAddr)
-	signer := types.NewLondonSigner(ntx.ChainId())
-	txSha3 := signer.Hash(ntx)
-	_, r, s := ntx.RawSignatureValues()
-	sig := append(r.Bytes()[:], append(s.Bytes()[:], uint8(0))...)
-	require.Equal(t, common.Bytes2Hex(sig), sigstr)
-	pubkey, _ := ethcrypto.Ecrecover(txSha3.Bytes(), sig)
-	require.NotNil(t, pubkey)
-	require.Equal(t, common.Bytes2Hex(pubkey), pubkeystr)
-
-	//组装chain33Tx
-
-}
 func testCrypto(t *testing.T) {
 	require := require.New(t)
 	c := &Driver{}

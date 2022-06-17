@@ -8,8 +8,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/33cn/chain33/common/crypto/sha3"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -105,14 +103,6 @@ func Sha256(b []byte) []byte {
 func Sha3(b []byte) []byte {
 	data := sha3.KeccakSum256(b)
 	return data[:]
-}
-
-//Sha3SigHash ...
-func Sha3SigHash(b []byte) []byte {
-	return ethcrypto.Keccak256(b)
-	//msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(b), b)
-	//return ethcrypto.Keccak256([]byte(msg))
-
 }
 
 // Sha2Sum Returns hash: SHA256( SHA256( data ) )
