@@ -6,27 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-//Header block header
-/*type Header struct {
-	ParentHash  common.Hash    `json:"parentHash"       gencodec:"required"`
-	UncleHash   common.Hash    `json:"sha3Uncles"       gencodec:"required"`
-	Coinbase    string         `json:"miner"            gencodec:"required"`
-	Root        common.Hash    `json:"stateRoot"        gencodec:"required"`
-	TxHash      common.Hash    `json:"transactionsRoot" gencodec:"required"`
-	ReceiptHash common.Hash    `json:"receiptsRoot"     gencodec:"required"`
-	Bloom       types.Bloom    `json:"logsBloom"        gencodec:"required"`
-	Difficulty  hexutil.Big    `json:"difficulty"       gencodec:"required"`
-	Number      hexutil.Big    `json:"number"           gencodec:"required"`
-	GasLimit    hexutil.Uint64 `json:"gasLimit"         gencodec:"required"`
-	GasUsed     hexutil.Uint64 `json:"gasUsed"          gencodec:"required"`
-	Time        hexutil.Uint64 `json:"timestamp"        gencodec:"required"`
-	Extra       []byte         `json:"extraData"        gencodec:"required"`
-	MixDigest   string         `json:"mixHash"`
-	Nonce       hexutil.Uint64 `json:"nonce"`
-
-	// BaseFee was added by EIP-1559 and is ignored in legacy headers.
-	BaseFee hexutil.Big `json:"baseFeePerGas" rlp:"optional"`
-}*/
 
 //Header block header
 type Header struct {
