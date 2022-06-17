@@ -200,11 +200,11 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 			return false
 		}
 		//check evm code
-		if bytes.Compare(etx.Data(), action.Code) != 0 { // 防止合约代码被篡改
+		if !bytes.Equal(etx.Data(), action.Code) { // 防止合约代码被篡改
 			return false
 		}
 		//check to address
-		if bytes.Compare(ecommon.FromHex(action.To), etx.To().Bytes()) != 0 {
+		if !bytes.Equal(ecommon.FromHex(action.To), etx.To().Bytes()) {
 			return false
 		}
 	}

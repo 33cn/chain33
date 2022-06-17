@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-
 //Header block header
 type Header struct {
 	ParentHash  common.Hash      `json:"parentHash"       gencodec:"required"`
