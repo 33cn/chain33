@@ -65,7 +65,6 @@ type Header struct {
 //}
 
 // Transaction LegacyTx is the transaction data of regular Ethereum transactions.
-
 type Transaction struct {
 	Type hexutil.Uint64 `json:"type"`
 
@@ -104,6 +103,8 @@ type Block struct {
 	Transactions interface{} `json:"transactions"`
 	Hash         string      `json:"hash"`
 }
+
+//Receipt tx Receipt
 type Receipt struct {
 	Type              hexutil.Uint64  `json:"type,omitempty"`
 	PostState         hexutil.Bytes   `json:"root"`
@@ -135,15 +136,15 @@ type CallMsg struct {
 
 //EvmLog evm log
 type EvmLog struct {
-	Address     common.Address `json:"address,omitempty"`
-	Topics      []common.Hash  `json:"topics,omitempty"`
-	Data        hexutil.Bytes  `json:"data,omitempty"`
-	BlockNumber hexutil.Uint64 `json:"blockNumber,omitempty"`
-	TxHash      common.Hash    `json:"transactionHash,omitempty"`
-	TxIndex     hexutil.Uint   `json:"transactionIndex,omitempty"`
-	BlockHash   common.Hash    `json:"blockHash,omitempty"`
-	Index       hexutil.Uint   `json:"logIndex,omitempty"`
-	Removed     bool           `json:"removed,omitempty"`
+	Address     *common.Address `json:"address,omitempty"`
+	Topics      []common.Hash   `json:"topics,omitempty"`
+	Data        *hexutil.Bytes  `json:"data,omitempty"`
+	BlockNumber *hexutil.Uint64 `json:"blockNumber,omitempty"`
+	TxHash      *common.Hash    `json:"transactionHash,omitempty"`
+	TxIndex     hexutil.Uint    `json:"transactionIndex,omitempty"`
+	BlockHash   common.Hash     `json:"blockHash,omitempty"`
+	Index       hexutil.Uint    `json:"logIndex,omitempty"`
+	Removed     bool            `json:"removed,omitempty"`
 }
 
 //Peer peer info

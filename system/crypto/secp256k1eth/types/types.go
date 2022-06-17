@@ -1,25 +1,28 @@
 package types
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/protobuf/proto"
-	"strings"
 )
 
-//import "github.com/33cn/chain33/types"
-
+//CommonAction ...
 type CommonAction struct {
-	Note   []byte
-	To     string
-	Amount uint64
-	Code   []byte
+	Note   []byte //存放metamask 签名后的rawtx hexdata
+	To     string //to地址（目的地址或者合约地址）
+	Amount uint64 //解析组装后的chain33 tx 的amount
+	Code   []byte //evm 数据
+	Nonce  int64
 }
 
-func DecodeTxAction(msg []byte) *CommonAction {
+//DecodeTxAction decode chain33Tx ethTx
+func DecodeTxAction(msg []byte) (*CommonAction, error) {
 	var tx TransactionChain33
 	err := proto.Unmarshal(msg, &tx)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	if strings.Contains(string(tx.Execer), "evm") {
 		//evm 合约操作
@@ -37,21 +40,28 @@ func DecodeTxAction(msg []byte) *CommonAction {
 				To:     evmaction.ContractAddr,
 				Amount: evmaction.GetAmount(),
 				Code:   code,
-			}
+				Nonce:  tx.Nonce,
+			}, nil
 		}
-	} else {
-		//coins 转账
-		var coinAction CoinsActionChain33
-		err = proto.Unmarshal(tx.Payload, &coinAction)
-		if err == nil {
-			transfer := coinAction.GetValue().(*CoinsActionChain33_Transfer)
+	}
+
+	//coins 转账
+	var coinsAction CoinsActionChain33
+	err = proto.Unmarshal(tx.Payload, &coinsAction)
+	if err == nil {
+		transfer, ok := coinsAction.GetValue().(*CoinsActionChain33_Transfer)
+		if ok {
 			return &CommonAction{
 				Note:   transfer.Transfer.Note,
 				To:     transfer.Transfer.To,
 				Amount: uint64(transfer.Transfer.GetAmount()),
-			}
+				Nonce:  tx.Nonce,
+			}, nil
 		}
+		err = errors.New("action no support")
+
 	}
-	return nil
+
+	return nil, err
 
 }

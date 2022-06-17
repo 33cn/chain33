@@ -1,5 +1,13 @@
 changelog
 
+<a name="1.67.3"></a>
+## [1.67.3](https://github.com/33cn/chain33/compare/v1.67.2...v1.67.3) (2022-05-27)
+
+
+### Bug Fixes
+
+* add address key format fork ([3a3af20](https://github.com/33cn/chain33/commit/3a3af20))
+
 <a name="1.67.2"></a>
 ## [1.67.2](https://github.com/33cn/chain33/compare/v1.67.1...v1.67.2) (2022-04-18)
 

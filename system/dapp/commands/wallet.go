@@ -9,9 +9,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/33cn/chain33/common/address"
-	"github.com/pkg/errors"
-
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	commandtypes "github.com/33cn/chain33/system/dapp/commands/types"
@@ -324,7 +321,7 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional), auto set proper fee if not set or zero fee")
 	cmd.Flags().StringP("to", "t", "", "new to addr (optional)")
-	cmd.Flags().Int32P("addressType", "p", 0, "address type ID, btc(0), btcMultiSign(1), eth(2)")
+	cmd.Flags().Int32P("addressType", "p", -1, "address type ID, btc(0), btcMultiSign(1), eth(2)")
 	// A duration string is a possibly signed sequence of
 	// decimal numbers, each with optional fraction and a unit suffix,
 	// such as "300ms", "-1.5h" or "2h45m".
@@ -430,14 +427,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	if addr != "" {
-		ty, err := address.GetAddressType(addr)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, errors.Wrap(err, "GetAddressType"))
-			return
-		}
-		addressType = ty
-	}
+
 	params := types.ReqSignRawTx{
 		Addr:      addr,
 		Privkey:   key,

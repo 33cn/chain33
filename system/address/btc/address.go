@@ -77,6 +77,8 @@ func (b *btc) FromString(addr string) ([]byte, error) {
 	return decodeFromString(address.NormalVer, addr)
 }
 
+func (b *btc) FormatAddr(addr string) string { return addr }
+
 type btcMultiSign struct{}
 
 // PubKeyToAddr public key to address
@@ -110,6 +112,8 @@ func (b *btcMultiSign) ToString(addr []byte) string {
 func (b *btcMultiSign) FromString(addr string) ([]byte, error) {
 	return decodeFromString(address.MultiSignVer, addr)
 }
+
+func (b *btcMultiSign) FormatAddr(addr string) string { return addr }
 
 func encodeToString(version byte, raw []byte) string {
 	var ad [25]byte

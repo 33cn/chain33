@@ -16,7 +16,7 @@ type Signature struct {
 #### 底层设计
 > 最初设计中, signID即cryptoID, 在引入多地址格式兼容(#1181)后, signID集成了cryptoID和addressID含义
 
-* addressID, 即签名公钥转换为地址时采用的地址类型ID, 在signID中占4位, 即低位第13~15位
+* addressID, 即签名公钥转换为地址时采用的地址类型ID, 在signID中占3位, 即低位第13~15位
 * cryptoID, 即签名对应的加密算法插件类型ID, 在signID中, 除addressID以外的其余位
 * 默认addressID为0, 此时cryptoID和signID值依然相等
 

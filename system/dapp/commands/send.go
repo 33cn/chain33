@@ -28,7 +28,7 @@ func OneStepSendCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringP("key", "k", "", "private key or from address for sign tx")
-	//cmd.MarkFlagRequired("key")
+	cmd.Flags().Int32P("signAddrType", "", -1, "sign address type ID, btc(0), btcMultiSign(1), eth(2)")
 	return cmd
 }
 
@@ -41,31 +41,23 @@ func oneStepSend(cmd *cobra.Command, cmdName string, params []string) {
 
 	var createParams, keyParams []string
 	//取出send命令的key参数, 保留原始构建的参数列表
+	nextIgnore := false
 	for i, v := range params {
-		if strings.HasPrefix(v, "-k=") || strings.HasPrefix(v, "--key=") {
+		if strings.HasPrefix(v, "-k=") || strings.HasPrefix(v, "--key=") ||
+			strings.HasPrefix(v, "--signAddrType=") {
 			keyParams = append(keyParams, v)
-			createParams = append(params[:i], params[i+1:]...)
-			break
-		} else if (v == "-k" || v == "--key") && i < len(params)-1 {
+			continue
+		} else if (v == "-k" || v == "--key" || v == "--signAddrType") && i < len(params)-1 {
 			keyParams = append(keyParams, v, params[i+1])
-			createParams = append(params[:i], params[i+2:]...)
-			break
+			nextIgnore = true
+			continue
 		}
-	}
-	//调用send命令parse函数解析key参数
-	err := cmd.Flags().Parse(keyParams)
-	key, _ := cmd.Flags().GetString("key")
-	if len(key) < 32 || err != nil {
-		loadSendHelp()
-		fmt.Fprintln(os.Stderr, "Error: required flag(s) \"key\" not proper set")
-		return
-	}
 
-	//构造签名命令的key参数
-	if address.CheckAddress(key, -1) == nil {
-		keyParams = append([]string{}, "-a", key)
-	} else {
-		keyParams = append([]string{}, "-k", key)
+		if nextIgnore {
+			nextIgnore = false
+			continue
+		}
+		createParams = append(createParams, v)
 	}
 	//创建交易命令
 	cmdCreate := exec.Command(cmdName, createParams...)
@@ -79,6 +71,24 @@ func oneStepSend(cmd *cobra.Command, cmdName string, params []string) {
 		fmt.Println(createRes)
 		return
 	}
+
+	//调用send命令parse函数解析key参数
+	err = cmd.Flags().Parse(keyParams)
+	key, _ := cmd.Flags().GetString("key")
+	if len(key) <= 0 || err != nil {
+		loadSendHelp()
+		fmt.Fprintln(os.Stderr, "Error: required flag(s) \"key\" not proper set")
+		return
+	}
+	addrTy, _ := cmd.Flags().GetInt32("signAddrType")
+
+	//构造签名命令的key参数
+	if address.CheckAddress(key, -1) == nil {
+		keyParams = append([]string{}, "-a", key)
+	} else {
+		keyParams = append([]string{}, "-k", key, "-p", fmt.Sprintf("%d", addrTy))
+	}
+
 	//采用内部的构造交易命令,解析rpc_laddr地址参数
 	createCmd, createFlags, _ := cmd.Root().Traverse(createParams)
 	_ = createCmd.ParseFlags(createFlags)
@@ -131,7 +141,8 @@ equivalent to three steps:
 3. cli wallet send -d signTx                   //send tx to block chain
 
 Flags:
-  -h, --help         help for send
-  -k, --key			 private key or from address for sign tx, required`
+  -h, --help                 help for send
+  -k, --key string           address or private key for sign tx, required
+      --signAddrType int32   sign address type ID, btc(0), btcMultiSign(1), eth(2)`
 	fmt.Println(help)
 }

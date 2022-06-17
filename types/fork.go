@@ -6,6 +6,8 @@ package types
 
 import (
 	"strings"
+
+	"github.com/33cn/chain33/common/address"
 )
 
 /*
@@ -139,6 +141,7 @@ func (f *Forks) SetTestNetFork() {
 	f.SetFork("ForkCacheDriver", 2580000)
 	f.SetFork("ForkTicketFundAddrV1", 3350000)
 	f.SetFork("ForkRootHash", 4500000)
+	f.SetFork(address.ForkFormatAddressKey, 0)
 }
 
 func (f *Forks) setLocalFork() {

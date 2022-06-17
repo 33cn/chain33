@@ -3,6 +3,7 @@ package personal
 import (
 	"errors"
 	"fmt"
+
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"

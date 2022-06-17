@@ -2,11 +2,12 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/33cn/chain33/common/address"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/33cn/chain33/common/address"
 
 	"github.com/33cn/chain33/common/crypto"
 	ctypes "github.com/33cn/chain33/types"
@@ -101,6 +102,4 @@ func Test_TxDetailsToEthTx(t *testing.T) {
 	t.Log("json txs:", string(jtxs))
 	jreceipts, _ := json.MarshalIndent(receipts, " ", "\t")
 	t.Log("json receipts:", string(jreceipts))
-	assert.Equal(t, txs[0].From, "1N2aNfWXqGe9kWcL8u9TYpj5RzVQbjwKAP")
-	assert.Equal(t, txs[0].Data, "0x7750c9f0000000000000000000000000e6a6ea8e06bad72af51c04e1ee930b40cc4c4512000000000000000000000000096cf8ba17671e7aa4f76fb81813a6d713ba866b00000000000000000000000000000000000000000000000000005b21a4630080")
 }

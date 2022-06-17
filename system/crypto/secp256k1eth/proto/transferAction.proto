@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package types;
 
-option go_package="github.com/33cn/chain33/system/crypto/secp256k1_eth/types";
+option go_package="github.com/33cn/chain33/system/crypto/secp256k1eth/types";
 message AssetsTransferToExecChain33 {
 string cointoken = 1;
 int64  amount    = 2;

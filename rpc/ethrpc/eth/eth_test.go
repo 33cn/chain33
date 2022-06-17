@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 
 	clientMocks "github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/queue"
@@ -13,10 +14,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"math/big"
 	"strings"
@@ -37,6 +40,7 @@ func init() {
 	qapi = &clientMocks.QueueProtocolAPI{}
 	cfg := ctypes.NewChain33Config(ctypes.GetDefaultCfgstring())
 	q.SetConfig(cfg)
+
 	ethCli = &ethHandler{}
 	ethCli.cfg = cfg
 	ethCli.cli.Init(q.Client(), qapi)
@@ -258,9 +262,9 @@ func TestEthHandler_GetCode(t *testing.T) {
 	qapi.On("Query", mock.Anything).Return(&ret, nil)
 	caddr := "0xd01c479dee5e61c52ded7422a634220ba91e2447"
 	addr := common.HexToAddress(caddr)
-	getCode, err := ethCli.GetCode(&addr, "")
-	assert.Nil(t, err)
-	t.Log("retCode", getCode)
+
+	_, err := ethCli.GetCode(&addr, "")
+	assert.Equal(t, "ErrNotSupport", err.Error())
 }
 
 func Test_Eip712SignTypeData(t *testing.T) {
@@ -408,3 +412,64 @@ func TestSendSignTypeData(t *testing.T) {
 }
 
 var abidata = "[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"name_\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"symbol_\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"supply\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"decimals_\",\"type\":\"uint8\"},{\"internalType\":\"uint256\",\"name\":\"chainid_\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"hashStruct\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"hash\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"signer\",\"type\":\"address\"}],\"name\":\"Log\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"DOMAIN_SEPARATOR\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"PERMIT_TYPEHASH\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"TRANSFERFROM_TYPEHASH\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"subtractedValue\",\"type\":\"uint256\"}],\"name\":\"decreaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"addedValue\",\"type\":\"uint256\"}],\"name\":\"increaseAllowance\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"nonces\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"permit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"deadline\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"signature\",\"type\":\"bytes\"}],\"name\":\"transferFromWithSignature\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+
+func TestEthHandler_SendRawTransaction(t *testing.T) {
+
+	metamaskRawTx := "0xf8ac438502540be40083030d4094a7672ff66dfed1c506efd53638eff627e92639aa80b844a9059cbb000000000000000000000000643c5addddbf2734b8896aa74c38ffab6723cbf1000000000000000000000000000000000000000000000000000000001dcd6500821f61a09cfbbbe0ae7b4a5f698704fe900cf03fc58d01ee4dab7be142dc58a954d2f0e8a07efe0285dc17bfdb5a3c60b7cd8b54ea8fc280d7d9d1864975d6567519cf63d9"
+	sigstr := "9cfbbbe0ae7b4a5f698704fe900cf03fc58d01ee4dab7be142dc58a954d2f0e87efe0285dc17bfdb5a3c60b7cd8b54ea8fc280d7d9d1864975d6567519cf63d900"
+	pubkeystr := "04e822f01d1422502b6a19ebfa1ac94a87d7e6b13be232e3ff451e5ba05d59bb247855104cb0dc788d48e0e991027c9815ccb21f8e70277873606238a233bb9f1e"
+	contractAddr := "0xa7672fF66DfeD1c506efd53638efF627E92639AA"
+	rawData := common.FromHex(metamaskRawTx)
+	require.NotNil(t, rawData)
+	ntx := new(ethtypes.Transaction)
+	err := ntx.UnmarshalBinary(rawData)
+	require.Nil(t, err)
+	require.Equal(t, ntx.To().String(), contractAddr)
+	signer := ethtypes.NewLondonSigner(ntx.ChainId())
+	txSha3 := signer.Hash(ntx)
+	_, r, s := ntx.RawSignatureValues()
+	sig := append(r.Bytes()[:], append(s.Bytes()[:], uint8(0))...)
+	require.Equal(t, common.Bytes2Hex(sig), sigstr)
+	pubkey, _ := crypto.Ecrecover(txSha3.Bytes(), sig)
+	require.NotNil(t, pubkey)
+	require.Equal(t, common.Bytes2Hex(pubkey), pubkeystr)
+
+	qapi.On("SendTx", mock.Anything).Return(&ctypes.Reply{Msg: common.FromHex("0x56385265533f4c17455473508f4bfcfcfd094a88f460de40f22dd4c19e485793"), IsOk: true}, nil)
+	txhash, err := ethCli.SendRawTransaction(metamaskRawTx)
+	if err != nil {
+		t.Log(err)
+		return
+	}
+	t.Log("txhash", txhash.String())
+	assert.Equal(t, txhash.String(), "0x56385265533f4c17455473508f4bfcfcfd094a88f460de40f22dd4c19e485793")
+
+	chain33Tx := etypes.AssembleChain33Tx(ntx, sig, pubkey, ethCli.cfg)
+	txHash := chain33Tx.Hash()
+	t.Log("chain33Tx hash", common.Bytes2Hex(txHash))
+	assert.Equal(t, common.Bytes2Hex(txHash), "56385265533f4c17455473508f4bfcfcfd094a88f460de40f22dd4c19e485793")
+	ok := chain33Tx.CheckSign(-1)
+	require.True(t, ok)
+
+	//测试修改chain33Tx 数据，期望验签失败
+	//修改Nonce
+	chain33Tx.Nonce = rand.New(rand.NewSource(time.Now().UnixNano())).Int63()
+	ok = chain33Tx.CheckSign(-1)
+	require.False(t, ok)
+	//修改to
+	chain33Tx.To = "0xa06c8907eb1c8a266165f5484c5ea3bd4e0520a8"
+	ok = chain33Tx.CheckSign(-1)
+	require.False(t, ok)
+	//修改执行器
+	chain33Tx.Execer = []byte("coinsX")
+	ok = chain33Tx.CheckSign(-1)
+	require.False(t, ok)
+	//修改packdata
+	chain33Tx.Payload = append(chain33Tx.GetPayload(), uint8(8))
+	ok = chain33Tx.CheckSign(-1)
+	require.False(t, ok)
+	//修改chainID
+	chain33Tx.ChainID = 666
+	ok = chain33Tx.CheckSign(-1)
+	require.False(t, ok)
+
+}
