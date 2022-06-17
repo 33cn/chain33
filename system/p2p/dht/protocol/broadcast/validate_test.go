@@ -10,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/33cn/chain33/client/mocks"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	ps "github.com/libp2p/go-libp2p-pubsub"
@@ -118,4 +121,60 @@ func Test_validatePeer(t *testing.T) {
 	require.Equal(t, ps.ValidationReject, val.validatePeer(val.Ctx, "", msg))
 	msg.From = []byte("normalPid")
 	require.Equal(t, ps.ValidationAccept, val.validatePeer(val.Ctx, "", msg))
+}
+
+func Test_validateTx(t *testing.T) {
+
+	val := newValidator(newTestPubSub())
+	proto, cancel := newTestProtocol()
+	defer cancel()
+	val.broadcastProtocol = proto
+	msg := &ps.Message{Message: &pubsub_pb.Message{From: []byte(val.Host.ID())}}
+	require.Equal(t, ps.ValidationAccept, val.validateTx(val.Ctx, val.Host.ID(), msg))
+
+	msg = &ps.Message{Message: &pubsub_pb.Message{Data: []byte("errmsg")}}
+	require.Equal(t, ps.ValidationReject, val.validateTx(val.Ctx, "testpid", msg))
+
+	tx := &types.Transaction{Execer: []byte("coins")}
+	sendBuf := make([]byte, 0)
+	msg.Data = val.encodeMsg(tx, &sendBuf)
+	txHash := hex.EncodeToString(tx.Hash())
+	val.txFilter.AddWithCheckAtomic(txHash, struct{}{})
+	require.Equal(t, ps.ValidationIgnore, val.validateTx(val.Ctx, "testpid", msg))
+	val.txFilter.Remove(txHash)
+
+	mockApi := new(mocks.QueueProtocolAPI)
+	val.API = mockApi
+	mockApi.On("SendTx", mock.Anything).Return(nil, types.ErrNotSync).Once()
+	require.Equal(t, ps.ValidationIgnore, val.validateTx(val.Ctx, "testpid", msg))
+	val.txFilter.Remove(txHash)
+
+	mockApi.On("SendTx", mock.Anything).Return(nil, nil).Once()
+	require.Equal(t, ps.ValidationAccept, val.validateTx(val.Ctx, "testpid", msg))
+}
+
+func Test_validateBatchTx(t *testing.T) {
+
+	val := newValidator(newTestPubSub())
+	proto, cancel := newTestProtocol()
+	defer cancel()
+	val.broadcastProtocol = proto
+	msg := &ps.Message{Message: &pubsub_pb.Message{From: []byte(val.Host.ID())}}
+	require.Equal(t, ps.ValidationAccept, val.validateBatchTx(val.Ctx, val.Host.ID(), msg))
+
+	msg = &ps.Message{Message: &pubsub_pb.Message{Data: []byte("errmsg")}}
+	require.Equal(t, ps.ValidationReject, val.validateBatchTx(val.Ctx, "testpid", msg))
+
+	tx := &types.Transaction{Execer: []byte("coins")}
+	txs := &types.Transactions{Txs: []*types.Transaction{tx}}
+	sendBuf := make([]byte, 0)
+	msg.Data = val.encodeMsg(txs, &sendBuf)
+	mockApi := new(mocks.QueueProtocolAPI)
+	val.API = mockApi
+	mockApi.On("SendTx", mock.Anything).Return(nil, nil)
+	require.Equal(t, ps.ValidationAccept, val.validateBatchTx(val.Ctx, "testpid", msg))
+
+	txs.Txs = append(txs.Txs, &types.Transaction{Execer: []byte("coins2")})
+	msg.Data = val.encodeMsg(txs, &sendBuf)
+	require.Equal(t, ps.ValidationIgnore, val.validateBatchTx(val.Ctx, "testpid", msg))
 }
