@@ -37,8 +37,8 @@ type broadcastProtocol struct {
 	blockFilter *utils.Filterdata
 	cfg         p2pty.BroadcastConfig
 	ps          *pubsub.PubSub
-	syncStatus  bool
 	currHeight  int64
+	syncStatus  bool
 	lock        sync.RWMutex
 	ltB         *ltBroadcast
 	val         *validator

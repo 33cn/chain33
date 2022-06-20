@@ -38,6 +38,7 @@ var log = log15.New("module", "protocol.p2pstore")
 
 //Protocol ...
 type Protocol struct {
+	concurrency      int64
 	*protocol.P2PEnv //协议共享接口变量
 
 	chunkToSync     chan *types.ChunkInfoMsg
@@ -53,8 +54,6 @@ type Protocol struct {
 	//本节点保存的chunk的索引表，会随着网络拓扑结构的变化而变化
 	localChunkInfo      map[string]LocalChunkInfo
 	localChunkInfoMutex sync.RWMutex
-
-	concurrency int64
 
 	// 扩展路由表，每小时更新一次
 	extendRoutingTable *kbt.RoutingTable
