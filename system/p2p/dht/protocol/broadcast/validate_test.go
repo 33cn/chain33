@@ -169,9 +169,9 @@ func Test_validateBatchTx(t *testing.T) {
 	txs := &types.Transactions{Txs: []*types.Transaction{tx}}
 	sendBuf := make([]byte, 0)
 	msg.Data = val.encodeMsg(txs, &sendBuf)
-	mockApi := new(mocks.QueueProtocolAPI)
-	val.API = mockApi
-	mockApi.On("SendTx", mock.Anything).Return(nil, nil)
+	mockAPI := new(mocks.QueueProtocolAPI)
+	val.API = mockAPI
+	mockAPI.On("SendTx", mock.Anything).Return(nil, nil)
 	require.Equal(t, ps.ValidationAccept, val.validateBatchTx(val.Ctx, "testpid", msg))
 
 	txs.Txs = append(txs.Txs, &types.Transaction{Execer: []byte("coins2")})
