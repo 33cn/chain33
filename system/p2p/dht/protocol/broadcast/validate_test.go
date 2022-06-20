@@ -143,13 +143,13 @@ func Test_validateTx(t *testing.T) {
 	require.Equal(t, ps.ValidationIgnore, val.validateTx(val.Ctx, "testpid", msg))
 	val.txFilter.Remove(txHash)
 
-	mockApi := new(mocks.QueueProtocolAPI)
-	val.API = mockApi
-	mockApi.On("SendTx", mock.Anything).Return(nil, types.ErrNotSync).Once()
+	mockAPI := new(mocks.QueueProtocolAPI)
+	val.API = mockAPI
+	mockAPI.On("SendTx", mock.Anything).Return(nil, types.ErrNotSync).Once()
 	require.Equal(t, ps.ValidationIgnore, val.validateTx(val.Ctx, "testpid", msg))
 	val.txFilter.Remove(txHash)
 
-	mockApi.On("SendTx", mock.Anything).Return(nil, nil).Once()
+	mockAPI.On("SendTx", mock.Anything).Return(nil, nil).Once()
 	require.Equal(t, ps.ValidationAccept, val.validateTx(val.Ctx, "testpid", msg))
 }
 
