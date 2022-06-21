@@ -250,14 +250,15 @@ func (pubKey PubKeySecp256k1Eth) Equals(other crypto.PubKey) bool {
 }
 
 func initEvmIDFun(sub []byte) {
-	var ID struct {
+	var id struct {
 		EvmChainID int64 `json:"evmChainID,omitempty"`
 	}
-	utils.MustDecode(sub, &ID)
-	chainID = ID.EvmChainID
+	utils.MustDecode(sub, &id)
+	chainID = id.EvmChainID
 }
 
-func GetEvmID() int64 {
+//GetEvmChainID return evm chainID
+func GetEvmChainID() int64 {
 	return chainID
 }
 

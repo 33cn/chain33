@@ -34,10 +34,10 @@ import (
 )
 
 type ethHandler struct {
-	cli     rpcclient.ChannelClient
-	cfg     *ctypes.Chain33Config
-	grpcCli ctypes.Chain33Client
-	chainID int64
+	cli        rpcclient.ChannelClient
+	cfg        *ctypes.Chain33Config
+	grpcCli    ctypes.Chain33Client
+	evmChainID int64
 }
 
 var (
@@ -49,11 +49,8 @@ func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 	e := &ethHandler{}
 	e.cli.Init(c, api)
 	e.cfg = cfg
-	var id struct {
-		EvmChainID int64 `json:"evmChainID,omitempty"`
-	}
-	ctypes.MustDecode(cfg.GetSubConfig().Crypto[secp256k1eth.Name], &id)
-	e.chainID = id.EvmChainID
+
+	e.evmChainID = secp256k1eth.GetEvmChainID()
 	grpcBindAddr := e.cfg.GetModuleConfig().RPC.GrpcBindAddr
 	_, port, _ := net.SplitHostPort(grpcBindAddr)
 	conn, err := grpc.Dial(fmt.Sprintf("localhost:%v", port), grpc.WithInsecure())
@@ -85,7 +82,7 @@ func (e *ethHandler) GetBalance(address string, tag *string) (hexutil.Big, error
 
 //nolint
 func (e *ethHandler) ChainId() (hexutil.Big, error) {
-	bigID := big.NewInt(e.chainID)
+	bigID := big.NewInt(e.evmChainID)
 	return hexutil.Big(*bigID), nil
 }
 
@@ -314,10 +311,11 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	ntx := new(etypes.Transaction)
 	err := ntx.UnmarshalBinary(rawhexData)
 	if err != nil {
+		log.Error("eth_sendRawTransaction", "UnmarshalBinary", err)
 		return nil, err
 	}
-	if ntx.ChainId().Int64() != e.chainID {
-		log.Error("eth_sendRawTransaction", "this.chainID", e.chainID, "etx.ChainID", ntx.ChainId())
+	if ntx.ChainId().Int64() != e.evmChainID {
+		log.Error("eth_sendRawTransaction", "this.chainID", e.evmChainID, "etx.ChainID", ntx.ChainId())
 		return nil, errors.New("chainID no support")
 	}
 	signer := etypes.NewLondonSigner(ntx.ChainId())
