@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
+
 	"github.com/33cn/chain33/common/address"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/system/address/eth"
@@ -67,16 +69,14 @@ func newRPCTransaction(tx *etypes.Transaction, blockHash common.Hash, blockNumbe
 	return result
 }
 
-//MakeDERSigToRSV der sig data to rsv
-func MakeDERSigToRSV(eipSigner etypes.EIP155Signer, sig []byte) (r, s, v *big.Int, err error) {
-	//fmt.Println("len:",len(sig),"sig",hexutil.Encode(sig))
+//makeDERSigToRSV der sig data to rsv
+func makeDERSigToRSV(eipSigner etypes.Signer, sig []byte) (r, s, v *big.Int, err error) {
 	if len(sig) == 65 {
 		r = new(big.Int).SetBytes(sig[:32])
 		s = new(big.Int).SetBytes(sig[32:64])
 		v = new(big.Int).SetBytes([]byte{sig[64]})
 		return
 	}
-	//return
 
 	rb, sb, err := paraseDERCode(sig)
 	if err != nil {
@@ -147,8 +147,8 @@ func paraseDERCode(sig []byte) (r, s []byte, err error) {
 	return
 }
 
-//MakeDERsignature ...
-func MakeDERsignature(rb, sb []byte) []byte {
+//makeDERsignature ...
+func makeDERsignature(rb, sb []byte) []byte {
 	if rb[0] > 0x7F {
 		rb = append([]byte{0}, rb...)
 	}
@@ -171,8 +171,77 @@ func MakeDERsignature(rb, sb []byte) []byte {
 	copy(b[offset+2:], sb)
 	return b
 }
+func paraseChain33Tx(itx *ctypes.Transaction, blockHash common.Hash, blockNum int64, index uint64, cfg *ctypes.Chain33Config) *Transaction {
+	eipSigner := etypes.LatestSignerForChainID(big.NewInt(secp256k1eth.GetEvmChainID()))
+	var tx Transaction
+	tx.Hash = common.BytesToHash(itx.Hash())
+	tx.BlockHash = &blockHash
+	tx.Type = etypes.LegacyTxType
+	from := common.HexToAddress(itx.From())
+	to := common.HexToAddress(itx.To)
+	tx.From = from
+	tx.To = &to
 
-func paraseChain33Payload(execer string, payload []byte, blockHash common.Hash, blockNum uint64) *Transaction {
+	tx.TransactionIndex = (*hexutil.Uint64)(&index)
+	amount, err := itx.Amount()
+	if err != nil {
+		log.Error("paraseChain33Tx", "err", err)
+		return nil
+	}
+	bamount := big.NewInt(amount)
+	eamount := bamount.Mul(bamount, big.NewInt(1e10))
+	tx.Value = (*hexutil.Big)(eamount)
+	tx.Input = hexutil.Bytes{0}
+	if strings.HasSuffix(string(itx.Execer), "evm") {
+		var action ctypes.EVMContractAction4Chain33
+		err := ctypes.Decode(itx.GetPayload(), &action)
+		if err != nil {
+			log.Error("paraseChain33Tx", "err", err)
+			return nil
+		}
+		data := (hexutil.Bytes)(action.Para)
+		tx.Input = data
+		caddr := common.HexToAddress(action.ContractAddr)
+		tx.To = &caddr
+		if len(action.Code) != 0 {
+			tx.Input = action.Code
+			tx.To = &common.Address{}
+		}
+	} else if strings.HasSuffix(string(itx.Execer), "coins") {
+		if cfg.IsPara() {
+			var action dtypes.CoinsAction
+			err := ctypes.Decode(itx.GetPayload(), &action)
+			if err != nil {
+				log.Error("paraseChain33Tx", "decode coinsAction err", err)
+				return nil
+			}
+			transfer, ok := action.GetValue().(*dtypes.CoinsAction_Transfer)
+			if ok {
+				to := common.HexToAddress(transfer.Transfer.GetTo())
+				tx.To = &to
+			}
+		}
+	}
+
+	r, s, v, err := makeDERSigToRSV(eipSigner, itx.Signature.GetSignature())
+	if err != nil {
+		log.Error("makeDERSigToRSV", "err", err)
+		return nil
+	}
+
+	tx.V = (*hexutil.Big)(v)
+	tx.R = (*hexutil.Big)(r)
+	tx.S = (*hexutil.Big)(s)
+
+	var nonce = uint64(itx.Nonce)
+	var gas = uint64(itx.GetTxFee())
+	tx.Nonce = (hexutil.Uint64)(nonce)
+	tx.GasPrice = (*hexutil.Big)(big.NewInt(10e9))
+	tx.Gas = (hexutil.Uint64)(gas)
+	tx.BlockNumber = (*hexutil.Big)(big.NewInt(blockNum))
+	return &tx
+}
+func paraseChain33TxPayload(execer string, payload []byte, blockHash common.Hash, blockNum uint64) *Transaction {
 	var note []byte
 	if strings.HasSuffix(execer, "evm") {
 		var evmaction ctypes.EVMContractAction4Chain33
@@ -201,28 +270,32 @@ func paraseChain33Payload(execer string, payload []byte, blockHash common.Hash, 
 	if err == nil {
 		return newRPCTransaction(&etx, blockHash, blockNum, 0, big.NewInt(1e5))
 	}
-
 	return nil
 
 }
 
 //TxsToEthTxs chain33 txs format transfer to eth txs format
-func TxsToEthTxs(blockhash common.Hash, blocknum int64, ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full bool) (txs []interface{}, fee int64, err error) {
-	for _, itx := range ctxs {
+func TxsToEthTxs(blockHash common.Hash, blockNum int64, ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full bool) (txs []interface{}, fee int64, err error) {
+	for index, itx := range ctxs {
 		fee += itx.GetFee()
 		if !full {
-
 			txs = append(txs, common.Bytes2Hex(itx.Hash()))
 			continue
 		}
 		if itx == nil {
 			continue
 		}
-		tx := paraseChain33Payload(string(itx.GetExecer()), itx.GetPayload(), blockhash, uint64(blocknum))
+		tx := paraseChain33TxPayload(string(itx.GetExecer()), itx.GetPayload(), blockHash, uint64(blockNum))
 		//重置交易哈希
 		if tx != nil {
 			tx.Hash = common.BytesToHash(itx.Hash())
 			txs = append(txs, tx)
+		} else {
+
+			tx = paraseChain33Tx(itx, blockHash, blockNum, uint64(index), cfg)
+			if tx != nil {
+				txs = append(txs, tx)
+			}
 		}
 
 	}
@@ -230,15 +303,19 @@ func TxsToEthTxs(blockhash common.Hash, blocknum int64, ctxs []*ctypes.Transacti
 }
 
 //TxDetailsToEthReceipts chain33 txdetails transfer to eth tx receipts
-func TxDetailsToEthReceipts(txdetails *ctypes.TransactionDetails, blockHash common.Hash, cfg *ctypes.Chain33Config) (txs Transactions, receipts []*Receipt, err error) {
-	for _, detail := range txdetails.GetTxs() {
+func TxDetailsToEthReceipts(txDetails *ctypes.TransactionDetails, blockHash common.Hash, cfg *ctypes.Chain33Config) (txs Transactions, receipts []*Receipt, err error) {
+	for index, detail := range txDetails.GetTxs() {
 		if detail.GetTx() == nil {
 			continue
 		}
 
-		tx := paraseChain33Payload(string(detail.GetTx().GetExecer()), detail.GetTx().GetPayload(), blockHash, uint64(detail.Height))
+		tx := paraseChain33TxPayload(string(detail.GetTx().GetExecer()), detail.GetTx().GetPayload(), blockHash, uint64(detail.Height))
 		if tx == nil {
-			continue
+			tx = paraseChain33Tx(detail.GetTx(), blockHash, detail.GetHeight(), uint64(index), cfg)
+			if tx == nil {
+				continue
+			}
+
 		}
 
 		tx.Hash = common.BytesToHash(detail.GetTx().Hash())
