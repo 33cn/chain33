@@ -64,8 +64,6 @@ type BlockChain struct {
 	//记录本节点已经同步的block高度,用于节点追赶active链,处理节点分叉不同步的场景
 	synBlockHeight int64
 
-	forkPointChan chan int64
-
 	//记录peer的最新block高度,用于节点追赶active链
 	peerList PeerInfoList
 	recvwg   *sync.WaitGroup
@@ -150,6 +148,7 @@ type BlockChain struct {
 
 	// 是否正在下载chunk
 	chunkDownloading int32
+	forkPointChan    chan int64
 }
 
 //New new
