@@ -43,7 +43,7 @@ func init() {
 	q.SetConfig(cfg)
 
 	ethCli = &ethHandler{}
-	ethCli.chainID = 3999
+	ethCli.evmChainID = 3999
 	ethCli.cfg = cfg
 	ethCli.cli.Init(q.Client(), qapi)
 
@@ -181,7 +181,7 @@ func testEthAPIGetBlockByNumber(t *testing.T, resp *ctypes.BlockDetails) {
 }
 
 func TestEthHandler_ChainId(t *testing.T) {
-	ethCli.chainID = 0x21
+	ethCli.evmChainID = 0x21
 	id, err := ethCli.ChainId()
 	assert.Nil(t, err)
 	assert.Equal(t, id.String(), "0x21")
@@ -449,7 +449,7 @@ func TestEthHandler_SendRawTransaction(t *testing.T) {
 	txHash := chain33Tx.Hash()
 	t.Log("chain33Tx hash", common.Bytes2Hex(txHash))
 	assert.Equal(t, common.Bytes2Hex(txHash), "555560f05a32499f96e0d033d1cfe582b9e09d974cc8ee3a005ea5a5c0164fc9")
-	t.Log("checkchainID", ntx.ChainId(), "support chainid", ethCli.chainID)
+	t.Log("checkchainID", ntx.ChainId(), "support chainid", ethCli.evmChainID)
 	chain33crypto.Init(ethCli.cfg.GetModuleConfig().Crypto, ethCli.cfg.GetSubConfig().Crypto)
 	ok := chain33Tx.CheckSign(-1)
 	require.True(t, ok)
