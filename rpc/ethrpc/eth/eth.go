@@ -10,6 +10,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
+
 	"github.com/33cn/chain33/rpc/jsonclient"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -35,6 +37,7 @@ type ethHandler struct {
 	cli     rpcclient.ChannelClient
 	cfg     *ctypes.Chain33Config
 	grpcCli ctypes.Chain33Client
+	chainID int64
 }
 
 var (
@@ -46,10 +49,16 @@ func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 	e := &ethHandler{}
 	e.cli.Init(c, api)
 	e.cfg = cfg
+	var id struct {
+		EvmChainID int64 `json:"evmChainID,omitempty"`
+	}
+	ctypes.MustDecode(cfg.GetSubConfig().Crypto[secp256k1eth.Name], &id)
+	e.chainID = id.EvmChainID
 	grpcBindAddr := e.cfg.GetModuleConfig().RPC.GrpcBindAddr
 	_, port, _ := net.SplitHostPort(grpcBindAddr)
 	conn, err := grpc.Dial(fmt.Sprintf("localhost:%v", port), grpc.WithInsecure())
 	if err != nil {
+		log.Error("NewEthAPI", "dial local grpc server err:", err)
 		return nil
 	}
 	e.grpcCli = ctypes.NewChain33Client(conn)
@@ -63,10 +72,6 @@ func (e *ethHandler) GetBalance(address string, tag *string) (hexutil.Big, error
 	var balance hexutil.Big
 	req.AssetSymbol = e.cli.GetConfig().GetCoinSymbol()
 	req.Execer = e.cli.GetConfig().GetCoinExec()
-	//check address type
-	if common.IsHexAddress(address) {
-		address = common.HexToAddress(address).String()
-	}
 	req.Addresses = append(req.GetAddresses(), address)
 	accounts, err := e.cli.GetBalance(&req)
 	if err != nil {
@@ -80,7 +85,8 @@ func (e *ethHandler) GetBalance(address string, tag *string) (hexutil.Big, error
 
 //nolint
 func (e *ethHandler) ChainId() (hexutil.Big, error) {
-	return hexutil.Big(*new(big.Int).SetInt64(int64(e.cfg.GetChainID()))), nil
+	bigID := big.NewInt(e.chainID)
+	return hexutil.Big(*bigID), nil
 }
 
 //BlockNumber eth_blockNumber 获取区块高度
@@ -88,6 +94,7 @@ func (e *ethHandler) BlockNumber() (hexutil.Uint64, error) {
 	log.Debug("eth_blockNumber")
 	header, err := e.cli.GetLastHeader()
 	if err != nil {
+		log.Error("eth_blockNumber", "err", err)
 		return 0, err
 	}
 
@@ -149,11 +156,6 @@ func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transactio
 	if err != nil {
 		return nil, err
 	}
-
-	txs, _, err := types.TxDetailsToEthTx(txdetails, e.cfg)
-	if err != nil {
-		return nil, err
-	}
 	var blockHash []byte
 	if len(txdetails.GetTxs()) != 0 {
 		blockNum := txdetails.GetTxs()[0].Height
@@ -161,10 +163,15 @@ func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transactio
 		if err == nil {
 			blockHash = hashReply.GetHash()
 		}
-	}
-	if len(txs) != 0 {
-		txs[0].BlockHash = common.BytesToHash(blockHash)
-		return txs[0], nil
+		txs, _, err := types.TxDetailsToEthReceipts(txdetails, common.BytesToHash(blockHash), e.cfg)
+		if err != nil {
+			return nil, err
+		}
+		if len(txs) != 0 {
+			hash := common.BytesToHash(blockHash)
+			txs[0].BlockHash = &hash
+			return txs[0], nil
+		}
 	}
 
 	return nil, errors.New("transaction not exist")
@@ -190,7 +197,7 @@ func (e *ethHandler) GetTransactionReceipt(txhash common.Hash) (*types.Receipt, 
 		blockHash = hashReply.GetHash()
 	}
 
-	_, receipts, err := types.TxDetailsToEthTx(txdetails, e.cfg)
+	_, receipts, err := types.TxDetailsToEthReceipts(txdetails, common.BytesToHash(blockHash), e.cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +316,10 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	if ntx.ChainId().Int64() != e.chainID {
+		log.Error("eth_sendRawTransaction", "this.chainID", e.chainID, "etx.ChainID", ntx.ChainId())
+		return nil, errors.New("chainID no support")
+	}
 	signer := etypes.NewLondonSigner(ntx.ChainId())
 	txSha3 := signer.Hash(ntx)
 	v, r, s := ntx.RawSignatureValues()
@@ -317,8 +327,12 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	if err != nil {
 		return nil, err
 	}
-	sig := append(r.Bytes()[:], append(s.Bytes()[:], cv)...)
-	//log.Info("SendRawTransaction", "RawSignatureValues v:", v, "to:", ntx.To(), "type", ntx.Type(), "sig", common.Bytes2Hex(sig))
+	//sig := append(r.Bytes()[:], append(s.Bytes()[:], cv)...)
+	sig := make([]byte, 65)
+	copy(sig[32-len(r.Bytes()):32], r.Bytes())
+	copy(sig[64-len(s.Bytes()):64], s.Bytes())
+	sig[64] = cv
+
 	if !ethcrypto.ValidateSignatureValues(cv, r, s, false) {
 		log.Error("etgh_SendRawTransaction", "ValidateSignatureValues", false, "RawSignatureValues v:", v, "to:", ntx.To(), "type", ntx.Type(), "sig", common.Bytes2Hex(sig))
 		return nil, errors.New("wrong signature")
@@ -345,9 +359,6 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 func (e *ethHandler) Sign(address string, digestHash *hexutil.Bytes) (string, error) {
 	//导出私钥
 	log.Debug("Sign", "eth_sign,hash", digestHash, "addr", address)
-	if common.IsHexAddress(address) {
-		address = common.HexToAddress(address).String()
-	}
 	reply, err := e.cli.ExecWalletFunc("wallet", "DumpPrivkey", &ctypes.ReqString{Data: address})
 	if err != nil {
 		log.Error("SignWalletRecoverTx", "execWalletFunc err", err)
@@ -475,9 +486,19 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	if callMsg.To == "" {
 		callMsg.To = address.ExecAddress(exec)
 	}
+
+	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
+		TxCount: 1,
+		TxSize:  int32(32 + len(*callMsg.Data)),
+	})
+	fee := properFee.GetProperFee()
 	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
-		return 1e5, nil
+		if fee < 1e5 {
+			fee = 1e5
+		}
+		return hexutil.Uint64(fee), nil
 	}
+
 	var amount uint64
 	if callMsg.Value != nil {
 		amount = callMsg.Value.ToInt().Uint64()
@@ -519,9 +540,10 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	}
 
 	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
-	if bigGas.Uint64() < 1e5 {
-		bigGas = big.NewInt(1e5)
+	if bigGas.Uint64() < uint64(fee) {
+		bigGas = big.NewInt(fee)
 	}
+
 	//eth交易数据要存放在chain33 tx note 中，做2倍gas 处理
 	return hexutil.Uint64(bigGas.Uint64() * 2), err
 
@@ -564,8 +586,8 @@ func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
 					log.Error("NewHeads read", "err", err)
 					return
 				}
-				ehead, _ := types.BlockHeaderToEthHeader(msg.GetHeaderSeqs().GetSeqs()[0].GetHeader())
-				if err := notifier.Notify(subscription.ID, ehead); err != nil {
+				eheader, _ := types.BlockHeaderToEthHeader(msg.GetHeaderSeqs().GetSeqs()[0].GetHeader())
+				if err := notifier.Notify(subscription.ID, eheader); err != nil {
 					log.Error("notify", "err", err)
 					return
 
@@ -590,14 +612,10 @@ func (e *ethHandler) Logs(ctx context.Context, options *types.SubLogs) (*rpc.Sub
 		return nil, rpc.ErrNotificationsUnsupported
 	}
 	subscription := notifier.CreateSubscription()
+	addrObj := new(address.Address)
+	addrObj.SetBytes(common.FromHex(options.Address))
+	options.Address = addrObj.String()
 
-	if common.IsHexAddress(options.Address) {
-		options.Address = common.HexToAddress(options.Address).String()
-		//临时处理
-		addrObj := new(address.Address)
-		addrObj.SetBytes(common.FromHex(options.Address))
-		options.Address = addrObj.String()
-	}
 	//通过Grpc 客户端
 	var in ctypes.ReqSubscribe
 	in.Name = string(subscription.ID)
@@ -647,7 +665,7 @@ func (e *ethHandler) Logs(ctx context.Context, options *types.SubLogs) (*rpc.Sub
 //method: eth_hashrate
 func (e *ethHandler) Hashrate() (hexutil.Uint64, error) {
 	log.Debug("eth_hashrate", "eth_hashrate ", "")
-	header, err := e.grpcCli.GetLastHeader(context.Background(), &ctypes.ReqNil{})
+	header, err := e.cli.GetLastHeader()
 	if err != nil {
 		return 0, err
 	}
@@ -704,21 +722,21 @@ func (e *ethHandler) GetCode(addr *common.Address, tag string) (*hexutil.Bytes, 
 	p.Payload = []byte(fmt.Sprintf(`{"addr":"%v"}`, addr.String()))
 	queryparam, err := execty.CreateQuery(p.FuncName, p.Payload)
 	if err != nil {
-		log.Info("eth_GetCode", "CreateQuery err", err)
+		log.Error("eth_GetCode", "CreateQuery err", err)
 		return nil, err
 	}
 	resp, err := e.cli.Query(p.Execer, p.FuncName, queryparam)
 	if err != nil {
-		log.Info("eth_GetCode", "Query err", err)
+		log.Error("eth_GetCode", "Query err", err)
 		return (*hexutil.Bytes)(&code), nil
 	}
 
 	result, err := execty.QueryToJSON(p.FuncName, resp)
 	if err != nil {
-		log.Info("eth_GetCode", "QueryToJSON err", err)
+		log.Error("eth_GetCode", "QueryToJSON err", err)
 		return nil, err
 	}
-	log.Info("GetCode", "resp", string(result))
+	log.Debug("GetCode", "resp", string(result))
 	var ret struct {
 		Creator  string         ` json:"creator,omitempty"`
 		Name     string         ` json:"name,omitempty"`

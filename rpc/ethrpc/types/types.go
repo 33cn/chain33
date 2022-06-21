@@ -27,47 +27,27 @@ type Header struct {
 	Hash common.Hash `json:"hash"`
 }
 
-//type Transaction struct {
-//	BlockHash        common.Hash   `json:"blockHash,omitempty"`
-//	BlockNumber      hexutil.Big   `json:"blockNumber,omitempty"`
-//	From             string        `json:"from,omitempty"`
-//	To               string        `json:"to,omitempty"`
-//	Hash             string        `json:"hash,omitempty"`
-//	Data             hexutil.Bytes `json:"input,omitempty"`
-//	TransactionIndex hexutil.Uint  `json:"transactionIndex,omitempty"`
-//	Value            hexutil.Big   `json:"value,omitempty"`
-//	Type             string        `json:"type,omitempty"`
-//	V                hexutil.Bytes `json:"v,omitempty"`
-//	R                hexutil.Bytes `json:"r,omitempty"`
-//	S                hexutil.Bytes `json:"s,omitempty"`
-//}
-
-// Transaction LegacyTx is the transaction data of regular Ethereum transactions.
+// Transaction represents a transaction that will serialize to the RPC representation of a transaction
 type Transaction struct {
-	Type hexutil.Uint64 `json:"type"`
-
-	// Common transaction fields:
-	Nonce                *hexutil.Uint64 `json:"nonce"`
-	GasPrice             *hexutil.Big    `json:"gasPrice"`
-	MaxPriorityFeePerGas *hexutil.Big    `json:"maxPriorityFeePerGas"`
-	MaxFeePerGas         *hexutil.Big    `json:"maxFeePerGas"`
-	Gas                  *hexutil.Uint64 `json:"gas"`
-	Value                *hexutil.Big    `json:"value"`
-	Input                *hexutil.Bytes  `json:"input"`
-	V                    *hexutil.Big    `json:"v"`
-	R                    *hexutil.Big    `json:"r"`
-	S                    *hexutil.Big    `json:"s"`
-	To                   *common.Address `json:"to"`
-	From                 *common.Address `json:"from"`
-	// Access list transaction fields:
-	ChainID *hexutil.Big `json:"chainId,omitempty"`
-	//AccessList *AccessList  `json:"accessList,omitempty"`
-
-	// Only used for encoding:
-	Hash common.Hash `json:"hash"`
-
-	BlockNumber *hexutil.Big `json:"blockNumber,omitempty"`
-	BlockHash   common.Hash  `json:"blockHash,omitempty"`
+	BlockHash        *common.Hash      `json:"blockHash"`
+	BlockNumber      *hexutil.Big      `json:"blockNumber"`
+	From             common.Address    `json:"from"`
+	Gas              hexutil.Uint64    `json:"gas"`
+	GasPrice         *hexutil.Big      `json:"gasPrice"`
+	GasFeeCap        *hexutil.Big      `json:"maxFeePerGas,omitempty"`
+	GasTipCap        *hexutil.Big      `json:"maxPriorityFeePerGas,omitempty"`
+	Hash             common.Hash       `json:"hash"`
+	Input            hexutil.Bytes     `json:"input"`
+	Nonce            hexutil.Uint64    `json:"nonce"`
+	To               *common.Address   `json:"to"`
+	TransactionIndex *hexutil.Uint64   `json:"transactionIndex"`
+	Value            *hexutil.Big      `json:"value"`
+	Type             hexutil.Uint64    `json:"type"`
+	Accesses         *types.AccessList `json:"accessList,omitempty"`
+	ChainID          *hexutil.Big      `json:"chainId,omitempty"`
+	V                *hexutil.Big      `json:"v"`
+	R                *hexutil.Big      `json:"r"`
+	S                *hexutil.Big      `json:"s"`
 }
 
 //Transactions txs types
@@ -77,7 +57,6 @@ type Transactions []*Transaction
 type Block struct {
 	*Header
 	//Uncles []*Header `json:"uncles"`
-	//TODO 保留ETH的交易结构类型还是替换为chain33的Transaction
 	Transactions interface{} `json:"transactions"`
 	Hash         string      `json:"hash"`
 }
@@ -120,7 +99,7 @@ type EvmLog struct {
 	BlockNumber *hexutil.Uint64 `json:"blockNumber,omitempty"`
 	TxHash      *common.Hash    `json:"transactionHash,omitempty"`
 	TxIndex     hexutil.Uint    `json:"transactionIndex,omitempty"`
-	BlockHash   common.Hash     `json:"blockHash,omitempty"`
+	BlockHash   *common.Hash    `json:"blockHash,omitempty"`
 	Index       hexutil.Uint    `json:"logIndex,omitempty"`
 	Removed     bool            `json:"removed,omitempty"`
 }
@@ -178,12 +157,4 @@ type EvmLogInfo struct {
 	Topics           interface{} `json:"topics,omitempty"`
 	TransactionHash  string      `json:"transactionHash,omitempty"`
 	TransactionIndex string      `json:"transactionIndex,omitempty"`
-}
-
-//HexRawTx return rawhextx and hash256
-type HexRawTx struct {
-	RawTx hexutil.Bytes `json:"rawTx,omitempty"`
-	//sha3Hash
-	Hash      hexutil.Bytes `json:"sha256Hash,omitempty"`
-	Signature hexutil.Bytes `json:"signature,omitempty"`
 }

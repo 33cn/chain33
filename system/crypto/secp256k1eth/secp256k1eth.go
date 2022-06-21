@@ -6,8 +6,11 @@ package secp256k1eth
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
+
+	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
@@ -24,6 +27,8 @@ import (
 
 const privKeyBytesLen = 32
 const pubkeyBytesLen = 64 + 1
+
+var chainID int64
 
 //PrivKeySecp256k1Eth PrivKey
 type PrivKeySecp256k1Eth [32]byte
@@ -180,18 +185,23 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 	var hash []byte
 	action, err := types.DecodeTxAction(msg)
 	if err == nil && len(action.Note) == 0 || err != nil {
-		//自组装的chain33格式交易，sha3哈希
+		//chain33格式交易，sha3哈希
 		hash = common.Sha3(msg)
-	} else {
+	} else { //解析ETH交易数据
 		var etx = new(etypes.Transaction)
 		err := etx.UnmarshalBinary(action.Note)
 		if err != nil {
 			return false
 		}
+		//chainID 可配置
+		if etx.ChainId().Int64() != chainID {
+			fmt.Println("local ChainID", chainID, "etx.ChainID", etx.ChainId())
+			return false
+		}
 		signer := etypes.NewLondonSigner(etx.ChainId())
 		hash = signer.Hash(etx).Bytes() //metamask,eth 兼容交易，取出eth 交易格式下的哈希
 		//check nonce 防止重放攻击
-		if action.Nonce != int64(etx.Nonce()) {
+		if action.Nonce != int64(etx.Nonce()+binary.LittleEndian.Uint64(etx.Hash().Bytes()[:8])) {
 			return false
 		}
 		//checkout amount
@@ -239,6 +249,18 @@ func (pubKey PubKeySecp256k1Eth) Equals(other crypto.PubKey) bool {
 
 }
 
+func initEvmIDFun(sub []byte) {
+	var ID struct {
+		EvmChainID int64 `json:"evmChainID,omitempty"`
+	}
+	utils.MustDecode(sub, &ID)
+	chainID = ID.EvmChainID
+}
+
+func GetEvmID() int64 {
+	return chainID
+}
+
 //const
 const (
 	Name = "secp256k1eth"
@@ -246,5 +268,5 @@ const (
 )
 
 func init() {
-	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID))
+	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID), crypto.WithRegOptionInitFunc(initEvmIDFun))
 }

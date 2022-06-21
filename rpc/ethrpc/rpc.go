@@ -108,6 +108,7 @@ func initRPCHandler(apis rpcAPIs, cfg *ctypes.Chain33Config, c queue.Client, api
 func NewHTTPServer(c queue.Client, api client.QueueProtocolAPI) ServerAPI {
 	var subcfg subConfig
 	ctypes.MustDecode(c.GetConfig().GetSubConfig().RPC[subRpctype], &subcfg)
+
 	log.Debug("NewHttpServer", "subcfg", subcfg)
 	return &httpServer{
 		timeouts: rpc.DefaultHTTPTimeouts,

@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/33cn/chain33/common/log/log15"
+
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/queue"
@@ -12,6 +14,10 @@ import (
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+)
+
+var (
+	log = log15.New("module", "ethrpc_persional")
 )
 
 type personalHandler struct {
@@ -32,6 +38,7 @@ func (p *personalHandler) ListAccounts() ([]string, error) {
 	req := &ctypes.ReqAccountList{WithoutBalance: true}
 	msg, err := p.cli.ExecWalletFunc("wallet", "WalletGetAccountList", req)
 	if err != nil {
+		log.Error("WalletGetAccountList", "err", err)
 		return nil, err
 	}
 	accountsList := msg.(*ctypes.WalletAccounts)
@@ -48,6 +55,7 @@ func (p *personalHandler) NewAccount(label string) (string, error) {
 	req := &ctypes.ReqNewAccount{Label: label, AddressID: 2}
 	resp, err := p.cli.ExecWalletFunc("wallet", "NewAccount", req)
 	if err != nil {
+		log.Error("personal_newaccount", "err", err)
 		return "", err
 	}
 	account := resp.(*ctypes.WalletAccount)
@@ -70,6 +78,7 @@ func (p *personalHandler) ImportRawKey(keydata, label string) (string, error) {
 	req := &ctypes.ReqWalletImportPrivkey{Privkey: keydata, Label: label}
 	resp, err := p.cli.ExecWalletFunc("wallet", "WalletImportPrivkey", req)
 	if err != nil {
+		log.Error("personal_importRawKey", "err", err)
 		return "", err
 	}
 	account := resp.(*ctypes.WalletAccount)
@@ -89,6 +98,7 @@ func (p *personalHandler) Sign(data *hexutil.Bytes, address, passwd string) (str
 	//导出私钥
 	reply, err := p.cli.ExecWalletFunc("wallet", "DumpPrivkey", &ctypes.ReqString{Data: address})
 	if err != nil {
+		log.Error("personal_sign", "err", err)
 		return "", err
 	}
 	key = reply.(*ctypes.ReplyString).GetData()

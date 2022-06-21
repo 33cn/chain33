@@ -2,78 +2,69 @@ syntax = "proto3";
 
 package types;
 
-option go_package="github.com/33cn/chain33/system/crypto/secp256k1eth/types";
+option  go_package = "github.com/33cn/chain33/system/crypto/secp256k1eth/types";
 message AssetsTransferToExecChain33 {
-string cointoken = 1;
-int64  amount    = 2;
-bytes  note      = 3;
-string execName  = 4;
-string to        = 5;
+    string cointoken = 1;
+    int64  amount    = 2;
+    bytes  note      = 3;
+    string execName  = 4;
+    string to        = 5;
 }
 
 message AssetsTransferChain33 {
-string cointoken = 1;
-int64  amount    = 2;
-bytes  note      = 3;
-string to        = 4;
+    string cointoken = 1;
+    int64  amount    = 2;
+    bytes  note      = 3;
+    string to        = 4;
 }
-
 
 message CoinsActionChain33 {
-oneof value {
-AssetsTransferChain33       transfer       = 1;
-AssetsTransferToExecChain33 transferToExec = 2;
+    oneof value {
+        AssetsTransferChain33       transfer       = 1;
+        AssetsTransferToExecChain33 transferToExec = 2;
+    }
+    int32 ty = 3;
 }
-int32 ty = 3;
-}
-
 
 // 创建/调用合约的请求结构
 message EVMAction4Chain33 {
-// 转账金额
-uint64 amount = 1;
-// 消耗限制，默认为Transaction.Fee
-uint64 gasLimit = 2;
-// gas价格，默认为1
-uint32 gasPrice = 3;
-// 合约数据
-bytes code = 4;
-//交易参数
-bytes para = 5;
-// 合约别名，方便识别
-string alias = 6;
-// 交易备注
-string note = 7;
-// 调用合约地址
-string contractAddr = 8;
+    // 转账金额
+    uint64 amount = 1;
+    // 消耗限制，默认为Transaction.Fee
+    uint64 gasLimit = 2;
+    // gas价格，默认为1
+    uint32 gasPrice = 3;
+    // 合约数据
+    bytes code = 4;
+    //交易参数
+    bytes para = 5;
+    // 合约别名，方便识别
+    string alias = 6;
+    // 交易备注
+    string note = 7;
+    // 调用合约地址
+    string contractAddr = 8;
 }
-
 
 message TransactionChain33 {
-bytes     execer    = 1;
-bytes     payload   = 2;
-SignatureChain33 signature = 3;
-int64     fee       = 4;
-int64     expire    = 5;
-//随机ID，可以防止payload 相同的时候，交易重复
-int64 nonce = 6;
-//对方地址，如果没有对方地址，可以为空
-string to         = 7;
-int32  groupCount = 8;
-bytes  header     = 9;
-bytes  next       = 10;
-int32  chainID    = 11;
+    bytes            execer    = 1;
+    bytes            payload   = 2;
+    SignatureChain33 signature = 3;
+    int64            fee       = 4;
+    int64            expire    = 5;
+    //随机ID，可以防止payload 相同的时候，交易重复
+    int64 nonce = 6;
+    //对方地址，如果没有对方地址，可以为空
+    string to         = 7;
+    int32  groupCount = 8;
+    bytes  header     = 9;
+    bytes  next       = 10;
+    int32  chainID    = 11;
 }
-
 
 message SignatureChain33 {
-int32 ty     = 1;
-bytes pubkey = 2;
-//当ty为5时，格式应该用RingSignature去解析
-bytes signature = 3;
+    int32 ty     = 1;
+    bytes pubkey = 2;
+    //当ty为5时，格式应该用RingSignature去解析
+    bytes signature = 3;
 }
-
-
-
-
-
