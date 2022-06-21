@@ -58,6 +58,8 @@ func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 		log.Error("NewEthAPI", "dial local grpc server err:", err)
 		return nil
 	}
+	//TODO 改进为内部推送
+	//推送用途
 	e.grpcCli = ctypes.NewChain33Client(conn)
 
 	return e
@@ -610,9 +612,6 @@ func (e *ethHandler) Logs(ctx context.Context, options *types.SubLogs) (*rpc.Sub
 		return nil, rpc.ErrNotificationsUnsupported
 	}
 	subscription := notifier.CreateSubscription()
-	addrObj := new(address.Address)
-	addrObj.SetBytes(common.FromHex(options.Address))
-	options.Address = addrObj.String()
 
 	//通过Grpc 客户端
 	var in ctypes.ReqSubscribe
