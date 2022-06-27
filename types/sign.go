@@ -19,6 +19,10 @@ const (
 	AddressIDOffset = 12
 )
 
+func IsEqualSignID(txChanID, signID int32) {
+
+}
+
 // EncodeSignID encode sign id
 func EncodeSignID(cryptoID, addressID int32) int32 {
 	if !address.IsValidAddressID(addressID) {

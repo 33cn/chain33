@@ -17,6 +17,10 @@ EventTransfer -> 转移资产
 // nofee transaction will not pack into block
 
 import (
+	"strings"
+
+	"github.com/33cn/chain33/common/crypto"
+
 	"github.com/33cn/chain33/common/log"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
@@ -26,8 +30,9 @@ var clog = log.New("module", "execs.coins")
 var driverName = "coins"
 
 type subConfig struct {
-	DisableAddrReceiver  bool `json:"disableAddrReceiver"`
-	DisableCheckTxAmount bool `json:"disableCheckTxAmount"`
+	DisableAddrReceiver  bool     `json:"disableAddrReceiver"`
+	DisableCheckTxAmount bool     `json:"disableCheckTxAmount"`
+	FriendExecer         []string `json:"friendExecer,omitempty"`
 }
 
 var subCfg subConfig
@@ -92,6 +97,23 @@ func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
 
 // IsFriend coins contract  the mining transaction that runs the ticket contract
 func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
+	//从配置文件读取允许具体的执行器修改的本地合约的状态
+	//fmt.Println("coins.IsFriend,myexec------------->", string(myexec), "writekey", string(writekey))
+	if crypto.IsEthSignID(othertx.GetSignature().GetTy()) {
+		cfg := c.GetAPI().GetConfig()
+		for _, friendExec := range subCfg.FriendExecer { //evm
+			//myexec=evm 这种情况出现在evm 交易调用coins 转账的情况 ===> msg.Value!=0 && msg.Data!=nil && msg.To!=nil
+			if cfg.ExecName(friendExec) == string(othertx.GetExecer()) {
+				//此时
+				if "coins" == string(myexec) && strings.HasPrefix(string(writekey), "mavl-coins-") {
+					//writekey: mavl-coins-para-0x93f200342d4154a0e025bd3a12128e8eb73b43a5
+					return true
+				}
+			}
+		}
+		//fmt.Println("coins.IsFriend,no friend", string(othertx.GetExecer()))
+	}
+
 	//step1 先判定自己合约的权限
 	if !c.AllowIsSame(myexec) {
 		return false

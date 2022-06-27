@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -240,6 +239,32 @@ func paraseChain33Tx(itx *ctypes.Transaction, blockHash common.Hash, blockNum in
 	tx.Gas = (hexutil.Uint64)(gas)
 	tx.BlockNumber = (*hexutil.Big)(big.NewInt(blockNum))
 	return &tx
+}
+
+func ParaseChain33TxNote(payload []byte, execer string) []byte {
+	var note []byte
+	if strings.HasSuffix(execer, "evm") {
+		var evmaction ctypes.EVMContractAction4Chain33
+		err := ctypes.Decode(payload, &evmaction)
+		if err == nil {
+			if evmaction.GetNote() != "" {
+				note = common.FromHex(evmaction.GetNote())
+			} else {
+				return nil
+			}
+		}
+
+	} else {
+		var coinsaction dtypes.CoinsAction
+		err := ctypes.Decode(payload, &coinsaction)
+		if err == nil {
+			transfer, ok := coinsaction.GetValue().(*dtypes.CoinsAction_Transfer)
+			if ok && len(transfer.Transfer.GetNote()) != 0 {
+				note = transfer.Transfer.GetNote()
+			}
+		}
+	}
+	return note
 }
 func paraseChain33TxPayload(execer string, payload []byte, blockHash common.Hash, blockNum uint64) *Transaction {
 	var note []byte
@@ -532,6 +557,7 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 		To:      to,
 		//会导致重放攻击
 		//Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		//TODO 全部走Evm 通道
 		Execer:  []byte(cfg.ExecName(exec)),
 		Payload: payload,
 		Fee:     int64(gas),
@@ -541,8 +567,8 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 			Signature: sig,
 		},
 	}
-
-	chain33Tx.Nonce = int64(etx.Nonce() + binary.LittleEndian.Uint64(etx.Hash().Bytes()[:8]))
+	chain33Tx.Nonce = int64(etx.Nonce())
+	//chain33Tx.Nonce = int64(etx.Nonce() + binary.LittleEndian.Uint64(etx.Hash().Bytes()[:8]))
 	if cfg.IsPara() {
 		chain33Tx.To = address.ExecAddress(string(chain33Tx.Execer))
 	}

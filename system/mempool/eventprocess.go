@@ -25,6 +25,7 @@ func (mem *Mempool) reply() {
 }
 
 func (mem *Mempool) pipeLine() <-chan *queue.Message {
+
 	//check sign
 	step1 := func(data *queue.Message) *queue.Message {
 		if data.Err() != nil {

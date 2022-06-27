@@ -6,9 +6,9 @@ package secp256k1eth
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
@@ -185,7 +185,7 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 	var hash []byte
 	action, err := types.DecodeTxAction(msg)
 	if err == nil && len(action.Note) == 0 || err != nil {
-		//chain33格式交易，sha3哈希
+		//chain33格式交易，sha3哈希 eth 签名
 		hash = common.Sha3(msg)
 	} else { //解析ETH交易数据
 		var etx = new(etypes.Transaction)
@@ -201,7 +201,7 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 		signer := etypes.NewLondonSigner(etx.ChainId())
 		hash = signer.Hash(etx).Bytes() //metamask,eth 兼容交易，取出eth 交易格式下的哈希
 		//check nonce 防止重放攻击
-		if action.Nonce != int64(etx.Nonce()+binary.LittleEndian.Uint64(etx.Hash().Bytes()[:8])) {
+		if action.Nonce != int64(etx.Nonce()) {
 			return false
 		}
 		//checkout amount
@@ -214,20 +214,20 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 			return false
 		}
 		//check to address
-		if !bytes.Equal(ecommon.FromHex(action.To), etx.To().Bytes()) {
+		if etx.To() != nil && !bytes.Equal(ecommon.FromHex(action.To), etx.To().Bytes()) {
 			return false
 		}
 	}
 
-	sigBs := sig.Bytes()
-	recoverPub, err := ethcrypto.Ecrecover(hash, sigBs)
+	sigBytes := sig.Bytes()
+	recoverPub, err := ethcrypto.Ecrecover(hash, sigBytes)
 	if err != nil {
 		return false
 	}
 	if !bytes.Equal(recoverPub, pubKey[:]) {
 		return false
 	}
-	return ethcrypto.VerifySignature(pubKey[:], hash, sigBs[:64])
+	return ethcrypto.VerifySignature(pubKey[:], hash, sigBytes[:64])
 }
 
 func (pubKey PubKeySecp256k1Eth) String() string {
@@ -260,6 +260,13 @@ func initEvmIDFun(sub []byte) {
 //GetEvmChainID return evm chainID
 func GetEvmChainID() int64 {
 	return chainID
+}
+
+//CaculCoinsEvmAccountKey 兼容eth 账户的nonce 的key
+func CaculCoinsEvmAccountKey(addr string) []byte {
+	prefix := "mavl-" + "evm" + "-noncestate: " + strings.ToLower(addr)
+	return []byte(prefix)
+
 }
 
 //const

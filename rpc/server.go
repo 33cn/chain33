@@ -6,13 +6,17 @@ package rpc
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
 	"net/rpc"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	rpctypes "github.com/33cn/chain33/rpc/types"
 
 	rclient "github.com/33cn/chain33/rpc/client"
 	"github.com/33cn/chain33/rpc/ethrpc"
@@ -312,6 +316,7 @@ func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServe
 // RPC a type object
 type RPC struct {
 	cfg    *types.RPC
+	allCfg *types.Chain33Config
 	gapi   *Grpcserver
 	japi   *JSONRPCServer
 	eapi   ethrpc.ServerAPI
@@ -321,13 +326,13 @@ type RPC struct {
 }
 
 // InitCfg  interfaces
-func InitCfg(cfg *types.RPC) {
-	rpcCfg = cfg
-	InitIPWhitelist(cfg)
-	InitJrpcFuncWhitelist(cfg)
-	InitGrpcFuncWhitelist(cfg)
-	InitJrpcFuncBlacklist(cfg)
-	InitGrpcFuncBlacklist(cfg)
+func InitCfg(rcfg *types.RPC) {
+	rpcCfg = rcfg
+	InitIPWhitelist(rcfg)
+	InitJrpcFuncWhitelist(rcfg)
+	InitGrpcFuncWhitelist(rcfg)
+	InitJrpcFuncBlacklist(rcfg)
+	InitGrpcFuncBlacklist(rcfg)
 	InitFilterPrintFuncBlacklist()
 }
 
@@ -338,7 +343,7 @@ func New(cfg *types.Chain33Config) *RPC {
 	if mcfg.EnableTrace {
 		grpc.EnableTracing = true
 	}
-	return &RPC{cfg: mcfg}
+	return &RPC{cfg: mcfg, allCfg: cfg}
 }
 
 // SetAPI set api of rpc
@@ -384,27 +389,103 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 func (r *RPC) handleSysEvent() {
 	r.cli.Sub("rpc")
 	for msg := range r.cli.Recv() {
-		topicInfo := r.gapi.grpc.hashTopic(msg.GetData().(*types.PushData).GetName())
-		if topicInfo != nil {
-			go func(rmsg *queue.Message) {
-				ticker := time.NewTicker(time.Millisecond * 200)
-				defer ticker.Stop()
-				for ch := range topicInfo.subChan {
-					select {
-					case <-ticker.C:
-						log.Error("handleSysEvent", "ticker timeout", rmsg.GetData().(*types.PushData).GetName())
-					case ch <- rmsg:
-						rmsg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
 
+		switch msg.Ty {
+
+		case types.EventGetEvmNonce:
+			addr := msg.GetData().(*types.ReqEvmAccountNonce)
+			//var subcfg struct {
+			//	EnableTls bool   `json:"enableTls,omitempty"`
+			//	HTTPAddr  string `json:"httpAddr,omitempty"`
+			//}
+			//types.MustDecode(r.allCfg.GetSubConfig().RPC["eth"], &subcfg)
+			//var httpstr = "http://"
+			//if subcfg.EnableTls {
+			//	httpstr = "https://"
+			//}
+			////_, port, err := net.SplitHostPort(subcfg.HTTPAddr)
+			//rpcLaddr := fmt.Sprintf("%vlocalhost:%v", httpstr, "8546")
+			//log.Info("handlerSysEvent", "rpcaddr", rpcLaddr)
+			//c, err := ethclient.Dial(rpcLaddr)
+			//if err != nil {
+			//	log.Error("handleSysEventttttttttt", "err", err)
+			//	//continue
+			//}
+			//
+			//cnonce, err := c.NonceAt(context.Background(), common.HexToAddress(addr.GetAddr()), nil)
+			//if err != nil {
+			//	log.Error("handleSysEventttttttttt", "NonceAt err", err)
+			//	//continue
+			//}
+
+			log.Info("handleSysEvent", "recv requst EventGetEvmNonce", types.EventGetEvmNonce)
+
+			exec := r.allCfg.ExecName("evm")
+			execty := types.LoadExecutorType(exec)
+			if execty == nil {
+				msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.Reply{IsOk: false}))
+				continue
+			}
+
+			var param rpctypes.Query4Jrpc
+			param.FuncName = "GetNonce"
+			param.Execer = exec
+			param.Payload = []byte(fmt.Sprintf(`{"address":"%v"}`, addr.GetAddr()))
+			queryparam, err := execty.CreateQuery(param.FuncName, param.Payload)
+			if err != nil {
+				msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+				continue
+			}
+			log.Info("handleSysEvent", "api", r.api)
+			fmt.Println("apiiiiiiiiiiiiii", r.api)
+			resp, err := r.api.Query(param.Execer, param.FuncName, queryparam)
+			if err != nil {
+				msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+				continue
+			}
+
+			result, err := execty.QueryToJSON(param.FuncName, resp)
+			if err != nil {
+				msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+				continue
+			}
+
+			var nonce struct {
+				Nonce string `json:"nonce,omitempty"`
+			}
+			err = json.Unmarshal(result, &nonce)
+			if err != nil {
+				msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+				continue
+			}
+			log.Info("handleSysEventtttttttttttttttttttttttttt", "getnonce result", string(result))
+			currentNonce, _ := strconv.Atoi(nonce.Nonce)
+			msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.EvmAccountNonce{Nonce: int64(currentNonce), Addr: addr.String()}))
+
+		default:
+
+			topicInfo := r.gapi.grpc.hashTopic(msg.GetData().(*types.PushData).GetName())
+			if topicInfo != nil {
+				go func(rmsg *queue.Message) {
+					ticker := time.NewTicker(time.Millisecond * 200)
+					defer ticker.Stop()
+					for ch := range topicInfo.subChan {
+						select {
+						case <-ticker.C:
+							log.Error("handleSysEvent", "ticker timeout", rmsg.GetData().(*types.PushData).GetName())
+						case ch <- rmsg:
+							rmsg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
+
+						}
 					}
-				}
 
-			}(msg)
+				}(msg)
 
-		} else {
-			//要求blockchain模块停止推送
-			log.Error("handleSysEvent", "no subscriber,all topic", r.gapi.grpc.subCache, "no topic:", msg.GetData().(*types.PushData).GetName(), "subchan:", topicInfo)
-			msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: false, Msg: []byte("no subscriber")}))
+			} else {
+				//要求blockchain模块停止推送
+				log.Error("handleSysEvent", "no subscriber,all topic", r.gapi.grpc.subCache, "no topic:", msg.GetData().(*types.PushData).GetName(), "subchan:", topicInfo)
+				msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: false, Msg: []byte("no subscriber")}))
+			}
 		}
 
 	}

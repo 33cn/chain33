@@ -12,8 +12,6 @@ import (
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 
-	"github.com/33cn/chain33/rpc/jsonclient"
-
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"google.golang.org/grpc"
@@ -172,8 +170,10 @@ func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transactio
 			return txs[0], nil
 		}
 	}
-
-	return nil, errors.New("transaction not exist")
+	log.Error("eth_getTransactionByHash", "err", "transaction not exist")
+	//return nil, errors.New("transactionReceipt not exist")
+	return nil, nil
+	//return nil, errors.New("transaction not exist")
 
 }
 
@@ -205,9 +205,9 @@ func (e *ethHandler) GetTransactionReceipt(txhash common.Hash) (*types.Receipt, 
 		receipts[0].BlockHash = common.BytesToHash(blockHash)
 		return receipts[0], nil
 	}
-
-	return nil, errors.New("transactionReceipt not exist")
-
+	log.Error("eth_getTransactionReceipt", "err", "transactionReceipt not exist")
+	//return nil, errors.New("transactionReceipt not exist")
+	return nil, nil
 }
 
 //GetBlockTransactionCountByNumber eth_getBlockTransactionCountByNumber
@@ -463,19 +463,20 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, e
 	if err != nil {
 		return 0, err
 	}
-
+	log.Info("eth_getTransactionCount", "nonce", string(result))
 	var nonce struct {
 		Nonce string `json:"nonce,omitempty"`
 	}
 	err = json.Unmarshal(result, &nonce)
-	gitNonce, _ := new(big.Int).SetString(nonce.Nonce, 10)
-	return hexutil.Uint64(gitNonce.Uint64()), err
+	bigNonce, _ := new(big.Int).SetString(nonce.Nonce, 10)
+
+	return hexutil.Uint64(bigNonce.Uint64()), err
 }
 
 //method:eth_estimateGas
 //EstimateGas 获取gas
 func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error) {
-	log.Debug("EstimateGas", "eth_estimateGas callMsg", callMsg)
+	log.Info("EstimateGas", "eth_estimateGas callMsg", callMsg)
 	//组装tx
 	exec := e.cfg.ExecName("evm")
 	execty := ctypes.LoadExecutorType(exec)
@@ -486,10 +487,15 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	if callMsg.To == "" {
 		callMsg.To = address.ExecAddress(exec)
 	}
+	var dataSize int
+	if callMsg.Data != nil {
+		datastr := callMsg.Data.String()
+		dataSize = len(common.FromHex(datastr))
+	}
 
 	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
 		TxCount: 1,
-		TxSize:  int32(32 + len(*callMsg.Data)),
+		TxSize:  int32(32 + dataSize),
 	})
 	fee := properFee.GetProperFee()
 	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
@@ -671,36 +677,39 @@ func (e *ethHandler) Hashrate() (hexutil.Uint64, error) {
 }
 
 //GetContractorAddress   eth_getContractorAddress
-func (e *ethHandler) GetContractorAddress(from common.Address, txhash string) (*common.Address, error) {
-	log.Debug("eth_getContractorAddress", "addr", from, "txhash", txhash)
-	var res string
-	_, port, err := net.SplitHostPort(e.cfg.GetModuleConfig().RPC.JrpcBindAddr)
-	if err != nil {
-		return nil, errors.New("inner error")
-	}
-	httpStr := "http://"
-	if e.cfg.GetModuleConfig().RPC.EnableTLS {
-		httpStr = "https://"
-	}
+func (e *ethHandler) GetContractorAddress(from common.Address, nonce hexutil.Uint64) (*common.Address, error) {
+	log.Debug("eth_getContractorAddress", "addr", from, "nonce", nonce)
 
-	rpcLaddr := fmt.Sprintf("%slocalhost:%v", httpStr, port)
-	var param struct {
-		Caller string `json:"caller,omitempty"`
-		Txhash string `json:"txhash,omitempty"`
-	}
-	param.Caller = from.String()
-	param.Txhash = txhash
-	jcli, err := jsonclient.New("evm", rpcLaddr, false)
-	if err != nil {
-		return nil, errors.New("inner error")
-	}
-
-	err = jcli.Call("CalcNewContractAddr", &param, &res)
-	if err != nil {
-		return nil, err
-	}
-	c := common.HexToAddress(res)
-	return &c, nil
+	contractorAddr := ethcrypto.CreateAddress(from, uint64(nonce))
+	return &contractorAddr, nil
+	//var res string
+	//_, port, err := net.SplitHostPort(e.cfg.GetModuleConfig().RPC.JrpcBindAddr)
+	//if err != nil {
+	//	return nil, errors.New("inner error")
+	//}
+	//httpStr := "http://"
+	//if e.cfg.GetModuleConfig().RPC.EnableTLS {
+	//	httpStr = "https://"
+	//}
+	//
+	//rpcLaddr := fmt.Sprintf("%slocalhost:%v", httpStr, port)
+	//var param struct {
+	//	Caller string `json:"caller,omitempty"`
+	//	Txhash string `json:"txhash,omitempty"`
+	//}
+	//param.Caller = from.String()
+	//param.Txhash = txhash
+	//jcli, err := jsonclient.New("evm", rpcLaddr, false)
+	//if err != nil {
+	//	return nil, errors.New("inner error")
+	//}
+	//
+	//err = jcli.Call("CalcNewContractAddr", &param, &res)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//c := common.HexToAddress(res)
+	//return &c, nil
 }
 
 //GetCode eth_getCode 获取部署合约的合约代码

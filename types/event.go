@@ -208,6 +208,7 @@ const (
 	EventPushEVM         = 369
 	//返回节点中最高的区块高度
 	EventHighestBlock = 370
+	EventGetEvmNonce  = 371
 )
 
 var eventName = map[int]string{
@@ -377,4 +378,5 @@ var eventName = map[int]string{
 	EventPushTxReceipt:              "EventPushTxReceipt",
 	EventPushTxResult:               "EventPushTxResult",
 	EventHighestBlock:               "EventHighestBlock",
+	EventGetEvmNonce:                "EventGetEvmNonce",
 }

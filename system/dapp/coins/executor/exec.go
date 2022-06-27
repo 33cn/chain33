@@ -5,6 +5,12 @@
 package executor
 
 import (
+	"fmt"
+
+	"github.com/33cn/chain33/system/address/eth"
+
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
+
 	"github.com/33cn/chain33/common/address"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
@@ -12,12 +18,51 @@ import (
 
 // Exec_Transfer transfer of exec
 func (c *Coins) Exec_Transfer(transfer *types.AssetsTransfer, tx *types.Transaction, index int) (*types.Receipt, error) {
+	fmt.Println("Exec_Transfer--chain33.coins--------------------------------------sfer00000000000000000")
 	from := tx.From()
 	//to 是 execs 合约地址
+	var receipt *types.Receipt
+	var err error
 	if drivers.IsDriverAddress(tx.GetRealToAddr(), c.GetHeight()) {
-		return c.GetCoinsAccount().TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
+		receipt, err = c.GetCoinsAccount().TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
+
+	} else {
+		receipt, err = c.GetCoinsAccount().Transfer(from, tx.GetRealToAddr(), transfer.Amount)
 	}
-	return c.GetCoinsAccount().Transfer(from, tx.GetRealToAddr(), transfer.Amount)
+
+	//TODO 删掉，evm统一处理
+	if tx.GetSignature().GetTy() == types.EncodeSignID(secp256k1eth.ID, eth.ID) {
+		if err != nil {
+			if receipt == nil {
+				receipt = new(types.Receipt)
+				receipt.Ty = types.ExecPack
+			}
+
+		}
+		// 设置账户的nonce
+		key := secp256k1eth.CaculCoinsEvmAccountKey(from)
+		var nonceInfo types.EvmAccountNonce
+		stataV, err := c.GetStateDB().Get(key)
+		if err == nil {
+			fmt.Println("Exec_Transfer--------------------------,tx.GetNonce()", tx.GetNonce())
+			types.Decode(stataV, &nonceInfo)
+			if nonceInfo.GetNonce() == tx.GetNonce() {
+				fmt.Println("Exec_Transfer--------------------------befer", nonceInfo.GetNonce())
+				nonceInfo.Nonce += 1
+			}
+
+		} else {
+			fmt.Println("Exec_Transfer--------------------------getstatdb", err.Error())
+			nonceInfo.Nonce = 1
+			nonceInfo.Addr = tx.From()
+		}
+		var kv types.KeyValue
+		kv.Key = key
+		kv.Value = types.Encode(&nonceInfo)
+		receipt.KV = append(receipt.KV, &kv)
+	}
+
+	return receipt, err
 }
 
 // Exec_TransferToExec the transfer to exec address

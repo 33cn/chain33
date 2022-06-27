@@ -14,16 +14,22 @@ import (
 )
 
 func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction, index int) bool {
+	//key= mval-evmcoins-stat: addr
+	//return execName
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer))
 		return false
 	}
+	elog.Info("step 1 isAllowKeyWriteeeeeeeeeeeeeee", "keyExecer:", string(keyExecer), "realExecer", string(realExecer),
+		"tx.Exec", string(tx.GetExecer()))
+
 	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
 	//注意: user.p.guodun.user.evm.hash -> user.evm.hash 而不是 evm
 	cfg := e.api.GetConfig()
 	exec := cfg.GetParaExec(tx.Execer)
 	//默认规则1: (执行器只能修改执行器自己内部的数据)
+
 	if bytes.Equal(keyExecer, exec) {
 		return true
 	}
@@ -44,9 +50,13 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
 	//  execaddr 是加了前缀生成的地址， 而参数 realExecer 是没有前缀的执行器名字
 	keyExecAddr, ok := types.GetExecKey(key)
+	elog.Info("step 2 isAllowKeyWriteeeeeeeeeeeeeee", "keyExecAddr", keyExecAddr, "key", string(key))
 	if ok && keyExecAddr == drivers.ExecAddress(string(tx.Execer)) {
 		return true
 	}
+	elog.Info("step 3 isAllowKeyWriteeeeeeeeeeeeeee", "keyExecAddr", keyExecAddr, "tx.execer addr",
+		drivers.ExecAddress(string(tx.Execer)))
+
 	//对应上面两种写权限，调用真实的合约，进行判断:
 	//执行器会判断一个合约是否可以 被另一个合约写入
 	execdriver := keyExecer
@@ -54,6 +64,9 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
+	elog.Info("step 4 isAllowKeyWriteeeeeeeeeeeeeee", "keyExecAddr", keyExecAddr, "realExecer addr",
+		drivers.ExecAddress(string(realExecer)))
+
 	//此处loadDriver比较特殊，传入了空交易和当前交易的index
 	//主要为了内部driver.Allow可能会基于index进行逻辑判断，如挖矿交易限定只能是区块的第一笔交易
 	c := e.loadDriver(&types.Transaction{Execer: execdriver}, index)
