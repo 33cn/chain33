@@ -326,6 +326,8 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 
 	//fork之前，多笔相同执行器的交易只有第一笔会进行Allow判定，从缓存中获取的执行器不需要进行allow判定
 	//fork之后，所有的交易均需要单独执行Allow判定
+	//Allow判定主要目的是在主链中, 对平行链的交易只做存证, 而不进行实际的执行逻辑
+	//Allow判定失败, 加载none执行器, 即平行链交易被认为是存证交易类型
 	if !ok || isFork {
 		driver.SetEnv(e.height, 0, 0)
 		err = driver.Allow(tx, index)
@@ -335,9 +337,8 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 	if err != nil {
 		driver = e.loadNoneDriver()
 		//fork之前，cache中存放的是经过allow判定后，实际用于执行的执行器，比如主链执行平行链交易的执行器对应的是none对象
-		//fork之后，cache中存放的是和Execer名称对应的driver对象
-		//历史遗留问题 fork之前的问题在于cache缓存错乱，不应该缓存实际用于执行的，即缓存包含了allow的逻辑，导致错乱
-		//增加fork是由于已经存在由于cache问题导致的错误交易
+		//fork之后，cache中存放的是和Execer名称对应的driver对象, 如user.p.para.coins => coins
+		//fork之前的问题在于cache缓存错乱，不应该缓存实际用于执行的，即缓存包含了allow的逻辑，导致错乱
 		//正确逻辑是，cache中的执行器对象和名称是一一对应的，保证了driver对象复用，但同时不同交易的allow需要重新判定
 		if !isFork {
 			e.driverCache[name] = driver
