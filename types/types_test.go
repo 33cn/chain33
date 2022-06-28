@@ -830,3 +830,13 @@ func TestFormatFloatDisplay2Value(t *testing.T) {
 	assert.Equal(t, int64(99999999900000), v)
 
 }
+
+func TestGetParaExecName(t *testing.T) {
+
+	driverName := GetParaExecName([]byte("user.p.para.none"))
+	assert.Equal(t, "none", string(driverName))
+	driverName = GetParaExecName([]byte("user.p.para.user.none"))
+	assert.Equal(t, "user.none", string(driverName))
+	driverName = GetRealExecName([]byte("user.p.para.user.none"))
+	assert.Equal(t, "none", string(driverName))
+}
