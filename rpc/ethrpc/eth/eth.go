@@ -366,7 +366,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 		return nil, errors.New("wrong signature")
 	}
 
-	chain33Tx := types.AssembleChain33TxV2(ntx, sig, pubkey, e.cfg)
+	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
 	log.Debug("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
 	reply, err := e.cli.SendTx(chain33Tx)
 	return reply.GetMsg(), err
