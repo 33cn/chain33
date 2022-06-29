@@ -63,9 +63,9 @@ func getWalletRecoveryAddr(cmd *cobra.Command, args []string) {
 	}
 
 	req := &types.ReqGetWalletRecoverAddr{
-		CtrPubKey:           ctrPub,
-		RecoverPubKey:       recovPub,
-		RelativeDelayHeight: delayTime,
+		CtrPubKey:         ctrPub,
+		RecoverPubKey:     recovPub,
+		RelativeDelayTime: delayTime,
 	}
 	var res string
 	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
@@ -127,9 +127,9 @@ func signWalletRecoveryTx(cmd *cobra.Command, args []string) {
 	}
 
 	walletRecov := &types.ReqGetWalletRecoverAddr{
-		CtrPubKey:           ctrPub,
-		RecoverPubKey:       recovPub,
-		RelativeDelayHeight: delayTime,
+		CtrPubKey:         ctrPub,
+		RecoverPubKey:     recovPub,
+		RelativeDelayTime: delayTime,
 	}
 
 	req := &types.ReqSignWalletRecoverTx{

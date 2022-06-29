@@ -447,7 +447,7 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 	_, err := cli.GetWalletRecoverAddr(req)
 	require.Equal(t, types.ErrInvalidParam, err)
 
-	req.RelativeDelayHeight = 10
+	req.RelativeDelayTime = 10
 
 	addr1, priv1 := util.Genaddress()
 	_, priv2 := util.Genaddress()
