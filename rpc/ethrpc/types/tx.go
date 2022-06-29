@@ -501,7 +501,7 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 		ContractAddr: "",
 	}
 
-	var to = etx.To().String()
+	var to string
 	if len(etx.Data()) != 0 { //合约操作
 		packdata := etx.Data()
 		if etx.To() == nil || len(etx.To().Bytes()) == 0 {
@@ -516,6 +516,7 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 		action.ContractAddr = to
 
 	} else {
+		to = etx.To().String()
 		//coins 转账,para为目的地址
 		action.Para = common.FromHex(to)
 		//ContractAddr 为执行器地址

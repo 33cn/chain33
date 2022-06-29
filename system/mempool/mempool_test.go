@@ -1485,11 +1485,12 @@ func Test_checkTxNonce(t *testing.T) {
 	}
 	//相同的NONCE，tx2手续费更高
 	tx1 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000, Expire: 0, To: toAddr, Nonce: 1, Signature: sig}
-	tx2 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 110001, Expire: 0, To: toAddr, Nonce: 1, Signature: sig}
+	tx2 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 110002, Expire: 0, To: toAddr, Nonce: 1, Signature: sig}
 	tx3 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 10000, Expire: 0, To: toAddr, Nonce: 3, Signature: sig}
 	tx4 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 110000, Expire: 0, To: toAddr, Nonce: 3, Signature: sig}
-	q, mem := initEnv(1)
+	q, mem := initEnv(10)
 	mem.PushTx(tx1)
+	mem.PushTx(tx2)
 	//用tx2 较高的手续费替换 超过10%的费率增长，预期成
 	msg := q.Client().NewMessage("", 0, tx2)
 	cmsg := mem.checkTxNonce(msg)
@@ -1497,7 +1498,9 @@ func Test_checkTxNonce(t *testing.T) {
 	require.Equal(t, tx2.GetTxFee(), ctx.GetFee())
 
 	//------用较低的手续费替换交易,必然失败，预期失败
+
 	mem.PushTx(tx4)
+	mem.PushTx(tx3)
 	msg = q.Client().NewMessage("", 0, tx3)
 	dmsg := mem.checkTxNonce(msg)
 	err = fmt.Errorf("requires at least 10 percent increase in handling fee,need more:%d", int64(float64(tx4.Fee)*1.1)-tx3.Fee)

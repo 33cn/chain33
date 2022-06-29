@@ -218,7 +218,7 @@ func (h *httpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 	if utils.IsPublicIP(ip) {
-		log.Warn("ServeHTTP", "remote client", r.RemoteAddr)
+		log.Debug("ServeHTTP", "remote client", r.RemoteAddr)
 	} else {
 		log.Debug("ServeHTTP", "remote client", r.RemoteAddr)
 	}

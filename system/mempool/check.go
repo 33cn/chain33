@@ -1,6 +1,7 @@
 package mempool
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sort"
@@ -224,21 +225,26 @@ func (mem *Mempool) checkTxNonce(msg *queue.Message) *queue.Message {
 			sort.SliceStable(txs, func(i, j int) bool { //nonce asc
 				return txs[i].Tx.GetNonce() < txs[j].Tx.GetNonce()
 			})
-		} else if len(txs) == 1 { //不需要排序
 			//遇到相同的Nonce ,较低的手续费的交易将被删除
-			if txs[0].GetTx().GetNonce() == singletx.GetNonce() {
-
-				if singletx.Fee < int64(float64(txs[0].GetTx().Fee)*1.1) {
-					err := fmt.Errorf("requires at least 10 percent increase in handling fee,need more:%d", int64(float64(txs[0].GetTx().Fee)*1.1)-singletx.Fee)
-					mlog.Error("checkTxNonce", "fee err", err)
-					msg.Data = err
+			for i, stx := range txs {
+				if bytes.Equal(stx.Tx.Hash(), singletx.Hash()) {
+					continue
+				}
+				//sameNonceTxs = append(sameNonceTxs, stx.GetTx())
+				if txs[i].GetTx().GetNonce() == singletx.GetNonce() {
+					if singletx.Fee < int64(float64(txs[i].GetTx().Fee)*1.1) {
+						err := fmt.Errorf("requires at least 10 percent increase in handling fee,need more:%d", int64(float64(txs[i].GetTx().Fee)*1.1)-singletx.Fee)
+						mlog.Error("checkTxNonce", "fee err", err, "singletx", singletx.Fee, "mempooltx", txs[0].GetTx().Fee)
+						msg.Data = err
+						return msg
+					}
+					//移除手续费较低的交易
+					mem.removeTxs([][]byte{txs[i].GetTx().Hash()})
 					return msg
 				}
-				//移除手续费较低的交易
-				mem.removeTxs([][]byte{txs[0].GetTx().Hash()})
-				return msg
 
 			}
+
 		}
 
 	}
