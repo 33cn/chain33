@@ -6,10 +6,6 @@ package util
 
 import (
 	"errors"
-	"fmt"
-
-	etypes "github.com/33cn/chain33/rpc/ethrpc/types"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	clientApi "github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common"
@@ -198,55 +194,6 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	}
 	client.FreeMessage(hashList, dupTxList)
 	return transactions, nil
-}
-
-func CheckEvmTxNonce(client queue.Client, txs []*types.Transaction) error {
-	fmt.Println("CheckEvmTxNonce-----------------------")
-	for _, tx := range txs {
-		if tx.GetSignature().GetTy() == types.EncodeSignID(types.SECP256K1ETH, 2) {
-			note := etypes.ParaseChain33TxNote(tx.GetPayload(), string(tx.GetExecer()))
-			var ethTx ethtypes.Transaction
-			if len(note) != 0 {
-				err := ethTx.UnmarshalBinary(note)
-				if err == nil {
-					//检查交易的签名类型
-					if tx.GetSignature().GetTy() != types.EncodeSignID(types.SECP256K1ETH, 2) {
-						return fmt.Errorf("no support signature type,must:%v", types.EncodeSignID(types.SECP256K1ETH, 2))
-					}
-					//检查nonce ,临时用一些结构体，后面创建专用结构体
-					var req types.ReqEvmAccountNonce
-					req.Addr = tx.From()
-					msg := client.NewMessage("rpc", types.EventGetEvmNonce, &req)
-					client.Send(msg, true)
-					reply, err := client.Wait(msg)
-					if err == nil {
-						var needNonce uint64
-						evmAccountNonce, ok := reply.GetData().(*types.EvmAccountNonce)
-						if ok {
-							needNonce = uint64(evmAccountNonce.GetNonce())
-							if ethTx.Nonce() < needNonce {
-								return fmt.Errorf("nonce too low")
-							}
-
-							if ethTx.Nonce() > needNonce {
-								return fmt.Errorf("nonce too height")
-							}
-						} else {
-							log.Error("CheckEvmTxNonce", "err", string(reply.GetData().(*types.Reply).GetMsg()))
-							return fmt.Errorf("get nonce error")
-						}
-
-					}
-
-				}
-			}
-		}
-
-		continue
-	}
-
-	return nil
-
 }
 
 //ReportErrEventToFront 上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，

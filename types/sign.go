@@ -20,6 +20,7 @@ const (
 	AddressIDOffset = 12
 )
 
+//IsEthSignID check chain33 tx sigtype
 func IsEthSignID(txSignID int32) bool {
 	return txSignID == EncodeSignID(secp256k1eth.ID, 2)
 }

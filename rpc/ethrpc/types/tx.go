@@ -240,31 +240,6 @@ func paraseChain33Tx(itx *ctypes.Transaction, blockHash common.Hash, blockNum in
 	return &tx
 }
 
-func ParaseChain33TxNote(payload []byte, execer string) []byte {
-	var note []byte
-	if strings.HasSuffix(execer, "evm") {
-		var evmaction ctypes.EVMContractAction4Chain33
-		err := ctypes.Decode(payload, &evmaction)
-		if err == nil {
-			if evmaction.GetNote() != "" {
-				note = common.FromHex(evmaction.GetNote())
-			} else {
-				return nil
-			}
-		}
-
-	} else {
-		var coinsaction dtypes.CoinsAction
-		err := ctypes.Decode(payload, &coinsaction)
-		if err == nil {
-			transfer, ok := coinsaction.GetValue().(*dtypes.CoinsAction_Transfer)
-			if ok && len(transfer.Transfer.GetNote()) != 0 {
-				note = transfer.Transfer.GetNote()
-			}
-		}
-	}
-	return note
-}
 func paraseChain33TxPayload(execer string, payload []byte, blockHash common.Hash, blockNum uint64) *Transaction {
 	var note []byte
 	if strings.HasSuffix(execer, "evm") {
@@ -412,7 +387,6 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 			}
 
 			jlg, _ := json.Marshal(recpResult.Logs[0].Log)
-			//log.Info("receiptLogs2EvmLog", "jlg:", string(jlg))
 			err = json.Unmarshal(jlg, &receiptEVMContract)
 			if nil == err {
 				log.Info("receiptLogs2EvmLog", "gasused:", receiptEVMContract.UsedGas)
@@ -423,7 +397,6 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 				cadr := common.HexToAddress(receiptEVMContract.ContractAddr)
 				contractorAddr = &cadr
 
-				//log.Info("receiptLogs2EvmLog", "gasused:", gasused)
 			}
 			continue
 		}

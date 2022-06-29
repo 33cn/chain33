@@ -233,10 +233,11 @@ func (mem *Mempool) checkTxNonce(msg *queue.Message) *queue.Message {
 					mlog.Error("checkTxNonce", "fee err", err)
 					msg.Data = err
 					return msg
-				} else { //移除手续费较低的交易
-					mem.removeTxs([][]byte{txs[0].GetTx().Hash()})
-					return msg
 				}
+				//移除手续费较低的交易
+				mem.removeTxs([][]byte{txs[0].GetTx().Hash()})
+				return msg
+
 			}
 		}
 
