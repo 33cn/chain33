@@ -35,8 +35,14 @@ const (
 // query func name
 const (
 
-	// QueryGetDelayBegin query func name
-	QueryGetDelayBegin = "GetDelayBeginHeight"
+	// QueryGetDelayTxInfo query func name
+	QueryGetDelayTxInfo = "GetDelayTxInfo"
+)
+
+// fork
+const (
+	// ForkUseTimeDelay use block time as delay type, instead of block height
+	ForkUseTimeDelay = "ForkUseTimeDelay"
 )
 
 var (
@@ -60,6 +66,7 @@ func init() {
 
 //InitFork init
 func InitFork(cfg *types.Chain33Config) {
+	cfg.RegisterDappFork(NoneX, ForkUseTimeDelay, 0)
 }
 
 //InitExecutor init Executor
