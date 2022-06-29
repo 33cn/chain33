@@ -58,3 +58,16 @@ func InitExecType() {
 func (n *None) GetDriverName() string {
 	return driverName
 }
+
+// IsFriend 控制none合约db key修改权限
+func (n *None) IsFriend(self, dbKey []byte, checkTx *types.Transaction) bool {
+
+	execName := types.GetParaExecName(checkTx.Execer)
+	// 延时存证交易需要在主链和平行链同时执行(#1262)
+	if string(execName) == ntypes.NoneX &&
+		ntypes.ActionName(checkTx) == ntypes.NameCommitDelayTxAction {
+		return true
+	}
+
+	return false
+}
