@@ -12,7 +12,7 @@ import (
 )
 
 // Query_GetDelayBeginHeight query delay tx delay begin height
-func (n *None) Query_GetDelayBeginHeight(req *types.ReqBytes) (types.Message, error) {
+func (n *None) Query_GetDelayTxInfo(req *types.ReqBytes) (types.Message, error) {
 
 	if len(req.GetData()) == 0 {
 		return nil, types.ErrInvalidParam
@@ -30,5 +30,5 @@ func (n *None) Query_GetDelayBeginHeight(req *types.ReqBytes) (types.Message, er
 		eLog.Error("Query_GetDelayBeginHeight", "txHash", hex.EncodeToString(req.GetData()), "get db err", err)
 		return nil, types.ErrDecode
 	}
-	return &types.Int64{Data: info.DelayBeginHeight}, nil
+	return info, nil
 }

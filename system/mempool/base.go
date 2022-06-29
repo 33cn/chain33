@@ -532,6 +532,8 @@ func (mem *Mempool) pushDelayTxRoutine() {
 		_, err := mem.getAPI().SendTx(tx)
 		if err != nil {
 			mlog.Error("pushDelayTxRoutine", "txHash", hex.EncodeToString(tx.Hash()), "send tx err", err)
+		}else {
+			mlog.Info("sendDelayTx", "txHash", hex.EncodeToString(tx.Hash()))
 		}
 		// try later if mempool is full
 		if err == types.ErrMemFull {

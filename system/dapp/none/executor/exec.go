@@ -21,7 +21,13 @@ func (n *None) Exec_CommitDelayTx(commit *nty.CommitDelayTx, tx *types.Transacti
 		return nil, errDecodeDelayTx
 	}
 	delayTxHash := delayTx.Hash()
-	delayInfo.DelayBeginHeight = n.GetHeight()
+	cfg := n.GetAPI().GetConfig()
+	if cfg.IsDappFork(n.GetHeight(), nty.NoneX, nty.ForkUseTimeDelay) {
+		delayInfo.DelayBeginTimestamp = n.GetBlockTime()
+	} else {
+		delayInfo.DelayBeginHeight = n.GetHeight()
+	}
+
 	delayInfo.Submitter = tx.From()
 	receipt.KV = append(receipt.KV,
 		&types.KeyValue{Key: formatDelayTxKey(delayTxHash), Value: types.Encode(delayInfo)})

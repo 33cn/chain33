@@ -13,13 +13,22 @@ message NoneAction {
 // 提交延时交易类型
 message CommitDelayTx {
 
-    string delayTx             = 1; //延时交易, 16进制格式
-    int64  relativeDelayHeight = 2; //相对延时时长，相对区块高度
+    //延时交易, 16进制格式
+    string delayTx = 1;
+    // Deprecated:区块高度类型延时, 建议使用时间类型延时
+    int64 relativeDelayHeight = 2;
+    //相对延时时长, 单位秒
+    int64 relativeDelayTime = 3;
 }
 
 // 提交延时交易回执
 message CommitDelayTxLog {
-    string submitter        = 1; // 提交者
-    string delayTxHash      = 2; // 延时交易哈希
-    int64  delayBeginHeight = 3; // 延时开始区块高度
+    // 提交者
+    string submitter = 1;
+    // 延时交易哈希
+    string delayTxHash = 2;
+    // Deprecated:延时开始区块高度, 建议使用时间类型
+    int64 delayBeginHeight = 3;
+    // 延时开始区块时间戳
+    int64 delayBeginTimestamp = 4;
 }
