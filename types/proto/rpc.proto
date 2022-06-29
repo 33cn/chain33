@@ -45,7 +45,7 @@ message delayTx {
 message ReqGetWalletRecoverAddr {
     string ctrPubKey           = 1;
     string recoverPubKey       = 2;
-    int64  relativeDelayHeight = 3;
+    int64  relativeDelayTime = 3;
 }
 
 // 获取钱包找回签名请求
