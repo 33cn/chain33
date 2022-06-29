@@ -10,10 +10,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/33cn/chain33/system/address/eth"
-	"github.com/33cn/chain33/system/crypto/secp256k1eth"
-	"github.com/33cn/chain33/types"
-
 	"github.com/tjfoc/gmsm/sm3"
 	"golang.org/x/crypto/ripemd160"
 )
@@ -130,8 +126,4 @@ func WithLoadOptionEnableCheck(blockHeight int64) LoadOption {
 		}
 		return ErrDriverNotEnable
 	}
-}
-
-func IsEthSignID(txSignID int32) bool {
-	return txSignID == types.EncodeSignID(secp256k1eth.ID, eth.ID)
 }

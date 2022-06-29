@@ -62,7 +62,6 @@ func newRPCTransaction(tx *etypes.Transaction, blockHash common.Hash, blockNumbe
 		al := tx.AccessList()
 		result.Accesses = &al
 		result.ChainID = (*hexutil.Big)(tx.ChainId())
-
 	}
 
 	return result
@@ -505,60 +504,61 @@ func CreateBloom(receipts []*Receipt) etypes.Bloom {
 	return bin
 }
 
-//AssembleChain33Tx 通过eth tx 组装chain33 tx
+//AssembleChain33Tx 通过eth tx 组装chain33 tx 全部走evm 通道
 func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.Chain33Config) *ctypes.Transaction {
-	rawData, _ := etx.MarshalBinary()
-	var exec = "coins"
-	var payload []byte
+	rawData, err := etx.MarshalBinary()
+	if err != nil {
+		log.Error("AssembleChain33TxV2", "tx.MarshalBinary err", err.Error())
+		return nil
+	}
+
+	var exec = cfg.ExecName("evm")
 	var amount int64
 	if etx.Value() != nil {
 		amount = etx.Value().Div(etx.Value(), big.NewInt(1).SetUint64(1e10)).Int64()
 	}
+	action := &ctypes.EVMContractAction4Chain33{
+		Amount:       uint64(amount),
+		GasLimit:     etx.Gas(),
+		GasPrice:     1,
+		Code:         nil,
+		Para:         nil,
+		Alias:        "",
+		Note:         common.Bytes2Hex(rawData),
+		ContractAddr: "",
+	}
 
-	var to string
-	if len(etx.Data()) != 0 {
+	var to = etx.To().String()
+	if len(etx.Data()) != 0 { //合约操作
 		packdata := etx.Data()
-		exec = cfg.ExecName("evm")
-		action := &ctypes.EVMContractAction4Chain33{
-			Amount:       uint64(amount),
-			GasLimit:     etx.Gas(),
-			GasPrice:     1,
-			Code:         nil,
-			Para:         nil,
-			Alias:        "",
-			Note:         common.Bytes2Hex(rawData), //txSha3.String(),
-			ContractAddr: "",
-		}
 		if etx.To() == nil || len(etx.To().Bytes()) == 0 {
 			//合约部署
 			action.Code = packdata
 			to = address.ExecAddress(exec)
 		} else {
+			//合约操作
 			action.Para = packdata
 			to = etx.To().String()
 		}
 		action.ContractAddr = to
-		payload = ctypes.Encode(action)
+
 	} else {
-
-		to = etx.To().String()
-		v := &dtypes.CoinsAction_Transfer{Transfer: &ctypes.AssetsTransfer{Cointoken: cfg.GetCoinSymbol(), Amount: amount, Note: rawData, To: to}}
-		transfer := &dtypes.CoinsAction{Value: v, Ty: dtypes.CoinsActionTransfer}
-		payload = ctypes.Encode(transfer)
-
+		//coins 转账,para为目的地址
+		action.Para = common.FromHex(to)
+		//ContractAddr 为执行器地址
+		action.ContractAddr = address.ExecAddress(exec)
 	}
-
+	payload := ctypes.Encode(action)
 	var gas = etx.Gas()
 	if gas < 1e5 { //gas 不能低于1e5
 		gas = 1e5
 	}
+
+	//全部走Evm 通道，exec=evm
 	var chain33Tx = &ctypes.Transaction{
-		ChainID: cfg.GetChainID(), //与链节点保持一致
+		ChainID: cfg.GetChainID(), //与链节点的chainID保持一致
 		To:      to,
-		//会导致重放攻击
-		//Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		//TODO 全部走Evm 通道
-		Execer:  []byte(cfg.ExecName(exec)),
+		Execer:  []byte(exec),
 		Payload: payload,
 		Fee:     int64(gas),
 		Signature: &ctypes.Signature{
@@ -568,7 +568,6 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 		},
 	}
 	chain33Tx.Nonce = int64(etx.Nonce())
-	//chain33Tx.Nonce = int64(etx.Nonce() + binary.LittleEndian.Uint64(etx.Hash().Bytes()[:8]))
 	if cfg.IsPara() {
 		chain33Tx.To = address.ExecAddress(string(chain33Tx.Execer))
 	}

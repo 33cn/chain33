@@ -337,6 +337,10 @@ autonomyExec="autonomy"
 total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 useBalance=false
 
+[exec.sub.coins]
+#允许evm执行器操作coins
+friendExecer=["evm"]
+
 [metrics]
 #是否使能发送metrics数据的发送
 enableMetrics=false

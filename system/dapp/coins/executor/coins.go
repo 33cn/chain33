@@ -17,9 +17,7 @@ EventTransfer -> 转移资产
 // nofee transaction will not pack into block
 
 import (
-	"strings"
-
-	"github.com/33cn/chain33/common/crypto"
+	"bytes"
 
 	"github.com/33cn/chain33/common/log"
 	drivers "github.com/33cn/chain33/system/dapp"
@@ -98,20 +96,21 @@ func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
 // IsFriend coins contract  the mining transaction that runs the ticket contract
 func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
 	//从配置文件读取允许具体的执行器修改的本地合约的状态
-	//fmt.Println("coins.IsFriend,myexec------------->", string(myexec), "writekey", string(writekey))
-	if crypto.IsEthSignID(othertx.GetSignature().GetTy()) {
+	if types.IsEthSignID(othertx.GetSignature().GetTy()) {
 		cfg := c.GetAPI().GetConfig()
-		for _, friendExec := range subCfg.FriendExecer { //evm
+		for _, friendExec := range subCfg.FriendExecer { //evm执行器操作coins 账户
 			//myexec=evm 这种情况出现在evm 交易调用coins 转账的情况 ===> msg.Value!=0 && msg.Data!=nil && msg.To!=nil
+			//1.tx.Exec=evm,user.p.xxx.evm
+			//2.tx.amount !=0
+			//3.writekey=mavl-coins-xxxx-xxxx
 			if cfg.ExecName(friendExec) == string(othertx.GetExecer()) {
-				//此时
-				if "coins" == string(myexec) && strings.HasPrefix(string(writekey), "mavl-coins-") {
-					//writekey: mavl-coins-para-0x93f200342d4154a0e025bd3a12128e8eb73b43a5
+				//writekey: mavl-coins-para-0x93f200342d4154a0e025bd3a12128e8eb73b43a5
+				//writekey: mavl-coins-bty-0xa42431da868c58877a627cc71dc95f01bf40c196
+				if "coins" == string(myexec) && bytes.HasPrefix(writekey, []byte("mavl-coins-")) {
 					return true
 				}
 			}
 		}
-		//fmt.Println("coins.IsFriend,no friend", string(othertx.GetExecer()))
 	}
 
 	//step1 先判定自己合约的权限

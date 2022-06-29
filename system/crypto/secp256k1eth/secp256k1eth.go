@@ -182,15 +182,18 @@ func (pubKey PubKeySecp256k1Eth) Bytes() []byte {
 
 //VerifyBytes 验证字节
 func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) bool {
+	fmt.Println("PubKeySecp256k1Eth VerifyBytes step1")
 	var hash []byte
 	action, err := types.DecodeTxAction(msg)
 	if err == nil && len(action.Note) == 0 || err != nil {
 		//chain33格式交易，sha3哈希 eth 签名
 		hash = common.Sha3(msg)
 	} else { //解析ETH交易数据
+		fmt.Println("PubKeySecp256k1Eth VerifyBytes step2")
 		var etx = new(etypes.Transaction)
 		err := etx.UnmarshalBinary(action.Note)
 		if err != nil {
+			fmt.Println("PubKeySecp256k1Eth,UnmarshalBinary", err)
 			return false
 		}
 		//chainID 可配置
@@ -202,19 +205,23 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 		hash = signer.Hash(etx).Bytes() //metamask,eth 兼容交易，取出eth 交易格式下的哈希
 		//check nonce 防止重放攻击
 		if action.Nonce != int64(etx.Nonce()) {
+			fmt.Println("action.Nonce", action.Nonce, "tx.Nonce", etx.Nonce())
 			return false
 		}
 		//checkout amount
 		amount := etx.Value().Div(etx.Value(), big.NewInt(1).SetUint64(1e10))
 		if amount.Uint64() != action.Amount { //防止自组装的chain33 Tx amount 被篡改
+			fmt.Println("amount:", amount, "action.Amount", action.Amount)
 			return false
 		}
 		//check evm code
 		if !bytes.Equal(etx.Data(), action.Code) { // 防止合约代码被篡改
+			fmt.Println("check action.Code not equal")
 			return false
 		}
 		//check to address
 		if etx.To() != nil && !bytes.Equal(ecommon.FromHex(action.To), etx.To().Bytes()) {
+			fmt.Println("ex.To", etx.To(), "action.To", action.To)
 			return false
 		}
 	}
@@ -222,11 +229,14 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 	sigBytes := sig.Bytes()
 	recoverPub, err := ethcrypto.Ecrecover(hash, sigBytes)
 	if err != nil {
+		fmt.Println("Ecrecover", err)
 		return false
 	}
 	if !bytes.Equal(recoverPub, pubKey[:]) {
+		fmt.Println("pubkey not equal")
 		return false
 	}
+
 	return ethcrypto.VerifySignature(pubKey[:], hash, sigBytes[:64])
 }
 
@@ -264,7 +274,8 @@ func GetEvmChainID() int64 {
 
 //CaculCoinsEvmAccountKey 兼容eth 账户的nonce 的key
 func CaculCoinsEvmAccountKey(addr string) []byte {
-	prefix := "mavl-" + "evm" + "-noncestate: " + strings.ToLower(addr)
+	//prefix := "mval-" + "evm" + "-noncestate:" + strings.ToLower(addr)
+	prefix := "LODB-" + "evm" + "-noncestate:" + strings.ToLower(addr)
 	return []byte(prefix)
 
 }

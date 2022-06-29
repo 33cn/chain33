@@ -2,6 +2,8 @@ package mempool
 
 import (
 	"errors"
+	"fmt"
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -81,6 +83,7 @@ func (mem *Mempool) checkTx(msg *queue.Message) *queue.Message {
 		msg.Data = err
 		return msg
 	}
+
 	return msg
 }
 
@@ -107,6 +110,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 			return msg
 		}
 	}
+
 	//放在交易费检查后面进行 哈希缓存设置，避免哈希缓存改变原始交易size
 	//txmsg.ReCalcCacheHash()
 	//检查txgroup 中的每个交易
@@ -162,6 +166,7 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 	} else {
 		temtxlist.Txs = append(temtxlist.Txs, txGroup.GetTxs()...)
 	}
+
 	temtxlist.Height = lastheader.Height
 	newtxs, err := util.CheckDupTx(mem.client, temtxlist.Txs, temtxlist.Height)
 	if err != nil {
@@ -205,5 +210,37 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 		mlog.Error("checkTxRemote", "push err", err)
 		msg.Data = err
 	}
+	return msg
+}
+
+//检查nonce 是否过低，或者是否有交易加速或者交易取消
+func (mem *Mempool) checkTxNonce(msg *queue.Message) *queue.Message {
+	tx := msg.GetData().(types.TxGroup)
+	singletx := tx.Tx()
+	if types.IsEthSignID(singletx.GetSignature().GetTy()) {
+		details := mem.GetAccTxs(&types.ReqAddrs{Addrs: []string{singletx.From()}})
+		txs := details.GetTxs()
+		if len(txs) > 1 {
+			sort.SliceStable(txs, func(i, j int) bool { //nonce asc
+				return txs[i].Tx.GetNonce() < txs[j].Tx.GetNonce()
+			})
+		} else if len(txs) == 1 { //不需要排序
+			//遇到相同的Nonce ,较低的手续费的交易将被删除
+			if txs[0].GetTx().GetNonce() == singletx.GetNonce() {
+
+				if singletx.Fee < int64(float64(txs[0].GetTx().Fee)*1.1) {
+					err := fmt.Errorf("requires at least 10 percent increase in handling fee,need more:%d", int64(float64(txs[0].GetTx().Fee)*1.1)-singletx.Fee)
+					mlog.Error("checkTxNonce", "fee err", err)
+					msg.Data = err
+					return msg
+				} else { //移除手续费较低的交易
+					mem.removeTxs([][]byte{txs[0].GetTx().Hash()})
+					return msg
+				}
+			}
+		}
+
+	}
+
 	return msg
 }

@@ -171,7 +171,6 @@ func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transactio
 		}
 	}
 	log.Error("eth_getTransactionByHash", "err", "transaction not exist")
-	//return nil, errors.New("transactionReceipt not exist")
 	return nil, nil
 	//return nil, errors.New("transaction not exist")
 
@@ -320,6 +319,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 		log.Error("eth_sendRawTransaction", "this.chainID", e.evmChainID, "etx.ChainID", ntx.ChainId())
 		return nil, errors.New("chainID no support")
 	}
+
 	signer := etypes.NewLondonSigner(ntx.ChainId())
 	txSha3 := signer.Hash(ntx)
 	v, r, s := ntx.RawSignatureValues()
@@ -327,7 +327,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	if err != nil {
 		return nil, err
 	}
-	//sig := append(r.Bytes()[:], append(s.Bytes()[:], cv)...)
+
 	sig := make([]byte, 65)
 	copy(sig[32-len(r.Bytes()):32], r.Bytes())
 	copy(sig[64-len(s.Bytes()):64], s.Bytes())
@@ -339,8 +339,26 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	}
 	pubkey, err := ethcrypto.Ecrecover(txSha3.Bytes(), sig)
 	if err != nil {
-		log.Error("SendRawTransaction", "Ecrecover err:", err.Error(), "sig", common.Bytes2Hex(sig))
+		log.Error("eth_sendRawTransaction", "Ecrecover err:", err.Error(), "sig", common.Bytes2Hex(sig))
 		return nil, err
+	}
+	// check tx nonce
+	txFrom := address.PubKeyToAddr(2, pubkey)
+	nonce, err := e.GetTransactionCount(txFrom, "")
+	if err != nil {
+		log.Error("eth_sendRawTransaction", "GetTransactionCount", err)
+		return nil, err
+	}
+	//考虑到支持平行链和主链，平行链没有mempool，无法进行校验，只能在发送前校验
+	if ntx.Nonce() < uint64(nonce) {
+		log.Error("eth_sendRawTransaction", "nonce too low,tx.From", txFrom, "txnonce", ntx.Nonce(), "stateNonce", nonce)
+		return nil, fmt.Errorf("nonce too low")
+	}
+	if ntx.Nonce() > uint64(nonce) { //非平行链下 允许更高的nonce 通过，在mempool中排序等待
+		log.Error("eth_sendRawTransaction", "nonce too high,tx.From", txFrom, "txnonce", ntx.Nonce(), "stateNonce", nonce)
+		if e.cfg.IsPara() { //平行链架构下，交易是要发到主链共识的，无法校验交易的nonce是否正确
+			return nil, fmt.Errorf("nonce too high")
+		}
 	}
 
 	if !ethcrypto.VerifySignature(pubkey, txSha3.Bytes(), sig[:64]) {
@@ -348,7 +366,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 		return nil, errors.New("wrong signature")
 	}
 
-	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
+	chain33Tx := types.AssembleChain33TxV2(ntx, sig, pubkey, e.cfg)
 	log.Debug("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
 	reply, err := e.cli.SendTx(chain33Tx)
 	return reply.GetMsg(), err
@@ -682,34 +700,7 @@ func (e *ethHandler) GetContractorAddress(from common.Address, nonce hexutil.Uin
 
 	contractorAddr := ethcrypto.CreateAddress(from, uint64(nonce))
 	return &contractorAddr, nil
-	//var res string
-	//_, port, err := net.SplitHostPort(e.cfg.GetModuleConfig().RPC.JrpcBindAddr)
-	//if err != nil {
-	//	return nil, errors.New("inner error")
-	//}
-	//httpStr := "http://"
-	//if e.cfg.GetModuleConfig().RPC.EnableTLS {
-	//	httpStr = "https://"
-	//}
-	//
-	//rpcLaddr := fmt.Sprintf("%slocalhost:%v", httpStr, port)
-	//var param struct {
-	//	Caller string `json:"caller,omitempty"`
-	//	Txhash string `json:"txhash,omitempty"`
-	//}
-	//param.Caller = from.String()
-	//param.Txhash = txhash
-	//jcli, err := jsonclient.New("evm", rpcLaddr, false)
-	//if err != nil {
-	//	return nil, errors.New("inner error")
-	//}
-	//
-	//err = jcli.Call("CalcNewContractAddr", &param, &res)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//c := common.HexToAddress(res)
-	//return &c, nil
+
 }
 
 //GetCode eth_getCode 获取部署合约的合约代码

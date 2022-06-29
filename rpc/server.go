@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+
 	"net"
 	"net/http"
 	"net/rpc"
@@ -388,42 +389,16 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 //处理订阅的rpc事件,目前只有订阅事件
 func (r *RPC) handleSysEvent() {
 	r.cli.Sub("rpc")
+	var cli rclient.ChannelClient
+	cli.Init(r.cli, r.api)
 	for msg := range r.cli.Recv() {
-
 		switch msg.Ty {
-
 		case types.EventGetEvmNonce:
 			addr := msg.GetData().(*types.ReqEvmAccountNonce)
-			//var subcfg struct {
-			//	EnableTls bool   `json:"enableTls,omitempty"`
-			//	HTTPAddr  string `json:"httpAddr,omitempty"`
-			//}
-			//types.MustDecode(r.allCfg.GetSubConfig().RPC["eth"], &subcfg)
-			//var httpstr = "http://"
-			//if subcfg.EnableTls {
-			//	httpstr = "https://"
-			//}
-			////_, port, err := net.SplitHostPort(subcfg.HTTPAddr)
-			//rpcLaddr := fmt.Sprintf("%vlocalhost:%v", httpstr, "8546")
-			//log.Info("handlerSysEvent", "rpcaddr", rpcLaddr)
-			//c, err := ethclient.Dial(rpcLaddr)
-			//if err != nil {
-			//	log.Error("handleSysEventttttttttt", "err", err)
-			//	//continue
-			//}
-			//
-			//cnonce, err := c.NonceAt(context.Background(), common.HexToAddress(addr.GetAddr()), nil)
-			//if err != nil {
-			//	log.Error("handleSysEventttttttttt", "NonceAt err", err)
-			//	//continue
-			//}
-
-			log.Info("handleSysEvent", "recv requst EventGetEvmNonce", types.EventGetEvmNonce)
-
 			exec := r.allCfg.ExecName("evm")
 			execty := types.LoadExecutorType(exec)
 			if execty == nil {
-				msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.Reply{IsOk: false}))
+				msg.Reply(r.cli.NewMessage("", types.EventGetEvmNonce, &types.Reply{IsOk: false}))
 				continue
 			}
 
@@ -433,12 +408,10 @@ func (r *RPC) handleSysEvent() {
 			param.Payload = []byte(fmt.Sprintf(`{"address":"%v"}`, addr.GetAddr()))
 			queryparam, err := execty.CreateQuery(param.FuncName, param.Payload)
 			if err != nil {
-				msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
+				msg.Reply(r.cli.NewMessage("", types.EventGetEvmNonce, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
 				continue
 			}
-			log.Info("handleSysEvent", "api", r.api)
-			fmt.Println("apiiiiiiiiiiiiii", r.api)
-			resp, err := r.api.Query(param.Execer, param.FuncName, queryparam)
+			resp, err := cli.Query(param.Execer, param.FuncName, queryparam)
 			if err != nil {
 				msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
 				continue
@@ -458,12 +431,11 @@ func (r *RPC) handleSysEvent() {
 				msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.Reply{IsOk: false, Msg: []byte(err.Error())}))
 				continue
 			}
-			log.Info("handleSysEventtttttttttttttttttttttttttt", "getnonce result", string(result))
+
 			currentNonce, _ := strconv.Atoi(nonce.Nonce)
-			msg.Reply(r.cli.NewMessage("mempool", types.EventGetEvmNonce, &types.EvmAccountNonce{Nonce: int64(currentNonce), Addr: addr.String()}))
+			msg.Reply(r.cli.NewMessage("", types.EventGetEvmNonce, &types.EvmAccountNonce{Nonce: int64(currentNonce), Addr: addr.String()}))
 
 		default:
-
 			topicInfo := r.gapi.grpc.hashTopic(msg.GetData().(*types.PushData).GetName())
 			if topicInfo != nil {
 				go func(rmsg *queue.Message) {

@@ -7,6 +7,7 @@ package types
 import (
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 )
 
 const (
@@ -19,8 +20,8 @@ const (
 	AddressIDOffset = 12
 )
 
-func IsEqualSignID(txChanID, signID int32) {
-
+func IsEthSignID(txSignID int32) bool {
+	return txSignID == EncodeSignID(secp256k1eth.ID, 2)
 }
 
 // EncodeSignID encode sign id

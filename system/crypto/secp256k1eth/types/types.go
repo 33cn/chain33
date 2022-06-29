@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/33cn/chain33/common/address"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/protobuf/proto"
 )
@@ -30,14 +32,24 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 		err = proto.Unmarshal(tx.Payload, &evmaction)
 		if err == nil {
 			var code []byte
+			var to string
 			if len(evmaction.GetCode()) != 0 {
-				code = evmaction.GetCode()
+				code = evmaction.GetCode() //部署合约
+
 			} else {
-				code = evmaction.GetPara()
+				if evmaction.GetContractAddr() != address.ExecAddress(string(tx.GetExecer())) {
+					code = evmaction.GetPara()
+					to = evmaction.ContractAddr
+				} else { //coins 转账
+
+					to = common.Bytes2Hex(evmaction.GetPara())
+				}
+
 			}
+
 			return &CommonAction{
 				Note:   common.FromHex(evmaction.Note),
-				To:     evmaction.ContractAddr,
+				To:     to,
 				Amount: evmaction.GetAmount(),
 				Code:   code,
 				Nonce:  tx.Nonce,
