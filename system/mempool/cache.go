@@ -164,18 +164,18 @@ func (cache *txCache) getTxByHash(hash string) *types.Transaction {
 
 //delayTxCache 延时交易缓存
 type delayTxCache struct {
-	size              int
-	txCache           map[int64][]*types.Transaction // 以延时时间作为key索引
-	hashCache         map[string]int64               //哈希缓存，用于查重
-	lock              sync.RWMutex
+	size      int
+	txCache   map[int64][]*types.Transaction // 以延时时间作为key索引
+	hashCache map[string]int64               //哈希缓存，用于查重
+	lock      sync.RWMutex
 }
 
 // new txCache
 func newDelayTxCache(size int) *delayTxCache {
 	return &delayTxCache{
-		size:              size,
-		txCache:           make(map[int64][]*types.Transaction, 16),
-		hashCache:         make(map[string]int64, 32),
+		size:      size,
+		txCache:   make(map[int64][]*types.Transaction, 16),
+		hashCache: make(map[string]int64, 32),
 	}
 }
 
