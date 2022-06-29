@@ -381,13 +381,15 @@ func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error)
 	height := block.GetBlock().GetHeight()
 	chainlog.Debug("SendAddBlockEvent", "Height", height)
 
+	// 首先向加密模块推送, 保证交易验签依赖最新的区块信息
+	header := &types.Header{Height: height, BlockTime: block.GetBlock().GetBlockTime()}
+	chain.sendAddBlockEvent("crypto", header, height)
+
 	chain.sendAddBlockEvent("mempool", block, height)
 	chain.sendAddBlockEvent("consensus", block, height)
 	chain.sendAddBlockEvent("p2p", block.GetBlock(), height)
 	chain.sendAddBlockEvent("wallet", block, height)
 
-	header := &types.Header{Height: height, BlockTime: block.GetBlock().GetBlockTime()}
-	chain.sendAddBlockEvent("crypto", header, height)
 	return nil
 }
 

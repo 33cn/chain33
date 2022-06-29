@@ -7,6 +7,7 @@ package client
 
 import (
 	"sync"
+	"time"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/crypto"
@@ -48,6 +49,7 @@ func (m module) SetQueueClient(cli queue.Client) {
 	}
 	SetQueueAPI(api)
 	cli.Sub("crypto")
+	ticker := time.NewTicker(time.Second)
 	go func() {
 
 		for {
@@ -59,6 +61,13 @@ func (m module) SetQueueClient(cli queue.Client) {
 						SetCurrentBlock(header.GetHeight(), header.GetBlockTime())
 					}
 
+				}
+			case <-ticker.C:
+				// 首次启动, 需要主动获取依次区块头信息
+				h, err := api.GetLastHeader()
+				if err == nil {
+					SetCurrentBlock(h.GetHeight(), h.GetBlockTime())
+					ticker.Stop()
 				}
 			case <-m.done:
 				return
