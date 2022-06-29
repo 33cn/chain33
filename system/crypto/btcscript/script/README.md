@@ -34,7 +34,7 @@
 |---|---|---|
 |ctrPubKey|string|控制地址公钥, secp256k1算法, 16进制
 |recoverPubKey|string|找回地址公钥, secp256k1算法, 16进制
-|relativeDelayHeight|int64|钱包找回相对延时时长, 区块高度值
+|relativeDelayTime|int64|钱包找回相对延时时长, 单位秒
 
 
 
