@@ -11,7 +11,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-// Query_GetDelayBeginHeight query delay tx delay begin height
+// Query_GetDelayTxInfo query delay tx delay begin height
 func (n *None) Query_GetDelayTxInfo(req *types.ReqBytes) (types.Message, error) {
 
 	if len(req.GetData()) == 0 {

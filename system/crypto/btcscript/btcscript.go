@@ -65,7 +65,7 @@ func (d Driver) Validate(msg, pk, sig []byte) error {
 		}
 		reply, err := ctx.API.Query(nty.NoneX, nty.QueryGetDelayTxInfo, &types.ReqBytes{Data: tx.Hash()})
 		delayInfo, ok := reply.(*nty.CommitDelayTxLog)
-		if err != nil || !ok{
+		if err != nil || !ok {
 			return errQueryDelayBeginTime
 		}
 		// blocktime as delay time
