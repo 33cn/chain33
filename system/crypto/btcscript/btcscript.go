@@ -51,7 +51,7 @@ func (d Driver) Validate(msg, pk, sig []byte) error {
 
 	ctx := cryptocli.GetCryptoContext()
 	// check btc script lock time , lockTime <= blockHeight
-	if ssig.LockTime > ctx.CurrBlockHeight+1 {
+	if ssig.LockTime > ctx.CurrBlockTime {
 		return errInvalidLockTime
 	}
 
