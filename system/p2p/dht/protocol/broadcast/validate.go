@@ -259,6 +259,10 @@ func (v *validator) validatePeer(ctx context.Context, _ peer.ID, msg *ps.Message
 	return ps.ValidationAccept
 }
 
+func isTxErr(err error) bool {
+	return (err != types.ErrMemFull) && (err != types.ErrNotSync)
+}
+
 func (v *validator) validateTx(ctx context.Context, id peer.ID, msg *ps.Message) ps.ValidationResult {
 
 	from := msg.GetFrom()
@@ -280,13 +284,50 @@ func (v *validator) validateTx(ctx context.Context, id peer.ID, msg *ps.Message)
 
 	_, err = v.API.SendTx(tx)
 	if err != nil {
-		log.Debug("validateTx", "hash", hex.EncodeToString(tx.Hash()), "err", err)
-		if err == types.ErrNotSync {
-			return ps.ValidationIgnore
+		if isTxErr(err) {
+			log.Debug("validateTx", "hash", hex.EncodeToString(tx.Hash()), "err", err)
 		}
-		return ps.ValidationReject
-
+		return ps.ValidationIgnore
 	}
 
 	return ps.ValidationAccept
+}
+
+func (v *validator) validateBatchTx(ctx context.Context, id peer.ID, msg *ps.Message) ps.ValidationResult {
+
+	from := msg.GetFrom()
+	if from == v.Host.ID() {
+		return ps.ValidationAccept
+	}
+
+	txs := &types.Transactions{}
+	err := v.decodeMsg(msg.Data, nil, txs)
+	if err != nil {
+		log.Error("validateBatchTx", "decodeMsg err", err)
+		return ps.ValidationReject
+	}
+
+	validTxCount := 0
+
+	for _, tx := range txs.GetTxs() {
+		//重复检测
+		if v.txFilter.AddWithCheckAtomic(hex.EncodeToString(tx.Hash()), struct{}{}) {
+			continue
+		}
+
+		_, err = v.API.SendTx(tx)
+		if err != nil {
+			if isTxErr(err) {
+				log.Debug("validateBatchTx", "hash", hex.EncodeToString(tx.Hash()), "err", err)
+			}
+			continue
+		}
+		validTxCount++
+	}
+
+	if validTxCount > len(txs.GetTxs())/2 {
+		return ps.ValidationAccept
+	}
+
+	return ps.ValidationIgnore
 }

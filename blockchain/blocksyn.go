@@ -162,10 +162,6 @@ func (chain *BlockChain) SynRoutine() {
 	defer chunkRecordSynTicker.Stop()
 
 	chain.UpdatesynBlkHeight(chain.GetBlockHeight())
-	mode := chain.GetDownloadSyncStatus()
-	chain.UpdateDownloadSyncStatus(forkChainDetectMode)
-	// make sure not on fork chain when node start
-	go chain.forkChainDetection(mode)
 
 	//节点下载模式
 	go chain.DownLoadBlocks()
