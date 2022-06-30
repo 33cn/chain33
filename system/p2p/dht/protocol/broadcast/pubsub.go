@@ -64,6 +64,7 @@ func (p *pubSub) init() {
 		p.Pubsub.RegisterTopicValidator(psBlockTopic, p.val.validateBlock, pubsub.WithValidatorInline(true))
 		p.Pubsub.RegisterTopicValidator(psTxTopic, p.val.validateTx, pubsub.WithValidatorInline(true))
 		p.Pubsub.RegisterTopicValidator(psLtBlockTopic, p.val.validatePeer, pubsub.WithValidatorInline(true))
+		p.Pubsub.RegisterTopicValidator(psBatchTxTopic, p.val.validateBatchTx, pubsub.WithValidatorInline(true))
 	}
 
 	//使用多个协程并发处理，提高效率
@@ -118,7 +119,7 @@ func (p *pubSub) handleSubMsg(in chan net.SubMsg) {
 			}
 			topic := *data.Topic
 			// 交易在pubsub内部验证时已经发送至mempool, 此处直接忽略
-			if topic == psTxTopic {
+			if topic == psTxTopic || topic == psBatchTxTopic {
 				break
 			}
 			msg = p.newMsg(topic)
