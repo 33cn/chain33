@@ -6,6 +6,7 @@ package mempool
 
 import (
 	"encoding/hex"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -173,7 +174,73 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 		}
 		return true
 	})
+	//对txs 进行排序
+	txs = mem.sortEthSignTyTx(txs)
 	return txs
+}
+
+//对eth signtype 的交易，同地址下nonce 按照从小到达的顺序排序
+//确保nonce 按照递增顺序发给blockchain
+func (mem *Mempool) sortEthSignTyTx(txs []*types.Transaction) []*types.Transaction {
+	if mem.api.GetConfig().IsPara() {
+		//平行链架构下，主链节点无法获取到平行链evm的nonce
+		return txs
+	}
+
+	var merge []*types.Transaction
+	var ethsignTxs = make(map[string][]*types.Transaction)
+	for _, tx := range txs {
+		if types.IsEthSignID(tx.GetSignature().GetTy()) {
+			//暂时不考虑组交易的情况
+			ethsignTxs[tx.From()] = append(ethsignTxs[tx.From()], tx)
+			continue
+		}
+		merge = append(merge, tx)
+	}
+	//没有ethsign 交易直接返回
+	if len(merge) == len(txs) {
+		return txs
+	}
+
+	//sort
+	for from, etxs := range ethsignTxs {
+		sort.SliceStable(etxs, func(i, j int) bool { //nonce asc
+			return etxs[i].GetNonce() < etxs[j].GetNonce()
+		})
+		//check exts[0].Nonce 是否等于current nonce, merge
+		if len(etxs) != 0 && mem.getCurrentNonce(from) == etxs[0].GetNonce() {
+			merge = append(merge, etxs[0])
+			for i, etx := range etxs {
+				if i == 0 {
+					continue
+				}
+				//要求nonce 具有连续性
+				if etx.GetNonce() == etxs[i-1].GetNonce()+1 {
+					merge = append(merge, etxs[i])
+					continue
+				}
+				break
+			}
+		}
+	}
+
+	return merge
+}
+
+func (mem *Mempool) getCurrentNonce(addr string) int64 {
+	msg := mem.client.NewMessage("rpc", types.EventGetEvmNonce, &types.ReqEvmAccountNonce{
+		Addr: addr,
+	})
+	mem.client.Send(msg, true)
+	reply, err := mem.client.WaitTimeout(msg, time.Second*2)
+	if err == nil {
+		nonceInfo, ok := reply.GetData().(*types.EvmAccountNonce)
+		if ok {
+			return nonceInfo.GetNonce()
+		}
+	}
+	return 0
+
 }
 
 // RemoveTxs 从mempool中删除给定Hash的txs

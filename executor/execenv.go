@@ -217,7 +217,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 
 		//余额少于手续费时直接返回错误
 		if accFrom.GetBalance() < tx.GetTxFee() {
-			elog.Error("execCheckTx", "ispara", e.cfg.IsPara(), "exec", string(tx.Execer), "Balance", accFrom.GetBalance(), "TxFee", tx.GetTxFee())
+			elog.Error("execCheckTx", "ispara", e.cfg.IsPara(), "exec", string(tx.Execer), "account", accFrom.String(), "Balance", accFrom.GetBalance(), "TxFee", tx.GetTxFee())
 			return types.ErrNoBalance
 		}
 

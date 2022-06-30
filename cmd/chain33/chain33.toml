@@ -14,6 +14,10 @@ enableTypes=[]    #设置启用的加密插件名称，不配置启用所有
 secp256k1=0
 [crypto.sub.secp256k1] #支持插件子配置
 
+[crypto.sub.secp256k1eth]
+#兼容EVM链的链ID
+evmChainID=3999
+
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
 loglevel = "debug"
@@ -332,6 +336,10 @@ autonomyExec="autonomy"
 [exec.sub.autonomy]
 total="16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 useBalance=false
+
+[exec.sub.coins]
+#允许evm执行器操作coins
+friendExecer=["evm"]
 
 [metrics]
 #是否使能发送metrics数据的发送
