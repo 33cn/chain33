@@ -92,8 +92,8 @@ wsApi=["eth","web3","personal","admin","net"]
 [mempool]
 name="timeline"
 poolCacheSize=10240
-# 最小得交易手续费率，0为不需要交易费
-minTxFeeRate=0
+# 最小得交易手续费率，免交易费设为0
+minTxFeeRate=100000
 # 最大的交易手续费率, 0.1 coins
 maxTxFeeRate=10000000
 # 单笔交易最大的手续费, 10 coins
