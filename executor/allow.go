@@ -14,6 +14,8 @@ import (
 )
 
 func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction, index int) bool {
+	//key= mval-evmcoins-stat: addr
+	//return execName
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer))
@@ -24,6 +26,7 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 	cfg := e.api.GetConfig()
 	exec := cfg.GetParaExec(tx.Execer)
 	//默认规则1: (执行器只能修改执行器自己内部的数据)
+
 	if bytes.Equal(keyExecer, exec) {
 		return true
 	}

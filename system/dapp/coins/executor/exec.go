@@ -14,10 +14,14 @@ import (
 func (c *Coins) Exec_Transfer(transfer *types.AssetsTransfer, tx *types.Transaction, index int) (*types.Receipt, error) {
 	from := tx.From()
 	//to 是 execs 合约地址
+	var receipt *types.Receipt
+	var err error
 	if drivers.IsDriverAddress(tx.GetRealToAddr(), c.GetHeight()) {
-		return c.GetCoinsAccount().TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
+		receipt, err = c.GetCoinsAccount().TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
+	} else {
+		receipt, err = c.GetCoinsAccount().Transfer(from, tx.GetRealToAddr(), transfer.Amount)
 	}
-	return c.GetCoinsAccount().Transfer(from, tx.GetRealToAddr(), transfer.Amount)
+	return receipt, err
 }
 
 // Exec_TransferToExec the transfer to exec address

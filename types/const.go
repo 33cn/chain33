@@ -9,6 +9,7 @@ import (
 
 	"github.com/33cn/chain33/system/crypto/ed25519"
 	"github.com/33cn/chain33/system/crypto/secp256k1"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"github.com/33cn/chain33/system/crypto/sm2"
 )
 
@@ -73,11 +74,14 @@ const (
 //ty = 5 -> RingBaseonED25519
 //ty = 1+offset(1<<8) -> secp256r1
 //ty = 2+offset(1<<8) -> sm2
+//ty=  3+offset(1<<8) -> bls
+//ty = 4+offset(1<<8) -> secp256k1eth
 const (
-	Invalid   = 0
-	SECP256K1 = secp256k1.ID
-	ED25519   = ed25519.ID
-	SM2       = sm2.ID
+	Invalid      = 0
+	SECP256K1    = secp256k1.ID
+	ED25519      = ed25519.ID
+	SM2          = sm2.ID
+	SECP256K1ETH = secp256k1eth.ID
 )
 
 //log type

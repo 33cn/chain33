@@ -179,6 +179,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
 	q.SetConfig(cfg)
 	blockchainProcess(q)
+	rpcProcess(q)
 	execProcess(q)
 	mcfg.Mempool.PoolCacheSize = int64(size)
 	subConfig := SubConfig{mcfg.Mempool.PoolCacheSize, mcfg.Mempool.MinTxFeeRate}
@@ -1131,6 +1132,18 @@ func blockchainProcess(q queue.Queue) {
 	}()
 }
 
+func rpcProcess(q queue.Queue) {
+	go func() {
+		client := q.Client()
+		client.Sub("rpc")
+		for msg := range client.Recv() {
+			switch msg.Ty {
+			case types.EventGetEvmNonce:
+				msg.Reply(client.NewMessage("", types.EventGetEvmNonce, &types.EvmAccountNonce{Nonce: int64(1)}))
+			}
+		}
+	}()
+}
 func execProcess(q queue.Queue) {
 	go func() {
 		client := q.Client()
@@ -1435,5 +1448,62 @@ func Test_addDelayTxFromBlock(t *testing.T) {
 	delayTime, ok := cache.contains(delayTx.Hash())
 	require.Equal(t, 11, int(delayTime))
 	require.True(t, ok)
+
+}
+
+func Test_sortEthSignTyTx(t *testing.T) {
+	pub, err := common.FromHex("0x04715e4e07d983c2d98eeac7018bce6e68ef9de25835340f6455f1b1c9686132ac54904f5e04b07966a256140a5f487c4aef3ddc461e02d58f90cc8baa49f9c7ca")
+	require.Nil(t, err)
+	sig := &types.Signature{
+		Ty:     8452,
+		Pubkey: pub,
+	}
+	tx1 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr, Nonce: 1, Signature: sig}
+	tx2 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr, Nonce: 2, Signature: sig}
+	tx3 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 3, Signature: sig}
+	tx4 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 4, Signature: sig}
+	tx5 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 6, Signature: sig}
+	var txs []*types.Transaction
+	txs = append(txs, tx4, tx3, tx1, tx2, tx5)
+	_, mem := initEnv(1)
+	txs = mem.sortEthSignTyTx(txs)
+	//对排序后的结果进行校验
+	require.Equal(t, 4, len(txs))
+	require.Equal(t, txs[0].GetNonce(), tx1.GetNonce())
+	require.Equal(t, txs[1].GetNonce(), tx2.GetNonce())
+	require.Equal(t, txs[2].GetNonce(), tx3.GetNonce())
+	require.Equal(t, txs[3].GetNonce(), tx4.GetNonce())
+
+}
+
+func Test_checkTxNonce(t *testing.T) {
+	pub, err := common.FromHex("0x04715e4e07d983c2d98eeac7018bce6e68ef9de25835340f6455f1b1c9686132ac54904f5e04b07966a256140a5f487c4aef3ddc461e02d58f90cc8baa49f9c7ca")
+	require.Nil(t, err)
+	sig := &types.Signature{
+		Ty:     8452,
+		Pubkey: pub,
+	}
+	//相同的NONCE，tx2手续费更高
+	tx1 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000, Expire: 0, To: toAddr, Nonce: 1, Signature: sig}
+	tx2 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 110002, Expire: 0, To: toAddr, Nonce: 1, Signature: sig}
+	tx3 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 10000, Expire: 0, To: toAddr, Nonce: 3, Signature: sig}
+	tx4 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 110000, Expire: 0, To: toAddr, Nonce: 3, Signature: sig}
+	q, mem := initEnv(10)
+	mem.PushTx(tx1)
+	mem.PushTx(tx2)
+	//用tx2 较高的手续费替换 超过10%的费率增长，预期成
+	msg := q.Client().NewMessage("", 0, tx2)
+	cmsg := mem.checkTxNonce(msg)
+	ctx := cmsg.GetData().(*types.Transaction)
+	require.Equal(t, tx2.GetTxFee(), ctx.GetFee())
+
+	//------用较低的手续费替换交易,必然失败，预期失败
+
+	mem.PushTx(tx4)
+	mem.PushTx(tx3)
+	msg = q.Client().NewMessage("", 0, tx3)
+	dmsg := mem.checkTxNonce(msg)
+	err = fmt.Errorf("requires at least 10 percent increase in handling fee,need more:%d", int64(float64(tx4.Fee)*1.1)-tx3.Fee)
+	require.Equal(t, err, dmsg.Err())
 
 }
