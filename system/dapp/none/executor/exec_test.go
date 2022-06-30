@@ -75,7 +75,7 @@ func TestNone_CheckTx(t *testing.T) {
 func TestNone_Exec_CommitDelayTx(t *testing.T) {
 
 	_, dbDir, n, cfg := initTestNone()
-	n.SetEnv(1, types.Now().Unix(), 10)
+	n.SetEnv(1, 1656569131, 10)
 	defer util.CloseTestDB(dbDir, n.GetStateDB().(db.DB))
 	addr, priv := util.Genaddress()
 	delayTx := util.CreateNoneTx(cfg, priv)
@@ -97,7 +97,7 @@ func TestNone_Exec_CommitDelayTx(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, common.ToHex(delayTx.Hash()), info.DelayTxHash)
 	require.Equal(t, addr, info.Submitter)
-	require.True(t, 1 == info.DelayBeginHeight)
+	require.Equal(t, int64(1656569131), info.DelayBeginTimestamp)
 }
 
 func TestNone_ExecLocal_CommitDelayTx(t *testing.T) {
