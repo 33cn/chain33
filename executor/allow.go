@@ -14,8 +14,6 @@ import (
 )
 
 func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction, index int) bool {
-	//key= mval-evmcoins-stat: addr
-	//return execName
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer))
