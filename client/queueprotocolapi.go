@@ -18,6 +18,8 @@ type QueueProtocolAPI interface {
 	// +++++++++++++++ mempool interfaces begin
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
 	SendTx(param *types.Transaction) (*types.Reply, error)
+	// types.EventGetAddrTxs
+	GetTxListByAddr(param *types.ReqAddrs) (*types.TransactionDetails, error)
 	// types.EventTxList
 	GetTxList(param *types.TxHashList) (*types.ReplyTxList, error)
 	// types.EventGetMempool
@@ -26,6 +28,8 @@ type QueueProtocolAPI interface {
 	GetLastMempool() (*types.ReplyTxList, error)
 	// types.EventGetProperFee
 	GetProperFee(req *types.ReqProperFee) (*types.ReplyProperFee, error)
+	//types.EventDelTxList
+	RemoveTxsByHashList(hashList *types.TxHashList) error
 	// +++++++++++++++ execs interfaces begin
 	// types.EventBlockChainQuery
 	Query(driver, funcname string, param types.Message) (types.Message, error)

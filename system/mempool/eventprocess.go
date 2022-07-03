@@ -51,21 +51,7 @@ func (mem *Mempool) pipeLine() <-chan *queue.Message {
 		chs2[i] = step(mem.done, out1, step2)
 	}
 
-	out2 := merge(mem.done, chs2)
-	//check nonce 增加一步，检查相同nonce 下加速交易的问题
-	step3 := func(data *queue.Message) *queue.Message {
-		if data.Err() != nil {
-			return data
-		}
-		return mem.checkTxNonce(data)
-	}
-
-	chs3 := make([]<-chan *queue.Message, processNum)
-	for i := 0; i < processNum; i++ {
-		chs3[i] = step(mem.done, out2, step3)
-	}
-
-	return merge(mem.done, chs3)
+	return merge(mem.done, chs2)
 }
 
 // 处理其他模块的消息

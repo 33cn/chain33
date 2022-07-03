@@ -344,6 +344,7 @@ func New(cfg *types.Chain33Config) *RPC {
 	if mcfg.EnableTrace {
 		grpc.EnableTracing = true
 	}
+
 	return &RPC{cfg: mcfg, allCfg: cfg}
 }
 
@@ -392,6 +393,7 @@ func (r *RPC) handleSysEvent() {
 	var cli rclient.ChannelClient
 	cli.Init(r.cli, r.api)
 	for msg := range r.cli.Recv() {
+
 		switch msg.Ty {
 		case types.EventGetEvmNonce:
 			addr := msg.GetData().(*types.ReqEvmAccountNonce)
@@ -519,6 +521,7 @@ func (r *RPC) JRPC() *rpc.Server {
 
 // Close rpc close
 func (r *RPC) Close() {
+
 	if r.gapi != nil {
 		r.gapi.Close()
 	}
@@ -531,6 +534,7 @@ func (r *RPC) Close() {
 	if r.ewsapi != nil {
 		r.ewsapi.Close()
 	}
+	r.cli.Close()
 }
 
 // InitIPWhitelist init ip whitelist
