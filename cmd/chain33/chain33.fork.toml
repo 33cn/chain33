@@ -25,6 +25,9 @@ ForkTicketFundAddrV1=3350000
 ForkRootHash=4500000
 ForkFormatAddressKey=0
 
+[fork.sub.none]
+ForkUseTimeDelay=0
+
 [fork.sub.coins]
 Enable=0
 

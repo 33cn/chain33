@@ -5,7 +5,6 @@
 package mempool
 
 import (
-	"math"
 	"sync"
 
 	"github.com/33cn/chain33/types"
@@ -165,20 +164,18 @@ func (cache *txCache) getTxByHash(hash string) *types.Transaction {
 
 //delayTxCache 延时交易缓存
 type delayTxCache struct {
-	size              int
-	txCache           map[int64][]*types.Transaction // 以延时时间作为key索引
-	hashCache         map[string]int64               //哈希缓存，用于查重
-	lock              sync.RWMutex
-	minDelayBlockTime int64
+	size      int
+	txCache   map[int64][]*types.Transaction // 以延时时间作为key索引
+	hashCache map[string]int64               //哈希缓存，用于查重
+	lock      sync.RWMutex
 }
 
 // new txCache
 func newDelayTxCache(size int) *delayTxCache {
 	return &delayTxCache{
-		size:              size,
-		txCache:           make(map[int64][]*types.Transaction, 16),
-		hashCache:         make(map[string]int64, 32),
-		minDelayBlockTime: math.MaxInt64,
+		size:      size,
+		txCache:   make(map[int64][]*types.Transaction, 16),
+		hashCache: make(map[string]int64, 32),
 	}
 }
 
@@ -206,11 +203,6 @@ func (c *delayTxCache) addDelayTx(tx *types.DelayTx) error {
 	}
 	txList = append(txList, tx.GetTx())
 	c.txCache[tx.EndDelayTime] = txList
-
-	// record min block time delay
-	if tx.EndDelayTime > types.ExpireBound && tx.EndDelayTime < c.minDelayBlockTime {
-		c.minDelayBlockTime = tx.EndDelayTime
-	}
 	return nil
 }
 
@@ -223,10 +215,7 @@ func (c *delayTxCache) delExpiredTxs(lastBlockTime, currBlockTime, currBlockHeig
 		return nil
 	}
 	delList := make([]*types.Transaction, 0)
-	// narrow loop range
-	if lastBlockTime < c.minDelayBlockTime {
-		lastBlockTime = c.minDelayBlockTime - 1
-	}
+
 	// 延时时刻为区块时间
 	for t := lastBlockTime + 1; t <= currBlockTime; t++ {
 

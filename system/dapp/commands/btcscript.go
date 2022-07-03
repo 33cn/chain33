@@ -43,29 +43,29 @@ func getWalletRecoveryFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("recoverPub", "r", "", "recovery address public key(hex format)")
 	cmd.MarkFlagRequired("recoverPub")
 
-	cmd.Flags().Int64P("delayheight", "t", 1, "relative delay height")
-	cmd.MarkFlagRequired("delayheight")
+	cmd.Flags().Int64P("delaytime", "t", 100, "relative delay time(seconds)")
+	cmd.MarkFlagRequired("delaytime")
 }
 
 func getWalletRecoveryAddr(cmd *cobra.Command, args []string) {
 	ctrPub, _ := cmd.Flags().GetString("controlPub")
 	recovPub, _ := cmd.Flags().GetString("recoverPub")
-	delayHeight, _ := cmd.Flags().GetInt64("delayheight")
+	delayTime, _ := cmd.Flags().GetInt64("delaytime")
 
 	if ctrPub == "" || recovPub == "" {
 		fmt.Fprintf(os.Stderr, "invalid control/recovery pubKey\n")
 		return
 	}
 
-	if delayHeight < 0 {
-		fmt.Fprintf(os.Stderr, "negetive delay height param\n")
+	if delayTime < 1 {
+		fmt.Fprintf(os.Stderr, "negetive delay time param\n")
 		return
 	}
 
 	req := &types.ReqGetWalletRecoverAddr{
-		CtrPubKey:           ctrPub,
-		RecoverPubKey:       recovPub,
-		RelativeDelayHeight: delayHeight,
+		CtrPubKey:         ctrPub,
+		RecoverPubKey:     recovPub,
+		RelativeDelayTime: delayTime,
 	}
 	var res string
 	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
@@ -98,8 +98,8 @@ func signWalletRecoveryTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("recoverPub", "r", "", "recovery address public key(hex format)")
 	cmd.MarkFlagRequired("recoverPub")
 
-	cmd.Flags().Int64P("delayheight", "t", 1, "relative delay height")
-	cmd.MarkFlagRequired("delayheight")
+	cmd.Flags().Int64P("delaytime", "t", 100, "relative delay time(seconds)")
+	cmd.MarkFlagRequired("delaytime")
 }
 
 func signWalletRecoveryTx(cmd *cobra.Command, args []string) {
@@ -109,7 +109,7 @@ func signWalletRecoveryTx(cmd *cobra.Command, args []string) {
 	txdata, _ := cmd.Flags().GetString("txdata")
 	ctrPub, _ := cmd.Flags().GetString("controlPub")
 	recovPub, _ := cmd.Flags().GetString("recoverPub")
-	delayHeight, _ := cmd.Flags().GetInt64("delayheight")
+	delayTime, _ := cmd.Flags().GetInt64("delaytime")
 
 	if privKey == "" && addr == "" {
 		fmt.Fprintf(os.Stderr, "sign private key or address must be provided\n")
@@ -121,15 +121,15 @@ func signWalletRecoveryTx(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if delayHeight < 0 {
+	if delayTime < 0 {
 		fmt.Fprintf(os.Stderr, "negetive delay height param\n")
 		return
 	}
 
 	walletRecov := &types.ReqGetWalletRecoverAddr{
-		CtrPubKey:           ctrPub,
-		RecoverPubKey:       recovPub,
-		RelativeDelayHeight: delayHeight,
+		CtrPubKey:         ctrPub,
+		RecoverPubKey:     recovPub,
+		RelativeDelayTime: delayTime,
 	}
 
 	req := &types.ReqSignWalletRecoverTx{

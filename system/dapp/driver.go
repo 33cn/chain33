@@ -53,7 +53,7 @@ type Driver interface {
 	SetName(string)
 	SetCurrentExecName(string)
 	Allow(tx *types.Transaction, index int) error
-	IsFriend(myexec []byte, writekey []byte, othertx *types.Transaction) bool
+	IsFriend(selfexec []byte, writekey []byte, othertx *types.Transaction) bool
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64, difficulty uint64)
 	SetBlockInfo([]byte, []byte, int64)

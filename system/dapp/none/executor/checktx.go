@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	errNilDelayTx        = errors.New("errNilDelayTx")
-	errDuplicateDelayTx  = errors.New("errDuplicateDelayTx")
-	errNegativeDelayTime = errors.New("errNegativeDelayTime")
-	errDecodeDelayTx     = errors.New("errDecodeDelayTx")
+	errNilDelayTx       = errors.New("errNilDelayTx")
+	errDuplicateDelayTx = errors.New("errDuplicateDelayTx")
+	errInvalidDelayTime = errors.New("errInvalidDelayTime")
+	errDecodeDelayTx    = errors.New("errDecodeDelayTx")
 )
 
 // CheckTx 实现自定义检验交易接口，供框架调用
@@ -55,8 +55,11 @@ func (n *None) checkCommitDelayTx(tx *types.Transaction, commit *nty.CommitDelay
 		return errNilDelayTx
 	}
 
-	if commit.GetRelativeDelayHeight() < 0 {
-		return errNegativeDelayTime
+	cfg := n.GetAPI().GetConfig()
+	isFork := cfg.IsDappFork(n.GetHeight(), nty.NoneX, nty.ForkUseTimeDelay)
+	if (isFork && commit.GetRelativeDelayTime() < 1) ||
+		(!isFork && commit.GetRelativeDelayHeight() < 0) {
+		return errInvalidDelayTime
 	}
 
 	_, err = n.GetStateDB().Get(formatDelayTxKey(delayTx.Hash()))

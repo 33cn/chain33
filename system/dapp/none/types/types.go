@@ -35,8 +35,14 @@ const (
 // query func name
 const (
 
-	// QueryGetDelayBegin query func name
-	QueryGetDelayBegin = "GetDelayBeginHeight"
+	// QueryGetDelayTxInfo query func name
+	QueryGetDelayTxInfo = "GetDelayTxInfo"
+)
+
+// fork
+const (
+	// ForkUseTimeDelay use block time as delay type, instead of block height
+	ForkUseTimeDelay = "ForkUseTimeDelay"
 )
 
 var (
@@ -60,6 +66,7 @@ func init() {
 
 //InitFork init
 func InitFork(cfg *types.Chain33Config) {
+	cfg.RegisterDappFork(NoneX, ForkUseTimeDelay, 0)
 }
 
 //InitExecutor init Executor
@@ -87,17 +94,23 @@ func (n *NoneType) GetPayload() types.Message {
 
 //DecodePayloadValue decode payload value
 func (n *NoneType) DecodePayloadValue(tx *types.Transaction) (string, reflect.Value, error) {
-	name, value, err := n.decodePayload(tx)
+	name, value, err := decodeNonePayload(tx)
 	return name, value, err
 }
 
 // ActionName return action a string name
 func (n *NoneType) ActionName(tx *types.Transaction) string {
-	name, _, _ := n.decodePayload(tx)
+	return ActionName(tx)
+}
+
+// ActionName return action a string name
+func ActionName(tx *types.Transaction) string {
+	name, _, _ := decodeNonePayload(tx)
 	return name
 }
 
-func (n *NoneType) decodePayload(tx *types.Transaction) (string, reflect.Value, error) {
+// decodeNonePayload decode payload
+func decodeNonePayload(tx *types.Transaction) (string, reflect.Value, error) {
 
 	action := &NoneAction{}
 	err := types.Decode(tx.Payload, action)

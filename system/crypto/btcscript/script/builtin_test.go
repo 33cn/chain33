@@ -20,7 +20,7 @@ func Test_WalletRecoveryScript(t *testing.T) {
 
 	_, controlKey := util.Genaddress()
 	_, recoverKey := util.Genaddress()
-	delayTime := int64(10) //10 block height
+	delayTime := int64(10) //10 s
 
 	pkScript, err := script.NewWalletRecoveryScript(
 		controlKey.PubKey().Bytes(), recoverKey.PubKey().Bytes(), delayTime)
@@ -45,16 +45,16 @@ func Test_WalletRecoveryScript(t *testing.T) {
 
 	api := new(mocks.QueueProtocolAPI)
 	cryptocli.SetQueueAPI(api)
-	cryptocli.SetCurrentBlock(delayTime-1, types.Now().Unix())
+	cryptocli.SetCurrentBlock(delayTime-1, delayTime+1)
 	runFn := func(args mock.Arguments) {
 		execer := args.Get(0).(string)
 		require.Equal(t, nty.NoneX, execer)
 		funcName := args.Get(1).(string)
-		require.Equal(t, nty.QueryGetDelayBegin, funcName)
+		require.Equal(t, nty.QueryGetDelayTxInfo, funcName)
 		param := args.Get(2).(*types.ReqBytes)
 		require.Equal(t, tx.Hash(), param.Data)
 	}
-	api.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&types.Int64{}, nil).Run(runFn)
+	api.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&nty.CommitDelayTxLog{DelayBeginTimestamp: 1}, nil).Run(runFn)
 
 	// withdraw wallet balance with recover address
 	sig, pubKey, err = script.GetWalletRecoverySignature(true, signMsg, recoverKey.Bytes(),

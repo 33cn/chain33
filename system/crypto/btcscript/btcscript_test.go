@@ -229,13 +229,13 @@ func TestDriver_Validate(t *testing.T) {
 	sig.LockScript = []byte("testlockscript")
 	err = d.Validate(nil, []byte("testpub"), types.Encode(sig))
 	require.Equal(t, errInvalidLockScript, err)
-	sig.LockTime = 100
-	cryptocli.SetCurrentBlock(10, types.Now().Unix())
+	sig.LockTime = 11
+	cryptocli.SetCurrentBlock(0, 10)
 	pubKey := script.Script2PubKey(sig.LockScript)
 	err = d.Validate(nil, pubKey, types.Encode(sig))
 	require.Equal(t, errInvalidLockTime, err)
-	sig.LockTime = 11
-	sig.UtxoSequence = 12
+	sig.LockTime = 10
+	sig.UtxoSequence = 10
 
 	err = d.Validate([]byte("testmsg"), pubKey, types.Encode(sig))
 	require.Equal(t, errDecodeValidateTx, err)
@@ -251,14 +251,14 @@ func TestDriver_Validate(t *testing.T) {
 	api.On("Query", mock.Anything, mock.Anything,
 		mock.Anything).Return(nil, nil).Once()
 	err = d.Validate(txMsg, pubKey, types.Encode(sig))
-	require.Equal(t, errInvalidUtxoSequence, err)
+	require.Equal(t, errQueryDelayBeginTime, err)
 
 	api.On("Query", mock.Anything, mock.Anything,
-		mock.Anything).Return(&types.Int64{}, nil)
+		mock.Anything).Return(&nty.CommitDelayTxLog{DelayBeginTimestamp: 1}, nil)
 	err = d.Validate(txMsg, pubKey, types.Encode(sig))
 	require.Equal(t, errInvalidUtxoSequence, err)
 
-	cryptocli.SetCurrentBlock(11, types.Now().Unix())
+	cryptocli.SetCurrentBlock(1, 11)
 	err = d.Validate(txMsg, pubKey, types.Encode(sig))
 	require.Equal(t, errInvalidBtcSignature, err)
 }

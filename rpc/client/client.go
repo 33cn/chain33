@@ -435,7 +435,7 @@ func (c *ChannelClient) getWalletRecoverAddr(param *types.ReqGetWalletRecoverAdd
 		return nil, nil, types.ErrFromHex
 	}
 
-	pkScript, err := script.NewWalletRecoveryScript(ctrPub, recoverPub, param.GetRelativeDelayHeight())
+	pkScript, err := script.NewWalletRecoveryScript(ctrPub, recoverPub, param.GetRelativeDelayTime())
 	if err != nil {
 		log.Error("getWalletRecoverAddr", "new wallet recover script err", err)
 		return nil, nil, err
@@ -447,7 +447,7 @@ func (c *ChannelClient) getWalletRecoverAddr(param *types.ReqGetWalletRecoverAdd
 func (c *ChannelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr) (*types.ReplyString, error) {
 
 	if len(req.GetCtrPubKey()) <= 0 || len(req.GetRecoverPubKey()) <= 0 ||
-		req.GetRelativeDelayHeight() <= 0 {
+		req.GetRelativeDelayTime() < 1 {
 		log.Error("GetWalletRecoverAddr", "invalid req", req.String())
 		return nil, types.ErrInvalidParam
 	}
@@ -500,7 +500,7 @@ func (c *ChannelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 	// if wallet recover with recover addr
 	isRetrive := bytes.Equal(pk.SerializeCompressed(), recoverPub)
 	sig, pubKey, err := script.GetWalletRecoverySignature(isRetrive, signMsg, privKey,
-		wrScript, req.GetWalletRecoverParam().GetRelativeDelayHeight())
+		wrScript, req.GetWalletRecoverParam().GetRelativeDelayTime())
 	if err != nil {
 		log.Error("SignWalletRecoverTx", "get wallet recover sig err", err)
 		return nil, err

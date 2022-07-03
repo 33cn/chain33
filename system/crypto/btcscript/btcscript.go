@@ -51,7 +51,7 @@ func (d Driver) Validate(msg, pk, sig []byte) error {
 
 	ctx := cryptocli.GetCryptoContext()
 	// check btc script lock time , lockTime <= blockHeight
-	if ssig.LockTime > ctx.CurrBlockHeight+1 {
+	if ssig.LockTime > ctx.CurrBlockTime {
 		return errInvalidLockTime
 	}
 
@@ -63,13 +63,19 @@ func (d Driver) Validate(msg, pk, sig []byte) error {
 		if err != nil {
 			return errDecodeValidateTx
 		}
-		reply, err := ctx.API.Query(nty.NoneX, nty.QueryGetDelayBegin, &types.ReqBytes{Data: tx.Hash()})
-		if err != nil {
+		reply, err := ctx.API.Query(nty.NoneX, nty.QueryGetDelayTxInfo, &types.ReqBytes{Data: tx.Hash()})
+		delayInfo, ok := reply.(*nty.CommitDelayTxLog)
+		if err != nil || !ok {
 			return errQueryDelayBeginTime
 		}
-
-		val, ok := reply.(*types.Int64)
-		if !ok || val.Data+ssig.UtxoSequence > ctx.CurrBlockHeight+1 {
+		// blocktime as delay time
+		delayTime := ctx.CurrBlockTime - delayInfo.GetDelayBeginTimestamp()
+		// block height as delay time
+		if delayInfo.GetDelayBeginTimestamp() <= 0 {
+			delayTime = ctx.CurrBlockHeight - delayInfo.GetDelayBeginHeight()
+		}
+		// ensure enough delay time
+		if delayTime < ssig.UtxoSequence {
 			return errInvalidUtxoSequence
 		}
 	}
