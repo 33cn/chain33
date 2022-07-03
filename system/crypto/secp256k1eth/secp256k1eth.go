@@ -182,14 +182,12 @@ func (pubKey PubKeySecp256k1Eth) Bytes() []byte {
 
 //VerifyBytes 验证字节
 func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) bool {
-	fmt.Println("PubKeySecp256k1Eth VerifyBytes step1")
 	var hash []byte
 	action, err := types.DecodeTxAction(msg)
 	if err == nil && len(action.Note) == 0 || err != nil {
 		//chain33格式交易，sha3哈希 eth 签名
 		hash = common.Sha3(msg)
 	} else { //解析ETH交易数据
-		fmt.Println("PubKeySecp256k1Eth VerifyBytes step2")
 		var etx = new(etypes.Transaction)
 		err := etx.UnmarshalBinary(action.Note)
 		if err != nil {

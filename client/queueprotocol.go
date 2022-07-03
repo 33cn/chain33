@@ -156,6 +156,44 @@ func (q *QueueProtocol) GetTxList(param *types.TxHashList) (*types.ReplyTxList, 
 	return nil, types.ErrTypeAsset
 }
 
+//GetTxListByAddr get transactions by addr from mempool
+func (q *QueueProtocol) GetTxListByAddr(param *types.ReqAddrs) (*types.TransactionDetails, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetTxList", "Error", err)
+		return nil, err
+	}
+	msg, err := q.send(mempoolKey, types.EventGetAddrTxs, param)
+	if err != nil {
+		log.Error("GetTxList", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.TransactionDetails); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+//RemoveTxsByHashList remove txs by tx  hash list
+func (q *QueueProtocol) RemoveTxsByHashList(hashList *types.TxHashList) error {
+	if hashList == nil {
+		err := types.ErrInvalidParam
+		log.Error("RemoveTxsByHashList", "Error", err)
+		return err
+	}
+	msg, err := q.send(mempoolKey, types.EventDelTxList, hashList)
+	if err != nil {
+		log.Error("RemoveTxsByHashList", "Error", err.Error())
+		return err
+	}
+	var ok bool
+	err, ok = msg.GetData().(error)
+	if !ok {
+		return err
+	}
+	return nil
+}
+
 // GetBlocks get block detail from blockchain
 func (q *QueueProtocol) GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error) {
 	if param == nil {

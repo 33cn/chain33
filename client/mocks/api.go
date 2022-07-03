@@ -771,6 +771,29 @@ func (_m *QueueProtocolAPI) GetTxList(param *types.TxHashList) (*types.ReplyTxLi
 	return r0, r1
 }
 
+// GetTxListByAddr provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetTxListByAddr(param *types.ReqAddrs) (*types.TransactionDetails, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.TransactionDetails
+	if rf, ok := ret.Get(0).(func(*types.ReqAddrs) *types.TransactionDetails); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.TransactionDetails)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqAddrs) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // IsNtpClockSync provides a mock function with given fields:
 func (_m *QueueProtocolAPI) IsNtpClockSync() (*types.Reply, error) {
 	ret := _m.Called()
@@ -1200,6 +1223,20 @@ func (_m *QueueProtocolAPI) QueryTx(param *types.ReqHash) (*types.TransactionDet
 	}
 
 	return r0, r1
+}
+
+// RemoveTxsByHashList provides a mock function with given fields: hashList
+func (_m *QueueProtocolAPI) RemoveTxsByHashList(hashList *types.TxHashList) error {
+	ret := _m.Called(hashList)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.TxHashList) error); ok {
+		r0 = rf(hashList)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // SendDelayTx provides a mock function with given fields: param, waitReply
