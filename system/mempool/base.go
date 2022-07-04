@@ -5,6 +5,7 @@
 package mempool
 
 import (
+	"bytes"
 	"encoding/hex"
 	"sort"
 	"sync"
@@ -182,19 +183,17 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 //对eth signtype 的交易，同地址下nonce 按照从小到达的顺序排序
 //确保nonce 按照递增顺序发给blockchain
 func (mem *Mempool) sortEthSignTyTx(txs []*types.Transaction) []*types.Transaction {
-	if mem.api.GetConfig().IsPara() {
-		//平行链架构下，主链节点无法获取到平行链evm的nonce
-		return txs
-	}
-
+	//平行链架构下，主链节点无法获取到平行链evm的nonce
 	var merge []*types.Transaction
 	var ethsignTxs = make(map[string][]*types.Transaction)
 	for _, tx := range txs {
-		if types.IsEthSignID(tx.GetSignature().GetTy()) {
+		//只有eth 签名且非平行链交易才能进入mempool 中进行 nonce 排序
+		if types.IsEthSignID(tx.GetSignature().GetTy()) && !bytes.HasPrefix(tx.GetExecer(), []byte(types.ParaKeyX)) {
 			//暂时不考虑组交易的情况
 			ethsignTxs[tx.From()] = append(ethsignTxs[tx.From()], tx)
 			continue
 		}
+		//非eth 签名 和 平行链交易 在主网节点中直接返回给blockchain,因为主网节点不知道此tx.From地址在主网节点的nonce 状态，没法排序，只能在平行链节点rpc层过滤掉
 		merge = append(merge, tx)
 	}
 	//没有ethsign 交易直接返回

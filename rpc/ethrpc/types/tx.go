@@ -81,10 +81,11 @@ func makeDERSigToRSV(eipSigner etypes.Signer, sig []byte) (r, s, v *big.Int, err
 		fmt.Println("makeDERSigToRSV", "err", err.Error(), "sig", hexutil.Encode(sig))
 		return nil, nil, nil, err
 	}
-	var signature []byte
-	signature = append(signature, rb...)
-	signature = append(signature, sb...)
-	signature = append(signature, 0x00)
+
+	signature := make([]byte, 65)
+	copy(signature[32-len(rb):32], rb)
+	copy(signature[64-len(sb):64], sb)
+	signature[64] = 0x00
 	r, s, v = decodeSignature(signature)
 	if eipSigner.ChainID().Sign() != 0 {
 		v = big.NewInt(int64(signature[64] + 35))
@@ -515,7 +516,7 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 		}
 		action.ContractAddr = to
 
-	} else {
+	} else { // coins 操作
 		to = etx.To().String()
 		//coins 转账,para为目的地址
 		action.Para = common.FromHex(to)
