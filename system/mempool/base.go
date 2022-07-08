@@ -175,8 +175,12 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 		}
 		return true
 	})
-	//对txs 进行排序
-	txs = mem.sortEthSignTyTx(txs)
+
+	if mem.cfg.EnableEthCheck {
+		//对txs 进行排序
+		txs = mem.sortEthSignTyTx(txs)
+	}
+
 	return txs
 }
 

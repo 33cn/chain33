@@ -116,6 +116,8 @@ type Mempool struct {
 	MaxTxFee int64 `json:"maxTxFee,omitempty"`
 	// 目前execCheck效率较低，支持关闭交易execCheck，提升性能
 	DisableExecCheck bool `json:"disableExecCheck,omitempty"`
+	//开启ETH交易类型的检查
+	EnableEthCheck bool `json:"enableEthCheck,omitempty"`
 }
 
 // Consensus 配置
