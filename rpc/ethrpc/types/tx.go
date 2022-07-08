@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 
@@ -542,6 +543,8 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 			Signature: sig,
 		},
 	}
+	//为了防止认为设置过高的nonce,挤占mempool空间，允许最大3小时的超时时间
+	chain33Tx.SetExpire(cfg, time.Hour*3)
 	chain33Tx.Nonce = int64(etx.Nonce())
 	if cfg.IsPara() {
 		chain33Tx.To = address.ExecAddress(string(chain33Tx.Execer))
