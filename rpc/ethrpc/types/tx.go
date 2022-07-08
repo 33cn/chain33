@@ -79,7 +79,7 @@ func makeDERSigToRSV(eipSigner etypes.Signer, sig []byte) (r, s, v *big.Int, err
 
 	rb, sb, err := paraseDERCode(sig)
 	if err != nil {
-		fmt.Println("makeDERSigToRSV", "err", err.Error(), "sig", hexutil.Encode(sig))
+		log.Error("makeDERSigToRSV", "paraseDERCode err", err.Error(), "sig", hexutil.Encode(sig))
 		return nil, nil, nil, err
 	}
 
