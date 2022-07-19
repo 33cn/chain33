@@ -285,7 +285,8 @@ func Test_wallet_recover_transaction(t *testing.T) {
 	require.Nil(t, err)
 
 	delay := int64(10)
-	wrScript, err := script.NewWalletRecoveryScript(priv1.PubKey().Bytes(), priv2.PubKey().Bytes(), delay)
+	wrScript, err := script.NewWalletRecoveryScript(priv1.PubKey().Bytes(),
+		[][]byte{priv2.PubKey().Bytes()}, delay)
 	require.Nil(t, err)
 	//wrAddr := address.PubKeyToAddr(script.Script2PubKey(wrScript))
 	//println(wrAddr)
