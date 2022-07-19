@@ -452,8 +452,8 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 	addr1, priv1 := util.Genaddress()
 	_, priv2 := util.Genaddress()
 	req.CtrPubKey = common.ToHex(priv1.PubKey().Bytes())
-	req.RecoverPubKey = common.ToHex(priv2.PubKey().Bytes())
-	_, err = cli.GetWalletRecoverAddr(req)
+	req.RecoverPubKeys = []string{common.ToHex(priv2.PubKey().Bytes())}
+	addr, err := cli.GetWalletRecoverAddr(req)
 	require.Nil(t, err)
 
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
@@ -477,6 +477,7 @@ func TestChannelClient_GetWalletRecoverScript(t *testing.T) {
 	err = types.Decode(txByte, tx)
 	require.Nil(t, err)
 	require.True(t, tx.CheckSign(0))
+	require.Equal(t, addr.Data, tx.From())
 }
 
 func TestChannelClient_SignWalletRecoverTx(t *testing.T) {
