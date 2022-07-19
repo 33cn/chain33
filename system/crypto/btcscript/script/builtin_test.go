@@ -1,6 +1,7 @@
 package script_test
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/33cn/chain33/client/mocks"
@@ -19,33 +20,39 @@ import (
 func Test_WalletRecoveryScript(t *testing.T) {
 
 	_, controlKey := util.Genaddress()
-	_, recoverKey := util.Genaddress()
+	_, recoverKey1 := util.Genaddress()
+	_, recoverKey2 := util.Genaddress()
+	_, invalidKey := util.Genaddress()
 	delayTime := int64(10) //10 s
 
 	pkScript, err := script.NewWalletRecoveryScript(
-		controlKey.PubKey().Bytes(), recoverKey.PubKey().Bytes(), delayTime)
+		controlKey.PubKey().Bytes(),
+		[][]byte{recoverKey1.PubKey().Bytes(), recoverKey2.PubKey().Bytes()},
+		delayTime)
 
 	require.Nil(t, err)
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	tx := util.CreateNoneTx(cfg, nil)
 	signMsg := types.Encode(tx)
 
-	// withdraw wallet balance with control address
-	sig, pubKey, err := script.GetWalletRecoverySignature(false, signMsg, controlKey.Bytes(),
-		pkScript, delayTime)
-
-	require.Nil(t, err)
-
-	tx.Signature = &types.Signature{
-		Ty:        btcscript.ID,
-		Pubkey:    pubKey,
-		Signature: sig,
+	signAndCheck := func(isRetrieve bool, priv []byte, delay int64, expectResult bool) {
+		t.Logf("privKey:%s", hex.EncodeToString(priv))
+		sig, pubKey, err := script.GetWalletRecoverySignature(isRetrieve, signMsg, priv, pkScript, delay)
+		require.Nil(t, err)
+		tx.Signature = &types.Signature{
+			Ty:        btcscript.ID,
+			Pubkey:    pubKey,
+			Signature: sig,
+		}
+		require.Equal(t, expectResult, tx.CheckSign(-1))
 	}
-	require.True(t, tx.CheckSign(0))
+
+	// withdraw wallet balance with control address
+	signAndCheck(false, controlKey.Bytes(), 0, true)
 
 	api := new(mocks.QueueProtocolAPI)
 	cryptocli.SetQueueAPI(api)
-	cryptocli.SetCurrentBlock(delayTime-1, delayTime+1)
+	cryptocli.SetCurrentBlock(0, delayTime+1)
 	runFn := func(args mock.Arguments) {
 		execer := args.Get(0).(string)
 		require.Equal(t, nty.NoneX, execer)
@@ -57,41 +64,15 @@ func Test_WalletRecoveryScript(t *testing.T) {
 	api.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&nty.CommitDelayTxLog{DelayBeginTimestamp: 1}, nil).Run(runFn)
 
 	// withdraw wallet balance with recover address
-	sig, pubKey, err = script.GetWalletRecoverySignature(true, signMsg, recoverKey.Bytes(),
-		pkScript, delayTime)
+	signAndCheck(true, recoverKey1.Bytes(), delayTime, true)
+	signAndCheck(true, recoverKey2.Bytes(), delayTime, true)
+	signAndCheck(true, recoverKey1.Bytes(), delayTime-1, false)
+	signAndCheck(false, recoverKey1.Bytes(), 0, false)
+	signAndCheck(false, recoverKey2.Bytes(), 0, false)
 
-	require.Nil(t, err)
-
-	tx.Signature = &types.Signature{
-		Ty:        btcscript.ID,
-		Pubkey:    pubKey,
-		Signature: sig,
-	}
-	require.True(t, tx.CheckSign(10))
-
-	// delay time not satisfied
-	sig, pubKey, err = script.GetWalletRecoverySignature(true, signMsg, recoverKey.Bytes(),
-		pkScript, delayTime-1)
-
-	require.Nil(t, err)
-	tx.Signature = &types.Signature{
-		Ty:        btcscript.ID,
-		Pubkey:    pubKey,
-		Signature: sig,
-	}
-	require.False(t, tx.CheckSign(10))
-
-	// without delay time
-	sig, pubKey, err = script.GetWalletRecoverySignature(false, signMsg, recoverKey.Bytes(),
-		pkScript, delayTime-1)
-
-	require.Nil(t, err)
-	tx.Signature = &types.Signature{
-		Ty:        btcscript.ID,
-		Pubkey:    pubKey,
-		Signature: sig,
-	}
-	require.False(t, tx.CheckSign(0))
+	// invalid key
+	signAndCheck(false, invalidKey.Bytes(), 0, false)
+	signAndCheck(true, invalidKey.Bytes(), delayTime, false)
 }
 
 func Test_MultisigScript(t *testing.T) {
