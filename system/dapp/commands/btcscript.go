@@ -40,19 +40,19 @@ func getWalletRecoveryFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("controlPub", "c", "", "control address public key(hex format)")
 	cmd.MarkFlagRequired("controlPub")
 
-	cmd.Flags().StringP("recoverPub", "r", "", "recovery address public key(hex format)")
+	cmd.Flags().StringArrayP("recoverPub", "r", nil, "recovery address public keys(hex format)")
 	cmd.MarkFlagRequired("recoverPub")
 
-	cmd.Flags().Int64P("delaytime", "t", 100, "relative delay time(seconds)")
+	cmd.Flags().Int64P("delaytime", "t", 0, "relative delay time(seconds)")
 	cmd.MarkFlagRequired("delaytime")
 }
 
 func getWalletRecoveryAddr(cmd *cobra.Command, args []string) {
 	ctrPub, _ := cmd.Flags().GetString("controlPub")
-	recovPub, _ := cmd.Flags().GetString("recoverPub")
+	recovPub, _ := cmd.Flags().GetStringArray("recoverPub")
 	delayTime, _ := cmd.Flags().GetInt64("delaytime")
 
-	if ctrPub == "" || recovPub == "" {
+	if ctrPub == "" || len(recovPub) == 0 {
 		fmt.Fprintf(os.Stderr, "invalid control/recovery pubKey\n")
 		return
 	}
@@ -64,7 +64,7 @@ func getWalletRecoveryAddr(cmd *cobra.Command, args []string) {
 
 	req := &types.ReqGetWalletRecoverAddr{
 		CtrPubKey:         ctrPub,
-		RecoverPubKey:     recovPub,
+		RecoverPubKeys:    recovPub,
 		RelativeDelayTime: delayTime,
 	}
 	var res string
@@ -95,10 +95,10 @@ func signWalletRecoveryTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("controlPub", "c", "", "control address public key(hex format)")
 	cmd.MarkFlagRequired("controlPub")
 
-	cmd.Flags().StringP("recoverPub", "r", "", "recovery address public key(hex format)")
+	cmd.Flags().StringArrayP("recoverPub", "r", nil, "recovery address public keys(hex format)")
 	cmd.MarkFlagRequired("recoverPub")
 
-	cmd.Flags().Int64P("delaytime", "t", 100, "relative delay time(seconds)")
+	cmd.Flags().Int64P("delaytime", "t", 0, "relative delay time(seconds)")
 	cmd.MarkFlagRequired("delaytime")
 }
 
@@ -108,7 +108,7 @@ func signWalletRecoveryTx(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	txdata, _ := cmd.Flags().GetString("txdata")
 	ctrPub, _ := cmd.Flags().GetString("controlPub")
-	recovPub, _ := cmd.Flags().GetString("recoverPub")
+	recovPub, _ := cmd.Flags().GetStringArray("recoverPub")
 	delayTime, _ := cmd.Flags().GetInt64("delaytime")
 
 	if privKey == "" && addr == "" {
@@ -116,7 +116,7 @@ func signWalletRecoveryTx(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if ctrPub == "" || recovPub == "" {
+	if ctrPub == "" || len(recovPub) == 0 {
 		fmt.Fprintf(os.Stderr, "invalid control/recovery pubKey\n")
 		return
 	}
@@ -128,7 +128,7 @@ func signWalletRecoveryTx(cmd *cobra.Command, args []string) {
 
 	walletRecov := &types.ReqGetWalletRecoverAddr{
 		CtrPubKey:         ctrPub,
-		RecoverPubKey:     recovPub,
+		RecoverPubKeys:    recovPub,
 		RelativeDelayTime: delayTime,
 	}
 

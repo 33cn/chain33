@@ -61,9 +61,11 @@ func Test_WalletRecoveryScript(t *testing.T) {
 		param := args.Get(2).(*types.ReqBytes)
 		require.Equal(t, tx.Hash(), param.Data)
 	}
-	api.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&nty.CommitDelayTxLog{DelayBeginTimestamp: 1}, nil).Run(runFn)
+	api.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&nty.CommitDelayTxLog{DelayBeginTimestamp: 2}, nil).Run(runFn).Once()
 
 	// withdraw wallet balance with recover address
+	signAndCheck(true, recoverKey1.Bytes(), delayTime, false)
+	api.On("Query", mock.Anything, mock.Anything, mock.Anything).Return(&nty.CommitDelayTxLog{DelayBeginTimestamp: 1}, nil).Run(runFn)
 	signAndCheck(true, recoverKey1.Bytes(), delayTime, true)
 	signAndCheck(true, recoverKey2.Bytes(), delayTime, true)
 	signAndCheck(true, recoverKey1.Bytes(), delayTime-1, false)
