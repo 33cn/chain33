@@ -21,6 +21,11 @@ const (
 	CoinsActionTransferToExec = 10
 )
 
+const (
+	//ForkFriendExecer  key
+	ForkFriendExecerKey = "ForkFriendExecer"
+)
+
 var (
 	// CoinsX defines a global string
 	CoinsX = "coins"
@@ -44,6 +49,7 @@ func init() {
 // InitFork initials coins forks.
 func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(CoinsX, "Enable", 0)
+	cfg.RegisterDappFork(CoinsX, ForkFriendExecerKey, 0)
 }
 
 // InitExecutor registers coins.
