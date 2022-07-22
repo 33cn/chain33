@@ -22,7 +22,7 @@ const (
 )
 
 const (
-	//ForkFriendExecer  key
+	//ForkFriendExecerKey ...
 	ForkFriendExecerKey = "ForkFriendExecer"
 )
 
