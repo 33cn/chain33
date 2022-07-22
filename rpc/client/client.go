@@ -421,43 +421,47 @@ func (c *ChannelClient) GetExecBalance(in *types.ReqGetExecBalance) (*types.Repl
 	return resp, nil
 }
 
-func (c *ChannelClient) getWalletRecoverAddr(param *types.ReqGetWalletRecoverAddr) ([]byte, []byte, error) {
+func (c *ChannelClient) getWalletRecoverScript(param *types.ReqGetWalletRecoverAddr) ([]byte, []byte, error) {
 
 	ctrPub, err := common.FromHex(param.GetCtrPubKey())
 	if err != nil {
-		log.Error("getWalletRecoverAddr", "control pubKey", param.GetCtrPubKey(), "from hex err", err)
+		log.Error("getWalletRecoverScript", "control pubKey", param.GetCtrPubKey(), "from hex err", err)
 		return nil, nil, types.ErrFromHex
 	}
 
-	recoverPub, err := common.FromHex(param.GetRecoverPubKey())
-	if err != nil {
-		log.Error("getWalletRecoverAddr", "recover pubKey", param.GetCtrPubKey(), "from hex err", err)
-		return nil, nil, types.ErrFromHex
+	recovPubs := make([][]byte, 0, 2)
+	for _, recovPubHex := range param.GetRecoverPubKeys() {
+		recoverPub, err := common.FromHex(recovPubHex)
+		if err != nil {
+			log.Error("getWalletRecoverScript", "recover pubKey", param.GetCtrPubKey(), "from hex err", err)
+			return nil, nil, types.ErrFromHex
+		}
+		recovPubs = append(recovPubs, recoverPub)
 	}
 
-	pkScript, err := script.NewWalletRecoveryScript(ctrPub, recoverPub, param.GetRelativeDelayTime())
+	wrScript, err := script.NewWalletRecoveryScript(ctrPub, recovPubs, param.GetRelativeDelayTime())
 	if err != nil {
-		log.Error("getWalletRecoverAddr", "new wallet recover script err", err)
+		log.Error("getWalletRecoverScript", "new wallet recover script err", err)
 		return nil, nil, err
 	}
-	return recoverPub, pkScript, nil
+	return wrScript, ctrPub, nil
 }
 
 // GetWalletRecoverAddr get wallet recover chain33 address
 func (c *ChannelClient) GetWalletRecoverAddr(req *types.ReqGetWalletRecoverAddr) (*types.ReplyString, error) {
 
-	if len(req.GetCtrPubKey()) <= 0 || len(req.GetRecoverPubKey()) <= 0 ||
+	if len(req.GetCtrPubKey()) <= 0 || len(req.GetRecoverPubKeys()) <= 0 ||
 		req.GetRelativeDelayTime() < 1 {
 		log.Error("GetWalletRecoverAddr", "invalid req", req.String())
 		return nil, types.ErrInvalidParam
 	}
-	_, pkScript, err := c.getWalletRecoverAddr(req)
+	wrScript, _, err := c.getWalletRecoverScript(req)
 	if err != nil {
 		log.Error("GetWalletRecoverAddr", "getWalletRecoverAddr err", err)
 		return nil, err
 	}
 	reply := &types.ReplyString{}
-	reply.Data = address.PubKeyToAddr(address.GetDefaultAddressID(), script.Script2PubKey(pkScript))
+	reply.Data = address.PubKeyToAddr(address.GetDefaultAddressID(), script.Script2PubKey(wrScript))
 	return reply, nil
 }
 
@@ -478,7 +482,7 @@ func (c *ChannelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 		privKeyHex = reply.(*types.ReplyString).GetData()
 	}
 
-	recoverPub, wrScript, err := c.getWalletRecoverAddr(req.GetWalletRecoverParam())
+	wrScript, ctrPub, err := c.getWalletRecoverScript(req.GetWalletRecoverParam())
 	if err != nil {
 		log.Error("SignWalletRecoverTx", "getWalletRecoverAddr err", err)
 		return nil, err
@@ -497,9 +501,9 @@ func (c *ChannelClient) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx) (
 		return nil, types.ErrFromHex
 	}
 	_, pk := script.NewBtcKeyFromBytes(privKey)
-	// if wallet recover with recover addr
-	isRetrive := bytes.Equal(pk.SerializeCompressed(), recoverPub)
-	sig, pubKey, err := script.GetWalletRecoverySignature(isRetrive, signMsg, privKey,
+	// if control address
+	isControl := bytes.Equal(pk.SerializeCompressed(), ctrPub)
+	sig, pubKey, err := script.GetWalletRecoverySignature(!isControl, signMsg, privKey,
 		wrScript, req.GetWalletRecoverParam().GetRelativeDelayTime())
 	if err != nil {
 		log.Error("SignWalletRecoverTx", "get wallet recover sig err", err)

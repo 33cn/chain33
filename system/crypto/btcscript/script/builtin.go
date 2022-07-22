@@ -32,23 +32,39 @@ func NewMultiSigScript(pubKeys [][]byte, required int) (script []byte, err error
 // controlPubKey  secp256k1 pub key
 // recoverPubKey  secp256k1 pub key
 // relativeDelayTime  relative time of second or block height
-// IF <A's Pubkey> CHECKSIG ELSE <sequence> CHECKSEQUENCEVERIFY DROP <B's Pubkey> CHECKSIGVERIFY ENDIF
-func NewWalletRecoveryScript(controlPubKey, recoverPubKey []byte, relativeDelayTime int64) (script []byte, err error) {
+// IF <A's Pubkey> CHECKSIG ELSE <sequence> CHECKSEQUENCEVERIFY DROP <B's Pubkey> CHECKSIG ENDIF
+func NewWalletRecoveryScript(controlPubKey []byte, recoverPubKeys [][]byte, relativeDelayTime int64) (script []byte, err error) {
 
+	if len(recoverPubKeys) < 1 {
+		btcLog.Error("NewWalletRecoveryScript", "msg", "recover pub key is nil")
+		return nil, ErrInvalidBtcPubKey
+	}
 	ctrAddr, err := btcutil.NewAddressPubKey(controlPubKey, Chain33BtcParams)
 	if err != nil {
 		return nil, ErrInvalidBtcPubKey
 	}
-	recovAddr, err := btcutil.NewAddressPubKey(recoverPubKey, Chain33BtcParams)
-	if err != nil {
-		return nil, ErrInvalidBtcPubKey
+	recovAddrs := make([]*btcutil.AddressPubKey, 0, 1)
+	for _, recover := range recoverPubKeys {
+		addr, err := btcutil.NewAddressPubKey(recover, Chain33BtcParams)
+		if err != nil {
+			return nil, ErrInvalidBtcPubKey
+		}
+		recovAddrs = append(recovAddrs, addr)
 	}
+
 	builder := txscript.NewScriptBuilder()
 	builder.AddOp(txscript.OP_IF).AddData(ctrAddr.ScriptAddress()).
 		AddOp(txscript.OP_CHECKSIG).AddOp(txscript.OP_ELSE).
 		AddInt64(relativeDelayTime).AddOp(txscript.OP_CHECKSEQUENCEVERIFY).
-		AddOp(txscript.OP_DROP).AddData(recovAddr.ScriptAddress()).
-		AddOp(txscript.OP_CHECKSIG).AddOp(txscript.OP_ENDIF)
+		AddOp(txscript.OP_DROP)
+
+	// 支持多个找回地址,使用1:n多签
+	builder.AddInt64(1)
+	for _, addr := range recovAddrs {
+		builder.AddData(addr.ScriptAddress())
+	}
+	builder.AddInt64(int64(len(recovAddrs))).AddOp(txscript.OP_CHECKMULTISIG)
+	builder.AddOp(txscript.OP_ENDIF)
 
 	script, err = builder.Script()
 	if err != nil {
@@ -79,6 +95,10 @@ func GetWalletRecoverySignature(isRetrieve bool, signMsg, privKey, walletRecover
 		return nil, nil, ErrGetBtcTxInSig
 	}
 	builder := txscript.NewScriptBuilder()
+
+	if isRetrieve {
+		builder.AddOp(txscript.OP_0)
+	}
 	builder.AddData(txInSig)
 	if isRetrieve {
 		builder.AddOp(txscript.OP_FALSE)
