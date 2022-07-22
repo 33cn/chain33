@@ -111,21 +111,21 @@ func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bo
 		}
 	}
 
+	if !cfg.IsDappFork(c.GetHeight(), c.GetDriverName(), dtypes.ForkFriendExecerKey) {
+		return false
+	}
 	//step3 从配置文件读取允许具体的执行器修改的本地合约的状态
-
-	if cfg.IsDappFork(c.GetHeight(), c.GetDriverName(), dtypes.ForkFriendExecerKey) {
-		if types.IsEthSignID(othertx.GetSignature().GetTy()) {
-			for _, friendExec := range subCfg.FriendExecer { //evm执行器操作coins 账户
-				//myexec=coins 这种情况出现在evm 交易调用coins 转账的情况 ===> msg.Value!=0 && msg.Data!=nil && msg.To!=nil
-				//1.tx.Exec=evm,user.p.xxx.evm
-				//2.tx.amount !=0
-				//3.writekey=mavl-coins-xxxx-xxxx
-				if cfg.ExecName(friendExec) == string(othertx.GetExecer()) {
-					//writekey: mavl-coins-para-0x93f200342d4154a0e025bd3a12128e8eb73b43a5
-					//writekey: mavl-coins-bty-0xa42431da868c58877a627cc71dc95f01bf40c196
-					if bytes.HasPrefix(writekey, []byte("mavl-coins-")) {
-						return true
-					}
+	if types.IsEthSignID(othertx.GetSignature().GetTy()) {
+		for _, friendExec := range subCfg.FriendExecer { //evm执行器操作coins 账户
+			//myexec=coins 这种情况出现在evm 交易调用coins 转账的情况 ===> msg.Value!=0 && msg.Data!=nil && msg.To!=nil
+			//1.tx.Exec=evm,user.p.xxx.evm
+			//2.tx.amount !=0
+			//3.writekey=mavl-coins-xxxx-xxxx
+			if cfg.ExecName(friendExec) == string(othertx.GetExecer()) {
+				//writekey: mavl-coins-para-0x93f200342d4154a0e025bd3a12128e8eb73b43a5
+				//writekey: mavl-coins-bty-0xa42431da868c58877a627cc71dc95f01bf40c196
+				if bytes.HasPrefix(writekey, []byte("mavl-coins-")) {
+					return true
 				}
 			}
 		}
