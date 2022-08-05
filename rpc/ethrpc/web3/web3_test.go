@@ -35,3 +35,10 @@ func TestWeb3Handler_Sha3(t *testing.T) {
 	assert.Equal(t, hash, "0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad")
 
 }
+
+func TestWeb3Handler_ClientVersion(t *testing.T) {
+	verStr, err := webObj.ClientVersion()
+	assert.Nil(t, err)
+	t.Log(verStr)
+	assert.Equal(t, verStr, "Geth/v1.8.15-omnibus-255989da/linux-amd64/go1.10.1")
+}
