@@ -50,12 +50,12 @@ var (
 
 type subConfig struct {
 	//ethereum json rpc bindaddr
-	Enable        bool     `json:"enable,omitempty"`
-	HTTPAddr      string   `json:"httpAddr,omitempty"`
-	HTTPAPI       []string `json:"httpApi,omitempty"` //eth,admin,net,web3/personal
-	WsAddr        string   `json:"wsAddr,omitempty"`
-	WsAPI         []string `json:"wsApi,omitempty"` //eth,admin,net,web3/personal
-	Web3ClientVer string   `json:"web3Clientver,omitempty"`
+	Enable     bool     `json:"enable,omitempty"`
+	HTTPAddr   string   `json:"httpAddr,omitempty"`
+	HTTPAPI    []string `json:"httpApi,omitempty"` //eth,admin,net,web3/personal
+	WsAddr     string   `json:"wsAddr,omitempty"`
+	WsAPI      []string `json:"wsApi,omitempty"` //eth,admin,net,web3/personal
+	Web3CliVer string   `json:"web3Cliver,omitempty"`
 }
 
 //ServerAPI ...
