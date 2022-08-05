@@ -36,9 +36,9 @@ func (w *web3Handler) Sha3(input string) (string, error) {
 //web3_clientVersion
 func (w *web3Handler) ClientVersion() (string, error) {
 	var subcfg struct {
-		Web3ClientVer string `json:"web3Clientver,omitempty"`
+		Web3CliVer string `json:"web3Cliver,omitempty"`
 	}
 
 	ctypes.MustDecode(w.cfg.GetSubConfig().RPC["eth"], &subcfg)
-	return subcfg.Web3ClientVer, nil
+	return subcfg.Web3CliVer, nil
 }

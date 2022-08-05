@@ -93,7 +93,7 @@ jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
 [rpc.sub.eth]
 enable=false
-web3Clientver="Geth/v1.8.15-omnibus-255989da/linux-amd64/go1.10.1"
+web3Cliver="Geth/v1.8.15-omnibus-255989da/linux-amd64/go1.10.1"
 
 [mempool]
 name="timeline"
