@@ -1830,8 +1830,7 @@ func (bs *BlockStore) RemoveActiveBlock(hash string) bool {
 	return ok
 }
 
-// EnableSaveBlockKVs: enable SaveBlockKVs
+// EnableSaveBlockKVs :enable SaveBlockKVs
 func (bs *BlockStore) EnableSaveBlockKVs() {
 	bs.isSaveBlockKVs = true
-	return
 }
