@@ -576,20 +576,3 @@ func getBlockKVByIndex(db dbm.DB, indexName string, prefix []byte, primaryKey []
 	}
 	return blkvs, nil
 }
-
-//delBlockKVTable 删除block kvs
-func delBlockKVTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyValue, error) {
-	kvdb := dbm.NewKVDB(db)
-	kvtable := NewBlockKVTable(kvdb)
-
-	err := kvtable.Del(calcHeightHashKey(height, hash))
-	if err != nil {
-		return nil, err
-	}
-
-	kvs, err := kvtable.Save()
-	if err != nil {
-		return nil, err
-	}
-	return kvs, nil
-}
