@@ -232,6 +232,12 @@ type BlockChain struct {
 	DisableBlockBroadcast bool `json:"disableBlockBroadcast,omitempty"`
 	//关闭本地和ntp server的时钟偏移检查
 	DisableClockDriftCheck bool `json:"disableClockDriftCheck,omitempty"`
+	// rollup 子配置
+	RollUp RollUpConfig `json:"rollUp,omitempty"`
+}
+
+// RollUpConfig rollup 配置
+type RollUpConfig struct {
 }
 
 // P2P 配置
