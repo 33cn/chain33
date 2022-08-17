@@ -55,7 +55,7 @@ type subConfig struct {
 	HTTPAPI    []string `json:"httpApi,omitempty"` //eth,admin,net,web3/personal
 	WsAddr     string   `json:"wsAddr,omitempty"`
 	WsAPI      []string `json:"wsApi,omitempty"` //eth,admin,net,web3/personal
-	Web3CliVer string   `json:"web3Cliver,omitempty"`
+	Web3CliVer string   `json:"web3CliVer,omitempty"`
 }
 
 //ServerAPI ...
