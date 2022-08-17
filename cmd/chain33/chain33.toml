@@ -126,7 +126,8 @@ httpApi=["eth","web3","personal","admin","net"]
 # websocket 绑定地址
 wsAddr="localhost:8546"
 wsApi=["eth","web3","personal","admin","net"]
-
+# 自定义配置 web3_clientversion 版本
+web3CliVer=""
 [mempool]
 # mempool队列名称，可配，timeline，score，price
 name="timeline"
