@@ -42,6 +42,7 @@ type Miner interface {
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	ProcEvent(msg *queue.Message) bool
 	CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool
+	SetCommitter(c Committer)
 }
 
 //BaseClient ...
@@ -55,6 +56,7 @@ type BaseClient struct {
 	currentBlock *types.Block
 	mulock       sync.Mutex
 	child        Miner
+	committer    Committer
 	minerstartCB func()
 	isCaughtUp   int32
 }
@@ -79,6 +81,11 @@ func (bc *BaseClient) GetGenesisBlockTime() int64 {
 //SetChild ...
 func (bc *BaseClient) SetChild(c Miner) {
 	bc.child = c
+}
+
+// SetCommitter set committer
+func (bc *BaseClient) SetCommitter(c Committer) {
+	bc.committer = c
 }
 
 //GetAPI 获取api
@@ -246,6 +253,7 @@ func (bc *BaseClient) EventLoop() {
 				block := msg.GetData().(*types.BlockDetail).Block
 				bc.SetCurrentBlock(block)
 				bc.child.AddBlock(block)
+				bc.committer.AddBlock(block)
 			} else if msg.Ty == types.EventCheckBlock {
 				block := msg.GetData().(*types.BlockDetail)
 				err := bc.CheckBlock(block)

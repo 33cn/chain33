@@ -124,6 +124,8 @@ type Mempool struct {
 type Consensus struct {
 	// 共识名称 ：solo, ticket, raft, tendermint, para
 	Name string `json:"name,omitempty"`
+	// state commiter, rollup
+	Committer string `json:"committer,omitempty"`
 	// 创世区块时间(UTC时间)
 	GenesisBlockTime int64 `json:"genesisBlockTime,omitempty"`
 	// 是否开启挖矿,开启挖矿才能创建区块
