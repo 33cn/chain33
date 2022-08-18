@@ -39,7 +39,7 @@ func Load(name string) (create Create, err error) {
 
 // Committer state commiter
 type Committer interface {
-	Init(subCfg []byte)
+	Init(chainCfg *types.Chain33Config, subCfg []byte)
 	AddBlock(b *types.Block)
 }
 
@@ -60,9 +60,5 @@ func RegCommitter(name string, c Committer) {
 // LoadCommiter load
 func LoadCommiter(name string) Committer {
 
-	c, ok := committers[name]
-	if !ok {
-		panic("LoadCommiter: unknown commiiter name=" + name)
-	}
-	return c
+	return committers[name]
 }
