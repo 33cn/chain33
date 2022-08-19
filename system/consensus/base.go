@@ -6,6 +6,7 @@ package consensus
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"math/rand"
 	"sync"
@@ -42,7 +43,7 @@ type Miner interface {
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	ProcEvent(msg *queue.Message) bool
 	CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool
-	SetCommitter(c Committer)
+	GetBaseClient() *BaseClient
 }
 
 //BaseClient ...
@@ -56,9 +57,10 @@ type BaseClient struct {
 	currentBlock *types.Block
 	mulock       sync.Mutex
 	child        Miner
-	committer    Committer
 	minerstartCB func()
 	isCaughtUp   int32
+	Context      context.Context
+	Cancel       context.CancelFunc
 }
 
 //NewBaseClient ...
@@ -69,6 +71,7 @@ func NewBaseClient(cfg *types.Consensus) *BaseClient {
 	}
 	client := &BaseClient{minerStart: flag, isCaughtUp: 0}
 	client.Cfg = cfg
+	client.Context, client.Cancel = context.WithCancel(context.Background())
 	log.Info("Enter consensus " + cfg.Name)
 	return client
 }
@@ -83,9 +86,9 @@ func (bc *BaseClient) SetChild(c Miner) {
 	bc.child = c
 }
 
-// SetCommitter set committer
-func (bc *BaseClient) SetCommitter(c Committer) {
-	bc.committer = c
+// GetBaseClient get base client
+func (bc *BaseClient) GetBaseClient() *BaseClient {
+	return bc
 }
 
 //GetAPI 获取api
@@ -179,6 +182,7 @@ func (bc *BaseClient) Close() {
 	atomic.StoreInt32(&bc.minerStart, 0)
 	atomic.StoreInt32(&bc.isclosed, 1)
 	bc.client.Close()
+	bc.Cancel()
 	log.Info("consensus base closed")
 }
 
@@ -253,7 +257,6 @@ func (bc *BaseClient) EventLoop() {
 				block := msg.GetData().(*types.BlockDetail).Block
 				bc.SetCurrentBlock(block)
 				bc.child.AddBlock(block)
-				bc.committer.AddBlock(block)
 			} else if msg.Ty == types.EventCheckBlock {
 				block := msg.GetData().(*types.BlockDetail)
 				err := bc.CheckBlock(block)

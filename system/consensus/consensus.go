@@ -39,8 +39,7 @@ func Load(name string) (create Create, err error) {
 
 // Committer state commiter
 type Committer interface {
-	Init(chainCfg *types.Chain33Config, subCfg []byte)
-	AddBlock(b *types.Block)
+	Init(base *BaseClient, chainCfg *types.Chain33Config, subCfg []byte)
 }
 
 var committers = make(map[string]Committer)
