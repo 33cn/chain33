@@ -21,7 +21,9 @@ import (
 	"github.com/33cn/chain33/util"
 )
 
-var tlog = log.New("module", "consensus")
+// ModuleName module name
+var ModuleName = "consensus"
+var tlog = log.New("module", ModuleName)
 
 var (
 	zeroHash [32]byte
@@ -57,6 +59,7 @@ type BaseClient struct {
 	currentBlock *types.Block
 	mulock       sync.Mutex
 	child        Miner
+	committer    Committer
 	minerstartCB func()
 	isCaughtUp   int32
 	Context      context.Context
@@ -84,6 +87,11 @@ func (bc *BaseClient) GetGenesisBlockTime() int64 {
 //SetChild ...
 func (bc *BaseClient) SetChild(c Miner) {
 	bc.child = c
+}
+
+// SetCommitter set committer
+func (bc *BaseClient) SetCommitter(c Committer) {
+	bc.committer = c
 }
 
 // GetBaseClient get base client
@@ -233,6 +241,13 @@ func (bc *BaseClient) ExecConsensus(data *types.ChainExecutor) (types.Message, e
 	return QueryData.Call(data.Driver, data.FuncName, param)
 }
 
+func (bc *BaseClient) pubToSubModule(msg *queue.Message) {
+	bc.child.ProcEvent(msg)
+	if bc.committer != nil {
+		bc.committer.SubMsg(msg)
+	}
+}
+
 //EventLoop 准备新区块
 func (bc *BaseClient) EventLoop() {
 	// 监听blockchain模块，获取当前最高区块
@@ -283,9 +298,7 @@ func (bc *BaseClient) EventLoop() {
 				reply.IsOk = bc.CmpBestBlock(cmpBlock.Block, cmpBlock.CmpHash)
 				msg.Reply(bc.api.NewMessage("", 0, &reply))
 			} else {
-				if !bc.child.ProcEvent(msg) {
-					msg.ReplyErr("BaseClient.EventLoop() ", types.ErrActionNotSupport)
-				}
+				bc.pubToSubModule(msg)
 			}
 		}
 	}()
