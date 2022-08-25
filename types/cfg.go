@@ -292,6 +292,8 @@ type RPC struct {
 	JrpcUserName string `json:"jrpcUserName,omitempty"`
 	//basic auth 用户密码
 	JrpcUserPasswd string `json:"jrpcUserPasswd,omitempty"`
+	//主链grpc地址, 用于平行链节点配置
+	MainChainGrpcAddr string `json:"mainChainGrpcAddr,omitempty"`
 }
 
 // Exec 配置
