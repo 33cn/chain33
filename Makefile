@@ -137,7 +137,7 @@ linter_test: ## Use gometalinter check code, for local test
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 gosec:
-	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec --skip-dirs=commands
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec --skip-dirs=commands --exclude=G108,G204,G306,G404
 
 race: ## Run data race detector
 	@go test -race -short `go list ./... | grep -v "mocks"`

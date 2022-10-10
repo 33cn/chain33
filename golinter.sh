@@ -17,7 +17,7 @@ function filterLinter() {
             --enable=goimports \
             --enable=misspell \
             --enable=golint \
-            --exclude=underscores \
+            --exclude=S1039,underscores \
             --exclude-use-default=false
     )
     #	    --enable=staticcheck \
