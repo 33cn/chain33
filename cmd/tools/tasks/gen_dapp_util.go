@@ -32,11 +32,11 @@ func readDappActionFromProto(protoContent, actionName string) ([]*actionInfoItem
 	if index < 0 {
 		return nil, fmt.Errorf("action %s Not Existed", actionName)
 	}
-	expr := fmt.Sprintf(`\s*oneof\s+value\s*{\s+([\w\s=;]*)\}`)
+	expr := `\s*oneof\s+value\s*{\s+([\w\s=;]*)\}`
 	reg := regexp.MustCompile(expr)
 	oneOfValueStrs := reg.FindAllStringSubmatch(protoContent, index)
 
-	expr = fmt.Sprintf(`\s+(\w+)([\s\w]+)=\s+(\d+);`)
+	expr = `\s+(\w+)([\s\w]+)=\s+(\d+);`
 	reg = regexp.MustCompile(expr)
 	members := reg.FindAllStringSubmatch(oneOfValueStrs[0][0], -1)
 
@@ -112,7 +112,7 @@ func formatExecDelLocalContent(infos []*actionInfoItem, dappName string) string 
 
 // 组成规则是 TyLog+ActionName + ActionMemberName
 func buildActionLogTypeText(infos []*actionInfoItem, className string) (text string) {
-	items := fmt.Sprintf("TyUnknownLog = iota + 100\n")
+	items := "TyUnknownLog = iota + 100\n"
 	for _, info := range infos {
 		items += fmt.Sprintf("Ty%sLog\n", info.memberName)
 	}
@@ -123,7 +123,7 @@ func buildActionLogTypeText(infos []*actionInfoItem, className string) (text str
 // 组成规则是 ActionName + ActionMemberName
 func buildActionIDText(infos []*actionInfoItem, className string) (text string) {
 
-	items := fmt.Sprintf("TyUnknowAction = iota + 100\n")
+	items := "TyUnknowAction = iota + 100\n"
 	for _, info := range infos {
 		items += fmt.Sprintf("Ty%sAction\n", info.memberName)
 	}
@@ -148,6 +148,6 @@ func buildTypeMapText(infos []*actionInfoItem, className string) (text string) {
 
 // 返回 map[string]*types.LogInfo
 func buildLogMapText() (text string) {
-	text = fmt.Sprintf("map[int64]*types.LogInfo{\n\t//LogID:	{Ty: reflect.TypeOf(LogStruct), Name: LogName},\n}")
+	text = "map[int64]*types.LogInfo{\n\t//LogID:	{Ty: reflect.TypeOf(LogStruct), Name: LogName},\n}"
 	return
 }

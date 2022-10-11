@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.8
-
 // package cli RunChain33函数会加载各个模块，组合成区块链程序
 //主循环由消息队列驱动。
 //消息队列本身可插拔，可以支持各种队列
@@ -69,7 +67,7 @@ var (
 func RunChain33(name, defCfg string) {
 	flag.Parse()
 	if *versionCmd {
-		fmt.Println(fmt.Sprintf("%s %s", version.GetVersion(), version.BuildTime))
+		fmt.Printf("%s %s\n", version.GetVersion(), version.BuildTime)
 		return
 	}
 	if *configPath == "" {

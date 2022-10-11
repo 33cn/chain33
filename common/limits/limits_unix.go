@@ -7,6 +7,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
+//go:build !windows && !plan9
 // +build !windows,!plan9
 
 // Package limits 实现设置进程打开文件资源数

@@ -36,7 +36,7 @@ func (chain *BlockChain) checkClockDrift() {
 	drift := now.Sub(realnow)
 	if drift < -driftThreshold || drift > driftThreshold {
 		warning := fmt.Sprintf("System clock seems off by %v, which can prevent network connectivity", drift)
-		howtofix := fmt.Sprintf("Please enable network time synchronisation in system settings")
+		howtofix := "Please enable network time synchronisation in system settings"
 		separator := strings.Repeat("-", len(warning))
 		ntpLog.Info(fmt.Sprint(separator))
 		ntpLog.Info(fmt.Sprint(warning))

@@ -130,7 +130,7 @@ func (privKey PrivKeySecp256k1Eth) Equals(other crypto.PrivKey) bool {
 }
 
 func (privKey PrivKeySecp256k1Eth) String() string {
-	return fmt.Sprintf("PrivKeySecp256k1{*****}")
+	return "PrivKeySecp256k1{*****}"
 }
 
 //SignatureSecp256k1Eth Signature
