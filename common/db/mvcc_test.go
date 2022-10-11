@@ -23,8 +23,7 @@ func TestPrefix(t *testing.T) {
 
 func TestMVCC(t *testing.T) {
 	m := getMVCC2()
-	_, ok := m.(MVCC)
-	assert.True(t, ok)
+	assert.NotNil(t, m)
 }
 
 func getMVCC2() MVCC {
