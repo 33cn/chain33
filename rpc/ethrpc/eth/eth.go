@@ -367,6 +367,14 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	}
 
 	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
+	fmt.Println("chain33Tx size-------->:", len(ctypes.Encode(chain33Tx)))
+	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
+		TxCount: 1,
+		TxSize:  int32(len(ctypes.Encode(chain33Tx))),
+	})
+	realFee, _ := chain33Tx.GetRealFee(1e5)
+	fmt.Println("chain33Tx caculate fee:------>", properFee.GetProperFee(), "tx.Fee:", chain33Tx.Fee, "realFee:", realFee)
+
 	log.Debug("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
 	reply, err := e.cli.SendTx(chain33Tx)
 	return reply.GetMsg(), err
@@ -494,7 +502,7 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, e
 //method:eth_estimateGas
 //EstimateGas 获取gas
 func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error) {
-	log.Info("EstimateGas", "eth_estimateGas callMsg", callMsg)
+	//log.Info("EstimateGas", "eth_estimateGas callMsg", callMsg)
 	//组装tx
 	exec := e.cfg.ExecName("evm")
 	execty := ctypes.LoadExecutorType(exec)
@@ -513,8 +521,10 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 
 	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
 		TxCount: 1,
-		TxSize:  int32(32 + dataSize),
+		TxSize:  int32(32 + dataSize + len(callMsg.Data.String()) + 128),
 	})
+	estimateTxSize := int32(32 + dataSize + len(callMsg.Data.String()) + 512)
+	fmt.Println("EstimateGas--->", estimateTxSize)
 	fee := properFee.GetProperFee()
 	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
 		if fee < 1e5 {
@@ -564,12 +574,13 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	}
 
 	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
-	if bigGas.Uint64() < uint64(fee) {
+	/*if bigGas.Uint64() < uint64(fee) {
 		bigGas = big.NewInt(fee)
-	}
-
-	//eth交易数据要存放在chain33 tx note 中，做2倍gas 处理
-	return hexutil.Uint64(bigGas.Uint64() * 2), err
+	}*/
+	realFee := int64(estimateTxSize/1000+1) * 1e5
+	fmt.Println("Gas--->", bigGas, "fee:", fee, "realFee:", realFee)
+	finalFee := bigGas.Uint64() + uint64(realFee)
+	return hexutil.Uint64(finalFee), err
 
 }
 
@@ -778,6 +789,6 @@ func (e *ethHandler) FeeHistory(BlockCount, tag string, options []interface{}) (
 	}
 	result.OldestBlock = hexutil.Uint64(latestBlockNum)
 	result.BaseFeePerGas = []string{"0x12", "0x10", "0x10", "0x10", "0x10"}
-	result.GasUsedRatio = []float64{0.5, 0.8, 0.1, 0.4, 0.2}
+	result.GasUsedRatio = []float64{0.7, 0.8, 0.9, 0.8, 0.9}
 	return &result, nil
 }
