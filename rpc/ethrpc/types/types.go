@@ -96,12 +96,12 @@ type EvmLog struct {
 	Address     *common.Address `json:"address,omitempty"`
 	Topics      []common.Hash   `json:"topics,omitempty"`
 	Data        *hexutil.Bytes  `json:"data,omitempty"`
-	BlockNumber *hexutil.Uint64 `json:"blockNumber,omitempty"`
-	TxHash      *common.Hash    `json:"transactionHash,omitempty"`
+	BlockNumber hexutil.Uint64  `json:"blockNumber,omitempty"`
+	TxHash      common.Hash     `json:"transactionHash,omitempty"`
 	TxIndex     hexutil.Uint    `json:"transactionIndex,omitempty"`
-	BlockHash   *common.Hash    `json:"blockHash,omitempty"`
-	Index       hexutil.Uint    `json:"logIndex,omitempty"`
-	Removed     bool            `json:"removed,omitempty"`
+	BlockHash   common.Hash     `json:"blockHash,omitempty"`
+	Index       hexutil.Uint    `json:"logIndex"`
+	Removed     bool            `json:"removed"`
 }
 
 //Peer peer info

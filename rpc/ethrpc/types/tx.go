@@ -23,7 +23,7 @@ import (
 )
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
-func newRPCTransaction(tx *etypes.Transaction, blockHash common.Hash, blockNumber uint64, index uint64, baseFee *big.Int) *Transaction {
+func newRPCTransaction(tx *etypes.Transaction, blockHash common.Hash, blockNumber uint64, index uint64) *Transaction {
 	var signer etypes.Signer
 	if tx.Protected() {
 		signer = etypes.LatestSignerForChainID(tx.ChainId())
@@ -269,7 +269,7 @@ func paraseChain33TxPayload(execer string, payload []byte, blockHash common.Hash
 	var etx etypes.Transaction
 	err := etx.UnmarshalBinary(note)
 	if err == nil {
-		return newRPCTransaction(&etx, blockHash, blockNum, 0, big.NewInt(1e5))
+		return newRPCTransaction(&etx, blockHash, blockNum, 0)
 	}
 	return nil
 
@@ -332,7 +332,7 @@ func TxDetailsToEthReceipts(txDetails *ctypes.TransactionDetails, blockHash comm
 			receipt.Status = 0
 		}
 		var gas uint64
-		receipt.Logs, receipt.ContractAddress, gas = receiptLogs2EvmLog(detail.Receipt.Logs, nil)
+		receipt.Logs, receipt.ContractAddress, gas = receiptLogs2EvmLog(detail, blockHash, nil)
 
 		receipt.GasUsed = hexutil.Uint64(gas)
 		if receipt.GasUsed == 0 {
@@ -349,7 +349,7 @@ func TxDetailsToEthReceipts(txDetails *ctypes.TransactionDetails, blockHash comm
 	return
 }
 
-func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*EvmLog, contractorAddr *common.Address, gasused uint64) {
+func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash, option *SubLogs) (elogs []*EvmLog, contractorAddr *common.Address, gasused uint64) {
 	var filterTopics = make(map[string]bool)
 	if option != nil {
 		for _, topic := range option.Topics {
@@ -357,7 +357,7 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 		}
 	}
 	var index int
-	for _, lg := range logs {
+	for _, lg := range detail.Receipt.Logs {
 		if lg.Ty != 605 && lg.Ty != 603 { //evm event
 			continue
 		}
@@ -402,10 +402,14 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 			}
 			continue
 		}
+
 		var elog EvmLog
 		elog.Data = (*hexutil.Bytes)(&evmLog.Data)
 		elog.Index = hexutil.Uint(index)
-
+		elog.Address = contractorAddr
+		elog.TxHash = common.BytesToHash(detail.GetTx().Hash())
+		elog.BlockNumber = hexutil.Uint64(detail.Height)
+		elog.BlockHash = blockHash
 		for _, topic := range evmLog.Topic {
 			if option != nil {
 				if _, ok := filterTopics[hexutil.Encode(topic)]; !ok {
@@ -413,6 +417,7 @@ func receiptLogs2EvmLog(logs []*ctypes.ReceiptLog, option *SubLogs) (elogs []*Ev
 				}
 			}
 			elog.Topics = append(elog.Topics, common.BytesToHash(topic))
+
 		}
 		index++
 		elogs = append(elogs, &elog)

@@ -205,7 +205,6 @@ func (e *ethHandler) GetTransactionReceipt(txhash common.Hash) (*types.Receipt, 
 		return receipts[0], nil
 	}
 	log.Error("eth_getTransactionReceipt", "err", "transactionReceipt not exist")
-	//return nil, errors.New("transactionReceipt not exist")
 	return nil, nil
 }
 
@@ -367,12 +366,11 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	}
 
 	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
-	fmt.Println("chain33Tx size-------->:", len(ctypes.Encode(chain33Tx)))
 	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
 		TxCount: 1,
 		TxSize:  int32(len(ctypes.Encode(chain33Tx))),
 	})
-	realFee, _ := chain33Tx.GetRealFee(1e5)
+	realFee, _ := chain33Tx.GetRealFee(e.cfg.GetMinTxFeeRate())
 	fmt.Println("chain33Tx caculate fee:------>", properFee.GetProperFee(), "tx.Fee:", chain33Tx.Fee, "realFee:", realFee)
 
 	log.Debug("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
@@ -513,25 +511,6 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	if callMsg.To == "" {
 		callMsg.To = address.ExecAddress(exec)
 	}
-	var dataSize int
-	if callMsg.Data != nil {
-		datastr := callMsg.Data.String()
-		dataSize = len(common.FromHex(datastr))
-	}
-
-	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
-		TxCount: 1,
-		TxSize:  int32(32 + dataSize + len(callMsg.Data.String()) + 128),
-	})
-	estimateTxSize := int32(32 + dataSize + len(callMsg.Data.String()) + 512)
-	fmt.Println("EstimateGas--->", estimateTxSize)
-	fee := properFee.GetProperFee()
-	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
-		if fee < 1e5 {
-			fee = 1e5
-		}
-		return hexutil.Uint64(fee), nil
-	}
 
 	var amount uint64
 	if callMsg.Value != nil {
@@ -548,6 +527,21 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
+
+	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
+		TxCount: 1,
+		TxSize:  int32(ctypes.Size(tx) + len(callMsg.Data.String()) + 300),
+	})
+	estimateTxSize := int32(ctypes.Size(tx) + len(callMsg.Data.String()) + 300)
+	fmt.Println("EstimateGas--->", estimateTxSize)
+	fee := properFee.GetProperFee()
+	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
+		if fee < e.cfg.GetMinTxFeeRate() {
+			fee = e.cfg.GetMinTxFeeRate()
+		}
+		return hexutil.Uint64(fee), nil
+	}
+
 	var p rpctypes.Query4Jrpc
 	p.Execer = exec
 	p.FuncName = "EstimateGas"
@@ -574,12 +568,14 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	}
 
 	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
-	/*if bigGas.Uint64() < uint64(fee) {
-		bigGas = big.NewInt(fee)
-	}*/
-	realFee := int64(estimateTxSize/1000+1) * 1e5
+	//GetMinTxFeeRate 默认1e5
+	realFee := int64(estimateTxSize/1000+1) * e.cfg.GetMinTxFeeRate()
 	fmt.Println("Gas--->", bigGas, "fee:", fee, "realFee:", realFee)
-	finalFee := bigGas.Uint64() + uint64(realFee)
+	var finalFee = realFee
+	if bigGas.Uint64() > uint64(realFee) {
+		finalFee = bigGas.Int64()
+	}
+
 	return hexutil.Uint64(finalFee), err
 
 }
