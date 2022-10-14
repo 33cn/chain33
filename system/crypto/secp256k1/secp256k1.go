@@ -96,7 +96,7 @@ func (privKey PrivKeySecp256k1) Equals(other crypto.PrivKey) bool {
 }
 
 func (privKey PrivKeySecp256k1) String() string {
-	return fmt.Sprintf("PrivKeySecp256k1{*****}")
+	return "PrivKeySecp256k1{*****}"
 }
 
 // PubKey

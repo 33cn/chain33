@@ -23,6 +23,8 @@ func TestBlockTable(t *testing.T) {
 	defer mock33.Close()
 	cfg = mock33.GetClient().GetConfig()
 	blockchain := mock33.GetBlockChain()
+	bs := blockchain.GetStore()
+	bs.EnableSaveBlockKVs()
 	chainlog.Info("TestBlockTable begin --------------------")
 
 	//构造十个区块
@@ -77,6 +79,7 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	require.Equal(t, header.GetHash(), block1.Block.Hash(cfg))
 	require.Equal(t, header.GetHash(), block1.Block.MainHash)
 	require.Equal(t, curheight, block1.Block.MainHeight)
+	require.Greater(t, len(block1.KV), 0)
 
 	//获取当前高度上的所有平行链title
 	replyparaTxs, err := blockchain.LoadParaTxByHeight(curheight, "", 0, 0)
@@ -198,4 +201,5 @@ func testBlockTable(cfg *types.Chain33Config, t *testing.T, blockchain *blockcha
 	}
 	_, err = blockchain.GetParaTxByHeight(&reqPara)
 	require.Equal(t, types.ErrInvalidParam, err)
+
 }

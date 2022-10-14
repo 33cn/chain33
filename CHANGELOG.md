@@ -1,5 +1,13 @@
 changelog
 
+<a name="1.67.4"></a>
+## [1.67.4](https://github.com/33cn/chain33/compare/v1.67.3...v1.67.4) (2022-10-11)
+
+
+### Bug Fixes
+
+* update wallet recover script doc ([ee44bf0](https://github.com/33cn/chain33/commit/ee44bf0))
+
 <a name="1.67.3"></a>
 ## [1.67.3](https://github.com/33cn/chain33/compare/v1.67.2...v1.67.3) (2022-05-27)
 

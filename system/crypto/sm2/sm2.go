@@ -136,7 +136,7 @@ func (privKey PrivKeySM2) Equals(other crypto.PrivKey) bool {
 }
 
 func (privKey PrivKeySM2) String() string {
-	return fmt.Sprintf("PrivKeySM2{*****}")
+	return "PrivKeySM2{*****}"
 }
 
 //PubKeySM2 公钥

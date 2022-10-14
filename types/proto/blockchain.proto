@@ -161,6 +161,12 @@ message BlockReceipt {
     int64                height   = 3;
 }
 
+message BlockKVs {
+    repeated KeyValue KVs    = 1;
+    bytes             hash   = 2;
+    int64             height = 3;
+}
+
 //  区块追赶主链状态，用于判断本节点区块是否已经同步好
 message IsCaughtUp {
     bool Iscaughtup = 1;

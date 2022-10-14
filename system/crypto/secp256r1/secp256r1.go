@@ -138,7 +138,7 @@ func (privKey PrivKeyECDSA) Equals(other crypto.PrivKey) bool {
 
 // String convert to string
 func (privKey PrivKeyECDSA) String() string {
-	return fmt.Sprintf("PrivKeyECDSA{*****}")
+	return "PrivKeyECDSA{*****}"
 }
 
 // PubKeyECDSA PubKey
