@@ -520,21 +520,24 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	if callMsg.To == address.ExecAddress(exec) { //创建合约
 		action.Code = *callMsg.Data
 		action.Para = nil
+
 	} else {
 		action.Para = *callMsg.Data
 		action.Code = nil
 	}
+	action.Note = callMsg.Data.String()
 	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 
 	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
 		TxCount: 1,
-		TxSize:  int32(ctypes.Size(tx) + len(callMsg.Data.String()) + 300),
+		TxSize:  int32(ctypes.Size(tx) + 300),
 	})
-	estimateTxSize := int32(ctypes.Size(tx) + len(callMsg.Data.String()) + 300)
-	fmt.Println("EstimateGas--->", estimateTxSize)
+	estimateTxSize := int32(ctypes.Size(tx) + 300)
 	fee := properFee.GetProperFee()
+	fmt.Println("estimateTxSize--->", estimateTxSize, "fee:", fee, "data size:", len(*callMsg.Data), "fee:", fee)
+	fmt.Println("callMsgData is null?:", callMsg.Data == nil)
 	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
 		if fee < e.cfg.GetMinTxFeeRate() {
 			fee = e.cfg.GetMinTxFeeRate()

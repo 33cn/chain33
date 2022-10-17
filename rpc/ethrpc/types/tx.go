@@ -55,14 +55,11 @@ func newRPCTransaction(tx *etypes.Transaction, blockHash common.Hash, blockNumbe
 	}
 
 	switch tx.Type() {
-	case etypes.AccessListTxType:
+	case etypes.AccessListTxType, etypes.DynamicFeeTxType:
 		al := tx.AccessList()
 		result.Accesses = &al
 		result.ChainID = (*hexutil.Big)(tx.ChainId())
-	case etypes.DynamicFeeTxType:
-		al := tx.AccessList()
-		result.Accesses = &al
-		result.ChainID = (*hexutil.Big)(tx.ChainId())
+
 	}
 
 	return result
@@ -326,19 +323,23 @@ func TxDetailsToEthReceipts(txDetails *ctypes.TransactionDetails, blockHash comm
 			receipt.ContractAddress = tx.To
 		}
 		receipt.From = &tx.From
-		if detail.Receipt.Ty == 2 { //success
+		if detail.Receipt.Ty == ctypes.ExecOk { //success
 			receipt.Status = 1
 		} else {
 			receipt.Status = 0
 		}
 		var gas uint64
 		receipt.Logs, receipt.ContractAddress, gas = receiptLogs2EvmLog(detail, blockHash, nil)
+		if receipt.Logs == nil {
+			receipt.Logs = []*EvmLog{}
+		}
 
 		receipt.GasUsed = hexutil.Uint64(gas)
 		if receipt.GasUsed == 0 {
 			receipt.GasUsed = hexutil.Uint64(detail.Tx.Fee)
 
 		}
+		receipt.Type = tx.Type
 		receipt.CumulativeGasUsed = receipt.GasUsed
 		receipt.Bloom = CreateBloom([]*Receipt{&receipt})
 		receipt.TxHash = common.BytesToHash(detail.GetTx().Hash())
@@ -357,16 +358,20 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash,
 		}
 	}
 	var index int
+	var evmLog ctypes.EVMLog
 	for _, lg := range detail.Receipt.Logs {
 		if lg.Ty != 605 && lg.Ty != 603 { //evm event
 			continue
 		}
 
-		var evmLog ctypes.EVMLog
-		err := ctypes.Decode(lg.Log, &evmLog)
-		if nil != err {
+		if lg.Ty == 605 {
+			err := ctypes.Decode(lg.Log, &evmLog)
+			if nil != err {
+				log.Error("receiptLogs2EvmLog", "decode evmlog", err.Error())
+			}
 			continue
 		}
+
 		if lg.Ty == 603 { //获取消费的GAS
 
 			var recp rpctypes.ReceiptData
@@ -374,7 +379,7 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash,
 			recp.Logs = append(recp.Logs, &rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.Bytes2Hex(lg.Log)})
 			recpResult, err := rpctypes.DecodeLog([]byte("evm"), &recp)
 			if err != nil {
-				log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
+				log.Error("receiptLogs2EvmLog", "Failed to DecodeLog for type", err)
 				continue
 			}
 			var receiptEVMContract struct {
@@ -400,28 +405,28 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash,
 				contractorAddr = &cadr
 
 			}
-			continue
 		}
-
-		var elog EvmLog
-		elog.Data = (*hexutil.Bytes)(&evmLog.Data)
-		elog.Index = hexutil.Uint(index)
-		elog.Address = contractorAddr
-		elog.TxHash = common.BytesToHash(detail.GetTx().Hash())
-		elog.BlockNumber = hexutil.Uint64(detail.Height)
-		elog.BlockHash = blockHash
-		for _, topic := range evmLog.Topic {
-			if option != nil {
-				if _, ok := filterTopics[hexutil.Encode(topic)]; !ok {
-					continue
-				}
-			}
-			elog.Topics = append(elog.Topics, common.BytesToHash(topic))
-
-		}
-		index++
-		elogs = append(elogs, &elog)
 	}
+
+	var elog EvmLog
+	elog.TxIndex = hexutil.Uint(detail.GetIndex())
+	elog.Data = (*hexutil.Bytes)(&evmLog.Data)
+	elog.Index = hexutil.Uint(index)
+	elog.Address = contractorAddr
+	elog.TxHash = common.BytesToHash(detail.GetTx().Hash())
+	elog.BlockNumber = hexutil.Uint64(detail.Height)
+	elog.BlockHash = blockHash
+	for _, topic := range evmLog.Topic {
+		if option != nil {
+			if _, ok := filterTopics[hexutil.Encode(topic)]; !ok {
+				continue
+			}
+		}
+		elog.Topics = append(elog.Topics, common.BytesToHash(topic))
+
+	}
+
+	elogs = append(elogs, &elog)
 	return
 }
 
