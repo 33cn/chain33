@@ -351,6 +351,7 @@ func TxDetailsToEthReceipts(txDetails *ctypes.TransactionDetails, blockHash comm
 }
 
 func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash, option *SubLogs) (elogs []*EvmLog, contractorAddr *common.Address, gasused uint64) {
+	var cAddr common.Address
 	var filterTopics = make(map[string]bool)
 	if option != nil {
 		for _, topic := range option.Topics {
@@ -358,22 +359,24 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash,
 		}
 	}
 	var index int
-	var evmLog ctypes.EVMLog
+
 	for _, lg := range detail.Receipt.Logs {
+
 		if lg.Ty != 605 && lg.Ty != 603 { //evm event
 			continue
 		}
+		var evmLog ctypes.EVMLog
 
 		if lg.Ty == 605 {
 			err := ctypes.Decode(lg.Log, &evmLog)
 			if nil != err {
 				log.Error("receiptLogs2EvmLog", "decode evmlog", err.Error())
+				continue
 			}
-			continue
+
 		}
 
 		if lg.Ty == 603 { //获取消费的GAS
-
 			var recp rpctypes.ReceiptData
 			recp.Ty = 2
 			recp.Logs = append(recp.Logs, &rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.Bytes2Hex(lg.Log)})
@@ -401,32 +404,41 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash,
 				if ok {
 					gasused = bn.Uint64()
 				}
-				cadr := common.HexToAddress(receiptEVMContract.ContractAddr)
-				contractorAddr = &cadr
+				cAddr = common.HexToAddress(receiptEVMContract.ContractAddr)
+				contractorAddr = &cAddr
 
 			}
 		}
-	}
 
-	var elog EvmLog
-	elog.TxIndex = hexutil.Uint(detail.GetIndex())
-	elog.Data = (*hexutil.Bytes)(&evmLog.Data)
-	elog.Index = hexutil.Uint(index)
-	elog.Address = contractorAddr
-	elog.TxHash = common.BytesToHash(detail.GetTx().Hash())
-	elog.BlockNumber = hexutil.Uint64(detail.Height)
-	elog.BlockHash = blockHash
-	for _, topic := range evmLog.Topic {
-		if option != nil {
-			if _, ok := filterTopics[hexutil.Encode(topic)]; !ok {
-				continue
+		var elog EvmLog
+		elog.TxIndex = hexutil.Uint(detail.GetIndex())
+		elog.Index = hexutil.Uint(index)
+		elog.Address = &cAddr
+		elog.TxHash = common.BytesToHash(detail.GetTx().Hash())
+		elog.BlockNumber = hexutil.Uint64(detail.Height)
+		elog.BlockHash = blockHash
+		for _, topic := range evmLog.Topic {
+			if option != nil {
+				if _, ok := filterTopics[hexutil.Encode(topic)]; !ok {
+					continue
+				}
 			}
+			elog.Topics = append(elog.Topics, common.BytesToHash(topic))
+			if len(evmLog.Data) != 0 {
+				elog.Data = (*hexutil.Bytes)(&evmLog.Data)
+			} else {
+				elog.Data = nil
+			}
+
 		}
-		elog.Topics = append(elog.Topics, common.BytesToHash(topic))
+
+		if lg.Ty == 605 {
+			elogs = append(elogs, &elog)
+			index++
+		}
 
 	}
 
-	elogs = append(elogs, &elog)
 	return
 }
 

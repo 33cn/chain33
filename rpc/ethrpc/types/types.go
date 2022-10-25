@@ -94,7 +94,7 @@ type CallMsg struct {
 type EvmLog struct {
 	Address     *common.Address `json:"address"`
 	Topics      []common.Hash   `json:"topics,omitempty"`
-	Data        *hexutil.Bytes  `json:"data,omitempty"`
+	Data        *hexutil.Bytes  `json:"data"`
 	BlockNumber hexutil.Uint64  `json:"blockNumber,omitempty"`
 	TxHash      common.Hash     `json:"transactionHash,omitempty"`
 	TxIndex     hexutil.Uint    `json:"transactionIndex,omitempty"`

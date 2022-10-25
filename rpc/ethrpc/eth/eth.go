@@ -500,7 +500,9 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, e
 //method:eth_estimateGas
 //EstimateGas 获取gas
 func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error) {
-	//log.Info("EstimateGas", "eth_estimateGas callMsg", callMsg)
+	if callMsg == nil {
+		return 0, errors.New("callMsg empty")
+	}
 	//组装tx
 	exec := e.cfg.ExecName("evm")
 	execty := ctypes.LoadExecutorType(exec)
@@ -513,31 +515,33 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	}
 
 	var amount uint64
-	if callMsg.Value != nil {
+	if callMsg.Value != nil && callMsg.Value.ToInt() != nil {
 		amount = callMsg.Value.ToInt().Uint64()
 	}
-	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
-	if callMsg.To == address.ExecAddress(exec) { //创建合约
-		action.Code = *callMsg.Data
-		action.Para = nil
 
-	} else {
-		action.Para = *callMsg.Data
-		action.Code = nil
+	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
+	if callMsg.Data != nil {
+		action.Note = callMsg.Data.String()
+		if callMsg.To == address.ExecAddress(exec) { //创建合约
+			action.Code = *callMsg.Data
+			action.Para = nil
+		} else {
+			action.Para = *callMsg.Data
+			action.Code = nil
+		}
 	}
-	action.Note = callMsg.Data.String()
+
 	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
-
+	estimateTxSize := int32(ctypes.Size(tx) + 300)
 	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
 		TxCount: 1,
-		TxSize:  int32(ctypes.Size(tx) + 300),
+		TxSize:  estimateTxSize,
 	})
-	estimateTxSize := int32(ctypes.Size(tx) + 300)
+
 	fee := properFee.GetProperFee()
-	fmt.Println("estimateTxSize--->", estimateTxSize, "fee:", fee, "data size:", len(*callMsg.Data), "fee:", fee)
-	fmt.Println("callMsgData is null?:", callMsg.Data == nil)
+
 	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
 		if fee < e.cfg.GetMinTxFeeRate() {
 			fee = e.cfg.GetMinTxFeeRate()
@@ -573,12 +577,11 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
 	//GetMinTxFeeRate 默认1e5
 	realFee := int64(estimateTxSize/1000+1) * e.cfg.GetMinTxFeeRate()
-	fmt.Println("Gas--->", bigGas, "fee:", fee, "realFee:", realFee)
+	log.Debug("EstimateGas", "bigGas:", bigGas, "properFee:", fee, "realFee:", realFee)
 	var finalFee = realFee
 	if bigGas.Uint64() > uint64(realFee) {
 		finalFee = bigGas.Int64()
 	}
-
 	return hexutil.Uint64(finalFee), err
 
 }
