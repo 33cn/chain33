@@ -205,7 +205,6 @@ func (e *ethHandler) GetTransactionReceipt(txhash common.Hash) (*types.Receipt, 
 		return receipts[0], nil
 	}
 	log.Error("eth_getTransactionReceipt", "err", "transactionReceipt not exist")
-	//return nil, errors.New("transactionReceipt not exist")
 	return nil, nil
 }
 
@@ -367,6 +366,13 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	}
 
 	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
+	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
+		TxCount: 1,
+		TxSize:  int32(len(ctypes.Encode(chain33Tx))),
+	})
+	realFee, _ := chain33Tx.GetRealFee(e.cfg.GetMinTxFeeRate())
+	fmt.Println("chain33Tx caculate fee:------>", properFee.GetProperFee(), "tx.Fee:", chain33Tx.Fee, "realFee:", realFee)
+
 	log.Debug("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
 	reply, err := e.cli.SendTx(chain33Tx)
 	return reply.GetMsg(), err
@@ -494,7 +500,9 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, e
 //method:eth_estimateGas
 //EstimateGas 获取gas
 func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error) {
-	log.Info("EstimateGas", "eth_estimateGas callMsg", callMsg)
+	if callMsg == nil {
+		return 0, errors.New("callMsg empty")
+	}
 	//组装tx
 	exec := e.cfg.ExecName("evm")
 	execty := ctypes.LoadExecutorType(exec)
@@ -505,39 +513,42 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	if callMsg.To == "" {
 		callMsg.To = address.ExecAddress(exec)
 	}
-	var dataSize int
-	if callMsg.Data != nil {
-		datastr := callMsg.Data.String()
-		dataSize = len(common.FromHex(datastr))
+
+	var amount uint64
+	if callMsg.Value != nil && callMsg.Value.ToInt() != nil {
+		amount = callMsg.Value.ToInt().Uint64()
 	}
 
+	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
+	if callMsg.Data != nil {
+		action.Note = callMsg.Data.String()
+		if callMsg.To == address.ExecAddress(exec) { //创建合约
+			action.Code = *callMsg.Data
+			action.Para = nil
+		} else {
+			action.Para = *callMsg.Data
+			action.Code = nil
+		}
+	}
+
+	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	estimateTxSize := int32(ctypes.Size(tx) + 300)
 	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
 		TxCount: 1,
-		TxSize:  int32(32 + dataSize),
+		TxSize:  estimateTxSize,
 	})
+
 	fee := properFee.GetProperFee()
+
 	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
-		if fee < 1e5 {
-			fee = 1e5
+		if fee < e.cfg.GetMinTxFeeRate() {
+			fee = e.cfg.GetMinTxFeeRate()
 		}
 		return hexutil.Uint64(fee), nil
 	}
 
-	var amount uint64
-	if callMsg.Value != nil {
-		amount = callMsg.Value.ToInt().Uint64()
-	}
-	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
-	if callMsg.To == address.ExecAddress(exec) { //创建合约
-		action.Code = *callMsg.Data
-		action.Para = nil
-	} else {
-		action.Para = *callMsg.Data
-		action.Code = nil
-	}
-	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
 	var p rpctypes.Query4Jrpc
 	p.Execer = exec
 	p.FuncName = "EstimateGas"
@@ -564,12 +575,14 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	}
 
 	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
-	if bigGas.Uint64() < uint64(fee) {
-		bigGas = big.NewInt(fee)
+	//GetMinTxFeeRate 默认1e5
+	realFee := int64(estimateTxSize/1000+1) * e.cfg.GetMinTxFeeRate()
+	log.Debug("EstimateGas", "bigGas:", bigGas, "properFee:", fee, "realFee:", realFee)
+	var finalFee = realFee
+	if bigGas.Uint64() > uint64(realFee) {
+		finalFee = bigGas.Int64()
 	}
-
-	//eth交易数据要存放在chain33 tx note 中，做2倍gas 处理
-	return hexutil.Uint64(bigGas.Uint64() * 2), err
+	return hexutil.Uint64(finalFee), err
 
 }
 
@@ -778,6 +791,6 @@ func (e *ethHandler) FeeHistory(BlockCount, tag string, options []interface{}) (
 	}
 	result.OldestBlock = hexutil.Uint64(latestBlockNum)
 	result.BaseFeePerGas = []string{"0x12", "0x10", "0x10", "0x10", "0x10"}
-	result.GasUsedRatio = []float64{0.5, 0.8, 0.1, 0.4, 0.2}
+	result.GasUsedRatio = []float64{0.7, 0.8, 0.9, 0.8, 0.9}
 	return &result, nil
 }

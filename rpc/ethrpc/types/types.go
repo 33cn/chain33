@@ -63,8 +63,7 @@ type Block struct {
 
 //Receipt tx Receipt
 type Receipt struct {
-	Type              hexutil.Uint64  `json:"type,omitempty"`
-	PostState         hexutil.Bytes   `json:"root"`
+	Type              hexutil.Uint64  `json:"type"`
 	Status            hexutil.Uint64  `json:"status"`
 	CumulativeGasUsed hexutil.Uint64  `json:"cumulativeGasUsed" gencodec:"required"`
 	Bloom             types.Bloom     `json:"logsBloom"         gencodec:"required"`
@@ -93,15 +92,15 @@ type CallMsg struct {
 
 //EvmLog evm log
 type EvmLog struct {
-	Address     *common.Address `json:"address,omitempty"`
+	Address     *common.Address `json:"address"`
 	Topics      []common.Hash   `json:"topics,omitempty"`
-	Data        *hexutil.Bytes  `json:"data,omitempty"`
-	BlockNumber *hexutil.Uint64 `json:"blockNumber,omitempty"`
-	TxHash      *common.Hash    `json:"transactionHash,omitempty"`
+	Data        *hexutil.Bytes  `json:"data"`
+	BlockNumber hexutil.Uint64  `json:"blockNumber,omitempty"`
+	TxHash      common.Hash     `json:"transactionHash,omitempty"`
 	TxIndex     hexutil.Uint    `json:"transactionIndex,omitempty"`
-	BlockHash   *common.Hash    `json:"blockHash,omitempty"`
-	Index       hexutil.Uint    `json:"logIndex,omitempty"`
-	Removed     bool            `json:"removed,omitempty"`
+	BlockHash   common.Hash     `json:"blockHash,omitempty"`
+	Index       hexutil.Uint    `json:"logIndex"`
+	Removed     bool            `json:"removed"`
 }
 
 //Peer peer info
