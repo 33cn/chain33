@@ -5,8 +5,6 @@
 package account
 
 import (
-	"encoding/hex"
-	"fmt"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/types"
@@ -370,13 +368,11 @@ func (acc *DB) mergeReceipt(receipt, receipt2 *types.Receipt) *types.Receipt {
 // LoadExecAccountHistoryQueue  载入当前statehash,载入执行账户数据
 func (acc *DB) LoadExecAccountHistoryQueue(api client.QueueProtocolAPI, addr, execaddr string, stateHash []byte) (*types.Account, error) {
 	get := types.StoreGet{StateHash: stateHash}
-	fmt.Println("LoadExecAccountHistoryQueue--->key:", string(acc.execAccountKey(addr, execaddr)), "statHash:", hex.EncodeToString(stateHash))
 	get.Keys = append(get.Keys, acc.execAccountKey(addr, execaddr))
 	values, err := api.StoreGet(&get)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("LoadExecAccountHistoryQueue--->values:", values)
 	if len(values.Values) <= 0 {
 		return nil, types.ErrNotFound
 	}

@@ -6,7 +6,6 @@ package executor
 
 import (
 	"bytes"
-	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -17,11 +16,9 @@ import (
 func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction, index int) bool {
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
-		fmt.Println("isAllowKeyWriter------->  STEP 0 ")
 		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer), "realExecer:", string(realExecer))
 		return false
 	}
-	fmt.Println("isAllowKeyWriter------->  STEP 1 tx.Execer", string(tx.Execer), "keyExecer:", string(keyExecer))
 	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
 	//注意: user.p.guodun.user.evm.hash -> user.evm.hash 而不是 evm
 	cfg := e.api.GetConfig()
@@ -58,10 +55,8 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
-	fmt.Println("isAllowKeyWriter------->  STEP 1.5 execdriver", string(execdriver))
 	c := e.loadDriver(&types.Transaction{Execer: execdriver}, index)
 	//交给 -> friend 来判定
-	fmt.Println("isAllowKeyWriter------->  STEP 2 ")
 	return c.IsFriend(execdriver, key, tx)
 }
 
