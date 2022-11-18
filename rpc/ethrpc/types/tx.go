@@ -505,14 +505,21 @@ func CreateBloom(receipts []*Receipt) etypes.Bloom {
 func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.Chain33Config) *ctypes.Transaction {
 	rawData, err := etx.MarshalBinary()
 	if err != nil {
-		log.Error("AssembleChain33TxV2", "tx.MarshalBinary err", err.Error())
+		log.Error("AssembleChain33Tx", "tx.MarshalBinary err", err.Error())
 		return nil
 	}
 
 	var exec = cfg.ExecName("evm")
 	var amount int64
+	ethUnit := big.NewInt(1e18)
+	if ctypes.DefaultCoinPrecision > int64(1e18) {
+		log.Error("AssembleChain33Tx", "no support coinsPrecision", ctypes.DefaultCoinPrecision)
+		return nil
+	}
 	if etx.Value() != nil {
-		amount = etx.Value().Div(etx.Value(), big.NewInt(1).SetUint64(1e10)).Int64()
+		//amount = etx.Value().Div(etx.Value(), big.NewInt(1).SetUint64(1e10)).Int64()
+		amount = etx.Value().Div(etx.Value(), ethUnit.Div(ethUnit, big.NewInt(1).SetInt64(ctypes.DefaultCoinPrecision))).Int64()
+
 	}
 	action := &ctypes.EVMContractAction4Chain33{
 		Amount:       uint64(amount),
