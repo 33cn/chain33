@@ -76,7 +76,7 @@ func (e *ethHandler) GetBalance(address string, tag *string) (hexutil.Big, error
 	}
 	//转换成精度为18
 	bn := new(big.Int).SetInt64(accounts[0].GetBalance())
-	bn = bn.Mul(bn, new(big.Int).SetUint64(1e10))
+	bn = bn.Mul(bn, new(big.Int).Div(big.NewInt(1e18), big.NewInt(e.cfg.GetCoinPrecision())))
 	return hexutil.Big(*bn), nil
 }
 
@@ -414,7 +414,7 @@ func (e *ethHandler) Syncing() (interface{}, error) {
 		HighestBlock  string `json:"highestBlock,omitempty"`
 	}
 	reply, err := e.cli.IsSync()
-	if err == nil {
+	if err != nil {
 		var caughtUp ctypes.IsCaughtUp
 		err = ctypes.Decode(reply.GetMsg(), &caughtUp)
 		if err == nil {
@@ -426,18 +426,13 @@ func (e *ethHandler) Syncing() (interface{}, error) {
 			if err == nil {
 				syncing.CurrentBlock = hexutil.EncodeUint64(uint64(header.GetHeight()))
 				syncing.StartingBlock = syncing.CurrentBlock
-				replyBlockNum, err := e.cli.GetHighestBlockNum(&ctypes.ReqNil{})
-				if err == nil {
-					syncing.HighestBlock = hexutil.EncodeUint64(uint64(replyBlockNum.GetHeight()))
-					return &syncing, nil
-				}
-
+				return &syncing, nil
 			}
 
 		}
 	}
 
-	return nil, err
+	return !reply.IsOk, err
 }
 
 //Mining...
@@ -596,7 +591,7 @@ func (e *ethHandler) GasPrice() (*hexutil.Big, error) {
 //eth_subscribe
 //params:["newHeads"]
 func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
-	log.Debug("eth_subscribe", "NewHeads ", "")
+	log.Info("eth_subscribe", "NewHeads ", "")
 	notifier, supported := rpc.NotifierFromContext(ctx)
 	if !supported {
 		return nil, rpc.ErrNotificationsUnsupported
@@ -643,7 +638,7 @@ func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
 //address：要监听日志的源地址或地址数组，可选
 //topics：要监听日志的主题匹配条件，可选
 func (e *ethHandler) Logs(ctx context.Context, options *types.SubLogs) (*rpc.Subscription, error) {
-	log.Debug("eth_subscribe", "eth_subscribe ", options)
+	log.Info("eth_subscribe", "Logs", options)
 	notifier, supported := rpc.NotifierFromContext(ctx)
 	if !supported {
 		return nil, rpc.ErrNotificationsUnsupported
