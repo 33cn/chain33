@@ -96,3 +96,15 @@ func Test_TxDetailsToEthTx(t *testing.T) {
 	jreceipts, _ := json.MarshalIndent(receipts, " ", "\t")
 	t.Log("json receipts:", string(jreceipts))
 }
+
+func Test_PrecisionEth2Coins(t *testing.T) {
+	ethValue := big.NewInt(5e18)
+	coinsV := precisionEth2Coins(ethValue, 1e8)
+	assert.Equal(t, int64(5e8), coinsV.Int64())
+}
+
+func Test_PrecisionCoins2Eth(t *testing.T) {
+	coinsValue := big.NewInt(15e8)
+	ethV := precisionCoins2Eth(coinsValue, 1e8)
+	assert.Equal(t, uint64(15e18), ethV.Uint64())
+}
