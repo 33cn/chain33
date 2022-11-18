@@ -185,8 +185,11 @@ func paraseChain33Tx(itx *ctypes.Transaction, blockHash common.Hash, blockNum in
 		log.Error("paraseChain33Tx", "err", err)
 		return nil
 	}
+
 	bamount := big.NewInt(amount)
-	eamount := bamount.Mul(bamount, big.NewInt(1e10))
+	eamount := precisionCoins2Eth(bamount, cfg.GetCoinPrecision())
+	//eamount := bamount.Mul(bamount, big.NewInt(1e10))
+	//
 	tx.Value = (*hexutil.Big)(eamount)
 	tx.Input = hexutil.Bytes{0}
 	if strings.HasSuffix(string(itx.Execer), "evm") {
@@ -233,7 +236,8 @@ func paraseChain33Tx(itx *ctypes.Transaction, blockHash common.Hash, blockNum in
 	var nonce = uint64(itx.Nonce)
 	var gas = uint64(itx.GetTxFee())
 	tx.Nonce = (hexutil.Uint64)(nonce)
-	tx.GasPrice = (*hexutil.Big)(big.NewInt(10e9))
+	//tx.GasPrice = (*hexutil.Big)(big.NewInt(10e9))
+	tx.GasPrice = (*hexutil.Big)(new(big.Int).Div(big.NewInt(1e18), big.NewInt(cfg.GetCoinPrecision())))
 	tx.Gas = (hexutil.Uint64)(gas)
 	tx.BlockNumber = (*hexutil.Big)(big.NewInt(blockNum))
 	return &tx
@@ -511,14 +515,10 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 
 	var exec = cfg.ExecName("evm")
 	var amount int64
-	ethUnit := big.NewInt(1e18)
-	if ctypes.DefaultCoinPrecision > int64(1e18) {
-		log.Error("AssembleChain33Tx", "no support coinsPrecision", ctypes.DefaultCoinPrecision)
-		return nil
-	}
+
 	if etx.Value() != nil {
-		//amount = etx.Value().Div(etx.Value(), big.NewInt(1).SetUint64(1e10)).Int64()
-		amount = etx.Value().Div(etx.Value(), ethUnit.Div(ethUnit, big.NewInt(1).SetInt64(ctypes.DefaultCoinPrecision))).Int64()
+		bigAmount := precisionEth2Coins(etx.Value(), cfg.GetCoinPrecision())
+		amount = bigAmount.Int64()
 
 	}
 	action := &ctypes.EVMContractAction4Chain33{
@@ -579,4 +579,16 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 		chain33Tx.To = address.ExecAddress(string(chain33Tx.Execer))
 	}
 	return chain33Tx
+}
+
+func precisionEth2Coins(ethValue *big.Int, coinPrecision int64) *big.Int {
+	ethUnit := big.NewInt(1e18)
+	return new(big.Int).Div(ethValue, ethUnit.Div(ethUnit, big.NewInt(1).SetInt64(coinPrecision)))
+
+}
+
+func precisionCoins2Eth(coinsValue *big.Int, coinPrecision int64) *big.Int {
+	ethUnit := big.NewInt(1e18)
+	mulUnit := new(big.Int).Div(ethUnit, big.NewInt(1).SetInt64(coinPrecision))
+	return new(big.Int).Mul(coinsValue, mulUnit)
 }
