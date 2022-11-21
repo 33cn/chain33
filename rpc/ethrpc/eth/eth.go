@@ -366,12 +366,6 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	}
 
 	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
-	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
-		TxCount: 1,
-		TxSize:  int32(len(ctypes.Encode(chain33Tx))),
-	})
-	realFee, _ := chain33Tx.GetRealFee(e.cfg.GetMinTxFeeRate())
-	fmt.Println("chain33Tx caculate fee:------>", properFee.GetProperFee(), "tx.Fee:", chain33Tx.Fee, "realFee:", realFee)
 
 	log.Debug("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
 	reply, err := e.cli.SendTx(chain33Tx)
@@ -584,7 +578,7 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 //GasPrice  eth_gasPrice default 10 gwei
 func (e *ethHandler) GasPrice() (*hexutil.Big, error) {
 	log.Debug("GasPrice", "eth_gasPrice ", "")
-	return (*hexutil.Big)(big.NewInt(1).SetUint64(1e10)), nil
+	return (*hexutil.Big)(new(big.Int).Div(big.NewInt(1e18), big.NewInt(e.cfg.GetCoinPrecision()))), nil
 }
 
 //NewHeads ...
