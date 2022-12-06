@@ -18,12 +18,13 @@ const (
 	AddressIDMask = 0x00007000
 	// AddressIDOffset offset len
 	AddressIDOffset = 12
-	ethAddressID    = 2
+	// EthAddressID eth address type
+	EthAddressID = 2
 )
 
 //IsEthSignID check chain33 tx sigtype
 func IsEthSignID(txSignID int32) bool {
-	return txSignID == EncodeSignID(secp256k1eth.ID, ethAddressID)
+	return txSignID == EncodeSignID(secp256k1eth.ID, EthAddressID)
 }
 
 // EncodeSignID encode sign id
