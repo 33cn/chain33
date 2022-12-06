@@ -86,7 +86,7 @@ func filterReceipt(t *testing.T, receipt []*Receipt) {
 	option.Topics = nil
 	option.Topics = append(option.Topics, "0x3df38f8a3907335f8612e33723bdab159dbdf0ccc27575215f1865f2cb86b0cd")
 	filter, err = NewFilter(nil, cfg, &option)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	logs = filter.filterReceipt(receipt)
 	assert.Equal(t, logs[0].BlockHash.String(), blockHash)
 	assert.Equal(t, logs[0].Data.String(), "0x0000000000000000000000000000000000000000000000001bc16d674ec80000")
@@ -165,7 +165,7 @@ func Test_filterEvmTxLogs(t *testing.T) {
 	option.Topics = nil
 	option.Topics = append(option.Topics, "0x3df38f8a3907335f8612e33723bdab159dbdf0ccc27575215f1865f2cb86b0cd")
 	filter, err = NewFilter(nil, cfg, &option)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	logs = filter.FilterEvmTxLogs(&evmTx)
 	assert.Equal(t, 0, len(logs))
 

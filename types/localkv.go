@@ -43,6 +43,7 @@ func (c *Chain33Config) CalcTxKey(hash []byte) []byte {
 	return hash
 }
 
+//CalcEtxKey local db中保存的eth 交易哈希key
 func (c *Chain33Config) CalcEtxKey(hash []byte) []byte {
 	return append(ETXHashPrefix, hash...)
 }
