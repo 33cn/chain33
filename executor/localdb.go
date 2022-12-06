@@ -134,6 +134,13 @@ func (l *LocalDB) Close() error {
 	l.resetTx()
 	err := l.api.LocalClose(l.txid)
 	return err
+
+}
+
+//ResetCache evm 使用
+func (l *LocalDB) ResetCache() {
+	l.cache.Reset()
+	l.resetTx()
 }
 
 //Rollback 回滚修改
@@ -178,6 +185,7 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 
 //Set 获取key
 func (l *LocalDB) Set(key []byte, value []byte) error {
+
 	if l.disablewrite {
 		return types.ErrDisableWrite
 	}

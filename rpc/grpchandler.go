@@ -658,6 +658,20 @@ func (g *Grpc) SubEvent(in *pb.ReqSubscribe, resp pb.Chain33_SubEventServer) err
 		subReq.Name = in.GetName()
 		subReq.Contract = in.GetContract()
 		subReq.Type = in.GetType()
+		if in.GetFromBlock() != 0 { //从指定高度订阅
+
+			hash, err := g.GetBlockHash(context.Background(), &pb.ReqInt{Height: in.GetFromBlock()})
+			if err != nil {
+				return err
+			}
+			seqs, err := g.GetSequenceByHash(context.Background(), &pb.ReqHash{Hash: hash.Hash})
+			if err != nil {
+				return err
+			}
+			subReq.LastHeight = in.GetFromBlock()
+			subReq.LastBlockHash = common.HashHex(hash.Hash)
+			subReq.LastSequence = seqs.Data
+		}
 		reply, err := g.cli.AddPushSubscribe(&subReq)
 		if err != nil {
 			return err
