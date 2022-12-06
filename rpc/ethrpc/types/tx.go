@@ -403,19 +403,18 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash)
 
 			err = json.Unmarshal(recpResult.Logs[0].Log, &receiptEVMContract)
 			if nil == err {
-				log.Info("receiptLogs2EvmLog", "gasused:", receiptEVMContract.UsedGas, "contractAddr:", receiptEVMContract.ContractAddr)
+				log.Debug("receiptLogs2EvmLog", "gasused:", receiptEVMContract.UsedGas, "contractAddr:", receiptEVMContract.ContractAddr)
 				bn, ok := big.NewInt(1).SetString(receiptEVMContract.UsedGas, 10)
 				if ok {
 					gasused = bn.Uint64()
 				}
-				//fmt.Println("receiptEVMContract.ContractAddr:", receiptEVMContract.ContractAddr)
 				cAddr = common.HexToAddress(receiptEVMContract.ContractAddr)
 				contractorAddr = &cAddr
 				for _, elog := range elogs {
 					elog.Address = cAddr
 				}
 			} else {
-				log.Info("receiptLogs2EvmLog", " decode receiptEVMContract err:", err.Error(), "log:", string(recpResult.Logs[0].Log))
+				log.Error("receiptLogs2EvmLog", " decode receiptEVMContract err:", err.Error(), "log:", string(recpResult.Logs[0].Log))
 			}
 
 			break
