@@ -409,8 +409,6 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 					return false, nil
 				}
 				return false, err
-			} else {
-				return true, nil
 			}
 
 		}

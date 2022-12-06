@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	HeadEvent = 1
-	TxReceipt = 2
-	EvmEvent  = 4
+	headEvent = 1
+	evmEvent  = 4
 )
 
 //NewHeads ...
@@ -31,7 +30,7 @@ func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
 	//通过Grpc 客户端
 	var in ctypes.ReqSubscribe
 	in.Name = string(subscription.ID)
-	in.Type = HeadEvent
+	in.Type = headEvent
 	stream, err := e.grpcCli.SubEvent(context.Background(), &in)
 	if err != nil {
 		return nil, err
@@ -91,7 +90,7 @@ func (e *ethHandler) Logs(ctx context.Context, options *types.FilterQuery) (*rpc
 	}
 
 	// 4 EvmEvent,2 Tx Receipt
-	in.Type = EvmEvent
+	in.Type = evmEvent
 	fromblock, _ := hexutil.DecodeUint64(options.FromBlock)
 	in.FromBlock = int64(fromblock)
 
