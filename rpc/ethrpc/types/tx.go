@@ -323,7 +323,7 @@ func TxDetailsToEthReceipts(txDetails *ctypes.TransactionDetails, blockHash comm
 		tx.Hash = common.BytesToHash(detail.GetTx().Hash())
 		txs = append(txs, tx)
 		var receipt Receipt
-		if tx.Input.String() != "0x" {
+		if len(tx.Input) != 0 {
 			receipt.ContractAddress = tx.To
 		}
 		receipt.From = &tx.From
@@ -332,8 +332,14 @@ func TxDetailsToEthReceipts(txDetails *ctypes.TransactionDetails, blockHash comm
 		} else {
 			receipt.Status = 0
 		}
-		var gas uint64
-		receipt.Logs, receipt.ContractAddress, gas = receiptLogs2EvmLog(detail, blockHash, nil)
+
+		logs, caddr, gas := receiptLogs2EvmLog(detail, blockHash)
+
+		receipt.Logs = logs
+		if caddr != nil {
+			receipt.ContractAddress = caddr
+		}
+
 		if receipt.Logs == nil {
 			receipt.Logs = []*EvmLog{}
 		}
@@ -349,28 +355,20 @@ func TxDetailsToEthReceipts(txDetails *ctypes.TransactionDetails, blockHash comm
 		receipt.TxHash = common.BytesToHash(detail.GetTx().Hash())
 		receipt.BlockNumber = (*hexutil.Big)(big.NewInt(detail.Height))
 		receipt.TransactionIndex = hexutil.Uint(uint64(detail.GetIndex()))
+		receipt.BlockHash = blockHash
 		receipts = append(receipts, &receipt)
 	}
 	return
 }
 
-func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash, option *SubLogs) (elogs []*EvmLog, contractorAddr *common.Address, gasused uint64) {
+func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash) (elogs []*EvmLog, contractorAddr *common.Address, gasused uint64) {
 	var cAddr common.Address
-	var filterTopics = make(map[string]bool)
-	if option != nil {
-		for _, topic := range option.Topics {
-			filterTopics[topic] = true
-		}
-	}
 	var index int
-
 	for _, lg := range detail.Receipt.Logs {
-
 		if lg.Ty != 605 && lg.Ty != 603 { //evm event
 			continue
 		}
 		var evmLog ctypes.EVMLog
-
 		if lg.Ty == 605 {
 			err := ctypes.Decode(lg.Log, &evmLog)
 			if nil != err {
@@ -382,12 +380,15 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash,
 
 		if lg.Ty == 603 { //获取消费的GAS
 			var recp rpctypes.ReceiptData
-			recp.Ty = 2
+			recp.Ty = lg.Ty
 			recp.Logs = append(recp.Logs, &rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.Bytes2Hex(lg.Log)})
-			recpResult, err := rpctypes.DecodeLog([]byte("evm"), &recp)
+			recpResult, err := rpctypes.DecodeLog(detail.GetTx().GetExecer(), &recp)
 			if err != nil {
 				log.Error("receiptLogs2EvmLog", "Failed to DecodeLog for type", err)
 				continue
+			}
+			if recpResult.Logs[0].Log == nil {
+				break
 			}
 			var receiptEVMContract struct {
 				Caller       string ` json:"caller,omitempty"`
@@ -400,89 +401,39 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash,
 				JSONRet string ` json:"jsonRet,omitempty"`
 			}
 
-			jlg, _ := json.Marshal(recpResult.Logs[0].Log)
-			err = json.Unmarshal(jlg, &receiptEVMContract)
+			err = json.Unmarshal(recpResult.Logs[0].Log, &receiptEVMContract)
 			if nil == err {
-				log.Info("receiptLogs2EvmLog", "gasused:", receiptEVMContract.UsedGas)
+				log.Info("receiptLogs2EvmLog", "gasused:", receiptEVMContract.UsedGas, "contractAddr:", receiptEVMContract.ContractAddr)
 				bn, ok := big.NewInt(1).SetString(receiptEVMContract.UsedGas, 10)
 				if ok {
 					gasused = bn.Uint64()
 				}
+				//fmt.Println("receiptEVMContract.ContractAddr:", receiptEVMContract.ContractAddr)
 				cAddr = common.HexToAddress(receiptEVMContract.ContractAddr)
 				contractorAddr = &cAddr
-
+				for _, elog := range elogs {
+					elog.Address = cAddr
+				}
+			} else {
+				log.Info("receiptLogs2EvmLog", " decode receiptEVMContract err:", err.Error(), "log:", string(recpResult.Logs[0].Log))
 			}
-		}
 
+			break
+
+		}
 		var elog EvmLog
 		elog.TxIndex = hexutil.Uint(detail.GetIndex())
 		elog.Index = hexutil.Uint(index)
-		elog.Address = &cAddr
 		elog.TxHash = common.BytesToHash(detail.GetTx().Hash())
 		elog.BlockNumber = hexutil.Uint64(detail.Height)
 		elog.BlockHash = blockHash
+		elog.Data = evmLog.Data
 		for _, topic := range evmLog.Topic {
-			if option != nil {
-				if _, ok := filterTopics[hexutil.Encode(topic)]; !ok {
-					continue
-				}
-			}
 			elog.Topics = append(elog.Topics, common.BytesToHash(topic))
-			if len(evmLog.Data) != 0 {
-				elog.Data = (*hexutil.Bytes)(&evmLog.Data)
-			} else {
-				elog.Data = nil
-			}
-
 		}
+		elogs = append(elogs, &elog) //每个605 事件循环一次
+		index++
 
-		if lg.Ty == 605 {
-			elogs = append(elogs, &elog)
-			index++
-		}
-
-	}
-
-	return
-}
-
-//FilterEvmLogs filter evm logs by option
-func FilterEvmLogs(logs *ctypes.EVMTxLogPerBlk, option *SubLogs) (evmlogs []*EvmLogInfo) {
-	var addr string
-	var filterTopics = make(map[string]bool)
-	if option != nil {
-		for _, topic := range option.Topics {
-			if topic == "" {
-				continue
-			}
-			filterTopics[topic] = true
-		}
-	}
-
-	if option != nil {
-		addr = option.Address
-	}
-	for i, txlog := range logs.TxAndLogs {
-		var info EvmLogInfo
-		if txlog.GetTx().GetTo() == addr {
-			for j, tlog := range txlog.GetLogsPerTx().GetLogs() {
-				var topics []string
-				if _, ok := filterTopics[hexutil.Encode(tlog.Topic[0])]; ok || len(filterTopics) == 0 {
-					topics = append(topics, hexutil.Encode(tlog.Topic[0]))
-				}
-
-				if len(topics) != 0 {
-					info.LogIndex = hexutil.EncodeUint64(uint64(j))
-					info.Topics = topics
-				}
-				info.Address = addr
-				info.TransactionIndex = hexutil.EncodeUint64(uint64(i))
-				info.BlockHash = hexutil.Encode(logs.BlockHash)
-				info.TransactionHash = hexutil.Encode(txlog.GetTx().Hash())
-				info.BlockNumber = hexutil.EncodeUint64(uint64(logs.Height))
-				evmlogs = append(evmlogs, &info)
-			}
-		}
 	}
 
 	return
@@ -493,7 +444,7 @@ func CreateBloom(receipts []*Receipt) etypes.Bloom {
 	var bin etypes.Bloom
 	for _, receipt := range receipts {
 		for _, rlog := range receipt.Logs {
-			if rlog.Address != nil && rlog.Address.Bytes() != nil {
+			if rlog.Address.Bytes() != nil {
 				bin.Add(rlog.Address.Bytes())
 			}
 
@@ -542,12 +493,12 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 		} else {
 			//合约操作
 			action.Para = packdata
-			to = etx.To().String()
+			to = strings.ToLower(etx.To().String())
 		}
 		action.ContractAddr = to
 
 	} else { // coins 操作
-		to = etx.To().String()
+		to = strings.ToLower(etx.To().String())
 		//coins 转账,para为目的地址
 		action.Para = common.FromHex(to)
 		//ContractAddr 为执行器地址

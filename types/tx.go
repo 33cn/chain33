@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	etypes "github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/golang/protobuf/proto"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -895,6 +897,28 @@ func (tx *Transaction) Clone() *Transaction {
 	tmp := CloneTx(tx)
 	tmp.Signature = tx.Signature.Clone()
 	return tmp
+}
+
+//GetEthTxHash 获取eth 兼容交易的交易哈希
+func (tx *Transaction) GetEthTxHash() []byte {
+	if IsEthSignID(tx.GetSignature().GetTy()) {
+		payload := tx.GetPayload()
+		var evmaction EVMContractAction4Chain33
+		err := Decode(payload, &evmaction)
+		if err == nil {
+			note := evmaction.GetNote()
+			var etx etypes.Transaction
+			etxBytes, err := common.FromHex(note)
+			if err == nil {
+				if err = etx.UnmarshalBinary(etxBytes); err == nil {
+					return etx.Hash().Bytes()
+				}
+
+			}
+		}
+
+	}
+	return nil
 }
 
 //cloneTxs  拷贝 txs

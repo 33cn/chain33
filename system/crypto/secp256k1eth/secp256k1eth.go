@@ -268,7 +268,7 @@ func initEvmIDFun(sub []byte) {
 	utils.MustDecode(sub, &id)
 	chainID = id.EvmChainID
 	coinsPrecision = id.CoinsPrecision
-	if coinsPrecision == 0 {
+	if coinsPrecision == 0 { //默认配置是 1e8
 		coinsPrecision = 1e8
 	}
 }

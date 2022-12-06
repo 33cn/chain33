@@ -400,11 +400,14 @@ message ReplySubscribePush {
 }
 
 message ReqSubscribe {
-    string name = 1;
-    // 0:代表区块；1:代表区块头信息；2：代表交易回执
-    int32 type = 2;
+    string name     = 1;
+    // 0:代表区块；1:代表区块头信息；2：代表交易回执,4 evm event
+    int32 type      = 2;
+    int64 fromBlock = 3;
+    int64 toBlock   = 4;
     //允许订阅多个类型的交易回执
-    map<string, bool> contract = 8;
+    map<string, bool> contract = 5;
+
 }
 
 message SubscribeStatus {
