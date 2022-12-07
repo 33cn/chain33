@@ -103,10 +103,10 @@ func GetExecAddress(execName string, addressType int32) (string, error) {
 // pass DefaultID for default address format
 func PubKeyToAddr(addressID int32, pubKey []byte) string {
 
-	d, err := LoadDriver(addressID, -1)
-	if err != nil {
-		d, _ = LoadDriver(defaultAddressID, -1)
+	if addressID < 0 {
+		addressID = defaultAddressID
 	}
+	d := MustLoadDriver(addressID)
 	return d.PubKeyToAddr(pubKey)
 }
 
