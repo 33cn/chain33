@@ -143,20 +143,23 @@ func (e *ethHandler) GetBlockByHash(txhash common.Hash, full bool) (*types.Block
 //GetTransactionByHash eth_getTransactionByHash
 func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transaction, error) {
 	log.Debug("GetTransactionByHash", "txhash", txhash)
-	var req ctypes.ReqHashes
-	req.Hashes = append(req.Hashes, txhash.Bytes())
-	txdetails, err := e.cli.GetTransactionByHash(&req)
+	var req ctypes.ReqHash
+	req.Hash = txhash.Bytes()
+
+	txdetail, err := e.cli.QueryTx(&req)
 	if err != nil {
 		return nil, err
 	}
 	var blockHash []byte
-	if len(txdetails.GetTxs()) != 0 {
-		blockNum := txdetails.GetTxs()[0].Height
+	if txdetail.Tx != nil {
+		blockNum := txdetail.GetHeight()
 		hashReply, err := e.cli.GetBlockHash(&ctypes.ReqInt{Height: blockNum})
 		if err == nil {
 			blockHash = hashReply.GetHash()
 		}
-		txs, _, err := types.TxDetailsToEthReceipts(txdetails, common.BytesToHash(blockHash), e.cfg)
+		var txdetails ctypes.TransactionDetails
+		txdetails.Txs = append(txdetails.Txs, txdetail)
+		txs, _, err := types.TxDetailsToEthReceipts(&txdetails, common.BytesToHash(blockHash), e.cfg)
 		if err != nil {
 			return nil, err
 		}

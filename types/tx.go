@@ -901,23 +901,19 @@ func (tx *Transaction) Clone() *Transaction {
 
 //GetEthTxHash 获取eth 兼容交易的交易哈希
 func (tx *Transaction) GetEthTxHash() []byte {
-	if IsEthSignID(tx.GetSignature().GetTy()) {
-		payload := tx.GetPayload()
-		var evmaction EVMContractAction4Chain33
-		err := Decode(payload, &evmaction)
-		if err == nil {
-			note := evmaction.GetNote()
-			var etx etypes.Transaction
-			etxBytes, err := common.FromHex(note)
-			if err == nil {
-				if err = etx.UnmarshalBinary(etxBytes); err == nil {
-					return etx.Hash().Bytes()
-				}
-
-			}
-		}
-
+	if !IsEthSignID(tx.GetSignature().GetTy()) {
+		return nil
 	}
+	var evmaction EVMContractAction4Chain33
+	err := Decode(tx.GetPayload(), &evmaction)
+	if err == nil {
+		var etx etypes.Transaction
+		etxBytes, err := common.FromHex(evmaction.GetNote())
+		if err == nil && etx.UnmarshalBinary(etxBytes) == nil {
+			return etx.Hash().Bytes()
+		}
+	}
+
 	return nil
 }
 
