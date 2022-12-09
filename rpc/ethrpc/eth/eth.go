@@ -147,8 +147,10 @@ func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transactio
 	req.Hash = txhash.Bytes()
 
 	txdetail, err := e.cli.QueryTx(&req)
-	if err != nil {
-		return nil, err
+	if err != nil || txdetail == nil {
+		log.Error("GetTransactionByHash", "QueryTx,err:", err, "txHash:", txhash.String())
+		//查询不到，不返回错误，直接返回空，与ethereum 保持一致
+		return nil, nil
 	}
 	var blockHash []byte
 	if txdetail.Tx != nil {
@@ -169,7 +171,7 @@ func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transactio
 			return txs[0], nil
 		}
 	}
-	log.Error("eth_getTransactionByHash", "err", "transaction not exist")
+	log.Error("eth_getTransactionByHash", "transaction not exist,err", txhash.String())
 	return nil, nil
 
 }
@@ -180,21 +182,23 @@ func (e *ethHandler) GetTransactionReceipt(txhash common.Hash) (*types.Receipt, 
 	var req ctypes.ReqHashes
 	var blockHash []byte
 	req.Hashes = append(req.Hashes, txhash.Bytes())
-	txdetails, err := e.cli.GetTransactionByHash(&req)
-	if err != nil {
-		return nil, err
+	txdetail, err := e.cli.QueryTx(&ctypes.ReqHash{Hash: txhash.Bytes()})
+	if err != nil || txdetail == nil {
+		log.Error("GetTransactionReceipt", "QueryTx,err:", err, "txHash:", txhash.String())
+		//查询不到，不返回错误，直接返回空，与ethereum 保持一致
+		return nil, nil
 	}
-	if len(txdetails.GetTxs()) == 0 { //如果平行链查不到，则去主链查询
-		return nil, errors.New("transaction not exist")
-	}
-	blockNum := txdetails.GetTxs()[0].Height
+
+	blockNum := txdetail.GetHeight()
 	hashReply, err := e.cli.GetBlockHash(&ctypes.ReqInt{Height: blockNum})
 	if err == nil {
 		blockHash = hashReply.GetHash()
 	}
-
-	_, receipts, err := types.TxDetailsToEthReceipts(txdetails, common.BytesToHash(blockHash), e.cfg)
+	var txdetails ctypes.TransactionDetails
+	txdetails.Txs = append(txdetails.Txs, txdetail)
+	_, receipts, err := types.TxDetailsToEthReceipts(&txdetails, common.BytesToHash(blockHash), e.cfg)
 	if err != nil {
+		log.Error("GetTransactionReceipt", "QueryTx,err:", err)
 		return nil, err
 	}
 
