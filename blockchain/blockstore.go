@@ -404,13 +404,10 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 	cfg := bs.client.GetConfig()
 	if cfg.IsEnable("quickIndex") {
 		if _, err := bs.db.Get(types.CalcTxShortKey(key)); err != nil {
-			if _, etxErr := bs.db.Get(cfg.CalcEtxKey(key)); etxErr != nil {
-				if err == dbm.ErrNotFoundInDb {
-					return false, nil
-				}
-				return false, err
+			if err == dbm.ErrNotFoundInDb {
+				return false, nil
 			}
-
+			return false, err
 		}
 		//通过短hash查询交易存在时，需要再通过全hash索引查询一下。
 		//避免短hash重复，而全hash不一样的情况
@@ -420,12 +417,10 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 		// 直接查全哈希，单次查询平均耗时24000ns
 	}
 	if _, err := bs.db.Get(cfg.CalcTxKey(key)); err != nil {
-		if _, etxErr := bs.db.Get(cfg.CalcEtxKey(key)); etxErr != nil {
-			if err == dbm.ErrNotFoundInDb {
-				return false, nil
-			}
-			return false, err
+		if err == dbm.ErrNotFoundInDb {
+			return false, nil
 		}
+		return false, err
 	}
 	return true, nil
 }
@@ -668,24 +663,17 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	if rawBytes == nil || err != nil {
 		//查询eth 交易哈希对应的Chin33的交易
 		realHash, etxerr := bs.db.Get(cfg.CalcEtxKey(hash))
-		if etxerr == nil && realHash != nil {
+		if etxerr == nil && realHash != nil { // 查到eth txhash 映射关系
 			rawBytes, err = bs.db.Get(cfg.CalcTxKey(realHash))
-			if rawBytes == nil || err != nil {
-				if err != dbm.ErrNotFoundInDb {
-					storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
-				}
-				err = errors.New("tx not exist")
-				return nil, err
-			}
-		} else {
-			//查不到映射关系
+		}
+		if err != nil {
 			if err != dbm.ErrNotFoundInDb {
 				storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
 			}
+
 			err = errors.New("tx not exist")
 			return nil, err
 		}
-
 	}
 
 	var txResult types.TxResult
