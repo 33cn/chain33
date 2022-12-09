@@ -236,7 +236,8 @@ func TestEthHandler_GetTransaction(t *testing.T) {
 		t.Log(err)
 		return
 	}
-	qapi.On("GetTransactionByHash", mock.Anything).Return(&details, nil)
+	detail := details.GetTxs()[0]
+	qapi.On("QueryTx", mock.Anything).Return(detail, nil)
 	qapi.On("GetBlockHash", mock.Anything).Return(&ctypes.ReplyHash{Hash: common.FromHex("0xea482c18fa9c7665e826fa4a1f3d1e77250fde41535e2b66e43baaa320763206")}, nil)
 	hexhash := "0xdd99c27b9d5892d485962fb33befad420f655ef75da1a8ca4f8f9873ab10de34"
 	txs, err := ethCli.GetTransactionByHash(common.HexToHash(hexhash))
