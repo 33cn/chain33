@@ -53,6 +53,7 @@ type ConfigSubModule struct {
 	P2P       map[string][]byte
 	Crypto    map[string][]byte
 	RPC       map[string][]byte
+	Client    map[string][]byte
 }
 
 // subModule 子模块结构体
@@ -66,6 +67,7 @@ type subModule struct {
 	P2P       map[string]interface{}
 	Crypto    map[string]interface{}
 	RPC       map[string]interface{}
+	Client    map[string]interface{}
 }
 
 // ForkList fork列表配置
@@ -234,12 +236,6 @@ type BlockChain struct {
 	DisableBlockBroadcast bool `json:"disableBlockBroadcast,omitempty"`
 	//关闭本地和ntp server的时钟偏移检查
 	DisableClockDriftCheck bool `json:"disableClockDriftCheck,omitempty"`
-	// rollup 子配置
-	RollUp RollUpConfig `json:"rollUp,omitempty"`
-}
-
-// RollUpConfig rollup 配置
-type RollUpConfig struct {
 }
 
 // P2P 配置

@@ -6,9 +6,13 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+
+	"github.com/33cn/chain33/rpc/grpcclient"
 
 	"github.com/33cn/chain33/common"
 
@@ -41,11 +45,22 @@ type QueueProtocolOption struct {
 	WaitTimeout time.Duration
 }
 
+// ParachainConfig 平行链相关配置
+type ParachainConfig struct {
+
+	// EnableForwardTx  平行链使用, 支持转发交易到主链
+	EnableForwardTx bool `json:"enableForwardTx,omitempty"`
+	// ForwardExecs 指定直接转发到主链的交易执行器
+	ForwardExecs []string `json:"forwardExecs,omitempty"`
+}
+
 // QueueProtocol 消息通道协议实现
 type QueueProtocol struct {
 	// 消息队列
-	client queue.Client
-	option QueueProtocolOption
+	client        queue.Client
+	option        QueueProtocolOption
+	paraCfg       ParachainConfig
+	mainChainGrpc types.Chain33Client
 }
 
 // New New QueueProtocolAPI interface
@@ -61,6 +76,22 @@ func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, er
 		q.option.SendTimeout = time.Duration(-1)
 		q.option.WaitTimeout = time.Duration(-1)
 	}
+
+	cfg := client.GetConfig()
+	if cfg.IsPara() {
+
+		subCfg := cfg.GetSubConfig().Client
+		types.MustDecode(subCfg["parachain"], &q.paraCfg)
+
+		if q.paraCfg.EnableForwardTx {
+			gcli, err := grpcclient.NewMainChainClient(cfg, cfg.GetModuleConfig().RPC.MainChainGrpcAddr)
+			if err != nil {
+				panic("Mew main chain grpc client err:" + err.Error())
+			}
+			q.mainChainGrpc = gcli
+		}
+	}
+
 	return q, nil
 }
 
@@ -111,8 +142,8 @@ func (q *QueueProtocol) setOption(option *QueueProtocolOption) {
 	}
 }
 
-// SendTx send transaction to mempool
-func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
+// SendTx2Mempool send transaction to mempool
+func (q *QueueProtocol) SendTx2Mempool(param *types.Transaction) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("SendTx", "Error", err)
@@ -136,6 +167,36 @@ func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	}
 	q.client.FreeMessage(msg)
 	return reply, err
+}
+
+func (q *QueueProtocol) onlyForward(tx *types.Transaction) bool {
+	// 配置不支持转发
+	if !q.paraCfg.EnableForwardTx {
+		return false
+	}
+	execer := string(tx.Execer)
+	// 非平行链交易, 默认转发到主链
+	if !types.IsParaExecName(execer) {
+		return true
+	}
+
+	// 是否是配置
+	for _, exec := range q.paraCfg.ForwardExecs {
+
+		if strings.HasSuffix(execer, exec) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// SendTx send transaction to mempool with forwar logic in parachain
+func (q *QueueProtocol) SendTx(tx *types.Transaction) (*types.Reply, error) {
+	if q.onlyForward(tx) {
+		return q.mainChainGrpc.SendTransaction(context.TODO(), tx)
+	}
+	return q.SendTx2Mempool(tx)
 }
 
 // GetTxList get transactions from mempool
