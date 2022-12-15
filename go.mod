@@ -5,7 +5,8 @@ go 1.16
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/XiaoMi/pegasus-go-client v0.0.0-20210825081735-b8a75c1eac2b
-	github.com/btcsuite/btcd v0.22.0-beta
+	github.com/btcsuite/btcd v0.23.2
+	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/decred/base58 v1.0.3
 	github.com/dgraph-io/badger v1.6.2
