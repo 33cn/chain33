@@ -548,8 +548,9 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 	}
 	payload := ctypes.Encode(action)
 	var gas = etx.Gas()
-	if gas < 1e5 { //gas 不能低于1e5
-		gas = 1e5
+	minTxFeeRate := cfg.GetMinTxFeeRate()
+	if gas < uint64(minTxFeeRate) { //gas 不能低于1e5
+		gas = uint64(minTxFeeRate)
 	}
 
 	//全部走Evm 通道，exec=evm
