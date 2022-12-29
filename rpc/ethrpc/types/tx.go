@@ -427,6 +427,9 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash)
 		elog.BlockNumber = hexutil.Uint64(detail.Height)
 		elog.BlockHash = blockHash
 		elog.Data = evmLog.Data
+		if elog.Data == nil {
+			elog.Data = []byte{}
+		}
 		for _, topic := range evmLog.Topic {
 			elog.Topics = append(elog.Topics, common.BytesToHash(topic))
 		}
@@ -505,8 +508,9 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 	}
 	payload := ctypes.Encode(action)
 	var gas = etx.Gas()
-	if gas < 1e5 { //gas 不能低于1e5
-		gas = 1e5
+	minTxFeeRate := cfg.GetMinTxFeeRate()
+	if gas < uint64(minTxFeeRate) { //gas 不能低于默认的最低费率
+		gas = uint64(minTxFeeRate)
 	}
 
 	//全部走Evm 通道，exec=evm
