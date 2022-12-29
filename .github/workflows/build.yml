@@ -73,7 +73,7 @@ jobs:
 
   deploy:
     name: deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Set up Golang
         uses: actions/setup-go@v2

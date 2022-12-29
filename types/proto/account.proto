@@ -93,3 +93,15 @@ message ReqAllExecBalance {
     string asset_exec   = 4;
     string asset_symbol = 5;
 }
+
+message ReqEvmAccountNonce {
+    //地址列表
+    string addr = 1;
+}
+
+message EvmAccountNonce {
+    //地址列表
+    string addr = 1;
+    int64 Nonce = 2;
+
+}

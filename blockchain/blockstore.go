@@ -661,11 +661,19 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	cfg := bs.client.GetConfig()
 	rawBytes, err := bs.db.Get(cfg.CalcTxKey(hash))
 	if rawBytes == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
+		//查询eth 交易哈希对应的Chin33的交易
+		realHash, etxerr := bs.db.Get(cfg.CalcEtxKey(hash))
+		if etxerr == nil && realHash != nil { // 查到eth txhash 映射关系
+			rawBytes, err = bs.db.Get(cfg.CalcTxKey(realHash))
 		}
-		err = errors.New("tx not exist")
-		return nil, err
+		if err != nil {
+			if err != dbm.ErrNotFoundInDb {
+				storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
+			}
+
+			err = errors.New("tx not exist")
+			return nil, err
+		}
 	}
 
 	var txResult types.TxResult

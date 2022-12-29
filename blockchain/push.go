@@ -24,7 +24,7 @@ const (
 	pushBlockMaxSeq          = 10
 	pushTxReceiptMaxSeq      = 100
 	pushMaxSize              = 1 * 1024 * 1024
-	maxPushSubscriber        = int(100)
+	maxPushSubscriber        = int(128)
 	subscribeStatusActive    = int32(1)
 	subscribeStatusNotActive = int32(2)
 	postFail2Sleep           = int32(60) //一次发送失败，sleep的次数
@@ -345,8 +345,11 @@ func (push *Push) init() {
 
 	}
 	for _, subscribe := range subscribes {
-		chainlog.Info("Push init", "Going to add Task to Push for Name", subscribe.Name)
-		push.addTask(subscribe)
+		if subscribe.GetEncode() != encodeGrpc { // grpc 不需要节点启动之后主动推送过去
+			chainlog.Info("Push init", "Going to add Task to Push for Name", subscribe.Name)
+			push.addTask(subscribe)
+		}
+
 	}
 }
 
@@ -365,7 +368,6 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		chainlog.Error("addSubscriber input para is null")
 		return types.ErrInvalidParam
 	}
-
 	if PushType(subscribe.Type) < PushBlock || PushType(subscribe.Type) > PushEVMEvent {
 		chainlog.Error("addSubscriber input type is error", "type", subscribe.Type)
 		return types.ErrInvalidParam
@@ -378,7 +380,6 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 			return errors.New(types.ErrInvalidParam.Error() + ":Contract must be configure")
 		}
 	}
-
 	//如果需要配置起始的块的信息，则为了保持一致性，三项缺一不可
 	if subscribe.LastBlockHash != "" || subscribe.LastSequence != 0 || subscribe.LastHeight != 0 {
 		if subscribe.LastBlockHash == "" || subscribe.LastSequence == 0 || subscribe.LastHeight == 0 {
@@ -386,7 +387,6 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 			return types.ErrInvalidParam
 		}
 	}
-
 	//如果该用户已经注册了订阅请求，则只是确认是否需用重新启动，否则就直接返回
 	if exist, subscribeInDB := push.hasSubscriberExist(subscribe); exist {
 		if subscribeInDB.URL != subscribe.URL || subscribeInDB.Type != subscribe.Type {
@@ -396,11 +396,9 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		if err := push.check2ResumePush(subscribeInDB); nil != err {
 			return err
 		}
-
 		//当前可能是notActive的情况，重新激活后，则直接将其状态设置为active
 		return push.setActive(subscribe)
 	}
-
 	push.mu.Lock()
 	if len(push.tasks) >= maxPushSubscriber {
 		chainlog.Error("addSubscriber too many push subscriber")
@@ -408,7 +406,6 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		return types.ErrTooManySeqCB
 	}
 	push.mu.Unlock()
-
 	//处理需要从指定高度开始推送的订阅请求
 	if subscribe.LastSequence > 0 {
 		sequence, err := push.sequenceStore.GetBlockSequence(subscribe.LastSequence)
@@ -416,11 +413,9 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 			chainlog.Error("addSubscriber continue-seqUpdateChan-push", "load-1", err)
 			return err
 		}
-
 		// 注册点，在节点上存在
 		// 同一高度，不一定同一个hash，有分叉的可能；但同一个hash必定同一个高度
-		reloadHash := common.ToHex(sequence.Hash)
-		if subscribe.LastBlockHash == reloadHash {
+		if bytes.Equal(sequence.GetHash(), common.HexToHash(subscribe.LastBlockHash).Bytes()) {
 			// 先填入last seqUpdateChan， 而不是从0开始
 			err = push.setLastPushSeq(subscribe.Name, subscribe.LastSequence)
 			if err != nil {
@@ -430,7 +425,6 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 			return push.persisAndStart(subscribe)
 		}
 	}
-
 	return push.persisAndStart(subscribe)
 }
 
@@ -467,13 +461,13 @@ func (push *Push) persisAndStart(subscribe *types.PushSubscribeReq) error {
 	key := calcPushKey(subscribe.Name)
 	storeLog.Info("persisAndStart", "key", string(key), "subscribe", subscribe)
 	push.addTask(subscribe)
-
 	pushWithStatus := &types.PushWithStatus{
 		Push:   subscribe,
 		Status: subscribeStatusActive,
 	}
 
 	return push.store.SetSync(key, types.Encode(pushWithStatus))
+
 }
 
 func (push *Push) setActive(subscribe *types.PushSubscribeReq) error {
@@ -584,7 +578,6 @@ func (push *Push) runTask(input *pushNotify) {
 
 		subscribe := in.subscribe
 		lastProcessedseq := push.getLastPushSeq(subscribe)
-
 		atomic.StoreInt32(&in.status, running)
 
 		runChan := make(chan struct{}, 10)
@@ -637,7 +630,6 @@ func (push *Push) runTask(input *pushNotify) {
 				if seqCount > int(lastesBlockSeq-lastProcessedseq) {
 					seqCount = int(lastesBlockSeq - lastProcessedseq)
 				}
-
 				data, updateSeq, err := push.getPushData(subscribe, lastProcessedseq+1, seqCount, pushMaxSize)
 				if err != nil {
 					chainlog.Error("getPushData", "err", err, "seqCurrent", lastProcessedseq+1, "maxSeq", seqCount,

@@ -56,7 +56,7 @@ type Transactions []*Transaction
 //Block ETH 交易结构体
 type Block struct {
 	*Header
-	//Uncles []*Header `json:"uncles"`
+	Uncles       []*Header   `json:"uncles"`
 	Transactions interface{} `json:"transactions"`
 	Hash         string      `json:"hash"`
 }
@@ -69,7 +69,7 @@ type Receipt struct {
 	Bloom             types.Bloom     `json:"logsBloom"         gencodec:"required"`
 	Logs              []*EvmLog       `json:"logs"              gencodec:"required"`
 	TxHash            common.Hash     `json:"transactionHash" gencodec:"required"`
-	ContractAddress   *common.Address `json:"contractAddress,omitempty"`
+	ContractAddress   *common.Address `json:"contractAddress"`
 	GasUsed           hexutil.Uint64  `json:"gasUsed" gencodec:"required"`
 	BlockHash         common.Hash     `json:"blockHash,omitempty"`
 	BlockNumber       *hexutil.Big    `json:"blockNumber,omitempty"`
@@ -92,15 +92,15 @@ type CallMsg struct {
 
 //EvmLog evm log
 type EvmLog struct {
-	Address     *common.Address `json:"address"`
-	Topics      []common.Hash   `json:"topics,omitempty"`
-	Data        *hexutil.Bytes  `json:"data"`
-	BlockNumber hexutil.Uint64  `json:"blockNumber,omitempty"`
-	TxHash      common.Hash     `json:"transactionHash,omitempty"`
-	TxIndex     hexutil.Uint    `json:"transactionIndex,omitempty"`
-	BlockHash   common.Hash     `json:"blockHash,omitempty"`
-	Index       hexutil.Uint    `json:"logIndex"`
-	Removed     bool            `json:"removed"`
+	Address     common.Address `json:"address"`
+	Topics      []common.Hash  `json:"topics"`
+	Data        hexutil.Bytes  `json:"data"`
+	BlockNumber hexutil.Uint64 `json:"blockNumber"`
+	TxHash      common.Hash    `json:"transactionHash"`
+	TxIndex     hexutil.Uint   `json:"transactionIndex"`
+	BlockHash   common.Hash    `json:"blockHash"`
+	Index       hexutil.Uint   `json:"logIndex"`
+	Removed     bool           `json:"removed"`
 }
 
 //Peer peer info
@@ -140,20 +140,12 @@ type Ports struct {
 	Listener  int32 `json:"listener,omitempty"`
 }
 
-//SubLogs ...
+//FilterQuery ...
 //logs Subscription
-type SubLogs struct {
-	Address string   `json:"address,omitempty"`
-	Topics  []string `json:"topics,omitempty"`
-}
-
-// EvmLogInfo  ...
-type EvmLogInfo struct {
-	Address          string      `json:"address,omitempty"`
-	BlockHash        string      `json:"blockHash,omitempty"`
-	BlockNumber      string      `json:"blockNumber,omitempty"`
-	LogIndex         string      `json:"logIndex,omitempty"`
-	Topics           interface{} `json:"topics,omitempty"`
-	TransactionHash  string      `json:"transactionHash,omitempty"`
-	TransactionIndex string      `json:"transactionIndex,omitempty"`
+type FilterQuery struct {
+	Address   interface{}   `json:"address,omitempty"`
+	Topics    []interface{} `json:"topics,omitempty"`
+	BlockHash *common.Hash  // used by eth_getLogs, return logs only from block with this hash
+	FromBlock string        `json:"fromBlock,omitempty"` // beginning of the queried range, nil means genesis block
+	ToBlock   string        `json:"toBlock,omitempty"`
 }
