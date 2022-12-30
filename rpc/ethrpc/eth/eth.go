@@ -274,7 +274,7 @@ func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 	//暂定evm
 	param.Execer = e.cfg.ExecName("evm") //"evm"
 	param.FuncName = "Query"
-	param.Payload = []byte(fmt.Sprintf(`{"input":"%v","address":"%s"}`, msg.Data, msg.To))
+	param.Payload = []byte(fmt.Sprintf(`{"input":"%v","address":"%s","caller":"%s","ethquery":true}`, msg.Data, msg.To, msg.From))
 	log.Debug("eth_call", "QueryCall param", param, "payload", string(param.Payload), "msg.To", msg.To)
 	execty := ctypes.LoadExecutorType(param.Execer)
 	if execty == nil {
