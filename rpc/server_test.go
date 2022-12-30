@@ -7,7 +7,6 @@ package rpc
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -226,7 +225,7 @@ func TestEthRpc_Subscribe(t *testing.T) {
 	//websocket client
 	ws, err := websocket.Dial("ws://localhost:8546", "", "http://localhost:8546")
 	assert.Nil(t, err)
-	ws.Write([]byte(fmt.Sprintf(`{"id": 1, "method": "eth_subscribe", "params": ["newHeads"]}`)))
+	ws.Write([]byte(`{"id": 1, "method": "eth_subscribe", "params": ["newHeads"]}`))
 	var data string
 	err = websocket.Message.Receive(ws, &data)
 	assert.Nil(t, err)
@@ -258,7 +257,7 @@ func TestEthRpc_Subscribe(t *testing.T) {
 
 	ws, err = websocket.Dial("ws://localhost:8546", "", "http://localhost:8546")
 	assert.Nil(t, err)
-	ws.Write([]byte(fmt.Sprintf(`{"id": 1, "method": "eth_subscribe", "params": ["logs",{"address":"1JX6b8qpVFZ4FPqP4KT2HRTjYJrzRZGw7t"}]}`)))
+	ws.Write([]byte(`{"id": 1, "method": "eth_subscribe", "params": ["logs",{"address":"1JX6b8qpVFZ4FPqP4KT2HRTjYJrzRZGw7t"}]}`))
 	err = websocket.Message.Receive(ws, &data)
 	assert.Nil(t, err)
 

@@ -62,9 +62,7 @@ func (tm *TreeMap) Get(key interface{}) (value interface{}, ok bool) {
 func (tm *TreeMap) Delete(key interface{}) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-	if _, ok := tm.mpCache[key]; ok {
-		delete(tm.mpCache, key)
-	}
+	delete(tm.mpCache, key)
 }
 
 // Contains 查看是否包含元素

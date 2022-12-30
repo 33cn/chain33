@@ -16,7 +16,7 @@ import (
 func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction, index int) bool {
 	keyExecer, err := types.FindExecer(key)
 	if err != nil {
-		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer))
+		elog.Error("find execer ", "err", err, "key", string(key), "keyexecer", string(keyExecer), "realExecer:", string(realExecer))
 		return false
 	}
 	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
@@ -55,7 +55,6 @@ func isAllowKeyWrite(e *executor, key, realExecer []byte, tx *types.Transaction,
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
-
 	c := e.loadDriver(&types.Transaction{Execer: execdriver}, index)
 	//交给 -> friend 来判定
 	return c.IsFriend(execdriver, key, tx)

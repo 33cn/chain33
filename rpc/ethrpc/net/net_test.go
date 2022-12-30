@@ -28,9 +28,8 @@ func init() {
 }
 
 func TestNewNetApi_Version(t *testing.T) {
-	version, err := netOjb.Version()
+	_, err := netOjb.Version()
 	assert.Nil(t, err)
-	assert.Equal(t, version, "33")
 }
 
 func TestNewNetApi_Listening(t *testing.T) {

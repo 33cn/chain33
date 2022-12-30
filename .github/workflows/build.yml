@@ -8,7 +8,7 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
         id: go
       - name: checkout
         uses: actions/checkout@v2
@@ -21,11 +21,10 @@ jobs:
           # TODO: this will hopefully be fixed by
           # https://github.com/actions/setup-go/issues/14
           export PATH=${PATH}:`go env GOPATH`/bin
-          go get -u golang.org/x/tools/cmd/goimports
-          go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
-          go get -u mvdan.cc/sh/cmd/shfmt
-          go get -u mvdan.cc/sh/cmd/gosh
-          go mod tidy
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.2
+          go install mvdan.cc/sh/cmd/shfmt@latest
+          go install mvdan.cc/sh/cmd/gosh@latest
 
       - name: Lint
         run: |
@@ -40,7 +39,7 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
@@ -58,7 +57,7 @@ jobs:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
@@ -74,12 +73,12 @@ jobs:
 
   deploy:
     name: deploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - name: Set up Golang
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
@@ -101,7 +100,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16
+          go-version: 1.17
 
       - name: Build
         run: make build

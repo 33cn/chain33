@@ -61,6 +61,12 @@ func getTx(executor *executor, tx *types.Transaction, receipt *types.ReceiptData
 	txresult.ActionName = tx.ActionName()
 	var kvlist []*types.KeyValue
 	kvlist = append(kvlist, &types.KeyValue{Key: cfg.CalcTxKey(txhash), Value: cfg.CalcTxKeyValue(&txresult)})
+	//加入eth 交易哈希与chain33 哈希的映射
+	etxHash := tx.GetEthTxHash()
+	if etxHash != nil {
+		kvlist = append(kvlist, &types.KeyValue{Key: cfg.CalcEtxKey(etxHash), Value: cfg.CalcTxKey(txhash)})
+	}
+	//end-----------------------------
 	if cfg.IsEnable("quickIndex") {
 		kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxShortKey(txhash), Value: []byte("1")})
 	}

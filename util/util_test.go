@@ -6,7 +6,6 @@ package util
 
 import (
 	"errors"
-	"fmt"
 	"sync/atomic"
 	"testing"
 
@@ -280,7 +279,7 @@ func (t *testClient) Wait(in *queue.Message) (*queue.Message, error) {
 func TestExecBlock(t *testing.T) {
 	str := types.GetDefaultCfgstring()
 	str = strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
-	str += fmt.Sprintf("\n[fork.sub.coins]\nEnable=0\nForkFriendExecer=0")
+	str += "\n[fork.sub.coins]\nEnable=0\nForkFriendExecer=0"
 	cfg := types.NewChain33Config(types.MergeCfg(types.ReadFile("../cmd/chain33/chain33.system.fork.toml"), str))
 	client := &testClient{}
 	client.On("Send", mock.Anything, mock.Anything).Return(nil)

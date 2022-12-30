@@ -1,6 +1,7 @@
 package net
 
 import (
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"strconv"
 
 	"github.com/33cn/chain33/client"
@@ -44,5 +45,5 @@ func (n *netHandler) Listening() (bool, error) {
 
 //Version net_version
 func (n *netHandler) Version() (string, error) {
-	return strconv.FormatInt(int64(n.cfg.GetChainID()), 10), nil
+	return strconv.FormatInt(secp256k1eth.GetEvmChainID(), 10), nil
 }

@@ -3,6 +3,8 @@ package types
 import (
 	"math/big"
 
+	etypes "github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -23,7 +25,7 @@ func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config
 	//header.GasUsed=
 	//暂不支持ReceiptHash,UncleHash
 	//header.ReceiptHash=
-	header.UncleHash = common.BytesToHash([]byte{0x0})
+	header.UncleHash = etypes.EmptyUncleHash
 
 	//处理交易
 	txs, fee, err := TxsToEthTxs(common.BytesToHash(fullblock.GetBlock().Hash(cfg)), fullblock.GetBlock().Height, fullblock.GetBlock().GetTxs(), cfg, full)
@@ -35,7 +37,7 @@ func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config
 	block.Hash = common.BytesToHash(fullblock.GetBlock().Hash(cfg)).Hex()
 
 	block.Header = &header
-
+	block.Uncles = []*Header{}
 	block.Transactions = txs
 	return &block, nil
 }

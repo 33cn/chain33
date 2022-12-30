@@ -487,3 +487,92 @@ func delBlockReceiptTable(db dbm.DB, height int64, hash []byte) ([]*types.KeyVal
 	}
 	return kvs, nil
 }
+
+var blockKVOpt = &table.Option{
+	Prefix:  "CHAIN-blockKV",
+	Name:    "blockKV",
+	Primary: "heighthash",
+	Index:   []string{"hash"},
+}
+
+//NewBlockKVTable 新建表
+func NewBlockKVTable(kvdb dbm.KV) *table.Table {
+	rowmeta := NewBlockKVRow()
+	kvtable, err := table.NewTable(rowmeta, kvdb, blockKVOpt)
+	if err != nil {
+		panic(err)
+	}
+	return kvtable
+}
+
+//BlockKVRow table meta 结构
+type BlockKVRow struct {
+	*types.BlockKVs
+}
+
+//NewBlockKVRow 新建一个meta 结构
+func NewBlockKVRow() *BlockKVRow {
+	return &BlockKVRow{BlockKVs: &types.BlockKVs{}}
+}
+
+//CreateRow 新建数据行
+func (blkv *BlockKVRow) CreateRow() *table.Row {
+	return &table.Row{Data: &types.BlockKVs{}}
+}
+
+//SetPayload 设置数据
+func (blkv *BlockKVRow) SetPayload(data types.Message) error {
+	if kvs, ok := data.(*types.BlockKVs); ok {
+		blkv.BlockKVs = kvs
+		return nil
+	}
+	return types.ErrTypeAsset
+}
+
+//Get 获取索引对应的key值
+func (blkv *BlockKVRow) Get(key string) ([]byte, error) {
+	if key == "heighthash" {
+		return calcHeightHashKey(blkv.Height, blkv.Hash), nil
+	} else if key == "hash" {
+		return blkv.Hash, nil
+	}
+	return nil, types.ErrNotFound
+}
+
+//saveBlockKVTable 保存block kvs
+func saveBlockKVTable(db dbm.DB, blkv *types.BlockKVs) ([]*types.KeyValue, error) {
+	kvdb := dbm.NewKVDB(db)
+	kvtable := NewBlockKVTable(kvdb)
+
+	err := kvtable.Replace(blkv)
+	if err != nil {
+		return nil, err
+	}
+
+	kvs, err := kvtable.Save()
+	if err != nil {
+		return nil, err
+	}
+	return kvs, nil
+}
+
+//通过指定的index获取对应的BlockKVs
+//通过高度获取：height+hash；indexName="",prefix=nil,primaryKey=calcHeightHashKey
+//通过index获取：hash; indexName="hash",prefix=ReceiptRow.Get(indexName),primaryKey=nil
+func getBlockKVByIndex(db dbm.DB, indexName string, prefix []byte, primaryKey []byte) (*types.BlockKVs, error) {
+	kvdb := dbm.NewKVDB(db)
+	kvtable := NewBlockKVTable(kvdb)
+
+	rows, err := kvtable.ListIndex(indexName, prefix, primaryKey, 0, dbm.ListASC)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) != 1 {
+		panic("getBlockKVByIndex")
+	}
+	blkvs, ok := rows[0].Data.(*types.BlockKVs)
+	if !ok {
+		return nil, types.ErrDecode
+	}
+	return blkvs, nil
+}

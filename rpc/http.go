@@ -70,7 +70,7 @@ func (j *JSONRPCServer) Listen() (int, error) {
 		}
 
 		if !checkBasicAuth(r) {
-			writeError(w, r, 0, fmt.Sprintf(`Unauthozied`))
+			writeError(w, r, 0, `Unauthozied`)
 			return
 		}
 		if r.URL.Path == "/" {

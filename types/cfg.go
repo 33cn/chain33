@@ -236,6 +236,8 @@ type BlockChain struct {
 	DisableBlockBroadcast bool `json:"disableBlockBroadcast,omitempty"`
 	//关闭本地和ntp server的时钟偏移检查
 	DisableClockDriftCheck bool `json:"disableClockDriftCheck,omitempty"`
+	//保存每个区块的block　kvs
+	EnableSaveBlockKVs bool `json:"enableSaveBlockKVs,omitempty"`
 }
 
 // P2P 配置

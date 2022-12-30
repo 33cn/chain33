@@ -164,6 +164,7 @@ type BlockStore struct {
 	lastheaderlock sync.Mutex
 	saveSequence   bool
 	isParaChain    bool
+	isSaveBlockKVs bool
 	batch          dbm.Batch
 
 	//记录当前活跃的block，减少数据库的访问提高效率
@@ -231,6 +232,10 @@ func NewBlockStore(chain *BlockChain, db dbm.DB, client queue.Client) *BlockStor
 		maxActiveBlockSize = cfg.GetModuleConfig().BlockChain.MaxActiveBlockSize
 	}
 	blockStore.activeBlocks = utils.NewSpaceLimitCache(maxActiveBlockNum, maxActiveBlockSize*1024*1024)
+
+	if cfg.GetModuleConfig().BlockChain.EnableSaveBlockKVs {
+		blockStore.isSaveBlockKVs = true
+	}
 
 	return blockStore
 }
@@ -656,11 +661,19 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	cfg := bs.client.GetConfig()
 	rawBytes, err := bs.db.Get(cfg.CalcTxKey(hash))
 	if rawBytes == nil || err != nil {
-		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
+		//查询eth 交易哈希对应的Chin33的交易
+		realHash, etxerr := bs.db.Get(cfg.CalcEtxKey(hash))
+		if etxerr == nil && realHash != nil { // 查到eth txhash 映射关系
+			rawBytes, err = bs.db.Get(cfg.CalcTxKey(realHash))
 		}
-		err = errors.New("tx not exist")
-		return nil, err
+		if err != nil {
+			if err != dbm.ErrNotFoundInDb {
+				storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
+			}
+
+			err = errors.New("tx not exist")
+			return nil, err
+		}
 	}
 
 	var txResult types.TxResult
@@ -1370,6 +1383,23 @@ func (bs *BlockStore) saveBlockForTable(storeBatch dbm.Batch, blockdetail *types
 		}
 	}
 
+	if bs.isSaveBlockKVs {
+		blockReceipt := &types.BlockKVs{
+			KVs:    blockdetail.KV,
+			Hash:   hash,
+			Height: height,
+		}
+		blkvs, err := saveBlockKVTable(bs.db, blockReceipt)
+		if err != nil {
+			storeLog.Error("SaveBlockForTable:saveBlockKVTable", "height", height, "hash", common.ToHex(hash), "err", err)
+			return err
+		}
+		for _, kv := range blkvs {
+			storeBatch.Set(kv.GetKey(), kv.GetValue())
+		}
+		storeLog.Debug("SaveBlockForTable:saveBlockKVTable", "height", height, "hash", common.ToHex(hash), "kv number", len(blockdetail.KV))
+	}
+
 	// Save blockheader
 	var blockheader types.Header
 	blockheader.Version = blockdetail.Block.Version
@@ -1455,6 +1485,17 @@ func (bs *BlockStore) loadBlockByIndex(indexName string, prefix []byte, primaryK
 
 	blockdetail.Receipts = blockreceipt
 	blockdetail.Block = &block
+	if bs.isSaveBlockKVs {
+		blockKVs, err := getBlockKVByIndex(bs.db, indexName, prefix, primaryKey)
+		if blockKVs != nil {
+			blockdetail.KV = blockKVs.KVs
+			storeLog.Info("loadBlockByIndex:getBlockKVByIndex", "number kvs", len(blockKVs.KVs), "height", block.Height,
+				"indexName", indexName, "prefix", prefix, "primaryKey", primaryKey)
+		} else {
+			storeLog.Error("loadBlockByIndex:getBlockKVByIndex", "indexName", indexName, "prefix", prefix, "primaryKey", primaryKey, "err", err)
+		}
+
+	}
 	return &blockdetail, nil
 }
 
@@ -1795,4 +1836,9 @@ func (bs *BlockStore) AddActiveBlock(hash string, block *types.BlockDetail) bool
 func (bs *BlockStore) RemoveActiveBlock(hash string) bool {
 	_, ok := bs.activeBlocks.Remove(hash)
 	return ok
+}
+
+// EnableSaveBlockKVs :enable SaveBlockKVs
+func (bs *BlockStore) EnableSaveBlockKVs() {
+	bs.isSaveBlockKVs = true
 }

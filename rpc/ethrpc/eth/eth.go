@@ -6,17 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"net"
-	"time"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
-	"google.golang.org/grpc"
-
-	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/address"
@@ -29,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	etypes "github.com/ethereum/go-ethereum/core/types"
+	"google.golang.org/grpc"
 )
 
 type ethHandler struct {
@@ -56,6 +51,7 @@ func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 		log.Error("NewEthAPI", "dial local grpc server err:", err)
 		return nil
 	}
+
 	//TODO 改进为内部推送
 	//推送用途
 	e.grpcCli = ctypes.NewChain33Client(conn)
@@ -76,7 +72,7 @@ func (e *ethHandler) GetBalance(address string, tag *string) (hexutil.Big, error
 	}
 	//转换成精度为18
 	bn := new(big.Int).SetInt64(accounts[0].GetBalance())
-	bn = bn.Mul(bn, new(big.Int).SetUint64(1e10))
+	bn = bn.Mul(bn, new(big.Int).Div(big.NewInt(1e18), big.NewInt(e.cfg.GetCoinPrecision())))
 	return hexutil.Big(*bn), nil
 }
 
@@ -147,20 +143,25 @@ func (e *ethHandler) GetBlockByHash(txhash common.Hash, full bool) (*types.Block
 //GetTransactionByHash eth_getTransactionByHash
 func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transaction, error) {
 	log.Debug("GetTransactionByHash", "txhash", txhash)
-	var req ctypes.ReqHashes
-	req.Hashes = append(req.Hashes, txhash.Bytes())
-	txdetails, err := e.cli.GetTransactionByHash(&req)
-	if err != nil {
-		return nil, err
+	var req ctypes.ReqHash
+	req.Hash = txhash.Bytes()
+
+	txdetail, err := e.cli.QueryTx(&req)
+	if err != nil || txdetail == nil {
+		log.Error("GetTransactionByHash", "QueryTx,err:", err, "txHash:", txhash.String())
+		//查询不到，不返回错误，直接返回空，与ethereum 保持一致
+		return nil, nil
 	}
 	var blockHash []byte
-	if len(txdetails.GetTxs()) != 0 {
-		blockNum := txdetails.GetTxs()[0].Height
+	if txdetail.Tx != nil {
+		blockNum := txdetail.GetHeight()
 		hashReply, err := e.cli.GetBlockHash(&ctypes.ReqInt{Height: blockNum})
 		if err == nil {
 			blockHash = hashReply.GetHash()
 		}
-		txs, _, err := types.TxDetailsToEthReceipts(txdetails, common.BytesToHash(blockHash), e.cfg)
+		var txdetails ctypes.TransactionDetails
+		txdetails.Txs = append(txdetails.Txs, txdetail)
+		txs, _, err := types.TxDetailsToEthReceipts(&txdetails, common.BytesToHash(blockHash), e.cfg)
 		if err != nil {
 			return nil, err
 		}
@@ -170,9 +171,8 @@ func (e *ethHandler) GetTransactionByHash(txhash common.Hash) (*types.Transactio
 			return txs[0], nil
 		}
 	}
-	log.Error("eth_getTransactionByHash", "err", "transaction not exist")
+	log.Error("eth_getTransactionByHash", "transaction not exist,err", txhash.String())
 	return nil, nil
-	//return nil, errors.New("transaction not exist")
 
 }
 
@@ -182,21 +182,23 @@ func (e *ethHandler) GetTransactionReceipt(txhash common.Hash) (*types.Receipt, 
 	var req ctypes.ReqHashes
 	var blockHash []byte
 	req.Hashes = append(req.Hashes, txhash.Bytes())
-	txdetails, err := e.cli.GetTransactionByHash(&req)
-	if err != nil {
-		return nil, err
+	txdetail, err := e.cli.QueryTx(&ctypes.ReqHash{Hash: txhash.Bytes()})
+	if err != nil || txdetail == nil {
+		log.Error("GetTransactionReceipt", "QueryTx,err:", err, "txHash:", txhash.String())
+		//查询不到，不返回错误，直接返回空，与ethereum 保持一致
+		return nil, nil
 	}
-	if len(txdetails.GetTxs()) == 0 { //如果平行链查不到，则去主链查询
-		return nil, errors.New("transaction not exist")
-	}
-	blockNum := txdetails.GetTxs()[0].Height
+
+	blockNum := txdetail.GetHeight()
 	hashReply, err := e.cli.GetBlockHash(&ctypes.ReqInt{Height: blockNum})
 	if err == nil {
 		blockHash = hashReply.GetHash()
 	}
-
-	_, receipts, err := types.TxDetailsToEthReceipts(txdetails, common.BytesToHash(blockHash), e.cfg)
+	var txdetails ctypes.TransactionDetails
+	txdetails.Txs = append(txdetails.Txs, txdetail)
+	_, receipts, err := types.TxDetailsToEthReceipts(&txdetails, common.BytesToHash(blockHash), e.cfg)
 	if err != nil {
+		log.Error("GetTransactionReceipt", "QueryTx,err:", err)
 		return nil, err
 	}
 
@@ -204,8 +206,7 @@ func (e *ethHandler) GetTransactionReceipt(txhash common.Hash) (*types.Receipt, 
 		receipts[0].BlockHash = common.BytesToHash(blockHash)
 		return receipts[0], nil
 	}
-	log.Error("eth_getTransactionReceipt", "err", "transactionReceipt not exist")
-	//return nil, errors.New("transactionReceipt not exist")
+	log.Error("eth_getTransactionReceipt", "err", "transactionReceipt not exist", txhash.String())
 	return nil, nil
 }
 
@@ -273,7 +274,7 @@ func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 	//暂定evm
 	param.Execer = e.cfg.ExecName("evm") //"evm"
 	param.FuncName = "Query"
-	param.Payload = []byte(fmt.Sprintf(`{"input":"%v","address":"%s"}`, msg.Data, msg.To))
+	param.Payload = []byte(fmt.Sprintf(`{"input":"%v","address":"%s","caller":"%s","ethquery":true}`, msg.Data, msg.To, msg.From))
 	log.Debug("eth_call", "QueryCall param", param, "payload", string(param.Payload), "msg.To", msg.To)
 	execty := ctypes.LoadExecutorType(param.Execer)
 	if execty == nil {
@@ -408,30 +409,24 @@ func (e *ethHandler) Syncing() (interface{}, error) {
 		HighestBlock  string `json:"highestBlock,omitempty"`
 	}
 	reply, err := e.cli.IsSync()
-	if err == nil {
-		var caughtUp ctypes.IsCaughtUp
-		err = ctypes.Decode(reply.GetMsg(), &caughtUp)
+	if err != nil {
+		return nil, err
+
+	}
+	if !reply.IsOk { //未同步
+		//when syncing
+		header, err := e.cli.GetLastHeader()
 		if err == nil {
-			if caughtUp.Iscaughtup { // when not syncing
-				return false, nil
-			}
-			//when syncing
-			header, err := e.cli.GetLastHeader()
-			if err == nil {
-				syncing.CurrentBlock = hexutil.EncodeUint64(uint64(header.GetHeight()))
-				syncing.StartingBlock = syncing.CurrentBlock
-				replyBlockNum, err := e.cli.GetHighestBlockNum(&ctypes.ReqNil{})
-				if err == nil {
-					syncing.HighestBlock = hexutil.EncodeUint64(uint64(replyBlockNum.GetHeight()))
-					return &syncing, nil
-				}
-
-			}
-
+			blockHeight, _ := e.cli.GetHighestBlockNum(&ctypes.ReqNil{})
+			syncing.CurrentBlock = hexutil.EncodeUint64(uint64(header.GetHeight()))
+			syncing.StartingBlock = syncing.CurrentBlock
+			syncing.HighestBlock = hexutil.EncodeUint64(uint64(blockHeight.GetHeight()))
+			return &syncing, nil
 		}
+
 	}
 
-	return nil, err
+	return !reply.IsOk, err
 }
 
 //Mining...
@@ -494,7 +489,9 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, e
 //method:eth_estimateGas
 //EstimateGas 获取gas
 func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error) {
-	log.Info("EstimateGas", "eth_estimateGas callMsg", callMsg)
+	if callMsg == nil {
+		return 0, errors.New("callMsg empty")
+	}
 	//组装tx
 	exec := e.cfg.ExecName("evm")
 	execty := ctypes.LoadExecutorType(exec)
@@ -505,39 +502,49 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	if callMsg.To == "" {
 		callMsg.To = address.ExecAddress(exec)
 	}
-	var dataSize int
-	if callMsg.Data != nil {
-		datastr := callMsg.Data.String()
-		dataSize = len(common.FromHex(datastr))
+
+	var amount uint64
+	if callMsg.Value != nil && callMsg.Value.ToInt() != nil {
+		amount = callMsg.Value.ToInt().Uint64()
 	}
 
+	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
+	if callMsg.Data != nil {
+		action.Note = callMsg.Data.String()
+		if callMsg.To == address.ExecAddress(exec) { //创建合约
+			action.Code = *callMsg.Data
+			action.Para = nil
+		} else {
+			action.Para = *callMsg.Data
+			action.Code = nil
+		}
+	}
+
+	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
+	nonce, err := e.GetTransactionCount(callMsg.From, "")
+	if err != nil {
+		log.Error("eth_EstimateGas", "GetTransactionCount", err)
+		return 0, err
+	}
+	tx.Nonce = int64(nonce)
+	estimateTxSize := int32(ctypes.Size(tx) + 300)
 	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
 		TxCount: 1,
-		TxSize:  int32(32 + dataSize),
+		TxSize:  estimateTxSize,
 	})
+
 	fee := properFee.GetProperFee()
+	var minimumGas int64 = 21000
 	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
-		if fee < 1e5 {
-			fee = 1e5
+		if fee < e.cfg.GetMinTxFeeRate() {
+			fee = e.cfg.GetMinTxFeeRate()
+		}
+		if fee < minimumGas { //不能低于21000
+			fee = minimumGas
 		}
 		return hexutil.Uint64(fee), nil
 	}
 
-	var amount uint64
-	if callMsg.Value != nil {
-		amount = callMsg.Value.ToInt().Uint64()
-	}
-	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
-	if callMsg.To == address.ExecAddress(exec) { //创建合约
-		action.Code = *callMsg.Data
-		action.Para = nil
-	} else {
-		action.Para = *callMsg.Data
-		action.Code = nil
-	}
-	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
 	var p rpctypes.Query4Jrpc
 	p.Execer = exec
 	p.FuncName = "EstimateGas"
@@ -564,122 +571,24 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	}
 
 	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
-	if bigGas.Uint64() < uint64(fee) {
-		bigGas = big.NewInt(fee)
+	//GetMinTxFeeRate 默认1e5
+	realFee := int64(estimateTxSize/1000+1) * e.cfg.GetMinTxFeeRate()
+	log.Debug("EstimateGas", "bigGas:", bigGas, "properFee:", fee, "realFee:", realFee)
+	var finalFee = realFee
+	if bigGas.Uint64() > uint64(realFee) {
+		finalFee = bigGas.Int64()
 	}
-
-	//eth交易数据要存放在chain33 tx note 中，做2倍gas 处理
-	return hexutil.Uint64(bigGas.Uint64() * 2), err
+	if finalFee < minimumGas {
+		finalFee = minimumGas
+	}
+	return hexutil.Uint64(finalFee), err
 
 }
 
 //GasPrice  eth_gasPrice default 10 gwei
 func (e *ethHandler) GasPrice() (*hexutil.Big, error) {
 	log.Debug("GasPrice", "eth_gasPrice ", "")
-	return (*hexutil.Big)(big.NewInt(1).SetUint64(1e10)), nil
-}
-
-//NewHeads ...
-//eth_subscribe
-//params:["newHeads"]
-func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
-	log.Debug("eth_subscribe", "NewHeads ", "")
-	notifier, supported := rpc.NotifierFromContext(ctx)
-	if !supported {
-		return nil, rpc.ErrNotificationsUnsupported
-	}
-	subscription := notifier.CreateSubscription()
-	//通过Grpc 客户端
-	var in ctypes.ReqSubscribe
-	in.Name = string(subscription.ID)
-	in.Type = 1
-	stream, err := e.grpcCli.SubEvent(context.Background(), &in)
-	if err != nil {
-		return nil, err
-	}
-	go func() {
-
-		for {
-			select {
-			case <-subscription.Err():
-				//取消订阅
-				return
-			default:
-				msg, err := stream.Recv()
-				if err != nil {
-					log.Error("NewHeads read", "err", err)
-					return
-				}
-				eheader, _ := types.BlockHeaderToEthHeader(msg.GetHeaderSeqs().GetSeqs()[0].GetHeader())
-				if err := notifier.Notify(subscription.ID, eheader); err != nil {
-					log.Error("notify", "err", err)
-					return
-
-				}
-			}
-
-		}
-	}()
-
-	return subscription, nil
-}
-
-//Logs ...
-//eth_subscribe
-//params:["logs",{"address":"","topics":[""]}]
-//address：要监听日志的源地址或地址数组，可选
-//topics：要监听日志的主题匹配条件，可选
-func (e *ethHandler) Logs(ctx context.Context, options *types.SubLogs) (*rpc.Subscription, error) {
-	log.Debug("eth_subscribe", "eth_subscribe ", options)
-	notifier, supported := rpc.NotifierFromContext(ctx)
-	if !supported {
-		return nil, rpc.ErrNotificationsUnsupported
-	}
-	subscription := notifier.CreateSubscription()
-
-	//通过Grpc 客户端
-	var in ctypes.ReqSubscribe
-	in.Name = string(subscription.ID)
-	in.Contract = make(map[string]bool)
-	in.Contract[options.Address] = true
-	in.Type = 4
-
-	stream, err := e.grpcCli.SubEvent(context.Background(), &in)
-	if err != nil {
-		return nil, err
-	}
-	go func() {
-
-		for {
-			select {
-			case <-subscription.Err():
-				//取消订阅
-				return
-			default:
-				msg, err := stream.Recv()
-				if err != nil {
-					log.Error("Logs read", "err", err)
-					return
-				}
-				var evmlogs []*types.EvmLogInfo
-				for _, item := range msg.GetEvmLogs().GetLogs4EVMPerBlk() {
-					logs := types.FilterEvmLogs(item, options)
-					evmlogs = append(evmlogs, logs...)
-				}
-				//推送到订阅者
-				if err := notifier.Notify(subscription.ID, evmlogs); err != nil {
-					log.Error("notify", "err", err)
-					return
-
-				}
-
-				log.Info("eth_subscribe", "logs:", evmlogs)
-			}
-
-		}
-	}()
-
-	return subscription, nil
+	return (*hexutil.Big)(new(big.Int).Div(big.NewInt(1e18), big.NewInt(e.cfg.GetCoinPrecision()))), nil
 }
 
 //Hashrate
@@ -778,6 +687,63 @@ func (e *ethHandler) FeeHistory(BlockCount, tag string, options []interface{}) (
 	}
 	result.OldestBlock = hexutil.Uint64(latestBlockNum)
 	result.BaseFeePerGas = []string{"0x12", "0x10", "0x10", "0x10", "0x10"}
-	result.GasUsedRatio = []float64{0.5, 0.8, 0.1, 0.4, 0.2}
+	result.GasUsedRatio = []float64{0.7, 0.8, 0.9, 0.8, 0.9}
 	return &result, nil
+}
+
+//GetLogs eth_getLogs
+func (e *ethHandler) GetLogs(options *types.FilterQuery) (interface{}, error) {
+	//通过Grpc 客户端
+	log.Info("GetLogs", "Logs,options:", options)
+	filter, err := types.NewFilter(e.grpcCli, e.cfg, options)
+	if err != nil {
+		return nil, err
+	}
+	evmlogs := []*types.EvmLog{}
+	if options.BlockHash != nil {
+		//直接查询对应的block 的交易回执信息
+		if options.FromBlock != "" || options.ToBlock != "" {
+			return nil, fmt.Errorf("cannot specify both BlockHash and FromBlock/ToBlock")
+		}
+
+		return filter.FilterBlockDetail([][]byte{options.BlockHash.Bytes()})
+	}
+	var fromBlock, toBlock uint64
+	fromBlock, err = hexutil.DecodeUint64(options.FromBlock)
+	if err != nil {
+		fromBlock = 0
+	}
+
+	if options.ToBlock == "latest" || options.ToBlock == "" {
+		header, err := e.cli.GetLastHeader()
+		if err != nil {
+			return nil, err
+		}
+		toBlock = uint64(header.GetHeight())
+	} else {
+		toBlock, err = hexutil.DecodeUint64(options.ToBlock)
+		if err != nil {
+			return nil, err
+		}
+	}
+	itemNum := toBlock - fromBlock
+	if itemNum > 10000 {
+		return nil, errors.New("query returned more than 10000 results")
+	}
+	var hashes [][]byte
+	for i := fromBlock; i <= toBlock; i++ {
+		replyHash, err := e.grpcCli.GetBlockHash(context.Background(), &ctypes.ReqInt{
+			Height: int64(i),
+		})
+		if err == nil {
+			hashes = append(hashes, replyHash.Hash)
+		}
+
+	}
+	logs, err := filter.FilterBlockDetail(hashes)
+	if err == nil {
+		evmlogs = append(evmlogs, logs...)
+	}
+
+	return evmlogs, nil
 }

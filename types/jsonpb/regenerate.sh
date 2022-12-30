@@ -12,8 +12,8 @@
 #	protoc:        v3.9.1
 #	protoc-gen-go: v1.3.2
 
+# shellcheck disable=SC1117,SC2046
 for X in $(find . -name "*.proto" | sed "s|^\./||"); do
-    # shellcheck disable=SC2046
     protoc -I$(pwd) --go_out=paths=source_relative:. "$X"
 done
 

@@ -161,6 +161,12 @@ message BlockReceipt {
     int64                height   = 3;
 }
 
+message BlockKVs {
+    repeated KeyValue KVs    = 1;
+    bytes             hash   = 2;
+    int64             height = 3;
+}
+
 //  区块追赶主链状态，用于判断本节点区块是否已经同步好
 message IsCaughtUp {
     bool Iscaughtup = 1;
@@ -394,11 +400,14 @@ message ReplySubscribePush {
 }
 
 message ReqSubscribe {
-    string name = 1;
-    // 0:代表区块；1:代表区块头信息；2：代表交易回执
-    int32 type = 2;
+    string name     = 1;
+    // 0:代表区块；1:代表区块头信息；2：代表交易回执,4 evm event
+    int32 type      = 2;
+    int64 fromBlock = 3;
+    int64 toBlock   = 4;
     //允许订阅多个类型的交易回执
-    map<string, bool> contract = 8;
+    map<string, bool> contract = 5;
+
 }
 
 message SubscribeStatus {
