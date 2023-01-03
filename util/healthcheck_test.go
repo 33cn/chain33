@@ -52,6 +52,7 @@ func TestGetHealth(t *testing.T) {
 	healthNil := NewHealthCheckServer(nil)
 	assert.Nil(t, healthNil)
 	q := queue.New("channel")
+	q.SetConfig(types.NewChain33Config(types.GetDefaultCfgstring()))
 	health := NewHealthCheckServer(q.Client())
 	health.api = api
 	ret, err := health.getHealth(true)

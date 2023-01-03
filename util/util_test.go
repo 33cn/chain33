@@ -367,5 +367,6 @@ func TestReportErrEventToFront(t *testing.T) {
 	client := &testClient{}
 	client.On("SendTimeout", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	client.On("WaitTimeout", mock.Anything, mock.Anything).Return(&queue.Message{}, nil)
+	client.On("GetConfig").Return(&types.Chain33Config{})
 	ReportErrEventToFront(logger, client, "from", "to", errors.New("test"))
 }
