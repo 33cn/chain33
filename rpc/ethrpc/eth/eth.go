@@ -548,7 +548,7 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	var p rpctypes.Query4Jrpc
 	p.Execer = exec
 	p.FuncName = "EstimateGas"
-	p.Payload = []byte(fmt.Sprintf(`{"tx":"%v","from":"%v"}`, common.Bytes2Hex(ctypes.Encode(tx)), callMsg.From))
+	p.Payload = []byte(fmt.Sprintf(`{"tx":"%v","from":"%v","ethquery":true}`, common.Bytes2Hex(ctypes.Encode(tx)), callMsg.From))
 	queryparam, err := execty.CreateQuery(p.FuncName, p.Payload)
 	if err != nil {
 		return 0, err
