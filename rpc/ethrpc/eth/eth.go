@@ -506,6 +506,9 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	var amount uint64
 	if callMsg.Value != nil && callMsg.Value.ToInt() != nil {
 		amount = callMsg.Value.ToInt().Uint64()
+		ethUnit := big.NewInt(1e18)
+		bigAmount := new(big.Int).Div(callMsg.Value.ToInt(), ethUnit.Div(ethUnit, big.NewInt(1).SetInt64(e.cfg.GetCoinPrecision())))
+		amount = bigAmount.Uint64()
 	}
 
 	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
