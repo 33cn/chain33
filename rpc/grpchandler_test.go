@@ -951,5 +951,6 @@ func TestGrpc_SubEvent(t *testing.T) {
 	data, err := stream.Recv()
 	assert.Nil(t, err)
 	t.Log("data:", data)
+	gcli.UnSubEvent(context.Background(), &types.ReqString{Data: in.Name})
 
 }

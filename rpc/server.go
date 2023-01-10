@@ -7,6 +7,7 @@ package rpc
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"net"
@@ -96,16 +97,23 @@ func (g *Grpc) addSubChan(topic string, dch chan *queue.Message) {
 	}
 }
 
-func (g *Grpc) delSubInfo(topic string, dch chan *queue.Message) {
+func (g *Grpc) delSubInfo(topic string, dch chan *queue.Message) error {
 	g.cachelock.Lock()
 	defer g.cachelock.Unlock()
 	info, ok := g.subCache[topic]
 	if ok {
-		delete(info.subChan, dch)
-		if len(info.subChan) == 0 {
+		if dch != nil {
+			delete(info.subChan, dch)
+			if len(info.subChan) == 0 {
+				delete(g.subCache, topic)
+			}
+		} else {
 			delete(g.subCache, topic)
+
 		}
+		return nil
 	}
+	return errors.New("no this topicID")
 
 }
 func (g *Grpc) hashTopic(topic string) *subInfo {
@@ -437,29 +445,30 @@ func (r *RPC) handleSysEvent() {
 			currentNonce, _ := strconv.Atoi(nonce.Nonce)
 			msg.Reply(r.cli.NewMessage("", types.EventGetEvmNonce, &types.EvmAccountNonce{Nonce: int64(currentNonce), Addr: addr.String()}))
 
-		default:
+		case types.EventPushEVM:
 			topicInfo := r.gapi.grpc.hashTopic(msg.GetData().(*types.PushData).GetName())
 			if topicInfo != nil {
-				go func(rmsg *queue.Message) {
-					ticker := time.NewTicker(time.Millisecond * 200)
-					defer ticker.Stop()
-					for ch := range topicInfo.subChan {
-						select {
-						case <-ticker.C:
-							log.Error("handleSysEvent", "ticker timeout", rmsg.GetData().(*types.PushData).GetName())
-						case ch <- rmsg:
-							rmsg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
+				var ticket = time.NewTicker(time.Second)
+				for ch := range topicInfo.subChan {
+					select {
+					case <-ticket.C:
+						ticket.Reset(time.Second)
+						continue
+					case ch <- msg:
+						msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: true}))
+						ticket.Reset(time.Second)
 
-						}
 					}
-
-				}(msg)
+				}
 
 			} else {
 				//要求blockchain模块停止推送
 				log.Error("handleSysEvent", "no subscriber,all topic", r.gapi.grpc.subCache, "no topic:", msg.GetData().(*types.PushData).GetName(), "subchan:", topicInfo)
 				msg.Reply(r.cli.NewMessage("blockchain", msg.Ty, &types.Reply{IsOk: false, Msg: []byte("no subscriber")}))
 			}
+
+		default:
+			log.Error("no support evnt")
 		}
 
 	}

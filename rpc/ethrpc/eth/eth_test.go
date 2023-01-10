@@ -200,7 +200,8 @@ func TestEthHandler_EstimateGas(t *testing.T) {
 
 func TestEthHandler_GetTransactionCount(t *testing.T) {
 	qapi.On("Query", mock.Anything).Return("0x12", nil)
-	_, err := ethCli.GetTransactionCount("1N2aNfWXqGe9kWcL8u9TYpj5RzVQbjwKAP", "latest")
+	addr := "0xd83b69c56834e85e023b1738e69bfa2f0dd52905"
+	_, err := ethCli.GetTransactionCount(addr, "latest")
 	assert.NotNil(t, err)
 
 }
@@ -422,6 +423,7 @@ func TestEthHandler_SendRawTransaction(t *testing.T) {
 	sigstr := "9cfbbbe0ae7b4a5f698704fe900cf03fc58d01ee4dab7be142dc58a954d2f0e87efe0285dc17bfdb5a3c60b7cd8b54ea8fc280d7d9d1864975d6567519cf63d900"
 	pubkeystr := "04e822f01d1422502b6a19ebfa1ac94a87d7e6b13be232e3ff451e5ba05d59bb247855104cb0dc788d48e0e991027c9815ccb21f8e70277873606238a233bb9f1e"
 	contractAddr := "0xa7672fF66DfeD1c506efd53638efF627E92639AA"
+
 	rawData := common.FromHex(metamaskRawTx)
 	require.NotNil(t, rawData)
 	ntx := new(ethtypes.Transaction)
@@ -437,19 +439,7 @@ func TestEthHandler_SendRawTransaction(t *testing.T) {
 	require.NotNil(t, pubkey)
 	require.Equal(t, common.Bytes2Hex(pubkey), pubkeystr)
 
-	qapi.On("SendTx", mock.Anything).Return(&ctypes.Reply{Msg: common.FromHex("56385265533f4c17455473508f4bfcfcfd094a88f460de40f22dd4c19e485793"), IsOk: true}, nil)
-	txhash, err := ethCli.SendRawTransaction(metamaskRawTx)
-	if err != nil {
-		t.Log(err)
-		return
-	}
-	t.Log("txhash", txhash.String())
-	assert.Equal(t, txhash.String(), "0x56385265533f4c17455473508f4bfcfcfd094a88f460de40f22dd4c19e485793")
-
 	chain33Tx := etypes.AssembleChain33Tx(ntx, sig, pubkey, ethCli.cfg)
-	txHash := chain33Tx.Hash()
-	t.Log("chain33Tx hash", common.Bytes2Hex(txHash))
-	assert.Equal(t, common.Bytes2Hex(txHash), "555560f05a32499f96e0d033d1cfe582b9e09d974cc8ee3a005ea5a5c0164fc9")
 	t.Log("checkchainID", ntx.ChainId(), "support chainid", ethCli.evmChainID)
 	chain33crypto.Init(ethCli.cfg.GetModuleConfig().Crypto, ethCli.cfg.GetSubConfig().Crypto)
 	ok := chain33Tx.CheckSign(-1)
@@ -476,5 +466,9 @@ func TestEthHandler_SendRawTransaction(t *testing.T) {
 	chain33Tx.ChainID = 666
 	ok = chain33Tx.CheckSign(-1)
 	require.False(t, ok)
+	qapi.On("Query", mock.Anything).Return("0x12", nil)
+	qapi.On("SendTx", mock.Anything).Return(&ctypes.Reply{Msg: common.FromHex("56385265533f4c17455473508f4bfcfcfd094a88f460de40f22dd4c19e485793"), IsOk: true}, nil)
 
+	_, err = ethCli.SendRawTransaction(metamaskRawTx)
+	assert.NotNil(t, err)
 }

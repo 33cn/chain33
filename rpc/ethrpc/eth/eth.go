@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/rpc"
 	"math/big"
 	"net"
+	"sync"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 
@@ -30,6 +32,8 @@ type ethHandler struct {
 	cli        rpcclient.ChannelClient
 	cfg        *ctypes.Chain33Config
 	grpcCli    ctypes.Chain33Client
+	filtersMu  sync.Mutex
+	filters    map[rpc.ID]*filter
 	evmChainID int64
 }
 
@@ -42,7 +46,7 @@ func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 	e := &ethHandler{}
 	e.cli.Init(c, api)
 	e.cfg = cfg
-
+	e.filters = make(map[rpc.ID]*filter)
 	e.evmChainID = secp256k1eth.GetEvmChainID()
 	grpcBindAddr := e.cfg.GetModuleConfig().RPC.GrpcBindAddr
 	_, port, _ := net.SplitHostPort(grpcBindAddr)
@@ -317,7 +321,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 		return nil, err
 	}
 	if ntx.ChainId().Int64() != e.evmChainID {
-		log.Error("eth_sendRawTransaction", "this.chainID", e.evmChainID, "etx.ChainID", ntx.ChainId())
+		log.Error("eth_sendRawTransaction", "this.chainID:", e.evmChainID, "etx.ChainID", ntx.ChainId())
 		return nil, errors.New("chainID no support")
 	}
 
@@ -513,7 +517,15 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 
 	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
 	if callMsg.Data != nil {
-		action.Note = callMsg.Data.String()
+		etx := etypes.NewTx(&etypes.LegacyTx{
+			Nonce:    0,
+			Value:    big.NewInt(int64(amount)),
+			Gas:      1e5,
+			GasPrice: big.NewInt(1e9),
+			Data:     *callMsg.Data,
+		})
+		etxBs, _ := etx.MarshalBinary()
+		action.Note = common.Bytes2Hex(etxBs)
 		if callMsg.To == address.ExecAddress(exec) { //创建合约
 			action.Code = *callMsg.Data
 			action.Para = nil
@@ -523,14 +535,14 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 		}
 	}
 
-	tx := &ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
+	tx := ctypes.Transaction{Execer: []byte(exec), Payload: ctypes.Encode(action), To: address.ExecAddress(exec), ChainID: e.cfg.GetChainID()}
 	nonce, err := e.GetTransactionCount(callMsg.From, "")
 	if err != nil {
 		log.Error("eth_EstimateGas", "GetTransactionCount", err)
 		return 0, err
 	}
 	tx.Nonce = int64(nonce)
-	estimateTxSize := int32(ctypes.Size(tx) + 300)
+	estimateTxSize := int32(tx.Size() + 300)
 	properFee, _ := e.cli.GetProperFee(&ctypes.ReqProperFee{
 		TxCount: 1,
 		TxSize:  estimateTxSize,
@@ -551,7 +563,7 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	var p rpctypes.Query4Jrpc
 	p.Execer = exec
 	p.FuncName = "EstimateGas"
-	p.Payload = []byte(fmt.Sprintf(`{"tx":"%v","from":"%v","ethquery":true}`, common.Bytes2Hex(ctypes.Encode(tx)), callMsg.From))
+	p.Payload = []byte(fmt.Sprintf(`{"tx":"%v","from":"%v","ethquery":true}`, common.Bytes2Hex(ctypes.Encode(&tx)), callMsg.From))
 	queryparam, err := execty.CreateQuery(p.FuncName, p.Payload)
 	if err != nil {
 		return 0, err
@@ -575,8 +587,8 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 
 	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
 	//GetMinTxFeeRate 默认1e5
-	realFee := int64(estimateTxSize/1000+1) * e.cfg.GetMinTxFeeRate()
-	log.Debug("EstimateGas", "bigGas:", bigGas, "properFee:", fee, "realFee:", realFee)
+	realFee, _ := tx.GetRealFee(e.cfg.GetMinTxFeeRate())
+
 	var finalFee = realFee
 	if bigGas.Uint64() > uint64(realFee) {
 		finalFee = bigGas.Int64()
@@ -584,6 +596,7 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	if finalFee < minimumGas {
 		finalFee = minimumGas
 	}
+	log.Info("EstimateGas", "evmNeedGas:", bigGas, "properFee:", fee, "realFee:", realFee, "finalFee:", finalFee, "tx.size", tx.Size())
 	return hexutil.Uint64(finalFee), err
 
 }
@@ -695,7 +708,7 @@ func (e *ethHandler) FeeHistory(BlockCount, tag string, options []interface{}) (
 }
 
 //GetLogs eth_getLogs
-func (e *ethHandler) GetLogs(options *types.FilterQuery) (interface{}, error) {
+func (e *ethHandler) GetLogs(options *types.FilterQuery) ([]*types.EvmLog, error) {
 	//通过Grpc 客户端
 	log.Info("GetLogs", "Logs,options:", options)
 	filter, err := types.NewFilter(e.grpcCli, e.cfg, options)
@@ -712,23 +725,26 @@ func (e *ethHandler) GetLogs(options *types.FilterQuery) (interface{}, error) {
 		return filter.FilterBlockDetail([][]byte{options.BlockHash.Bytes()})
 	}
 	var fromBlock, toBlock uint64
-	fromBlock, err = hexutil.DecodeUint64(options.FromBlock)
+	header, err := e.cli.GetLastHeader()
 	if err != nil {
-		fromBlock = 0
+		return nil, err
 	}
 
-	if options.ToBlock == "latest" || options.ToBlock == "" {
-		header, err := e.cli.GetLastHeader()
-		if err != nil {
-			return nil, err
-		}
-		toBlock = uint64(header.GetHeight())
+	fromBlock, err = hexutil.DecodeUint64(options.FromBlock)
+	if err != nil {
+		fromBlock = uint64(header.GetHeight())
+		toBlock = fromBlock
 	} else {
-		toBlock, err = hexutil.DecodeUint64(options.ToBlock)
-		if err != nil {
-			return nil, err
+		if options.ToBlock == "latest" || options.ToBlock == "" {
+			toBlock = uint64(header.GetHeight())
+		} else {
+			toBlock, err = hexutil.DecodeUint64(options.ToBlock)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
+
 	itemNum := toBlock - fromBlock
 	if itemNum > 10000 {
 		return nil, errors.New("query returned more than 10000 results")

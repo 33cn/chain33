@@ -3,11 +3,10 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"math/big"
 	"strings"
 	"time"
-
-	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 
 	"github.com/33cn/chain33/common/address"
 	rpctypes "github.com/33cn/chain33/rpc/types"
