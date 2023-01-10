@@ -1,0 +1,141 @@
+package eth
+
+import (
+	"context"
+	"fmt"
+	"github.com/33cn/chain33/rpc/ethrpc/types"
+	ctypes "github.com/33cn/chain33/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rpc"
+	"time"
+)
+
+type Type byte
+
+const (
+	// UnknownSubscription indicates an unknown subscription type
+	UnknownSubscription Type = iota
+	// LogsSubscription queries for new or removed (chain reorg) logs
+	LogsSubscription
+	// PendingLogsSubscription queries for logs in pending blocks
+	PendingLogsSubscription
+	// MinedAndPendingLogsSubscription queries for logs in mined and pending blocks.
+	MinedAndPendingLogsSubscription
+	// PendingTransactionsSubscription queries tx hashes for pending
+	// transactions entering the pending state
+	PendingTransactionsSubscription
+	// BlocksSubscription queries hashes for blocks that are imported
+	BlocksSubscription
+	// LastSubscription keeps track of the last index
+	LastIndexSubscription
+)
+
+type filter struct {
+	typ Type
+
+	deadline *time.Timer // filter is inactiv when deadline triggers
+	hashes   []common.Hash
+	crit     *types.FilterQuery
+	logs     []*types.EvmLog
+	done     chan struct{}
+}
+
+//NewFilter eth_newFilter
+func (e *ethHandler) NewFilter(options *types.FilterQuery) (*rpc.ID, error) {
+	logs := make(chan []*types.EvmLog)
+	id := rpc.NewID()
+	err := e.subscribeLogs(options, logs, id)
+	if err != nil {
+		fmt.Println("subscribeLogs err", err)
+		return nil, err
+	}
+	e.filtersMu.Lock()
+	e.filters[id] = &filter{typ: LogsSubscription, crit: options,
+		deadline: time.NewTimer(time.Second * 10), logs: make([]*types.EvmLog, 0), done: make(chan struct{})}
+	e.filtersMu.Unlock()
+	go func() {
+		for {
+			select {
+			case l := <-logs:
+				e.filtersMu.Lock()
+				if f, found := e.filters[id]; found {
+					f.logs = append(f.logs, l...)
+				}
+				e.filtersMu.Unlock()
+			case <-e.filters[id].done:
+				e.grpcCli.UnSubEvent(context.Background(), &ctypes.ReqString{Data: string(id)})
+				return
+			}
+		}
+	}()
+	return &id, nil
+}
+
+func (e *ethHandler) UninstallFilter(id rpc.ID) bool {
+	e.filtersMu.Lock()
+	f, found := e.filters[id]
+	if found {
+		delete(e.filters, id)
+	}
+	e.filtersMu.Unlock()
+	if found {
+		close(f.done)
+	}
+
+	return found
+}
+
+//GetFilterLogs eth_getfilterlogs returns the logs for the filter with the given id.
+// If the filter could not be found an empty array of logs is returned.
+// https://eth.wiki/json-rpc/API#eth_getfilterlogs
+func (e *ethHandler) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*types.EvmLog, error) {
+	e.filtersMu.Lock()
+	f, found := e.filters[id]
+	e.filtersMu.Unlock()
+
+	if !found || f.typ != LogsSubscription {
+		return nil, fmt.Errorf("filter not found")
+	}
+
+	logs, err := e.GetLogs(f.crit)
+	if err == nil {
+		return returnLogs(logs), nil
+	}
+	return nil, err
+
+}
+
+//GetFilterChanges eth_getFilterChanges
+func (e *ethHandler) GetFilterChanges(id rpc.ID) (interface{}, error) {
+	e.filtersMu.Lock()
+	defer e.filtersMu.Unlock()
+
+	if f, found := e.filters[id]; found {
+		if !f.deadline.Stop() {
+			// timer expired but filter is not yet removed in timeout loop
+			// receive timer value and reset timer
+			<-f.deadline.C
+		}
+
+		f.deadline.Reset(time.Second * 10)
+		switch f.typ {
+		case LogsSubscription:
+			logs := f.logs
+			f.logs = nil
+			return returnLogs(logs), nil
+
+		default:
+			return nil, fmt.Errorf("no support")
+		}
+	}
+	return []interface{}{}, fmt.Errorf("filter not found")
+}
+
+// returnLogs is a helper that will return an empty log array in case the given logs array is nil,
+// otherwise the given logs array is returned.
+func returnLogs(logs []*types.EvmLog) []*types.EvmLog {
+	if logs == nil {
+		return []*types.EvmLog{}
+	}
+	return logs
+}
