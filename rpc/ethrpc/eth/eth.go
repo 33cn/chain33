@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 
@@ -29,12 +30,13 @@ import (
 )
 
 type ethHandler struct {
-	cli        rpcclient.ChannelClient
-	cfg        *ctypes.Chain33Config
-	grpcCli    ctypes.Chain33Client
-	filtersMu  sync.Mutex
-	filters    map[rpc.ID]*filter
-	evmChainID int64
+	cli           rpcclient.ChannelClient
+	cfg           *ctypes.Chain33Config
+	grpcCli       ctypes.Chain33Client
+	filtersMu     sync.Mutex
+	filters       map[rpc.ID]*filter
+	evmChainID    int64
+	filterTimeout time.Duration
 }
 
 var (
@@ -55,11 +57,10 @@ func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 		log.Error("NewEthAPI", "dial local grpc server err:", err)
 		return nil
 	}
-
-	//TODO 改进为内部推送
+	e.filterTimeout = time.Minute * 5
 	//推送用途
 	e.grpcCli = ctypes.NewChain33Client(conn)
-
+	go e.timeoutLoop(e.filterTimeout)
 	return e
 }
 
@@ -703,7 +704,7 @@ func (e *ethHandler) FeeHistory(BlockCount, tag string, options []interface{}) (
 	}
 	result.OldestBlock = hexutil.Uint64(latestBlockNum)
 	result.BaseFeePerGas = []string{"0x12", "0x10", "0x10", "0x10", "0x10"}
-	result.GasUsedRatio = []float64{0.7, 0.8, 0.9, 0.8, 0.9}
+	result.GasUsedRatio = []float64{0.99, 0.99, 0.99, 0.99, 0.99}
 	return &result, nil
 }
 

@@ -43,6 +43,7 @@ func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
 			select {
 			case <-subscription.Err():
 				//取消订阅
+				e.grpcCli.UnSubEvent(context.Background(), &ctypes.ReqString{Data: string(subscription.ID)})
 				return
 			default:
 				msg, err := stream.Recv()

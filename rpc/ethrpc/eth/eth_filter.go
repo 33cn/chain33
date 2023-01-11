@@ -31,13 +31,13 @@ const (
 )
 
 type filter struct {
-	typ Type
-
+	typ      Type
 	deadline *time.Timer // filter is inactiv when deadline triggers
 	hashes   []common.Hash
 	crit     *types.FilterQuery
 	logs     []*types.EvmLog
 	done     chan struct{}
+	timeout  time.Duration
 }
 
 //NewFilter eth_newFilter
@@ -50,8 +50,8 @@ func (e *ethHandler) NewFilter(options *types.FilterQuery) (*rpc.ID, error) {
 		return nil, err
 	}
 	e.filtersMu.Lock()
-	e.filters[id] = &filter{typ: LogsSubscription, crit: options,
-		deadline: time.NewTimer(time.Second * 10), logs: make([]*types.EvmLog, 0), done: make(chan struct{})}
+	e.filters[id] = &filter{typ: LogsSubscription, crit: options, timeout: e.filterTimeout,
+		deadline: time.NewTimer(e.filterTimeout), logs: make([]*types.EvmLog, 0), done: make(chan struct{})}
 	e.filtersMu.Unlock()
 	go func() {
 		for {
@@ -71,6 +71,7 @@ func (e *ethHandler) NewFilter(options *types.FilterQuery) (*rpc.ID, error) {
 	return &id, nil
 }
 
+//UninstallFilter 取消filter
 func (e *ethHandler) UninstallFilter(id rpc.ID) bool {
 	e.filtersMu.Lock()
 	f, found := e.filters[id]
@@ -109,15 +110,15 @@ func (e *ethHandler) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*types.Evm
 func (e *ethHandler) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	e.filtersMu.Lock()
 	defer e.filtersMu.Unlock()
-
+	//5分钟内调用此函数有效，然后重新计时5分钟，
 	if f, found := e.filters[id]; found {
-		if !f.deadline.Stop() {
+		if !f.deadline.Stop() { //停止计时，如果stop 返回false 说明计时器结束了
 			// timer expired but filter is not yet removed in timeout loop
 			// receive timer value and reset timer
 			<-f.deadline.C
 		}
-
-		f.deadline.Reset(time.Second * 10)
+		//重置计时器
+		f.deadline.Reset(f.timeout)
 		switch f.typ {
 		case LogsSubscription:
 			logs := f.logs
@@ -138,4 +139,25 @@ func returnLogs(logs []*types.EvmLog) []*types.EvmLog {
 		return []*types.EvmLog{}
 	}
 	return logs
+}
+
+//timeoutLoop 定时器定时检测是否有超时的filter,超时则删除处理
+func (e *ethHandler) timeoutLoop(timeout time.Duration) {
+	ticker := time.NewTicker(timeout)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+		e.filtersMu.Lock()
+		for id, f := range e.filters {
+			select {
+			case <-f.deadline.C:
+				close(f.done)
+				delete(e.filters, id)
+
+			default:
+				continue
+			}
+		}
+		e.filtersMu.Unlock()
+	}
 }
