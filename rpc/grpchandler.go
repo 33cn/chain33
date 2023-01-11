@@ -8,14 +8,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/33cn/chain33/queue"
-
-	"strings"
-
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/queue"
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
+	"strings"
 )
 
 // SendTransactionSync send transaction by network and query

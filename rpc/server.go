@@ -401,7 +401,7 @@ func (r *RPC) handleSysEvent() {
 	var cli rclient.ChannelClient
 	cli.Init(r.cli, r.api)
 	for msg := range r.cli.Recv() {
-
+		fmt.Println("msg.Ty:", msg.Ty)
 		switch msg.Ty {
 		case types.EventGetEvmNonce:
 			addr := msg.GetData().(*types.ReqEvmAccountNonce)
@@ -445,7 +445,7 @@ func (r *RPC) handleSysEvent() {
 			currentNonce, _ := strconv.Atoi(nonce.Nonce)
 			msg.Reply(r.cli.NewMessage("", types.EventGetEvmNonce, &types.EvmAccountNonce{Nonce: int64(currentNonce), Addr: addr.String()}))
 
-		case types.EventPushEVM:
+		case types.EventPushEVM, types.EventPushTxReceipt, types.EventPushBlockHeader, types.EventPushBlock, types.EventPushTxResult:
 			topicInfo := r.gapi.grpc.hashTopic(msg.GetData().(*types.PushData).GetName())
 			if topicInfo != nil {
 				var ticket = time.NewTicker(time.Second)
@@ -468,7 +468,7 @@ func (r *RPC) handleSysEvent() {
 			}
 
 		default:
-			log.Error("no support evnt")
+			log.Error("rpc.handleSysEvent no support event:", msg.Ty)
 		}
 
 	}
