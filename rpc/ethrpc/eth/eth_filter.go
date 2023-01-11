@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/33cn/chain33/rpc/ethrpc/types"
 	ctypes "github.com/33cn/chain33/types"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"time"
 )
 
+//Type ...
 type Type byte
 
 const (
@@ -26,14 +26,13 @@ const (
 	PendingTransactionsSubscription
 	// BlocksSubscription queries hashes for blocks that are imported
 	BlocksSubscription
-	// LastSubscription keeps track of the last index
+	//LastIndexSubscription  LastSubscription keeps track of the last index
 	LastIndexSubscription
 )
 
 type filter struct {
 	typ      Type
 	deadline *time.Timer // filter is inactiv when deadline triggers
-	hashes   []common.Hash
 	crit     *types.FilterQuery
 	logs     []*types.EvmLog
 	done     chan struct{}
