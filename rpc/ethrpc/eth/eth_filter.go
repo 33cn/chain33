@@ -17,17 +17,6 @@ const (
 	UnknownSubscription Type = iota
 	// LogsSubscription queries for new or removed (chain reorg) logs
 	LogsSubscription
-	// PendingLogsSubscription queries for logs in pending blocks
-	PendingLogsSubscription
-	// MinedAndPendingLogsSubscription queries for logs in mined and pending blocks.
-	MinedAndPendingLogsSubscription
-	// PendingTransactionsSubscription queries tx hashes for pending
-	// transactions entering the pending state
-	PendingTransactionsSubscription
-	// BlocksSubscription queries hashes for blocks that are imported
-	BlocksSubscription
-	//LastIndexSubscription  LastSubscription keeps track of the last index
-	LastIndexSubscription
 )
 
 type filter struct {
@@ -70,7 +59,7 @@ func (e *ethHandler) NewFilter(options *types.FilterQuery) (*rpc.ID, error) {
 	return &id, nil
 }
 
-//UninstallFilter 取消filter
+//UninstallFilter 取消filter eth_uninstallFilter
 func (e *ethHandler) UninstallFilter(id rpc.ID) bool {
 	e.filtersMu.Lock()
 	f, found := e.filters[id]
