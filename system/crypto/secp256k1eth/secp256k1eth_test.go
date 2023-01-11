@@ -33,7 +33,12 @@ func Test_Sign(t *testing.T) {
 	assert.Equal(t, true, ok)
 	t.Log("publen:", len(pub.Bytes()))
 	sigb := sig.Bytes()
-	sigb[0] = 1 //修改签名数据进行验证测试
+	if sigb[0] != 0xff {
+		sigb[0] = sigb[0] + 1 //修改签名数据进行验证测试
+	} else {
+		sigb[0] = sigb[0] - 1
+	}
+
 	nsig := SignatureSecp256k1Eth(sigb)
 	ok = pub.VerifyBytes(common.FromHex(hextx), nsig)
 	assert.Equal(t, false, ok)
