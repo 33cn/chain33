@@ -34,7 +34,6 @@ func (e *ethHandler) NewFilter(options *types.FilterQuery) (*rpc.ID, error) {
 	id := rpc.NewID()
 	err := e.subscribeLogs(options, logs, id)
 	if err != nil {
-		fmt.Println("subscribeLogs err", err)
 		return nil, err
 	}
 	e.filtersMu.Lock()

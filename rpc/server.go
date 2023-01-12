@@ -401,7 +401,6 @@ func (r *RPC) handleSysEvent() {
 	var cli rclient.ChannelClient
 	cli.Init(r.cli, r.api)
 	for msg := range r.cli.Recv() {
-		fmt.Println("msg.Ty:", msg.Ty)
 		switch msg.Ty {
 		case types.EventGetEvmNonce:
 			addr := msg.GetData().(*types.ReqEvmAccountNonce)
