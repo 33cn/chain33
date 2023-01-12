@@ -352,6 +352,31 @@ func (mock *Chain33Mock) closeNoLock() {
 	}
 }
 
+// WaitHeightTimeout wait with timeout
+func (mock *Chain33Mock) WaitHeightTimeout(height int64, timeout int64) error {
+
+	timer := time.NewTimer(time.Second * time.Duration(timeout))
+
+	for {
+
+		select {
+		case <-timer.C:
+			return types.ErrTimeout
+		default:
+			header, err := mock.api.GetLastHeader()
+			if err != nil {
+				return err
+			}
+			if header.Height >= height {
+				return nil
+			}
+			time.Sleep(time.Second / 10)
+
+		}
+	}
+
+}
+
 //WaitHeight :
 func (mock *Chain33Mock) WaitHeight(height int64) error {
 	for {
