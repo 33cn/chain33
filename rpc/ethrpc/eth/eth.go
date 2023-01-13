@@ -727,7 +727,7 @@ func (e *ethHandler) GetLogs(options *types.FilterQuery) ([]*types.EvmLog, error
 	var fromBlock, toBlock uint64
 	header, err := e.cli.GetLastHeader()
 	if err != nil {
-		return evmlogs, err
+		return nil, err
 	}
 
 	fromBlock, err = hexutil.DecodeUint64(options.FromBlock)
@@ -740,7 +740,7 @@ func (e *ethHandler) GetLogs(options *types.FilterQuery) ([]*types.EvmLog, error
 		} else {
 			toBlock, err = hexutil.DecodeUint64(options.ToBlock)
 			if err != nil {
-				return evmlogs, err
+				return nil, err
 			}
 		}
 	}
