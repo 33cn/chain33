@@ -27,17 +27,5 @@ func New(cfg *types.Chain33Config) queue.Module {
 	}
 	obj := con(mcfg, subcfg)
 	consensus.QueryData.SetThis(mcfg.Name, reflect.ValueOf(obj))
-
-	// init state committer
-	c := consensus.LoadCommiter(mcfg.Committer)
-	if c != nil {
-		m, ok := obj.(consensus.Miner)
-		if !ok {
-			panic("New consensus: invalid Miner name= " + mcfg.Name)
-		}
-		base := m.GetBaseClient()
-		c.Init(base, cfg, sub[mcfg.Committer])
-		base.SetCommitter(c)
-	}
 	return obj
 }

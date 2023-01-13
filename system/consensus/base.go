@@ -124,6 +124,7 @@ func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	if err != nil {
 		panic(err)
 	}
+	bc.InitStateCommitter()
 	bc.InitMiner()
 }
 
@@ -140,6 +141,19 @@ func (bc *BaseClient) RandInt64() int64 {
 //InitMiner 初始化矿工
 func (bc *BaseClient) InitMiner() {
 	bc.once.Do(bc.minerstartCB)
+}
+
+// InitStateCommitter init committer
+func (bc *BaseClient) InitStateCommitter() {
+
+	committer := bc.Cfg.Committer
+	c := LoadCommiter(committer)
+	subCfg := bc.client.GetConfig().GetSubConfig().Consensus
+
+	if c != nil {
+		c.Init(bc, subCfg[committer])
+		bc.SetCommitter(c)
+	}
 }
 
 //Wait wait for ready

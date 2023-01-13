@@ -39,7 +39,7 @@ func Load(name string) (create Create, err error) {
 
 // Committer state commiter
 type Committer interface {
-	Init(base *BaseClient, chainCfg *types.Chain33Config, subCfg []byte)
+	Init(base *BaseClient,  subCfg []byte)
 	SubMsg(msg *queue.Message)
 }
 
