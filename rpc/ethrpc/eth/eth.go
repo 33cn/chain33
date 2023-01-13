@@ -727,7 +727,7 @@ func (e *ethHandler) GetLogs(options *types.FilterQuery) ([]*types.EvmLog, error
 	var fromBlock, toBlock uint64
 	header, err := e.cli.GetLastHeader()
 	if err != nil {
-		return nil, err
+		return evmlogs, err
 	}
 
 	fromBlock, err = hexutil.DecodeUint64(options.FromBlock)
@@ -740,11 +740,13 @@ func (e *ethHandler) GetLogs(options *types.FilterQuery) ([]*types.EvmLog, error
 		} else {
 			toBlock, err = hexutil.DecodeUint64(options.ToBlock)
 			if err != nil {
-				return nil, err
+				return evmlogs, err
 			}
 		}
 	}
-
+	if fromBlock > uint64(header.GetHeight()) {
+		fromBlock = uint64(header.GetHeight())
+	}
 	itemNum := toBlock - fromBlock
 	if itemNum > 10000 {
 		return nil, errors.New("query returned more than 10000 results")
