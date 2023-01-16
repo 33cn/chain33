@@ -744,7 +744,9 @@ func (e *ethHandler) GetLogs(options *types.FilterQuery) ([]*types.EvmLog, error
 			}
 		}
 	}
-
+	if fromBlock > uint64(header.GetHeight()) {
+		fromBlock = uint64(header.GetHeight())
+	}
 	itemNum := toBlock - fromBlock
 	if itemNum > 10000 {
 		return nil, errors.New("query returned more than 10000 results")
