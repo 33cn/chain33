@@ -258,6 +258,14 @@ type P2P struct {
 	Types []string `json:"types,omitempty"`
 }
 
+// ParaRpcConfig 平行链相关配置
+type ParaRpcConfig struct {
+	//主链grpc地址, 用于平行链节点配置
+	MainChainGrpcAddr string `json:"mainChainGrpcAddr,omitempty"`
+	// ForwardTxExecs 指定直接转发到主链的交易执行器
+	ForwardExecs []string `json:"forwardExecs,omitempty"`
+}
+
 // RPC 配置
 type RPC struct {
 	// jrpc绑定地址
@@ -289,9 +297,8 @@ type RPC struct {
 	//basic auth 用户名
 	JrpcUserName string `json:"jrpcUserName,omitempty"`
 	//basic auth 用户密码
-	JrpcUserPasswd string `json:"jrpcUserPasswd,omitempty"`
-	//主链grpc地址, 用于平行链节点配置
-	MainChainGrpcAddr string `json:"mainChainGrpcAddr,omitempty"`
+	JrpcUserPasswd string        `json:"jrpcUserPasswd,omitempty"`
+	ParaChain      ParaRpcConfig `json:"parachain,omitempty"`
 }
 
 // Exec 配置
