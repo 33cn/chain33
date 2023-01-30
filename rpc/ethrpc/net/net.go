@@ -1,8 +1,9 @@
 package net
 
 import (
-	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"strconv"
+
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
