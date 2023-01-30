@@ -85,6 +85,12 @@ func (s *StateDB) Rollback() {
 	s.resetTx()
 }
 
+//ResetCache evm 使用
+func (s *StateDB) ResetCache() {
+	s.cache.Reset()
+	s.resetTx()
+}
+
 // Commit canche tx
 func (s *StateDB) Commit() error {
 	s.cache.Merge(s.txcache)

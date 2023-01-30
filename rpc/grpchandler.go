@@ -8,14 +8,12 @@ import (
 	"errors"
 	"time"
 
-	"github.com/33cn/chain33/queue"
-
-	"strings"
-
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
+	"github.com/33cn/chain33/queue"
 	pb "github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
+	"strings"
 )
 
 // SendTransactionSync send transaction by network and query
@@ -653,13 +651,16 @@ func (g *Grpc) SubEvent(in *pb.ReqSubscribe, resp pb.Chain33_SubEventServer) err
 	sub := g.hashTopic(in.Name)
 	dataChan := make(chan *queue.Message, 128)
 	if sub == nil {
+		sub = &subInfo{topic: in.GetName(), subType: (PushType)(in.Type).string(), subChan: make(map[chan *queue.Message]string), since: time.Now()}
+		//相关订阅信息加入到缓存中
+		g.addSubInfo(sub)
+		g.addSubChan(in.GetName(), dataChan)
 		var subReq pb.PushSubscribeReq
 		subReq.Encode = "grpc"
 		subReq.Name = in.GetName()
 		subReq.Contract = in.GetContract()
 		subReq.Type = in.GetType()
 		if in.GetFromBlock() != 0 { //从指定高度订阅
-
 			hash, err := g.GetBlockHash(context.Background(), &pb.ReqInt{Height: in.GetFromBlock()})
 			if err != nil {
 				return err
@@ -674,30 +675,45 @@ func (g *Grpc) SubEvent(in *pb.ReqSubscribe, resp pb.Chain33_SubEventServer) err
 		}
 		reply, err := g.cli.AddPushSubscribe(&subReq)
 		if err != nil {
+			log.Error("grpc SubEvent", "AddPushSubscribe", err)
+			g.delSubInfo(in.GetName(), nil)
 			return err
 		}
 		if !reply.GetIsOk() {
+			g.delSubInfo(in.GetName(), nil)
 			return errors.New(reply.GetMsg())
 		}
-		sub = &subInfo{topic: in.GetName(), subType: (PushType)(in.Type).string(), subChan: make(map[chan *queue.Message]string), since: time.Now()}
-		//相关订阅信息加入到缓存中
-		g.addSubInfo(sub)
-	}
 
-	g.addSubChan(in.GetName(), dataChan)
-	defer g.delSubInfo(in.GetName(), dataChan)
+	} else {
+		g.addSubChan(in.GetName(), dataChan)
+	}
+	defer func() {
+		g.delSubInfo(in.GetName(), dataChan)
+	}()
 	var err error
 	for msg := range dataChan {
+
 		pushData, ok := msg.GetData().(*pb.PushData)
 		if ok {
 			err = resp.Send(pushData)
 			if err != nil {
+				log.Error("grpc send ", "err:", err.Error())
 				break
 			}
 		} else {
 			log.Error("grpc SubEvent", msg)
 		}
 	}
-
 	return err
+}
+
+//UnSubEvent 取消订阅
+func (g *Grpc) UnSubEvent(ctx context.Context, in *pb.ReqString) (*pb.Reply, error) {
+	//删除缓存的TopicID
+	err := g.delSubInfo(in.GetData(), nil)
+	if err != nil {
+		return nil, err
+	}
+	//TODO 发送指令给blockchain 停止推送
+	return &pb.Reply{IsOk: true}, nil
 }

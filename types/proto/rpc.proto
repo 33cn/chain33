@@ -278,4 +278,6 @@ service chain33 {
 
     //发送订阅的数据到客户端
     rpc SubEvent(ReqSubscribe) returns (stream PushData) {}
+    //取消订阅
+    rpc UnSubEvent(ReqString) returns (Reply) {}
 }

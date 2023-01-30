@@ -169,11 +169,12 @@ func (pushClient *PushClient) PostData(subscribe *types.PushSubscribeReq, postda
 		pmsg := pushClient.qclient.NewMessage("rpc", ty, data)
 		err = pushClient.qclient.SendTimeout(pmsg, true, time.Second)
 		if err != nil {
-			chainlog.Debug("PostData", "err:", err, "sub type", (PushType)(subscribe.Type).String(), "encode:", subscribe.Encode)
+			chainlog.Info("PostData", "err:", err, "sub type", (PushType)(subscribe.Type).String(), "encode:", subscribe.Encode)
 			return err
 		}
 		resp, err := pushClient.qclient.WaitTimeout(pmsg, time.Second)
 		if err != nil {
+			chainlog.Error("PostData", "WaitTimeout err:", err, "sub type", (PushType)(subscribe.Type).String(), "encode:", subscribe.Encode)
 			return err
 		}
 		if !resp.GetData().(*types.Reply).GetIsOk() {
@@ -338,7 +339,7 @@ func (push *Push) init() {
 			chainlog.Error("Push init", "Failed to decode subscribe due to err:", err)
 			return
 		} //过滤掉grpc的推送
-		chainlog.Info("Push init", "Push Name", pushWithStatus.Push.Name, "pushWithStatus.Status", pushWithStatus.Status)
+		chainlog.Debug("Push init", "Push Name", pushWithStatus.Push.Name, "pushWithStatus.Status", pushWithStatus.Status)
 		if pushWithStatus.Status == subscribeStatusActive {
 			subscribes = append(subscribes, pushWithStatus.Push)
 		}
@@ -347,6 +348,7 @@ func (push *Push) init() {
 	for _, subscribe := range subscribes {
 		if subscribe.GetEncode() != encodeGrpc { // grpc 不需要节点启动之后主动推送过去
 			chainlog.Info("Push init", "Going to add Task to Push for Name", subscribe.Name)
+
 			push.addTask(subscribe)
 		}
 
