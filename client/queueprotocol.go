@@ -50,7 +50,7 @@ type QueueProtocol struct {
 	// 消息队列
 	client        queue.Client
 	option        QueueProtocolOption
-	paraCfg       types.ParaRpcConfig
+	paraCfg       types.ParaRPCConfig
 	mainChainGrpc types.Chain33Client
 }
 
