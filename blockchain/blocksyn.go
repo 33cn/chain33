@@ -683,8 +683,14 @@ func (chain *BlockChain) forkChainDetection(prevMode int) {
 
 	cmpPeer := chain.getForkComparePeer()
 	for cmpPeer.Height == 0 {
-		time.Sleep(time.Second * 5)
-		cmpPeer = chain.getForkComparePeer()
+		select {
+		case <-chain.quit:
+			return
+		default:
+			time.Sleep(time.Second * 5)
+			cmpPeer = chain.getForkComparePeer()
+		}
+
 	}
 	localHeight := chain.GetBlockHeight()
 	chainlog.Debug("forkDetectInfo", "height", localHeight, "peerHeight", cmpPeer.Height)
