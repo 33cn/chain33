@@ -126,9 +126,9 @@ func decodeSignature(sig []byte) (r, s, v *big.Int) {
 func paraseDERCode(sig []byte) (r, s []byte, err error) {
 	//0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S]
 
-	if len(sig) < 70 || len(sig) > 71 {
-		return nil, nil, fmt.Errorf("wrong sig data size:%v,must beyound length 70 bytes", len(sig))
-	}
+	//if len(sig) < 70 || len(sig) > 71 {
+	//	return nil, nil, fmt.Errorf("wrong sig data size:%v,must beyound length 70 bytes", len(sig))
+	//}
 	//3045022100af5778b81ae8817c6ae29fad8c1113d501e521c885a65c2c4d71763c4963984b022020687b73f5c90243dc16c99427d6593a711c52c8bf09ca6331cdd42c66edee74
 	if sig[0] == 0x30 && sig[2] == 0x02 {
 		r = sig[4 : int(sig[3])+4]
@@ -139,7 +139,9 @@ func paraseDERCode(sig []byte) (r, s []byte, err error) {
 	if sig[int(sig[3])+4] == 0x02 { //&&sig[int(sig[3])+5]==0x20
 		s = sig[int(sig[3])+6 : int(sig[3])+6+int(sig[int(sig[3])+5])]
 	}
-
+	if len(r) == 0 || len(s) == 0 {
+		err = fmt.Errorf("parase err:no der code")
+	}
 	return
 }
 
