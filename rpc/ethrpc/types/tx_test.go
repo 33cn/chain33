@@ -2,16 +2,17 @@ package types
 
 import (
 	"encoding/json"
+	"github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/system/crypto/secp256k1"
+	ctypes "github.com/33cn/chain33/types"
+	"github.com/ethereum/go-ethereum/common"
+	etypes "github.com/ethereum/go-ethereum/core/types"
+	esecp256k1 "github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
-
-	"github.com/33cn/chain33/common/crypto"
-	ctypes "github.com/33cn/chain33/types"
-	"github.com/ethereum/go-ethereum/common"
-	etypes "github.com/ethereum/go-ethereum/core/types"
-	"github.com/stretchr/testify/assert"
 )
 
 func Test_parseDer(t *testing.T) {
@@ -30,6 +31,7 @@ func Test_parseDer(t *testing.T) {
 }
 
 func Test_checkSig(t *testing.T) {
+
 	var word = "hello"
 	c, err := crypto.Load("secp256k1", -1)
 	if err != nil {
@@ -47,9 +49,21 @@ func Test_checkSig(t *testing.T) {
 
 	sigbytes := signKey.Sign([]byte(word)).Bytes()
 	t.Log("hexSig:", common.Bytes2Hex(sigbytes))
-	pr, ps, _ := paraseDERCode(sigbytes)
-	t.Log("pr:", common.Bytes2Hex(pr))
-	t.Log("ps:", common.Bytes2Hex(ps))
+	t.Log("sigbytes size:", len(sigbytes))
+	pr, ps, err := paraseDERCode(sigbytes)
+	assert.Nil(t, err)
+
+	t.Log("pr:", common.Bytes2Hex(pr), "size:", len(pr))
+	t.Log("ps:", common.Bytes2Hex(ps), "size:", len(ps))
+	sigSecp256k1 := makeDERsignature(pr, ps)
+	pub := signKey.PubKey()
+	sig := secp256k1.SignatureSecp256k1(sigSecp256k1)
+	t.Log("sig size:", len(sig.Bytes()), "sig:", common.Bytes2Hex(sig))
+
+	ok := pub.VerifyBytes([]byte(word), sig)
+	assert.Equal(t, true, ok)
+	t.Log("ok:", ok)
+
 	eipSigner := etypes.NewEIP155Signer(big.NewInt(0))
 	r, s, v, _ := makeDERSigToRSV(eipSigner, sigbytes)
 	t.Log("r:", common.Bytes2Hex(r.Bytes()))
@@ -58,6 +72,14 @@ func Test_checkSig(t *testing.T) {
 	sig2 := makeDERsignature(r.Bytes(), s.Bytes())
 	t.Log("sig2:", common.Bytes2Hex(sig2))
 	assert.Equal(t, sig2, sigbytes)
+	signature := make([]byte, 65)
+	copy(signature[32-len(r.Bytes()):32], r.Bytes())
+	copy(signature[64-len(s.Bytes()):64], s.Bytes())
+	if v.Bytes()[0] >= 27 {
+		signature[64] = v.Bytes()[0] - 27
+	}
+	pubs, err := esecp256k1.Ecrecover([]byte(word), signature[:])
+	t.Log("pub:", common.Bytes2Hex(pubs), "err:", err, "sigdata:", common.Bytes2Hex(signature[:]))
 
 }
 
