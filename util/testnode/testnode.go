@@ -198,19 +198,6 @@ func (mock *Chain33Mock) Listen() {
 	}
 }
 
-//ModifyParaClient modify para config
-func ModifyParaClient(cfg *types.Chain33Config, gaddr string) {
-	sub := cfg.GetSubConfig()
-	if sub.Consensus["para"] != nil {
-		data, err := types.ModifySubConfig(sub.Consensus["para"], "ParaRemoteGrpcClient", gaddr)
-		if err != nil {
-			panic(err)
-		}
-		sub.Consensus["para"] = data
-		cfg.S("config.consensus.sub.para.ParaRemoteGrpcClient", gaddr)
-	}
-}
-
 //GetBlockChain :
 func (mock *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
 	return mock.chain

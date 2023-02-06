@@ -50,7 +50,6 @@ type QueueProtocol struct {
 	// 消息队列
 	client        queue.Client
 	option        QueueProtocolOption
-	paraCfg       types.ParaRPCConfig
 	mainChainGrpc types.Chain33Client
 }
 
@@ -70,9 +69,7 @@ func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, er
 
 	cfg := client.GetConfig()
 	if cfg.IsPara() {
-
-		q.paraCfg = cfg.GetModuleConfig().RPC.ParaChain
-		gcli, err := grpcclient.NewMainChainClient(cfg, q.paraCfg.MainChainGrpcAddr)
+		gcli, err := grpcclient.NewMainChainClient(cfg, "")
 		if err != nil {
 			panic("Mew main chain grpc client err:" + err.Error())
 		}
@@ -156,10 +153,12 @@ func (q *QueueProtocol) SendTx2Mempool(param *types.Transaction) (*types.Reply, 
 	return reply, err
 }
 
-func (q *QueueProtocol) onlyForward2MainChain(tx *types.Transaction) bool {
+// isForward2MainChain check if only forward to main chain
+func (q *QueueProtocol) isForward2MainChain(tx *types.Transaction) bool {
 
+	cfg := q.GetConfig()
 	// 主链不转发
-	if !q.GetConfig().IsPara() {
+	if !cfg.IsPara() {
 		return false
 	}
 
@@ -169,21 +168,19 @@ func (q *QueueProtocol) onlyForward2MainChain(tx *types.Transaction) bool {
 		return true
 	}
 
-	// 是否是配置
-	for _, exec := range q.paraCfg.ForwardExecs {
-
+	// 是否为配置中指定需要直接转发的执行器
+	for _, exec := range cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs {
 		if strings.HasSuffix(execer, exec) {
 			return true
 		}
 	}
-
 	return false
 }
 
 // SendTx send transaction to mempool with forward logic in parachain
 func (q *QueueProtocol) SendTx(tx *types.Transaction) (*types.Reply, error) {
 
-	if q.onlyForward2MainChain(tx) {
+	if q.isForward2MainChain(tx) {
 		return q.mainChainGrpc.SendTransaction(context.TODO(), tx)
 	}
 	return q.SendTx2Mempool(tx)

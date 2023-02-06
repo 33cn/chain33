@@ -2,6 +2,7 @@ package grpcclient
 
 import (
 	"fmt"
+	"github.com/33cn/chain33/common/log/log15"
 	"sync"
 	"time"
 
@@ -24,13 +25,11 @@ func NewMainChainClient(cfg *types.Chain33Config, grpcaddr string) (types.Chain3
 	if grpcaddr == "" && defaultClient != nil {
 		return defaultClient, nil
 	}
-	paraRemoteGrpcClient := types.Conf(cfg, "config.consensus.sub.para").GStr("ParaRemoteGrpcClient")
+	serverAddr := cfg.GetModuleConfig().RPC.ParaChain.MainChainGrpcAddr
 	if grpcaddr != "" {
-		paraRemoteGrpcClient = grpcaddr
+		serverAddr = grpcaddr
 	}
-	if paraRemoteGrpcClient == "" {
-		paraRemoteGrpcClient = "127.0.0.1:8802"
-	}
+
 	kp := keepalive.ClientParameters{
 		Time:                time.Second * 5,
 		Timeout:             time.Second * 20,
@@ -39,14 +38,14 @@ func NewMainChainClient(cfg *types.Chain33Config, grpcaddr string) (types.Chain3
 
 	var conn *grpc.ClientConn
 	var err error
-	useLBSync := types.Conf(cfg, "config.consensus.sub.para").IsEnable("useGrpcLBSync")
-	if useLBSync {
-		conn, err = grpc.Dial(NewSyncURL(paraRemoteGrpcClient), grpc.WithInsecure(),
+	log15.Error("NewMainChainClient start+++++++++++++++++++++++++++++++++")
+	if cfg.GetModuleConfig().RPC.ParaChain.UseGrpcLBSync {
+		conn, err = grpc.Dial(NewSyncURL(serverAddr), grpc.WithInsecure(),
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(paraChainGrpcRecSize)),
 			grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, SyncLbName)),
 			grpc.WithKeepaliveParams(kp))
 	} else {
-		conn, err = grpc.Dial(NewMultipleURL(paraRemoteGrpcClient), grpc.WithInsecure(),
+		conn, err = grpc.Dial(NewMultipleURL(serverAddr), grpc.WithInsecure(),
 			grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(paraChainGrpcRecSize)),
 			grpc.WithKeepaliveParams(kp))
 	}

@@ -283,6 +283,10 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 		}
 		//TxHeight
 		c.setChainConfig("TxHeight", cfg.TxHeight)
+
+		if cfg.RPC != nil && cfg.RPC.ParaChain.MainChainGrpcAddr == "" {
+			cfg.RPC.ParaChain.MainChainGrpcAddr = "localhost:8802"
+		}
 	}
 	if c.needSetForkZero() { //local 只用于单元测试
 		if c.isLocal() {

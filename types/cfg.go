@@ -258,12 +258,14 @@ type P2P struct {
 	Types []string `json:"types,omitempty"`
 }
 
-// ParaRPCConfig 平行链相关配置
+// ParaRPCConfig 用于平行链节点配置
 type ParaRPCConfig struct {
-	//主链grpc地址, 用于平行链节点配置
+	//主链grpc服务地址, 支持多地址逗号分割负载均衡，如“118.31.177.1:8802,localhost:8802”
 	MainChainGrpcAddr string `json:"mainChainGrpcAddr,omitempty"`
 	// ForwardTxExecs 指定直接转发到主链的交易执行器
 	ForwardExecs []string `json:"forwardExecs,omitempty"`
+	// 设置sync模式负载均衡, 默认使用多地址模式
+	UseGrpcLBSync bool  `json:"useGrpcLBSync,omitempty"`
 }
 
 // RPC 配置
