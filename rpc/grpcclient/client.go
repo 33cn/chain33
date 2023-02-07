@@ -2,9 +2,10 @@ package grpcclient
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/common/log/log15"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/common/log/log15"
 
 	"github.com/33cn/chain33/types"
 	"google.golang.org/grpc"
