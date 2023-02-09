@@ -15,9 +15,16 @@ import (
 // paraChainGrpcRecSize 平行链receive最大100M
 const paraChainGrpcRecSize = 100 * 1024 * 1024
 
-var mu sync.Mutex
+var mu sync.RWMutex
 
 var defaultClient types.Chain33Client
+
+// GetDefaultMainClient get default client
+func GetDefaultMainClient() types.Chain33Client {
+	mu.RLock()
+	defer mu.RUnlock()
+	return defaultClient
+}
 
 //NewMainChainClient 创建一个平行链的 主链 grpc chain33 客户端
 func NewMainChainClient(cfg *types.Chain33Config, grpcaddr string) (types.Chain33Client, error) {

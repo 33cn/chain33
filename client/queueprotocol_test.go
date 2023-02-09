@@ -1347,3 +1347,25 @@ func testClosePeer(t *testing.T, api client.QueueProtocolAPI) {
 	assert.Equal(t, "success", string(reply.GetMsg()))
 
 }
+
+func Test_IsForward2MainChain(t *testing.T) {
+
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	tx := &types.Transaction{Execer: []byte("none")}
+
+	val := client.IsForward2MainChain(cfg, tx)
+	require.False(t, val)
+	cfg.SetTitleOnlyForTest("user.p.test.")
+	val = client.IsForward2MainChain(cfg, tx)
+	require.True(t, val)
+	tx.Execer = []byte("user.p.test.none")
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs = []string{"coins"}
+	val = client.IsForward2MainChain(cfg, tx)
+	require.False(t, val)
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs = []string{"all"}
+	val = client.IsForward2MainChain(cfg, tx)
+	require.True(t, val)
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs = []string{"none"}
+	val = client.IsForward2MainChain(cfg, tx)
+	require.True(t, val)
+}

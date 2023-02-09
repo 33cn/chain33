@@ -48,9 +48,8 @@ type QueueProtocolOption struct {
 // QueueProtocol 消息通道协议实现
 type QueueProtocol struct {
 	// 消息队列
-	client        queue.Client
-	option        QueueProtocolOption
-	mainChainGrpc types.Chain33Client
+	client queue.Client
+	option QueueProtocolOption
 }
 
 // New New QueueProtocolAPI interface
@@ -65,15 +64,6 @@ func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, er
 	} else {
 		q.option.SendTimeout = time.Duration(-1)
 		q.option.WaitTimeout = time.Duration(-1)
-	}
-
-	cfg := client.GetConfig()
-	if cfg.IsPara() {
-		gcli, err := grpcclient.NewMainChainClient(cfg, "")
-		if err != nil {
-			panic("Mew main chain grpc client err:" + err.Error())
-		}
-		q.mainChainGrpc = gcli
 	}
 
 	return q, nil
@@ -126,8 +116,8 @@ func (q *QueueProtocol) setOption(option *QueueProtocolOption) {
 	}
 }
 
-// SendTx2Mempool send transaction to mempool
-func (q *QueueProtocol) SendTx2Mempool(param *types.Transaction) (*types.Reply, error) {
+// Send2Mempool send transaction to mempool
+func (q *QueueProtocol) Send2Mempool(param *types.Transaction) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("SendTx", "Error", err)
@@ -153,24 +143,34 @@ func (q *QueueProtocol) SendTx2Mempool(param *types.Transaction) (*types.Reply, 
 	return reply, err
 }
 
-// isForward2MainChain check if only forward to main chain
-func (q *QueueProtocol) isForward2MainChain(tx *types.Transaction) bool {
+func (q *QueueProtocol) send2MainChain(cfg *types.Chain33Config, tx *types.Transaction) (*types.Reply, error) {
 
-	cfg := q.GetConfig()
-	// 主链不转发
+	mainGrpc := grpcclient.GetDefaultMainClient()
+	if mainGrpc == nil {
+		var err error
+		mainGrpc, err = grpcclient.NewMainChainClient(cfg, "")
+		if err != nil {
+			return nil, err
+		}
+	}
+	return mainGrpc.SendTransaction(context.TODO(), tx)
+}
+
+// IsForward2MainChain 检查交易是否转发到主链
+func IsForward2MainChain(cfg *types.Chain33Config, tx *types.Transaction) bool {
+
+	// 主链不需要转发逻辑
 	if !cfg.IsPara() {
 		return false
 	}
-
 	execer := string(tx.Execer)
-	// 非平行链交易, 默认转发到主链
+	// 平行链收到主链交易, 转发到主链
 	if !types.IsParaExecName(execer) {
 		return true
 	}
-
-	// 是否为配置中指定需要直接转发的执行器
+	// 平行链交易, 根据执行器配置转发
 	for _, exec := range cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs {
-		if strings.HasSuffix(execer, exec) {
+		if exec == "all" || strings.HasSuffix(execer, exec) {
 			return true
 		}
 	}
@@ -180,10 +180,11 @@ func (q *QueueProtocol) isForward2MainChain(tx *types.Transaction) bool {
 // SendTx send transaction to mempool with forward logic in parachain
 func (q *QueueProtocol) SendTx(tx *types.Transaction) (*types.Reply, error) {
 
-	if q.isForward2MainChain(tx) {
-		return q.mainChainGrpc.SendTransaction(context.TODO(), tx)
+	cfg := q.GetConfig()
+	if IsForward2MainChain(cfg, tx) {
+		return q.send2MainChain(cfg, tx)
 	}
-	return q.SendTx2Mempool(tx)
+	return q.Send2Mempool(tx)
 }
 
 // GetTxList get transactions from mempool
