@@ -148,10 +148,10 @@ func (bc *BaseClient) InitStateCommitter() {
 
 	committer := bc.Cfg.Committer
 	c := LoadCommiter(committer)
-	subCfg := bc.client.GetConfig().GetSubConfig().Consensus
+	subCfg := bc.client.GetConfig().GetSubConfig()
 
-	if c != nil {
-		c.Init(bc, subCfg[committer])
+	if c != nil && subCfg != nil {
+		c.Init(bc, subCfg.Consensus[committer])
 		bc.SetCommitter(c)
 	}
 }
