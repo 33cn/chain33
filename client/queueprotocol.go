@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/33cn/chain33/rpc/grpcclient"
@@ -156,32 +155,11 @@ func (q *QueueProtocol) send2MainChain(cfg *types.Chain33Config, tx *types.Trans
 	return mainGrpc.SendTransaction(context.TODO(), tx)
 }
 
-// IsForward2MainChain 检查交易是否转发到主链
-func IsForward2MainChain(cfg *types.Chain33Config, tx *types.Transaction) bool {
-
-	// 主链不需要转发逻辑
-	if !cfg.IsPara() {
-		return false
-	}
-	execer := string(tx.Execer)
-	// 平行链收到主链交易, 转发到主链
-	if !types.IsParaExecName(execer) {
-		return true
-	}
-	// 平行链交易, 根据执行器配置转发
-	for _, exec := range cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs {
-		if exec == "all" || strings.HasSuffix(execer, exec) {
-			return true
-		}
-	}
-	return false
-}
-
 // SendTx send transaction to mempool with forward logic in parachain
 func (q *QueueProtocol) SendTx(tx *types.Transaction) (*types.Reply, error) {
 
 	cfg := q.GetConfig()
-	if IsForward2MainChain(cfg, tx) {
+	if types.IsForward2MainChainTx(cfg, tx) {
 		return q.send2MainChain(cfg, tx)
 	}
 	return q.Send2Mempool(tx)

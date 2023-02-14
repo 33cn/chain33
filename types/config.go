@@ -602,6 +602,47 @@ func IsSpecificParaExecName(title, exec string) bool {
 	return IsParaExecName(exec) && strings.HasPrefix(exec, title)
 }
 
+// 检查是否为配置中的转发执行器
+func isForwardTxExecer(cfg *Chain33Config, execer string) bool {
+
+	for _, exec := range cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs {
+		if exec == "all" || strings.HasSuffix(execer, exec) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsForward2MainChainTx 检查交易是否转发到主链, 此类交易需要在主链执行或优先执行
+func IsForward2MainChainTx(cfg *Chain33Config, tx *Transaction) bool {
+
+	// 主链不需要转发逻辑
+	if !cfg.IsPara() {
+		return false
+	}
+
+	execer := string(tx.GetExecer())
+	// 非本平行链的其他交易, 包括主链/其他平行链交易, 转发到主链
+	if !IsSpecificParaExecName(cfg.GetTitle(), execer) {
+		return true
+	}
+	// 本平行链特殊类型交易, 根据配置转发到主链
+	if isForwardTxExecer(cfg, execer) {
+		return true
+	}
+
+	// 交易组解析, 此处不进行错误判定
+	txs, _ := tx.GetTxGroup()
+	// 交易组内包含了需要转发的交易, 则整个交易组需要转发到主链
+	for _, gtx := range txs.GetTxs() {
+		if isForwardTxExecer(cfg, string(gtx.GetExecer())) {
+			return true
+		}
+	}
+
+	return false
+}
+
 //GetParaExecTitleName 如果是平行链执行器，获取对应title
 func GetParaExecTitleName(exec string) (string, bool) {
 	if IsParaExecName(exec) {

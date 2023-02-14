@@ -7,6 +7,8 @@ package types
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/33cn/chain33/system/crypto/secp256k1"
 
 	"github.com/stretchr/testify/assert"
@@ -125,4 +127,45 @@ func TestAddressConfig(t *testing.T) {
 	addrConfig := cfg.GetModuleConfig().Address
 	assert.Equal(t, "btc", addrConfig.DefaultDriver)
 	assert.Equal(t, int64(-2), addrConfig.EnableHeight["eth"])
+}
+
+func TestIsForward2MainChainTx(t *testing.T) {
+
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	tx := &Transaction{Execer: []byte("none")}
+
+	val := IsForward2MainChainTx(cfg, tx)
+	require.False(t, val)
+	cfg.SetTitleOnlyForTest("user.p.test.")
+	val = IsForward2MainChainTx(cfg, tx)
+	require.True(t, val)
+	tx.Execer = []byte("user.p.test1.none")
+	val = IsForward2MainChainTx(cfg, tx)
+	require.True(t, val)
+	tx.Execer = []byte("user.p.test.none")
+	val = IsForward2MainChainTx(cfg, tx)
+	require.False(t, val)
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs = []string{"none"}
+	val = IsForward2MainChainTx(cfg, tx)
+	require.True(t, val)
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs = []string{"all"}
+	val = IsForward2MainChainTx(cfg, tx)
+	require.True(t, val)
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs = []string{"coins"}
+	tx.Execer = []byte("user.p.test.none")
+	tx1 := &Transaction{Execer: []byte("user.p.test.paracross")}
+	txs := Transactions{Txs: []*Transaction{tx, tx1}}
+	val = IsForward2MainChainTx(cfg, txs.Tx())
+	require.False(t, val)
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs = []string{"none"}
+	val = IsForward2MainChainTx(cfg, txs.Tx())
+	require.True(t, val)
+
+	tx.GroupCount = 2
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs = []string{"paracross"}
+	val = IsForward2MainChainTx(cfg, txs.Tx())
+	require.True(t, val)
+
+	val = IsForward2MainChainTx(cfg, tx)
+	require.False(t, val)
 }
