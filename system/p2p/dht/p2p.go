@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -486,7 +487,9 @@ func (p *P2P) genAirDropKey() {
 		var parm types.ReqWalletImportPrivkey
 		parm.Privkey = savePrivkey
 		parm.Label = "dht node award"
-
+		if strings.ToUpper(p.chainCfg.GetModuleConfig().Address.DefaultDriver) == "ETH" {
+			parm.AddressID = 2 //eth address type
+		}
 		for {
 			_, err = p.api.ExecWalletFunc("wallet", "WalletImportPrivkey", &parm)
 			if err == types.ErrLabelHasUsed {

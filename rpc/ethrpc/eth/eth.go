@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/rpc"
 	"math/big"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 
@@ -310,7 +311,7 @@ func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 
 //SendRawTransaction eth_sendRawTransaction
 func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
-	log.Debug("eth_sendRawTransaction", "rawData", rawData)
+	log.Info("eth_sendRawTransaction", "rawData", rawData)
 	rawhexData := common.FromHex(rawData)
 	if rawhexData == nil {
 		return nil, errors.New("wrong data")
@@ -373,7 +374,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	}
 
 	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
-	log.Debug("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
+	log.Info("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
 	reply, err := e.cli.SendTx(chain33Tx)
 	return reply.GetMsg(), err
 
