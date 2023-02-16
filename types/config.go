@@ -643,7 +643,7 @@ func IsForward2MainChainTx(cfg *Chain33Config, tx *Transaction) bool {
 		return true
 	}
 	// 本平行链特殊类型交易, 根据配置转发到主链
-	if isForwardTxExecer(cfg, execer) && isForwardTxActionName(cfg, tx){
+	if isForwardTxExecer(cfg, execer) && isForwardTxActionName(cfg, tx) {
 		return true
 	}
 
