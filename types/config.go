@@ -613,6 +613,22 @@ func isForwardTxExecer(cfg *Chain33Config, execer string) bool {
 	return false
 }
 
+func isForwardTxActionName(cfg *Chain33Config, tx *Transaction) bool {
+
+	actionNames := cfg.GetModuleConfig().RPC.ParaChain.ForwardActionNames
+	if len(actionNames) == 0 {
+		return true
+	}
+	name := tx.ActionName()
+	for _, n := range actionNames {
+		if n == name {
+			return true
+		}
+	}
+	return false
+
+}
+
 // IsForward2MainChainTx 检查交易是否转发到主链, 此类交易需要在主链执行或优先执行
 func IsForward2MainChainTx(cfg *Chain33Config, tx *Transaction) bool {
 
@@ -627,7 +643,7 @@ func IsForward2MainChainTx(cfg *Chain33Config, tx *Transaction) bool {
 		return true
 	}
 	// 本平行链特殊类型交易, 根据配置转发到主链
-	if isForwardTxExecer(cfg, execer) {
+	if isForwardTxExecer(cfg, execer) && isForwardTxActionName(cfg, tx){
 		return true
 	}
 
@@ -635,7 +651,7 @@ func IsForward2MainChainTx(cfg *Chain33Config, tx *Transaction) bool {
 	txs, _ := tx.GetTxGroup()
 	// 交易组内包含了需要转发的交易, 则整个交易组需要转发到主链
 	for _, gtx := range txs.GetTxs() {
-		if isForwardTxExecer(cfg, string(gtx.GetExecer())) {
+		if isForwardTxExecer(cfg, string(gtx.GetExecer())) && isForwardTxActionName(cfg, gtx) {
 			return true
 		}
 	}

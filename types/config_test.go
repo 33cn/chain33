@@ -5,6 +5,7 @@
 package types
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -168,4 +169,16 @@ func TestIsForward2MainChainTx(t *testing.T) {
 
 	val = IsForward2MainChainTx(cfg, tx)
 	require.False(t, val)
+
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardExecs = []string{"coins"}
+	hexTx := "0a05636f696e73122d18010a291080c2d72f222231387674787946483662636873536d7a396157427842543674657044727a784a32471a6d08011221034b0452139ef45a81dc90a29e90167046a30ac919ebaba6264b2d71e30f0264721a4630440220503123d7279b0ffab7a1321c9f1fa88dfd4e3247ba2a44fa171de10b5d2a9ff9022020461dfa8fe19a46796fcbb10e5aa152e8551b3921b0bbaf3f1f2d57243269ff20a08d0630be92d6bbf5ac90e8773a2231387674787946483662636873536d7a396157427842543674657044727a784a32475821"
+
+	bTx, _ := hex.DecodeString(hexTx)
+	Decode(bTx, tx)
+	tx.Execer = []byte("user.p.test.coins")
+	require.True(t, IsForward2MainChainTx(cfg, tx))
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardActionNames = []string{"withdraw"}
+	require.False(t, IsForward2MainChainTx(cfg, tx))
+	cfg.GetModuleConfig().RPC.ParaChain.ForwardActionNames = []string{"transfer"}
+	require.True(t, IsForward2MainChainTx(cfg, tx))
 }

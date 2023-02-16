@@ -264,6 +264,8 @@ type ParaRPCConfig struct {
 	MainChainGrpcAddr string `json:"mainChainGrpcAddr,omitempty"`
 	// ForwardTxExecs 指定直接转发到主链的交易执行器
 	ForwardExecs []string `json:"forwardExecs,omitempty"`
+	// ForwardActionNames 指定转发到主链的交易actionName
+	ForwardActionNames []string `json:"forwardActionNames,omitempty"`
 	// 设置sync模式负载均衡, 默认使用多地址模式
 	UseGrpcLBSync bool `json:"useGrpcLBSync,omitempty"`
 }
