@@ -75,7 +75,7 @@ func (p *personalHandler) UnlockAccount(account, passwd string, duration int64) 
 
 //ImportRawKey personal_importRawKey
 func (p *personalHandler) ImportRawKey(keydata, label string) (string, error) {
-	req := &ctypes.ReqWalletImportPrivkey{Privkey: keydata, Label: label}
+	req := &ctypes.ReqWalletImportPrivkey{Privkey: keydata, Label: label, AddressID: 2}
 	resp, err := p.cli.ExecWalletFunc("wallet", "WalletImportPrivkey", req)
 	if err != nil {
 		log.Error("personal_importRawKey", "err", err)
