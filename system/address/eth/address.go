@@ -25,7 +25,7 @@ var (
 )
 
 func init() {
-	address.RegisterDriver(ID, &eth{}, -1)
+	address.RegisterDriver(ID, &eth{}, 0)
 
 	var err error
 	addrCache, err = lru.New(10240)
