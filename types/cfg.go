@@ -53,6 +53,7 @@ type ConfigSubModule struct {
 	P2P       map[string][]byte
 	Crypto    map[string][]byte
 	RPC       map[string][]byte
+	Client    map[string][]byte
 }
 
 // subModule 子模块结构体
@@ -66,6 +67,7 @@ type subModule struct {
 	P2P       map[string]interface{}
 	Crypto    map[string]interface{}
 	RPC       map[string]interface{}
+	Client    map[string]interface{}
 }
 
 // ForkList fork列表配置
@@ -124,6 +126,8 @@ type Mempool struct {
 type Consensus struct {
 	// 共识名称 ：solo, ticket, raft, tendermint, para
 	Name string `json:"name,omitempty"`
+	// state commiter, rollup
+	Committer string `json:"committer,omitempty"`
 	// 创世区块时间(UTC时间)
 	GenesisBlockTime int64 `json:"genesisBlockTime,omitempty"`
 	// 是否开启挖矿,开启挖矿才能创建区块
@@ -254,6 +258,18 @@ type P2P struct {
 	Types []string `json:"types,omitempty"`
 }
 
+// ParaRPCConfig 用于平行链节点配置
+type ParaRPCConfig struct {
+	//主链grpc服务地址, 支持多地址逗号分割负载均衡，如“118.31.177.1:8802,localhost:8802”
+	MainChainGrpcAddr string `json:"mainChainGrpcAddr,omitempty"`
+	// ForwardTxExecs 指定直接转发到主链的交易执行器
+	ForwardExecs []string `json:"forwardExecs,omitempty"`
+	// ForwardActionNames 指定转发到主链的交易actionName
+	ForwardActionNames []string `json:"forwardActionNames,omitempty"`
+	// 设置sync模式负载均衡, 默认使用多地址模式
+	UseGrpcLBSync bool `json:"useGrpcLBSync,omitempty"`
+}
+
 // RPC 配置
 type RPC struct {
 	// jrpc绑定地址
@@ -285,7 +301,8 @@ type RPC struct {
 	//basic auth 用户名
 	JrpcUserName string `json:"jrpcUserName,omitempty"`
 	//basic auth 用户密码
-	JrpcUserPasswd string `json:"jrpcUserPasswd,omitempty"`
+	JrpcUserPasswd string        `json:"jrpcUserPasswd,omitempty"`
+	ParaChain      ParaRPCConfig `json:"parachain,omitempty"`
 }
 
 // Exec 配置

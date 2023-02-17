@@ -3,10 +3,11 @@ package eth
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/33cn/chain33/rpc/ethrpc/types"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/rpc"
-	"time"
 )
 
 //Type ...

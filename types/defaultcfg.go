@@ -95,6 +95,9 @@ grpcFuncWhitelist=["*"]
 enable=false
 web3CliVer="Geth/v1.8.15-omnibus-255989da/linux-amd64/go1.10.1"
 
+[rpc.parachain]
+mainChainGrpcAddr="localhost:8802"
+
 [mempool]
 name="timeline"
 poolCacheSize=102400
@@ -140,7 +143,6 @@ targetTimespan = 288 #only for test
 targetTimePerBlock = 2
 
 [consensus.sub.para]
-ParaRemoteGrpcClient="localhost:8802"
 #主链指定高度的区块开始同步
 startHeight=345850
 #打包时间间隔，单位秒

@@ -149,6 +149,10 @@ func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
 
 func (e *executor) checkTx(tx *types.Transaction, index int) error {
 
+	// 转发的交易由主链验证, 平行链忽略基础检查
+	if e.cfg.IsPara() && types.IsForward2MainChainTx(e.cfg, tx) {
+		return nil
+	}
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.cfg, e.height, e.blocktime) {
 		//如果已经过期
 		return types.ErrTxExpire

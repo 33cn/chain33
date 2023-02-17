@@ -6,6 +6,7 @@ package consensus
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"math/rand"
 	"sync"
@@ -20,7 +21,9 @@ import (
 	"github.com/33cn/chain33/util"
 )
 
-var tlog = log.New("module", "consensus")
+// ModuleName module name
+var ModuleName = "consensus"
+var tlog = log.New("module", ModuleName)
 
 var (
 	zeroHash [32]byte
@@ -42,6 +45,7 @@ type Miner interface {
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	ProcEvent(msg *queue.Message) bool
 	CmpBestBlock(newBlock *types.Block, cmpBlock *types.Block) bool
+	GetBaseClient() *BaseClient
 }
 
 //BaseClient ...
@@ -55,8 +59,11 @@ type BaseClient struct {
 	currentBlock *types.Block
 	mulock       sync.Mutex
 	child        Miner
+	committer    Committer
 	minerstartCB func()
 	isCaughtUp   int32
+	Context      context.Context
+	Cancel       context.CancelFunc
 }
 
 //NewBaseClient ...
@@ -67,6 +74,7 @@ func NewBaseClient(cfg *types.Consensus) *BaseClient {
 	}
 	client := &BaseClient{minerStart: flag, isCaughtUp: 0}
 	client.Cfg = cfg
+	client.Context, client.Cancel = context.WithCancel(context.Background())
 	log.Info("Enter consensus " + cfg.Name)
 	return client
 }
@@ -79,6 +87,16 @@ func (bc *BaseClient) GetGenesisBlockTime() int64 {
 //SetChild ...
 func (bc *BaseClient) SetChild(c Miner) {
 	bc.child = c
+}
+
+// SetCommitter set committer
+func (bc *BaseClient) SetCommitter(c Committer) {
+	bc.committer = c
+}
+
+// GetBaseClient get base client
+func (bc *BaseClient) GetBaseClient() *BaseClient {
+	return bc
 }
 
 //GetAPI 获取api
@@ -106,6 +124,7 @@ func (bc *BaseClient) InitClient(c queue.Client, minerstartCB func()) {
 	if err != nil {
 		panic(err)
 	}
+	bc.InitStateCommitter()
 	bc.InitMiner()
 }
 
@@ -122,6 +141,19 @@ func (bc *BaseClient) RandInt64() int64 {
 //InitMiner 初始化矿工
 func (bc *BaseClient) InitMiner() {
 	bc.once.Do(bc.minerstartCB)
+}
+
+// InitStateCommitter init committer
+func (bc *BaseClient) InitStateCommitter() {
+
+	committer := bc.Cfg.Committer
+	c := LoadCommiter(committer)
+	subCfg := bc.client.GetConfig().GetSubConfig()
+
+	if c != nil && subCfg != nil {
+		c.Init(bc, subCfg.Consensus[committer])
+		bc.SetCommitter(c)
+	}
 }
 
 //Wait wait for ready
@@ -172,6 +204,7 @@ func (bc *BaseClient) Close() {
 	atomic.StoreInt32(&bc.minerStart, 0)
 	atomic.StoreInt32(&bc.isclosed, 1)
 	bc.client.Close()
+	bc.Cancel()
 	log.Info("consensus base closed")
 }
 
@@ -220,6 +253,13 @@ func (bc *BaseClient) ExecConsensus(data *types.ChainExecutor) (types.Message, e
 		return nil, err
 	}
 	return QueryData.Call(data.Driver, data.FuncName, param)
+}
+
+func (bc *BaseClient) pubToSubModule(msg *queue.Message) {
+	bc.child.ProcEvent(msg)
+	if bc.committer != nil {
+		bc.committer.SubMsg(msg)
+	}
 }
 
 //EventLoop 准备新区块
@@ -272,9 +312,7 @@ func (bc *BaseClient) EventLoop() {
 				reply.IsOk = bc.CmpBestBlock(cmpBlock.Block, cmpBlock.CmpHash)
 				msg.Reply(bc.api.NewMessage("", 0, &reply))
 			} else {
-				if !bc.child.ProcEvent(msg) {
-					msg.ReplyErr("BaseClient.EventLoop() ", types.ErrActionNotSupport)
-				}
+				bc.pubToSubModule(msg)
 			}
 		}
 	}()

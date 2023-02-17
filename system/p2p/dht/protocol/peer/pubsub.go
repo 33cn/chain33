@@ -51,7 +51,10 @@ func (p *Protocol) handleEventSubTopic(msg *queue.Message) {
 func (p *Protocol) subCallBack(topic string, msg extension.SubMsg) {
 	p.topicMutex.RLock()
 	defer p.topicMutex.RUnlock()
-
+	// 忽略来自本节点的数据
+	if peer.ID(msg.From) == p.Host.ID() {
+		return
+	}
 	modules, ok := p.topicModule.Load(topic)
 	if !ok {
 		return

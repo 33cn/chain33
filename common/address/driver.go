@@ -119,6 +119,16 @@ func RegisterDriver(id int32, driver Driver, enableHeight int64) {
 	driverName[driver.GetName()] = id
 }
 
+// MustLoadDriver 根据ID加载插件, 出错panic
+func MustLoadDriver(id int32) Driver {
+
+	d, ok := drivers[id]
+	if !ok {
+		panic(fmt.Sprintf("unknown address driver, id=%d", id))
+	}
+	return d.driver
+}
+
 // LoadDriver 根据ID加载插件, 根据区块高度判定是否已启动
 // 不关心启用状态, blockHeight传-1
 func LoadDriver(id int32, blockHeight int64) (Driver, error) {
