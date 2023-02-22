@@ -495,6 +495,7 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, e
 //method:eth_estimateGas
 //EstimateGas 获取gas
 func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error) {
+	log.Info("EstimateGas", "callMsg.From", callMsg.From, "callMsg.To:", callMsg.To, "callMsg.Value:", callMsg.Value)
 	if callMsg == nil {
 		return 0, errors.New("callMsg empty")
 	}
