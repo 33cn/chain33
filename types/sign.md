@@ -33,6 +33,7 @@ type Signature struct {
 * EncodeSignID, 基于cryptoID和addressID, 计算signID
 * ExtractAddressID, 基于signID, 提取addressID(主要用于交易的fromAddr计算)
 * ExtractCryptoID, 基于signID, 提取cryptoID
+* rpc, Chain33.GetChainConfig, 获取节点默认的地址ID配置
 
 
 #### 相关文档
