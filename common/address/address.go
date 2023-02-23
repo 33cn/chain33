@@ -69,7 +69,7 @@ func ExecAddress(name string) string {
 	if value, ok := execAddrCache.Get(name); ok {
 		return value.(string)
 	}
-	addr,err := GetExecAddress(name, defaultAddressID)
+	addr, err := GetExecAddress(name, defaultAddressID)
 	if err != nil {
 		panic(fmt.Sprintf("load default driver err, id:%d", defaultAddressID))
 	}
