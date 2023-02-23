@@ -129,7 +129,10 @@ func CreateRawTx(paraName string, to string, amount float64, note string, isWith
 	if paraName == "" {
 		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: to}
 	} else {
-		execAddr, _ := address.GetExecAddress(string(execer), cfg.DefaultAddressID)
+		execAddr, err := address.GetExecAddress(string(execer), cfg.DefaultAddressID)
+		if err != nil {
+			return "", err
+		}
 		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: execAddr}
 	}
 
