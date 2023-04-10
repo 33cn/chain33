@@ -44,7 +44,10 @@ func (p *personalHandler) ListAccounts() ([]string, error) {
 	accountsList := msg.(*ctypes.WalletAccounts)
 	var accounts []string
 	for _, wallet := range accountsList.Wallets {
-		accounts = append(accounts, wallet.GetAcc().GetAddr())
+		if common.IsHex(wallet.GetAcc().GetAddr()) {
+			accounts = append(accounts, wallet.GetAcc().GetAddr())
+		}
+
 	}
 
 	return accounts, nil

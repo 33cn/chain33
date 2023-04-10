@@ -341,7 +341,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	sig[64] = cv
 
 	if !ethcrypto.ValidateSignatureValues(cv, r, s, false) {
-		log.Error("etgh_SendRawTransaction", "ValidateSignatureValues", false, "RawSignatureValues v:", v, "to:", ntx.To(), "type", ntx.Type(), "sig", common.Bytes2Hex(sig))
+		log.Error("eth_SendRawTransaction", "ValidateSignatureValues", false, "RawSignatureValues v:", v, "to:", ntx.To(), "type", ntx.Type(), "sig", common.Bytes2Hex(sig))
 		return nil, errors.New("wrong signature")
 	}
 	pubkey, err := ethcrypto.Ecrecover(txSha3.Bytes(), sig)
@@ -374,9 +374,15 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	}
 
 	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
-	log.Info("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
 	reply, err := e.cli.SendTx(chain33Tx)
-	return reply.GetMsg(), err
+	log.Info("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "ethHash:", ntx.Hash().String(), "exec", string(chain33Tx.Execer), "reply:", common.Bytes2Hex(reply.GetMsg()))
+	//调整为返回eth 交易哈希，之前是reply.GteMsg() chain33 哈希
+	if e.cfg.GetModuleConfig().BlockChain.EnableTxQuickIndex {
+		//打开quickIndex 后只能通过返回的交易哈希查询到
+		return reply.GetMsg(), err
+	}
+	//关闭quickIndex 后可以通过ethHash 查询到
+	return ntx.Hash().Bytes(), err
 
 }
 

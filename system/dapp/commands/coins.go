@@ -6,11 +6,18 @@ package commands
 
 import (
 	"bufio"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"strings"
+
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 
 	"github.com/pkg/errors"
 
@@ -27,12 +34,76 @@ func CoinsCmd() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 	}
 	cmd.AddCommand(
+		CreateEthRawTransferCmd(),
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
 		CreateTxGroupCmd(),
 	)
 	return cmd
+}
+
+// CreateRawTransferCmd create raw transfer tx
+func CreateEthRawTransferCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "transfer_eth",
+		Short: "Create a transfer transaction by eth mode",
+		Run:   createTransferEthMode,
+	}
+	addCreateEthTransferFlags(cmd)
+	return cmd
+}
+
+func addCreateEthTransferFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("from", "f", "", "sender account address")
+	cmd.MarkFlagRequired("to")
+	cmd.Flags().StringP("to", "t", "", "receiver account address")
+	cmd.MarkFlagRequired("to")
+
+	cmd.Flags().Float64P("amount", "a", 0, "transaction amount")
+	cmd.MarkFlagRequired("amount")
+
+}
+
+//createTransferEthMode eth 交易构造
+func createTransferEthMode(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	toAddr, _ := cmd.Flags().GetString("to")
+	amount, _ := cmd.Flags().GetFloat64("amount")
+	from, _ := cmd.Flags().GetString("from")
+
+	ecli, err := ethclient.Dial(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "createTransferEthMode"))
+		return
+	}
+	if !ethcommon.IsHexAddress(from) || !ethcommon.IsHexAddress(toAddr) {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "no hex address"))
+		return
+	}
+	nonce, err := ecli.NonceAt(context.Background(), ethcommon.HexToAddress(from), nil)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "getnonce"))
+		return
+	}
+	bigfAmount := new(big.Float).Mul(big.NewFloat(amount), big.NewFloat(1e18))
+	var value = new(big.Int)
+	bigfAmount.Int(value)
+	to := ethcommon.HexToAddress(toAddr)
+	etx := ethtypes.NewTx(&ethtypes.LegacyTx{
+		Nonce:    nonce,
+		Gas:      1e5,
+		GasPrice: big.NewInt(1e10),
+		To:       &to,
+		Value:    value,
+	})
+
+	byteTx, err := etx.MarshalBinary()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "MarshalBinary"))
+		return
+	}
+	fmt.Println(ethcommon.Bytes2Hex(byteTx))
 }
 
 // CreateRawTransferCmd create raw transfer tx
