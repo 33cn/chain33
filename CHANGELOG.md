@@ -1,5 +1,13 @@
 changelog
 
+<a name="1.68.0"></a>
+# [1.68.0](https://github.com/33cn/chain33/compare/v1.67.5...v1.68.0) (2023-02-17)
+
+
+### Features
+
+* add state committer interface in consensus module(#1268) ([8d907b2](https://github.com/33cn/chain33/commit/8d907b2)), closes [#1268](https://github.com/33cn/chain33/issues/1268)
+
 <a name="1.67.5"></a>
 ## [1.67.5](https://github.com/33cn/chain33/compare/v1.67.4...v1.67.5) (2022-12-15)
 

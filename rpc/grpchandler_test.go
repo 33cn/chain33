@@ -7,8 +7,9 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/33cn/chain33/client"
 	"time"
+
+	"github.com/33cn/chain33/client"
 
 	slog "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/pluginmgr"

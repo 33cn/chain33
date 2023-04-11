@@ -36,3 +36,29 @@ func Load(name string) (create Create, err error) {
 	}
 	return nil, types.ErrNotFound
 }
+
+// Committer state commiter
+type Committer interface {
+	Init(base *BaseClient, subCfg []byte)
+	SubMsg(msg *queue.Message)
+}
+
+var committers = make(map[string]Committer)
+
+// RegCommitter register committer
+func RegCommitter(name string, c Committer) {
+
+	if c == nil {
+		panic("RegCommitter: committer is nil")
+	}
+	if _, dup := committers[name]; dup {
+		panic("RegCommitter: duplicate committer " + name)
+	}
+	committers[name] = c
+}
+
+// LoadCommiter load
+func LoadCommiter(name string) Committer {
+
+	return committers[name]
+}

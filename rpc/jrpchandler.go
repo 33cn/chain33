@@ -6,7 +6,6 @@ package rpc
 
 import (
 	"bytes"
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"time"
@@ -117,13 +116,7 @@ func (c *Chain33) SendTransaction(in rpctypes.RawParm, result *interface{}) erro
 	log.Debug("SendTransaction", "parm", parm.String())
 
 	var reply *types.Reply
-	//para chain, forward to main chain
-	cfg := c.cli.GetConfig()
-	if cfg.IsPara() {
-		reply, err = c.mainGrpcCli.SendTransaction(context.Background(), &parm)
-	} else {
-		reply, err = c.cli.SendTx(&parm)
-	}
+	reply, err = c.cli.SendTx(&parm)
 
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
@@ -1594,13 +1587,7 @@ func (c *Chain33) SendDelayTransaction(in *types.ReqString, result *interface{})
 	}
 
 	var reply *types.Reply
-	//para chain, forward to main chain
-	cfg := c.cli.GetConfig()
-	if cfg.IsPara() {
-		reply, err = c.mainGrpcCli.SendDelayTransaction(context.Background(), delayTx)
-	} else {
-		reply, err = c.cli.SendDelayTx(delayTx, true)
-	}
+	reply, err = c.cli.SendDelayTx(delayTx, true)
 
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	"net"
 	"net/http"
 	"net/rpc"
@@ -27,7 +26,6 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/pluginmgr"
 	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/rpc/grpcclient"
 	_ "github.com/33cn/chain33/rpc/grpcclient" // register grpc multiple resolver
 	"github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
@@ -53,8 +51,6 @@ var (
 // Chain33  a channel client
 type Chain33 struct {
 	cli rclient.ChannelClient
-	//for communicate with main chain in parallel chain
-	mainGrpcCli types.Chain33Client
 }
 
 // Grpc a channelClient
@@ -306,13 +302,6 @@ func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServer {
 	j := &JSONRPCServer{jrpc: &Chain33{}}
 	j.jrpc.cli.Init(c, api)
-	if c.GetConfig().IsPara() {
-		grpcCli, err := grpcclient.NewMainChainClient(c.GetConfig(), "")
-		if err != nil {
-			panic(err)
-		}
-		j.jrpc.mainGrpcCli = grpcCli
-	}
 	server := rpc.NewServer()
 	j.s = server
 	err := server.RegisterName("Chain33", j.jrpc)

@@ -26,11 +26,8 @@ type LocalDB struct {
 }
 
 //NewLocalDB 创建一个新的LocalDB
-func NewLocalDB(cli queue.Client, readOnly bool) db.KVDB {
-	api, err := client.New(cli, nil)
-	if err != nil {
-		panic(err)
-	}
+func NewLocalDB(cli queue.Client, api client.QueueProtocolAPI, readOnly bool) db.KVDB {
+
 	txid, err := api.LocalNew(readOnly)
 	if err != nil {
 		panic(err)

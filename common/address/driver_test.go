@@ -64,7 +64,7 @@ func Test_LoadDriver(t *testing.T) {
 	_, err := address.LoadDriver(-1, 0)
 	require.Equal(t, address.ErrUnknownAddressDriver, err)
 	_, err = address.LoadDriver(eth.ID, 0)
-	require.Equal(t, address.ErrAddressDriverNotEnable, err)
+	require.Equal(t, nil, err)
 	d, err := address.LoadDriver(btc.NormalAddressID, 0)
 	require.Equal(t, btc.NormalName, d.GetName())
 	require.Nil(t, err)

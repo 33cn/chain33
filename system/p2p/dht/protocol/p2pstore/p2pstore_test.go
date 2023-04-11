@@ -267,6 +267,9 @@ func makeProtocol(name string, q queue.Queue, h host.Host) *Protocol {
 	types.MustDecode(cfg.GetSubConfig().P2P[types2.DHTTypeName], mcfg)
 	mcfg.DisableFindLANPeers = true
 	cli := q.Client()
+	if q.GetConfig() == nil {
+		q.SetConfig(cfg)
+	}
 	mockAPI, err := client.New(cli, nil)
 	if err != nil {
 		panic(err)

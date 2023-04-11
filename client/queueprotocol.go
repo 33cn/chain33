@@ -6,9 +6,12 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/33cn/chain33/rpc/grpcclient"
 
 	"github.com/33cn/chain33/common"
 
@@ -61,6 +64,7 @@ func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, er
 		q.option.SendTimeout = time.Duration(-1)
 		q.option.WaitTimeout = time.Duration(-1)
 	}
+
 	return q, nil
 }
 
@@ -111,8 +115,8 @@ func (q *QueueProtocol) setOption(option *QueueProtocolOption) {
 	}
 }
 
-// SendTx send transaction to mempool
-func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
+// Send2Mempool send transaction to mempool
+func (q *QueueProtocol) Send2Mempool(param *types.Transaction) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("SendTx", "Error", err)
@@ -136,6 +140,29 @@ func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	}
 	q.client.FreeMessage(msg)
 	return reply, err
+}
+
+func (q *QueueProtocol) send2MainChain(cfg *types.Chain33Config, tx *types.Transaction) (*types.Reply, error) {
+
+	mainGrpc := grpcclient.GetDefaultMainClient()
+	if mainGrpc == nil {
+		var err error
+		mainGrpc, err = grpcclient.NewMainChainClient(cfg, "")
+		if err != nil {
+			return nil, err
+		}
+	}
+	return mainGrpc.SendTransaction(context.TODO(), tx)
+}
+
+// SendTx send transaction to mempool with forward logic in parachain
+func (q *QueueProtocol) SendTx(tx *types.Transaction) (*types.Reply, error) {
+
+	cfg := q.GetConfig()
+	if types.IsForward2MainChainTx(cfg, tx) {
+		return q.send2MainChain(cfg, tx)
+	}
+	return q.Send2Mempool(tx)
 }
 
 // GetTxList get transactions from mempool

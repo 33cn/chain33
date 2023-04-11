@@ -18,7 +18,9 @@ import (
 )
 
 func TestStart(t *testing.T) {
+	cfg := types.NewChain33Config(types.ReadFile("../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
+	q.SetConfig(cfg)
 	health := NewHealthCheckServer(q.Client())
 
 	api := new(mocks.QueueProtocolAPI)
@@ -31,8 +33,7 @@ func TestStart(t *testing.T) {
 	api.On("Close").Return()
 	health.api = api
 
-	cfg, _ := types.InitCfg("../cmd/chain33/chain33.test.toml")
-	health.Start(cfg.Health)
+	health.Start(cfg.GetModuleConfig().Health)
 	time.Sleep(time.Second * 6)
 
 	health.Close()
@@ -51,6 +52,7 @@ func TestGetHealth(t *testing.T) {
 	healthNil := NewHealthCheckServer(nil)
 	assert.Nil(t, healthNil)
 	q := queue.New("channel")
+	q.SetConfig(types.NewChain33Config(types.GetDefaultCfgstring()))
 	health := NewHealthCheckServer(q.Client())
 	health.api = api
 	ret, err := health.getHealth(true)

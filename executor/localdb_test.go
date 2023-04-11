@@ -13,7 +13,7 @@ import (
 func TestLocalDBGet(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	db := executor.NewLocalDB(mock33.GetClient(), false)
+	db := executor.NewLocalDB(mock33.GetClient(), mock33.GetAPI(), false)
 	defer db.(*executor.LocalDB).Close()
 	testDBGet(t, db)
 }
@@ -21,7 +21,7 @@ func TestLocalDBGet(t *testing.T) {
 func TestLocalDBGetReadOnly(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	db := executor.NewLocalDB(mock33.GetClient(), true)
+	db := executor.NewLocalDB(mock33.GetClient(), mock33.GetAPI(), true)
 	defer db.(*executor.LocalDB).Close()
 	testDBGet(t, db)
 }
@@ -29,7 +29,7 @@ func TestLocalDBGetReadOnly(t *testing.T) {
 func TestLocalDBEnable(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	db := executor.NewLocalDB(mock33.GetClient(), false)
+	db := executor.NewLocalDB(mock33.GetClient(), mock33.GetAPI(), false)
 	ldb := db.(*executor.LocalDB)
 	defer ldb.Close()
 	_, err := ldb.Get([]byte("hello"))
@@ -55,7 +55,7 @@ func TestLocalDBEnable(t *testing.T) {
 func BenchmarkLocalDBGet(b *testing.B) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	db := executor.NewLocalDB(mock33.GetClient(), false)
+	db := executor.NewLocalDB(mock33.GetClient(), mock33.GetAPI(), false)
 	defer db.(*executor.LocalDB).Close()
 
 	err := db.Set([]byte("k1"), []byte("v1"))
@@ -71,7 +71,7 @@ func BenchmarkLocalDBGet(b *testing.B) {
 func TestLocalDBTxGet(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	db := executor.NewLocalDB(mock33.GetClient(), false)
+	db := executor.NewLocalDB(mock33.GetClient(), mock33.GetAPI(), false)
 	testTxGet(t, db)
 }
 
@@ -127,7 +127,7 @@ func testTxGet(t *testing.T, db dbm.KV) {
 func TestLocalDBDel(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	db := executor.NewLocalDB(mock33.GetClient(), false)
+	db := executor.NewLocalDB(mock33.GetClient(), mock33.GetAPI(), false)
 	//设置key
 	db.Begin()
 	err := db.Set([]byte("k1"), []byte("v1"))
@@ -187,7 +187,7 @@ func TestLocalDBDel(t *testing.T) {
 func TestLocalDB(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer mock33.Close()
-	db := executor.NewLocalDB(mock33.GetClient(), false)
+	db := executor.NewLocalDB(mock33.GetClient(), mock33.GetAPI(), false)
 	defer db.(*executor.LocalDB).Close()
 	err := db.Set([]byte("k1"), []byte("v1"))
 	assert.Nil(t, err)

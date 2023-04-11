@@ -198,19 +198,6 @@ func (mock *Chain33Mock) Listen() {
 	}
 }
 
-//ModifyParaClient modify para config
-func ModifyParaClient(cfg *types.Chain33Config, gaddr string) {
-	sub := cfg.GetSubConfig()
-	if sub.Consensus["para"] != nil {
-		data, err := types.ModifySubConfig(sub.Consensus["para"], "ParaRemoteGrpcClient", gaddr)
-		if err != nil {
-			panic(err)
-		}
-		sub.Consensus["para"] = data
-		cfg.S("config.consensus.sub.para.ParaRemoteGrpcClient", gaddr)
-	}
-}
-
 //GetBlockChain :
 func (mock *Chain33Mock) GetBlockChain() *blockchain.BlockChain {
 	return mock.chain
@@ -350,6 +337,31 @@ func (mock *Chain33Mock) closeNoLock() {
 	if err != nil {
 		return
 	}
+}
+
+// WaitHeightTimeout wait with timeout
+func (mock *Chain33Mock) WaitHeightTimeout(height int64, timeout int64) error {
+
+	timer := time.NewTimer(time.Second * time.Duration(timeout))
+
+	for {
+
+		select {
+		case <-timer.C:
+			return types.ErrTimeout
+		default:
+			header, err := mock.api.GetLastHeader()
+			if err != nil {
+				return err
+			}
+			if header.Height >= height {
+				return nil
+			}
+			time.Sleep(time.Second / 10)
+
+		}
+	}
+
 }
 
 //WaitHeight :

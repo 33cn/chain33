@@ -92,32 +92,31 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 		msg.Data = types.ErrEmptyTx
 		return msg
 	}
-	txmsg := msg.GetData().(*types.Transaction)
-	//普通的交易
-	tx := types.NewTransactionCache(txmsg)
-	types.AssertConfig(mem.client)
-	err := tx.Check(mem.client.GetConfig(), mem.GetHeader().GetHeight()+1, mem.cfg.MinTxFeeRate, mem.cfg.MaxTxFee)
-	if err != nil {
-		msg.Data = err
+
+	cacheTx := types.NewTransactionCache(msg.GetData().(*types.Transaction))
+	msg.Data = cacheTx
+
+	cfg := mem.client.GetConfig()
+	// 转发的交易由主链验证, 平行链忽略基础检查
+	if types.IsForward2MainChainTx(cfg, cacheTx.Transaction) {
 		return msg
-	}
-	if mem.cfg.IsLevelFee {
-		err = mem.checkLevelFee(tx)
-		if err != nil {
-			msg.Data = err
-			return msg
-		}
 	}
 
-	//放在交易费检查后面进行 哈希缓存设置，避免哈希缓存改变原始交易size
-	//txmsg.ReCalcCacheHash()
-	//检查txgroup 中的每个交易
-	txs, err := tx.GetTxGroup()
+	err := cacheTx.Check(cfg, mem.GetHeader().GetHeight()+1, mem.cfg.MinTxFeeRate, mem.cfg.MaxTxFee)
+	if err == nil && mem.cfg.IsLevelFee {
+		err = mem.checkLevelFee(cacheTx)
+	}
+
+	var txs *types.Transactions
+	if err == nil {
+		txs, err = cacheTx.GetTxGroup()
+	}
+
 	if err != nil {
 		msg.Data = err
 		return msg
 	}
-	msg.Data = tx
+
 	//普通交易
 	if txs == nil {
 		return mem.checkTx(msg)

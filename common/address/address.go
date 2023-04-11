@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 
 	"github.com/33cn/chain33/common"
 	"github.com/decred/base58"
@@ -68,7 +69,10 @@ func ExecAddress(name string) string {
 	if value, ok := execAddrCache.Get(name); ok {
 		return value.(string)
 	}
-	addr, _ := GetExecAddress(name, defaultAddressID)
+	addr, err := GetExecAddress(name, defaultAddressID)
+	if err != nil {
+		panic(fmt.Sprintf("load default driver err, id:%d", defaultAddressID))
+	}
 	execAddrCache.Add(name, addr)
 	return addr
 }
@@ -103,10 +107,10 @@ func GetExecAddress(execName string, addressType int32) (string, error) {
 // pass DefaultID for default address format
 func PubKeyToAddr(addressID int32, pubKey []byte) string {
 
-	d, err := LoadDriver(addressID, -1)
-	if err != nil {
-		d, _ = LoadDriver(defaultAddressID, -1)
+	if addressID < 0 {
+		addressID = defaultAddressID
 	}
+	d := MustLoadDriver(addressID)
 	return d.PubKeyToAddr(pubKey)
 }
 

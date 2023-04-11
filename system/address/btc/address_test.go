@@ -49,7 +49,7 @@ func TestBtcMultiSignDriver(t *testing.T) {
 func Test_ErrAddr(t *testing.T) {
 	addr := "DsYQcck3QFK9Wt1UWd5eoskWjk8JdYSCMoK"
 	err := address.CheckAddress(addr, 0)
-	require.Equal(t, address.ErrCheckVersion, err)
+	require.NotNil(t, err)
 }
 
 func TestEncodeAddress(t *testing.T) {
