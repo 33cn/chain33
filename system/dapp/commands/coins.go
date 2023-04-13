@@ -79,7 +79,7 @@ func createTransferEthMode(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "createTransferEthMode"))
 		return
 	}
-	if !ethcommon.IsHexAddress(from) || !ethcommon.IsHexAddress(toAddr) {
+	if !ethcommon.IsHexAddress(from) || !ethcommon.IsHexAddress(toAddr) && toAddr != "" {
 		fmt.Fprintln(os.Stderr, errors.Wrapf(err, "no hex address"))
 		return
 	}
