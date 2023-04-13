@@ -63,6 +63,9 @@ func addCreateEthTransferFlags(cmd *cobra.Command) {
 	cmd.Flags().Float64P("amount", "a", 0, "transaction amount")
 	cmd.MarkFlagRequired("amount")
 
+	cmd.Flags().StringP("data", "d", "", "evm abi data")
+	cmd.MarkFlagRequired("data")
+
 }
 
 //createTransferEthMode eth 交易构造
@@ -71,6 +74,8 @@ func createTransferEthMode(cmd *cobra.Command, args []string) {
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	from, _ := cmd.Flags().GetString("from")
+	//evm data
+	data, _ := cmd.Flags().GetString("data")
 
 	ecli, err := ethclient.Dial(rpcLaddr)
 	if err != nil {
@@ -96,6 +101,7 @@ func createTransferEthMode(cmd *cobra.Command, args []string) {
 		GasPrice: big.NewInt(1e10),
 		To:       &to,
 		Value:    value,
+		Data:     ethcommon.FromHex(data),
 	})
 
 	byteTx, err := etx.MarshalBinary()

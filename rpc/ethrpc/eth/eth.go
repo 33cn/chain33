@@ -362,7 +362,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 		return nil, fmt.Errorf("nonce too low")
 	}
 	if ntx.Nonce() > uint64(nonce) { //非平行链下 允许更高的nonce 通过，在mempool中排序等待
-		log.Error("eth_sendRawTransaction", "nonce too high,tx.From", txFrom, "txnonce", ntx.Nonce(), "stateNonce", nonce)
+		log.Warn("eth_sendRawTransaction", "nonce too high,tx.From", txFrom, "txnonce", ntx.Nonce(), "stateNonce", nonce)
 		if e.cfg.IsPara() { //平行链架构下，交易是要发到主链共识的，无法校验交易的nonce是否正确
 			return nil, fmt.Errorf("nonce too high")
 		}
