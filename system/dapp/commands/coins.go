@@ -56,15 +56,12 @@ func CreateEthRawTransferCmd() *cobra.Command {
 
 func addCreateEthTransferFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("from", "f", "", "sender account address")
-	cmd.MarkFlagRequired("to")
+	cmd.MarkFlagRequired("from")
 	cmd.Flags().StringP("to", "t", "", "receiver account address")
-	cmd.MarkFlagRequired("to")
 
 	cmd.Flags().Float64P("amount", "a", 0, "transaction amount")
-	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("data", "d", "", "evm abi data")
-	cmd.MarkFlagRequired("data")
 
 }
 
