@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	discovery "github.com/libp2p/go-libp2p/p2p/discovery/mdns_legacy"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 )
 
 // MDNS mdns
@@ -27,7 +27,7 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 
 // NewMDNS Initialize the MDNS service
 func NewMDNS(ctx context.Context, peerhost host.Host, serviceTag string) (*MDNS, error) {
-	ser, err := discovery.NewMdnsService(ctx, peerhost, time.Minute*1, serviceTag)
+	ser := discovery.NewMdnsService(peerhost, time.Minute*1, serviceTag)
 	if err != nil {
 		return nil, err
 	}

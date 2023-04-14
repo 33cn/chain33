@@ -10,8 +10,8 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	p2ptypes "github.com/33cn/chain33/system/p2p/dht/types"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 

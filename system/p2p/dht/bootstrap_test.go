@@ -7,9 +7,9 @@ import (
 
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	blankhost "github.com/libp2p/go-libp2p-blankhost"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 )
 
 func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {

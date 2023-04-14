@@ -9,10 +9,10 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	discovery "github.com/libp2p/go-libp2p-discovery"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	rout "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
@@ -21,18 +21,18 @@ const (
 	dhtProtoID = "/%s-%d/kad/1.0.0" //title-channel/kad/1.0.0
 )
 
-// Discovery dht discovery
+// Discovery dht rout
 type Discovery struct {
 	ctx              context.Context
 	kademliaDHT      *dht.IpfsDHT
-	RoutingDiscovery *discovery.RoutingDiscovery
+	RoutingDiscovery *rout.RoutingDiscovery
 	mdnsService      *extension.MDNS
 	subCfg           *p2pty.P2PSubConfig
 	bootstraps       []peer.AddrInfo
 	host             host.Host
 }
 
-// InitDhtDiscovery init dht discovery
+// InitDhtDiscovery init dht rout
 func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.AddrInfo, chainCfg *types.Chain33Config, subCfg *p2pty.P2PSubConfig) *Discovery {
 
 	// Make the DHT,不同的ID进入不同的网络。
@@ -61,7 +61,7 @@ func (d *Discovery) Start() {
 	if err := d.kademliaDHT.Bootstrap(d.ctx); err != nil {
 		log.Error("Bootstrap", "err", err.Error())
 	}
-	d.RoutingDiscovery = discovery.NewRoutingDiscovery(d.kademliaDHT)
+	d.RoutingDiscovery = rout.NewRoutingDiscovery(d.kademliaDHT)
 }
 
 //Close close the dht
