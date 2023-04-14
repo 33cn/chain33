@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	core "github.com/libp2p/go-libp2p/core"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/libp2p/go-libp2p-kad-dht/crawler"
 	"github.com/multiformats/go-multiaddr"
 )

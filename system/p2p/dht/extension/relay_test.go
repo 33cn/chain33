@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	circuit "github.com/libp2p/go-libp2p-circuit"
+	circuit "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated
 	"github.com/stretchr/testify/assert"
 
 	bhost "github.com/libp2p/go-libp2p-blankhost"
-	"github.com/libp2p/go-libp2p-core/host"
-	discovery "github.com/libp2p/go-libp2p-discovery"
+	"github.com/libp2p/go-libp2p/core/host"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 	"github.com/stretchr/testify/require"
 )
 

@@ -15,8 +15,8 @@ import (
 
 	net "github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	core "github.com/libp2p/go-libp2p/core"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/33cn/chain33/client"

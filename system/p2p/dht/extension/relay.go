@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	circuit "github.com/libp2p/go-libp2p-circuit"
-	coredis "github.com/libp2p/go-libp2p-core/discovery"
-	host "github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	discovery "github.com/libp2p/go-libp2p-discovery"
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-	relay "github.com/libp2p/go-libp2p/p2p/host/relay"
+	circuit "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated
+	coredis "github.com/libp2p/go-libp2p/core/discovery"
+	host "github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
+	swarm "github.com/libp2p/go-libp2p/p2p/net/swarm"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
+	relay "github.com/libp2p/go-libp2p/p2p/host/relaysvc"
 )
 
 // Relay p2p relay

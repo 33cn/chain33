@@ -15,7 +15,7 @@ import (
 
 	"github.com/33cn/chain33/p2p/utils"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
