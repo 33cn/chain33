@@ -91,12 +91,22 @@ func createTransferEthMode(cmd *cobra.Command, args []string) {
 	bigfAmount := new(big.Float).Mul(big.NewFloat(amount), big.NewFloat(1e18))
 	var value = new(big.Int)
 	bigfAmount.Int(value)
-	to := ethcommon.HexToAddress(toAddr)
+	var to *ethcommon.Address
+	if toAddr != "" {
+		addr := ethcommon.HexToAddress(toAddr)
+		to = &addr
+	}
+
+	gas := 1e5
+	if data != "" {
+		gas = 1e7
+	}
+
 	etx := ethtypes.NewTx(&ethtypes.LegacyTx{
 		Nonce:    nonce,
-		Gas:      1e5,
+		Gas:      uint64(gas),
 		GasPrice: big.NewInt(1e10),
-		To:       &to,
+		To:       to,
 		Value:    value,
 		Data:     ethcommon.FromHex(data),
 	})
