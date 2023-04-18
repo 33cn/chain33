@@ -258,7 +258,10 @@ func (e *ethHandler) Accounts() ([]string, error) {
 	accountsList := msg.(*ctypes.WalletAccounts)
 	var accounts []string
 	for _, wallet := range accountsList.Wallets {
-		accounts = append(accounts, wallet.GetAcc().GetAddr())
+		//过滤base58 格式的地址
+		if common.IsHexAddress(wallet.GetAcc().GetAddr()) {
+			accounts = append(accounts, wallet.GetAcc().GetAddr())
+		}
 	}
 
 	return accounts, nil
@@ -377,12 +380,13 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	reply, err := e.cli.SendTx(chain33Tx)
 	log.Info("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "ethHash:", ntx.Hash().String(), "exec", string(chain33Tx.Execer), "reply:", common.Bytes2Hex(reply.GetMsg()))
 	//调整为返回eth 交易哈希，之前是reply.GteMsg() chain33 哈希
-	if e.cfg.GetModuleConfig().BlockChain.EnableTxQuickIndex {
-		//打开quickIndex 后只能通过返回的交易哈希查询到
-		return reply.GetMsg(), err
+	conf := ctypes.Conf(e.cfg, "config.rpc.sub.eth")
+	//打开 enableRlpTxHash 返回 eth 交易哈希 , 通过此hash 查询交易详情需要配合enableTxQuickIndex =false 使用
+	if conf.IsEnable("enableRlpTxHash") {
+		return ntx.Hash().Bytes(), err
 	}
-	//关闭quickIndex 后可以通过ethHash 查询到
-	return ntx.Hash().Bytes(), err
+
+	return reply.GetMsg(), err
 
 }
 

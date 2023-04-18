@@ -121,6 +121,10 @@ certFile="cert.pem"
 keyFile="key.pem"
 
 [rpc.sub.eth]
+#true 启用兼容eth模式
+enable=false
+# true:返回eth 交易哈希，false:返回chain33 交易哈希
+enableRlpTxHash=false
 httpAddr="localhost:8545"
 httpApi=["eth","web3","personal","admin","net"]
 # websocket 绑定地址
