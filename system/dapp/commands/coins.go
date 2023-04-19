@@ -43,7 +43,7 @@ func CoinsCmd() *cobra.Command {
 	return cmd
 }
 
-// CreateRawTransferCmd create raw transfer tx
+// CreateEthRawTransferCmd  create raw transfer tx
 func CreateEthRawTransferCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transfer_eth",
@@ -58,10 +58,9 @@ func addCreateEthTransferFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("from", "f", "", "sender account address")
 	cmd.MarkFlagRequired("from")
 	cmd.Flags().StringP("to", "t", "", "receiver account address")
-
 	cmd.Flags().Float64P("amount", "a", 0, "transaction amount")
-
 	cmd.Flags().StringP("data", "d", "", "evm abi data")
+	cmd.Flags().Int64("gas", 1e5, "tx gas fee")
 
 }
 
@@ -73,6 +72,7 @@ func createTransferEthMode(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	//evm data
 	data, _ := cmd.Flags().GetString("data")
+	gas, _ := cmd.Flags().GetInt64("gas")
 
 	ecli, err := ethclient.Dial(rpcLaddr)
 	if err != nil {
@@ -96,9 +96,8 @@ func createTransferEthMode(cmd *cobra.Command, args []string) {
 		addr := ethcommon.HexToAddress(toAddr)
 		to = &addr
 	}
-
-	gas := 1e5
-	if data != "" {
+	//在data 不为空的情况下，如果是默认的gas，则提升gas 大小
+	if data != "" && gas == 1e5 {
 		gas = 1e7
 	}
 
