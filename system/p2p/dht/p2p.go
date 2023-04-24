@@ -30,7 +30,6 @@ import (
 	"github.com/33cn/chain33/types"
 	libp2pLog "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
-	circuit "github.com/libp2p/go-libp2p/p2p/protocol/internal/circuitv1-deprecated"
 	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	core "github.com/libp2p/go-libp2p/core"
 	"github.com/libp2p/go-libp2p/core/crypto"
@@ -157,7 +156,9 @@ func initP2P(p *P2P) *P2P {
 	if err != nil {
 		panic(err)
 	}
-
+	if p.subCfg.RelayServiceEnable {
+		extension.MakeNodeRelayService(host, nil)
+	}
 	p.host = host
 	ps, err := extension.NewPubSub(p.ctx, p.host, &p.subCfg.PubSub)
 	if err != nil {
@@ -245,15 +246,16 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	}
 
 	var options []libp2p.Option
+
 	if p.subCfg.RelayEnable {
-		if p.subCfg.RelayHop { //启用中继服务端
-			options = append(options, libp2p.EnableRelay(circuit.OptHop))
-		} else { //用配置的节点作为中继节点,需要打开HOP选项
-			//relays := append(p.subCfg.BootStraps, p.subCfg.RelayNodeAddr...)
+		options = append(options, libp2p.EnableRelay())
+		//用配置的节点作为中继节点
+		if len(p.subCfg.RelayNodeAddr) != 0 {
 			relays := p.subCfg.RelayNodeAddr
 			options = append(options, libp2p.AddrsFactory(extension.WithRelayAddrs(relays)))
-			options = append(options, libp2p.EnableRelay())
+
 		}
+
 	}
 
 	options = append(options, libp2p.NATPortMap())
@@ -321,7 +323,7 @@ func (p *P2P) managePeers() {
 	}
 }
 
-//查询本局域网内是否有节点
+// 查询本局域网内是否有节点
 func (p *P2P) findLANPeers() {
 	if p.subCfg.DisableFindLANPeers {
 		return
@@ -405,7 +407,7 @@ func (p *P2P) waitTaskDone() {
 	}
 }
 
-//创建空投地址
+// 创建空投地址
 func (p *P2P) genAirDropKey() {
 
 	for { //等待钱包创建，解锁

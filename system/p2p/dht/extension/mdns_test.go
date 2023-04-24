@@ -12,7 +12,7 @@ func Test_mdns(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	hosts := getNetHosts(ctx, 3, t)
+	hosts := getNetHosts(3, t)
 	connect(t, hosts[0], hosts[1])
 	_, err := NewMDNS(ctx, hosts[0], "33test123")
 	require.Nil(t, err)
