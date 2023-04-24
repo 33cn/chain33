@@ -75,7 +75,7 @@ func TestPersonalHandler_ImportRawKey(t *testing.T) {
 	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rd.Read(key[:])
 	label := "test"
-	req := &ctypes.ReqWalletImportPrivkey{Privkey: common.Bytes2Hex(key[:]), Label: label}
+	req := &ctypes.ReqWalletImportPrivkey{Privkey: common.Bytes2Hex(key[:]), Label: label, AddressID: 2}
 	qapi.On("ExecWalletFunc", "wallet", "WalletImportPrivkey", req).Return(&ctypes.WalletAccount{
 		Acc: &ctypes.Account{Addr: "0xa42431Da868c58877a627CC71Dc95F01bf40c196"}, Label: label,
 	}, nil)
