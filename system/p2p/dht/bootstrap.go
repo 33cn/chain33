@@ -3,6 +3,7 @@ package dht
 import (
 	"context"
 
+	"github.com/33cn/chain33/system/p2p/dht/extension"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -55,6 +56,9 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 			}
 			//加保护
 			host.ConnManager().Protect(info.ID, "relayNode")
+			//向中继节点申请一个通信插槽，以便通过中继节点连接到自己
+			extension.MakeNodeRelayClient(host, info)
+
 		}
 	}
 

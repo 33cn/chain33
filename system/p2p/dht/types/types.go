@@ -30,7 +30,8 @@ type P2PSubConfig struct {
 	//是否开启全节点模式
 	IsFullNode bool `protobuf:"varint,15,opt,name=isFullNode" json:"isFullNode,omitempty"`
 	//是否启用中继功能，如果自己身NAT后面的节点，RelayEnable=true，则仍有可能被其他节点连接。
-	RelayEnable bool `protobuf:"varint,18,opt,name=relayEnable" json:"relayEnable,omitempty"`
+	RelayEnable        bool `protobuf:"varint,18,opt,name=relayEnable" json:"relayEnable,omitempty"`
+	RelayServiceEnable bool `protobuf:"varint,18,opt,name=relayServiceEnable" json:"relayServiceEnable,omitempty"`
 	//指定中继节点作为
 	RelayNodeAddr []string `protobuf:"varint,19,opt,name=relayNodeAddr" json:"relayNodeAddr,omitempty"`
 	// 不启动分片功能，默认启动
