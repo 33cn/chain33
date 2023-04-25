@@ -37,14 +37,14 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Set up Golang
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: 'go.mod'
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: unit-test
         run: |
           sudo sysctl -w net.core.rmem_max=2500000
@@ -55,14 +55,14 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Set up Golang
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: 'go.mod'
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2=3
       - name: ut coverage
         run: |
           sudo sysctl -w net.core.rmem_max=2500000
@@ -73,17 +73,17 @@ jobs:
 
   deploy:
     name: deploy
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Set up Golang
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: 'go.mod'
         id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: deploy
         run: |
           make build_ci
@@ -95,12 +95,12 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: 'go.mod'
 
       - name: Build
         run: make build
