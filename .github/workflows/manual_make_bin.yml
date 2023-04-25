@@ -11,14 +11,10 @@ jobs:
     name: automake
     runs-on: ubuntu-20.04
     steps:
-      - name: Set up Golang env
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
-        id: go
-
-      - name: checkout repo
-        uses: actions/checkout@v3
 
       - name: compile binary
         run: make all-arch
