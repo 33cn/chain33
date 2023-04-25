@@ -21,6 +21,12 @@ import (
 	                   只需要通过上述组装的带有p2p-circuit的地址就可以建立到与A的连接
 
 */
+
+// MakeRelayAddrs 把中继ID和与目的节点的ID 组装为一个新的地址
+func MakeRelayAddrs(relayID, destID string) (ma.Multiaddr, error) {
+	return ma.NewMultiaddr("/p2p/" + relayID + "/p2p-circuit/p2p/" + destID)
+}
+
 func WithRelayAddrs(relays []string) config.AddrsFactory { //添加多个relay地址
 	return func(addrs []ma.Multiaddr) []ma.Multiaddr {
 		if len(relays) == 0 {

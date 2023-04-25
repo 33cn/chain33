@@ -18,7 +18,7 @@ func testMsg(topic string, msg SubMsg) {
 func Test_pubsub(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hosts := getNetHosts(ctx, 2, t)
+	hosts := getNetHosts(2, t)
 	connect(t, hosts[0], hosts[1])
 
 	psub, err := NewPubSub(ctx, hosts[0], &p2pty.PubSubConfig{})
