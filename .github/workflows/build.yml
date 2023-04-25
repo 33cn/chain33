@@ -5,15 +5,12 @@ jobs:
   check_fmt:
     runs-on: ubuntu-20.04
     steps:
-      - name: Set up Golang
-        uses: actions/setup-go@v3
-        with:
-          go-version-file: 'go.mod'
-        id: go
-      - name: checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
 
       - name: Intsall Golangci-lint
         run: |
@@ -36,15 +33,14 @@ jobs:
     name: unit-test
     runs-on: ubuntu-20.04
     steps:
-      - name: Set up Golang
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
-        id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
-      - name: checkout
-        uses: actions/checkout@v3
       - name: unit-test
         run: |
           sudo sysctl -w net.core.rmem_max=2500000
@@ -54,15 +50,14 @@ jobs:
     name: coverage
     runs-on: ubuntu-20.04
     steps:
-      - name: Set up Golang
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
-        id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
-      - name: checkout
-        uses: actions/checkout@v2=3
       - name: ut coverage
         run: |
           sudo sysctl -w net.core.rmem_max=2500000
@@ -75,15 +70,14 @@ jobs:
     name: deploy
     runs-on: ubuntu-20.04
     steps:
-      - name: Set up Golang
-        uses: actions/setup-go@v3
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
-        id: go
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
-      - name: checkout
-        uses: actions/checkout@v3
       - name: deploy
         run: |
           make build_ci
@@ -96,9 +90,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v3
+      - uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
 
