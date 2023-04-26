@@ -3,17 +3,14 @@ on: [push,pull_request]
 
 jobs:
   check_fmt:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - name: Set up Golang
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-        id: go
-      - name: checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.17
 
       - name: Intsall Golangci-lint
         run: |
@@ -34,17 +31,16 @@ jobs:
 
   unit-test:
     name: unit-test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - name: Set up Golang
-        uses: actions/setup-go@v2
+      - uses: actions/checkout@v3
         with:
-          go-version: 1.17
-        id: go
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
-      - name: checkout
-        uses: actions/checkout@v2
       - name: unit-test
         run: |
           sudo sysctl -w net.core.rmem_max=2500000
@@ -52,17 +48,16 @@ jobs:
 
   coverage:
     name: coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-      - name: Set up Golang
-        uses: actions/setup-go@v2
+      - uses: actions/checkout@v3
         with:
-          go-version: 1.17
-        id: go
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
-      - name: checkout
-        uses: actions/checkout@v2
       - name: ut coverage
         run: |
           sudo sysctl -w net.core.rmem_max=2500000
@@ -73,17 +68,16 @@ jobs:
 
   deploy:
     name: deploy
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
-      - name: Set up Golang
-        uses: actions/setup-go@v2
+      - uses: actions/checkout@v3
         with:
-          go-version: 1.17
-        id: go
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
       - name: set go env
         run: export PATH=${PATH}:`go env GOPATH`/bin
-      - name: checkout
-        uses: actions/checkout@v2
       - name: deploy
         run: |
           make build_ci
@@ -92,15 +86,13 @@ jobs:
 
   test-goarch-386:
     name: Run test cases with GOARCH=386
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Go
-        uses: actions/setup-go@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: 'go.mod'
 
       - name: Build
         run: make build
