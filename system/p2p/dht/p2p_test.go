@@ -446,6 +446,7 @@ func Test_p2p(t *testing.T) {
 	q := queue.New("channel")
 	datadir := util.ResetDatadir(cfg.GetModuleConfig(), "$TEMP/")
 	cfg.GetModuleConfig().Log.LogFile = ""
+	cfg.GetModuleConfig().Address.DefaultDriver = "ETH"
 	q.SetConfig(cfg)
 	processMsg(q)
 
