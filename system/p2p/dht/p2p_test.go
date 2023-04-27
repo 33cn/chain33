@@ -462,7 +462,6 @@ func Test_p2p(t *testing.T) {
 	p2p := NewP2p(cfg, q.Client())
 
 	dhtp2p := p2p.(*P2P)
-	dhtp2p.api = qapi
 	time.Sleep(time.Second * 2)
 	t.Log("listpeer", dhtp2p.discovery.ListPeers())
 
