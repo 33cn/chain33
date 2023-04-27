@@ -385,7 +385,6 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	if conf.IsEnable("enableRlpTxHash") {
 		return ntx.Hash().Bytes(), err
 	}
-
 	return reply.GetMsg(), err
 
 }

@@ -7,6 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/stretchr/testify/mock"
+
+	clientMocks "github.com/33cn/chain33/client/mocks"
+
 	"net"
 	"os"
 	"path/filepath"
@@ -18,7 +22,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/33cn/chain33/client"
 	l "github.com/33cn/chain33/common/log"
 	p2p2 "github.com/33cn/chain33/p2p"
 	"github.com/33cn/chain33/queue"
@@ -26,7 +29,6 @@ import (
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
-	"github.com/33cn/chain33/wallet"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -37,35 +39,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var qapi *clientMocks.QueueProtocolAPI
+
 func init() {
 	l.SetLogLevel("err")
+	qapi = &clientMocks.QueueProtocolAPI{}
 }
 
 func processMsg(q queue.Queue) {
-	go func() {
-		cfg := q.GetConfig()
-		wcli := wallet.New(cfg)
-		client := q.Client()
-		wcli.SetQueueClient(client)
-		//导入种子，解锁钱包
-		password := "a12345678"
-		seed := "cushion canal bitter result harvest sentence ability time steel basket useful ask depth sorry area course purpose search exile chapter mountain project ranch buffalo"
-		saveSeedByPw := &types.SaveSeedByPw{Seed: seed, Passwd: password}
-		_, err := wcli.GetAPI().ExecWalletFunc("wallet", "SaveSeed", saveSeedByPw)
-		if err != nil {
-			return
-		}
-		walletUnLock := &types.WalletUnLock{
-			Passwd:         password,
-			Timeout:        0,
-			WalletOrTicket: false,
-		}
-
-		_, err = wcli.GetAPI().ExecWalletFunc("wallet", "WalletUnLock", walletUnLock)
-		if err != nil {
-			return
-		}
-	}()
 
 	go func() {
 		blockchainKey := "blockchain"
@@ -99,6 +80,9 @@ func processMsg(q queue.Queue) {
 				msg.Reply(client.NewMessage("p2p", types.EventHeader, &types.Header{Height: 2019}))
 			case types.EventGetBlockHeight:
 				msg.Reply(client.NewMessage("p2p", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 2019}))
+			default:
+				fmt.Println("no support eventid", msg.Ty)
+				msg.Reply(client.NewMessage("p2p", msg.Ty, &types.Reply{IsOk: false}))
 			}
 		}
 	}()
@@ -118,8 +102,9 @@ func processMsg(q queue.Queue) {
 
 func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	p2pmgr := p2p2.NewP2PMgr(cfg)
-	p2pmgr.SysAPI, _ = client.New(cli, nil)
+	//p2pmgr.SysAPI, _ = client.New(cli, nil)
 	p2pmgr.Client = cli
+	p2pmgr.SysAPI = qapi
 	subCfg := p2pmgr.ChainCfg.GetSubConfig().P2P
 	mcfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(subCfg[p2pty.DHTTypeName], mcfg)
@@ -441,12 +426,17 @@ func Test_genAddrInfos(t *testing.T) {
 	t.Log(addrinfos[0].Addrs[0].String())
 }
 func Test_p2p(t *testing.T) {
-
+	qapi.On("ExecWalletFunc", "wallet", "NewAccountByIndex", mock.Anything).Return(&types.ReplyString{Data: "0xf1c2f096c021bed4d9b085a8e3f37726e1a62b200d58ba1f0a37d8a8463cc5bf"}, nil)
+	qapi.On("ExecWalletFunc", "wallet", "GetWalletStatus", &types.ReqNil{}).Return(&types.WalletStatus{IsWalletLock: false, IsHasSeed: true, IsAutoMining: false}, nil)
+	qapi.On("ExecWalletFunc", "wallet", "WalletImportPrivkey", mock.Anything).Return(&types.Reply{
+		IsOk: true,
+	}, nil)
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
 	datadir := util.ResetDatadir(cfg.GetModuleConfig(), "$TEMP/")
 	cfg.GetModuleConfig().Log.LogFile = ""
-	cfg.GetModuleConfig().Address.DefaultDriver = "ETH"
+	cfg.GetModuleConfig().Address.DefaultDriver = "BTC"
+	cfg.GetModuleConfig().P2P.WaitPid = false
 	q.SetConfig(cfg)
 	processMsg(q)
 
@@ -470,7 +460,10 @@ func Test_p2p(t *testing.T) {
 	require.Nil(t, err)
 	cfg.GetSubConfig().P2P[p2pty.DHTTypeName] = jcfg
 	p2p := NewP2p(cfg, q.Client())
+
 	dhtp2p := p2p.(*P2P)
+	dhtp2p.api = qapi
+	time.Sleep(time.Second * 2)
 	t.Log("listpeer", dhtp2p.discovery.ListPeers())
 
 	err = dhtp2p.discovery.Update(dhtp2p.host.ID())

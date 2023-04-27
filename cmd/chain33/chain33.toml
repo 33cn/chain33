@@ -18,6 +18,9 @@ secp256k1=0
 #兼容EVM链的链ID
 evmChainID=3999
 
+[address]
+defaultDriver="btc"
+
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
 loglevel = "debug"

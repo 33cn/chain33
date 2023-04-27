@@ -408,7 +408,6 @@ func (p *P2P) waitTaskDone() {
 
 //创建空投地址
 func (p *P2P) genAirDropKey() {
-
 	for { //等待钱包创建，解锁
 		select {
 		case <-p.ctx.Done():
@@ -430,7 +429,6 @@ func (p *P2P) genAirDropKey() {
 		}
 		break
 	}
-
 	//用助记词和随机索引创建空投地址
 	r := rand.New(rand.NewSource(types.Now().Unix()))
 	var minIndex int32 = 100000000
@@ -441,7 +439,6 @@ func (p *P2P) genAirDropKey() {
 		log.Error("genAirDropKey", "NewAccountByIndex err", err)
 		return
 	}
-
 	var walletPrivkey string
 	if reply, ok := msg.(*types.ReplyString); !ok {
 		log.Error("genAirDropKey", "wrong format data", "")
@@ -456,6 +453,7 @@ func (p *P2P) genAirDropKey() {
 
 	walletPubkey, err := GenPubkey(walletPrivkey)
 	if err != nil {
+
 		return
 	}
 	//如果addrbook之前保存的savePrivkey相同，则意味着节点启动之前已经创建了airdrop 空投地址
@@ -464,7 +462,6 @@ func (p *P2P) genAirDropKey() {
 		log.Debug("genAirDropKey", " same privekey ,process done")
 		return
 	}
-
 	if len(savePrivkey) != 2*privKeyCompressBytesLen { //非压缩私钥,兼容之前老版本的DHT非压缩私钥
 		log.Debug("len savePrivkey", len(savePrivkey))
 		unCompkey := p.addrBook.GetPrivkey()
@@ -487,6 +484,7 @@ func (p *P2P) genAirDropKey() {
 		var parm types.ReqWalletImportPrivkey
 		parm.Privkey = savePrivkey
 		parm.Label = "dht node award"
+
 		if strings.ToUpper(p.chainCfg.GetModuleConfig().Address.DefaultDriver) == "ETH" {
 			parm.AddressID = 2 //eth address type
 		}
