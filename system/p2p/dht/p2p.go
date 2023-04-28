@@ -31,8 +31,8 @@ import (
 	"github.com/33cn/chain33/types"
 	libp2pLog "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
-	connmgr "github.com/libp2p/go-libp2p-connmgr"
-	core "github.com/libp2p/go-libp2p/core"
+	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
+	"github.com/libp2p/go-libp2p/core"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -153,7 +153,7 @@ func initP2P(p *P2P) *P2P {
 	bandwidthTracker := metrics.NewBandwidthCounter()
 	p.blackCache = manage.NewTimeCache(p.ctx, time.Minute*5)
 	options := p.buildHostOptions(p.addrBook.GetPrivkey(), bandwidthTracker, maddr, p.blackCache)
-	host, err := libp2p.New(p.ctx, options...)
+	host, err := libp2p.New(options...)
 	if err != nil {
 		panic(err)
 	}
@@ -289,8 +289,12 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 			minconnect = maxconnect / 2
 		}
 
+		mgr, err := connmgr.NewConnManager(minconnect, maxconnect, connmgr.WithGracePeriod(time.Minute))
+		if err != nil {
+			panic("NewConnManager err:"+ err.Error())
+		}
 		//1分钟的宽限期,定期清理
-		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(minconnect, maxconnect, time.Minute)))
+		options = append(options, libp2p.ConnectionManager(mgr))
 
 	}
 	//ConnectionGater,处理网络连接的策略
