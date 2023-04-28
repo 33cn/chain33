@@ -9,8 +9,8 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p/core/peer"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 const (
@@ -104,11 +104,11 @@ func InitProtocol(env *protocol.P2PEnv) {
 	protocol.RegisterStreamHandler(p.Host, fetchActivePeer, protocol.HandlerWithWrite(p.handleStreamFetchActivePeer))
 	protocol.RegisterStreamHandler(p.Host, fetchShardPeer, protocol.HandlerWithRW(p.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p.Host, getHeaderOld, p.handleStreamGetHeaderOld)
-	protocol.RegisterStreamHandler(p.Host, getHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
+	protocol.RegisterStreamHandler(p.Host, getHeader, protocol.HandlerWithAuthAndSign(p.Host, p.handleStreamGetHeader))
 	if !p.SubConfig.DisableShard {
 		protocol.RegisterStreamHandler(p.Host, fullNode, protocol.HandlerWithWrite(p.handleStreamIsFullNode))
 		protocol.RegisterStreamHandler(p.Host, fetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-		protocol.RegisterStreamHandler(p.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
+		protocol.RegisterStreamHandler(p.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p.Host, p.handleStreamGetChunkRecord))
 	}
 	//同时注册eventHandler，用于处理blockchain模块发来的请求
 	protocol.RegisterEventHandler(types.EventNotifyStoreChunk, p.handleEventNotifyStoreChunk)

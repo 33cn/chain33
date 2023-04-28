@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/libp2p/go-libp2p/core"
+
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
@@ -147,13 +149,16 @@ func ReadStreamAndAuthenticate(message types.Message, stream network.Stream) err
 }
 
 // signProtoMessage signs an outgoing p2p message payload.
-func signProtoMessage(message types.Message, stream network.Stream) ([]byte, error) {
-	privKey := stream.Conn().LocalPrivateKey()
-	return privKey.Sign(types.Encode(message))
+func signProtoMessage(message types.Message, pk crypto.PrivKey) ([]byte, error) {
+	if pk == nil {
+		log.Error("signProtoMessage", "err msg", "prikey is nil")
+		return nil, types.ErrInvalidParam
+	}
+	return pk.Sign(types.Encode(message))
 }
 
 // SignAndWriteStream signs the message before writing it to the stream.
-func SignAndWriteStream(message types.Message, stream network.Stream) error {
+func SignAndWriteStream(message types.Message, stream network.Stream, pk crypto.PrivKey) error {
 	switch t := message.(type) {
 	case *types.P2PRequest:
 		t.Headers = &types.P2PMessageHeaders{
@@ -161,7 +166,7 @@ func SignAndWriteStream(message types.Message, stream network.Stream) error {
 			Timestamp: time.Now().Unix(),
 			Id:        rand.Int63(),
 		}
-		sign, err := signProtoMessage(t, stream)
+		sign, err := signProtoMessage(t, pk)
 		if err != nil {
 			return err
 		}
@@ -172,7 +177,7 @@ func SignAndWriteStream(message types.Message, stream network.Stream) error {
 			Timestamp: time.Now().Unix(),
 			Id:        rand.Int63(),
 		}
-		sign, err := signProtoMessage(t, stream)
+		sign, err := signProtoMessage(t, pk)
 		if err != nil {
 			return err
 		}
@@ -274,7 +279,7 @@ func HandlerWithRW(f func(request *types.P2PRequest, response *types.P2PResponse
 }
 
 // HandlerWithAuthAndSign wraps HandlerWithRW with signing and authenticating.
-func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
+func HandlerWithAuthAndSign(h core.Host, f func(request *types.P2PRequest, response *types.P2PResponse) error) network.StreamHandler {
 	return func(stream network.Stream) {
 		var req types.P2PRequest
 		if err := ReadStream(&req, stream); err != nil {
@@ -295,7 +300,7 @@ func HandlerWithAuthAndSign(f func(request *types.P2PRequest, response *types.P2
 			Timestamp: time.Now().Unix(),
 			Id:        rand.Int63(),
 		}
-		sign, err := signProtoMessage(&res, stream)
+		sign, err := signProtoMessage(&res, h.Peerstore().PrivKey(h.ID()))
 		if err != nil {
 			log.Error("HandlerWithAuthAndSign", "signProtoMessage error", err)
 			return
