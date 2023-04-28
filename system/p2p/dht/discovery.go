@@ -111,7 +111,7 @@ func (d *Discovery) FindLocalPeer(pid peer.ID) peer.AddrInfo {
 	if d.kademliaDHT == nil {
 		return peer.AddrInfo{}
 	}
-	return d.kademliaDHT.FindLocal(pid)
+	return d.kademliaDHT.FindLocal(d.ctx, pid)
 }
 
 // FindLocalPeers find local peers
