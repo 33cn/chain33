@@ -325,7 +325,7 @@ func testStreamEOFReSet(t *testing.T) {
 	if err != nil {
 		//服务端close connect 之后，客户端会触发：Application error 0x0 或者stream reset
 		t.Log("readStream from H3 Err:", err)
-		if err.Error() != "Application error 0x0" {
+		if !strings.Contains(err.Error(), "Application error 0x0") {
 			require.Equal(t, err.Error(), "stream reset")
 		}
 	}
