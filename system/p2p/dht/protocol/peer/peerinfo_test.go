@@ -41,7 +41,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	host1, err := libp2p.New(context.Background(), libp2p.ListenAddrs(m1), libp2p.Identity(sk1))
+	host1, err := libp2p.New(libp2p.ListenAddrs(m1), libp2p.Identity(sk1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	host2, err := libp2p.New(context.Background(), libp2p.ListenAddrs(m2), libp2p.Identity(sk2))
+	host2, err := libp2p.New(libp2p.ListenAddrs(m2), libp2p.Identity(sk2))
 	if err != nil {
 		t.Fatal(err)
 	}
