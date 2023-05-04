@@ -87,7 +87,7 @@ func TestRelayV2(t *testing.T) {
 	hosts := getNetHosts(1, t)
 	t.Log("host id:", hosts[0].ID())
 	// 把host[0] 当作中间（中继）节点
-	r := MakeNodeRelay(hosts[0], nil)
+	r := MakeNodeRelayService(hosts[0], nil)
 	defer r.Close()
 	relayInfo := peer.AddrInfo{
 		ID:    hosts[0].ID(),

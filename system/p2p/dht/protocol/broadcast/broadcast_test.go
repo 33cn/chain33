@@ -40,10 +40,7 @@ func newHost(port int32) core.Host {
 		return nil
 	}
 
-	host, err := libp2p.New(context.Background(),
-		libp2p.ListenAddrs(m),
-		libp2p.Identity(priv),
-	)
+	host, err := libp2p.New(libp2p.ListenAddrs(m), libp2p.Identity(priv))
 
 	if err != nil {
 		panic(err)

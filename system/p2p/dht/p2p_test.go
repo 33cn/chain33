@@ -177,7 +177,7 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 func newHost(subcfg *p2pty.P2PSubConfig, priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
 	p := &P2P{ctx: context.Background(), subCfg: subcfg}
 	options := p.buildHostOptions(priv, bandwidthTracker, maddr, nil)
-	h, err := libp2p.New(context.Background(), options...)
+	h, err := libp2p.New(options...)
 	if err != nil {
 		return nil
 	}
