@@ -115,7 +115,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	}
 	// set libp2p log
 	setLibp2pLog(mcfg.Libp2pLogFile, mcfg.Libp2pLogLevel)
-
+	ctx, cancel := context.WithCancel(context.Background())
 	p := &P2P{
 		client:   mgr.Client,
 		chainCfg: chainCfg,
@@ -125,14 +125,14 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		api:      mgr.SysAPI,
 		addrBook: NewAddrBook(p2pCfg),
 		subChan:  mgr.PubSub.Sub(p2pty.DHTTypeName),
+		ctx:      ctx,
+		cancel:   cancel,
 	}
-
 	return initP2P(p)
 }
 
 func initP2P(p *P2P) *P2P {
 	//other init work
-	p.ctx, p.cancel = context.WithCancel(context.Background())
 	priv := p.addrBook.GetPrivkey()
 	if priv == nil { //addrbook存储的peer key 为空
 		if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
@@ -178,6 +178,7 @@ func initP2P(p *P2P) *P2P {
 func (p *P2P) StartP2P() {
 	if atomic.LoadInt32(&p.restart) == 1 {
 		log.Info("RestartP2P...")
+		p.ctx, p.cancel = context.WithCancel(context.Background())
 		initP2P(p) //重新创建host
 	}
 	atomic.StoreInt32(&p.restart, 0)
@@ -213,18 +214,18 @@ func (p *P2P) StartP2P() {
 // CloseP2P close p2p
 func (p *P2P) CloseP2P() {
 	log.Info("p2p closing")
-	p.discovery.Close()
 	p.cancel()
 	p.waitTaskDone()
 	p.db.Close()
-
 	protocol.ClearEventHandler()
 	if !p.isRestart() {
 		p.mgr.PubSub.Shutdown()
-
 	}
 	p.host.Close()
+	p.discovery.Close()
+
 	log.Info("p2p closed")
+
 }
 
 func (p *P2P) reStart() {
@@ -358,6 +359,7 @@ func (p *P2P) handleP2PEvent() {
 	for {
 		select {
 		case <-p.ctx.Done():
+			log.Info("handleP2PEvent close")
 			return
 		case data, ok := <-p.subChan:
 			if !ok {

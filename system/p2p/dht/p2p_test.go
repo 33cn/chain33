@@ -108,8 +108,7 @@ func NewP2p(cfg *types.Chain33Config, cli queue.Client) p2p2.IP2P {
 	subCfg := p2pmgr.ChainCfg.GetSubConfig().P2P
 	mcfg := &p2pty.P2PSubConfig{}
 	types.MustDecode(subCfg[p2pty.DHTTypeName], mcfg)
-	mcfg.RelayEnable = true
-
+	//NewAddrBook(cfg.GetModuleConfig().P2P).initKey()
 	dhtcfg, _ := json.Marshal(mcfg)
 	p2p := New(p2pmgr, dhtcfg)
 	p2p.StartP2P()
@@ -372,7 +371,7 @@ func testHost(t *testing.T) {
 	host.Close()
 }
 
-func testAddrbook(t *testing.T, cfg *types.P2P) {
+func testAddrbook(t *testing.T, cfg *types.P2P) *AddrBook {
 	cfg.DbPath = cfg.DbPath + "test/"
 	addrbook := NewAddrBook(cfg)
 	priv, pub := addrbook.GetPrivPubKey()
@@ -386,7 +385,7 @@ func testAddrbook(t *testing.T, cfg *types.P2P) {
 	addrbook.saveKey(priv, pub)
 	ok := addrbook.loadDb()
 	require.True(t, ok)
-
+	return addrbook
 }
 
 func Test_LocalAddr(t *testing.T) {
@@ -426,17 +425,11 @@ func Test_genAddrInfos(t *testing.T) {
 	t.Log(addrinfos[0].Addrs[0].String())
 }
 func Test_p2p(t *testing.T) {
-	qapi.On("ExecWalletFunc", "wallet", "NewAccountByIndex", mock.Anything).Return(&types.ReplyString{Data: "0xf1c2f096c021bed4d9b085a8e3f37726e1a62b200d58ba1f0a37d8a8463cc5bf"}, nil)
-	qapi.On("ExecWalletFunc", "wallet", "GetWalletStatus", &types.ReqNil{}).Return(&types.WalletStatus{IsWalletLock: false, IsHasSeed: true, IsAutoMining: false}, nil)
-	qapi.On("ExecWalletFunc", "wallet", "WalletImportPrivkey", mock.Anything).Return(&types.Reply{
-		IsOk: true,
-	}, nil)
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
 	datadir := util.ResetDatadir(cfg.GetModuleConfig(), "$TEMP/")
 	cfg.GetModuleConfig().Log.LogFile = ""
 	cfg.GetModuleConfig().Address.DefaultDriver = "BTC"
-	cfg.GetModuleConfig().P2P.WaitPid = false
 	q.SetConfig(cfg)
 	processMsg(q)
 
@@ -448,32 +441,33 @@ func Test_p2p(t *testing.T) {
 		t.Log("removed path", path)
 	}(datadir)
 
-	var tcfg types.P2P
-	tcfg.Driver = "leveldb"
-	tcfg.DbCache = 4
-	tcfg.DbPath = filepath.Join(datadir, "addrbook")
-	testAddrbook(t, &tcfg)
-
+	qapi.On("ExecWalletFunc", "wallet", "NewAccountByIndex", mock.Anything).Return(&types.ReplyString{Data: "87a229d16d035b033434274303cb3b9994a85cd66b2dd091f2a2efdd2e74a5e1"}, nil)
+	qapi.On("ExecWalletFunc", "wallet", "GetWalletStatus", &types.ReqNil{}).Return(&types.WalletStatus{IsWalletLock: false, IsHasSeed: true, IsAutoMining: false}, nil)
+	qapi.On("ExecWalletFunc", "wallet", "WalletImportPrivkey", mock.Anything).Return(&types.Reply{
+		IsOk: true,
+	}, nil)
 	var mcfg p2pty.P2PSubConfig
 	types.MustDecode(cfg.GetSubConfig().P2P[p2pty.DHTTypeName], &mcfg)
 	jcfg, err := json.Marshal(mcfg)
 	require.Nil(t, err)
 	cfg.GetSubConfig().P2P[p2pty.DHTTypeName] = jcfg
 	p2p := NewP2p(cfg, q.Client())
-
 	dhtp2p := p2p.(*P2P)
-	time.Sleep(time.Second * 2)
-	t.Log("listpeer", dhtp2p.discovery.ListPeers())
 
+	t.Log("listpeer", dhtp2p.discovery.ListPeers())
 	err = dhtp2p.discovery.Update(dhtp2p.host.ID())
 	t.Log("discovery update", err)
 	pinfo := dhtp2p.discovery.FindLocalPeers([]peer.ID{dhtp2p.host.ID()})
 	t.Log("findlocalPeers", pinfo)
 	dhtp2p.discovery.Remove(dhtp2p.host.ID())
 	testP2PEvent(t, q.Client())
-
 	testStreamEOFReSet(t)
 	testHost(t)
+
+	var tcfg types.P2P
+	tcfg.Driver = "leveldb"
+	tcfg.DbCache = 4
+	tcfg.DbPath = filepath.Join(datadir, "addrbook")
+	testAddrbook(t, &tcfg)
 	p2p.CloseP2P()
-	time.Sleep(time.Second)
 }
