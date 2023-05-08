@@ -5,9 +5,16 @@
 package commands
 
 import (
+	"context"
 	"fmt"
+	"math/big"
 	"os"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/33cn/chain33/rpc/jsonclient"
 	rpctypes "github.com/33cn/chain33/rpc/types"
@@ -322,6 +329,7 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee (optional), auto set proper fee if not set or zero fee")
 	cmd.Flags().StringP("to", "t", "", "new to addr (optional)")
 	cmd.Flags().Int32P("addressType", "p", -1, "address type ID, btc(0), btcMultiSign(1), eth(2)")
+	cmd.Flags().Int32P("chainID", "c", 0, "for eth signn (optional)")
 	// A duration string is a possibly signed sequence of
 	// decimal numbers, each with optional fraction and a unit suffix,
 	// such as "300ms", "-1.5h" or "2h45m".
@@ -411,6 +419,26 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	expire, _ := cmd.Flags().GetString("expire")
 	addressType, _ := cmd.Flags().GetInt32("addressType")
+	chainID, _ := cmd.Flags().GetInt32("chainID")
+	//check tx type
+	ethTx := new(ethtypes.Transaction)
+	if ethTx.UnmarshalBinary(common.FromHex(data)) == nil {
+		//eth tx
+		signer := ethtypes.NewEIP155Signer(big.NewInt(int64(chainID)))
+		signKey, err := crypto.ToECDSA(common.FromHex(key))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		signedTx, err := ethtypes.SignTx(ethTx, signer, signKey)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		signedBytes, _ := signedTx.MarshalBinary()
+		fmt.Println(common.Bytes2Hex(signedBytes))
+		return
+	}
 	expire, err := commandtypes.CheckExpireOpt(expire)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -438,6 +466,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		NewToAddr: to,
 		AddressID: addressType,
 	}
+
 	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SignRawTx", &params, nil)
 	ctx.RunWithoutMarshal()
 }
@@ -496,12 +525,33 @@ func addSendTxFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("data")
 
 	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
+	cmd.Flags().BoolP("ethType", "e", false, "")
 }
 
 func sendTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
 	token, _ := cmd.Flags().GetString("token")
+	ethType, _ := cmd.Flags().GetBool("ethType")
+	if ethType {
+		c, err := rpc.DialContext(context.Background(), rpcLaddr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		var etx = new(ethtypes.Transaction)
+		err = etx.UnmarshalBinary(common.FromHex(data))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		var txHash string
+		//调用eth 接口发送交易
+		err = c.CallContext(context.Background(), &txHash, "eth_sendRawTransaction", data)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		fmt.Println(txHash)
+		return
+	}
 	params := rpctypes.RawParm{
 		Token: token,
 		Data:  data,

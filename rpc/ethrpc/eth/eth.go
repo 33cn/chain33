@@ -258,7 +258,10 @@ func (e *ethHandler) Accounts() ([]string, error) {
 	accountsList := msg.(*ctypes.WalletAccounts)
 	var accounts []string
 	for _, wallet := range accountsList.Wallets {
-		accounts = append(accounts, wallet.GetAcc().GetAddr())
+		//过滤base58 格式的地址
+		if common.IsHexAddress(wallet.GetAcc().GetAddr()) {
+			accounts = append(accounts, wallet.GetAcc().GetAddr())
+		}
 	}
 
 	return accounts, nil
@@ -311,7 +314,7 @@ func (e *ethHandler) Call(msg types.CallMsg, tag *string) (interface{}, error) {
 
 //SendRawTransaction eth_sendRawTransaction
 func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
-	log.Debug("eth_sendRawTransaction", "rawData", rawData)
+	log.Info("eth_sendRawTransaction", "rawData", rawData)
 	rawhexData := common.FromHex(rawData)
 	if rawhexData == nil {
 		return nil, errors.New("wrong data")
@@ -341,7 +344,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	sig[64] = cv
 
 	if !ethcrypto.ValidateSignatureValues(cv, r, s, false) {
-		log.Error("etgh_SendRawTransaction", "ValidateSignatureValues", false, "RawSignatureValues v:", v, "to:", ntx.To(), "type", ntx.Type(), "sig", common.Bytes2Hex(sig))
+		log.Error("eth_SendRawTransaction", "ValidateSignatureValues", false, "RawSignatureValues v:", v, "to:", ntx.To(), "type", ntx.Type(), "sig", common.Bytes2Hex(sig))
 		return nil, errors.New("wrong signature")
 	}
 	pubkey, err := ethcrypto.Ecrecover(txSha3.Bytes(), sig)
@@ -362,7 +365,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 		return nil, fmt.Errorf("nonce too low")
 	}
 	if ntx.Nonce() > uint64(nonce) { //非平行链下 允许更高的nonce 通过，在mempool中排序等待
-		log.Error("eth_sendRawTransaction", "nonce too high,tx.From", txFrom, "txnonce", ntx.Nonce(), "stateNonce", nonce)
+		log.Warn("eth_sendRawTransaction", "nonce too high,tx.From", txFrom, "txnonce", ntx.Nonce(), "stateNonce", nonce)
 		if e.cfg.IsPara() { //平行链架构下，交易是要发到主链共识的，无法校验交易的nonce是否正确
 			return nil, fmt.Errorf("nonce too high")
 		}
@@ -374,8 +377,14 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	}
 
 	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
-	log.Debug("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "exec", string(chain33Tx.Execer))
 	reply, err := e.cli.SendTx(chain33Tx)
+	log.Info("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()), "ethHash:", ntx.Hash().String(), "exec", string(chain33Tx.Execer), "reply:", common.Bytes2Hex(reply.GetMsg()))
+	//调整为返回eth 交易哈希，之前是reply.GteMsg() chain33 哈希
+	conf := ctypes.Conf(e.cfg, "config.rpc.sub.eth")
+	//打开 enableRlpTxHash 返回 eth 交易哈希 , 通过此hash 查询交易详情需要配合enableTxQuickIndex =false 使用
+	if conf.IsEnable("enableRlpTxHash") {
+		return ntx.Hash().Bytes(), err
+	}
 	return reply.GetMsg(), err
 
 }
@@ -495,6 +504,7 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, e
 //method:eth_estimateGas
 //EstimateGas 获取gas
 func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error) {
+	log.Info("EstimateGas", "callMsg.From", callMsg.From, "callMsg.To:", callMsg.To, "callMsg.Value:", callMsg.Value)
 	if callMsg == nil {
 		return 0, errors.New("callMsg empty")
 	}
