@@ -177,7 +177,7 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 		return true
 	})
 
-	if mem.client.GetConfig().IsFork(mem.header.GetHeight(), "ForkCheckETxSortDup") {
+	if mem.client.GetConfig().IsFork(mem.header.GetHeight(), "ForkCheckEthTxSort") {
 		//对txs 进行排序
 		txs = mem.sortEthSignTyTx(txs)
 	}

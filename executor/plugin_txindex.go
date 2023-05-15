@@ -64,7 +64,7 @@ func getTx(executor *executor, tx *types.Transaction, receipt *types.ReceiptData
 	//加入eth 交易哈希与chain33 哈希的映射
 	etxHash := tx.GetEthTxHash()
 	if etxHash != nil {
-		kvlist = append(kvlist, &types.KeyValue{Key: cfg.CalcEtxKey(etxHash), Value: txhash})
+		kvlist = append(kvlist, &types.KeyValue{Key: cfg.CalcEthTxKey(etxHash), Value: txhash})
 	}
 	//end-----------------------------
 	if cfg.IsEnable("quickIndex") {

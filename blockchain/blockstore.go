@@ -417,11 +417,6 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 		// 直接查全哈希，单次查询平均耗时24000ns
 	}
 	if _, err := bs.db.Get(cfg.CalcTxKey(key)); err != nil {
-		realHash, etxerr := bs.db.Get(cfg.CalcEtxKey(key)) //新增对ETH哈希的检查
-		if etxerr == nil && realHash != nil {
-			return true, nil
-		}
-
 		if err == dbm.ErrNotFoundInDb {
 			return false, nil
 		}
@@ -667,7 +662,7 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	rawBytes, err := bs.db.Get(cfg.CalcTxKey(hash))
 	if rawBytes == nil || err != nil {
 		//查询eth 交易哈希对应的Chin33的交易
-		realHash, etxerr := bs.db.Get(cfg.CalcEtxKey(hash))
+		realHash, etxerr := bs.db.Get(cfg.CalcEthTxKey(hash))
 		if etxerr == nil && realHash != nil { // 查到eth txhash 映射关系
 			rawBytes, err = bs.db.Get(cfg.CalcTxKey(realHash))
 		}

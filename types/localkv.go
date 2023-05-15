@@ -25,13 +25,13 @@ var (
 	ConsensusParaTxsPrefix = []byte("LODBP:Consensus:Para:")            //存贮para共识模块从主链拉取的平行链交易
 	FlagReduceLocaldb      = []byte("FLAG:ReduceLocaldb")               // 精简版localdb标记
 	ReduceLocaldbHeight    = append(FlagReduceLocaldb, []byte(":H")...) // 精简版localdb高度
-	ETXHashPrefix          = []byte("ETX:")
+	EthTxHashPrefix        = []byte("ETX:")
 )
 
 // GetLocalDBKeyList 获取localdb的key列表
 func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
-		FlagTxQuickIndex, FlagKeyMVCC, TxHashPerfix, TxShortHashPerfix, FlagReduceLocaldb, ETXHashPrefix,
+		FlagTxQuickIndex, FlagKeyMVCC, TxHashPerfix, TxShortHashPerfix, FlagReduceLocaldb, EthTxHashPrefix,
 	}
 }
 
@@ -43,9 +43,9 @@ func (c *Chain33Config) CalcTxKey(hash []byte) []byte {
 	return hash
 }
 
-//CalcEtxKey local db中保存的eth 交易哈希key
-func (c *Chain33Config) CalcEtxKey(hash []byte) []byte {
-	return append(ETXHashPrefix, hash...)
+//CalcEthTxKey local db中保存的eth 交易哈希key
+func (c *Chain33Config) CalcEthTxKey(hash []byte) []byte {
+	return append(EthTxHashPrefix, hash...)
 }
 
 // CalcTxKeyValue 保存local db中保存交易的方法
