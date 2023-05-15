@@ -177,7 +177,7 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 		return true
 	})
 
-	if mem.cfg.EnableEthCheck {
+	if mem.client.GetConfig().IsFork(mem.header.GetHeight(), "ForkCheckETxSortDup") {
 		//对txs 进行排序
 		txs = mem.sortEthSignTyTx(txs)
 	}
@@ -354,9 +354,6 @@ func (mem *Mempool) pollLastHeader() {
 		}
 		h := lastHeader.(*queue.Message).Data.(*types.Header)
 		mem.setHeader(h)
-		if mem.client.GetConfig().IsFork(h.GetHeight(), "ForkCheckETxSortDup") {
-			mem.cfg.EnableEthCheck = true
-		}
 		return
 	}
 }
