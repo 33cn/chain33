@@ -24,7 +24,7 @@ ForkCacheDriver=2580000
 ForkTicketFundAddrV1=3350000
 ForkRootHash=4500000
 ForkFormatAddressKey=0
-ForkCheckETxSortDup=0
+ForkCheckEthTxSort=0
 
 [fork.sub.none]
 ForkUseTimeDelay=0

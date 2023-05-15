@@ -167,12 +167,6 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	for _, tx := range txs {
 		checkHashList.Hashes = append(checkHashList.Hashes, tx.Hash())
 		checkHashList.Expire = append(checkHashList.Expire, tx.GetExpire())
-		if cfg.IsFork(height, "ForkCheckETxSortDup") { //check eth tx dup
-			if tx.GetEthTxHash() != nil {
-				checkHashList.Hashes = append(checkHashList.Hashes, tx.GetEthTxHash())
-				checkHashList.Expire = append(checkHashList.Expire, tx.GetExpire())
-			}
-		}
 	}
 	checkHashList.Count = height
 	hashList := client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
@@ -195,11 +189,9 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 
 	for _, tx := range txs {
 		hash := tx.Hash()
-		ethHash := tx.GetEthTxHash()
-		if dupMap[string(hash)] || ethHash != nil && dupMap[string(ethHash)] {
+		if dupMap[string(hash)] {
 			continue
 		}
-
 		transactions = append(transactions, tx)
 	}
 	client.FreeMessage(hashList, dupTxList)
