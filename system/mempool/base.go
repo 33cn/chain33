@@ -81,6 +81,7 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	pool.removeBlockTicket = time.NewTicker(time.Minute)
 	pool.cache = newCache(cfg.MaxTxNumPerAccount, cfg.MaxTxLast, cfg.PoolCacheSize)
 	pool.delayTxListChan = make(chan []*types.Transaction, 16)
+
 	return pool
 }
 
@@ -353,6 +354,9 @@ func (mem *Mempool) pollLastHeader() {
 		}
 		h := lastHeader.(*queue.Message).Data.(*types.Header)
 		mem.setHeader(h)
+		if mem.client.GetConfig().IsFork(h.GetHeight(), "ForkCheckETxSortDup") {
+			mem.cfg.EnableEthCheck = true
+		}
 		return
 	}
 }

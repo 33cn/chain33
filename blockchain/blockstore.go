@@ -417,6 +417,11 @@ func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 		// 直接查全哈希，单次查询平均耗时24000ns
 	}
 	if _, err := bs.db.Get(cfg.CalcTxKey(key)); err != nil {
+		realHash, etxerr := bs.db.Get(cfg.CalcEtxKey(key)) //新增对ETH哈希的检查
+		if etxerr == nil && realHash != nil {
+			return true, nil
+		}
+
 		if err == dbm.ErrNotFoundInDb {
 			return false, nil
 		}
