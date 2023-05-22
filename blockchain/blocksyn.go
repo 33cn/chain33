@@ -717,9 +717,9 @@ func (chain *BlockChain) forkChainDetection(prevMode int) {
 		return
 	}
 
-	activePeer := chain.getActivePeersByHeight(cmpPeer.Height)
-	chainlog.Debug("forkDetect", "activePeer", len(activePeer))
-	if len(activePeer) <= 0 {
+	activePeers := chain.getActivePeersByHeight(cmpPeer.Height)
+	chainlog.Debug("forkDetect", "forkHeight", forkHeight, "peerCount", len(activePeers))
+	if len(activePeers) <= 0 {
 		return
 	}
 
@@ -746,9 +746,10 @@ func (chain *BlockChain) forkChainDetection(prevMode int) {
 		chainlog.Info("forkDetectBlkHeightIncreased", "prev", localHeight, "curr", chain.GetBlockHeight())
 		return
 	}
-
-	chainlog.Info("forkDetectDownBlk", "localHeight", localHeight, "forkHeight", forkHeight, "peers", len(activePeer))
-	go chain.ProcDownLoadBlocks(forkHeight, localHeight+1, activePeer)
+	// 检测到存在分叉后, 以最近高度作为结束高度
+	endHeight := cmpPeer.Height - BackBlockNum + 1
+	chainlog.Info("forkDetectDownBlk", "localHeight", localHeight, "endHeight", endHeight, "peers", len(activePeers))
+	go chain.ProcDownLoadBlocks(forkHeight, endHeight, activePeers)
 
 }
 
