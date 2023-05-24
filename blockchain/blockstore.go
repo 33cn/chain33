@@ -799,7 +799,7 @@ func (bs *BlockStore) GetBlockHashByHeight(height int64) ([]byte, error) {
 	hash, err := bs.db.Get(calcHeightToHashKey(height))
 	if hash == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("GetBlockHashByHeight", "error", err)
+			storeLog.Error("GetBlockHashByHeight", "height", height, "error", err)
 		}
 		return nil, types.ErrHeightNotExist
 	}

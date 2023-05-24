@@ -61,7 +61,7 @@ func (chain *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, 
 		if is {
 			chain.RecordFaultPeer(pid, block.Block.Height, blockHash, err)
 		}
-		chainlog.Debug("ProcessBlock already have block", "blockHash", common.ToHex(blockHash))
+		chainlog.Error("ProcessBlock block exist", "height", block.Block.Height, "hash", common.ToHex(blockHash), "err", err)
 		return nil, false, false, types.ErrBlockExist
 	}
 
@@ -279,7 +279,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 
 	var err error
 	var lastSequence int64
-
+	cfg := chain.client.GetConfig()
 	block := blockdetail.Block
 	prevStateHash := chain.bestChain.Tip().statehash
 	errReturn := (node.pid != "self")
@@ -298,10 +298,11 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 		} else {
 			chain.RecordFaultPeer(node.pid, block.Height, node.hash, err)
 		}
-		chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
+		chainlog.Error("connectBlock ExecBlock is err!", "height", block.GetHeight(),
+			"hash", common.ToHex(block.Hash(cfg)), "err", err)
 		return nil, err
 	}
-	cfg := chain.client.GetConfig()
+
 	//要更新node的信息
 	if node.pid == "self" {
 		prevhash := node.hash
