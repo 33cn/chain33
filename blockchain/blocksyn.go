@@ -336,8 +336,8 @@ func (chain *BlockChain) fetchPeerList() error {
 
 	var peerInfoList PeerInfoList
 	for _, peer := range peerlist.GetPeers() {
-		//过滤掉自己和小于自己5个高度的节点
-		if peer == nil || peer.Self || curheigt > peer.Header.Height+5 {
+		//过滤掉自己和小于自己128高度的节点
+		if peer == nil || peer.Self || curheigt > peer.Header.Height+128 {
 			continue
 		}
 		var peerInfo PeerInfo
