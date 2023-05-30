@@ -112,7 +112,7 @@ func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) 
 	if msg.msg.Ty == types.EventTx {
 		denyTime = errTxDenyTime
 	}
-	log.Debug("handleBcRep", "errMsg", errMsg, "hash", msg.hash)
+	log.Debug("handleBcRep", "errMsg", errMsg, "hash", msg.hash, "peer", msg.publisher.Pretty())
 	v.addDeniedPeer(msg.publisher, denyTime)
 }
 
