@@ -527,20 +527,6 @@ func (chain *BlockChain) IsFaultPeer(pid string) bool {
 	return chain.faultPeerList[pid] != nil
 }
 
-//IsErrExecBlock 判断此block是否被记录在本节点执行错误。
-func (chain *BlockChain) IsErrExecBlock(height int64, hash []byte) (bool, error) {
-	chain.faultpeerlock.Lock()
-	defer chain.faultpeerlock.Unlock()
-
-	//循环遍历故障peerlist，尝试检测故障peer是否已经恢复
-	for _, faultpeer := range chain.faultPeerList {
-		if faultpeer.FaultHeight == height && bytes.Equal(hash, faultpeer.FaultHash) {
-			return true, faultpeer.ErrInfo
-		}
-	}
-	return false, nil
-}
-
 //GetFaultPeer 获取指定pid是否在故障faultPeerList中
 func (chain *BlockChain) GetFaultPeer(pid string) *FaultPeerInfo {
 	chain.faultpeerlock.Lock()
