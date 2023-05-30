@@ -57,8 +57,10 @@ func (chain *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, 
 	//将此block的源peer节点添加到故障peerlist中
 	exists := chain.blockExists(blockHash)
 	if exists {
-		is, err := chain.IsErrExecBlock(block.Block.Height, blockHash)
-		if is {
+		var err error
+		node := chain.index.LookupNode(blockHash)
+		if node != nil && node.errLog != nil {
+			err = node.errLog
 			chain.RecordFaultPeer(pid, block.Block.Height, blockHash, err)
 		}
 		chainlog.Error("ProcessBlock block exist", "height", block.Block.Height, "hash", common.ToHex(blockHash), "err", err)
@@ -284,7 +286,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	prevStateHash := chain.bestChain.Tip().statehash
 	errReturn := (node.pid != "self")
 	blockdetail, _, err = execBlock(chain.client, prevStateHash, block, errReturn, sync)
-	if err != nil {
+	handleErrBlk := func(err error) {
 		//记录执行出错的block信息,需要过滤掉一些特殊的错误，不计入故障中，尝试再次执行
 		//快速下载时执行失败的区块不需要记录错误信息，并删除index中此区块的信息尝试通过普通模式再次下载执行
 		ok := IsRecordFaultErr(err)
@@ -297,9 +299,13 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 			chain.index.DelNode(node.hash)
 		} else {
 			chain.RecordFaultPeer(node.pid, block.Height, node.hash, err)
+			node.errLog = err
 		}
+	}
+	if err != nil {
+		handleErrBlk(err)
 		chainlog.Error("connectBlock ExecBlock is err!", "height", block.GetHeight(),
-			"hash", common.ToHex(block.Hash(cfg)), "err", err)
+			"hash", common.ToHex(node.hash), "err", err)
 		return nil, err
 	}
 
@@ -317,9 +323,11 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	newbatch.UpdateWriteSync(sync)
 	//保存tx信息到db中
 	beg := types.Now()
+	// exec local
 	err = chain.blockStore.AddTxs(newbatch, blockdetail)
 	if err != nil {
-		chainlog.Error("connectBlock indexTxs:", "height", block.Height, "err", err)
+		handleErrBlk(err)
+		chainlog.Error("connectBlock indexTxs:", "height", block.Height, "hash", common.ToHex(node.hash), "err", err)
 		return nil, err
 	}
 	txCost := types.Since(beg)
