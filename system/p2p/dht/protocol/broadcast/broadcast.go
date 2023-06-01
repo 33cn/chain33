@@ -278,7 +278,7 @@ func (p *broadcastProtocol) pubPeerMsg(peerID peer.ID, msgID int32, msg types.Me
 }
 
 func (p *broadcastProtocol) postBlockChain(blockHash, receiveFrom string, block *types.Block, publisher peer.ID) error {
-	msg, err := p.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: receiveFrom, Block: block}, types.EventBroadcastAddBlock)
+	msg, err := p.P2PManager.PubBroadCast(blockHash, &types.BlockPid{Pid: publisher.Pretty(), Block: block}, types.EventBroadcastAddBlock)
 	if err == nil {
 		p.val.addBroadcastMsg(&broadcastMsg{msg: msg, publisher: publisher, hash: blockHash})
 	}
