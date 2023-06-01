@@ -19,13 +19,18 @@ import (
 	ps "github.com/libp2p/go-libp2p-pubsub"
 )
 
+type deniedInfo struct {
+	freeTimestamp int64
+	count         int
+}
+
 // validator 结合区块链业务逻辑, 实现pubsub数据验证接口
 type validator struct {
 	*pubSub
 	blkHeaderCache   map[int64]*types.Header
 	maxRecvBlkHeight int64
 	headerLock       sync.Mutex
-	deniedPeers      map[peer.ID]int64 //广播屏蔽节点
+	deniedPeers      map[peer.ID]*deniedInfo //广播屏蔽节点
 	peerLock         sync.RWMutex
 	msgList          *list.List
 	msgLock          sync.Mutex
@@ -35,7 +40,7 @@ type validator struct {
 func newValidator(p *pubSub) *validator {
 	v := &validator{pubSub: p}
 	v.blkHeaderCache = make(map[int64]*types.Header)
-	v.deniedPeers = make(map[peer.ID]int64)
+	v.deniedPeers = make(map[peer.ID]*deniedInfo)
 	v.msgBuf = make([]*broadcastMsg, 0, 1024)
 	v.msgList = list.New()
 	return v
@@ -54,8 +59,8 @@ func initValidator(p *pubSub) *validator {
 // 屏蔽时间结束后可恢复为正常节点
 func (v *validator) manageDeniedPeer() {
 
-	waitMsgReplyTicker := time.NewTicker(time.Second)
-	recoverDeniedPeerTicker := time.NewTicker(time.Minute)
+	waitMsgReplyTicker := time.NewTicker(2 * time.Second)
+	recoverDeniedPeerTicker := time.NewTicker(10 * time.Minute)
 	for {
 
 		select {
@@ -72,7 +77,7 @@ func (v *validator) manageDeniedPeer() {
 				msg, err := v.P2PEnv.QueueClient.Wait(bcMsg.msg)
 				// 理论上不会出错, 只做日志记录
 				if msg == nil || err != nil {
-					log.Error("manageDeniedPeer", "msg err", err)
+					log.Error("manageDeniedPeer", "wait msg err", err)
 					continue
 				}
 				reply, ok := msg.Data.(*types.Reply)
@@ -99,6 +104,8 @@ const (
 func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) {
 
 	if reply.IsOk {
+		// 收到正确的广播, 减少错误次数
+		v.reduceDeniedCount(msg.publisher)
 		return
 	}
 	errMsg := string(reply.GetMsg())
@@ -116,22 +123,40 @@ func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) 
 	v.addDeniedPeer(msg.publisher, denyTime)
 }
 
+func (v *validator) reduceDeniedCount(id peer.ID) {
+
+	v.peerLock.Lock()
+	defer v.peerLock.Unlock()
+	info, ok := v.deniedPeers[id]
+	if ok && info.count > 0 {
+		info.count--
+	}
+	return
+}
+
 func (v *validator) addDeniedPeer(id peer.ID, denyTime int64) {
 	v.peerLock.Lock()
 	defer v.peerLock.Unlock()
-	endTime, ok := v.deniedPeers[id]
+	info, ok := v.deniedPeers[id]
 	if !ok {
-		endTime = types.Now().Unix()
+		info = &deniedInfo{}
+		v.deniedPeers[id] = info
 	}
-	v.deniedPeers[id] = endTime + denyTime
+	now := types.Now().Unix()
+	if info.freeTimestamp < now {
+		info.freeTimestamp = now
+	}
+	info.count++
+	// 屏蔽时长随错误次数指数上升
+	info.freeTimestamp += int64(1<<info.count) * denyTime
 }
 
 // 检测是否为屏蔽节点
 func (v *validator) isDeniedPeer(id peer.ID) bool {
 	v.peerLock.RLock()
 	defer v.peerLock.RUnlock()
-	endTime, ok := v.deniedPeers[id]
-	return ok && endTime > types.Now().Unix()
+	info, ok := v.deniedPeers[id]
+	return ok && info.freeTimestamp > types.Now().Unix()
 }
 
 // 恢复为正常节点
@@ -139,8 +164,10 @@ func (v *validator) recoverDeniedPeers() {
 	v.peerLock.Lock()
 	defer v.peerLock.Unlock()
 	now := types.Now().Unix()
-	for id, endTime := range v.deniedPeers {
-		if endTime <= now {
+
+	for id, info := range v.deniedPeers {
+		log.Debug("recoverDeniedPeers", "peer", id.Pretty(), "count", info.count, "freeTime", info.freeTimestamp)
+		if info.count <= 0 && info.freeTimestamp <= now {
 			delete(v.deniedPeers, id)
 		}
 	}
