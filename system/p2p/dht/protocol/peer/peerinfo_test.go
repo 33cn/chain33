@@ -153,6 +153,34 @@ func testMempoolReq(q queue.Queue) {
 	time.Sleep(time.Second)
 }
 
+func TestCheckVerisonLimit(t *testing.T) {
+	q := queue.New("test")
+	p, cancel := initEnv(t, q)
+	defer cancel()
+	testV1 := "1.67.1-64139470@6.7.0"
+	testV2 := "1.67.3-5b3c44b5@6.8.0"
+	testV3 := "1.68.0-9d3383c5@6.8.8"
+	testV4 := "1.68.0-a612c9a6@6.8.9"
+	testV5 := "1.68.0-a612c9a6"
+	testV6 := "1.68.0-a612c9a6@6.8"
+	testV7 := "1.68.0-a612c9a6@"
+	isAllow := p.checkVerisonLimit(testV1)
+	require.False(t, isAllow)
+	isAllow = p.checkVerisonLimit(testV2)
+	require.False(t, isAllow)
+	isAllow = p.checkVerisonLimit(testV3)
+	require.True(t, isAllow)
+	isAllow = p.checkVerisonLimit(testV4)
+	require.True(t, isAllow)
+	isAllow = p.checkVerisonLimit(testV5)
+	require.False(t, isAllow)
+	isAllow = p.checkVerisonLimit(testV6)
+	require.False(t, isAllow)
+	isAllow = p.checkVerisonLimit(testV7)
+	require.False(t, isAllow)
+
+}
+
 func TestPeerInfoHandler(t *testing.T) {
 	q := queue.New("test")
 	p, cancel := initEnv(t, q)
