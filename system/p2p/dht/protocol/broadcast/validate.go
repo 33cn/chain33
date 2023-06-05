@@ -98,7 +98,7 @@ const (
 	//单位秒, 广播错误交易单次屏蔽时长
 	errTxDenyTime = 10
 	//单位秒, 广播错误区块单次屏蔽时长
-	errBlockDenyTime = 60
+	errBlockDenyTime = 60 * 5
 )
 
 func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) {
