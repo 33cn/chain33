@@ -52,7 +52,7 @@ func Test_deniedPeerMethod(t *testing.T) {
 	val.reduceDeniedCount("testpid1")
 	val.recoverDeniedPeers()
 	require.Equal(t, 1, len(val.deniedPeers))
-	info, _ := val.deniedPeers["testpid2"]
+	info := val.deniedPeers["testpid2"]
 	currFreeTimestamp := info.freeTimestamp
 	val.addDeniedPeer("testpid2", 1)
 	val.addDeniedPeer("testpid2", 1)

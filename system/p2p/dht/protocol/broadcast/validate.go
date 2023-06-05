@@ -131,7 +131,6 @@ func (v *validator) reduceDeniedCount(id peer.ID) {
 	if ok && info.count > 0 {
 		info.count--
 	}
-	return
 }
 
 func (v *validator) addDeniedPeer(id peer.ID, denyTime int64) {
