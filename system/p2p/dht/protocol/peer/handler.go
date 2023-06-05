@@ -393,10 +393,13 @@ func (p *Protocol) checkVerisonLimit(version string) (isallow bool) {
 		return false
 	}
 	verLimits := strings.Split(p.SubConfig.VerLimit, ".")
-	verNums := strings.Split(nodeVers[1], ".")
+	checkVers := strings.Split(nodeVers[1], ".")
+	if len(checkVers) < len(verLimits) {
+		return false
+	}
 	for i, verLimitN := range verLimits {
 		limit, _ := strconv.Atoi(verLimitN)
-		checkVer, _ := strconv.Atoi(verNums[i])
+		checkVer, _ := strconv.Atoi(checkVers[i])
 		if limit > checkVer {
 			return false
 		}
