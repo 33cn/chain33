@@ -116,7 +116,14 @@ func (p *Protocol) refreshPeerInfo(peers []peer.ID) {
 				log.Error("refreshPeerInfo", "error", err, "pid", pid)
 				return
 			}
-			p.PeerInfoManager.Refresh(pInfo)
+			if p.checkVerisonLimit(pInfo.GetVersion()) {
+				p.PeerInfoManager.Refresh(pInfo)
+			} else {
+				//add blacklist
+				log.Info("refreshPeerInfo", "AddBlacklist,peerName:", pInfo.GetName(), "version:", pInfo.GetVersion(), "runningTime:", pInfo.GetRunningTime())
+				p.QueueClient.Send(p.QueueClient.NewMessage("p2p", types.EventAddBlacklist, &types.BlackPeer{PeerName: pInfo.GetName(), Lifetime: "0"}), false)
+			}
+
 		}(remoteID)
 	}
 	wg.Wait()

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/33cn/chain33/common/utils"
@@ -378,5 +380,27 @@ func (p *Protocol) setPeerCheck(msg *queue.Message) (multiaddr.Multiaddr, *peer.
 		return nil, nil, err
 	}
 	return maddr, addrinfo, nil
+
+}
+
+func (p *Protocol) checkVerisonLimit(version string) (isallow bool) {
+	if p.SubConfig.VerLimit == "" { //允许所有版本
+		return true
+	}
+	//@分割版本号 1.68.0-a612c9a6@6.8.9
+	nodeVers := strings.Split(version, "@")
+	if len(nodeVers) != 2 {
+		return false
+	}
+	verLimits := strings.Split(p.SubConfig.VerLimit, ".")
+	verNums := strings.Split(nodeVers[1], ".")
+	for i, verLimitN := range verLimits {
+		limit, _ := strconv.Atoi(verLimitN)
+		checkVer, _ := strconv.Atoi(verNums[i])
+		if limit > checkVer {
+			return false
+		}
+	}
+	return true
 
 }
