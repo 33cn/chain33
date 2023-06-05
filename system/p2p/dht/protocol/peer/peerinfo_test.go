@@ -154,9 +154,11 @@ func testMempoolReq(q queue.Queue) {
 }
 
 func TestCheckVerisonLimit(t *testing.T) {
-	q := queue.New("test")
+	q := queue.New("test-x")
 	p, cancel := initEnv(t, q)
 	defer cancel()
+
+	testV0 := "1.67.1-64139470@5.7.0"
 	testV1 := "1.67.1-64139470@6.7.0"
 	testV2 := "1.67.3-5b3c44b5@6.8.0"
 	testV3 := "1.68.0-9d3383c5@6.8.8"
@@ -164,7 +166,17 @@ func TestCheckVerisonLimit(t *testing.T) {
 	testV5 := "1.68.0-a612c9a6"
 	testV6 := "1.68.0-a612c9a6@6.8"
 	testV7 := "1.68.0-a612c9a6@"
-	isAllow := p.checkVerisonLimit(testV1)
+	//初始状态VerLimit 为空
+	var testVs []string
+	testVs = append(testVs, testV1, testV2, testV3, testV4, testV5, testV6, testV7)
+	for _, testV := range testVs {
+		isAllow := p.checkVerisonLimit(testV)
+		require.True(t, isAllow)
+	}
+	p.SubConfig.VerLimit = "6.8.8"
+	isAllow := p.checkVerisonLimit(testV0)
+	require.False(t, isAllow)
+	isAllow = p.checkVerisonLimit(testV1)
 	require.False(t, isAllow)
 	isAllow = p.checkVerisonLimit(testV2)
 	require.False(t, isAllow)
@@ -178,7 +190,15 @@ func TestCheckVerisonLimit(t *testing.T) {
 	require.False(t, isAllow)
 	isAllow = p.checkVerisonLimit(testV7)
 	require.False(t, isAllow)
-
+	p.SubConfig.VerLimit = "6.8.9"
+	for i, testV := range testVs {
+		isAllow := p.checkVerisonLimit(testV)
+		if i == 3 {
+			require.True(t, isAllow)
+			continue
+		}
+		require.False(t, isAllow)
+	}
 }
 
 func TestPeerInfoHandler(t *testing.T) {
