@@ -52,6 +52,7 @@ type P2PSubConfig struct {
 	Psk string `json:"psk"`
 	//广播子配置
 	Broadcast BroadcastConfig `json:"broadcast,omitempty"`
+	VerLimit  string          `json:"verLimit,omitempty"`
 }
 
 // BroadcastConfig broadcast config
