@@ -13,7 +13,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/33cn/chain33/common/difficulty"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ps "github.com/libp2p/go-libp2p-pubsub"
@@ -249,15 +248,15 @@ func (v *validator) validateBlock(ctx context.Context, _ peer.ID, msg *ps.Messag
 
 		log.Debug("validateBlock", "recvForkBlk", block.GetHeight())
 		// 区块时间小的优先
-		if block.BlockTime > h.BlockTime {
-			return ps.ValidationIgnore
-		}
-		// 难度系数高的优先
-		if block.BlockTime == h.BlockTime &&
-			difficulty.CalcWork(block.Difficulty).Cmp(difficulty.CalcWork(h.Difficulty)) < 0 {
-
-			return ps.ValidationIgnore
-		}
+		//if block.BlockTime > h.BlockTime {
+		//	return ps.ValidationIgnore
+		//}
+		//// 难度系数高的优先
+		//if block.BlockTime == h.BlockTime &&
+		//	difficulty.CalcWork(block.Difficulty).Cmp(difficulty.CalcWork(h.Difficulty)) < 0 {
+		//
+		//	return ps.ValidationIgnore
+		//}
 	} else {
 		recvHeader := &types.Header{
 			Hash:       blockHash,
