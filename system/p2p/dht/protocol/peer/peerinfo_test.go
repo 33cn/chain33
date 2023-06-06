@@ -295,29 +295,29 @@ func testCheckVerisonLimit(t *testing.T, p *Protocol) {
 	var testVs []string
 	testVs = append(testVs, testV1, testV2, testV3, testV4, testV5, testV6, testV7)
 	for _, testV := range testVs {
-		isAllow := p.checkVerisonLimit(testV)
+		isAllow := p.checkVersionLimit(testV)
 		require.True(t, isAllow)
 	}
 	p.SubConfig.VerLimit = "6.8.8"
-	isAllow := p.checkVerisonLimit(testV0)
+	isAllow := p.checkVersionLimit(testV0)
 	require.False(t, isAllow)
-	isAllow = p.checkVerisonLimit(testV1)
+	isAllow = p.checkVersionLimit(testV1)
 	require.False(t, isAllow)
-	isAllow = p.checkVerisonLimit(testV2)
+	isAllow = p.checkVersionLimit(testV2)
 	require.False(t, isAllow)
-	isAllow = p.checkVerisonLimit(testV3)
+	isAllow = p.checkVersionLimit(testV3)
 	require.True(t, isAllow)
-	isAllow = p.checkVerisonLimit(testV4)
+	isAllow = p.checkVersionLimit(testV4)
 	require.True(t, isAllow)
-	isAllow = p.checkVerisonLimit(testV5)
+	isAllow = p.checkVersionLimit(testV5)
 	require.False(t, isAllow)
-	isAllow = p.checkVerisonLimit(testV6)
+	isAllow = p.checkVersionLimit(testV6)
 	require.False(t, isAllow)
-	isAllow = p.checkVerisonLimit(testV7)
+	isAllow = p.checkVersionLimit(testV7)
 	require.False(t, isAllow)
 	p.SubConfig.VerLimit = "6.8.9"
 	for i, testV := range testVs {
-		isAllow := p.checkVerisonLimit(testV)
+		isAllow := p.checkVersionLimit(testV)
 		if i == 3 {
 			require.True(t, isAllow)
 			continue
