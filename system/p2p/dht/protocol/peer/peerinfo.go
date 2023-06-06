@@ -116,7 +116,7 @@ func (p *Protocol) refreshPeerInfo(peers []peer.ID) {
 				log.Error("refreshPeerInfo", "error", err, "pid", pid)
 				return
 			}
-			if p.checkVerisonLimit(pInfo.GetVersion()) {
+			if p.checkVersionLimit(pInfo.GetVersion()) {
 				p.PeerInfoManager.Refresh(pInfo)
 			} else {
 				//add blacklist
