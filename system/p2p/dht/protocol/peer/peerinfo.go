@@ -121,7 +121,8 @@ func (p *Protocol) refreshPeerInfo(peers []peer.ID) {
 			} else {
 				//add blacklist
 				log.Info("refreshPeerInfo", "AddBlacklist,peerName:", pInfo.GetName(), "version:", pInfo.GetVersion(), "runningTime:", pInfo.GetRunningTime())
-				p.QueueClient.Send(p.QueueClient.NewMessage("p2p", types.EventAddBlacklist, &types.BlackPeer{PeerName: pInfo.GetName(), Lifetime: "0"}), false)
+				p.P2PEnv.Host.Network().ClosePeer(peer.ID(pInfo.GetName()))
+				p.P2PEnv.ConnBlackList.Add(pInfo.GetName(), time.Hour*24)
 			}
 
 		}(remoteID)
