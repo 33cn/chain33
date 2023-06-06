@@ -383,7 +383,7 @@ func (p *Protocol) setPeerCheck(msg *queue.Message) (multiaddr.Multiaddr, *peer.
 
 }
 
-func (p *Protocol) checkVerisonLimit(version string) (isallow bool) {
+func (p *Protocol) checkVersionLimit(version string) (isallow bool) {
 	if p.SubConfig.VerLimit == "" { //允许所有版本
 		return true
 	}
