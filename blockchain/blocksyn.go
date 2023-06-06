@@ -757,11 +757,11 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 
 	mode := chain.GetDownloadSyncStatus()
 	chainlog.Debug("CheckHeightNoIncrease", "localHeight", localHeight, "downMode", mode)
-	if mode == forkChainDetectMode {
-		return
+	// 常规同步模式下, 区块高度不变化, 尝试分叉检测
+	if mode == normalDownLoadMode {
+		chain.UpdateDownloadSyncStatus(forkChainDetectMode)
+		chain.forkChainDetection(mode)
 	}
-	chain.UpdateDownloadSyncStatus(forkChainDetectMode)
-	chain.forkChainDetection(mode)
 }
 
 //FetchBlockHeaders 从指定pid获取start到end之间的headers
