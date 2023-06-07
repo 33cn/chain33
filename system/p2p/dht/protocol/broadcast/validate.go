@@ -97,7 +97,7 @@ const (
 	//单位秒, 广播错误交易单次屏蔽时长
 	errTxDenyTime = 10
 	//单位秒, 广播错误区块单次屏蔽时长
-	errBlockDenyTime = 60 * 5
+	errBlockDenyTime = 60 * 60
 )
 
 func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) {
@@ -118,8 +118,14 @@ func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) 
 	if msg.msg.Ty == types.EventTx {
 		denyTime = errTxDenyTime
 	}
-	log.Debug("handleBcRep", "errMsg", errMsg, "hash", msg.hash, "peer", msg.publisher.Pretty())
+	peerName := msg.publisher.Pretty()
+	log.Debug("handleBcRep", "errMsg", errMsg, "hash", msg.hash, "peer", peerName)
 	v.addDeniedPeer(msg.publisher, denyTime)
+	// 尝试断开并拉黑处理
+	if v.P2PEnv.Host != nil {
+		v.P2PEnv.Host.Network().ClosePeer(msg.publisher)
+		v.P2PEnv.ConnBlackList.Add(peerName, time.Hour*24)
+	}
 }
 
 func (v *validator) reduceDeniedCount(id peer.ID) {
