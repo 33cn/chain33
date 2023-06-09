@@ -116,7 +116,15 @@ func (p *Protocol) refreshPeerInfo(peers []peer.ID) {
 				log.Error("refreshPeerInfo", "error", err, "pid", pid)
 				return
 			}
-			p.PeerInfoManager.Refresh(pInfo)
+			if p.checkVersionLimit(pInfo.GetVersion()) {
+				p.PeerInfoManager.Refresh(pInfo)
+			} else {
+				//add blacklist
+				log.Info("refreshPeerInfo", "AddBlacklist,peerName:", pInfo.GetName(), "version:", pInfo.GetVersion(), "runningTime:", pInfo.GetRunningTime())
+				p.P2PEnv.Host.Network().ClosePeer(peer.ID(pInfo.GetName()))
+				p.P2PEnv.ConnBlackList.Add(pInfo.GetName(), time.Hour*24)
+			}
+
 		}(remoteID)
 	}
 	wg.Wait()
