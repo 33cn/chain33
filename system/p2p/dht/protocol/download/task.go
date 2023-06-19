@@ -119,12 +119,21 @@ func (p *Protocol) checkTask(taskID string, pids []string, faildJobs map[string]
 func (p *Protocol) availbTask(ts tasks, blockheight int64) *taskInfo {
 
 	//TODO bug
-	var limit int
-	if len(ts) > 10 {
-		limit = 20 //节点数大于10，每个节点限制最大下载任务数为20个
-	} else {
-		limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
+	//var limit int
+	//if len(ts) > 10 {
+	//	limit = 20 //节点数大于10，每个节点限制最大下载任务数为20个
+	//} else {
+	//	limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
+	//}
+	limit := 128 / len(ts)
+	if limit < 20 {
+		limit = 20
 	}
+	if limit > 50 {
+		limit = 50
+	}
+	log.Debug("availbTask", " len(ts)", len(ts), "limit", limit)
+
 	for i, task := range ts {
 		//check blockHeight
 		peerHeight := p.PeerInfoManager.PeerHeight(task.Pid)
