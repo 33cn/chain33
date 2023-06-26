@@ -172,7 +172,7 @@ func (p *Protocol) handleEventDownloadBlock(msg *queue.Message) {
 
 	wg.Wait()
 	p.checkTask(taskID, pids, reDownload)
-	log.Info("Download Job Complete!", "TaskID++++++++++++++", taskID,
+	log.Debug("Download Job Complete!", "TaskID++++++++++++++", taskID,
 		"height diff", req.GetEnd()-req.GetStart()+1,
 		"cost time", fmt.Sprintf("cost time:%d ms", time.Since(startTime).Milliseconds()),
 		"from", pids,
