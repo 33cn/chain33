@@ -60,6 +60,7 @@ type BaseClient struct {
 	mulock       sync.Mutex
 	child        Miner
 	committer    Committer
+	finalizer    Finalizer
 	minerstartCB func()
 	isCaughtUp   int32
 	Context      context.Context
@@ -256,6 +257,11 @@ func (bc *BaseClient) ExecConsensus(data *types.ChainExecutor) (types.Message, e
 }
 
 func (bc *BaseClient) pubToSubModule(msg *queue.Message) {
+
+	if bc.finalizer != nil && bc.finalizer.ProcessMsg(msg) {
+		return
+	}
+
 	bc.child.ProcEvent(msg)
 	if bc.committer != nil {
 		bc.committer.SubMsg(msg)
