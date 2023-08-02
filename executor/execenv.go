@@ -477,7 +477,7 @@ func (e *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index
 	e.startTx()
 	receipt, err := e.Exec(tx, index)
 	if err != nil {
-		elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
+		elog.Error("execTxOne", "exec tx error", err, "exec", string(tx.Execer), "action", tx.ActionName())
 		//add error log
 		errlog := &types.ReceiptLog{Ty: types.TyLogErr, Log: []byte(err.Error())}
 		feelog.Logs = append(feelog.Logs, errlog)
@@ -632,7 +632,7 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	feelog, err = e.execTxOne(feelog, tx, index)
 	if err != nil {
 		e.rollback()
-		elog.Error("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
+		elog.Error("execTx", "index", index, "execer", string(tx.Execer), "err", err)
 	} else {
 		err := e.commit()
 		if err != nil {

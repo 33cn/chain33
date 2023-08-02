@@ -85,7 +85,8 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 		PeerInfoManager: &peerInfoManager{},
 	}
 	p2 := &Protocol{
-		P2PEnv: &env2,
+		P2PEnv:  &env2,
+		counter: NewCounter(),
 	}
 
 	client1.Sub("p2p")
