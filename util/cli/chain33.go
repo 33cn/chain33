@@ -254,9 +254,9 @@ func createFile(filename string) (*os.File, error) {
 func watching() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	log.Info("info:", "NumGoroutine:", runtime.NumGoroutine())
-	log.Info("info:", "Mem:", m.Sys/(1024*1024))
-	log.Info("info:", "HeapAlloc:", m.HeapAlloc/(1024*1024))
+	log.Info("GC runtime info:", "NumGoroutine:", runtime.NumGoroutine())
+	log.Info("GC runtime info:", "Mem:", m.Sys/(1024*1024))
+	log.Info("GC runtime info:", "HeapAlloc:", m.HeapAlloc/(1024*1024))
 }
 
 func pwd() string {
