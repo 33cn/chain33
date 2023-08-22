@@ -1,10 +1,17 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package consensus
 
-import "github.com/33cn/chain33/queue"
+import (
+	"github.com/33cn/chain33/queue"
+)
 
 // Finalizer block finalize
 type Finalizer interface {
-	Init(base *BaseClient, subCfg []byte)
+	Initialize(ctx *Context) error
+	Start() error
 	ProcessMsg(msg *queue.Message) (processed bool)
 }
 

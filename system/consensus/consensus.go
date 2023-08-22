@@ -62,3 +62,8 @@ func LoadCommiter(name string) Committer {
 
 	return committers[name]
 }
+
+// Context 共识相关依赖
+type Context struct {
+	Base *BaseClient
+}
