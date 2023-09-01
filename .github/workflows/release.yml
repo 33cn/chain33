@@ -18,18 +18,18 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: 'go.mod'
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 14
+#      - uses: actions/setup-node@v3
+#        with:
+#          node-version: 14
       - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v3
+        uses: cycjimmy/semantic-release-action@v4
         id: semantic
         with:
           branch: master
           extra_plugins: |
-            conventional-changelog/conventional-changelog-jshint
-            semantic-release-replace-plugin
-            @semantic-release/exec
+            conventional-changelog/conventional-changelog-jshint@4
+            semantic-release-replace-plugin@1.2.7
+            @semantic-release/exec@6
             @semantic-release/changelog@6
             @semantic-release/git@10
         env:
