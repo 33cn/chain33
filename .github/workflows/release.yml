@@ -25,7 +25,6 @@ jobs:
         uses: cycjimmy/semantic-release-action@v3
         id: semantic
         with:
-          semantic_version: 18
           branch: master
           extra_plugins: |
             conventional-changelog/conventional-changelog-jshint
