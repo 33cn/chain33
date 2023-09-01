@@ -496,7 +496,7 @@ func signTxsInFile(req *types.ReqSignRawTx, in, out, rpc string) {
 		ctx := jsonclient.NewRPCCtx(rpc, "Chain33.SignRawTx", req, &signTx)
 		_, err := ctx.RunResult()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Sprintf("signRawTx err, line:%d, err:%s", line, err.Error()))
+			fmt.Fprintf(os.Stderr, "signRawTx err, line:%d, err:%s \n", line, err.Error())
 			continue
 		}
 		signTxs = append(signTxs, signTx)
@@ -521,7 +521,7 @@ func writeLines(filename string, lines []string) error {
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 	if err != nil {
-		fmt.Fprintln(os.Stderr, fmt.Sprintf("writeLines open file err: %s", err.Error()))
+		fmt.Fprintf(os.Stderr, "writeLines open file err: %s \n", err.Error())
 		return err
 	}
 	defer file.Close()
@@ -540,7 +540,7 @@ func readLines(file string) []string {
 	var lines []string
 	readFile, err := os.Open(file)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, fmt.Sprintf("readLines open file err:%s", err.Error()))
+		fmt.Fprintf(os.Stderr, "readLines open file err:%s \n", err.Error())
 		return nil
 	}
 	defer readFile.Close()
@@ -672,7 +672,7 @@ func sendTxsInFile(req *rpctypes.RawParm, in, out, rpc string) {
 		ctx := jsonclient.NewRPCCtx(rpc, "Chain33.SendTransaction", req, &hash)
 		_, err := ctx.RunResult()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, fmt.Sprintf("Error sendTx, line:%d, err:%s", line, err.Error()))
+			fmt.Fprintf(os.Stderr, "Error sendTx, line:%d, err:%s \n", line, err.Error())
 			continue
 		}
 		hashes = append(hashes, hash)

@@ -23,13 +23,14 @@ jobs:
         uses: cycjimmy/semantic-release-action@v3
         id: semantic
         with:
+          semantic_version: 18
           branch: master
           extra_plugins: |
             conventional-changelog/conventional-changelog-jshint
             semantic-release-replace-plugin
             @semantic-release/exec
-            @semantic-release/changelog
-            @semantic-release/git
+            @semantic-release/changelog@6
+            @semantic-release/git@10
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
