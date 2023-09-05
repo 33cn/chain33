@@ -28,10 +28,10 @@ jobs:
           branch: master
           extra_plugins: |
             conventional-changelog/conventional-changelog-jshint
-            semantic-release-replace-plugin@1.2.7
-            @semantic-release/exec@6
-            @semantic-release/changelog@6
-            @semantic-release/git@10
+            semantic-release-replace-plugin
+            @semantic-release/exec
+            @semantic-release/changelog
+            @semantic-release/git
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
