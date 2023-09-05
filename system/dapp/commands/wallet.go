@@ -518,7 +518,7 @@ func writeLines(filename string, lines []string) error {
 		return nil
 	}
 
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(filename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "writeLines open file err: %s \n", err.Error())
