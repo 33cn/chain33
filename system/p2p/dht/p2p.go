@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -113,7 +114,7 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 	}
 	// set libp2p log
 	setLibp2pLog(mcfg.Libp2pLogFile, mcfg.Libp2pLogLevel)
-
+	ctx, cancel := context.WithCancel(context.Background())
 	p := &P2P{
 		client:   mgr.Client,
 		chainCfg: chainCfg,
@@ -123,14 +124,14 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 		api:      mgr.SysAPI,
 		addrBook: NewAddrBook(p2pCfg),
 		subChan:  mgr.PubSub.Sub(p2pty.DHTTypeName),
+		ctx:      ctx,
+		cancel:   cancel,
 	}
-
 	return initP2P(p)
 }
 
 func initP2P(p *P2P) *P2P {
 	//other init work
-	p.ctx, p.cancel = context.WithCancel(context.Background())
 	priv := p.addrBook.GetPrivkey()
 	if priv == nil { //addrbook存储的peer key 为空
 		if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
@@ -178,6 +179,7 @@ func initP2P(p *P2P) *P2P {
 func (p *P2P) StartP2P() {
 	if atomic.LoadInt32(&p.restart) == 1 {
 		log.Info("RestartP2P...")
+		p.ctx, p.cancel = context.WithCancel(context.Background())
 		initP2P(p) //重新创建host
 	}
 	atomic.StoreInt32(&p.restart, 0)
@@ -213,18 +215,18 @@ func (p *P2P) StartP2P() {
 // CloseP2P close p2p
 func (p *P2P) CloseP2P() {
 	log.Info("p2p closing")
-	p.discovery.Close()
 	p.cancel()
 	p.waitTaskDone()
 	p.db.Close()
-
 	protocol.ClearEventHandler()
 	if !p.isRestart() {
 		p.mgr.PubSub.Shutdown()
-
 	}
 	p.host.Close()
+	p.discovery.Close()
+
 	log.Info("p2p closed")
+
 }
 
 func (p *P2P) reStart() {
@@ -363,6 +365,7 @@ func (p *P2P) handleP2PEvent() {
 	for {
 		select {
 		case <-p.ctx.Done():
+			log.Info("handleP2PEvent close")
 			return
 		case data, ok := <-p.subChan:
 			if !ok {
@@ -413,7 +416,6 @@ func (p *P2P) waitTaskDone() {
 
 // 创建空投地址
 func (p *P2P) genAirDropKey() {
-
 	for { //等待钱包创建，解锁
 		select {
 		case <-p.ctx.Done():
@@ -435,7 +437,6 @@ func (p *P2P) genAirDropKey() {
 		}
 		break
 	}
-
 	//用助记词和随机索引创建空投地址
 	r := rand.New(rand.NewSource(types.Now().Unix()))
 	var minIndex int32 = 100000000
@@ -446,7 +447,6 @@ func (p *P2P) genAirDropKey() {
 		log.Error("genAirDropKey", "NewAccountByIndex err", err)
 		return
 	}
-
 	var walletPrivkey string
 	if reply, ok := msg.(*types.ReplyString); !ok {
 		log.Error("genAirDropKey", "wrong format data", "")
@@ -461,6 +461,7 @@ func (p *P2P) genAirDropKey() {
 
 	walletPubkey, err := GenPubkey(walletPrivkey)
 	if err != nil {
+
 		return
 	}
 	//如果addrbook之前保存的savePrivkey相同，则意味着节点启动之前已经创建了airdrop 空投地址
@@ -469,7 +470,6 @@ func (p *P2P) genAirDropKey() {
 		log.Debug("genAirDropKey", " same privekey ,process done")
 		return
 	}
-
 	if len(savePrivkey) != 2*privKeyCompressBytesLen { //非压缩私钥,兼容之前老版本的DHT非压缩私钥
 		log.Debug("len savePrivkey", len(savePrivkey))
 		unCompkey := p.addrBook.GetPrivkey()
@@ -493,6 +493,9 @@ func (p *P2P) genAirDropKey() {
 		parm.Privkey = savePrivkey
 		parm.Label = "dht node award"
 
+		if strings.ToUpper(p.chainCfg.GetModuleConfig().Address.DefaultDriver) == "ETH" {
+			parm.AddressID = 2 //eth address type
+		}
 		for {
 			_, err = p.api.ExecWalletFunc("wallet", "WalletImportPrivkey", &parm)
 			if err == types.ErrLabelHasUsed {

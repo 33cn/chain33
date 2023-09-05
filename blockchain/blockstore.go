@@ -662,7 +662,7 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 	rawBytes, err := bs.db.Get(cfg.CalcTxKey(hash))
 	if rawBytes == nil || err != nil {
 		//查询eth 交易哈希对应的Chin33的交易
-		realHash, etxerr := bs.db.Get(cfg.CalcEtxKey(hash))
+		realHash, etxerr := bs.db.Get(cfg.CalcEthTxKey(hash))
 		if etxerr == nil && realHash != nil { // 查到eth txhash 映射关系
 			rawBytes, err = bs.db.Get(cfg.CalcTxKey(realHash))
 		}
@@ -799,7 +799,7 @@ func (bs *BlockStore) GetBlockHashByHeight(height int64) ([]byte, error) {
 	hash, err := bs.db.Get(calcHeightToHashKey(height))
 	if hash == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("GetBlockHashByHeight", "error", err)
+			storeLog.Error("GetBlockHashByHeight", "height", height, "error", err)
 		}
 		return nil, types.ErrHeightNotExist
 	}
@@ -1168,7 +1168,7 @@ func (bs *BlockStore) GetDbVersion() int64 {
 	return ver.Data
 }
 
-//SetDbVersion 获取blockchain的数据库版本号
+//SetDbVersion 设置blockchain的数据库版本号
 func (bs *BlockStore) SetDbVersion(versionNo int64) error {
 	ver := types.Int64{Data: versionNo}
 	verByte := types.Encode(&ver)

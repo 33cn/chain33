@@ -81,6 +81,7 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	pool.removeBlockTicket = time.NewTicker(time.Minute)
 	pool.cache = newCache(cfg.MaxTxNumPerAccount, cfg.MaxTxLast, cfg.PoolCacheSize)
 	pool.delayTxListChan = make(chan []*types.Transaction, 16)
+
 	return pool
 }
 
@@ -176,11 +177,10 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 		return true
 	})
 
-	if mem.cfg.EnableEthCheck {
+	if mem.client.GetConfig().IsFork(mem.header.GetHeight(), "ForkCheckEthTxSort") {
 		//对txs 进行排序
 		txs = mem.sortEthSignTyTx(txs)
 	}
-
 	return txs
 }
 

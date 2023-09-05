@@ -69,6 +69,8 @@ func WithEventOptInline(handler *EventHandler) error {
 
 // RegisterEventHandler registers a handler with an event ID.
 func RegisterEventHandler(eventID int64, cb EventHandlerFunc, opts ...EventOpt) {
+	mu.Lock()
+	defer mu.Unlock()
 	if cb == nil {
 		panic(fmt.Sprintf("addEventHandler, handler is nil, id=%d", eventID))
 	}

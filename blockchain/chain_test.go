@@ -1040,7 +1040,6 @@ func testCheckBestChainProc(t *testing.T, cfg *types.Chain33Config, blockchain *
 	blockchain.CheckBestChain(true)
 	blockchain.GetNtpClockSyncStatus()
 	blockchain.UpdateNtpClockSyncStatus(true)
-	blockchain.IsErrExecBlock(curheight, block.Block.Hash(cfg))
 	chainlog.Debug("testCheckBestChainProc end --------------------")
 }
 

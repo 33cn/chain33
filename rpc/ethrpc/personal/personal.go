@@ -44,7 +44,10 @@ func (p *personalHandler) ListAccounts() ([]string, error) {
 	accountsList := msg.(*ctypes.WalletAccounts)
 	var accounts []string
 	for _, wallet := range accountsList.Wallets {
-		accounts = append(accounts, wallet.GetAcc().GetAddr())
+		if common.IsHex(wallet.GetAcc().GetAddr()) {
+			accounts = append(accounts, wallet.GetAcc().GetAddr())
+		}
+
 	}
 
 	return accounts, nil
@@ -75,7 +78,7 @@ func (p *personalHandler) UnlockAccount(account, passwd string, duration int64) 
 
 //ImportRawKey personal_importRawKey
 func (p *personalHandler) ImportRawKey(keydata, label string) (string, error) {
-	req := &ctypes.ReqWalletImportPrivkey{Privkey: keydata, Label: label}
+	req := &ctypes.ReqWalletImportPrivkey{Privkey: keydata, Label: label, AddressID: 2}
 	resp, err := p.cli.ExecWalletFunc("wallet", "WalletImportPrivkey", req)
 	if err != nil {
 		log.Error("personal_importRawKey", "err", err)

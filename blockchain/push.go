@@ -729,7 +729,7 @@ func (push *Push) getEVMEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 	totalSize := 0
 	actualIterCount := 0
 	for i := startSeq; i < startSeq+int64(seqCount); i++ {
-		chainlog.Info("getEVMEvent", "startSeq:", i)
+		chainlog.Debug("getEVMEvent", "startSeq:", i)
 		seqdata, err := push.sequenceStore.GetBlockSequence(i)
 		if err != nil {
 			return nil, -1, err
@@ -740,7 +740,7 @@ func (push *Push) getEVMEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 		}
 
 		evmLogsPerBlk := &types.EVMTxLogPerBlk{}
-		chainlog.Info("getEVMEvent", "height:", detail.Block.Height, "tx numbers:", len(detail.Block.Txs),
+		chainlog.Debug("getEVMEvent", "height:", detail.Block.Height, "tx numbers:", len(detail.Block.Txs),
 			"Receipts numbers:", len(detail.Receipts))
 		for txIndex, tx := range detail.Block.Txs {
 			//确认是订阅的交易类型
@@ -754,7 +754,7 @@ func (push *Push) getEVMEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 				continue
 			}
 			if subscribe.Contract[evmAction.ContractAddr] {
-				chainlog.Info("getEVMEvent", "txIndex:", txIndex)
+				chainlog.Debug("getEVMEvent", "txIndex:", txIndex)
 				//因为只有交易执行成功时，才会存证log信息，所以需要事先判断
 				if types.ExecOk != detail.Receipts[txIndex].Ty {
 					continue

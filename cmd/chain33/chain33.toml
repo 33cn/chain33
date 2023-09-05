@@ -18,6 +18,9 @@ secp256k1=0
 #兼容EVM链的链ID
 evmChainID=3999
 
+[address]
+defaultDriver="btc"
+
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
 loglevel = "debug"
@@ -100,6 +103,7 @@ waitPid=false
 [p2p.sub.dht]
 seeds=[]
 port=13803
+verLimit=""
 
 
 [rpc]
@@ -121,6 +125,10 @@ certFile="cert.pem"
 keyFile="key.pem"
 
 [rpc.sub.eth]
+#true 启用兼容eth模式
+enable=false
+# true:返回eth 交易哈希，false:返回chain33 交易哈希
+enableRlpTxHash=false
 httpAddr="localhost:8545"
 httpApi=["eth","web3","personal","admin","net"]
 # websocket 绑定地址

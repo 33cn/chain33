@@ -336,8 +336,8 @@ func (chain *BlockChain) fetchPeerList() error {
 
 	var peerInfoList PeerInfoList
 	for _, peer := range peerlist.GetPeers() {
-		//过滤掉自己和小于自己5个高度的节点
-		if peer == nil || peer.Self || curheigt > peer.Header.Height+5 {
+		//过滤掉自己和小于自己128高度的节点
+		if peer == nil || peer.Self || curheigt > peer.Header.Height+128 {
 			continue
 		}
 		var peerInfo PeerInfo
@@ -527,20 +527,6 @@ func (chain *BlockChain) IsFaultPeer(pid string) bool {
 	return chain.faultPeerList[pid] != nil
 }
 
-//IsErrExecBlock 判断此block是否被记录在本节点执行错误。
-func (chain *BlockChain) IsErrExecBlock(height int64, hash []byte) (bool, error) {
-	chain.faultpeerlock.Lock()
-	defer chain.faultpeerlock.Unlock()
-
-	//循环遍历故障peerlist，尝试检测故障peer是否已经恢复
-	for _, faultpeer := range chain.faultPeerList {
-		if faultpeer.FaultHeight == height && bytes.Equal(hash, faultpeer.FaultHash) {
-			return true, faultpeer.ErrInfo
-		}
-	}
-	return false, nil
-}
-
 //GetFaultPeer 获取指定pid是否在故障faultPeerList中
 func (chain *BlockChain) GetFaultPeer(pid string) *FaultPeerInfo {
 	chain.faultpeerlock.Lock()
@@ -717,9 +703,9 @@ func (chain *BlockChain) forkChainDetection(prevMode int) {
 		return
 	}
 
-	activePeer := chain.getActivePeersByHeight(cmpPeer.Height)
-	chainlog.Debug("forkDetect", "activePeer", len(activePeer))
-	if len(activePeer) <= 0 {
+	activePeers := chain.getActivePeersByHeight(cmpPeer.Height)
+	chainlog.Debug("forkDetect", "forkHeight", forkHeight, "peerCount", len(activePeers))
+	if len(activePeers) <= 0 {
 		return
 	}
 
@@ -746,9 +732,10 @@ func (chain *BlockChain) forkChainDetection(prevMode int) {
 		chainlog.Info("forkDetectBlkHeightIncreased", "prev", localHeight, "curr", chain.GetBlockHeight())
 		return
 	}
-
-	chainlog.Info("forkDetectDownBlk", "localHeight", localHeight, "forkHeight", forkHeight, "peers", len(activePeer))
-	go chain.ProcDownLoadBlocks(forkHeight, localHeight+1, activePeer)
+	// 检测到存在分叉后, 以最近高度作为结束高度
+	endHeight := cmpPeer.Height - BackBlockNum + 1
+	chainlog.Info("forkDetectDownBlk", "localHeight", localHeight, "endHeight", endHeight, "peers", len(activePeers))
+	go chain.ProcDownLoadBlocks(forkHeight, endHeight, activePeers)
 
 }
 
@@ -770,11 +757,11 @@ func (chain *BlockChain) CheckHeightNoIncrease() {
 
 	mode := chain.GetDownloadSyncStatus()
 	chainlog.Debug("CheckHeightNoIncrease", "localHeight", localHeight, "downMode", mode)
-	if mode == forkChainDetectMode {
-		return
+	// 常规同步模式下, 区块高度不变化, 尝试分叉检测
+	if mode == normalDownLoadMode {
+		chain.UpdateDownloadSyncStatus(forkChainDetectMode)
+		chain.forkChainDetection(mode)
 	}
-	chain.UpdateDownloadSyncStatus(forkChainDetectMode)
-	chain.forkChainDetection(mode)
 }
 
 //FetchBlockHeaders 从指定pid获取start到end之间的headers

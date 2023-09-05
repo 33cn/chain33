@@ -160,6 +160,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	if cfg.GetModuleConfig().Exec.DisableTxDupCheck {
 		return txs, nil
 	}
+
 	if cfg.IsFork(height, "ForkCheckTxDup") {
 		txs = DelDupTx(txs)
 	}
@@ -179,6 +180,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	if err != nil {
 		return nil, err
 	}
+
 	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
 	dupMap := make(map[string]bool)
 	for _, hash := range dupTxs {

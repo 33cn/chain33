@@ -24,7 +24,7 @@ func Test_handleBroadcastReply(t *testing.T) {
 
 	val := newValidator(newTestPubSub())
 	reply := &types.Reply{IsOk: true}
-	val.handleBroadcastReply(reply, nil)
+	val.handleBroadcastReply(reply, &broadcastMsg{})
 	require.Equal(t, 0, len(val.deniedPeers))
 	reply.IsOk = false
 	reply.Msg = []byte(types.ErrMemFull.Error())
@@ -34,21 +34,30 @@ func Test_handleBroadcastReply(t *testing.T) {
 	reply.Msg = []byte(types.ErrNoBalance.Error())
 	val.handleBroadcastReply(reply, msg)
 	require.Equal(t, 1, len(val.deniedPeers))
-	endTime, ok := val.deniedPeers["testpid1"]
+	info, ok := val.deniedPeers["testpid1"]
 	require.True(t, ok)
-	require.True(t, endTime <= types.Now().Unix()+errTxDenyTime)
+	require.Equal(t, 1, info.count)
 }
 
 func Test_deniedPeerMethod(t *testing.T) {
 
 	val := newValidator(newTestPubSub())
 	val.addDeniedPeer("testpid1", 0)
-	val.addDeniedPeer("testpid2", 2)
+	val.addDeniedPeer("testpid2", 10)
 	require.False(t, val.isDeniedPeer("testpid1"))
 	require.True(t, val.isDeniedPeer("testpid2"))
 	require.Equal(t, 2, len(val.deniedPeers))
 	val.recoverDeniedPeers()
+	require.Equal(t, 2, len(val.deniedPeers))
+	val.reduceDeniedCount("testpid1")
+	val.recoverDeniedPeers()
 	require.Equal(t, 1, len(val.deniedPeers))
+	info := val.deniedPeers["testpid2"]
+	currFreeTimestamp := info.freeTimestamp
+	val.addDeniedPeer("testpid2", 1)
+	val.addDeniedPeer("testpid2", 1)
+	require.Equal(t, 3, info.count)
+	require.Equal(t, currFreeTimestamp+4+8, info.freeTimestamp)
 }
 
 func Test_broadcastMsg(t *testing.T) {

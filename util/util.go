@@ -436,6 +436,8 @@ func PreExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block,
 				rd.OutputReceiptDetails(block.Txs[i].Execer, ulog)
 			}
 		}
+		ulog.Error("PreExecBlock ErrCheckStateHash", "height", block.Height,
+			"calcHash", common.ToHex(stateHash), "recvHash", common.ToHex(block.StateHash))
 		return nil, nil, types.ErrCheckStateHash
 	}
 	block.StateHash = stateHash

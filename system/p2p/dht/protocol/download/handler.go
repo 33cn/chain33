@@ -3,7 +3,6 @@ package download
 import (
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/33cn/chain33/queue"
@@ -100,6 +99,7 @@ func (p *Protocol) handleStreamDownloadBlockOld(stream network.Stream) {
 }
 
 func (p *Protocol) handleEventDownloadBlock(msg *queue.Message) {
+	var startTime = time.Now()
 	req := msg.GetData().(*types.ReqBlocks)
 	if req.GetStart() > req.GetEnd() {
 		log.Error("handleEventDownloadBlock", "download start", req.GetStart(), "download end", req.GetEnd())
@@ -123,18 +123,21 @@ func (p *Protocol) handleEventDownloadBlock(msg *queue.Message) {
 	log.Debug("handleEventDownloadBlock", "jobs", jobS)
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
-	var maxGoroutine int32
+	//var maxGoroutine int32
 	var reDownload = make(map[string]interface{})
-	var startTime = time.Now().UnixNano()
 
 	for height := req.GetStart(); height <= req.GetEnd(); height++ {
 		wg.Add(1)
-	Wait:
-		if atomic.LoadInt32(&maxGoroutine) > 50 {
-			time.Sleep(time.Millisecond * 200)
-			goto Wait
-		}
-		atomic.AddInt32(&maxGoroutine, 1)
+
+		//Wait:
+		//	//TODO bug 50这个值，参考标准是什么？
+		//	if atomic.LoadInt32(&maxGoroutine) > 50 {
+		//		time.Sleep(time.Millisecond * 200)
+		//		goto Wait
+		//	}
+		//	atomic.AddInt32(&maxGoroutine, 1)
+
+		//一个高度对应一个任务
 		go func(blockheight int64, tasks tasks) {
 			err := p.downloadBlock(blockheight, tasks)
 			if err != nil {
@@ -161,7 +164,7 @@ func (p *Protocol) handleEventDownloadBlock(msg *queue.Message) {
 				}
 			}
 			wg.Done()
-			atomic.AddInt32(&maxGoroutine, -1)
+			//atomic.AddInt32(&maxGoroutine, -1)
 
 		}(height, jobS)
 
@@ -170,7 +173,10 @@ func (p *Protocol) handleEventDownloadBlock(msg *queue.Message) {
 	wg.Wait()
 	p.checkTask(taskID, pids, reDownload)
 	log.Debug("Download Job Complete!", "TaskID++++++++++++++", taskID,
-		"cost time", fmt.Sprintf("cost time:%d ms", (time.Now().UnixNano()-startTime)/1e6),
-		"from", pids)
-
+		"height diff", req.GetEnd()-req.GetStart()+1,
+		"cost time", fmt.Sprintf("cost time:%d ms", time.Since(startTime).Milliseconds()),
+		"from", pids,
+		"pids count", len(pids),
+	)
+	p.counter.Release(taskID)
 }

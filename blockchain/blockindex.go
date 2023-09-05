@@ -23,6 +23,7 @@ type blockNode struct {
 	pid        string
 	sequence   int64
 	BlockTime  int64
+	errLog     error
 }
 
 type blockIndex struct {
