@@ -66,6 +66,18 @@ jobs:
         if: success()
         run: bash <(curl -s https://codecov.io/bash)
 
+  build-with-latest-go-version:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 'stable'
+      - run: make build
+
+
   deploy:
     name: deploy
     runs-on: ubuntu-20.04
