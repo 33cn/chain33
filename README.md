@@ -7,7 +7,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 [![codecov](https://codecov.io/gh/33cn/chain33/branch/master/graph/badge.svg)](https://codecov.io/gh/33cn/chain33) [![Join the chat at https://gitter.im/33cn/Lobby](https://badges.gitter.im/33cn/Lobby.svg)](https://gitter.im/33cn/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 
-# Chain33 区块链开发框架 
+# Chain33 区块链开发框架
 
 高度模块化, 遵循 KISS原则的区块链开发框架
 
@@ -27,7 +27,7 @@ chain33背后故事: [chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR
 
 # bug 奖励
 
-我们会对bug 评价4个等级(不会奖励人民币，等值虚拟资产)。 
+我们会对bug 评价4个等级(不会奖励人民币，等值虚拟资产)。
 只有影响现有在线运行系统的，并且会产生严重分叉等行为的，才会评价为 L3
 
 ```
@@ -37,9 +37,9 @@ L2 10000
 L3 20000
 ```
 
-## Building from source 
+## Building from source
 
-环境要求: Go 1.16 or later
+环境要求: Go 1.19+
 
 编译:
 
@@ -88,7 +88,7 @@ $ chain33 -f chain33.toml
 注意：这里要 clone 到 $GOPATH/src/github.com/33cn/chain33, 否则go 包路径会找不到
 ```
 
-* 添加 `33cn/chain33` 远端分支： `git remote add upstream https://github.com/33cn/chain33.git`  我已经把这个加入了 Makefile 可以直接 运行 `make addupstream` 
+* 添加 `33cn/chain33` 远端分支： `git remote add upstream https://github.com/33cn/chain33.git`  我已经把这个加入了 Makefile 可以直接 运行 `make addupstream`
 
 * 保持 `33cn/chain33` 和 `vipwzw/chain33` master 分支的同步，可以直接跑 `make sync` , 或者执行下面的命令
 
@@ -144,7 +144,7 @@ make addupstream
 make branch b=mydevbranchname
 ```
 
-#### 开发完成: push 
+#### 开发完成: push
 
 ```
 make push b=mydevbranchname m="这个提交的信息"
@@ -170,7 +170,7 @@ make pull name=libangzhu b=chain33-p2p-listenPort
 make pullpush name=libangzhu b=chain33-p2p-listenPort
 ```
 
-## License 
+## License
 
 ```
 BSD 3-Clause License
