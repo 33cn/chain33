@@ -1,7 +1,11 @@
 package mempool
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"math/big"
+	"sort"
 	"sync/atomic"
 	"time"
 
@@ -198,6 +202,15 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 		}
 	}
 
+	//检查mempool内是否有相同的tx.nonce
+	if types.IsEthSignID(tx.Tx().GetSignature().GetTy()) {
+		err = mem.evmTxNonceCheck(tx.Tx())
+		if err != nil {
+			msg.Data = err
+			return msg
+		}
+	}
+
 	err = mem.PushTx(tx.Tx())
 	if err != nil {
 		if err == types.ErrMemFull {
@@ -208,4 +221,50 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 		msg.Data = err
 	}
 	return msg
+}
+
+//evmTxNonceCheck 检查eth noce 是否有重复值，如果有的话，需要比较txFee大小，用于替换较小的fee的那笔交易
+func (mem *Mempool) evmTxNonceCheck(tx *types.Transaction) error {
+	if tx.GetNonce() < mem.getCurrentNonce(tx.From()) {
+		return errors.New("nonce too low")
+	}
+	details := mem.GetAccTxs(&types.ReqAddrs{Addrs: []string{tx.From()}})
+	txs := details.GetTxs()
+	txs = append(txs, &types.TransactionDetail{Tx: tx, Index: int64(len(txs))})
+	if len(txs) > 1 {
+		sort.SliceStable(txs, func(i, j int) bool { //nonce asc
+			return txs[i].Tx.GetNonce() < txs[j].Tx.GetNonce()
+		})
+		//遇到相同的Nonce ,较低的手续费的交易将被删除
+		for i, stx := range txs {
+			if bytes.Equal(stx.Tx.Hash(), tx.Hash()) {
+				continue
+			}
+			if txs[i].GetTx().GetNonce() == tx.GetNonce() {
+				//step1 先比较交易创建的时间，后创建的交易要求比前面的交易手续费更高，否则直接删除
+				if tx.Expire > txs[i].GetTx().Expire {
+					bnfee := big.NewInt(txs[i].GetTx().Fee)
+					//相同的nonce，fee 必须提升至1.1 倍 才能有效替换之前的交易
+					bnfee = bnfee.Mul(bnfee, big.NewInt(110))
+					bnfee = bnfee.Div(bnfee, big.NewInt(1e2))
+					if tx.Fee < bnfee.Int64() {
+						err := fmt.Errorf("requires at least 10 percent increase in handling fee,need more:%d", bnfee.Int64()-tx.Fee)
+						mlog.Error("checkTxNonce", "fee err", err, "txfee", tx.Fee, "mempooltx", txs[0].GetTx().Fee, "from:", tx.From())
+						return err
+					}
+
+				}
+				//删除Expire 较大的交易或者更低手续费的交易,确保先创建的交易留在mempool 中
+				mem.RemoveTxs(&types.TxHashList{
+					Hashes: [][]byte{txs[i].GetTx().Hash()},
+				})
+
+				return nil
+			}
+		}
+
+	}
+
+	return nil
+
 }
