@@ -60,6 +60,8 @@ func TestRelayV2(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	ctx = network.WithUseTransient(ctx, "test")
+
 	unreachable1, err := libp2p.New(
 		libp2p.NoListenAddrs,
 		libp2p.EnableRelay(),
