@@ -69,7 +69,7 @@ jobs:
   build-with-latest-stable-go-version:
     strategy:
       matrix:
-        os: [ windows2019, ubuntu-20.04, macos-12 ]
+        os: [ ubuntu-20.04, macos-12 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -80,8 +80,7 @@ jobs:
           go-version: 'oldstable'
       - run: |
           go env
-          go build -o build/chain33 github.com/33cn/chain33/cmd/chain33
-          go build -o build/cli github.com/33cn/chain33/cmd/cli
+          make build
 
 
   deploy:
