@@ -99,13 +99,16 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 }
 
 // MonitorAllPeers monitory all peers
-func (s *ConnManager) MonitorAllPeers() {
+func (s *ConnManager) MonitorAllPeers(wg *sync.WaitGroup) {
 	ticker1 := time.NewTicker(time.Minute)
 	defer ticker1.Stop()
 	ticker2 := time.NewTicker(time.Minute * 2)
 	defer ticker2.Stop()
 	ticker3 := time.NewTicker(time.Second * 5)
 	defer ticker3.Stop()
+
+	wg.Add(1)
+	defer wg.Done()
 
 	for {
 		select {
