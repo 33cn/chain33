@@ -230,7 +230,6 @@ func (p *P2P) CloseP2P() {
 }
 
 func (p *P2P) reStart() {
-
 	if p.host == nil {
 		return
 	}
@@ -303,8 +302,9 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 }
 
 func (p *P2P) managePeers() {
-	go p.connManager.MonitorAllPeers()
-
+	go p.connManager.MonitorAllPeers(p.taskGroup)
+	p.taskGroup.Add(1)
+	defer p.taskGroup.Done()
 	for {
 		log.Debug("managePeers", "table size", p.discovery.RoutingTable().Size())
 		select {
@@ -338,6 +338,9 @@ func (p *P2P) findLANPeers() {
 		return
 	}
 
+	p.taskGroup.Add(1)
+	defer p.taskGroup.Done()
+
 	for {
 		select {
 		case neighbors := <-peerChan:
@@ -360,6 +363,8 @@ func (p *P2P) findLANPeers() {
 
 func (p *P2P) handleP2PEvent() {
 
+	p.taskGroup.Add(1)
+	defer p.taskGroup.Done()
 	for {
 		select {
 		case <-p.ctx.Done():
@@ -414,6 +419,8 @@ func (p *P2P) waitTaskDone() {
 
 // 创建空投地址
 func (p *P2P) genAirDropKey() {
+	p.taskGroup.Add(1)
+	defer p.taskGroup.Done()
 	for { //等待钱包创建，解锁
 		select {
 		case <-p.ctx.Done():
