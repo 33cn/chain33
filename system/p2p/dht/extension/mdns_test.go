@@ -2,6 +2,7 @@ package extension
 
 import (
 	"context"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"testing"
 	"time"
 
@@ -24,8 +25,9 @@ func Test_mdns(t *testing.T) {
 	select {
 	case peerinfo := <-tmdns.PeerChan():
 		t.Log("findMdns", peerinfo.ID)
-	case <-time.After(time.Second * 10):
+	case <-time.After(time.Second * 5):
 		return
 	}
+	tmdns.notifee.HandlePeerFound(peer.AddrInfo{})
 
 }

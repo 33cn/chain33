@@ -2,6 +2,7 @@ package dht
 
 import (
 	"context"
+	"time"
 
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
@@ -11,7 +12,7 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig) {
+func initInnerPeers(ctx context.Context, host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSubConfig) {
 
 	for _, node := range cfg.Seeds {
 		info := genAddrInfo(node)
@@ -57,7 +58,7 @@ func initInnerPeers(host host.Host, peersInfo []peer.AddrInfo, cfg *p2pty.P2PSub
 			//加保护
 			host.ConnManager().Protect(info.ID, "relayNode")
 			//向中继节点申请一个通信插槽，以便通过中继节点连接到自己
-			extension.MakeNodeRelayClient(host, info)
+			go extension.ReserveRelaySlot(ctx, host, *info, time.Minute)
 
 		}
 	}

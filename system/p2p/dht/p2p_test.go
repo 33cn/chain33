@@ -428,6 +428,7 @@ func Test_p2p(t *testing.T) {
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
 	datadir := util.ResetDatadir(cfg.GetModuleConfig(), "$TEMP/")
+	setLibp2pLog(cfg.GetModuleConfig().Log.LogFile, "")
 	cfg.GetModuleConfig().Log.LogFile = ""
 	cfg.GetModuleConfig().Address.DefaultDriver = "BTC"
 	q.SetConfig(cfg)
@@ -469,5 +470,6 @@ func Test_p2p(t *testing.T) {
 	tcfg.DbCache = 4
 	tcfg.DbPath = filepath.Join(datadir, "addrbook")
 	testAddrbook(t, &tcfg)
+	dhtp2p.reStart()
 	p2p.CloseP2P()
 }
