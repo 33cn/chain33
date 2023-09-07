@@ -132,6 +132,8 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 
 func initP2P(p *P2P) *P2P {
 	//other init work
+	p.taskGroup = &sync.WaitGroup{}
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 	priv := p.addrBook.GetPrivkey()
 	if priv == nil { //addrbook存储的peer key 为空
 		if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
@@ -169,7 +171,6 @@ func initP2P(p *P2P) *P2P {
 	p.discovery = InitDhtDiscovery(p.ctx, p.host, p.addrBook.AddrsInfo(), p.chainCfg, p.subCfg)
 	p.connManager = manage.NewConnManager(p.ctx, p.host, p.discovery.RoutingTable(), bandwidthTracker, p.subCfg)
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
-	p.taskGroup = &sync.WaitGroup{}
 
 	p.db = newDB("", p.p2pCfg.Driver, filepath.Dir(p.p2pCfg.DbPath), p.subCfg.DHTDataCache)
 	return p
@@ -179,7 +180,6 @@ func initP2P(p *P2P) *P2P {
 func (p *P2P) StartP2P() {
 	if atomic.LoadInt32(&p.restart) == 1 {
 		log.Info("RestartP2P...")
-		p.ctx, p.cancel = context.WithCancel(context.Background())
 		initP2P(p) //重新创建host
 	}
 	atomic.StoreInt32(&p.restart, 0)
