@@ -15,7 +15,7 @@ import (
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
-var log = log15.New("module", "pubsub")
+var log = log15.New("module", "extension")
 
 var setOnce sync.Once
 

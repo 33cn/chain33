@@ -28,7 +28,7 @@ func (n *discoveryNotifee) HandlePeerFound(pi peer.AddrInfo) {
 func NewMDNS(ctx context.Context, peerhost host.Host, serviceTag string) (*MDNS, error) {
 	//register with service so that we get notified about peer discovery
 	notifee := &discoveryNotifee{}
-	notifee.PeerChan = make(chan peer.AddrInfo)
+	notifee.PeerChan = make(chan peer.AddrInfo, 1)
 	ser := discovery.NewMdnsService(peerhost, serviceTag, notifee)
 	mnds := new(MDNS)
 	mnds.Service = ser

@@ -49,26 +49,28 @@ func MakeNodeRelayService(host host.Host, opts []circuit.Option) *Relay {
 	return r
 }
 
-func MakeNodeRelayClient(host host.Host, relayInfo *peer.AddrInfo) {
+// ReserveRelaySlot reserve relay slot
+func ReserveRelaySlot(ctx context.Context, host host.Host, relayInfo peer.AddrInfo, timeout time.Duration) {
 	//向中继节点申请一个通信插槽
-	rs, err := circuitClient.Reserve(context.Background(), host, *relayInfo)
-	if err != nil {
-		return
-	}
-	go func(reserve *circuitClient.Reservation) {
-		var ticker = time.NewTicker(time.Second * 5)
-		for {
-			select {
-			case <-ticker.C:
-				if reserve.Expiration.Before(time.Now()) {
-					reserve, err = circuitClient.Reserve(context.Background(), host, *relayInfo)
-					if err != nil {
-						return
-					}
+
+	var ticker = time.NewTicker(timeout)
+	var err error
+	var reserve *circuitClient.Reservation
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			if reserve == nil || reserve.Expiration.Before(time.Now()) {
+				reserve, err = circuitClient.Reserve(context.Background(), host, relayInfo)
+				if err != nil {
+					log.Error("ReserveRelaySlot", "err", err)
+					return
 				}
 			}
 		}
-	}(rs)
+	}
 
 }
 

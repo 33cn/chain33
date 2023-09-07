@@ -48,7 +48,7 @@ func Test_initInnerPeers(t *testing.T) {
 	subcfg.RelayEnable = true
 	subcfg.RelayNodeAddr = []string{h0str}
 	peerinfo := []peer.AddrInfo{{ID: h7.ID, Addrs: h7.Addrs}}
-	initInnerPeers(hosts[5], peerinfo, subcfg)
+	initInnerPeers(ctx, hosts[5], peerinfo, subcfg)
 	hosts[5].Close()
 
 }

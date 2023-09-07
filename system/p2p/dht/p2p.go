@@ -230,14 +230,12 @@ func (p *P2P) CloseP2P() {
 }
 
 func (p *P2P) reStart() {
-	atomic.StoreInt32(&p.restart, 1)
-	log.Info("reStart p2p")
+
 	if p.host == nil {
-		//说明p2p还没有开始启动，无需重启
-		log.Info("p2p no need restart...")
-		atomic.StoreInt32(&p.restart, 0)
 		return
 	}
+	atomic.StoreInt32(&p.restart, 1)
+	log.Info("reStart p2p")
 	p.CloseP2P()
 	p.StartP2P()
 }

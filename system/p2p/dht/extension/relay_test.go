@@ -7,8 +7,6 @@ import (
 
 	ma "github.com/multiformats/go-multiaddr"
 
-	"github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
-
 	"github.com/libp2p/go-libp2p/core/network"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -103,12 +101,11 @@ func TestRelayV2(t *testing.T) {
 	err = unreachable2.Connect(ctx, relayInfo)
 	assert.Nil(t, err)
 
+	go ReserveRelaySlot(ctx, unreachable1, unreachable2info, time.Millisecond)
+
 	//unreachable2 向中继节点申请一个中继槽slot
-	reserve, err := client.Reserve(ctx, unreachable2, relayInfo)
-	assert.Nil(t, err)
-	if reserve.Expiration.Before(time.Now()) {
-		client.Reserve(ctx, unreachable2, relayInfo)
-	}
+	go ReserveRelaySlot(ctx, unreachable2, relayInfo, time.Millisecond*100)
+	time.Sleep(time.Second)
 	relayaddr, err := MakeRelayAddrs(relayInfo.ID.String(), unreachable2.ID().String())
 	assert.Nil(t, err)
 	t.Log("relayaddr:", relayaddr)
