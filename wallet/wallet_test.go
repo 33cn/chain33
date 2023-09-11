@@ -878,16 +878,17 @@ func testSendTx(t *testing.T, wallet *Wallet) {
 
 	_, err = wallet.GetAllPrivKeys()
 	assert.NoError(t, err)
-	hash, err := wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("coins"), priv, ToAddr1)
+
+	hash, err := wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("coins"), priv, address.GetDefaultAddressID(), ToAddr1)
 	assert.NoError(t, err)
 
 	//wallet.WaitTx(hash)
 	wallet.WaitTxs([][]byte{hash})
-	hash, err = wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
+	hash, err = wallet.SendTransaction(&types.ReceiptAccountTransfer{}, []byte("test"), priv, address.GetDefaultAddressID(), ToAddr1)
 	assert.NoError(t, err)
 	t.Log(common.ToHex(hash))
 
-	err = wallet.sendTransactionWait(&types.ReceiptAccountTransfer{}, []byte("test"), priv, ToAddr1)
+	err = wallet.sendTransactionWait(&types.ReceiptAccountTransfer{}, []byte("test"), priv, address.GetDefaultAddressID(), ToAddr1)
 	assert.NoError(t, err)
 
 	_, err = wallet.getMinerColdAddr(addr)

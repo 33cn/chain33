@@ -31,14 +31,13 @@ import (
 )
 
 type ethHandler struct {
-	cli              rpcclient.ChannelClient
-	cfg              *ctypes.Chain33Config
-	grpcCli          ctypes.Chain33Client
-	filtersMu        sync.Mutex
-	filters          map[rpc.ID]*filter
-	evmChainID       int64
-	filterTimeout    time.Duration
-	proxyExecAddress []string
+	cli           rpcclient.ChannelClient
+	cfg           *ctypes.Chain33Config
+	grpcCli       ctypes.Chain33Client
+	filtersMu     sync.Mutex
+	filters       map[rpc.ID]*filter
+	evmChainID    int64
+	filterTimeout time.Duration
 }
 
 var (
@@ -52,7 +51,6 @@ func NewEthAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 	e.cfg = cfg
 	e.filters = make(map[rpc.ID]*filter)
 	e.evmChainID = secp256k1eth.GetEvmChainID()
-	e.proxyExecAddress = e.cfg.GetModuleConfig().Exec.ProxyExecAddress
 	grpcBindAddr := e.cfg.GetModuleConfig().RPC.GrpcBindAddr
 	_, port, _ := net.SplitHostPort(grpcBindAddr)
 	conn, err := grpc.Dial(fmt.Sprintf("localhost:%v", port), grpc.WithInsecure())
@@ -564,7 +562,8 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	fee := properFee.GetProperFee()
 	//GetMinTxFeeRate 默认1e5
 	realFee, _ := tx.GetRealFee(e.cfg.GetMinTxFeeRate())
-	if callMsg.To == "0x0000000000000000000000000000000000200005" {
+	//判断是否是代理执行的地址，如果是，则直接返回，不会交给evm执行器去模拟执行计算gas.
+	if callMsg.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
 		rightFee := realFee
 		if realFee < fee {
 			rightFee = fee

@@ -7,6 +7,7 @@ package wallet
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/33cn/chain33/system/address/eth"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -640,7 +641,11 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 	if err != nil {
 		return nil, err
 	}
-	return wallet.sendToAddress(priv, addrto, amount, note, SendToAddress.IsToken, SendToAddress.TokenSymbol)
+	addressID := address.GetDefaultAddressID()
+	if common.IsHex(addrs[0]) {
+		addressID = eth.ID
+	}
+	return wallet.sendToAddress(priv, addressID, addrto, amount, note, SendToAddress.IsToken, SendToAddress.TokenSymbol)
 }
 
 // ProcWalletSetFee 处理设置手续费
