@@ -622,7 +622,7 @@ func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, er
 }
 
 func (e *executor) proxyExecTx(tx *types.Transaction) (*types.Transaction, error) {
-	var realTx *types.Transaction
+	var realTx = tx
 	var err error
 	if tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
 		realTx, err = e.proxyGetRealTx(tx)
