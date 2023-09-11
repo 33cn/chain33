@@ -1511,6 +1511,7 @@ func TestCheckTxsNonce(t *testing.T) {
 	msg = mem.client.NewMessage("mempool", types.EventTx, tx2)
 	mem.client.Send(msg, true)
 	msg, err = mem.client.Wait(msg)
+	assert.Nil(t, err)
 	reply = msg.GetData().(*types.Reply)
 	assert.False(t, reply.GetIsOk())
 	assert.Equal(t, "requires at least 10 percent increase in handling fee,need more:45999998", string(reply.GetMsg()))
@@ -1520,6 +1521,7 @@ func TestCheckTxsNonce(t *testing.T) {
 	msg = mem.client.NewMessage("mempool", types.EventTx, tx3)
 	mem.client.Send(msg, true)
 	msg, err = mem.client.Wait(msg)
+	assert.Nil(t, err)
 	reply = msg.GetData().(*types.Reply)
 	assert.True(t, reply.GetIsOk())
 
