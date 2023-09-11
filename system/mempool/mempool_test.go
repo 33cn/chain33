@@ -7,6 +7,9 @@ package mempool
 import (
 	"errors"
 	"fmt"
+	"github.com/33cn/chain33/system/address/eth"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
+	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 
@@ -1474,4 +1477,54 @@ func Test_sortEthSignTyTx(t *testing.T) {
 	require.Equal(t, txs[2].GetNonce(), tx3.GetNonce())
 	require.Equal(t, txs[3].GetNonce(), tx4.GetNonce())
 
+}
+
+func TestCheckTxsNonce(t *testing.T) {
+	var err error
+	c, _ = crypto.Load(types.GetSignName("", types.SECP256K1ETH), -1)
+	key, _ := common.FromHex(hexPirv)
+	privKey, err = c.PrivKeyFromBytes(key)
+	assert.Nil(t, err)
+	tx0 := &types.Transaction{ChainID: 0, Execer: []byte("evm"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr, Nonce: 0}
+	tx0.Sign(types.EncodeSignID(secp256k1eth.ID, eth.ID), privKey)
+	tx1 := &types.Transaction{ChainID: 0, Execer: []byte("evm"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr, Nonce: 1}
+	tx1.Sign(types.EncodeSignID(secp256k1eth.ID, eth.ID), privKey)
+	tx2 := &types.Transaction{ChainID: 0, Execer: []byte("evm"), Payload: types.Encode(transfer), Fee: 460000002, Expire: 0, To: toAddr, Nonce: 1}
+	tx2.Sign(types.EncodeSignID(secp256k1eth.ID, eth.ID), privKey)
+	tx3 := &types.Transaction{ChainID: 0, Execer: []byte("evm"), Payload: types.Encode(transfer), Fee: 460000002 + 45999998, Expire: 0, To: toAddr, Nonce: 1}
+	tx3.Sign(types.EncodeSignID(secp256k1eth.ID, eth.ID), privKey)
+	_, mem := initEnv(10)
+	//测试nonce 较低的情况下进入mempool 检查
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx0)
+	mem.client.Send(msg, true)
+	msg, _ = mem.client.Wait(msg)
+	reply := msg.GetData().(*types.Reply)
+	assert.False(t, reply.GetIsOk())
+	assert.Equal(t, "ErrNonceTooLow", string(reply.GetMsg()))
+
+	msg = mem.client.NewMessage("mempool", types.EventTx, tx1)
+	mem.client.Send(msg, true)
+	msg, _ = mem.client.Wait(msg)
+	reply = msg.GetData().(*types.Reply)
+	assert.True(t, reply.GetIsOk())
+	//相同的nonce的交易，在gas 不满足条件下，不允许通过过
+	msg = mem.client.NewMessage("mempool", types.EventTx, tx2)
+	mem.client.Send(msg, true)
+	msg, err = mem.client.Wait(msg)
+	reply = msg.GetData().(*types.Reply)
+	assert.False(t, reply.GetIsOk())
+	assert.Equal(t, "requires at least 10 percent increase in handling fee,need more:45999998", string(reply.GetMsg()))
+	txs := mem.GetLatestTx()
+	assert.Equal(t, 1, len(txs))
+	assert.Equal(t, txs[0].Hash(), tx1.Hash())
+	msg = mem.client.NewMessage("mempool", types.EventTx, tx3)
+	mem.client.Send(msg, true)
+	msg, err = mem.client.Wait(msg)
+	reply = msg.GetData().(*types.Reply)
+	assert.True(t, reply.GetIsOk())
+
+	//此时mempool 中应该之后tx3 ,tx1 已经被自动删除
+	txs = mem.GetLatestTx()
+	assert.Equal(t, 1, len(txs))
+	assert.Equal(t, txs[0].Hash(), tx3.Hash())
 }
