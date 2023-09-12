@@ -471,5 +471,4 @@ func Test_p2p(t *testing.T) {
 	tcfg.DbPath = filepath.Join(datadir, "addrbook")
 	testAddrbook(t, &tcfg)
 	dhtp2p.reStart()
-	p2p.CloseP2P()
 }
