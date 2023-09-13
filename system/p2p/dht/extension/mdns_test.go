@@ -14,12 +14,8 @@ func Test_mdns(t *testing.T) {
 	hosts := getNetHosts(2, t)
 	tmdns, err := NewMDNS(ctx, hosts[0], "33test123")
 	require.Nil(t, err)
-	require.Nil(t, tmdns.Service.Start())
-	//_, err = NewMDNS(ctx, hosts[1], "33test123")
-	//require.Nil(t, err)
 	tmdns, err = NewMDNS(ctx, hosts[1], "33test123")
 	require.Nil(t, err)
-	require.Nil(t, tmdns.Service.Start())
 
 	select {
 	case peerinfo := <-tmdns.PeerChan():

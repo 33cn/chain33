@@ -30,6 +30,11 @@ func NewMDNS(ctx context.Context, peerhost host.Host, serviceTag string) (*MDNS,
 	notifee := &discoveryNotifee{}
 	notifee.PeerChan = make(chan peer.AddrInfo, 1)
 	ser := discovery.NewMdnsService(peerhost, serviceTag, notifee)
+	err := ser.Start()
+	if err != nil {
+		log.Error("NewMDNS", "start mdns service err", err)
+		return nil, err
+	}
 	mnds := new(MDNS)
 	mnds.Service = ser
 	mnds.notifee = notifee
