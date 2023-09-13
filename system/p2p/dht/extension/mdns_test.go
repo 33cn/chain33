@@ -12,9 +12,9 @@ func Test_mdns(t *testing.T) {
 	defer cancel()
 
 	hosts := getNetHosts(2, t)
-	tmdns, err := NewMDNS(ctx, hosts[0], "33test123")
+	_, err := NewMDNS(ctx, hosts[0], "33test123")
 	require.Nil(t, err)
-	tmdns, err = NewMDNS(ctx, hosts[1], "33test123")
+	tmdns, err := NewMDNS(ctx, hosts[1], "33test123")
 	require.Nil(t, err)
 
 	select {
