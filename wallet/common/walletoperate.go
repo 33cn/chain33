@@ -71,6 +71,6 @@ type WalletOperate interface {
 
 	WaitTx(hash []byte) *types.TransactionDetail
 	WaitTxs(hashes [][]byte) (ret []*types.TransactionDetail)
-	SendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error)
-	SendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error)
+	SendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, addressID int32, to string) (hash []byte, err error)
+	SendToAddress(priv crypto.PrivKey, addressID int32, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error)
 }

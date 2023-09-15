@@ -314,12 +314,13 @@ type Exec struct {
 	DisableAddrIndex bool     `json:"disableAddrIndex,omitempty"`
 	Alias            []string `json:"alias,omitempty"`
 	// 是否保存token交易信息
-	SaveTokenTxList    bool `json:"saveTokenTxList,omitempty"`
-	EnableAddrFeeIndex bool `json:"enableAddrFeeIndex,omitempty"`
-	DisableTxIndex     bool `json:"disableTxIndex,omitempty"`
-	DisableFeeIndex    bool `json:"disableFeeIndex,omitempty"`
-	DisableTxDupCheck  bool `json:"disableTxDupCheck,omitempty"`
-	DisableExecLocal   bool `json:"disableExecLocal,omitempty"`
+	SaveTokenTxList    bool   `json:"saveTokenTxList,omitempty"`
+	EnableAddrFeeIndex bool   `json:"enableAddrFeeIndex,omitempty"`
+	DisableTxIndex     bool   `json:"disableTxIndex,omitempty"`
+	DisableFeeIndex    bool   `json:"disableFeeIndex,omitempty"`
+	DisableTxDupCheck  bool   `json:"disableTxDupCheck,omitempty"`
+	DisableExecLocal   bool   `json:"disableExecLocal,omitempty"`
+	ProxyExecAddress   string `json:"proxyExecAddress,omitempty"`
 }
 
 // Pprof 配置

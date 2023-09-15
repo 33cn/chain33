@@ -6,7 +6,8 @@ package executor
 
 import (
 	"bytes"
-
+	"errors"
+	"fmt"
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/client/api"
@@ -598,6 +599,42 @@ func (e *executor) rollback() {
 	}
 }
 
+func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, error) {
+	if string(types.GetRealExecName(tx.GetExecer())) != "evm" {
+		return nil, fmt.Errorf("execName %s not allowd", string(types.GetRealExecName(tx.GetExecer())))
+	}
+	var actionData types.EVMContractAction4Chain33
+	err := types.Decode(tx.GetPayload(), &actionData)
+	if err != nil {
+		return nil, err
+	}
+	if len(actionData.GetPara()) == 0 {
+		return nil, errors.New("empty tx")
+	}
+	var realTx types.Transaction
+	err = types.Decode(actionData.Para, &realTx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &realTx, nil
+
+}
+
+func (e *executor) proxyExecTx(tx *types.Transaction) (*types.Transaction, error) {
+	var realTx = tx
+	var err error
+	if tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
+		realTx, err = e.proxyGetRealTx(tx)
+		if err != nil {
+			return realTx, err
+		}
+		realTx.Signature = tx.Signature
+
+	}
+	return realTx, nil
+}
+
 func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if e.height == 0 { //genesis block 不检查手续费
 		receipt, err := e.Exec(tx, index)
@@ -609,10 +646,20 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 		}
 		return receipt, nil
 	}
+
+	var err error
+	//代理执行 EVM-->txpayload-->chain33 tx
+	if e.cfg.IsFork(e.height, "ForkProxyExec") {
+		tx, err = e.proxyExecTx(tx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	//交易检查规则：
 	//1. mempool 检查区块，尽量检查更多的错误
 	//2. 打包的时候，尽量打包更多的交易，只要基本的签名，以及格式没有问题
-	err := e.checkTx(tx, index)
+	err = e.checkTx(tx, index)
 	if err != nil {
 		elog.Error("execTx.checkTx ", "txhash", common.ToHex(tx.Hash()), "err", err)
 		if e.cfg.IsPara() {

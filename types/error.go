@@ -207,4 +207,5 @@ var (
 	ErrPushNotSubscribed  = errors.New("ErrPushNotSubscribed")
 	ErrTxChainID          = errors.New("ErrTxChainID")
 	ErrTimeout            = errors.New("ErrTimeout")
+	ErrLowNonce           = errors.New("ErrNonceTooLow")
 )

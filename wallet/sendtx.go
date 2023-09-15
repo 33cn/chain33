@@ -88,8 +88,8 @@ func (wallet *Wallet) GetHeight() int64 {
 	return h
 }
 
-func (wallet *Wallet) sendTransactionWait(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (err error) {
-	hash, err := wallet.sendTransaction(payload, execer, priv, to)
+func (wallet *Wallet) sendTransactionWait(payload types.Message, execer []byte, priv crypto.PrivKey, addressID int32, to string) (err error) {
+	hash, err := wallet.sendTransaction(payload, execer, priv, addressID, to)
 	if err != nil {
 		return err
 	}
@@ -101,17 +101,17 @@ func (wallet *Wallet) sendTransactionWait(payload types.Message, execer []byte, 
 }
 
 // SendTransaction 发送一笔交易
-func (wallet *Wallet) SendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
+func (wallet *Wallet) SendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, addressID int32, to string) (hash []byte, err error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
 	}
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	return wallet.sendTransaction(payload, execer, priv, to)
+	return wallet.sendTransaction(payload, execer, priv, addressID, to)
 }
 
-func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
+func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, addressID int32, to string) (hash []byte, err error) {
 	if to == "" {
 		to = address.ExecAddress(string(execer))
 	}
@@ -129,7 +129,7 @@ func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv
 	}
 	tx.Fee = fee
 	tx.SetExpire(wallet.client.GetConfig(), time.Second*120)
-	signID := types.EncodeSignID(int32(wallet.SignType), address.GetDefaultAddressID())
+	signID := types.EncodeSignID(int32(wallet.SignType), addressID)
 	tx.Sign(signID, priv)
 	reply, err := wallet.sendTx(tx)
 	if err != nil {
@@ -203,10 +203,10 @@ func (wallet *Wallet) queryTx(hash []byte) (*types.TransactionDetail, error) {
 }
 
 // SendToAddress 想合约地址转账
-func (wallet *Wallet) SendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error) {
+func (wallet *Wallet) SendToAddress(priv crypto.PrivKey, addressID int32, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-	return wallet.sendToAddress(priv, addrto, amount, note, Istoken, tokenSymbol)
+	return wallet.sendToAddress(priv, addressID, addrto, amount, note, Istoken, tokenSymbol)
 }
 
 func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.Transaction, error) {
@@ -270,12 +270,12 @@ func (wallet *Wallet) createSendToAddress(addrto string, amount int64, note stri
 	return tx, nil
 }
 
-func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error) {
+func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addressID int32, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error) {
 	tx, err := wallet.createSendToAddress(addrto, amount, note, Istoken, tokenSymbol)
 	if err != nil {
 		return nil, err
 	}
-	signID := types.EncodeSignID(int32(wallet.SignType), address.GetDefaultAddressID())
+	signID := types.EncodeSignID(int32(wallet.SignType), addressID)
 	tx.Sign(signID, priv)
 
 	reply, err := wallet.api.SendTx(tx)

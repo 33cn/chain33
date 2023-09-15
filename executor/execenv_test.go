@@ -5,10 +5,15 @@
 package executor
 
 import (
+	"github.com/33cn/chain33/common/crypto"
+	erpctypes "github.com/33cn/chain33/rpc/ethrpc/types"
+	drivers "github.com/33cn/chain33/system/dapp"
+	ecommon "github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"math/big"
 	"testing"
 	"time"
-
-	drivers "github.com/33cn/chain33/system/dapp"
 
 	"strings"
 
@@ -19,6 +24,7 @@ import (
 )
 
 func TestLoadDriverFork(t *testing.T) {
+
 	str := types.GetDefaultCfgstring()
 	new := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
 	exec, _ := initEnv(types.MergeCfg(types.ReadFile("../cmd/chain33/chain33.fork.toml"), new))
@@ -96,4 +102,62 @@ func (app *notAllowApp) Allow(tx *types.Transaction, index int) error {
 		return nil
 	}
 	return types.ErrActionNotSupport
+}
+
+func TestProxyExec(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     0,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+
+	execute := newExecutor(ctx, exec, nil, nil, nil)
+	//测试解析代理地址
+	proxyAddr := ecommon.HexToAddress("0x0000000000000000000000000000000000200005")
+	var hexKey = "7939624566468cfa3cb2c9f39d5ad83bdc7cf4356bfd1a7b8094abda6b0699d1"
+	sk, err := ethcrypto.ToECDSA(ecommon.FromHex(hexKey))
+	assert.Nil(t, err)
+
+	signer := ethtypes.NewEIP155Signer(big.NewInt(3999))
+	//构建eth交易
+	to, _ := util.Genaddress()
+	//coins 转账，没有签名的裸交易
+	coinsTx := util.CreateCoinsTx(cfg, nil, to, 1000)
+	etx := ethtypes.NewTransaction(uint64(0), proxyAddr, big.NewInt(0), 3000000, big.NewInt(10e9), types.Encode(coinsTx))
+	signtx, err := ethtypes.SignTx(etx, signer, sk)
+	assert.Nil(t, err)
+	v, r, s := signtx.RawSignatureValues()
+	cv, err := erpctypes.CaculateRealV(v, signtx.ChainId().Uint64(), signtx.Type())
+	assert.Nil(t, err)
+	sig := make([]byte, 65)
+	copy(sig[32-len(r.Bytes()):32], r.Bytes())
+	copy(sig[64-len(s.Bytes()):64], s.Bytes())
+	sig[64] = cv
+	txSha3 := signer.Hash(signtx)
+	pubkey, err := ethcrypto.Ecrecover(txSha3.Bytes(), sig)
+	assert.Nil(t, err)
+	assembleTx := erpctypes.AssembleChain33Tx(signtx, sig, pubkey, cfg)
+	//checkSign
+	err = execute.checkTx(assembleTx, 0)
+	assert.Errorf(t, err, "ErrExecNameNotAllow")
+	types.AllowUserExec = append(types.AllowUserExec, []byte("evm"))
+	err = execute.checkTx(assembleTx, 0)
+	assert.Nil(t, err)
+
+	crypto.Init(cfg.GetModuleConfig().Crypto, cfg.GetSubConfig().Crypto)
+	assert.True(t, assembleTx.CheckSign(0))
+	//解析交易
+	realTx, err := execute.proxyExecTx(assembleTx)
+	assert.Nil(t, err)
+	assert.Equal(t, "0xa42431da868c58877a627cc71dc95f01bf40c196", realTx.From())
+	testTx := realTx.Clone()
+	testTx.Signature = nil
+
+	//与原始交易对比
+	assert.Equal(t, coinsTx.Hash(), testTx.Hash())
 }
