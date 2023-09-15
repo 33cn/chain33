@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
+	core "github.com/libp2p/go-libp2p/core"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -24,9 +24,7 @@ func newTestHost(port int) (core.Host, error) {
 		return nil, err
 	}
 
-	return libp2p.New(context.Background(),
-		libp2p.ListenAddrs(m),
-	)
+	return libp2p.New(libp2p.ListenAddrs(m))
 
 }
 
@@ -37,7 +35,7 @@ func Test_MaxLimit(t *testing.T) {
 	var host1 host.Host
 	CacheLimit = 0
 	gater := NewConnGater(&host1, 1, nil, nil)
-	host1, err = libp2p.New(context.Background(),
+	host1, err = libp2p.New(
 		libp2p.ListenAddrs(m),
 		libp2p.ConnectionGater(gater),
 	)

@@ -10,8 +10,8 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/peerstore"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -324,7 +324,7 @@ func (p *Protocol) getHeadersFromPeer(param *types.ReqBlocks, pid peer.ID) (*typ
 			ReqBlocks: param,
 		},
 	}
-	err = protocol.SignAndWriteStream(&msg, stream)
+	err = protocol.SignAndWriteStream(&msg, stream, p.Host.Peerstore().PrivKey(p.Host.ID()))
 	if err != nil {
 		log.Error("getHeadersFromPeer", "SignAndWriteStream error", err)
 		return nil, err
@@ -383,7 +383,7 @@ func (p *Protocol) getChunkRecordsFromPeer(param *types.ReqChunkRecords, pid pee
 			ReqChunkRecords: param,
 		},
 	}
-	err = protocol.SignAndWriteStream(&msg, stream)
+	err = protocol.SignAndWriteStream(&msg, stream, p.Host.Peerstore().PrivKey(p.Host.ID()))
 	if err != nil {
 		log.Error("getChunkRecordsFromPeer", "SignAndWriteStream error", err)
 		return nil, err
@@ -575,7 +575,7 @@ func (p *Protocol) fetchChunkFromPeer(params *types.ChunkInfoMsg, pid peer.ID) (
 			ChunkInfoMsg: params,
 		},
 	}
-	err = protocol.SignAndWriteStream(&msg, stream)
+	err = protocol.SignAndWriteStream(&msg, stream, p.Host.Peerstore().PrivKey(p.Host.ID()))
 	if err != nil {
 		log.Error("fetchChunkFromPeer", "SignAndWriteStream error", err, "start", params.Start)
 		return nil, nil, err

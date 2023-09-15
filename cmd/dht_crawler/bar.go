@@ -10,8 +10,8 @@ import (
 var finished bool
 var barDone = make(chan struct{})
 
-//模拟显示进度条,并非真实进度
-//rate 100% (100/100) [================================================] 1.31  ps 00:01:15 in: 00:00:00
+// 模拟显示进度条,并非真实进度
+// rate 100% (100/100) [================================================] 1.31  ps 00:01:15 in: 00:00:00
 func barRun(handleSuccess crawler.HandleQueryResult) {
 	pgbar.Println("\ndht_crawler rate bar")
 	bar := pgbar.NewBar(0, "rate", 100)

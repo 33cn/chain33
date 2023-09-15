@@ -1,80 +1,79 @@
 package extension
 
+/*
+   电路中继
+   背景：
+   电路中继是一种传输协议，它通过第三方“中继”对等点在两个对等点之间路由流量。
+
+   在许多情况下，对等点将无法以公开访问的方式穿越其 NAT 和/或防火墙。或者它们可能不共享允许它们直接通信的通用传输协议。
+
+   为了在面临 NAT 等连接障碍时启用对等架构，libp2p定义了一个名为 p2p-circuit 的协议。当对等点无法监听公共地址时，它可以拨出到中继对等点，
+   这将保持长期连接打开。其他对等点将能够使用一个p2p-circuit地址通过中继对等点拨号，该地址会将流量转发到其目的地。
+*/
+
 import (
 	"context"
 	"time"
 
-	circuit "github.com/libp2p/go-libp2p-circuit"
-	coredis "github.com/libp2p/go-libp2p-core/discovery"
-	host "github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	discovery "github.com/libp2p/go-libp2p-discovery"
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
-	relay "github.com/libp2p/go-libp2p/p2p/host/relay"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	circuitClient "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/client"
+	circuit "github.com/libp2p/go-libp2p/p2p/protocol/circuitv2/relay"
 )
 
 // Relay p2p relay
 type Relay struct {
-	advertise *discovery.RoutingDiscovery
-	crelay    *circuit.Relay
+	crelay *circuit.Relay
+	client *circuitClient.Client
 }
 
-func newRelay(ctx context.Context, host host.Host, opts ...circuit.RelayOpt) (*circuit.Relay, error) {
-	r, err := circuit.NewRelay(ctx, host, swarmt.GenUpgrader(host.Network().(*swarm.Swarm)), opts...)
+func newRelay(host host.Host, opts []circuit.Option) (*circuit.Relay, error) {
+	//配置节点提供中继服务
+	r, err := circuit.New(host, opts...)
 	if err != nil {
 		return nil, err
 	}
+
 	return r, nil
 }
 
-// NewRelayDiscovery new relay discovery
-func NewRelayDiscovery(host host.Host, adv *discovery.RoutingDiscovery, opts ...circuit.RelayOpt) *Relay {
+// MakeNodeRelayService  provide relay services
+func MakeNodeRelayService(host host.Host, opts []circuit.Option) *Relay {
 	r := new(Relay)
-	r.advertise = adv
 	var err error
-	r.crelay, err = newRelay(context.Background(), host, opts...)
+	r.crelay, err = newRelay(host, opts)
 	if err != nil {
 		return nil
 	}
+
 	return r
 }
 
-// Advertise 如果自己支持relay模式，愿意充当relay中继器，则需要调用此函数
-func (r *Relay) Advertise(ctx context.Context) {
-	discovery.Advertise(ctx, r.advertise, relay.RelayRendezvous)
-}
+// ReserveRelaySlot reserve relay slot
+func ReserveRelaySlot(ctx context.Context, host host.Host, relayInfo peer.AddrInfo, timeout time.Duration) {
+	//向中继节点申请一个通信插槽
 
-// FindOpPeers 如果需要用到中继相关功能，则需要先调用FindOpPeers查找到relay中继节点
-func (r *Relay) FindOpPeers() ([]peer.AddrInfo, error) {
-	dctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-	return discovery.FindPeers(dctx, r.advertise, relay.RelayRendezvous, coredis.Limit(100))
-}
-
-// DialDestPeer 通过hop中继节点连接dst节点
-func (r *Relay) DialDestPeer(hop, dst peer.AddrInfo) (*circuit.Conn, error) {
-
-	rctx, rcancel := context.WithTimeout(context.Background(), time.Second)
-	defer rcancel()
-
-	conn, err := r.crelay.DialPeer(rctx, hop, dst)
-	return conn, err
-
-}
-
-// CheckHOp 检查请求的节点是否支持relay中继
-func (r *Relay) CheckHOp(isop peer.ID) (bool, error) {
-
-	rctx, rcancel := context.WithTimeout(context.Background(), time.Second)
-	defer rcancel()
-	canhop, err := r.crelay.CanHop(rctx, isop)
-	if err != nil {
-		return false, err
+	var ticker = time.NewTicker(timeout)
+	var err error
+	var reserve *circuitClient.Reservation
+	for {
+		select {
+		case <-ctx.Done():
+			ticker.Stop()
+			return
+		case <-ticker.C:
+			if reserve == nil || reserve.Expiration.Before(time.Now()) {
+				reserve, err = circuitClient.Reserve(context.Background(), host, relayInfo)
+				if err != nil {
+					log.Error("ReserveRelaySlot", "err", err)
+					return
+				}
+			}
+		}
 	}
 
-	if !canhop {
-		return false, nil
-	}
-	return true, nil
+}
+
+func (r *Relay) Close() {
+	r.crelay.Close()
 }

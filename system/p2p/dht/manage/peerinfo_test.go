@@ -11,7 +11,7 @@ import (
 )
 
 func TestPeerInfoManager(t *testing.T) {
-	h1, err := libp2p.New(context.Background())
+	h1, err := libp2p.New()
 	require.Nil(t, err)
 	q := queue.New("test")
 	go sub(q.Client())

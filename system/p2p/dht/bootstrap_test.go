@@ -6,17 +6,17 @@ import (
 	"testing"
 
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
-	blankhost "github.com/libp2p/go-libp2p-blankhost"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	blankhost "github.com/libp2p/go-libp2p/p2p/host/blank"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 )
 
 func getNetHosts(ctx context.Context, n int, t *testing.T) []host.Host {
 	var out []host.Host
 
 	for i := 0; i < n; i++ {
-		netw := swarmt.GenSwarm(t, ctx)
+		netw := swarmt.GenSwarm(t)
 		h := blankhost.NewBlankHost(netw)
 		out = append(out, h)
 	}
@@ -48,7 +48,7 @@ func Test_initInnerPeers(t *testing.T) {
 	subcfg.RelayEnable = true
 	subcfg.RelayNodeAddr = []string{h0str}
 	peerinfo := []peer.AddrInfo{{ID: h7.ID, Addrs: h7.Addrs}}
-	initInnerPeers(hosts[5], peerinfo, subcfg)
+	initInnerPeers(ctx, hosts[5], peerinfo, subcfg)
 	hosts[5].Close()
 
 }

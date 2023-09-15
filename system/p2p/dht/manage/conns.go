@@ -12,11 +12,11 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
-	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/metrics"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
 	kb "github.com/libp2p/go-libp2p-kbucket"
+	core "github.com/libp2p/go-libp2p/core"
+	"github.com/libp2p/go-libp2p/core/metrics"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -99,13 +99,16 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 }
 
 // MonitorAllPeers monitory all peers
-func (s *ConnManager) MonitorAllPeers() {
+func (s *ConnManager) MonitorAllPeers(wg *sync.WaitGroup) {
 	ticker1 := time.NewTicker(time.Minute)
 	defer ticker1.Stop()
 	ticker2 := time.NewTicker(time.Minute * 2)
 	defer ticker2.Stop()
 	ticker3 := time.NewTicker(time.Second * 5)
 	defer ticker3.Stop()
+
+	wg.Add(1)
+	defer wg.Done()
 
 	for {
 		select {
@@ -175,7 +178,7 @@ func (s *ConnManager) procConnections() {
 		}
 		_ = s.host.Connect(context.Background(), *info)
 	}
-	if s.cfg.RelayEnable {
+	if s.cfg.RelayEnable { //作为中继客户端，连接打开中继服务的节点
 		//对relay中中继服务器要长期保持连接
 		for _, node := range s.cfg.RelayNodeAddr {
 			info, err := genAddrInfo(node)
@@ -183,6 +186,7 @@ func (s *ConnManager) procConnections() {
 				panic(`invalid relayNodeAddr in config, use format of "/ip4/118.89.190.76/tcp/13803/p2p/16Uiu2HAmRao56AsxpobLBvbNfDttheQxnke9y1uWQRMWW7XaEdk5"`)
 			}
 			if len(s.host.Network().ConnsToPeer(info.ID)) == 0 {
+
 				s.host.Connect(context.Background(), *info)
 			}
 		}
@@ -322,16 +326,16 @@ func (s *ConnManager) GetNetRate() metrics.Stats {
 	return s.bandwidthTracker.GetBandwidthTotals()
 }
 
-//对系统的连接时长按照从大到小的顺序排序
+// 对系统的连接时长按照从大到小的顺序排序
 type conns []network.Conn
 
-//Len
+// Len
 func (c conns) Len() int { return len(c) }
 
-//Swap
+// Swap
 func (c conns) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
 
-//Less
+// Less
 func (c conns) Less(i, j int) bool { //从大到小排序，即index=0 ，表示数值最大
 	return c[i].Stat().Opened.After(c[j].Stat().Opened)
 }
@@ -345,13 +349,13 @@ type sortNetProtocols struct {
 
 type netprotocols []*sortNetProtocols
 
-//Len
+// Len
 func (n netprotocols) Len() int { return len(n) }
 
-//Swap
+// Swap
 func (n netprotocols) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 
-//Less
+// Less
 func (n netprotocols) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最小
 	return n[i].Ratetotal < n[j].Ratetotal
 }

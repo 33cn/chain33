@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	core "github.com/libp2p/go-libp2p-core"
+	core "github.com/libp2p/go-libp2p/core"
 
 	"github.com/stretchr/testify/assert"
 
@@ -29,13 +29,11 @@ import (
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
-	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/metrics"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/multiformats/go-multiaddr"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/metrics"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/stretchr/testify/require"
 )
 
@@ -161,7 +159,7 @@ func testP2PEvent(t *testing.T, qcli queue.Client) {
 func newHost(subcfg *p2pty.P2PSubConfig, priv crypto.PrivKey, bandwidthTracker metrics.Reporter, maddr multiaddr.Multiaddr) host.Host {
 	p := &P2P{ctx: context.Background(), subCfg: subcfg}
 	options := p.buildHostOptions(priv, bandwidthTracker, maddr, nil)
-	h, err := libp2p.New(context.Background(), options...)
+	h, err := libp2p.New(options...)
 	if err != nil {
 		return nil
 	}
@@ -325,7 +323,7 @@ func testStreamEOFReSet(t *testing.T) {
 	if err != nil {
 		//服务端close connect 之后，客户端会触发：Application error 0x0 或者stream reset
 		t.Log("readStream from H3 Err:", err)
-		if err.Error() != "Application error 0x0" {
+		if !strings.Contains(err.Error(), "Application error 0x0") {
 			require.Equal(t, err.Error(), "stream reset")
 		}
 	}
@@ -428,6 +426,7 @@ func Test_p2p(t *testing.T) {
 	cfg := types.NewChain33Config(types.ReadFile("../../../cmd/chain33/chain33.test.toml"))
 	q := queue.New("channel")
 	datadir := util.ResetDatadir(cfg.GetModuleConfig(), "$TEMP/")
+	setLibp2pLog(cfg.GetModuleConfig().Log.LogFile, "")
 	cfg.GetModuleConfig().Log.LogFile = ""
 	cfg.GetModuleConfig().Address.DefaultDriver = "BTC"
 	q.SetConfig(cfg)
@@ -469,5 +468,6 @@ func Test_p2p(t *testing.T) {
 	tcfg.DbCache = 4
 	tcfg.DbPath = filepath.Join(datadir, "addrbook")
 	testAddrbook(t, &tcfg)
-	//p2p.CloseP2P()
+	dhtp2p.reStart()
+
 }

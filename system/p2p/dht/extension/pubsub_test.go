@@ -7,7 +7,7 @@ import (
 
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 
-	core "github.com/libp2p/go-libp2p-core"
+	core "github.com/libp2p/go-libp2p/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +18,7 @@ func testMsg(topic string, msg SubMsg) {
 func Test_pubsub(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	hosts := getNetHosts(ctx, 2, t)
+	hosts := getNetHosts(2, t)
 	connect(t, hosts[0], hosts[1])
 
 	psub, err := NewPubSub(ctx, hosts[0], &p2pty.PubSubConfig{})

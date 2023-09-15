@@ -9,17 +9,17 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-kad-dht/crawler"
+	core "github.com/libp2p/go-libp2p/core"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiformats/go-multiaddr"
 )
 
 // Run：
 //dht_crawler -proto "/chain33-0/kad/1.0.0" -node "/ip4/ip/tcp/port/pid"
 
-//dhtprotoId="/chain33-0/kad/1.0.0"
+// dhtprotoId="/chain33-0/kad/1.0.0"
 var (
 	//dht 协议ID，需要根据具体区块链网络进行配置
 	dhtProtoID = flag.String("proto", "/chain33-0/kad/1.0.0", "dht protocol id,such as:/chain33-0/kad/1.0.0")
@@ -37,17 +37,18 @@ var (
 func main() {
 	flag.Parse()
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	h, err := libp2p.New(ctx)
+	h, err := libp2p.New()
 	if err != nil {
 		panic(err)
 	}
+	defer h.Close()
+	defer cancel()
 
 	//初始化DHT的网络爬虫
 	var opts []crawler.Option
 	opts = append(opts, crawler.WithConnectTimeout(time.Second*10), crawler.WithMsgTimeout(time.Second*10),
 		crawler.WithProtocols([]protocol.ID{protocol.ID(*dhtProtoID)}))
-	cl, err := crawler.New(h, opts...)
+	cl, err := crawler.NewDefaultCrawler(h, opts...)
 	if err != nil {
 		panic(err)
 	}

@@ -15,8 +15,8 @@ import (
 
 	net "github.com/33cn/chain33/system/p2p/dht/extension"
 	"github.com/libp2p/go-libp2p"
-	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/crypto"
+	core "github.com/libp2p/go-libp2p/core"
+	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/multiformats/go-multiaddr"
 
 	"github.com/33cn/chain33/client"
@@ -40,10 +40,7 @@ func newHost(port int32) core.Host {
 		return nil
 	}
 
-	host, err := libp2p.New(context.Background(),
-		libp2p.ListenAddrs(m),
-		libp2p.Identity(priv),
-	)
+	host, err := libp2p.New(libp2p.ListenAddrs(m), libp2p.Identity(priv))
 
 	if err != nil {
 		panic(err)

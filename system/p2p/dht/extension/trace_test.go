@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	blankhost "github.com/libp2p/go-libp2p-blankhost"
-	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pubsub_pb "github.com/libp2p/go-libp2p-pubsub/pb"
+	"github.com/libp2p/go-libp2p/core/peer"
+	blankhost "github.com/libp2p/go-libp2p/p2p/host/blank"
 	"github.com/stretchr/testify/require"
 )
 

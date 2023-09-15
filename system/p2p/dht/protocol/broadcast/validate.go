@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 	ps "github.com/libp2p/go-libp2p-pubsub"
 )
 

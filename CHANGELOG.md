@@ -1,5 +1,13 @@
 changelog
 
+<a name="1.68.1"></a>
+## [1.68.1](https://github.com/33cn/chain33/compare/v1.68.0...v1.68.1) (2023-09-12)
+
+
+### Bug Fixes
+
+* update go-libp2p dependency to v0.23.4 ([88be560](https://github.com/33cn/chain33/commit/88be560))
+
 <a name="1.68.0"></a>
 # [1.68.0](https://github.com/33cn/chain33/compare/v1.67.5...v1.68.0) (2023-02-17)
 
