@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-
 	"github.com/stretchr/testify/mock"
 
 	clientMocks "github.com/33cn/chain33/client/mocks"
@@ -469,5 +468,4 @@ func Test_p2p(t *testing.T) {
 	tcfg.DbPath = filepath.Join(datadir, "addrbook")
 	testAddrbook(t, &tcfg)
 	dhtp2p.reStart()
-
 }
