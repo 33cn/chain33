@@ -140,6 +140,7 @@ func TestProxyExec(t *testing.T) {
 	sig[64] = cv
 	txSha3 := signer.Hash(signtx)
 	pubkey, err := ethcrypto.Ecrecover(txSha3.Bytes(), sig)
+	assert.Nil(t, err)
 	assembleTx := erpctypes.AssembleChain33Tx(signtx, sig, pubkey, cfg)
 	//checkSign
 	err = execute.checkTx(assembleTx, 0)
