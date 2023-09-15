@@ -204,6 +204,7 @@ minerwhitelist=["*"]
 [exec]
 enableStat=false
 enableMVCC=false
+
 #代理执行器地址
 proxyExecAddress="0x0000000000000000000000000000000000200005"
 alias=["token1:token","token2:token","token3:token"]
