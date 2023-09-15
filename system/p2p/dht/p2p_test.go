@@ -469,5 +469,5 @@ func Test_p2p(t *testing.T) {
 	tcfg.DbCache = 4
 	tcfg.DbPath = filepath.Join(datadir, "addrbook")
 	testAddrbook(t, &tcfg)
-	p2p.CloseP2P()
+	//p2p.CloseP2P()
 }

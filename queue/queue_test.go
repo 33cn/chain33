@@ -512,6 +512,7 @@ func TestChannelClose(t *testing.T) {
 	go q.Start()
 	//rpc 模块 会向其他模块发送消息，自己本身不需要订阅消息
 	go func() {
+		time.Sleep(time.Millisecond * 100)
 		done <- struct{}{}
 	}()
 	for i := 0; i < 10000; i++ {

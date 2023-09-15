@@ -23,7 +23,9 @@ enableTypes=[]    #设置启用的加密插件名称，不配置启用所有
 [crypto.enableHeight]  #配置已启用插件的启用高度，不配置采用默认高度0， 负数表示不启用
 secp256k1=0
 [crypto.sub.secp256k1] #支持插件子配置
-[crypto.sub.secp256k1eth] #支持插件子配置
+
+[crypto.sub.secp256k1eth]
+#兼容EVM链的链ID
 evmChainID=3999
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -202,8 +204,12 @@ minerwhitelist=["*"]
 [exec]
 enableStat=false
 enableMVCC=false
+#代理执行器地址
+proxyExecAddress="0x0000000000000000000000000000000000200005"
 alias=["token1:token","token2:token","token3:token"]
 [exec.sub.coins]
+#允许evm执行器操作coins
+friendExecer=["evm"]
 
 [exec.sub.token]
 saveTokenTxList=true
