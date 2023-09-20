@@ -19,7 +19,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-//执行器 -> db 环境
+// 执行器 -> db 环境
 type executor struct {
 	stateDB      dbm.KV
 	localDB      dbm.KVDB
@@ -110,9 +110,9 @@ func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) 
 	return kvlist
 }
 
-//隐私交易费扣除规则：
-//1.公对私交易：直接从coin合约中扣除
-//2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除
+// 隐私交易费扣除规则：
+// 1.公对私交易：直接从coin合约中扣除
+// 2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := tx.From()
 	accFrom := e.coinsAccount.LoadAccount(from)
@@ -646,10 +646,18 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 		}
 		return receipt, nil
 	}
+	var feelog *types.Receipt
 
 	var err error
 	//代理执行 EVM-->txpayload-->chain33 tx
 	if e.cfg.IsFork(e.height, "ForkProxyExec") {
+		defer func(tx *types.Transaction) {
+			cloneTx := tx.Clone()
+			//提前执行evm execlocal 数据，主要是nonce++
+			e.execLocalSameTime(cloneTx, feelog, index)
+
+		}(tx)
+
 		tx, err = e.proxyExecTx(tx)
 		if err != nil {
 			return nil, err
@@ -670,7 +678,7 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	//处理交易手续费(先把手续费收了)
 	//如果收了手续费，表示receipt 至少是pack 级别
 	//收不了手续费的交易才是 error 级别
-	feelog, err := e.execFee(tx, index)
+	feelog, err = e.execFee(tx, index)
 	if err != nil {
 		return nil, err
 	}
