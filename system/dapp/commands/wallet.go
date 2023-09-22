@@ -5,6 +5,7 @@
 package commands
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"math/big"
@@ -319,7 +320,7 @@ func SignRawTxCmd() *cobra.Command {
 }
 
 func addSignRawTxFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("data", "d", "", "raw transaction data")
+	cmd.Flags().StringP("data", "d", "", "raw transaction hex data or data file")
 	cmd.MarkFlagRequired("data")
 
 	cmd.Flags().Int32P("index", "i", 0, "transaction index to be signed")
@@ -330,6 +331,7 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("to", "t", "", "new to addr (optional)")
 	cmd.Flags().Int32P("addressType", "p", -1, "address type ID, btc(0), btcMultiSign(1), eth(2)")
 	cmd.Flags().Int32P("chainID", "c", 0, "for eth signn (optional)")
+	cmd.Flags().StringP("out", "o", "sign.out", "output file, default sign.out")
 	// A duration string is a possibly signed sequence of
 	// decimal numbers, each with optional fraction and a unit suffix,
 	// such as "300ms", "-1.5h" or "2h45m".
@@ -420,6 +422,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	expire, _ := cmd.Flags().GetString("expire")
 	addressType, _ := cmd.Flags().GetInt32("addressType")
 	chainID, _ := cmd.Flags().GetInt32("chainID")
+	outFile, _ := cmd.Flags().GetString("out")
 	//check tx type
 	ethTx := new(ethtypes.Transaction)
 	if ethTx.UnmarshalBinary(common.FromHex(data)) == nil {
@@ -467,8 +470,96 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		AddressID: addressType,
 	}
 
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SignRawTx", &params, nil)
-	ctx.RunWithoutMarshal()
+	if !isFileExist(data) {
+
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SignRawTx", &params, nil)
+		ctx.RunWithoutMarshal()
+		return
+	}
+
+	// data为文件
+	signTxsInFile(&params, data, outFile, rpcLaddr)
+
+}
+
+func signTxsInFile(req *types.ReqSignRawTx, in, out, rpc string) {
+
+	rawTxs := readLines(in)
+	var signTxs []string
+	var signTx string
+	for line, rawTx := range rawTxs {
+
+		if rawTx == "" {
+			continue
+		}
+		req.TxHex = rawTx
+		ctx := jsonclient.NewRPCCtx(rpc, "Chain33.SignRawTx", req, &signTx)
+		_, err := ctx.RunResult()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "signRawTx err, line:%d, err:%s \n", line, err.Error())
+			continue
+		}
+		signTxs = append(signTxs, signTx)
+	}
+
+	err := writeLines(out, signTxs)
+	if err == nil {
+		return
+	}
+	// output to stdout if write file failed
+	for _, tx := range signTxs {
+		fmt.Println(tx)
+	}
+}
+
+func writeLines(filename string, lines []string) error {
+
+	if len(lines) <= 0 {
+		return nil
+	}
+
+	file, err := os.OpenFile(filename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "writeLines open file err: %s \n", err.Error())
+		return err
+	}
+	defer file.Close()
+	datawriter := bufio.NewWriter(file)
+
+	for _, data := range lines {
+		_, _ = datawriter.WriteString(data + "\n")
+	}
+
+	datawriter.Flush()
+	return nil
+}
+
+func readLines(file string) []string {
+
+	var lines []string
+	readFile, err := os.Open(file)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "readLines open file err:%s \n", err.Error())
+		return nil
+	}
+	defer readFile.Close()
+	fs := bufio.NewScanner(readFile)
+	fs.Split(bufio.ScanLines)
+
+	for fs.Scan() {
+		lines = append(lines, fs.Text())
+	}
+
+	return lines
+}
+
+func isFileExist(file string) bool {
+
+	if _, err := os.Stat(file); err == nil {
+		return true
+	}
+	return false
 }
 
 // SetFeeCmd set tx fee
@@ -521,9 +612,9 @@ func SendTxCmd() *cobra.Command {
 }
 
 func addSendTxFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("data", "d", "", "transaction content")
+	cmd.Flags().StringP("data", "d", "", "tx data or tx file")
 	cmd.MarkFlagRequired("data")
-
+	cmd.Flags().StringP("out", "o", "send.out", "output file")
 	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
 	cmd.Flags().BoolP("ethType", "e", false, "")
 }
@@ -533,6 +624,7 @@ func sendTx(cmd *cobra.Command, args []string) {
 	data, _ := cmd.Flags().GetString("data")
 	token, _ := cmd.Flags().GetString("token")
 	ethType, _ := cmd.Flags().GetBool("ethType")
+	outFile, _ := cmd.Flags().GetString("out")
 	if ethType {
 		c, err := rpc.DialContext(context.Background(), rpcLaddr)
 		if err != nil {
@@ -557,6 +649,36 @@ func sendTx(cmd *cobra.Command, args []string) {
 		Data:  data,
 	}
 
-	ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
-	ctx.RunWithoutMarshal()
+	if !isFileExist(data) {
+		ctx := jsonclient.NewRPCCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+		ctx.RunWithoutMarshal()
+		return
+	}
+
+	sendTxsInFile(&params, data, outFile, rpcLaddr)
+}
+
+func sendTxsInFile(req *rpctypes.RawParm, in, out, rpc string) {
+
+	signTxs := readLines(in)
+	var hashes []string
+	var hash string
+	for line, tx := range signTxs {
+
+		if tx == "" {
+			continue
+		}
+		req.Data = tx
+		ctx := jsonclient.NewRPCCtx(rpc, "Chain33.SendTransaction", req, &hash)
+		_, err := ctx.RunResult()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error sendTx, line:%d, err:%s \n", line, err.Error())
+			continue
+		}
+		hashes = append(hashes, hash)
+	}
+
+	for _, h := range hashes {
+		fmt.Println(h)
+	}
 }

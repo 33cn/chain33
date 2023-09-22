@@ -7,12 +7,6 @@ package executor_test
 import (
 	"errors"
 	"fmt"
-	"net/http"
-	_ "net/http/pprof"
-	"testing"
-
-	"sync"
-
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/merkle"
@@ -22,6 +16,10 @@ import (
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	_ "net/http/pprof"
+	"sync"
+	"testing"
 )
 
 var runonce sync.Once

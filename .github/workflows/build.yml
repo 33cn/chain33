@@ -10,7 +10,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v3
         with:
-          go-version: 1.17
+          go-version-file: 'go.mod'
 
       - name: Intsall Golangci-lint
         run: |
@@ -65,6 +65,23 @@ jobs:
       - name: cover report
         if: success()
         run: bash <(curl -s https://codecov.io/bash)
+
+  build-with-latest-stable-go:
+    strategy:
+      matrix:
+        os: [ ubuntu-20.04, macos-12 ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 'oldstable'
+      - run: |
+          go env
+          make build
+
 
   deploy:
     name: deploy

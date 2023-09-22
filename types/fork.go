@@ -143,6 +143,7 @@ func (f *Forks) SetTestNetFork() {
 	f.SetFork("ForkRootHash", 4500000)
 	f.SetFork(address.ForkFormatAddressKey, 0)
 	f.setFork("ForkCheckEthTxSort", 0)
+	f.setFork("ForkProxyExec", 0)
 }
 
 func (f *Forks) setLocalFork() {

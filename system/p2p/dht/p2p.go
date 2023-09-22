@@ -31,13 +31,12 @@ import (
 	"github.com/33cn/chain33/types"
 	libp2pLog "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
-	circuit "github.com/libp2p/go-libp2p-circuit"
-	connmgr "github.com/libp2p/go-libp2p-connmgr"
-	core "github.com/libp2p/go-libp2p-core"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/metrics"
-	"github.com/libp2p/go-libp2p-core/peer"
-	discovery "github.com/libp2p/go-libp2p-discovery"
+	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
+	"github.com/libp2p/go-libp2p/core"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/metrics"
+	"github.com/libp2p/go-libp2p/core/peer"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -133,6 +132,8 @@ func New(mgr *p2p.Manager, subCfg []byte) p2p.IP2P {
 
 func initP2P(p *P2P) *P2P {
 	//other init work
+	p.taskGroup = &sync.WaitGroup{}
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 	priv := p.addrBook.GetPrivkey()
 	if priv == nil { //addrbook存储的peer key 为空
 		if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
@@ -154,11 +155,13 @@ func initP2P(p *P2P) *P2P {
 	bandwidthTracker := metrics.NewBandwidthCounter()
 	p.blackCache = manage.NewTimeCache(p.ctx, time.Minute*5)
 	options := p.buildHostOptions(p.addrBook.GetPrivkey(), bandwidthTracker, maddr, p.blackCache)
-	host, err := libp2p.New(p.ctx, options...)
+	host, err := libp2p.New(options...)
 	if err != nil {
 		panic(err)
 	}
-
+	if p.subCfg.RelayServiceEnable {
+		extension.MakeNodeRelayService(host, nil)
+	}
 	p.host = host
 	ps, err := extension.NewPubSub(p.ctx, p.host, &p.subCfg.PubSub)
 	if err != nil {
@@ -168,7 +171,6 @@ func initP2P(p *P2P) *P2P {
 	p.discovery = InitDhtDiscovery(p.ctx, p.host, p.addrBook.AddrsInfo(), p.chainCfg, p.subCfg)
 	p.connManager = manage.NewConnManager(p.ctx, p.host, p.discovery.RoutingTable(), bandwidthTracker, p.subCfg)
 	p.peerInfoManager = manage.NewPeerInfoManager(p.ctx, p.host, p.client)
-	p.taskGroup = &sync.WaitGroup{}
 
 	p.db = newDB("", p.p2pCfg.Driver, filepath.Dir(p.p2pCfg.DbPath), p.subCfg.DHTDataCache)
 	return p
@@ -178,7 +180,6 @@ func initP2P(p *P2P) *P2P {
 func (p *P2P) StartP2P() {
 	if atomic.LoadInt32(&p.restart) == 1 {
 		log.Info("RestartP2P...")
-		p.ctx, p.cancel = context.WithCancel(context.Background())
 		initP2P(p) //重新创建host
 	}
 	atomic.StoreInt32(&p.restart, 0)
@@ -229,14 +230,11 @@ func (p *P2P) CloseP2P() {
 }
 
 func (p *P2P) reStart() {
-	atomic.StoreInt32(&p.restart, 1)
-	log.Info("reStart p2p")
 	if p.host == nil {
-		//说明p2p还没有开始启动，无需重启
-		log.Info("p2p no need restart...")
-		atomic.StoreInt32(&p.restart, 0)
 		return
 	}
+	atomic.StoreInt32(&p.restart, 1)
+	log.Info("reStart p2p")
 	p.CloseP2P()
 	p.StartP2P()
 }
@@ -247,15 +245,16 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	}
 
 	var options []libp2p.Option
+
 	if p.subCfg.RelayEnable {
-		if p.subCfg.RelayHop { //启用中继服务端
-			options = append(options, libp2p.EnableRelay(circuit.OptHop))
-		} else { //用配置的节点作为中继节点,需要打开HOP选项
-			//relays := append(p.subCfg.BootStraps, p.subCfg.RelayNodeAddr...)
+		options = append(options, libp2p.EnableRelay())
+		//用配置的节点作为中继节点
+		if len(p.subCfg.RelayNodeAddr) != 0 {
 			relays := p.subCfg.RelayNodeAddr
 			options = append(options, libp2p.AddrsFactory(extension.WithRelayAddrs(relays)))
-			options = append(options, libp2p.EnableRelay())
+
 		}
+
 	}
 
 	options = append(options, libp2p.NATPortMap())
@@ -287,8 +286,12 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 			minconnect = maxconnect / 2
 		}
 
+		mgr, err := connmgr.NewConnManager(minconnect, maxconnect, connmgr.WithGracePeriod(time.Minute))
+		if err != nil {
+			panic("NewConnManager err:"+ err.Error())
+		}
 		//1分钟的宽限期,定期清理
-		options = append(options, libp2p.ConnectionManager(connmgr.NewConnManager(minconnect, maxconnect, time.Minute)))
+		options = append(options, libp2p.ConnectionManager(mgr))
 
 	}
 	//ConnectionGater,处理网络连接的策略
@@ -299,8 +302,9 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 }
 
 func (p *P2P) managePeers() {
-	go p.connManager.MonitorAllPeers()
-
+	go p.connManager.MonitorAllPeers(p.taskGroup)
+	p.taskGroup.Add(1)
+	defer p.taskGroup.Done()
 	for {
 		log.Debug("managePeers", "table size", p.discovery.RoutingTable().Size())
 		select {
@@ -323,7 +327,7 @@ func (p *P2P) managePeers() {
 	}
 }
 
-//查询本局域网内是否有节点
+// 查询本局域网内是否有节点
 func (p *P2P) findLANPeers() {
 	if p.subCfg.DisableFindLANPeers {
 		return
@@ -333,6 +337,9 @@ func (p *P2P) findLANPeers() {
 		log.Error("findLANPeers", "err", err.Error())
 		return
 	}
+
+	p.taskGroup.Add(1)
+	defer p.taskGroup.Done()
 
 	for {
 		select {
@@ -356,6 +363,8 @@ func (p *P2P) findLANPeers() {
 
 func (p *P2P) handleP2PEvent() {
 
+	p.taskGroup.Add(1)
+	defer p.taskGroup.Done()
 	for {
 		select {
 		case <-p.ctx.Done():
@@ -408,8 +417,10 @@ func (p *P2P) waitTaskDone() {
 	}
 }
 
-//创建空投地址
+// 创建空投地址
 func (p *P2P) genAirDropKey() {
+	p.taskGroup.Add(1)
+	defer p.taskGroup.Done()
 	for { //等待钱包创建，解锁
 		select {
 		case <-p.ctx.Done():

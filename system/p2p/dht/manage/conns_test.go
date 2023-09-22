@@ -11,15 +11,15 @@ import (
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
-	bhost "github.com/libp2p/go-libp2p-blankhost"
-	"github.com/libp2p/go-libp2p-core/metrics"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
-	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/libp2p/go-libp2p/core/metrics"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	bhost "github.com/libp2p/go-libp2p/p2p/host/blank"
+	swarmt "github.com/libp2p/go-libp2p/p2p/net/swarm/testing"
 	"github.com/multiformats/go-multiaddr"
 
-	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +28,7 @@ type testConn struct {
 	io.Closer
 	network.ConnSecurity
 	network.ConnMultiaddrs
-	stat network.Stat
+	stat network.ConnStats
 }
 
 func (t testConn) ID() string {
@@ -42,18 +42,26 @@ func (t testConn) NewStream(ctx context.Context) (network.Stream, error) { retur
 func (t testConn) GetStreams() []network.Stream { return nil }
 
 // Stat stores metadata pertaining to this conn.
-func (t testConn) Stat() network.Stat {
+func (t testConn) Stat() network.ConnStats {
 	return t.stat
 }
 
-func newtestConn(stat network.Stat) network.Conn {
+func (t testConn) IsClosed() bool {
+	return false
+}
+
+func (t testConn) Scope() network.ConnScope {
+	return &network.NullScope{}
+}
+
+func newtestConn(stat network.ConnStats) network.Conn {
 	return testConn{stat: stat}
 
 }
 func Test_SortConn(t *testing.T) {
 	var testconn conns
 
-	var s1, s2, s3 network.Stat
+	var s1, s2, s3 network.ConnStats
 	s1.Opened = time.Now().Add(time.Second * 10)
 	s2.Opened = time.Now().Add(time.Second * 15)
 	s3.Opened = time.Now().Add(time.Minute)
@@ -70,11 +78,11 @@ func Test_SortConn(t *testing.T) {
 func TestConnManager(t *testing.T) {
 	m1, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 13666))
 	require.Nil(t, err)
-	h1, err := libp2p.New(context.Background(), libp2p.ListenAddrs(m1))
+	h1, err := libp2p.New(libp2p.ListenAddrs(m1))
 	require.Nil(t, err)
 	m2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 13777))
 	require.Nil(t, err)
-	h2, err := libp2p.New(context.Background(), libp2p.ListenAddrs(m2))
+	h2, err := libp2p.New(libp2p.ListenAddrs(m2))
 	require.Nil(t, err)
 
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13666/p2p/%s", h1.ID().Pretty()))
@@ -112,7 +120,7 @@ func TestConnManager(t *testing.T) {
 func Test_ConnManager(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	netw := swarmt.GenSwarm(t, ctx)
+	netw := swarmt.GenSwarm(t)
 	h := bhost.NewBlankHost(netw)
 	cfg := types.NewChain33Config(types.ReadFile("../../../../cmd/chain33/chain33.test.toml"))
 	mcfg := &p2pty.P2PSubConfig{}
@@ -123,7 +131,7 @@ func Test_ConnManager(t *testing.T) {
 
 	ratestr := cmm.RateCalculate(1024)
 	t.Log("rate", ratestr)
-	netw2 := swarmt.GenSwarm(t, ctx)
+	netw2 := swarmt.GenSwarm(t)
 	h2 := bhost.NewBlankHost(netw2)
 	h2info := peer.AddrInfo{ID: h2.ID(), Addrs: h2.Addrs()}
 	cmm.AddNeighbors(&h2info)

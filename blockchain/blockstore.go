@@ -1168,7 +1168,7 @@ func (bs *BlockStore) GetDbVersion() int64 {
 	return ver.Data
 }
 
-//SetDbVersion 获取blockchain的数据库版本号
+//SetDbVersion 设置blockchain的数据库版本号
 func (bs *BlockStore) SetDbVersion(versionNo int64) error {
 	ver := types.Int64{Data: versionNo}
 	verByte := types.Encode(&ver)

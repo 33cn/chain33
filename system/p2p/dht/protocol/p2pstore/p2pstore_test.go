@@ -15,10 +15,10 @@ import (
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/discovery"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/discovery"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
 	kbt "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
@@ -313,8 +313,8 @@ func makeProtocol(name string, q queue.Queue, h host.Host) *Protocol {
 	protocol.RegisterStreamHandler(p.Host, fetchShardPeer, protocol.HandlerWithRW(p.handleStreamFetchShardPeers))
 	protocol.RegisterStreamHandler(p.Host, fullNode, protocol.HandlerWithWrite(p.handleStreamIsFullNode))
 	protocol.RegisterStreamHandler(p.Host, fetchChunk, p.handleStreamFetchChunk) //数据较大，采用特殊写入方式
-	protocol.RegisterStreamHandler(p.Host, getHeader, protocol.HandlerWithAuthAndSign(p.handleStreamGetHeader))
-	protocol.RegisterStreamHandler(p.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p.handleStreamGetChunkRecord))
+	protocol.RegisterStreamHandler(p.Host, getHeader, protocol.HandlerWithAuthAndSign(p.Host, p.handleStreamGetHeader))
+	protocol.RegisterStreamHandler(p.Host, getChunkRecord, protocol.HandlerWithAuthAndSign(p.Host, p.handleStreamGetChunkRecord))
 
 	cli.Sub(name)
 
@@ -352,7 +352,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, *Protocol) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	host1, err := libp2p.New(context.Background(), libp2p.ListenAddrs(m1), libp2p.Identity(sk1))
+	host1, err := libp2p.New(libp2p.ListenAddrs(m1), libp2p.Identity(sk1))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +360,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, *Protocol) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	host2, err := libp2p.New(context.Background(), libp2p.ListenAddrs(m2), libp2p.Identity(sk2))
+	host2, err := libp2p.New(libp2p.ListenAddrs(m2), libp2p.Identity(sk2))
 	if err != nil {
 		t.Fatal(err)
 	}

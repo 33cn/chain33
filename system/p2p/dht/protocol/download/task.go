@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // task datastruct
@@ -25,6 +25,7 @@ func (t tasks) Len() int {
 	return len(t)
 }
 
+//TODO bug
 //Less Sort from low to high
 func (t tasks) Less(a, b int) bool {
 	return t[a].Latency < t[b].Latency
@@ -55,7 +56,7 @@ func (t tasks) Size() int {
 	return len(t)
 }
 
-func (p *Protocol) initJob(pids []string, jobID string) tasks {
+func (p *Protocol) initJob(pids []string, taskID string) tasks {
 	var JobPeerIds tasks
 	var pIDs []peer.ID
 	for _, pid := range pids {
@@ -77,13 +78,16 @@ func (p *Protocol) initJob(pids []string, jobID string) tasks {
 		}
 		var job taskInfo
 		job.Pid = pID
-		job.ID = jobID
+		job.ID = taskID
+		//时延，并不能代表吞吐量
 		job.Latency = p.Host.Peerstore().LatencyEWMA(pID)
+		log.Debug("initJob", "pid", pID, "jobID", taskID, "Latency", job.Latency)
 		if job.Latency == 0 { //如果查询不到节点对应的时延，就设置非常大
 			job.Latency = time.Second
 		}
 		job.TaskNum = 0
 		JobPeerIds = append(JobPeerIds, &job)
+		p.counter.AddTaskInfo(job.ID, job.Pid.Pretty(), job.Latency)
 	}
 	return JobPeerIds
 }
@@ -114,12 +118,22 @@ func (p *Protocol) checkTask(taskID string, pids []string, faildJobs map[string]
 
 func (p *Protocol) availbTask(ts tasks, blockheight int64) *taskInfo {
 
-	var limit int
-	if len(ts) > 10 {
-		limit = 20 //节点数大于10，每个节点限制最大下载任务数为20个
-	} else {
-		limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
+	//TODO bug
+	//var limit int
+	//if len(ts) > 10 {
+	//	limit = 20 //节点数大于10，每个节点限制最大下载任务数为20个
+	//} else {
+	//	limit = 50 //节点数较少，每个节点节点最大下载任务数位50个
+	//}
+	limit := 128 / len(ts)
+	if limit < 20 {
+		limit = 20
 	}
+	if limit > 50 {
+		limit = 50
+	}
+	log.Debug("availbTask", " len(ts)", len(ts), "limit", limit)
+
 	for i, task := range ts {
 		//check blockHeight
 		peerHeight := p.PeerInfoManager.PeerHeight(task.Pid)

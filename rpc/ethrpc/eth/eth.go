@@ -560,6 +560,17 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	})
 
 	fee := properFee.GetProperFee()
+	//GetMinTxFeeRate 默认1e5
+	realFee, _ := tx.GetRealFee(e.cfg.GetMinTxFeeRate())
+	//判断是否是代理执行的地址，如果是，则直接返回，不会交给evm执行器去模拟执行计算gas.
+	if callMsg.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
+		rightFee := realFee
+		if realFee < fee {
+			rightFee = fee
+		}
+		return hexutil.Uint64(rightFee), nil
+	}
+
 	var minimumGas int64 = 21000
 	if callMsg.Data == nil || len(*callMsg.Data) == 0 {
 		if fee < e.cfg.GetMinTxFeeRate() {
@@ -597,8 +608,6 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	}
 
 	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
-	//GetMinTxFeeRate 默认1e5
-	realFee, _ := tx.GetRealFee(e.cfg.GetMinTxFeeRate())
 
 	var finalFee = realFee
 	if bigGas.Uint64() > uint64(realFee) {

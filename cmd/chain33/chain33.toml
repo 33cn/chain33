@@ -306,7 +306,8 @@ enableStat=false
 #是否开启MVCC插件
 enableMVCC=false
 alias=["token1:token","token2:token","token3:token"]
-
+#代理执行器地址
+proxyExecAddrss="0x0000000000000000000000000000000000200005"
 [exec.sub.token]
 #是否保存token交易信息
 saveTokenTxList=true

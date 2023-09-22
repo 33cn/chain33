@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/libp2p/go-libp2p-core/discovery"
+	"github.com/libp2p/go-libp2p/core/discovery"
 )
 
 func (p *Protocol) debugLog() {
