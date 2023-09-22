@@ -17,6 +17,7 @@ import (
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
+	"time"
 )
 
 // 执行器 -> db 环境
@@ -599,9 +600,32 @@ func (e *executor) rollback() {
 	}
 }
 
+func (e *executor) getCurrentNonce(addr string) int64 {
+
+	msg := e.exec.client.NewMessage("rpc", types.EventGetEvmNonce, &types.ReqEvmAccountNonce{
+		Addr: addr,
+	})
+	e.exec.client.Send(msg, true)
+	reply, err := e.exec.client.WaitTimeout(msg, time.Second*2)
+	if err == nil {
+		nonceInfo, ok := reply.GetData().(*types.EvmAccountNonce)
+		if ok {
+			return nonceInfo.GetNonce()
+		}
+	}
+	return 0
+
+}
+
 func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, error) {
 	if string(types.GetRealExecName(tx.GetExecer())) != "evm" {
 		return nil, fmt.Errorf("execName %s not allowd", string(types.GetRealExecName(tx.GetExecer())))
+	}
+
+	//由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
+	//此处返回错误，不会打包
+	if e.getCurrentNonce(tx.From()) != tx.GetNonce() {
+		return nil, fmt.Errorf("proxyExec nonce missmatch")
 	}
 	var actionData types.EVMContractAction4Chain33
 	err := types.Decode(tx.GetPayload(), &actionData)
@@ -625,6 +649,7 @@ func (e *executor) proxyExecTx(tx *types.Transaction) (*types.Transaction, error
 	var realTx = tx
 	var err error
 	if tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
+
 		realTx, err = e.proxyGetRealTx(tx)
 		if err != nil {
 			return realTx, err
@@ -652,9 +677,15 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	//代理执行 EVM-->txpayload-->chain33 tx
 	if e.cfg.IsFork(e.height, "ForkProxyExec") {
 		defer func(tx *types.Transaction) {
-			cloneTx := tx.Clone()
-			//提前执行evm execlocal 数据，主要是nonce++
-			e.execLocalSameTime(cloneTx, feelog, index)
+			if types.IsEthSignID(tx.Signature.Ty) && tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
+				cloneTx := tx.Clone()
+				//执行evm execlocal 数据，主要是nonce++
+				//此处执行execlocal 是为了连续多笔同地址下的交易，关系上下文用，否则下一笔evm交易的nonce 将会报错
+				err = e.execLocalSameTime(cloneTx, feelog, index)
+				if err != nil {
+					elog.Error("proxyExec ReExecLocal", " execLocalSameTime", err.Error())
+				}
+			}
 
 		}(tx)
 
@@ -739,6 +770,7 @@ func (e *executor) execLocalSameTime(tx *types.Transaction, receipt *types.Recei
 			r.Ty = receipt.Ty
 			r.Logs = receipt.Logs
 		}
+
 		_, err := e.execLocalTx(tx, r, index)
 		return err
 	}
