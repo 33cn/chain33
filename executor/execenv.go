@@ -602,6 +602,15 @@ func (e *executor) rollback() {
 
 func (e *executor) getCurrentNonce(addr string) int64 {
 
+	//nonceLocalKey := secp256k1eth.CaculCoinsEvmAccountKey(addr)
+	//evmNonce := &types.EvmAccountNonce{}
+	//nonceV, err := e.localDB.Get(nonceLocalKey)
+	//if err == nil {
+	//	_ = types.Decode(nonceV, evmNonce)
+	//}
+	//
+	//return evmNonce.GetNonce()
+
 	msg := e.exec.client.NewMessage("rpc", types.EventGetEvmNonce, &types.ReqEvmAccountNonce{
 		Addr: addr,
 	})
@@ -622,10 +631,11 @@ func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, er
 		return nil, fmt.Errorf("execName %s not allowd", string(types.GetRealExecName(tx.GetExecer())))
 	}
 
-	//由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
-	//此处返回错误，不会打包
-	if e.getCurrentNonce(tx.From()) != tx.GetNonce() {
-		return nil, fmt.Errorf("proxyExec nonce missmatch")
+	////由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
+	////此处返回错误，不会打包
+	currentNonce := e.getCurrentNonce(tx.From())
+	if currentNonce != tx.GetNonce() {
+		return nil, fmt.Errorf("proxyExec nonce missmatch,tx.nonce:%v,localnonce:%v", tx.Nonce, currentNonce)
 	}
 	var actionData types.EVMContractAction4Chain33
 	err := types.Decode(tx.GetPayload(), &actionData)
@@ -681,6 +691,7 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 				cloneTx := tx.Clone()
 				//执行evm execlocal 数据，主要是nonce++
 				//此处执行execlocal 是为了连续多笔同地址下的交易，关系上下文用，否则下一笔evm交易的nonce 将会报错
+				elog.Info("proxyExec", "isSameTmeExecLocal", e.isExecLocalSameTime(tx, index))
 				err = e.execLocalSameTime(cloneTx, feelog, index)
 				if err != nil {
 					elog.Error("proxyExec ReExecLocal", " execLocalSameTime", err.Error())
@@ -779,6 +790,8 @@ func (e *executor) execLocalSameTime(tx *types.Transaction, receipt *types.Recei
 
 func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	kv, err := e.execLocal(tx, r, index)
+	//TODO 解析TX PROXY_EXEC
+
 	if err == types.ErrActionNotSupport {
 		return nil, nil
 	}
