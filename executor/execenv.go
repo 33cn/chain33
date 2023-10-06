@@ -14,10 +14,10 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
-	"time"
 )
 
 // 执行器 -> db 环境
@@ -602,41 +602,23 @@ func (e *executor) rollback() {
 
 func (e *executor) getCurrentNonce(addr string) int64 {
 
-	//nonceLocalKey := secp256k1eth.CaculCoinsEvmAccountKey(addr)
-	//evmNonce := &types.EvmAccountNonce{}
-	//nonceV, err := e.localDB.Get(nonceLocalKey)
-	//if err == nil {
-	//	_ = types.Decode(nonceV, evmNonce)
-	//}
-	//
-	//return evmNonce.GetNonce()
-
-	msg := e.exec.client.NewMessage("rpc", types.EventGetEvmNonce, &types.ReqEvmAccountNonce{
-		Addr: addr,
-	})
-	e.exec.client.Send(msg, true)
-	reply, err := e.exec.client.WaitTimeout(msg, time.Second*2)
+	nonceLocalKey := secp256k1eth.CaculCoinsEvmAccountKey(addr)
+	evmNonce := &types.EvmAccountNonce{}
+	nonceV, err := e.localDB.Get(nonceLocalKey)
 	if err == nil {
-		nonceInfo, ok := reply.GetData().(*types.EvmAccountNonce)
-		if ok {
-			return nonceInfo.GetNonce()
-		}
+		_ = types.Decode(nonceV, evmNonce)
 	}
-	return 0
+
+	return evmNonce.GetNonce()
 
 }
 
 func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, error) {
+
 	if string(types.GetRealExecName(tx.GetExecer())) != "evm" {
 		return nil, fmt.Errorf("execName %s not allowd", string(types.GetRealExecName(tx.GetExecer())))
 	}
 
-	////由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
-	////此处返回错误，不会打包
-	currentNonce := e.getCurrentNonce(tx.From())
-	if currentNonce != tx.GetNonce() {
-		return nil, fmt.Errorf("proxyExec nonce missmatch,tx.nonce:%v,localnonce:%v", tx.Nonce, currentNonce)
-	}
 	var actionData types.EVMContractAction4Chain33
 	err := types.Decode(tx.GetPayload(), &actionData)
 	if err != nil {
@@ -655,18 +637,27 @@ func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, er
 
 }
 
-func (e *executor) proxyExecTx(tx *types.Transaction) (*types.Transaction, error) {
-	var realTx = tx
-	var err error
+func (e *executor) checkProxyExecTx(tx *types.Transaction) bool {
 	if tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
-
-		realTx, err = e.proxyGetRealTx(tx)
-		if err != nil {
-			return realTx, err
+		if string(types.GetRealExecName(tx.GetExecer())) == "evm" {
+			return true
 		}
-		realTx.Signature = tx.Signature
 
 	}
+	return false
+}
+func (e *executor) proxyExecTx(tx *types.Transaction) (*types.Transaction, error) {
+
+	if !e.checkProxyExecTx(tx) {
+		return tx, nil
+	}
+
+	realTx, err := e.proxyGetRealTx(tx)
+	if err != nil {
+		return realTx, err
+	}
+	realTx.Signature = tx.Signature
+
 	return realTx, nil
 }
 
@@ -699,6 +690,13 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 			}
 
 		}(tx)
+
+		////由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
+		////此处返回错误，不会打包
+		currentNonce := e.getCurrentNonce(tx.From())
+		if currentNonce != tx.GetNonce() {
+			return nil, fmt.Errorf("proxyExec nonce missmatch,tx.nonce:%v,localnonce:%v", tx.Nonce, currentNonce)
+		}
 
 		tx, err = e.proxyExecTx(tx)
 		if err != nil {
@@ -790,7 +788,6 @@ func (e *executor) execLocalSameTime(tx *types.Transaction, receipt *types.Recei
 
 func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	kv, err := e.execLocal(tx, r, index)
-	//TODO 解析TX PROXY_EXEC
 
 	if err == types.ErrActionNotSupport {
 		return nil, nil
