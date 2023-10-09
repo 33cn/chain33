@@ -638,7 +638,7 @@ func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, er
 }
 
 func (e *executor) checkProxyExecTx(tx *types.Transaction) bool {
-	if tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
+	if tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress && types.IsEthSignID(tx.Signature.Ty) {
 		if string(types.GetRealExecName(tx.GetExecer())) == "evm" {
 			return true
 		}
@@ -647,10 +647,6 @@ func (e *executor) checkProxyExecTx(tx *types.Transaction) bool {
 	return false
 }
 func (e *executor) proxyExecTx(tx *types.Transaction) (*types.Transaction, error) {
-
-	if !e.checkProxyExecTx(tx) {
-		return tx, nil
-	}
 
 	realTx, err := e.proxyGetRealTx(tx)
 	if err != nil {
@@ -678,7 +674,7 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	//代理执行 EVM-->txpayload-->chain33 tx
 	if e.cfg.IsFork(e.height, "ForkProxyExec") {
 		defer func(tx *types.Transaction) {
-			if types.IsEthSignID(tx.Signature.Ty) && tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
+			if e.checkProxyExecTx(tx) {
 				cloneTx := tx.Clone()
 				//执行evm execlocal 数据，主要是nonce++
 				//此处执行execlocal 是为了连续多笔同地址下的交易，关系上下文用，否则下一笔evm交易的nonce 将会报错
@@ -691,17 +687,19 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 
 		}(tx)
 
-		////由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
-		////此处返回错误，不会打包
-		currentNonce := e.getCurrentNonce(tx.From())
-		if currentNonce != tx.GetNonce() {
-			return nil, fmt.Errorf("proxyExec nonce missmatch,tx.nonce:%v,localnonce:%v", tx.Nonce, currentNonce)
+		if e.checkProxyExecTx(tx) {
+			////由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
+			////此处返回错误，不会打包
+			currentNonce := e.getCurrentNonce(tx.From())
+			if currentNonce != tx.GetNonce() {
+				return nil, fmt.Errorf("proxyExec nonce missmatch,tx.nonce:%v,localnonce:%v", tx.Nonce, currentNonce)
+			}
+			tx, err = e.proxyExecTx(tx)
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		tx, err = e.proxyExecTx(tx)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	//交易检查规则：

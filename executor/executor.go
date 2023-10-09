@@ -450,7 +450,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 			//解析TX PROXY_EXEC,优先解析代理执行交易进行execlocal 处理
 			realTx, err := execute.proxyExecTx(tx)
 			if err == nil {
-				elog.Info("procExecAddBlock", "proxyExecTx execute.execLocalTx:", ctx.height, "tx.From", tx.From(), "tx.Nonce", tx.Nonce)
+				elog.Info("procExecAddBlock", "proxyExecTx execute.execLocalTx blockheight:", ctx.height, "tx.From", tx.From(), "tx.Nonce", tx.Nonce)
 				kv2, err = execute.execLocal(realTx, datas.Receipts[i], i)
 				if err != nil {
 					msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
