@@ -672,32 +672,26 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 
 	var err error
 	//代理执行 EVM-->txpayload-->chain33 tx
-	if e.cfg.IsFork(e.height, "ForkProxyExec") {
+	if e.cfg.IsFork(e.height, "ForkProxyExec") && e.checkProxyExecTx(tx) {
 		defer func(tx *types.Transaction) {
-			if e.checkProxyExecTx(tx) {
-				cloneTx := tx.Clone()
-				//执行evm execlocal 数据，主要是nonce++
-				//此处执行execlocal 是为了连续多笔同地址下的交易，关系上下文用，否则下一笔evm交易的nonce 将会报错
-				elog.Info("proxyExec", "isSameTmeExecLocal", e.isExecLocalSameTime(tx, index))
-				err = e.execLocalSameTime(cloneTx, feelog, index)
-				if err != nil {
-					elog.Error("proxyExec ReExecLocal", " execLocalSameTime", err.Error())
-				}
+			cloneTx := tx.Clone()
+			//执行evm execlocal 数据，主要是nonce++
+			//此处执行execlocal 是为了连续多笔同地址下的交易，关系上下文用，否则下一笔evm交易的nonce 将会报错
+			elog.Info("proxyExec", "isSameTmeExecLocal", e.isExecLocalSameTime(tx, index))
+			err = e.execLocalSameTime(cloneTx, feelog, index)
+			if err != nil {
+				elog.Error("proxyExec ReExecLocal", " execLocalSameTime", err.Error())
 			}
-
 		}(tx)
 
-		if e.checkProxyExecTx(tx) {
-			////由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
-			////此处返回错误，不会打包
-			currentNonce := e.getCurrentNonce(tx.From())
-			if currentNonce != tx.GetNonce() {
-				return nil, fmt.Errorf("proxyExec nonce missmatch,tx.nonce:%v,localnonce:%v", tx.Nonce, currentNonce)
-			}
-			tx, err = e.proxyExecTx(tx)
-			if err != nil {
-				return nil, err
-			}
+		////由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
+		currentNonce := e.getCurrentNonce(tx.From())
+		if currentNonce != tx.GetNonce() {
+			return nil, fmt.Errorf("proxyExec nonce missmatch,tx.nonce:%v,localnonce:%v", tx.Nonce, currentNonce)
+		}
+		tx, err = e.proxyExecTx(tx)
+		if err != nil {
+			return nil, err
 		}
 
 	}

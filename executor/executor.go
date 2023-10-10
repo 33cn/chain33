@@ -446,19 +446,22 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 			tx := b.Txs[i]
 			execute.localDB.(*LocalDB).StartTx()
 			elog.Info("procExecAddBlock", "execute.execLocalTx:", ctx.height, "tx.From", tx.From(), "tx.Nonce", tx.Nonce)
-			var kv2 = new(types.LocalDBSet)
-			//解析TX PROXY_EXEC,优先解析代理执行交易进行execlocal 处理
-			realTx, err := execute.proxyExecTx(tx)
-			if err == nil {
-				elog.Info("procExecAddBlock", "proxyExecTx execute.execLocalTx blockheight:", ctx.height, "tx.From", tx.From(), "tx.Nonce", tx.Nonce)
-				kv2, err = execute.execLocal(realTx, datas.Receipts[i], i)
-				if err != nil {
-					msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
-					return
-				}
 
-				if kv2 != nil && kv2.KV != nil {
-					kvset.KV = append(kvset.KV, kv2.KV...)
+			//解析TX PROXY_EXEC,优先解析代理执行交易进行execlocal 处理
+			if execute.checkProxyExecTx(tx) {
+				var kv = new(types.LocalDBSet)
+				realTx, err := execute.proxyExecTx(tx)
+				if err == nil {
+					elog.Info("procExecAddBlock", "proxyExecTx execute.execLocalTx blockheight:", ctx.height, "tx.From", tx.From(), "tx.Nonce", tx.Nonce)
+					kv, err = execute.execLocal(realTx, datas.Receipts[i], i)
+					if err != nil {
+						msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+						return
+					}
+
+					if kv != nil && kv.KV != nil {
+						kvset.KV = append(kvset.KV, kv.KV...)
+					}
 				}
 			}
 
@@ -535,7 +538,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 			tx := b.Txs[i]
 			//先检查是否是代理交易
 			if execute.checkProxyExecTx(tx) {
-				realTx, err := execute.proxyGetRealTx(tx)
+				realTx, err := execute.proxyExecTx(tx)
 				if err == nil {
 					kv, err := execute.execDelLocal(realTx, datas.Receipts[i], i)
 					if err == nil && kv != nil {
