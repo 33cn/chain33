@@ -59,7 +59,7 @@ type subConfig struct {
 	Web3CliVer      string   `json:"web3CliVer,omitempty"`
 }
 
-//ServerAPI ...
+// ServerAPI ...
 type ServerAPI interface {
 	EnableRPC()
 	EnableWS()
@@ -92,7 +92,7 @@ type rpcHandler struct {
 	server *rpc.Server
 }
 
-//initRpcHandler 注册eth rpc
+// initRpcHandler 注册eth rpc
 func initRPCHandler(apis rpcAPIs, cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) *rpcHandler {
 	server := rpc.NewServer()
 	if len(apis) == 0 {
@@ -106,7 +106,7 @@ func initRPCHandler(apis rpcAPIs, cfg *ctypes.Chain33Config, c queue.Client, api
 	}
 }
 
-//NewHTTPServer eth json rpcserver object
+// NewHTTPServer eth json rpcserver object
 func NewHTTPServer(c queue.Client, api client.QueueProtocolAPI) ServerAPI {
 	var subcfg subConfig
 	ctypes.MustDecode(c.GetConfig().GetSubConfig().RPC[subRpctype], &subcfg)
@@ -122,14 +122,14 @@ func NewHTTPServer(c queue.Client, api client.QueueProtocolAPI) ServerAPI {
 
 }
 
-//set listen addr
+// set listen addr
 func (h *httpServer) setEndPoint(listenAddr string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.endpoint = listenAddr
 }
 
-//EnableRpc  register http rpc
+// EnableRpc  register http rpc
 func (h *httpServer) EnableRPC() {
 	var apis = make(rpcAPIs)
 	for _, namespace := range h.subCfg.HTTPAPI {
@@ -139,7 +139,7 @@ func (h *httpServer) EnableRPC() {
 	}
 
 	rpcHandler := initRPCHandler(apis, h.cfg, h.qclient, h.api)
-	rpcHandler.Handler = node.NewHTTPHandlerStack(rpcHandler.server, []string{"*"}, []string{"*"})
+	rpcHandler.Handler = node.NewHTTPHandlerStack(rpcHandler.server, []string{"*"}, []string{"*"}, nil)
 	h.httpHandler = rpcHandler
 	if h.subCfg.HTTPAddr == "" {
 		h.subCfg.HTTPAddr = fmt.Sprintf("localhost:%d", defaultEthRPCPort)
@@ -148,7 +148,7 @@ func (h *httpServer) EnableRPC() {
 	log.Debug("EnableRpc", "httpaddr", h.endpoint)
 }
 
-//EnableWS register websocket rpc
+// EnableWS register websocket rpc
 func (h *httpServer) EnableWS() {
 	var apis = make(rpcAPIs)
 	for _, namespace := range h.subCfg.WsAPI {
@@ -167,7 +167,7 @@ func (h *httpServer) EnableWS() {
 	log.Debug("EnableWS", "websocketaddr", h.endpoint)
 }
 
-//Start server start
+// Start server start
 func (h *httpServer) Start() (int, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -203,7 +203,7 @@ func (h *httpServer) Start() (int, error) {
 
 }
 
-//Close close service
+// Close close service
 func (h *httpServer) Close() {
 	if h.wsHander != nil {
 		h.wsHander.server.Stop()
@@ -212,7 +212,7 @@ func (h *httpServer) Close() {
 	}
 }
 
-//ServeHTTP rewrite ServeHTTP
+// ServeHTTP rewrite ServeHTTP
 func (h *httpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTION" {
 		w.WriteHeader(http.StatusNoContent)
