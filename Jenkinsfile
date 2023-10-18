@@ -14,7 +14,7 @@ pipeline {
         gitlabBuilds(builds: ['check', 'build', 'test', 'deploy'])
         checkoutToSubdirectory "src/gitlab.33.cn/chain33/chain33"
     }
-
+    tools {go 'go1.19'}
     stages {
         stage('check') {
             steps {
