@@ -20,6 +20,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+
 // 执行器 -> db 环境
 type executor struct {
 	stateDB      dbm.KV
