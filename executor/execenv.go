@@ -14,12 +14,14 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	dbm "github.com/33cn/chain33/common/db"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	"github.com/golang/protobuf/proto"
 )
 
-//执行器 -> db 环境
+
+// 执行器 -> db 环境
 type executor struct {
 	stateDB      dbm.KV
 	localDB      dbm.KVDB
@@ -110,9 +112,9 @@ func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) 
 	return kvlist
 }
 
-//隐私交易费扣除规则：
-//1.公对私交易：直接从coin合约中扣除
-//2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除
+// 隐私交易费扣除规则：
+// 1.公对私交易：直接从coin合约中扣除
+// 2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := tx.From()
 	accFrom := e.coinsAccount.LoadAccount(from)
@@ -599,10 +601,25 @@ func (e *executor) rollback() {
 	}
 }
 
+func (e *executor) getCurrentNonce(addr string) int64 {
+
+	nonceLocalKey := secp256k1eth.CaculCoinsEvmAccountKey(addr)
+	evmNonce := &types.EvmAccountNonce{}
+	nonceV, err := e.localDB.Get(nonceLocalKey)
+	if err == nil {
+		_ = types.Decode(nonceV, evmNonce)
+	}
+
+	return evmNonce.GetNonce()
+
+}
+
 func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, error) {
+
 	if string(types.GetRealExecName(tx.GetExecer())) != "evm" {
 		return nil, fmt.Errorf("execName %s not allowd", string(types.GetRealExecName(tx.GetExecer())))
 	}
+
 	var actionData types.EVMContractAction4Chain33
 	err := types.Decode(tx.GetPayload(), &actionData)
 	if err != nil {
@@ -621,17 +638,23 @@ func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, er
 
 }
 
-func (e *executor) proxyExecTx(tx *types.Transaction) (*types.Transaction, error) {
-	var realTx = tx
-	var err error
-	if tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress {
-		realTx, err = e.proxyGetRealTx(tx)
-		if err != nil {
-			return realTx, err
+func (e *executor) checkProxyExecTx(tx *types.Transaction) bool {
+	if tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress && types.IsEthSignID(tx.Signature.Ty) {
+		if string(types.GetRealExecName(tx.GetExecer())) == "evm" {
+			return true
 		}
-		realTx.Signature = tx.Signature
 
 	}
+	return false
+}
+func (e *executor) proxyExecTx(tx *types.Transaction) (*types.Transaction, error) {
+
+	realTx, err := e.proxyGetRealTx(tx)
+	if err != nil {
+		return realTx, err
+	}
+	realTx.Signature = tx.Signature
+
 	return realTx, nil
 }
 
@@ -646,14 +669,32 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 		}
 		return receipt, nil
 	}
+	var feelog *types.Receipt
 
 	var err error
 	//代理执行 EVM-->txpayload-->chain33 tx
-	if e.cfg.IsFork(e.height, "ForkProxyExec") {
+	if e.cfg.IsFork(e.height, "ForkProxyExec") && e.checkProxyExecTx(tx) {
+		defer func(tx *types.Transaction) {
+			cloneTx := tx.Clone()
+			//执行evm execlocal 数据，主要是nonce++
+			//此处执行execlocal 是为了连续多笔同地址下的交易，关系上下文用，否则下一笔evm交易的nonce 将会报错
+			elog.Info("proxyExec", "isSameTmeExecLocal", e.isExecLocalSameTime(tx, index))
+			err = e.execLocalSameTime(cloneTx, feelog, index)
+			if err != nil {
+				elog.Error("proxyExec ReExecLocal", " execLocalSameTime", err.Error())
+			}
+		}(tx)
+
+		////由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
+		currentNonce := e.getCurrentNonce(tx.From())
+		if currentNonce != tx.GetNonce() {
+			return nil, fmt.Errorf("proxyExec nonce missmatch,tx.nonce:%v,localnonce:%v", tx.Nonce, currentNonce)
+		}
 		tx, err = e.proxyExecTx(tx)
 		if err != nil {
 			return nil, err
 		}
+
 	}
 
 	//交易检查规则：
@@ -670,7 +711,7 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	//处理交易手续费(先把手续费收了)
 	//如果收了手续费，表示receipt 至少是pack 级别
 	//收不了手续费的交易才是 error 级别
-	feelog, err := e.execFee(tx, index)
+	feelog, err = e.execFee(tx, index)
 	if err != nil {
 		return nil, err
 	}
@@ -731,6 +772,7 @@ func (e *executor) execLocalSameTime(tx *types.Transaction, receipt *types.Recei
 			r.Ty = receipt.Ty
 			r.Logs = receipt.Logs
 		}
+
 		_, err := e.execLocalTx(tx, r, index)
 		return err
 	}
@@ -739,6 +781,7 @@ func (e *executor) execLocalSameTime(tx *types.Transaction, receipt *types.Recei
 
 func (e *executor) execLocalTx(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	kv, err := e.execLocal(tx, r, index)
+
 	if err == types.ErrActionNotSupport {
 		return nil, nil
 	}

@@ -100,7 +100,7 @@ func New(cfg *typ.Chain33Config) *Executor {
 	return exec
 }
 
-//Wait Executor ready
+// Wait Executor ready
 func (exec *Executor) Wait() {}
 
 // SetQueueClient set client queue, for recv msg
@@ -378,6 +378,7 @@ func (exec *Executor) procExecTxList(msg *queue.Message) {
 }
 
 func (exec *Executor) procExecAddBlock(msg *queue.Message) {
+
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
@@ -423,6 +424,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 		if len(kvs) > 0 {
 			kvset.KV = append(kvset.KV, kvs...)
 		}
+
 		kvs, err = plugin.ExecLocal(execute, datas)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
@@ -443,6 +445,26 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 		for i := 0; i < len(b.Txs); i++ {
 			tx := b.Txs[i]
 			execute.localDB.(*LocalDB).StartTx()
+			elog.Info("procExecAddBlock", "execute.execLocalTx:", ctx.height, "tx.From", tx.From(), "tx.Nonce", tx.Nonce)
+
+			//解析TX PROXY_EXEC,优先解析代理执行交易进行execlocal 处理
+			if execute.checkProxyExecTx(tx) {
+				var kv = new(types.LocalDBSet)
+				realTx, err := execute.proxyExecTx(tx)
+				if err == nil {
+					elog.Info("procExecAddBlock", "proxyExecTx execute.execLocalTx blockheight:", ctx.height, "tx.From", tx.From(), "tx.Nonce", tx.Nonce)
+					kv, err = execute.execLocal(realTx, datas.Receipts[i], i)
+					if err != nil {
+						msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+						return
+					}
+
+					if kv != nil && kv.KV != nil {
+						kvset.KV = append(kvset.KV, kv.KV...)
+					}
+				}
+			}
+
 			kv, err := execute.execLocalTx(tx, datas.Receipts[i], i)
 			if err != nil {
 				msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
@@ -451,6 +473,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 			if kv != nil && kv.KV != nil {
 				kvset.KV = append(kvset.KV, kv.KV...)
 			}
+
 		}
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
@@ -513,6 +536,20 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 	if !exec.disableExecLocal {
 		for i := len(b.Txs) - 1; i >= 0; i-- {
 			tx := b.Txs[i]
+			//先检查是否是代理交易
+			if execute.checkProxyExecTx(tx) {
+				realTx, err := execute.proxyExecTx(tx)
+				if err == nil {
+					kv, err := execute.execDelLocal(realTx, datas.Receipts[i], i)
+					if err == nil && kv != nil {
+						if execute.checkPrefix(realTx.Execer, kv.KV) == nil {
+							kvset.KV = append(kvset.KV, kv.KV...)
+						}
+
+					}
+				}
+			}
+
 			kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
 			if err == types.ErrActionNotSupport {
 				continue
