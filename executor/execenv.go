@@ -20,7 +20,6 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-
 // 执行器 -> db 环境
 type executor struct {
 	stateDB      dbm.KV
@@ -639,7 +638,7 @@ func (e *executor) proxyGetRealTx(tx *types.Transaction) (*types.Transaction, er
 }
 
 func (e *executor) checkProxyExecTx(tx *types.Transaction) bool {
-	if tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress && types.IsEthSignID(tx.Signature.Ty) {
+	if e.cfg.IsFork(e.height, "ForkProxyExec") && tx.To == e.cfg.GetModuleConfig().Exec.ProxyExecAddress && types.IsEthSignID(tx.Signature.Ty) {
 		if string(types.GetRealExecName(tx.GetExecer())) == "evm" {
 			return true
 		}
@@ -673,7 +672,7 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 
 	var err error
 	//代理执行 EVM-->txpayload-->chain33 tx
-	if e.cfg.IsFork(e.height, "ForkProxyExec") && e.checkProxyExecTx(tx) {
+	if e.checkProxyExecTx(tx) {
 		defer func(tx *types.Transaction) {
 			cloneTx := tx.Clone()
 			//执行evm execlocal 数据，主要是nonce++
