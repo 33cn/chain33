@@ -541,7 +541,7 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 				realTx, err := execute.proxyExecTx(tx)
 				if err == nil {
 					kv, err := execute.execDelLocal(realTx, datas.Receipts[i], i)
-					if err == nil && kv != nil {
+					if err == nil && kv != nil && kv.KV != nil {
 						if execute.checkPrefix(realTx.Execer, kv.KV) == nil {
 							kvset.KV = append(kvset.KV, kv.KV...)
 						}
