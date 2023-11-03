@@ -22,7 +22,7 @@ import (
 
 var mlog = log.New("module", "mempool.base")
 
-//Mempool mempool 基础类
+// Mempool mempool 基础类
 type Mempool struct {
 	proxyMtx          sync.RWMutex
 	in                chan *queue.Message
@@ -54,14 +54,14 @@ func (mem *Mempool) getAPI() client.QueueProtocolAPI {
 	return mem.api
 }
 
-//GetSync 判断是否mempool 同步
+// GetSync 判断是否mempool 同步
 func (mem *Mempool) getSync() bool {
 	mem.proxyMtx.RLock()
 	defer mem.proxyMtx.RUnlock()
 	return mem.sync
 }
 
-//NewMempool 新建mempool 实例
+// NewMempool 新建mempool 实例
 func NewMempool(cfg *types.Mempool) *Mempool {
 	pool := &Mempool{}
 	if cfg.MaxTxNumPerAccount == 0 {
@@ -85,7 +85,7 @@ func NewMempool(cfg *types.Mempool) *Mempool {
 	return pool
 }
 
-//Close 关闭mempool
+// Close 关闭mempool
 func (mem *Mempool) Close() {
 	if mem.isClose() {
 		return
@@ -101,7 +101,7 @@ func (mem *Mempool) Close() {
 	mlog.Info("mempool module closed")
 }
 
-//SetQueueClient 初始化mempool模块
+// SetQueueClient 初始化mempool模块
 func (mem *Mempool) SetQueueClient(cli queue.Client) {
 	mem.client = cli
 	mem.client.Sub("mempool")
@@ -136,7 +136,7 @@ func (mem *Mempool) SetMinFee(fee int64) {
 	mem.proxyMtx.Unlock()
 }
 
-//SetQueueCache 设置排队策略
+// SetQueueCache 设置排队策略
 func (mem *Mempool) SetQueueCache(qcache QueueCache) {
 	mem.cache.SetQueueCache(qcache)
 }
@@ -159,19 +159,14 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 	blockTime := mem.header.GetBlockTime()
 	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
-	//由于mempool可能存在过期交易，先遍历所有，满足目标交易数再退出，否则存在无法获取到实际交易情况
+	var temptxs []*types.Transaction
 	mem.cache.Walk(0, func(tx *Item) bool {
-		if len(dupMap) > 0 {
-			if _, ok := dupMap[string(tx.Value.Hash())]; ok {
-				return true
-			}
-		}
 		if isExpired(cfg, tx, height, blockTime) && !isAll {
 			return true
 		}
-		txs = append(txs, tx.Value)
+		temptxs = append(temptxs, tx.Value)
 		//达到设定的交易数，退出循环, count为0获取所有
-		if count > 0 && len(txs) == int(count) {
+		if count > 0 && len(temptxs) == int(count) {
 			return false
 		}
 		return true
@@ -179,13 +174,25 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 
 	if mem.client.GetConfig().IsFork(mem.header.GetHeight(), "ForkCheckEthTxSort") {
 		//对txs 进行排序
-		txs = mem.sortEthSignTyTx(txs)
+		temptxs = mem.sortEthSignTyTx(temptxs)
 	}
+
+	if len(dupMap) > 0 {
+		for _, tx := range temptxs {
+			if _, ok := dupMap[string(tx.Hash())]; ok {
+				continue
+			}
+			txs = append(txs, tx)
+		}
+	} else {
+		txs = temptxs
+	}
+
 	return txs
 }
 
-//对eth signtype 的交易，同地址下nonce 按照从小到达的顺序排序
-//确保nonce 按照递增顺序发给blockchain
+// 对eth signtype 的交易，同地址下nonce 按照从小到达的顺序排序
+// 确保nonce 按照递增顺序发给blockchain
 func (mem *Mempool) sortEthSignTyTx(txs []*types.Transaction) []*types.Transaction {
 	//平行链架构下，主链节点无法获取到平行链evm的nonce
 	var merge []*types.Transaction
@@ -212,14 +219,15 @@ func (mem *Mempool) sortEthSignTyTx(txs []*types.Transaction) []*types.Transacti
 		})
 		//check exts[0].Nonce 是否等于current nonce, merge
 		if len(etxs) != 0 && mem.getCurrentNonce(from) == etxs[0].GetNonce() {
+
 			merge = append(merge, etxs[0])
 			for i, etx := range etxs {
 				if i == 0 {
 					continue
 				}
 				//要求nonce 具有连续性
-				if etx.GetNonce() == etxs[i-1].GetNonce()+1 {
-					merge = append(merge, etxs[i])
+				if etx.GetNonce() == etxs[0].GetNonce()+int64(i) {
+					merge = append(merge, etx)
 					continue
 				}
 				break
@@ -272,7 +280,7 @@ func (mem *Mempool) PushTx(tx *types.Transaction) error {
 	return err
 }
 
-//  setHeader设置mempool.header
+// setHeader设置mempool.header
 func (mem *Mempool) setHeader(h *types.Header) {
 	atomic.StoreInt64(&mem.currHeight, h.Height)
 	mem.proxyMtx.Lock()
@@ -287,7 +295,7 @@ func (mem *Mempool) GetHeader() *types.Header {
 	return mem.header
 }
 
-//IsClose 判断是否mempool 关闭
+// IsClose 判断是否mempool 关闭
 func (mem *Mempool) isClose() bool {
 	return atomic.LoadInt32(&mem.isclose) == 1
 }
@@ -482,6 +490,14 @@ func (mem *Mempool) delBlock(block *types.Block) {
 		if !mem.checkExpireValid(tx) {
 			continue
 		}
+
+		//检查mempool内是否有相同的tx.nonce
+		err = mem.evmTxNonceCheck(tx.Tx())
+		if err != nil {
+			mlog.Error("delBlock mem", "block height:", block.Height, "evmTxNonceCheck push tx err", err)
+			continue
+		}
+
 		err = mem.PushTx(tx)
 		if err != nil {
 			mlog.Error("mem", "push tx err", err)
