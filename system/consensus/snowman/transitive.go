@@ -5,6 +5,7 @@
 package snowman
 
 import (
+	"context"
 	"github.com/33cn/chain33/types"
 
 	"go.uber.org/zap"
@@ -20,6 +21,7 @@ import (
 	//"github.com/ava-labs/avalanchego/version"
 )
 
+// New new snow engine
 func New(config Config) (*Transitive, error) {
 	return newTransitive(config)
 }
@@ -89,6 +91,7 @@ func newTransitive(config Config) (*Transitive, error) {
 	return t, t.metrics.Initialize("", config.registerer)
 }
 
+// Put put block
 func (t *Transitive) Put(nodeID ids.NodeID, block *types.Block) error {
 
 	sb := newSnowBlock(block, t.chainCfg)
@@ -108,7 +111,8 @@ func (t *Transitive) Put(nodeID ids.NodeID, block *types.Block) error {
 	return t.buildBlocks()
 }
 
-func (t *Transitive) GetFailed(nodeID ids.NodeID, requestID uint32) error {
+// GetFailed get failed
+func (t *Transitive) GetFailed(ctx context.Context, nodeID ids.NodeID, requestID uint32) error {
 	// We don't assume that this function is called after a failed Get message.
 	// Check to see if we have an outstanding request and also get what the request was for if it exists.
 	blkID, ok := t.blkReqs.Remove(nodeID, requestID)
@@ -121,13 +125,13 @@ func (t *Transitive) GetFailed(nodeID ids.NodeID, requestID uint32) error {
 	}
 
 	// Because the get request was dropped, we no longer expect blkID to be issued.
-	t.blocked.Abandon(blkID)
+	t.blocked.Abandon(ctx, blkID)
 	t.metrics.numBlockers.Set(float64(t.blocked.Len()))
 	return t.buildBlocks()
 }
 
-func (t *Transitive) PullQuery(nodeID ids.NodeID, requestID uint32, blkID ids.ID) error {
-	// TODO: once everyone supports ChitsV2 - we should be sending that message
+// handlePullQuery handle pull query from nodeID
+func (t *Transitive) handlePullQuery(nodeID ids.NodeID, requestID uint32, blkID ids.ID) error {
 	// type here.
 	t.sendChits(nodeID, requestID, []ids.ID{t.consensus.Preference()})
 
@@ -140,7 +144,8 @@ func (t *Transitive) PullQuery(nodeID ids.NodeID, requestID uint32, blkID ids.ID
 	return t.buildBlocks()
 }
 
-func (t *Transitive) PushQuery(nodeID ids.NodeID, requestID uint32, block *types.Block) error {
+// handlePushQuery handle push query from other node
+func (t *Transitive) handlePushQuery(nodeID ids.NodeID, requestID uint32, block *types.Block) error {
 	// TODO: once everyone supports ChitsV2 - we should be sending that message
 	// type here.
 	t.sendChits(nodeID, requestID, []ids.ID{t.consensus.Preference()})
@@ -163,7 +168,8 @@ func (t *Transitive) PushQuery(nodeID ids.NodeID, requestID uint32, block *types
 	return t.buildBlocks()
 }
 
-func (t *Transitive) Chits(nodeID ids.NodeID, requestID uint32, votes []ids.ID) error {
+// handleChits  handle chits
+func (t *Transitive) handleChits(nodeID ids.NodeID, requestID uint32, votes []ids.ID) error {
 	// Since this is a linear chain, there should only be one ID in the vote set
 	if len(votes) != 1 {
 		t.log.Debug("failing Chits",
