@@ -39,7 +39,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//----------------------------- data for testing ---------------------------------
+// ----------------------------- data for testing ---------------------------------
 var (
 	c, _       = crypto.Load(types.GetSignName("", types.SECP256K1), -1)
 	hexPirv    = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
@@ -1255,7 +1255,7 @@ func TestEventTxListByHash(t *testing.T) {
 	}
 }
 
-//BenchmarkGetTxList-8   	    1000	   1631315 ns/op
+// BenchmarkGetTxList-8   	    1000	   1631315 ns/op
 func BenchmarkGetTxList(b *testing.B) {
 
 	q, mem := initEnv(0)
@@ -1466,8 +1466,9 @@ func Test_sortEthSignTyTx(t *testing.T) {
 	tx3 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 3, Signature: sig}
 	tx4 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 4, Signature: sig}
 	tx5 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 6, Signature: sig}
+	tx6 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 6, Signature: sig}
 	var txs []*types.Transaction
-	txs = append(txs, tx4, tx3, tx1, tx2, tx5)
+	txs = append(txs, tx4, tx3, tx1, tx2, tx5, tx6)
 	_, mem := initEnv(1)
 	txs = mem.sortEthSignTyTx(txs)
 	//对排序后的结果进行校验
@@ -1476,6 +1477,7 @@ func Test_sortEthSignTyTx(t *testing.T) {
 	require.Equal(t, txs[1].GetNonce(), tx2.GetNonce())
 	require.Equal(t, txs[2].GetNonce(), tx3.GetNonce())
 	require.Equal(t, txs[3].GetNonce(), tx4.GetNonce())
+	t.Log("", len(txs))
 
 }
 
@@ -1491,7 +1493,7 @@ func TestCheckTxsNonce(t *testing.T) {
 	tx1.Sign(types.EncodeSignID(secp256k1eth.ID, eth.ID), privKey)
 	tx2 := &types.Transaction{ChainID: 0, Execer: []byte("evm"), Payload: types.Encode(transfer), Fee: 460000002, Expire: 0, To: toAddr, Nonce: 1}
 	tx2.Sign(types.EncodeSignID(secp256k1eth.ID, eth.ID), privKey)
-	tx3 := &types.Transaction{ChainID: 0, Execer: []byte("evm"), Payload: types.Encode(transfer), Fee: 460000002 + 45999998, Expire: 0, To: toAddr, Nonce: 1}
+	tx3 := &types.Transaction{ChainID: 0, Execer: []byte("evm"), Payload: types.Encode(transfer), Fee: 460000002 + 45999998, Expire: 0, To: toAddr, Nonce: 2}
 	tx3.Sign(types.EncodeSignID(secp256k1eth.ID, eth.ID), privKey)
 	_, mem := initEnv(10)
 	//测试nonce 较低的情况下进入mempool 检查
@@ -1514,7 +1516,7 @@ func TestCheckTxsNonce(t *testing.T) {
 	assert.Nil(t, err)
 	reply = msg.GetData().(*types.Reply)
 	assert.False(t, reply.GetIsOk())
-	assert.Equal(t, "requires at least 10 percent increase in handling fee,need more:45999998", string(reply.GetMsg()))
+	assert.Equal(t, "disable transaction acceleration", string(reply.GetMsg()))
 	txs := mem.GetLatestTx()
 	assert.Equal(t, 1, len(txs))
 	assert.Equal(t, txs[0].Hash(), tx1.Hash())
@@ -1527,6 +1529,6 @@ func TestCheckTxsNonce(t *testing.T) {
 
 	//此时mempool 中应该之后tx3 ,tx1 已经被自动删除
 	txs = mem.GetLatestTx()
-	assert.Equal(t, 1, len(txs))
-	assert.Equal(t, txs[0].Hash(), tx3.Hash())
+	assert.Equal(t, 2, len(txs))
+	assert.Equal(t, txs[0].Hash(), tx1.Hash())
 }

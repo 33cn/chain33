@@ -245,24 +245,6 @@ func (mem *Mempool) evmTxNonceCheck(tx *types.Transaction) error {
 				mlog.Info("evmTxNonceCheck", "from:", tx.From(), "pre tx hash", common.ToHex(txs[i].GetTx().Hash()), "detect transaction acceleration action:", "reject")
 				return errors.New("disable transaction acceleration")
 			}
-			/*if txs[i].GetTx().GetNonce() == tx.GetNonce() {
-				bnfee := big.NewInt(txs[i].GetTx().Fee)
-				//相同的nonce，fee 必须提升至1.1 倍 才能有效替换之前的交易
-				bnfee = bnfee.Mul(bnfee, big.NewInt(110))
-				bnfee = bnfee.Div(bnfee, big.NewInt(1e2))
-				if tx.Fee < bnfee.Int64() {
-					err := fmt.Errorf("requires at least 10 percent increase in handling fee,need more:%d", bnfee.Int64()-tx.Fee)
-					mlog.Error("checkTxNonce", "fee err", err, "txfee", tx.Fee, "mempooltx", txs[0].GetTx().Fee, "from:", tx.From())
-					return err
-				}
-
-				//删除Expire 较大的交易或者更低手续费的交易,确保先创建的交易留在mempool 中
-				mem.RemoveTxs(&types.TxHashList{
-					Hashes: [][]byte{txs[i].GetTx().Hash()},
-				})
-				mlog.Info("evmTxNonceCheck", "remote txhash:", common.ToHex(txs[i].GetTx().Hash()), "replace txHash:", common.ToHex(tx.Hash()))
-				return nil
-			}*/
 		}
 
 	}
