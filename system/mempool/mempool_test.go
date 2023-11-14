@@ -1457,18 +1457,26 @@ func Test_addDelayTxFromBlock(t *testing.T) {
 func Test_sortEthSignTyTx(t *testing.T) {
 	pub, err := common.FromHex("0x04715e4e07d983c2d98eeac7018bce6e68ef9de25835340f6455f1b1c9686132ac54904f5e04b07966a256140a5f487c4aef3ddc461e02d58f90cc8baa49f9c7ca")
 	require.Nil(t, err)
+	pub2, err := common.FromHex("0x0490a89752545aa381c2db0979e3af3e365d5d82adc34f9b36b038d7e19f3e6d65dd6230f5f064b58b3dcf195e95fd4cfc1d39a28ede4c1df5b0300a73ccd2d32f")
+	require.Nil(t, err)
 	sig := &types.Signature{
 		Ty:     8452,
 		Pubkey: pub,
+	}
+	sig2 := &types.Signature{
+		Ty:     8452,
+		Pubkey: pub2,
 	}
 	tx1 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr, Nonce: 1, Signature: sig}
 	tx2 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr, Nonce: 2, Signature: sig}
 	tx3 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 3, Signature: sig}
 	tx4 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 4, Signature: sig}
 	tx5 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 6, Signature: sig}
-	tx6 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 6, Signature: sig}
+	tx6 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 1, Signature: sig2}
+	tx7 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 2, Signature: sig2}
+	tx8 := &types.Transaction{ChainID: 3999, Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr, Nonce: 4, Signature: sig2}
 	var txs []*types.Transaction
-	txs = append(txs, tx4, tx3, tx1, tx2, tx5, tx6)
+	txs = append(txs, tx4, tx3, tx1, tx2, tx5)
 	_, mem := initEnv(1)
 	txs = mem.sortEthSignTyTx(txs)
 	//对排序后的结果进行校验
@@ -1477,8 +1485,11 @@ func Test_sortEthSignTyTx(t *testing.T) {
 	require.Equal(t, txs[1].GetNonce(), tx2.GetNonce())
 	require.Equal(t, txs[2].GetNonce(), tx3.GetNonce())
 	require.Equal(t, txs[3].GetNonce(), tx4.GetNonce())
-	t.Log("", len(txs))
-
+	txs = append(txs, tx4, tx3, tx1, tx2, tx5, tx6, tx7, tx8)
+	_, mem = initEnv(1)
+	txs = mem.sortEthSignTyTx(txs)
+	txs = mem.sortEthSignTyTx(txs)
+	require.Equal(t, 4+2, len(txs))
 }
 
 func TestCheckTxsNonce(t *testing.T) {

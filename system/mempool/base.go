@@ -7,7 +7,6 @@ package mempool
 import (
 	"bytes"
 	"encoding/hex"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -159,14 +158,19 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 	blockTime := mem.header.GetBlockTime()
 	types.AssertConfig(mem.client)
 	cfg := mem.client.GetConfig()
-	var temptxs []*types.Transaction
+	//由于mempool可能存在过期交易，先遍历所有，满足目标交易数再退出，否则存在无法获取到实际交易情况
 	mem.cache.Walk(0, func(tx *Item) bool {
+		if len(dupMap) > 0 {
+			if _, ok := dupMap[string(tx.Value.Hash())]; ok {
+				return true
+			}
+		}
 		if isExpired(cfg, tx, height, blockTime) && !isAll {
 			return true
 		}
-		temptxs = append(temptxs, tx.Value)
+		txs = append(txs, tx.Value)
 		//达到设定的交易数，退出循环, count为0获取所有
-		if count > 0 && len(temptxs) == int(count) {
+		if count > 0 && len(txs) == int(count) {
 			return false
 		}
 		return true
@@ -174,20 +178,8 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 
 	if mem.client.GetConfig().IsFork(mem.header.GetHeight(), "ForkCheckEthTxSort") {
 		//对txs 进行排序
-		temptxs = mem.sortEthSignTyTx(temptxs)
+		txs = mem.sortEthSignTyTx(txs)
 	}
-
-	if len(dupMap) > 0 {
-		for _, tx := range temptxs {
-			if _, ok := dupMap[string(tx.Hash())]; ok {
-				continue
-			}
-			txs = append(txs, tx)
-		}
-	} else {
-		txs = temptxs
-	}
-
 	return txs
 }
 
@@ -196,12 +188,15 @@ func (mem *Mempool) filterTxList(count int64, dupMap map[string]bool, isAll bool
 func (mem *Mempool) sortEthSignTyTx(txs []*types.Transaction) []*types.Transaction {
 	//平行链架构下，主链节点无法获取到平行链evm的nonce
 	var merge []*types.Transaction
-	var ethsignTxs = make(map[string][]*types.Transaction)
+	var ethsignTxs = make(map[string]map[int64]*types.Transaction)
 	for _, tx := range txs {
 		//只有eth 签名且非平行链交易才能进入mempool 中进行 nonce 排序
 		if types.IsEthSignID(tx.GetSignature().GetTy()) && !bytes.HasPrefix(tx.GetExecer(), []byte(types.ParaKeyX)) {
 			//暂时不考虑组交易的情况
-			ethsignTxs[tx.From()] = append(ethsignTxs[tx.From()], tx)
+			if _, ok := ethsignTxs[tx.From()]; !ok {
+				ethsignTxs[tx.From()] = make(map[int64]*types.Transaction)
+			}
+			ethsignTxs[tx.From()][tx.GetNonce()] = tx
 			continue
 		}
 		//非eth 签名 和 平行链交易 在主网节点中直接返回给blockchain,因为主网节点不知道此tx.From地址在主网节点的nonce 状态，没法排序，只能在平行链节点rpc层过滤掉
@@ -211,28 +206,18 @@ func (mem *Mempool) sortEthSignTyTx(txs []*types.Transaction) []*types.Transacti
 	if len(merge) == len(txs) {
 		return txs
 	}
-
 	//sort
-	for from, etxs := range ethsignTxs {
-		sort.SliceStable(etxs, func(i, j int) bool { //nonce asc
-			return etxs[i].GetNonce() < etxs[j].GetNonce()
-		})
-		//check exts[0].Nonce 是否等于current nonce, merge
-		if len(etxs) != 0 && mem.getCurrentNonce(from) == etxs[0].GetNonce() {
+	for from, txs := range ethsignTxs {
+		currentNonce := mem.getCurrentNonce(from)
+		for nonce := currentNonce; ; nonce++ {
+			if tx, ok := txs[nonce]; ok {
+				merge = append(merge, tx)
 
-			merge = append(merge, etxs[0])
-			for i, etx := range etxs {
-				if i == 0 {
-					continue
-				}
-				//要求nonce 具有连续性
-				if etx.GetNonce() == etxs[0].GetNonce()+int64(i) {
-					merge = append(merge, etx)
-					continue
-				}
+			} else {
 				break
 			}
 		}
+
 	}
 
 	return merge
@@ -488,13 +473,6 @@ func (mem *Mempool) delBlock(block *types.Block) {
 			continue
 		}
 		if !mem.checkExpireValid(tx) {
-			continue
-		}
-
-		//检查mempool内是否有相同的tx.nonce
-		err = mem.evmTxNonceCheck(tx.Tx())
-		if err != nil {
-			mlog.Error("delBlock mem", "block height:", block.Height, "evmTxNonceCheck push tx err", err)
 			continue
 		}
 
