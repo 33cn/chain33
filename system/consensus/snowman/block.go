@@ -1,13 +1,13 @@
 package snowman
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/33cn/chain33/types"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
-	"github.com/ava-labs/avalanchego/snow/consensus/snowman"
 )
 
 // wrap chain33 block for implementing the snowman.Block interface
@@ -15,31 +15,26 @@ type snowBlock struct {
 	id     ids.ID
 	block  *types.Block
 	status choices.Status
-}
-
-func newSnowBlock(blk *types.Block, cfg *types.Chain33Config) snowman.Block {
-
-	sb := &snowBlock{block: blk}
-	copy(sb.id[:], blk.Hash(cfg))
-	return sb
+	vm     *chain33VM
 }
 
 // ID implements the snowman.Block interface
 func (b *snowBlock) ID() ids.ID { return b.id }
 
 // Accept implements the snowman.Block interface
-func (b *snowBlock) Accept() error {
+func (b *snowBlock) Accept(ctx context.Context) error {
 
 	b.status = choices.Accepted
-	log.Debug(fmt.Sprintf("Accepting block %s at height %d", b.ID().Hex(), b.Height()))
+	snowLog.Debug(fmt.Sprintf("Accepting block %s at height %d", b.ID().Hex(), b.Height()))
 	// TODO accept block
 	return nil
 }
 
 // Reject implements the snowman.Block interface
-func (b *snowBlock) Reject() error {
+// This element will not be accepted by any correct node in the network.
+func (b *snowBlock) Reject(ctx context.Context) error {
 	b.status = choices.Rejected
-	log.Debug(fmt.Sprintf("Rejecting block %s at height %d", b.ID().Hex(), b.Height()))
+	snowLog.Debug(fmt.Sprintf("Rejecting block %s at height %d", b.ID().Hex(), b.Height()))
 	// TODO reject block
 	return nil
 }
@@ -71,9 +66,9 @@ func (b *snowBlock) Timestamp() time.Time {
 }
 
 // Verify implements the snowman.Block interface
-func (b *snowBlock) Verify() error {
+func (b *snowBlock) Verify(ctx context.Context) error {
 
-	log.Debug(fmt.Sprintf("Verify block %s at height %d", b.ID().Hex(), b.Height()))
+	snowLog.Debug(fmt.Sprintf("Verify block %s at height %d", b.ID().Hex(), b.Height()))
 	// TODO verify block
 	return nil
 }

@@ -114,6 +114,6 @@ func (*blankVM) Version(context.Context) (string, error) {
 
 func recordUnimplementedError(funcName string) {
 
-	log.Error("Call unimplemented function", "func", funcName)
+	snowLog.Error("Call unimplemented function", "func", funcName)
 	panic("")
 }
