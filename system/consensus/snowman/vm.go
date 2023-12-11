@@ -20,11 +20,20 @@ var (
 	_ block.ChainVM = (*chain33VM)(nil)
 )
 
+type preferBlock struct {
+	height int64
+	hash   []byte
+}
+
 // implements the snowman.ChainVM interface
 type chain33VM struct {
 	blankVM
 	api client.QueueProtocolAPI
 	cfg *types.Chain33Config
+
+	pendingBlock map[ids.ID][]*types.Block
+	preferenceID ids.ID
+	acceptHeight int64
 }
 
 func (vm *chain33VM) newSnowBlock(blk *types.Block) snowcon.Block {
@@ -39,6 +48,7 @@ func (vm *chain33VM) Init(ctx *consensus.Context) {
 
 	vm.api = ctx.Base.GetAPI()
 	vm.cfg = vm.api.GetConfig()
+	vm.pendingBlock = make(map[ids.ID][]*types.Block, 8)
 }
 
 // Initialize implements the snowman.ChainVM interface
@@ -95,6 +105,10 @@ func (vm *chain33VM) ParseBlock(_ context.Context, b []byte) (snowcon.Block, err
 	return vm.newSnowBlock(blk), nil
 }
 
+func (vm *chain33VM) addNewBlock(blk *types.Block) {
+
+}
+
 // BuildBlock Attempt to create a new block from data contained in the VM.
 //
 // If the VM doesn't want to issue a new block, an error should be
@@ -110,6 +124,7 @@ func (vm *chain33VM) BuildBlock(context.Context) (snowcon.Block, error) {
 // This should always be a block that has no children known to consensus.
 func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 
+	vm.preferenceID = blkID
 	return nil
 }
 
@@ -153,4 +168,9 @@ func (vm *chain33VM) GetBlockIDAtHeight(ctx context.Context, height uint64) (ids
 	copy(id[:], reply.Hash)
 
 	return id, nil
+}
+
+func (vm *chain33VM) acceptBlock(blk *types.Block) {
+
+	vm.acceptHeight = blk.Height
 }

@@ -142,6 +142,8 @@ type Consensus struct {
 	EnableBestBlockCmp bool `json:"enableBestBlockCmp,omitempty"`
 	// 不回滚的共识设为true
 	NoneRollback bool `json:"noneRollback,omitempty"`
+	// block finalizer, snowman
+	Finalizer string `json:"finalizer,omitempty"`
 }
 
 // Wallet 配置

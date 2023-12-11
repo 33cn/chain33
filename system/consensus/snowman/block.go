@@ -27,6 +27,7 @@ func (b *snowBlock) Accept(ctx context.Context) error {
 	b.status = choices.Accepted
 	snowLog.Debug(fmt.Sprintf("Accepting block %s at height %d", b.ID().Hex(), b.Height()))
 	// TODO accept block
+	b.vm.acceptBlock(b.block)
 	return nil
 }
 

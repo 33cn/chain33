@@ -209,6 +209,9 @@ const (
 	//返回节点中最高的区块高度
 	EventHighestBlock = 370
 	EventGetEvmNonce  = 371
+
+	// EventForFinalizer 最终化共识专属消息类型
+	EventForFinalizer = 372
 )
 
 var eventName = map[int]string{
@@ -379,4 +382,5 @@ var eventName = map[int]string{
 	EventPushTxResult:               "EventPushTxResult",
 	EventHighestBlock:               "EventHighestBlock",
 	EventGetEvmNonce:                "EventGetEvmNonce",
+	EventForFinalizer:               "EventForFinalizer",
 }
