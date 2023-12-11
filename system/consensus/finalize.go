@@ -6,13 +6,14 @@ package consensus
 
 import (
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 // Finalizer block finalize
 type Finalizer interface {
-	Initialize(ctx *Context) error
-	Start() error
-	ProcessMsg(msg *queue.Message) (processed bool)
+	Initialize(ctx *Context)
+	AddBlock(blk *types.Block)
+	SubMsg(msg *queue.Message)
 }
 
 var finalizers = make(map[string]Finalizer)
