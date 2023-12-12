@@ -210,8 +210,11 @@ const (
 	EventHighestBlock = 370
 	EventGetEvmNonce  = 371
 
-	// EventForFinalizer 最终化共识专属消息类型
+	// EventForFinalizer 最终化共识一级消息类型
 	EventForFinalizer = 372
+	EventSnowmanPreferBlk = 373
+	EventSnowmanAcceptBlk = 374
+	EventSnowmanLastAcceptHeight = 375
 )
 
 var eventName = map[int]string{

@@ -25,9 +25,11 @@ func (b *snowBlock) ID() ids.ID { return b.id }
 func (b *snowBlock) Accept(ctx context.Context) error {
 
 	b.status = choices.Accepted
-	snowLog.Debug(fmt.Sprintf("Accepting block %s at height %d", b.ID().Hex(), b.Height()))
-	// TODO accept block
-	b.vm.acceptBlock(b.block)
+	snowLog.Debug("Accepting block", "hash", b.id.Hex(), "height", b.Height())
+	err := b.vm.acceptBlock(b.block.Height, b.id)
+	if err != nil {
+		snowLog.Error("Accepting block error", "hash", b.id.Hex(), "height", b.Height())
+	}
 	return nil
 }
 

@@ -1,8 +1,13 @@
 package snowman
 
 import (
+	"encoding/hex"
+	"sync"
+
 	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/consensus"
+	"github.com/33cn/chain33/system/consensus/snowman/utils"
 	"github.com/33cn/chain33/types"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/manager"
@@ -28,10 +33,11 @@ type preferBlock struct {
 // implements the snowman.ChainVM interface
 type chain33VM struct {
 	blankVM
-	api client.QueueProtocolAPI
-	cfg *types.Chain33Config
-
-	pendingBlock map[ids.ID][]*types.Block
+	api          client.QueueProtocolAPI
+	cfg          *types.Chain33Config
+	qclient      queue.Client
+	pendingBlock map[string]*types.Block
+	lock         sync.RWMutex
 	preferenceID ids.ID
 	acceptHeight int64
 }
@@ -48,7 +54,9 @@ func (vm *chain33VM) Init(ctx *consensus.Context) {
 
 	vm.api = ctx.Base.GetAPI()
 	vm.cfg = vm.api.GetConfig()
-	vm.pendingBlock = make(map[ids.ID][]*types.Block, 8)
+	vm.qclient = ctx.Base.GetQueueClient()
+	vm.pendingBlock = make(map[string]*types.Block, 8)
+	ctx.Base.GetQueueClient()
 }
 
 // Initialize implements the snowman.ChainVM interface
@@ -107,6 +115,15 @@ func (vm *chain33VM) ParseBlock(_ context.Context, b []byte) (snowcon.Block, err
 
 func (vm *chain33VM) addNewBlock(blk *types.Block) {
 
+	vm.lock.Lock()
+	defer vm.lock.Unlock()
+	key := string(blk.ParentHash)
+	exist, ok := vm.pendingBlock[key]
+	if !ok {
+		snowLog.Debug("addNewBlock replace block", "old", hex.EncodeToString(exist.Hash(vm.cfg)),
+			"new", hex.EncodeToString(blk.Hash(vm.cfg)))
+	}
+	vm.pendingBlock[key] = blk
 }
 
 // BuildBlock Attempt to create a new block from data contained in the VM.
@@ -115,8 +132,16 @@ func (vm *chain33VM) addNewBlock(blk *types.Block) {
 // returned.
 func (vm *chain33VM) BuildBlock(context.Context) (snowcon.Block, error) {
 
-	// TODO new block
-	return nil, nil
+	vm.lock.RLock()
+	defer vm.lock.RUnlock()
+
+	blk, ok := vm.pendingBlock[string(vm.preferenceID[:])]
+
+	if !ok {
+		return nil, utils.ErrBlockNotReady
+	}
+
+	return vm.newSnowBlock(blk), nil
 }
 
 // SetPreference Notify the VM of the currently preferred block.
@@ -124,7 +149,20 @@ func (vm *chain33VM) BuildBlock(context.Context) (snowcon.Block, error) {
 // This should always be a block that has no children known to consensus.
 func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 
+	vm.lock.Lock()
 	vm.preferenceID = blkID
+	vm.lock.Unlock()
+
+	snowLog.Debug("SetPreference", "blkHash", blkID.Hex())
+
+	err := vm.qclient.Send(vm.qclient.NewMessage("blockchain",
+		types.EventSnowmanPreferBlk, &types.ReqBytes{Data: blkID[:]}), false)
+
+	if err != nil {
+		snowLog.Error("SetPreference", "blkHash", blkID.Hex(), "err", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -170,7 +208,25 @@ func (vm *chain33VM) GetBlockIDAtHeight(ctx context.Context, height uint64) (ids
 	return id, nil
 }
 
-func (vm *chain33VM) acceptBlock(blk *types.Block) {
+func (vm *chain33VM) acceptBlock(height int64, blkID ids.ID) error {
 
-	vm.acceptHeight = blk.Height
+	vm.lock.Lock()
+	defer vm.lock.Unlock()
+	vm.acceptHeight = height
+	vm.removeExpireBlock()
+
+	err := vm.qclient.Send(vm.qclient.NewMessage("blockchain",
+		types.EventSnowmanAcceptBlk, &types.ReqBytes{Data: blkID[:]}), false)
+
+	return err
+}
+
+func (vm *chain33VM) removeExpireBlock() {
+
+	for key, blk := range vm.pendingBlock {
+
+		if blk.Height <= vm.acceptHeight {
+			delete(vm.pendingBlock, key)
+		}
+	}
 }
