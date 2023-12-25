@@ -7,6 +7,7 @@ package snowman
 
 import (
 	"runtime"
+	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -32,18 +33,28 @@ func init() {
 type snowman struct {
 	engine smeng.Engine
 	vm     *chain33VM
+	vs *vdrSet
 	ctx    *consensus.Context
 	inMsg  chan *queue.Message
+	params snowball.Parameters
 }
 
 func (s *snowman) Initialize(ctx *consensus.Context) {
 
 	s.inMsg = make(chan *queue.Message, 32)
 
-	params := snowball.Parameters{}
+	params := snowball.DefaultParameters
+	err := params.Verify()
+	if err != nil {
+		panic("Initialize snowman engine invalid snowball parameters:" + err.Error())
+	}
+	s.params = params
 	vm := &chain33VM{}
 	vm.Init(ctx)
-	engineConfig := newSnowmanConfig(vm, params, newSnowContext(ctx.Base.GetAPI().GetConfig()))
+
+	vs := &vdrSet{}
+	vs.init(ctx)
+	engineConfig := newSnowmanConfig(vm, vs, params, newSnowContext(ctx.Base.GetAPI().GetConfig()))
 
 	engine, err := smeng.New(engineConfig)
 
@@ -52,16 +63,34 @@ func (s *snowman) Initialize(ctx *consensus.Context) {
 	}
 	s.engine = engine
 	s.vm = vm
+	s.vs = vs
+
+	go s.startRoutine()
 
 }
 
-func (s *snowman) Start() error {
+func (s *snowman) startRoutine()  {
+
+	// check sync status
+
+
+	// check connected peers
+
+	for {
+
+		peers, err := s.vs.getConnectedPeers()
+		if err == nil && len(peers) >= s.params.K {
+			break
+		}
+		snowLog.Debug("startRoutine", "getConnectedPeers", len(peers), "err", err)
+		time.Sleep(time.Second)
+	}
+
 
 	err := s.engine.Start(s.ctx.Base.Context, 0)
 
 	if err != nil {
-
-		return err
+		panic("start snowman engine err:" + err.Error())
 	}
 
 	//使用多个协程并发处理，提高效率
@@ -69,7 +98,6 @@ func (s *snowman) Start() error {
 	for i := 0; i < concurrency; i++ {
 		go s.handleMsgRountine()
 	}
-	return nil
 
 }
 

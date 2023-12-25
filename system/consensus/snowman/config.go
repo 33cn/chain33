@@ -34,7 +34,7 @@ type Config struct {
 	consensus  smcon.Consensus
 }
 
-func newSnowmanConfig(vm *chain33VM, params snowball.Parameters, ctx *snow.ConsensusContext) smeng.Config {
+func newSnowmanConfig(vm *chain33VM, vs *vdrSet, params snowball.Parameters, ctx *snow.ConsensusContext) smeng.Config {
 
 	engineConfig := smeng.Config{
 		Ctx:         ctx,
