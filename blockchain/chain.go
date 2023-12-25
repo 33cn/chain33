@@ -49,6 +49,7 @@ type BlockChain struct {
 
 	// 永久存储数据到db中
 	blockStore *BlockStore
+	finalizer *finalizer
 	push       *Push
 	//cache  缓存block方便快速查询
 	cfg             *types.BlockChain
@@ -287,6 +288,8 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.startTime = types.Now()
 	// 获取当前最大chunk连续高度
 	chain.maxSerialChunkNum = chain.blockStore.GetMaxSerialChunkNum()
+
+	chain.finalizer = newFinalizer(chain)
 
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
 	chain.recvwg.Add(1)

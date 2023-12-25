@@ -118,6 +118,12 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.addChunkBlock)
 		case types.EventHighestBlock:
 			go chain.processMsg(msg, reqnum, chain.highestBlockNum)
+		case types.EventSnowmanPreferBlk:
+			go chain.finalizer.eventPrferBlock(msg)
+		case types.EventSnowmanAcceptBlk:
+			go chain.finalizer.eventAcceptBlock(msg)
+		case types.EventSnowmanLastAcceptHeight:
+			go chain.finalizer.eventLastAcceptHeight(msg)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}

@@ -56,7 +56,6 @@ func (vm *chain33VM) Init(ctx *consensus.Context) {
 	vm.cfg = vm.api.GetConfig()
 	vm.qclient = ctx.Base.GetQueueClient()
 	vm.pendingBlock = make(map[string]*types.Block, 8)
-	ctx.Base.GetQueueClient()
 }
 
 // Initialize implements the snowman.ChainVM interface
@@ -159,7 +158,7 @@ func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 		types.EventSnowmanPreferBlk, &types.ReqBytes{Data: blkID[:]}), false)
 
 	if err != nil {
-		snowLog.Error("SetPreference", "blkHash", blkID.Hex(), "err", err)
+		snowLog.Error("SetPreference", "blkHash", blkID.Hex(), "send queue err", err)
 		return err
 	}
 
@@ -173,7 +172,23 @@ func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 // returned.
 func (vm *chain33VM) LastAccepted(context.Context) (ids.ID, error) {
 
-	return ids.Empty, nil
+
+	msg := vm.qclient.NewMessage("blockchain", types.EventSnowmanLastAcceptHeight, &types.ReqNil{})
+	err := vm.qclient.Send(msg, true)
+	if err != nil {
+		snowLog.Error("LastAccepted", "send msg err", err)
+		return ids.Empty, err
+	}
+
+	reply, err := vm.qclient.Wait(msg)
+	if err != nil {
+		snowLog.Error("LastAccepted", "wait msg err", err)
+		return ids.Empty, err
+	}
+	hash := reply.GetData().(*types.ReqBytes)
+	var id ids.ID
+	copy(id[:], hash.Data)
+	return id, nil
 }
 
 // VerifyHeightIndex should return:
