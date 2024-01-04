@@ -5,12 +5,16 @@
 package snowman
 
 import (
+	"time"
+
 	"github.com/33cn/chain33/types"
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowball"
 	smcon "github.com/ava-labs/avalanchego/snow/consensus/snowman"
 	"github.com/ava-labs/avalanchego/snow/engine/common"
+	snowcom "github.com/ava-labs/avalanchego/snow/engine/common"
 	smeng "github.com/ava-labs/avalanchego/snow/engine/snowman"
+	snowgetter "github.com/ava-labs/avalanchego/snow/engine/snowman/getter"
 	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/prometheus/client_golang/prometheus"
@@ -34,30 +38,45 @@ type Config struct {
 	consensus  smcon.Consensus
 }
 
-func newSnowmanConfig(vm *chain33VM, vs *vdrSet, params snowball.Parameters, ctx *snow.ConsensusContext) smeng.Config {
+func newSnowmanConfig(sm *snowman, params snowball.Parameters, snowCtx *snow.ConsensusContext) smeng.Config {
 
+	sender := newMsgSender(sm, snowCtx)
 	engineConfig := smeng.Config{
-		Ctx:         ctx,
-		VM:          vm,
-		Validators:  newVdrSet(),
+		Ctx:         snowCtx,
+		VM:          sm.vm,
+		Validators:  sm.vs,
 		Params:      params,
 		Consensus:   &smcon.Topological{},
 		PartialSync: false,
-		Sender:      newMsgSender(ctx),
+		Sender:      sender,
 	}
 
+	ccfg := snowcom.Config{
+
+		Ctx:                            snowCtx,
+		SampleK:                        params.K,
+		Sender:                         sender,
+		MaxTimeGetAncestors:            time.Second * 5,
+		AncestorsMaxContainersSent:     2000,
+		AncestorsMaxContainersReceived: 2000,
+	}
+
+	getter, err := snowgetter.New(sm.vm, ccfg)
+	if err != nil {
+		panic("newSnowmanConfig newSnowGetter err" + err.Error())
+	}
+	engineConfig.AllGetsServer = getter
 	return engineConfig
 }
 
 func newSnowContext(cfg *types.Chain33Config) *snow.ConsensusContext {
 
 	ctx := snow.DefaultConsensusContextTest()
-
 	// TODO use chain33 log writer
 	logCfg := cfg.GetModuleConfig().Log
 
 	logger := &lumberjack.Logger{
-		Filename:   logCfg.LogFile,
+		Filename:   "logs/snowman.log",
 		MaxSize:    int(logCfg.MaxFileSize),
 		MaxBackups: int(logCfg.MaxBackups),
 		MaxAge:     int(logCfg.MaxAge),
