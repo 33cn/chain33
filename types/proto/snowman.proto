@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+
+
+package types;
+option go_package = "github.com/33cn/chain33/types";
+
+message snowChits {
+
+    uint32 requestID = 1;
+    string peerName = 2;
+    bytes preferredBlkHash = 3;
+    bytes acceptedBlkHash = 4;
+}
+
+
+message snowGetBlock {
+
+    uint32 requestID = 1;
+    string peerName = 2;
+    bytes blockHash = 3;
+}
+
+message snowPutBlock {
+
+    uint32 requestID = 1;
+    string peerName = 2;
+    bytes blockData = 3;
+}
+
+
+message snowPullQuery {
+
+    uint32 requestID = 1;
+    string peerName = 2;
+    bytes blockHash = 3;
+}
+
+
+message snowPushQuery {
+
+    uint32 requestID = 1;
+    string peerName = 2;
+    bytes blockData = 3;
+}
+
+
+message snowFailedQuery {
+    uint32 requestID = 1;
+    string peerName = 2;
+}
+
+
+
+

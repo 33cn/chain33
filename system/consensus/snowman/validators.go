@@ -1,14 +1,15 @@
 package snowman
 
 import (
+	"math/rand"
+	"sync"
+	"time"
+
 	"github.com/33cn/chain33/system/consensus"
 	"github.com/33cn/chain33/system/consensus/snowman/utils"
 	"github.com/33cn/chain33/types"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
-	"math/rand"
-	"sync"
-	"time"
 
 	libpeer "github.com/libp2p/go-libp2p/core/peer"
 )
@@ -20,13 +21,6 @@ type vdrSet struct {
 	peerIDs map[ids.NodeID]string
 	lock    sync.RWMutex
 	rand    *rand.Rand
-}
-
-func newVdrSet() *vdrSet {
-
-	s := &vdrSet{}
-	s.Set = validators.NewSet()
-	return s
 }
 
 func (s *vdrSet) init(ctx *consensus.Context) {
@@ -126,4 +120,8 @@ func (s *vdrSet) toNodeID(id string) (ids.NodeID, error) {
 	}
 
 	return nid, nil
+}
+
+func (s *vdrSet) RegisterCallbackListener(callbackListener validators.SetCallbackListener) {
+	snowLog.Debug("RegisterCallbackListener Not Implemented Function")
 }

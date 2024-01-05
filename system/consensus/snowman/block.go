@@ -52,10 +52,8 @@ func (b *snowBlock) Status() choices.Status {
 }
 
 // Parent implements the snowman.Block interface
-func (b *snowBlock) Parent() (id ids.ID) {
-
-	copy(id[:], b.block.ParentHash)
-	return
+func (b *snowBlock) Parent() ids.ID {
+	return toSnowID(b.block.ParentHash)
 }
 
 // Height implements the snowman.Block interface
@@ -82,3 +80,8 @@ func (b *snowBlock) Bytes() []byte {
 }
 
 func (b *snowBlock) String() string { return fmt.Sprintf("chain33 block, hash = %s", b.ID().Hex()) }
+
+func toSnowID(blkHash []byte) (id ids.ID) {
+	copy(id[:], blkHash)
+	return
+}

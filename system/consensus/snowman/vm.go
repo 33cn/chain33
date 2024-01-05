@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"sync"
 
+	"github.com/ava-labs/avalanchego/snow/choices"
+
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/consensus"
@@ -42,10 +44,10 @@ type chain33VM struct {
 	acceptHeight int64
 }
 
-func (vm *chain33VM) newSnowBlock(blk *types.Block) snowcon.Block {
+func (vm *chain33VM) newSnowBlock(blk *types.Block) *snowBlock {
 
 	sb := &snowBlock{block: blk, vm: vm}
-	copy(sb.id[:], blk.Hash(vm.cfg))
+	sb.id = toSnowID(blk.Hash(vm.cfg))
 	return sb
 }
 
@@ -91,12 +93,16 @@ func (vm *chain33VM) Shutdown(context.Context) error {
 func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, error) {
 
 	details, err := vm.api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{blkID[:]}})
-	if err != nil || details.GetItems()[0].GetBlock() == nil {
+	if err != nil || len(details.GetItems()) < 1 {
 		snowLog.Error("GetBlock", "GetBlockByHashes err", err)
 		return nil, database.ErrNotFound
 	}
+	sb := vm.newSnowBlock(details.GetItems()[0].GetBlock())
+	if sb.block.Height <= vm.acceptHeight {
+		sb.status = choices.Accepted
+	}
 
-	return vm.newSnowBlock(details.GetItems()[0].GetBlock()), nil
+	return sb, nil
 }
 
 // ParseBlock parse block
@@ -172,7 +178,6 @@ func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 // returned.
 func (vm *chain33VM) LastAccepted(context.Context) (ids.ID, error) {
 
-
 	msg := vm.qclient.NewMessage("blockchain", types.EventSnowmanLastAcceptHeight, &types.ReqNil{})
 	err := vm.qclient.Send(msg, true)
 	if err != nil {
@@ -217,10 +222,7 @@ func (vm *chain33VM) GetBlockIDAtHeight(ctx context.Context, height uint64) (ids
 		snowLog.Error("GetBlock", "height", height, "GetBlockHash err", err)
 		return ids.Empty, database.ErrNotFound
 	}
-	var id ids.ID
-	copy(id[:], reply.Hash)
-
-	return id, nil
+	return toSnowID(reply.Hash), nil
 }
 
 func (vm *chain33VM) acceptBlock(height int64, blkID ids.ID) error {

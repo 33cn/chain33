@@ -211,10 +211,17 @@ const (
 	EventGetEvmNonce  = 371
 
 	// EventForFinalizer 最终化共识一级消息类型
-	EventForFinalizer = 372
-	EventSnowmanPreferBlk = 373
-	EventSnowmanAcceptBlk = 374
+	EventForFinalizer            = 372
+	EventSnowmanPreferBlk        = 373
+	EventSnowmanAcceptBlk        = 374
 	EventSnowmanLastAcceptHeight = 375
+	EventSnowmanChits            = 376
+	EventSnowmanGetBlock         = 377
+	EventSnowmanPutBlock         = 378
+	EventSnowmanPullQuery        = 379
+	EventSnowmanPushQuery        = 380
+	EventSnowmanGetFailed = 381
+	EventSnowmanQueryFailed = 382
 )
 
 var eventName = map[int]string{
@@ -386,4 +393,12 @@ var eventName = map[int]string{
 	EventHighestBlock:               "EventHighestBlock",
 	EventGetEvmNonce:                "EventGetEvmNonce",
 	EventForFinalizer:               "EventForFinalizer",
+	EventSnowmanChits:               "EventSnowmanChits",
+	EventSnowmanGetBlock:            "EventSnowmanGetBlock",
+	EventSnowmanPutBlock:            "EventSnowmanPutBlock",
+	EventSnowmanPullQuery:           "EventSnowmanPullQuery",
+	EventSnowmanPushQuery:           "EventSnowmanPushQuery",
+
+	EventSnowmanGetFailed: "EventSnowmanGetFailed",
+	EventSnowmanQueryFailed: "EventSnowmanQueryFailed",
 }
