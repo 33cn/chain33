@@ -11,32 +11,12 @@ import (
 	"github.com/ava-labs/avalanchego/snow"
 	"github.com/ava-labs/avalanchego/snow/consensus/snowball"
 	smcon "github.com/ava-labs/avalanchego/snow/consensus/snowman"
-	"github.com/ava-labs/avalanchego/snow/engine/common"
 	snowcom "github.com/ava-labs/avalanchego/snow/engine/common"
 	smeng "github.com/ava-labs/avalanchego/snow/engine/snowman"
 	snowgetter "github.com/ava-labs/avalanchego/snow/engine/snowman/getter"
-	"github.com/ava-labs/avalanchego/snow/validators"
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
-
-// Config wraps all the parameters needed for a snowman engine
-type Config struct {
-	common.AllGetsServer
-
-	//ctx  *consensus.Context
-	chainCfg *types.Chain33Config
-
-	ctx        *snow.ConsensusContext
-	log        logging.Logger
-	registerer prometheus.Registerer
-	//VM         block.ChainVM
-	//Sender     common.Sender
-	validators validators.Set
-	params     snowball.Parameters
-	consensus  smcon.Consensus
-}
 
 func newSnowmanConfig(sm *snowman, params snowball.Parameters, snowCtx *snow.ConsensusContext) smeng.Config {
 

@@ -119,7 +119,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventHighestBlock:
 			go chain.processMsg(msg, reqnum, chain.highestBlockNum)
 		case types.EventSnowmanPreferBlk:
-			go chain.finalizer.eventPrferBlock(msg)
+			go chain.finalizer.eventPreferBlock(msg)
 		case types.EventSnowmanAcceptBlk:
 			go chain.finalizer.eventAcceptBlock(msg)
 		case types.EventSnowmanLastAcceptHeight:

@@ -31,6 +31,15 @@ func init() {
 
 }
 
+// Config snowman 参数配置
+type Config struct {
+	K                 int `json:"k" yaml:"k"`
+	Alpha             int `json:"alpha" yaml:"alpha"`
+	BetaVirtuous      int `json:"betaVirtuous" yaml:"betaVirtuous"`
+	BetaRogue         int `json:"betaRogue" yaml:"betaRogue"`
+	ConcurrentRepolls int `json:"concurrentRepolls" yaml:"concurrentRepolls"`
+}
+
 type snowman struct {
 	engine smeng.Engine
 	vm     *chain33VM
@@ -42,39 +51,75 @@ type snowman struct {
 
 func (s *snowman) Initialize(ctx *consensus.Context) {
 
-	s.inMsg = make(chan *queue.Message, 32)
-
-	params := snowball.DefaultParameters
-	err := params.Verify()
+	s.params = snowball.DefaultParameters
+	s.applyConfig(ctx.Base.GetAPI().GetConfig().GetSubConfig())
+	err := s.params.Verify()
 	if err != nil {
-		panic("Initialize snowman engine invalid snowball parameters:" + err.Error())
+		panic("Initialize invalid snowball parameters:" + err.Error())
 	}
-	s.params = params
-	vm := &chain33VM{}
-	vm.Init(ctx)
 
-	vs := &vdrSet{}
-	vs.init(ctx)
+	s.vm = &chain33VM{}
+	s.vm.Init(ctx)
 
-	s.vm = vm
-	s.vs = vs
+	s.vs = &vdrSet{}
+	s.vs.init(ctx)
 
-	engineConfig := newSnowmanConfig(s, params, newSnowContext(ctx.Base.GetAPI().GetConfig()))
-
+	engineConfig := newSnowmanConfig(s, s.params, newSnowContext(ctx.Base.GetAPI().GetConfig()))
 	engine, err := smeng.New(engineConfig)
-
 	if err != nil {
 		panic("Initialize snowman engine err:" + err.Error())
 	}
 	s.engine = engine
 
+	s.inMsg = make(chan *queue.Message, 32)
 	go s.startRoutine()
+}
 
+func (s *snowman) applyConfig(subCfg *types.ConfigSubModule) {
+
+	cfg := &Config{}
+	types.MustDecode(subCfg.Consensus["snowman"], cfg)
+
+	if cfg.K > 0 {
+		s.params.K = cfg.K
+	}
+
+	if cfg.Alpha > 0 {
+		s.params.Alpha = cfg.Alpha
+	}
+
+	if cfg.BetaVirtuous > 0 {
+		s.params.BetaVirtuous = cfg.BetaVirtuous
+	}
+
+	if cfg.BetaRogue > 0 {
+		s.params.BetaRogue = cfg.BetaRogue
+	}
+
+	if cfg.ConcurrentRepolls > 0 {
+		s.params.ConcurrentRepolls = cfg.ConcurrentRepolls
+	}
+}
+
+func (s *snowman) getChainSyncStatus() bool {
+
+	reply, err := s.ctx.Base.GetAPI().IsSync()
+
+	if err != nil {
+		snowLog.Error("getChainSyncStatus", "err", err)
+		return false
+	}
+
+	return reply.GetIsOk()
 }
 
 func (s *snowman) startRoutine() {
 
-	// TODO check sync status
+	// check chain sync status
+	for !s.getChainSyncStatus() {
+		snowLog.Info("startRoutine wait chain state syncing...")
+		time.Sleep(5 * time.Second)
+	}
 
 	// check connected peers
 	for {
@@ -83,7 +128,8 @@ func (s *snowman) startRoutine() {
 		if err == nil && len(peers) >= s.params.K {
 			break
 		}
-		snowLog.Debug("startRoutine wait Peers", "getConnectedPeers", len(peers), "err", err)
+		snowLog.Debug("startRoutine wait more snowman peer connected...",
+			"currConnected", len(peers), "minRequiredNum", s.params.K, "err", err)
 		time.Sleep(2 * time.Second)
 	}
 
