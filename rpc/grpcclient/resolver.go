@@ -51,7 +51,7 @@ func (*multipleBuilder) Build(target resolver.Target, cc resolver.ClientConn, op
 		cc:     cc,
 	}
 
-	urls := strings.Split(target.Endpoint, ",")
+	urls := strings.Split(target.Endpoint(), ",")
 	if len(urls) < 1 {
 		return nil, fmt.Errorf("invalid target address %v", target)
 	}

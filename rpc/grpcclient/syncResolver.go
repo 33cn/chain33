@@ -43,7 +43,7 @@ func (*syncBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts r
 		stopC: make(chan struct{}, 1),
 	}
 
-	urls := strings.Split(target.Endpoint, ",")
+	urls := strings.Split(target.Endpoint(), ",")
 	if len(urls) < 1 {
 		return nil, fmt.Errorf("invalid target address %v", target)
 	}
