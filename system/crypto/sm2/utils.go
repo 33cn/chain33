@@ -7,7 +7,7 @@ package sm2
 import (
 	"math/big"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcec/btcec"
 	"github.com/tjfoc/gmsm/sm2"
 )
 

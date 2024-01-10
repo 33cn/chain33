@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/33cn/chain33/common/crypto"
-	secp256k1 "github.com/btcsuite/btcd/btcec"
+	secp256k1 "github.com/btcsuite/btcd/btcec/btcec"
 )
 
 //Driver 驱动

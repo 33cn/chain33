@@ -3,7 +3,7 @@ package script
 import (
 	"github.com/33cn/chain33/common/log"
 	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcd/btcutil"
 )
 
 var (

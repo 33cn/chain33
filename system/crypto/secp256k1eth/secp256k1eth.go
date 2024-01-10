@@ -21,7 +21,7 @@ import (
 	"math/big"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth/types"
-	secp256k1 "github.com/btcsuite/btcd/btcec"
+	secp256k1 "github.com/btcsuite/btcd/btcec/btcec"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
