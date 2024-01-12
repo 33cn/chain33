@@ -34,9 +34,10 @@ func (s *vdrSet) init(ctx *consensus.Context) {
 // If sampling the requested size isn't possible, an error will be returned.
 func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 
+	snowLog.Debug("vdrSet Sample", "require", size)
 	peers, err := s.getConnectedPeers()
 	if err != nil || len(peers) < size {
-		snowLog.Error("Sample", "len", len(peers), "size", size, "err", err)
+		snowLog.Error("vdrSet Sample", "connected", len(peers), "require", size, "err", err)
 		return nil, utils.ErrValidatorSample
 	}
 	indices := s.rand.Perm(len(peers))
@@ -48,7 +49,7 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 
 		nid, err := s.toNodeID(peers[idx].Name)
 		if err != nil {
-			snowLog.Error("Sample", "pid", peers[idx].Name, "to nodeID err", err)
+			snowLog.Error("vdrSet Sample", "pid", peers[idx].Name, "to nodeID err", err)
 			continue
 		}
 		s.peerIDs[nid] = peers[idx].Name
@@ -60,7 +61,7 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 	}
 
 	if len(nodeIDS) < size {
-		snowLog.Error("Sample not enough", "len", len(peers), "size", size, "err", err)
+		snowLog.Error("vdrSet Sample not enough", "len", len(peers), "size", size, "err", err)
 		return nil, utils.ErrValidatorSample
 	}
 
@@ -68,7 +69,7 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 }
 
 func (s *vdrSet) getConnectedPeers() ([]*types.Peer, error) {
-
+	snowLog.Debug("vdrSet getConnectedPeers")
 	msg := s.ctx.Base.GetQueueClient().NewMessage("p2p", types.EventPeerInfo, nil)
 	err := s.ctx.Base.GetQueueClient().Send(msg, true)
 	if err != nil {

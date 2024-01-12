@@ -220,8 +220,8 @@ const (
 	EventSnowmanPutBlock         = 378
 	EventSnowmanPullQuery        = 379
 	EventSnowmanPushQuery        = 380
-	EventSnowmanGetFailed = 381
-	EventSnowmanQueryFailed = 382
+	EventSnowmanGetFailed        = 381
+	EventSnowmanQueryFailed      = 382
 )
 
 var eventName = map[int]string{
@@ -393,12 +393,14 @@ var eventName = map[int]string{
 	EventHighestBlock:               "EventHighestBlock",
 	EventGetEvmNonce:                "EventGetEvmNonce",
 	EventForFinalizer:               "EventForFinalizer",
+	EventSnowmanPreferBlk:           "EventSnowmanPreferBlk",
+	EventSnowmanAcceptBlk:           "EventSnowmanAcceptBlk",
+	EventSnowmanLastAcceptHeight:    "EventSnowmanLastAcceptHeight",
 	EventSnowmanChits:               "EventSnowmanChits",
 	EventSnowmanGetBlock:            "EventSnowmanGetBlock",
 	EventSnowmanPutBlock:            "EventSnowmanPutBlock",
 	EventSnowmanPullQuery:           "EventSnowmanPullQuery",
 	EventSnowmanPushQuery:           "EventSnowmanPushQuery",
-
-	EventSnowmanGetFailed: "EventSnowmanGetFailed",
-	EventSnowmanQueryFailed: "EventSnowmanQueryFailed",
+	EventSnowmanGetFailed:           "EventSnowmanGetFailed",
+	EventSnowmanQueryFailed:         "EventSnowmanQueryFailed",
 }

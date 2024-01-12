@@ -19,7 +19,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 	defer chain.recvwg.Done()
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.client.Recv() {
-		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.ID, "cap", len(reqnum))
+		chainlog.Debug("chain ProcRecvMsg", "msg", types.GetEventName(int(msg.Ty)),
+			"id", msg.ID, "ty", msg.Ty, "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
 		atomic.AddInt32(&chain.runcount, 1)
@@ -119,11 +120,11 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventHighestBlock:
 			go chain.processMsg(msg, reqnum, chain.highestBlockNum)
 		case types.EventSnowmanPreferBlk:
-			go chain.finalizer.eventPreferBlock(msg)
+			go chain.processMsg(msg, reqnum, chain.finalizer.eventPreferBlock)
 		case types.EventSnowmanAcceptBlk:
-			go chain.finalizer.eventAcceptBlock(msg)
+			go chain.processMsg(msg, reqnum, chain.finalizer.eventAcceptBlock)
 		case types.EventSnowmanLastAcceptHeight:
-			go chain.finalizer.eventLastAcceptHeight(msg)
+			go chain.processMsg(msg, reqnum, chain.finalizer.eventLastAcceptHeight)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
@@ -404,9 +405,10 @@ func (chain *BlockChain) processMsg(msg *queue.Message, reqnum chan struct{}, cb
 	defer func() {
 		<-reqnum
 		atomic.AddInt32(&chain.runcount, -1)
-		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(ty)))
+		chainlog.Debug("chain ProcRecvMsg", "cost", types.Since(beg),
+			"msg", types.GetEventName(int(ty)), "ty", ty)
 		if r := recover(); r != nil {
-			chainlog.Error("blockchain panic error", "err", r)
+			chainlog.Error("blockchain panic error", "msg", types.GetEventName(int(ty)), "err", r)
 			msg.Reply(chain.client.NewMessage("", ty, fmt.Errorf("%s:%v", types.ErrExecPanic.Error(), r)))
 			return
 		}

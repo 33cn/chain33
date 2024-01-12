@@ -136,7 +136,7 @@ func (vm *chain33VM) BuildBlock(context.Context) (snowcon.Block, error) {
 	defer vm.lock.RUnlock()
 
 	blk, ok := vm.pendingBlock[string(vm.preferenceID[:])]
-
+	snowLog.Debug("BuildBlock", "ok", ok)
 	if !ok {
 		return nil, utils.ErrBlockNotReady
 	}
