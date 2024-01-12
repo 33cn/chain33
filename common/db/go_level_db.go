@@ -43,7 +43,7 @@ func init() {
 	registerDBCreator(goLevelDBBackendStr, dbCreator, false)
 }
 
-//GoLevelDB db
+// GoLevelDB db
 type GoLevelDB struct {
 	BaseDB
 	db *leveldb.DB
@@ -64,7 +64,7 @@ type GoLevelDB struct {
 	quitChan chan chan error // Quit channel to stop the metrics collection before closing the database
 }
 
-//NewGoLevelDB new
+// NewGoLevelDB new
 func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
 	dbPath := path.Join(dir, name+".db")
 	if cache == 0 {
@@ -115,7 +115,7 @@ func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
 	return database, nil
 }
 
-//Get get
+// Get get
 func (db *GoLevelDB) Get(key []byte) ([]byte, error) {
 	res, err := db.db.Get(key, nil)
 	if err != nil {
@@ -126,10 +126,13 @@ func (db *GoLevelDB) Get(key []byte) ([]byte, error) {
 		return nil, err
 
 	}
+	if res == nil {
+		return []byte{}, nil
+	}
 	return res, nil
 }
 
-//Set set
+// Set set
 func (db *GoLevelDB) Set(key []byte, value []byte) error {
 	err := db.db.Put(key, value, nil)
 	if err != nil {
@@ -139,7 +142,7 @@ func (db *GoLevelDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-//SetSync 同步
+// SetSync 同步
 func (db *GoLevelDB) SetSync(key []byte, value []byte) error {
 	err := db.db.Put(key, value, &opt.WriteOptions{Sync: true})
 	if err != nil {
@@ -149,7 +152,7 @@ func (db *GoLevelDB) SetSync(key []byte, value []byte) error {
 	return nil
 }
 
-//Delete 删除
+// Delete 删除
 func (db *GoLevelDB) Delete(key []byte) error {
 	err := db.db.Delete(key, nil)
 	if err != nil {
@@ -159,7 +162,7 @@ func (db *GoLevelDB) Delete(key []byte) error {
 	return nil
 }
 
-//DeleteSync 删除同步
+// DeleteSync 删除同步
 func (db *GoLevelDB) DeleteSync(key []byte) error {
 	err := db.db.Delete(key, &opt.WriteOptions{Sync: true})
 	if err != nil {
@@ -169,12 +172,12 @@ func (db *GoLevelDB) DeleteSync(key []byte) error {
 	return nil
 }
 
-//DB db
+// DB db
 func (db *GoLevelDB) DB() *leveldb.DB {
 	return db.db
 }
 
-//Close 关闭
+// Close 关闭
 func (db *GoLevelDB) Close() {
 	if db.quitChan != nil {
 		errc := make(chan error)
@@ -191,7 +194,7 @@ func (db *GoLevelDB) Close() {
 	}
 }
 
-//Print 打印
+// Print 打印
 func (db *GoLevelDB) Print() {
 	str, err := db.db.GetProperty("leveldb.stats")
 	if err != nil {
@@ -208,7 +211,7 @@ func (db *GoLevelDB) Print() {
 	}
 }
 
-//Stats ...
+// Stats ...
 func (db *GoLevelDB) Stats() map[string]string {
 	keys := []string{
 		"leveldb.num-files-at-level{n}",
@@ -231,7 +234,7 @@ func (db *GoLevelDB) Stats() map[string]string {
 	return stats
 }
 
-//Iterator 迭代器
+// Iterator 迭代器
 func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	if end == nil {
 		end = bytesPrefix(start)
@@ -244,7 +247,7 @@ func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	return &goLevelDBIt{it, itBase{start, end, reverse}}
 }
 
-//BeginTx call panic when BeginTx not rewrite
+// BeginTx call panic when BeginTx not rewrite
 func (db *GoLevelDB) BeginTx() (TxKV, error) {
 	tx, err := db.db.OpenTransaction()
 	if err != nil {
@@ -263,13 +266,14 @@ func (db *GoLevelDB) CompactRange(start, limit []byte) error {
 // the metrics subsystem.
 //
 // This is how a LevelDB stats table looks like (currently):
-//   Compactions
-//    Level |   Tables   |    Size(MB)   |    Time(sec)  |    Read(MB)   |   Write(MB)
-//   -------+------------+---------------+---------------+---------------+---------------
-//      0   |          0 |       0.00000 |       1.27969 |       0.00000 |      12.31098
-//      1   |         85 |     109.27913 |      28.09293 |     213.92493 |     214.26294
-//      2   |        523 |    1000.37159 |       7.26059 |      66.86342 |      66.77884
-//      3   |        570 |    1113.18458 |       0.00000 |       0.00000 |       0.00000
+//
+//	Compactions
+//	 Level |   Tables   |    Size(MB)   |    Time(sec)  |    Read(MB)   |   Write(MB)
+//	-------+------------+---------------+---------------+---------------+---------------
+//	   0   |          0 |       0.00000 |       1.27969 |       0.00000 |      12.31098
+//	   1   |         85 |     109.27913 |      28.09293 |     213.92493 |     214.26294
+//	   2   |        523 |    1000.37159 |       7.26059 |      66.86342 |      66.77884
+//	   3   |        570 |    1113.18458 |       0.00000 |       0.00000 |       0.00000
 //
 // This is how the write delay look like (currently):
 // DelayN:5 Delay:406.604657ms Paused: false
@@ -466,12 +470,12 @@ type goLevelDBIt struct {
 	itBase
 }
 
-//Close 关闭
+// Close 关闭
 func (dbit *goLevelDBIt) Close() {
 	dbit.Iterator.Release()
 }
 
-//Next next
+// Next next
 func (dbit *goLevelDBIt) Next() bool {
 	if dbit.reverse {
 		return dbit.Iterator.Prev() && dbit.Valid()
@@ -479,7 +483,7 @@ func (dbit *goLevelDBIt) Next() bool {
 	return dbit.Iterator.Next() && dbit.Valid()
 }
 
-//Seek seek key
+// Seek seek key
 func (dbit *goLevelDBIt) Seek(key []byte) bool {
 
 	exist := dbit.Iterator.Seek(key)
@@ -490,7 +494,7 @@ func (dbit *goLevelDBIt) Seek(key []byte) bool {
 	return exist
 }
 
-//Rewind ...
+// Rewind ...
 func (dbit *goLevelDBIt) Rewind() bool {
 	if dbit.reverse {
 		return dbit.Iterator.Last() && dbit.Valid()
@@ -525,7 +529,7 @@ type goLevelDBBatch struct {
 	len   int
 }
 
-//NewBatch new
+// NewBatch new
 func (db *GoLevelDB) NewBatch(sync bool) Batch {
 	batch := new(leveldb.Batch)
 	wop := &opt.WriteOptions{Sync: sync}
@@ -558,7 +562,7 @@ func (mBatch *goLevelDBBatch) ValueSize() int {
 	return mBatch.size
 }
 
-//ValueLen  batch数量
+// ValueLen  batch数量
 func (mBatch *goLevelDBBatch) ValueLen() int {
 	return mBatch.len
 }
@@ -585,7 +589,7 @@ func (db *goLevelDBTx) Rollback() {
 	db.tx.Discard()
 }
 
-//Get get in transaction
+// Get get in transaction
 func (db *goLevelDBTx) Get(key []byte) ([]byte, error) {
 	res, err := db.tx.Get(key, nil)
 	if err != nil {
@@ -598,7 +602,7 @@ func (db *goLevelDBTx) Get(key []byte) ([]byte, error) {
 	return res, nil
 }
 
-//Set set in transaction
+// Set set in transaction
 func (db *goLevelDBTx) Set(key []byte, value []byte) error {
 	err := db.tx.Put(key, value, nil)
 	if err != nil {
@@ -608,7 +612,7 @@ func (db *goLevelDBTx) Set(key []byte, value []byte) error {
 	return nil
 }
 
-//Iterator 迭代器 in transaction
+// Iterator 迭代器 in transaction
 func (db *goLevelDBTx) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	if end == nil {
 		end = bytesPrefix(start)
@@ -621,7 +625,7 @@ func (db *goLevelDBTx) Iterator(start []byte, end []byte, reverse bool) Iterator
 	return &goLevelDBIt{it, itBase{start, end, reverse}}
 }
 
-//Begin call panic when Begin not rewrite
+// Begin call panic when Begin not rewrite
 func (db *goLevelDBTx) Begin() {
 	panic("Begin not impl")
 }
