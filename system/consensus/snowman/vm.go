@@ -27,11 +27,6 @@ var (
 	_ block.ChainVM = (*chain33VM)(nil)
 )
 
-type preferBlock struct {
-	height int64
-	hash   []byte
-}
-
 // implements the snowman.ChainVM interface
 type chain33VM struct {
 	blankVM
@@ -93,8 +88,8 @@ func (vm *chain33VM) Shutdown(context.Context) error {
 func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, error) {
 
 	details, err := vm.api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{blkID[:]}})
-	if err != nil || len(details.GetItems()) < 1 {
-		snowLog.Error("GetBlock", "GetBlockByHashes err", err)
+	if err != nil || len(details.GetItems()) < 1 || details.GetItems()[0].GetBlock() == nil {
+		snowLog.Error("GetBlock", "hash", blkID.Hex(), "GetBlockByHashes err", err)
 		return nil, database.ErrNotFound
 	}
 	sb := vm.newSnowBlock(details.GetItems()[0].GetBlock())

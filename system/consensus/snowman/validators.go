@@ -40,7 +40,7 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 		return nil, utils.ErrValidatorSample
 	}
 	indices := s.rand.Perm(len(peers))
-	ids := make([]ids.NodeID, 0, size)
+	nodeIDS := make([]ids.NodeID, 0, size)
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -52,19 +52,19 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 			continue
 		}
 		s.peerIDs[nid] = peers[idx].Name
-		ids = append(ids, nid)
+		nodeIDS = append(nodeIDS, nid)
 
-		if len(ids) >= size {
+		if len(nodeIDS) >= size {
 			break
 		}
 	}
 
-	if len(ids) < size {
+	if len(nodeIDS) < size {
 		snowLog.Error("Sample not enough", "len", len(peers), "size", size, "err", err)
 		return nil, utils.ErrValidatorSample
 	}
 
-	return ids, nil
+	return nodeIDS, nil
 }
 
 func (s *vdrSet) getConnectedPeers() ([]*types.Peer, error) {
@@ -81,13 +81,12 @@ func (s *vdrSet) getConnectedPeers() ([]*types.Peer, error) {
 		return nil, err
 	}
 
-	peerlist, ok := resp.GetData().(*types.PeerList)
+	peerlist := resp.GetData().(*types.PeerList)
 	count := len(peerlist.GetPeers())
-	if !ok || count < 2 {
-		snowLog.Error("getConnectedPeers", "len", len(peerlist.GetPeers()), "ok", ok)
-		return nil, types.ErrTypeAsset
-	}
 
+	if count < 2 {
+		return nil, nil
+	}
 	s.self = peerlist.GetPeers()[count-1]
 	peers := make([]*types.Peer, 0, count)
 	for _, p := range peerlist.GetPeers() {

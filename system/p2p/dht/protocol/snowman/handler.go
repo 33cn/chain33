@@ -9,20 +9,15 @@ import (
 	"time"
 )
 
-
 /*
 
 event handler 为内部系统模块通信消息处理
 
 stream handler 为外部网络节点通信消息处理
 
- */
-
-
-
+*/
 
 func (s *snowman) handleEventChits(msg *queue.Message) {
-
 
 	req := msg.GetData().(*types.SnowChits)
 
@@ -44,7 +39,6 @@ func (s *snowman) handleEventChits(msg *queue.Message) {
 	}
 
 }
-
 
 func (s *snowman) handleEventGetBlock(msg *queue.Message) {
 
@@ -83,7 +77,6 @@ func (s *snowman) handleEventGetBlock(msg *queue.Message) {
 
 }
 
-
 func (s *snowman) handleEventPutBlock(msg *queue.Message) {
 
 	req := msg.GetData().(*types.SnowPutBlock)
@@ -103,8 +96,6 @@ func (s *snowman) handleEventPutBlock(msg *queue.Message) {
 		log.Error("handleEventPutBlock", "reqID", req.RequestID, "peer", req.PeerName, "writeStream err", err)
 	}
 }
-
-
 
 func (s *snowman) handleEventPullQuery(msg *queue.Message) {
 
@@ -128,7 +119,6 @@ func (s *snowman) handleEventPullQuery(msg *queue.Message) {
 	}
 }
 
-
 func (s *snowman) handleEventPushQuery(msg *queue.Message) {
 
 	req := msg.GetData().(*types.SnowPushQuery)
@@ -151,10 +141,7 @@ func (s *snowman) handleEventPushQuery(msg *queue.Message) {
 	}
 }
 
-
-
 func (s *snowman) handleStreamChits(stream network.Stream) {
-
 
 	req := &types.SnowChits{}
 	err := protocol.ReadStream(req, stream)
@@ -171,7 +158,6 @@ func (s *snowman) handleStreamChits(stream network.Stream) {
 	}
 }
 
-
 func (s *snowman) handleStreamGetBlock(stream network.Stream) {
 
 	req := &types.SnowGetBlock{}
@@ -186,9 +172,9 @@ func (s *snowman) handleStreamGetBlock(stream network.Stream) {
 
 	blk, err := s.getBlock(req.GetBlockHash())
 
-	if err != nil {
+	if blk == nil {
 		log.Error("handleStreamGetBlock", "reqID", req.RequestID, "peer", peerName, "getBlock err", err)
-	}else {
+	} else {
 		reply.BlockData = types.Encode(blk)
 	}
 
@@ -197,8 +183,6 @@ func (s *snowman) handleStreamGetBlock(stream network.Stream) {
 		log.Error("handleStreamGetBlock", "reqID", req.RequestID, "peer", peerName, "writeStream err", err)
 	}
 }
-
-
 
 func (s *snowman) handleStreamPullQuery(stream network.Stream) {
 
@@ -217,9 +201,7 @@ func (s *snowman) handleStreamPullQuery(stream network.Stream) {
 	}
 }
 
-
 func (s *snowman) handleStreamPushQuery(stream network.Stream) {
-
 
 	req := &types.SnowPushQuery{}
 	err := protocol.ReadStream(req, stream)
