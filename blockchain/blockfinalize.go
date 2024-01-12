@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	blkFinalizingStartHeight    int64
+	blockFinalizeStartHeight    int64
 	blkFinalizeLastAcceptBlkKey = []byte("chain-blockfinalize-acceptblk")
 )
 
@@ -27,17 +27,18 @@ func newFinalizer(chain *BlockChain) *finalizer {
 
 	if err == nil {
 		types.Decode(raw, &f.header)
-		return f
 	}
 
-	detail, err := chain.GetBlock(blkFinalizingStartHeight)
-	if err != nil {
-		chainlog.Error("newFinalizer", "height", blkFinalizingStartHeight, "get block err", err)
-		panic(err)
+	if chain.blockStore.Height() >= blockFinalizeStartHeight {
+
+		detail, err := chain.GetBlock(blockFinalizeStartHeight)
+		if err != nil {
+			chainlog.Error("newFinalizer", "height", blockFinalizeStartHeight, "get block err", err)
+			panic(err)
+		}
+		f.setFinalizedBlock(detail.GetBlock().Height, detail.GetBlock().Hash(chain.client.GetConfig()))
 	}
 
-	f.header.Hash = detail.GetBlock().Hash(chain.client.GetConfig())
-	f.header.Height = detail.GetBlock().GetHeight()
 	return f
 }
 
@@ -90,15 +91,15 @@ func (f *finalizer) setFinalizedBlock(height int64, hash []byte) error {
 	return nil
 }
 
-func (f *finalizer) getFinalizedHeight() int64 {
+func (f *finalizer) getFinalizedBlock() (int64, []byte) {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
-	return f.header.Height
+	return f.header.Height, f.header.Hash
 }
 
 func (f *finalizer) eventLastAcceptHeight(msg *queue.Message) {
 
-	height := f.getFinalizedHeight()
-	chainlog.Debug("eventLastAcceptHeight", "height", height)
-	msg.Reply(f.chain.client.NewMessage("consensus", types.EventSnowmanLastAcceptHeight, &types.Int64{Data: height}))
+	height, hash := f.getFinalizedBlock()
+	chainlog.Debug("eventLastAcceptHeight", "height", height, "hash", hex.EncodeToString(hash))
+	msg.Reply(f.chain.client.NewMessage("consensus", types.EventSnowmanLastAcceptHeight, &types.ReqBytes{Data: hash}))
 }

@@ -283,6 +283,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	var lastSequence int64
 	cfg := chain.client.GetConfig()
 	block := blockdetail.Block
+	blkHash := block.Hash(cfg)
 	prevStateHash := chain.bestChain.Tip().statehash
 	errReturn := (node.pid != "self")
 	blockdetail, _, err = execBlock(chain.client, prevStateHash, block, errReturn, sync)
@@ -313,7 +314,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	if node.pid == "self" {
 		prevhash := node.hash
 		node.statehash = blockdetail.Block.GetStateHash()
-		node.hash = blockdetail.Block.Hash(cfg)
+		node.hash = blkHash
 		chain.index.UpdateNode(prevhash, node)
 	}
 
@@ -358,7 +359,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 		blocktd = new(big.Int).Add(difficulty, parenttd)
 	}
 
-	err = chain.blockStore.SaveTdByBlockHash(newbatch, blockdetail.Block.Hash(cfg), blocktd)
+	err = chain.blockStore.SaveTdByBlockHash(newbatch, blkHash, blocktd)
 	if err != nil {
 		chainlog.Error("connectBlock SaveTdByBlockHash:", "height", block.Height, "err", err)
 		return nil, err
@@ -371,11 +372,15 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	}
 	writeCost := types.Since(beg)
 	chainlog.Info("ConnectBlock", "execLocal", txCost, "saveBlk", saveBlkCost, "cacheBlk", cacheCost, "writeBatch", writeCost)
-	chainlog.Debug("connectBlock info", "height", block.Height, "batchsync", sync, "hash", common.ToHex(blockdetail.Block.Hash(cfg)))
+	chainlog.Debug("connectBlock info", "height", block.Height, "batchsync", sync, "hash", common.ToHex(blkHash))
 
 	// 更新最新的高度和header
 	chain.blockStore.UpdateHeight2(blockdetail.GetBlock().GetHeight())
 	chain.blockStore.UpdateLastBlock2(blockdetail.Block)
+
+	if block.Height == blockFinalizeStartHeight {
+		chain.finalizer.setFinalizedBlock(block.Height, blkHash)
+	}
 
 	// 更新 best chain的tip节点
 	chain.bestChain.SetTip(node)
@@ -393,8 +398,8 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	if node.broadcast && !chain.cfg.DisableBlockBroadcast {
 		if blockdetail.Block.BlockTime-types.Now().Unix() > FutureBlockDelayTime {
 			//将此block添加到futureblocks中延时广播
-			chain.futureBlocks.Add(string(blockdetail.Block.Hash(cfg)), blockdetail)
-			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash(cfg)), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
+			chain.futureBlocks.Add(string(blkHash), blockdetail)
+			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blkHash), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 		} else {
 			chain.SendBlockBroadcast(blockdetail)
 		}
