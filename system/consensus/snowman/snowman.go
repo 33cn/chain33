@@ -51,6 +51,7 @@ type snowman struct {
 
 func (s *snowman) Initialize(ctx *consensus.Context) {
 
+	s.ctx = ctx
 	s.params = snowball.DefaultParameters
 	s.applyConfig(ctx.Base.GetAPI().GetConfig().GetSubConfig())
 	err := s.params.Verify()
@@ -128,9 +129,9 @@ func (s *snowman) startRoutine() {
 		if err == nil && len(peers) >= s.params.K {
 			break
 		}
-		snowLog.Debug("startRoutine wait more snowman peer connected...",
+		snowLog.Info("startRoutine wait more snowman peer connected...",
 			"currConnected", len(peers), "minRequiredNum", s.params.K, "err", err)
-		time.Sleep(2 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 
 	err := s.engine.Start(s.ctx.Base.Context, 0)
