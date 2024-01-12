@@ -5,6 +5,7 @@
 package snowman
 
 import (
+	"os"
 	"time"
 
 	"github.com/33cn/chain33/types"
@@ -65,7 +66,8 @@ func newSnowContext(cfg *types.Chain33Config) *snow.ConsensusContext {
 	}
 
 	fileCore := logging.NewWrappedCore(logging.Debug, logger, logging.Colors.FileEncoder())
-	ctx.Context.Log = logging.NewLogger("", fileCore)
+	consoleCore := logging.NewWrappedCore(logging.Info, os.Stderr, logging.Colors.ConsoleEncoder())
+	ctx.Context.Log = logging.NewLogger("", fileCore, consoleCore)
 
 	return ctx
 }
