@@ -150,6 +150,7 @@ func (bc *BaseClient) initFinalizer() {
 	f := LoadFinalizer(bc.Cfg.Finalizer)
 	if f != nil {
 		f.Initialize(&Context{Base: bc})
+		bc.finalizer = f
 	}
 }
 

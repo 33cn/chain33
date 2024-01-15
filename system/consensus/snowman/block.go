@@ -25,7 +25,7 @@ func (b *snowBlock) ID() ids.ID { return b.id }
 func (b *snowBlock) Accept(ctx context.Context) error {
 
 	b.status = choices.Accepted
-	snowLog.Debug("Accepting block", "hash", b.id.Hex(), "height", b.Height())
+	snowLog.Debug("snowBlock accept", "hash", b.id.Hex(), "height", b.Height())
 	err := b.vm.acceptBlock(b.block.Height, b.id)
 	if err != nil {
 		snowLog.Error("Accepting block error", "hash", b.id.Hex(), "height", b.Height())
@@ -37,8 +37,8 @@ func (b *snowBlock) Accept(ctx context.Context) error {
 // This element will not be accepted by any correct node in the network.
 func (b *snowBlock) Reject(ctx context.Context) error {
 	b.status = choices.Rejected
-	snowLog.Debug(fmt.Sprintf("Rejecting block %s at height %d", b.ID().Hex(), b.Height()))
-	// TODO reject block
+	snowLog.Debug("snowBlock reject", "hash", b.ID().Hex(), "height", b.Height())
+	b.vm.rejectBlock(b.block.Height, b.ID())
 	return nil
 }
 

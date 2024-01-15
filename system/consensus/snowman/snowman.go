@@ -8,7 +8,10 @@ package snowman
 import (
 	"encoding/hex"
 	"runtime"
+	"sync/atomic"
 	"time"
+
+	sncom "github.com/ava-labs/avalanchego/snow/engine/common"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -41,12 +44,14 @@ type Config struct {
 }
 
 type snowman struct {
-	engine smeng.Engine
-	vm     *chain33VM
-	vs     *vdrSet
-	ctx    *consensus.Context
-	inMsg  chan *queue.Message
-	params snowball.Parameters
+	engine        smeng.Engine
+	vm            *chain33VM
+	vs            *vdrSet
+	ctx           *consensus.Context
+	inMsg         chan *queue.Message
+	engineNotify  chan struct{}
+	params        snowball.Parameters
+	engineStarted atomic.Bool
 }
 
 func (s *snowman) Initialize(ctx *consensus.Context) {
@@ -73,6 +78,7 @@ func (s *snowman) Initialize(ctx *consensus.Context) {
 	s.engine = engine
 
 	s.inMsg = make(chan *queue.Message, 32)
+	s.engineNotify = make(chan struct{}, 32)
 	go s.startRoutine()
 }
 
@@ -145,16 +151,49 @@ func (s *snowman) startRoutine() {
 		go s.handleMsgRountine()
 	}
 
+	go s.handleNotifyAddBlock()
+	s.engineStarted.Store(true)
+	snowLog.Debug("snowman startRoutine done")
+
 }
 
 func (s *snowman) AddBlock(blk *types.Block) {
 
+	if !s.engineStarted.Load() {
+		return
+	}
 	s.vm.addNewBlock(blk)
+	s.engineNotify <- struct{}{}
+
 }
 
 func (s *snowman) SubMsg(msg *queue.Message) {
 
+	if !s.engineStarted.Load() {
+		snowLog.Debug("snowman SubMsg ignore", "id", msg.ID, "name", types.GetEventName(int(msg.ID)))
+		return
+	}
 	s.inMsg <- msg
+}
+
+// 通知新区快事件
+func (s *snowman) handleNotifyAddBlock() {
+
+	for {
+
+		select {
+
+		case <-s.ctx.Base.Context.Done():
+			return
+
+		case <-s.engineNotify:
+			err := s.engine.Notify(s.ctx.Base.Context, sncom.PendingTxs)
+			if err != nil {
+				snowLog.Error("snowman NotifyAddBlock", "err", err)
+			}
+
+		}
+	}
 }
 
 func (s *snowman) handleMsgRountine() {

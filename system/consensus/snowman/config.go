@@ -65,7 +65,7 @@ func newSnowContext(cfg *types.Chain33Config) *snow.ConsensusContext {
 		Compress:   logCfg.Compress,
 	}
 
-	fileCore := logging.NewWrappedCore(logging.Debug, logger, logging.Colors.FileEncoder())
+	fileCore := logging.NewWrappedCore(logging.Verbo, logger, logging.Colors.FileEncoder())
 	consoleCore := logging.NewWrappedCore(logging.Info, os.Stderr, logging.Colors.ConsoleEncoder())
 	ctx.Context.Log = logging.NewLogger("", fileCore, consoleCore)
 
