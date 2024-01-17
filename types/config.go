@@ -541,13 +541,15 @@ func (c *Chain33Config) GetMaxTxFeeRate() int64 {
 
 // GetMaxTxFee get max transaction fee by blockheight
 func (c *Chain33Config) GetMaxTxFee(height int64) int64 {
+
 	if c.IsFork(height, "ForkMaxTxFeeV1") {
 		conf := Conf(c, "mver.mempool")
-		return conf.MGInt("maxTxFee", height)
+		if conf.MGInt("maxTxFee", height) != 0 {
+			return conf.MGInt("maxTxFee", height)
+		}
+
 	}
-
 	return c.GInt("MaxTxFee")
-
 }
 
 // SetTxFeeConfig 设置交易费相关配置
