@@ -556,7 +556,7 @@ func (c *Chain33) SetLabl(in *types.ReqWalletSetLabel, result *interface{}) erro
 	return nil
 }
 
-//GetAccount getAddress by lable
+// GetAccount getAddress by lable
 func (c *Chain33) GetAccount(in *types.ReqGetAccount, result *interface{}) error {
 	reply, err := c.cli.ExecWalletFunc("wallet", "WalletGetAccount", in)
 	if err != nil {
@@ -1391,7 +1391,7 @@ func (c *Chain33) NetProtocols(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-//GetSequenceByHash get sequcen by hashes
+// GetSequenceByHash get sequcen by hashes
 func (c *Chain33) GetSequenceByHash(in rpctypes.ReqHashes, result *interface{}) error {
 	if len(in.Hashes) != 0 && common.IsHex(in.Hashes[0]) {
 		var req types.ReqHash
@@ -1409,7 +1409,7 @@ func (c *Chain33) GetSequenceByHash(in rpctypes.ReqHashes, result *interface{}) 
 
 }
 
-//GetBlockBySeq get block by seq
+// GetBlockBySeq get block by seq
 func (c *Chain33) GetBlockBySeq(in *types.Int64, result *interface{}) error {
 
 	blockSeq, err := c.cli.GetBlockBySeq(in)
@@ -1445,7 +1445,7 @@ func convertHeader(header *types.Header, message *rpctypes.Header) {
 	}
 }
 
-//GetParaTxByTitle get paraTx by title
+// GetParaTxByTitle get paraTx by title
 func (c *Chain33) GetParaTxByTitle(req *types.ReqParaTxByTitle, result *interface{}) error {
 	paraTxDetails, err := c.cli.GetParaTxByTitle(req)
 	if err != nil {
@@ -1457,7 +1457,7 @@ func (c *Chain33) GetParaTxByTitle(req *types.ReqParaTxByTitle, result *interfac
 	return nil
 }
 
-//LoadParaTxByTitle load paratx by title
+// LoadParaTxByTitle load paratx by title
 func (c *Chain33) LoadParaTxByTitle(req *types.ReqHeightByTitle, result *interface{}) error {
 
 	reply, err := c.cli.LoadParaTxByTitle(req)
@@ -1511,7 +1511,7 @@ func convertParaTxDetails(details *types.ParaTxDetails, message *rpctypes.ParaTx
 
 }
 
-//GetParaTxByHeight get paraTx by block height
+// GetParaTxByHeight get paraTx by block height
 func (c *Chain33) GetParaTxByHeight(req *types.ReqParaTxByHeight, result *interface{}) error {
 	paraTxDetails, err := c.cli.GetParaTxByHeight(req)
 	if err != nil {
@@ -1524,7 +1524,7 @@ func (c *Chain33) GetParaTxByHeight(req *types.ReqParaTxByHeight, result *interf
 
 }
 
-//QueryChain querychain by chain executor
+// QueryChain querychain by chain executor
 func (c *Chain33) QueryChain(in rpctypes.ChainExecutor, result *interface{}) error {
 	var qin = new(types.ChainExecutor)
 	msg, err := types.QueryFunc.DecodeJSON(in.Driver, in.FuncName, in.Payload)
@@ -1614,6 +1614,11 @@ func (c *Chain33) SignWalletRecoverTx(req *types.ReqSignWalletRecoverTx, result 
 // GetChainConfig 获取chain config 参数
 func (c *Chain33) GetChainConfig(in *types.ReqNil, result *interface{}) error {
 	cfg := c.cli.GetConfig()
+	currentH := int64(0)
+	lastH, err := c.cli.GetLastHeader()
+	if err == nil {
+		currentH = lastH.GetHeight()
+	}
 	info := rpctypes.ChainConfigInfo{
 		Title:            cfg.GetTitle(),
 		CoinExec:         cfg.GetCoinExec(),
@@ -1621,7 +1626,7 @@ func (c *Chain33) GetChainConfig(in *types.ReqNil, result *interface{}) error {
 		CoinPrecision:    cfg.GetCoinPrecision(),
 		TokenPrecision:   cfg.GetTokenPrecision(),
 		ChainID:          cfg.GetChainID(),
-		MaxTxFee:         cfg.GetMaxTxFee(),
+		MaxTxFee:         cfg.GetMaxTxFee(currentH),
 		MinTxFeeRate:     cfg.GetMinTxFeeRate(),
 		MaxTxFeeRate:     cfg.GetMaxTxFeeRate(),
 		IsPara:           cfg.IsPara(),
@@ -1631,7 +1636,7 @@ func (c *Chain33) GetChainConfig(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-//AddBlacklist add peer to blacklist ,time deadline:10 years
+// AddBlacklist add peer to blacklist ,time deadline:10 years
 func (c *Chain33) AddBlacklist(in *types.BlackPeer, result *interface{}) error {
 	reply, err := c.cli.AddBlacklist(in)
 	if err != nil {
@@ -1645,7 +1650,7 @@ func (c *Chain33) AddBlacklist(in *types.BlackPeer, result *interface{}) error {
 
 }
 
-//DelBlacklist delete peer from blacklist
+// DelBlacklist delete peer from blacklist
 func (c *Chain33) DelBlacklist(in *types.BlackPeer, result *interface{}) error {
 	reply, err := c.cli.DelBlacklist(in)
 	if err != nil {
@@ -1659,7 +1664,7 @@ func (c *Chain33) DelBlacklist(in *types.BlackPeer, result *interface{}) error {
 
 }
 
-//ShowBlacklist show all peers from blacklist
+// ShowBlacklist show all peers from blacklist
 func (c *Chain33) ShowBlacklist(in *types.ReqNil, result *interface{}) error {
 	reply, err := c.cli.ShowBlacklist(in)
 	if err != nil {
@@ -1670,7 +1675,7 @@ func (c *Chain33) ShowBlacklist(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-//DialPeer dial the specified peer
+// DialPeer dial the specified peer
 func (c *Chain33) DialPeer(in *types.SetPeer, result *interface{}) error {
 	reply, err := c.cli.DialPeer(in)
 	if err != nil {
@@ -1683,7 +1688,7 @@ func (c *Chain33) DialPeer(in *types.SetPeer, result *interface{}) error {
 	return nil
 }
 
-//ClosePeer close the specified peer
+// ClosePeer close the specified peer
 func (c *Chain33) ClosePeer(in *types.SetPeer, result *interface{}) error {
 	reply, err := c.cli.ClosePeer(in)
 	if err != nil {

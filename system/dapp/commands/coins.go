@@ -64,7 +64,7 @@ func addCreateEthTransferFlags(cmd *cobra.Command) {
 
 }
 
-//createTransferEthMode eth 交易构造
+// createTransferEthMode eth 交易构造
 func createTransferEthMode(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	toAddr, _ := cmd.Flags().GetString("to")
@@ -327,7 +327,7 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	err = group.CheckWithFork(cfg, true, true, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
+	err = group.CheckWithFork(cfg, true, true, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(0))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

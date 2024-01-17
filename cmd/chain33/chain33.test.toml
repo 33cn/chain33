@@ -103,6 +103,10 @@ maxTxFee=1000000000
 maxTxNumPerAccount=10240
 isLevelFee=false
 
+[mver.mempool.ForkMaxTxFeeV1]
+# 单笔交易最大的手续费, 50 coins
+maxTxFee=5000000000
+
 [mempool.sub.timeline]
 poolCacheSize=10240
 

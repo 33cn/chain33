@@ -159,7 +159,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee()); err != nil {
+	if err := tx.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee(e.height)); err != nil {
 		return err
 	}
 	//允许重写的情况
@@ -191,7 +191,7 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee()); err != nil {
+	if err := txgroup.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee(e.height)); err != nil {
 		return err
 	}
 	return nil

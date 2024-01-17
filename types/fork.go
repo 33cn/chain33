@@ -16,7 +16,7 @@ MaxHeight 出于forks 过程安全的考虑，比如代码更新，出现了新�
 */
 const MaxHeight = 10000000000000000
 
-//Forks fork分叉结构体
+// Forks fork分叉结构体
 type Forks struct {
 	forks map[string]int64
 }
@@ -27,25 +27,25 @@ func checkKey(key string) {
 	}
 }
 
-//SetFork 设置fork信息
+// SetFork 设置fork信息
 func (f *Forks) SetFork(key string, height int64) {
 	checkKey(key)
 	f.setFork(key, height)
 }
 
-//ReplaceFork 替换fork信息
+// ReplaceFork 替换fork信息
 func (f *Forks) ReplaceFork(key string, height int64) {
 	checkKey(key)
 	f.replaceFork(key, height)
 }
 
-//SetDappFork 设置dapp的fork信息
+// SetDappFork 设置dapp的fork信息
 func (f *Forks) SetDappFork(dapp, key string, height int64) {
 	checkKey(key)
 	f.setFork(dapp+"."+key, height)
 }
 
-//ReplaceDappFork 替换dapp的fork信息
+// ReplaceDappFork 替换dapp的fork信息
 func (f *Forks) ReplaceDappFork(dapp, key string, height int64) {
 	checkKey(key)
 	f.replaceFork(dapp+"."+key, height)
@@ -144,6 +144,8 @@ func (f *Forks) SetTestNetFork() {
 	f.SetFork(address.ForkFormatAddressKey, 0)
 	f.setFork("ForkCheckEthTxSort", 0)
 	f.setFork("ForkProxyExec", 0)
+	f.setFork("ForkMaxTxFeeV1", 0)
+	f.setFork("ForkMaxTxFeeV2", 0)
 }
 
 func (f *Forks) setLocalFork() {
@@ -152,7 +154,7 @@ func (f *Forks) setLocalFork() {
 	f.ReplaceFork("ForkRootHash", 1)
 }
 
-//paraName not used currently
+// paraName not used currently
 func (f *Forks) setForkForParaZero() {
 	f.SetAllFork(0)
 	f.ReplaceFork("ForkBlockHash", 1)
@@ -214,8 +216,8 @@ func (c *Chain33Config) IsEnableFork(height int64, fork string, enable bool) boo
 	return c.IsFork(height, fork)
 }
 
-//fork 设置规则：
-//所有的fork都需要有明确的配置，不开启fork 配置为 -1; forks即为从toml中读入文件
+// fork 设置规则：
+// 所有的fork都需要有明确的配置，不开启fork 配置为 -1; forks即为从toml中读入文件
 func (c *Chain33Config) initForkConfig(forks *ForkList) {
 	chain33fork := c.forks.GetAll()
 	if chain33fork == nil {
