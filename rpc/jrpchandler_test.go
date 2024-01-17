@@ -1862,9 +1862,11 @@ func TestChain33_GetChainConfig(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetConfig", mock.Anything).Return(cfg)
+	api.On("GetLastHeader", mock.Anything).Return(&types.Header{Height: 0}, nil)
 	client := newTestChain33(api)
 	var result interface{}
 	api.On("GetChainConfig").Return(nil)
+
 	err := client.GetChainConfig(&types.ReqNil{}, &result)
 	assert.Nil(t, err)
 }
