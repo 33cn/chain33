@@ -27,7 +27,6 @@ ForkFormatAddressKey=0
 ForkCheckEthTxSort=0
 ForkProxyExec=0
 ForkMaxTxFeeV1=0
-
 [fork.sub.none]
 ForkUseTimeDelay=0
 

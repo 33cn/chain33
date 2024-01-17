@@ -145,7 +145,7 @@ func (f *Forks) SetTestNetFork() {
 	f.setFork("ForkCheckEthTxSort", 0)
 	f.setFork("ForkProxyExec", 0)
 	f.setFork("ForkMaxTxFeeV1", 0)
-	f.setFork("ForkMaxTxFeeV2", 0)
+
 }
 
 func (f *Forks) setLocalFork() {
