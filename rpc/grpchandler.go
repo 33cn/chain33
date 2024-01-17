@@ -551,7 +551,7 @@ func (g *Grpc) GetParaTxByHeight(ctx context.Context, in *pb.ReqParaTxByHeight) 
 	return g.cli.GetParaTxByHeight(in)
 }
 
-//GetAccount 通过地址标签获取账户地址以及账户余额信息
+// GetAccount 通过地址标签获取账户地址以及账户余额信息
 func (g *Grpc) GetAccount(ctx context.Context, in *pb.ReqGetAccount) (*pb.WalletAccount, error) {
 	acc, err := g.cli.ExecWalletFunc("wallet", "WalletGetAccount", in)
 	if err != nil {
@@ -597,6 +597,11 @@ func (g *Grpc) SignWalletRecoverTx(ctx context.Context, in *pb.ReqSignWalletReco
 // GetChainConfig 获取chain config 参数
 func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConfigInfo, error) {
 	cfg := g.cli.GetConfig()
+	currentH := int64(0)
+	lastH, err := g.GetLastHeader(ctx, in)
+	if err == nil {
+		currentH = lastH.GetHeight()
+	}
 	return &pb.ChainConfigInfo{
 		Title:            cfg.GetTitle(),
 		CoinExec:         cfg.GetCoinExec(),
@@ -604,7 +609,7 @@ func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConf
 		CoinPrecision:    cfg.GetCoinPrecision(),
 		TokenPrecision:   cfg.GetTokenPrecision(),
 		ChainID:          cfg.GetChainID(),
-		MaxTxFee:         cfg.GetMaxTxFee(),
+		MaxTxFee:         cfg.GetMaxTxFee(currentH),
 		MinTxFeeRate:     cfg.GetMinTxFeeRate(),
 		MaxTxFeeRate:     cfg.GetMaxTxFeeRate(),
 		IsPara:           cfg.IsPara(),
@@ -612,28 +617,28 @@ func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConf
 	}, nil
 }
 
-//ConvertExectoAddr 根据执行器的名字创建地址
+// ConvertExectoAddr 根据执行器的名字创建地址
 func (g *Grpc) ConvertExectoAddr(ctx context.Context, in *pb.ReqString) (*pb.ReplyString, error) {
 	addr := address.ExecAddress(in.GetData())
 	return &pb.ReplyString{Data: addr}, nil
 }
 
-//GetCoinSymbol get coin symbol
+// GetCoinSymbol get coin symbol
 func (g *Grpc) GetCoinSymbol(ctx context.Context, in *pb.ReqNil) (*pb.ReplyString, error) {
 	return &pb.ReplyString{Data: g.cli.GetConfig().GetCoinSymbol()}, nil
 }
 
-//GetBlockSequences ...
+// GetBlockSequences ...
 func (g *Grpc) GetBlockSequences(ctx context.Context, in *pb.ReqBlocks) (*pb.BlockSequences, error) {
 	return g.cli.GetBlockSequences(in)
 }
 
-//AddPushSubscribe ...
+// AddPushSubscribe ...
 func (g *Grpc) AddPushSubscribe(ctx context.Context, in *pb.PushSubscribeReq) (*pb.ReplySubscribePush, error) {
 	return g.cli.AddPushSubscribe(in)
 }
 
-//ListPushes  列举推送服务
+// ListPushes  列举推送服务
 func (g *Grpc) ListPushes(ctx context.Context, in *pb.ReqNil) (*pb.PushSubscribes, error) {
 	resp, err := g.cli.ListPushes()
 	if err != nil {
@@ -647,7 +652,7 @@ func (g *Grpc) GetPushSeqLastNum(ctx context.Context, in *pb.ReqString) (*pb.Int
 	return g.cli.GetPushSeqLastNum(in)
 }
 
-//SubEvent 订阅消息推送服务
+// SubEvent 订阅消息推送服务
 func (g *Grpc) SubEvent(in *pb.ReqSubscribe, resp pb.Chain33_SubEventServer) error {
 	sub := g.hashTopic(in.Name)
 	dataChan := make(chan *queue.Message, 128)
@@ -708,7 +713,7 @@ func (g *Grpc) SubEvent(in *pb.ReqSubscribe, resp pb.Chain33_SubEventServer) err
 	return err
 }
 
-//UnSubEvent 取消订阅
+// UnSubEvent 取消订阅
 func (g *Grpc) UnSubEvent(ctx context.Context, in *pb.ReqString) (*pb.Reply, error) {
 	//删除缓存的TopicID
 	err := g.delSubInfo(in.GetData(), nil)

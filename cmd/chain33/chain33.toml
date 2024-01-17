@@ -152,6 +152,11 @@ maxTxFee=1000000000
 # 是否开启阶梯手续费
 isLevelFee=false
 
+[mver.mempool.ForkMaxTxFeeV1]
+# 单笔交易最大的手续费, 50 coins
+maxTxFee=5000000000
+
+
 [mempool.sub.timeline]
 # mempool缓存容量大小，默认10240
 poolCacheSize=10240

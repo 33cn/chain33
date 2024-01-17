@@ -20,10 +20,10 @@ import (
 	tml "github.com/BurntSushi/toml"
 )
 
-//Create ...
+// Create ...
 type Create func(cfg *Chain33Config)
 
-//区块链共识相关的参数，重要参数不要随便修改
+// 区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowUserExec = [][]byte{ExecerNone}
 	EmptyValue    = []byte("FFFFFFFFemptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
@@ -46,7 +46,7 @@ const (
 	DefaultMinFee    int64 = 1e5
 )
 
-//Chain33Config ...
+// Chain33Config ...
 type Chain33Config struct {
 	mcfg       *Config
 	scfg       *ConfigSubModule
@@ -65,13 +65,13 @@ type Chain33Config struct {
 	chainID          int32
 }
 
-//ChainParam 结构体
+// ChainParam 结构体
 type ChainParam struct {
 	MaxTxNumber  int64
 	PowLimitBits uint32
 }
 
-//RegFork Reg 注册每个模块的自动初始化函数
+// RegFork Reg 注册每个模块的自动初始化函数
 func RegFork(name string, create Create) {
 	if create == nil {
 		panic("config: Register Module Init is nil")
@@ -82,14 +82,14 @@ func RegFork(name string, create Create) {
 	regModuleInit[name] = create
 }
 
-//RegForkInit ...
+// RegForkInit ...
 func RegForkInit(cfg *Chain33Config) {
 	for _, item := range regModuleInit {
 		item(cfg)
 	}
 }
 
-//RegExec ...
+// RegExec ...
 func RegExec(name string, create Create) {
 	if create == nil {
 		panic("config: Register Exec Init is nil")
@@ -100,7 +100,7 @@ func RegExec(name string, create Create) {
 	regExecInit[name] = create
 }
 
-//RegExecInit ...
+// RegExecInit ...
 func RegExecInit(cfg *Chain33Config) {
 	runonce.Do(func() {
 		for _, item := range regExecInit {
@@ -109,14 +109,14 @@ func RegExecInit(cfg *Chain33Config) {
 	})
 }
 
-//NewChain33Config ...
+// NewChain33Config ...
 func NewChain33Config(cfgstring string) *Chain33Config {
 	chain33Cfg := NewChain33ConfigNoInit(cfgstring)
 	chain33Cfg.chain33CfgInit(chain33Cfg.mcfg)
 	return chain33Cfg
 }
 
-//NewChain33ConfigNoInit ...
+// NewChain33ConfigNoInit ...
 func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 	cfg, sub := InitCfgString(cfgstring)
 	chain33Cfg := &Chain33Config{
@@ -147,22 +147,22 @@ func NewChain33ConfigNoInit(cfgstring string) *Chain33Config {
 	return chain33Cfg
 }
 
-//GetModuleConfig ...
+// GetModuleConfig ...
 func (c *Chain33Config) GetModuleConfig() *Config {
 	return c.mcfg
 }
 
-//GetSubConfig ...
+// GetSubConfig ...
 func (c *Chain33Config) GetSubConfig() *ConfigSubModule {
 	return c.scfg
 }
 
-//DisableCheckFork ...
+// DisableCheckFork ...
 func (c *Chain33Config) DisableCheckFork(d bool) {
 	c.disableCheckFork = d
 }
 
-//GetForks ...
+// GetForks ...
 func (c *Chain33Config) GetForks() (map[string]int64, error) {
 	if c.forks == nil {
 		return nil, ErrNotFound
@@ -306,7 +306,7 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	}
 }
 
-//只检查是否是10的指数，不限制最大精度
+// 只检查是否是10的指数，不限制最大精度
 func checkPrecision(precision int64) bool {
 	s := strconv.Itoa(int(precision))
 	n := strings.Count(s, "0")
@@ -475,7 +475,7 @@ func (c *Chain33Config) S(key string, value interface{}) {
 	c.setChainConfig(key, value)
 }
 
-//SetTitleOnlyForTest set title only for test use
+// SetTitleOnlyForTest set title only for test use
 func (c *Chain33Config) SetTitleOnlyForTest(ti string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -539,9 +539,15 @@ func (c *Chain33Config) GetMaxTxFeeRate() int64 {
 	return c.GInt("MaxTxFeeRate")
 }
 
-// GetMaxTxFee get max transaction fee
-func (c *Chain33Config) GetMaxTxFee() int64 {
+// GetMaxTxFee get max transaction fee by blockheight
+func (c *Chain33Config) GetMaxTxFee(height int64) int64 {
+	if c.IsFork(height, "ForkMaxTxFeeV1") {
+		conf := Conf(c, "mver.mempool")
+		return conf.MGInt("maxTxFee", height)
+	}
+
 	return c.GInt("MaxTxFee")
+
 }
 
 // SetTxFeeConfig 设置交易费相关配置
@@ -592,12 +598,12 @@ func IsParaExecName(exec string) bool {
 	return strings.HasPrefix(exec, ParaKeyX)
 }
 
-//IsMyParaExecName 是否是我的para链的执行器
+// IsMyParaExecName 是否是我的para链的执行器
 func (c *Chain33Config) IsMyParaExecName(exec string) bool {
 	return IsParaExecName(exec) && strings.HasPrefix(exec, c.GetTitle())
 }
 
-//IsSpecificParaExecName 是否是某一个平行链的执行器
+// IsSpecificParaExecName 是否是某一个平行链的执行器
 func IsSpecificParaExecName(title, exec string) bool {
 	return IsParaExecName(exec) && strings.HasPrefix(exec, title)
 }
@@ -659,7 +665,7 @@ func IsForward2MainChainTx(cfg *Chain33Config, tx *Transaction) bool {
 	return false
 }
 
-//GetParaExecTitleName 如果是平行链执行器，获取对应title
+// GetParaExecTitleName 如果是平行链执行器，获取对应title
 func GetParaExecTitleName(exec string) (string, bool) {
 	if IsParaExecName(exec) {
 		for i := len(ParaKey); i < len(exec); i++ {
@@ -699,7 +705,7 @@ func MergeConfig(conf map[string]interface{}, def map[string]interface{}) string
 	return ""
 }
 
-//检查默认配置文件
+// 检查默认配置文件
 func checkConfig(key string, conf map[string]interface{}, def map[string]interface{}) string {
 	errstr := ""
 	for key1, value1 := range conf {
@@ -738,7 +744,7 @@ func getkey(key, key1 string) string {
 	return key + "." + key1
 }
 
-//MergeCfg ...
+// MergeCfg ...
 func MergeCfg(cfgstring, cfgdefault string) string {
 	if cfgdefault != "" {
 		return mergeCfgString(cfgstring, cfgdefault)
@@ -821,7 +827,7 @@ func InitCfgString(cfgstring string) (*Config, *ConfigSubModule) {
 	return cfg, sub
 }
 
-//ReadFile ...
+// ReadFile ...
 func ReadFile(path string) string {
 	return readFile(path)
 }
@@ -856,7 +862,7 @@ func parseSubModule(cfg *subModule) (*ConfigSubModule, error) {
 	return &subcfg, nil
 }
 
-//ModifySubConfig json data modify
+// ModifySubConfig json data modify
 func ModifySubConfig(sub []byte, key string, value interface{}) ([]byte, error) {
 	var data map[string]interface{}
 	err := json.Unmarshal(sub, &data)
@@ -973,7 +979,7 @@ func (query *ConfQuery) MIsEnable(key string, height int64) bool {
 	return query.cfg.MIsEnable(getkey(query.prefix, key), height)
 }
 
-//SetCliSysParam ...
+// SetCliSysParam ...
 func SetCliSysParam(title string, cfg *Chain33Config) {
 	if cfg == nil {
 		panic("set cli system Chain33Config param is nil")
@@ -981,7 +987,7 @@ func SetCliSysParam(title string, cfg *Chain33Config) {
 	cliSysParam[title] = cfg
 }
 
-//GetCliSysParam ...
+// GetCliSysParam ...
 func GetCliSysParam(title string) *Chain33Config {
 	if v, ok := cliSysParam[title]; ok {
 		return v
@@ -989,7 +995,7 @@ func GetCliSysParam(title string) *Chain33Config {
 	panic(fmt.Sprintln("can not find CliSysParam title", title))
 }
 
-//AssertConfig ...
+// AssertConfig ...
 func AssertConfig(check interface{}) {
 	if check == nil {
 		panic("check object is nil (Chain33Config)")
