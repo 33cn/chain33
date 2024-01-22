@@ -218,7 +218,7 @@ func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 // returned.
 func (vm *chain33VM) LastAccepted(context.Context) (ids.ID, error) {
 
-	msg := vm.qclient.NewMessage("blockchain", types.EventSnowmanLastAcceptHeight, &types.ReqNil{})
+	msg := vm.qclient.NewMessage("blockchain", types.EventSnowmanLastChoice, &types.ReqNil{})
 	err := vm.qclient.Send(msg, true)
 	if err != nil {
 		snowLog.Error("LastAccepted", "send msg err", err)
@@ -230,9 +230,9 @@ func (vm *chain33VM) LastAccepted(context.Context) (ids.ID, error) {
 		snowLog.Error("LastAccepted", "wait msg err", err)
 		return ids.Empty, err
 	}
-	hash := reply.GetData().(*types.ReqBytes)
+	choice := reply.GetData().(*types.SnowChoice)
 	var id ids.ID
-	copy(id[:], hash.Data)
+	copy(id[:], choice.Hash)
 	return id, nil
 }
 
@@ -271,7 +271,7 @@ func (vm *chain33VM) acceptBlock(height int64, blkID ids.ID) error {
 	vm.decidedHashes.Add(blkID, true)
 
 	err := vm.qclient.Send(vm.qclient.NewMessage("blockchain",
-		types.EventSnowmanAcceptBlk, &types.ReqBytes{Data: blkID[:]}), false)
+		types.EventSnowmanAcceptBlk, &types.SnowChoice{Height: height, Hash: blkID[:]}), false)
 
 	return err
 }

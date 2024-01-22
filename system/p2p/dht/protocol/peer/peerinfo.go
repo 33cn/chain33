@@ -3,6 +3,7 @@ package peer
 import (
 	"context"
 	"fmt"
+	"github.com/33cn/chain33/queue"
 	"strconv"
 	"strings"
 	"sync"
@@ -69,7 +70,26 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 	localPeer.FullNode = p.SubConfig.IsFullNode
 	//增加节点高度增长是否是阻塞状态监测
 	localPeer.Blocked = p.getBlocked()
+	localPeer.Finalized = getFinalizedChoice(p.QueueClient)
 	return &localPeer
+}
+
+func getFinalizedChoice(qclient queue.Client) (choice *types.SnowChoice) {
+
+	choice = &types.SnowChoice{}
+	msg := qclient.NewMessage("blockchain", types.EventSnowmanLastChoice, &types.ReqNil{})
+	err := qclient.Send(msg, true)
+	if err != nil {
+		log.Error("getFinalizedChoice", "send msg err", err)
+		return
+	}
+
+	reply, err := qclient.Wait(msg)
+	if err != nil {
+		log.Error("getFinalizedChoice", "wait msg err", err)
+		return
+	}
+	return reply.GetData().(*types.SnowChoice)
 }
 
 func caculteRunningTime() string {

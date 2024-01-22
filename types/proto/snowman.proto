@@ -50,6 +50,11 @@ message snowFailedQuery {
     string peerName = 2;
 }
 
+message snowChoice {
+    int64 height = 1;
+    bytes hash = 2;
+}
+
 
 
 

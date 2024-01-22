@@ -7,7 +7,6 @@ package types
 
 import (
 	"encoding/json"
-
 	_ "github.com/33cn/chain33/system/address" // init address
 )
 

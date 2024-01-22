@@ -123,8 +123,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.finalizer.eventPreferBlock)
 		case types.EventSnowmanAcceptBlk:
 			go chain.processMsg(msg, reqnum, chain.finalizer.eventAcceptBlock)
-		case types.EventSnowmanLastAcceptHeight:
-			go chain.processMsg(msg, reqnum, chain.finalizer.eventLastAcceptHeight)
+		case types.EventSnowmanLastChoice:
+			go chain.processMsg(msg, reqnum, chain.finalizer.eventLastChoice)
 		default:
 			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
