@@ -43,7 +43,7 @@ func newMsgSender(sm *snowman, snowCtx *snow.ConsensusContext) *msgSender {
 func (s *msgSender) SendChits(ctx context.Context, nodeID ids.NodeID, requestID uint32, preferredID ids.ID, acceptedID ids.ID) {
 
 	peerName := s.sm.vs.toLibp2pID(nodeID)
-	snowLog.Debug("msgSender SendGet", "reqID", requestID, "peer", peerName,
+	snowLog.Debug("msgSender SendChits", "reqID", requestID, "peer", peerName,
 		"preferHash", hex.EncodeToString(preferredID[:]),
 		"acceptHash", hex.EncodeToString(acceptedID[:]))
 
@@ -140,7 +140,7 @@ func (s *msgSender) SendPushQuery(ctx context.Context, nodeIDs set.Set[ids.NodeI
 			PeerName:  s.sm.vs.toLibp2pID(nodeID),
 		}
 
-		msg := s.cli.NewMessage("p2p", types.EventSnowmanPullQuery, req)
+		msg := s.cli.NewMessage("p2p", types.EventSnowmanPushQuery, req)
 		err := s.cli.Send(msg, false)
 		if err != nil {
 			snowLog.Error("msgSender SendPushQuery", "peer", req.PeerName, "reqID", requestID, "client.Send err:", err)

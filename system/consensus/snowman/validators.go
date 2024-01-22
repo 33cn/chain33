@@ -28,6 +28,13 @@ func (s *vdrSet) init(ctx *consensus.Context) {
 	s.Set = validators.NewSet()
 	s.ctx = ctx
 	s.rand = rand.New(rand.NewSource(types.Now().Unix()))
+	s.peerIDs = make(map[ids.NodeID]string)
+}
+
+func (s *vdrSet) Len() int {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return len(s.peerIDs)
 }
 
 // Sample returns a collection of validatorIDs, potentially with duplicates.
@@ -43,8 +50,6 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 	indices := s.rand.Perm(len(peers))
 	nodeIDS := make([]ids.NodeID, 0, size)
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
 	for _, idx := range indices {
 
 		nid, err := s.toNodeID(peers[idx].Name)
@@ -52,7 +57,7 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 			snowLog.Error("vdrSet Sample", "pid", peers[idx].Name, "to nodeID err", err)
 			continue
 		}
-		s.peerIDs[nid] = peers[idx].Name
+
 		nodeIDS = append(nodeIDS, nid)
 
 		if len(nodeIDS) >= size {
@@ -104,7 +109,11 @@ func (s *vdrSet) getConnectedPeers() ([]*types.Peer, error) {
 func (s *vdrSet) toLibp2pID(id ids.NodeID) string {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.peerIDs[id]
+	name, ok := s.peerIDs[id]
+	if !ok {
+		panic("peer id not exist")
+	}
+	return name
 }
 
 func (s *vdrSet) toNodeID(id string) (ids.NodeID, error) {
@@ -118,6 +127,10 @@ func (s *vdrSet) toNodeID(id string) (ids.NodeID, error) {
 	if err != nil {
 		return ids.EmptyNodeID, err
 	}
+
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.peerIDs[nid] = id
 
 	return nid, nil
 }
