@@ -34,11 +34,10 @@ func newFinalizer(chain *BlockChain) *finalizer {
 			chainlog.Error("newFinalizer", "height", blockFinalizeStartHeight, "get block err", err)
 			panic(err)
 		}
-		f.setFinalizedBlock(detail.GetBlock().Height, detail.GetBlock().Hash(chain.client.GetConfig()))
+		_ = f.setFinalizedBlock(detail.GetBlock().Height, detail.GetBlock().Hash(chain.client.GetConfig()))
 	}
 
 	chainlog.Debug("newFinalizer", "height", f.header.Height, "hash", hex.EncodeToString(f.header.Hash))
-
 	return f
 }
 
@@ -46,35 +45,35 @@ func (f *finalizer) syncNeighborsFinalizedHeader(selfHeight int64) {
 
 }
 
-func (f *finalizer) eventPreferBlock(msg *queue.Message) {
+func (f *finalizer) snowmanPreferBlock(msg *queue.Message) {
 	req := (msg.Data).(*types.ReqBytes)
 
 	detail, err := f.chain.LoadBlockByHash(req.GetData())
 	if err != nil {
-		chainlog.Error("eventPrferBlock", "hash", hex.EncodeToString(req.GetData()), "load block err", err.Error())
+		chainlog.Error("snowmanPreferBlock", "hash", hex.EncodeToString(req.GetData()), "load block err", err.Error())
 		return
 	}
-	chainlog.Debug("eventPreferBlock", "height", detail.GetBlock().GetHeight(), "hash", hex.EncodeToString(req.GetData()))
+	chainlog.Debug("snowmanPreferBlock", "height", detail.GetBlock().GetHeight(), "hash", hex.EncodeToString(req.GetData()))
 
 	return
 
 }
 
-func (f *finalizer) eventAcceptBlock(msg *queue.Message) {
+func (f *finalizer) snowmanAcceptBlock(msg *queue.Message) {
 
 	req := (msg.Data).(*types.SnowChoice)
 
-	chainlog.Debug("eventAcceptBlock", "height", req.Height, "hash", hex.EncodeToString(req.Hash))
+	chainlog.Debug("snowmanAcceptBlock", "height", req.Height, "hash", hex.EncodeToString(req.Hash))
 	detail, err := f.chain.LoadBlockByHash(req.GetHash())
 	if err != nil {
-		chainlog.Error("eventAcceptBlock", "height", req.Height,
+		chainlog.Error("snowmanAcceptBlock", "height", req.Height,
 			"hash", hex.EncodeToString(req.GetHash()), "load block err", err.Error())
 		return
 	}
 
 	if detail.GetBlock().GetHeight() != req.GetHeight() {
 
-		chainlog.Error("eventAcceptBlock height not equal", "expect", req.Height, "actual", detail.GetBlock().GetHeight(),
+		chainlog.Error("snowmanAcceptBlock height not equal", "expect", req.Height, "actual", detail.GetBlock().GetHeight(),
 			"hash", hex.EncodeToString(req.GetHash()))
 		return
 	}
@@ -82,7 +81,7 @@ func (f *finalizer) eventAcceptBlock(msg *queue.Message) {
 	err = f.setFinalizedBlock(detail.GetBlock().GetHeight(), req.GetHash())
 
 	if err != nil {
-		chainlog.Error("eventAcceptBlock", "setFinalizedBlock err", err.Error())
+		chainlog.Error("snowmanAcceptBlock", "setFinalizedBlock err", err.Error())
 	}
 }
 
@@ -93,7 +92,7 @@ func (f *finalizer) setFinalizedBlock(height int64, hash []byte) error {
 	err := f.chain.blockStore.db.Set(blkFinalizeLastChoiceKey, types.Encode(&f.header))
 
 	if err != nil {
-		chainlog.Error("setFinalizedBlock", "height", height, "hash", hex.EncodeToString(hash))
+		chainlog.Error("setFinalizedBlock", "height", height, "hash", hex.EncodeToString(hash), "err", err)
 		return err
 	}
 	f.header.Height = height
@@ -107,10 +106,10 @@ func (f *finalizer) getFinalizedBlock() (int64, []byte) {
 	return f.header.Height, f.header.Hash
 }
 
-func (f *finalizer) eventLastChoice(msg *queue.Message) {
+func (f *finalizer) snowmanLastChoice(msg *queue.Message) {
 
 	height, hash := f.getFinalizedBlock()
-	chainlog.Debug("eventLastChoice", "height", height, "hash", hex.EncodeToString(hash))
+	chainlog.Debug("snowmanLastChoice", "height", height, "hash", hex.EncodeToString(hash))
 	msg.Reply(f.chain.client.NewMessage(msg.Topic,
 		types.EventSnowmanLastChoice, &types.SnowChoice{Height: height, Hash: hash}))
 }
