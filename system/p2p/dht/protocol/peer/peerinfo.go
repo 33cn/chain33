@@ -131,7 +131,7 @@ func (p *Protocol) refreshPeerInfo(peers []peer.ID) {
 				<-ch
 				wg.Done()
 			}()
-			pInfo, err := p.queryPeerInfoOld(pid)
+			pInfo, err := p.queryPeerInfo(pid)
 			if err != nil {
 				log.Error("refreshPeerInfo", "error", err, "pid", pid)
 				return
@@ -185,7 +185,7 @@ func (p *Protocol) detectNodeAddr() {
 		if err != nil {
 			continue
 		}
-		err = p.queryVersionOld(peerInfo.ID)
+		err = p.queryVersion(peerInfo.ID)
 		if err != nil {
 			continue
 		}
@@ -210,7 +210,7 @@ func (p *Protocol) detectNodeAddr() {
 			if utils.IsPublicIP(p.getPublicIP()) && p.containsPublicIP(pid) {
 				continue
 			}
-			err := p.queryVersionOld(pid)
+			err := p.queryVersion(pid)
 			if err != nil {
 				log.Error("detectNodeAddr", "queryVersion error", err, "pid", pid)
 				continue
