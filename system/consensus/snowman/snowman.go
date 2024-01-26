@@ -77,8 +77,8 @@ func (s *snowman) Initialize(ctx *consensus.Context) {
 	}
 	s.engine = engine
 
-	s.inMsg = make(chan *queue.Message, 32)
-	s.engineNotify = make(chan struct{}, 32)
+	s.inMsg = make(chan *queue.Message, 1024)
+	s.engineNotify = make(chan struct{}, 1024)
 	go s.startRoutine()
 }
 

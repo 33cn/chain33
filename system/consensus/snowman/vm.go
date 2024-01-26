@@ -268,6 +268,11 @@ func (vm *chain33VM) GetBlockIDAtHeight(ctx context.Context, height uint64) (ids
 
 func (vm *chain33VM) acceptBlock(height int64, blkID ids.ID) error {
 
+	ah := atomic.LoadInt64(&vm.acceptedHeight)
+	if height <= ah {
+		snowLog.Debug("acceptBlock disorder", "height", height, "accept", ah)
+		return nil
+	}
 	atomic.StoreInt64(&vm.acceptedHeight, height)
 	vm.decidedHashes.Add(blkID, true)
 

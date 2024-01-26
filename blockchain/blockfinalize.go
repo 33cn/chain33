@@ -62,8 +62,12 @@ func (f *finalizer) snowmanPreferBlock(msg *queue.Message) {
 func (f *finalizer) snowmanAcceptBlock(msg *queue.Message) {
 
 	req := (msg.Data).(*types.SnowChoice)
-
 	chainlog.Debug("snowmanAcceptBlock", "height", req.Height, "hash", hex.EncodeToString(req.Hash))
+	height, _ := f.getFinalizedBlock()
+	if req.GetHeight() <= height {
+		chainlog.Debug("snowmanAcceptBlock disorder", "height", req.Height, "hash", hex.EncodeToString(req.Hash))
+		return
+	}
 	detail, err := f.chain.LoadBlockByHash(req.GetHash())
 	if err != nil {
 		chainlog.Error("snowmanAcceptBlock", "height", req.Height,
