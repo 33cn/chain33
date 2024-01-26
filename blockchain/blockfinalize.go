@@ -15,7 +15,7 @@ var (
 
 type finalizer struct {
 	chain  *BlockChain
-	header types.Header
+	choice types.SnowChoice
 	lock   sync.RWMutex
 }
 
@@ -26,7 +26,11 @@ func newFinalizer(chain *BlockChain) *finalizer {
 	raw, err := chain.blockStore.db.Get(blkFinalizeLastChoiceKey)
 
 	if err == nil {
-		types.Decode(raw, &f.header)
+		err = types.Decode(raw, &f.choice)
+		if err != nil {
+			chainlog.Error("newFinalizer", "height", blockFinalizeStartHeight, "decode err", err)
+			panic(err)
+		}
 	} else if chain.blockStore.Height() >= blockFinalizeStartHeight {
 
 		detail, err := chain.GetBlock(blockFinalizeStartHeight)
@@ -37,7 +41,7 @@ func newFinalizer(chain *BlockChain) *finalizer {
 		_ = f.setFinalizedBlock(detail.GetBlock().Height, detail.GetBlock().Hash(chain.client.GetConfig()))
 	}
 
-	chainlog.Debug("newFinalizer", "height", f.header.Height, "hash", hex.EncodeToString(f.header.Hash))
+	chainlog.Debug("newFinalizer", "height", f.choice.Height, "hash", hex.EncodeToString(f.choice.Hash))
 	return f
 }
 
@@ -93,21 +97,20 @@ func (f *finalizer) setFinalizedBlock(height int64, hash []byte) error {
 
 	f.lock.Lock()
 	defer f.lock.Unlock()
-	err := f.chain.blockStore.db.Set(blkFinalizeLastChoiceKey, types.Encode(&f.header))
-
+	choice := types.SnowChoice{Height: height, Hash: hash}
+	err := f.chain.blockStore.db.Set(blkFinalizeLastChoiceKey, types.Encode(&choice))
 	if err != nil {
 		chainlog.Error("setFinalizedBlock", "height", height, "hash", hex.EncodeToString(hash), "err", err)
 		return err
 	}
-	f.header.Height = height
-	f.header.Hash = hash
+	f.choice = choice
 	return nil
 }
 
 func (f *finalizer) getFinalizedBlock() (int64, []byte) {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
-	return f.header.Height, f.header.Hash
+	return f.choice.Height, f.choice.Hash
 }
 
 func (f *finalizer) snowmanLastChoice(msg *queue.Message) {

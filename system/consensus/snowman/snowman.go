@@ -124,7 +124,7 @@ func (s *snowman) startRoutine() {
 
 	// check chain sync status
 	for !s.getChainSyncStatus() {
-		snowLog.Info("startRoutine wait chain state syncing...")
+		snowLog.Debug("startRoutine wait chain state syncing...")
 		time.Sleep(5 * time.Second)
 	}
 
@@ -135,7 +135,7 @@ func (s *snowman) startRoutine() {
 		if err == nil && len(peers) >= s.params.K {
 			break
 		}
-		snowLog.Info("startRoutine wait more snowman peer connected...",
+		snowLog.Debug("startRoutine wait more snowman peer connected...",
 			"currConnected", len(peers), "minRequiredNum", s.params.K, "err", err)
 		time.Sleep(5 * time.Second)
 	}
