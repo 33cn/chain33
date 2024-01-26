@@ -145,12 +145,7 @@ func (s *snowman) startRoutine() {
 		panic("start snowman engine err:" + err.Error())
 	}
 
-	//启用handler协程
-	concurrency := runtime.NumCPU() * 2
-	for i := 0; i < concurrency; i++ {
-		go s.handleMsgRountine()
-	}
-
+	go s.dispatchSyncMsg()
 	go s.handleNotifyAddBlock()
 	s.engineStarted.Store(true)
 	snowLog.Debug("snowman startRoutine done")
@@ -196,7 +191,7 @@ func (s *snowman) handleNotifyAddBlock() {
 	}
 }
 
-func (s *snowman) handleMsgRountine() {
+func (s *snowman) dispatchSyncMsg() {
 
 	for {
 
@@ -206,14 +201,22 @@ func (s *snowman) handleMsgRountine() {
 			return
 
 		case msg := <-s.inMsg:
-			s.handleInMsg(msg)
+			s.handleSyncMsg(msg)
 			snowLog.Debug("handleInMsg Done", "event", types.GetEventName(int(msg.ID)))
 		}
 
 	}
 }
 
-func (s *snowman) handleInMsg(msg *queue.Message) {
+func (s *snowman) handleSyncMsg(msg *queue.Message) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			var buf [4048]byte
+			n := runtime.Stack(buf[:], false)
+			snowLog.Error("handleInMsg", "err", r, "stack", buf[:n])
+		}
+	}()
 
 	switch msg.ID {
 
@@ -250,7 +253,8 @@ func (s *snowman) handleInMsg(msg *queue.Message) {
 
 		err = s.engine.Get(s.ctx.Base.Context, nodeID, req.RequestID, toSnowID(req.BlockHash))
 		if err != nil {
-			snowLog.Error("handleInMsg getBlock", "reqID", req.RequestID, "peerName", req.PeerName, "Get err", err)
+			snowLog.Error("handleInMsg getBlock", "reqID", req.RequestID,
+				"hash", hex.EncodeToString(req.BlockHash), "peerName", req.PeerName, "Get err", err)
 		}
 	case types.EventSnowmanPutBlock:
 
@@ -280,7 +284,8 @@ func (s *snowman) handleInMsg(msg *queue.Message) {
 
 		err = s.engine.PullQuery(s.ctx.Base.Context, nodeID, req.RequestID, toSnowID(req.BlockHash))
 		if err != nil {
-			snowLog.Error("handleInMsg pullQuery", "reqID", req.RequestID, "peerName", req.PeerName, "pullQuery err", err)
+			snowLog.Error("handleInMsg pullQuery", "reqID", req.RequestID,
+				"hash", hex.EncodeToString(req.BlockHash), "peerName", req.PeerName, "pullQuery err", err)
 		}
 
 	case types.EventSnowmanPushQuery:

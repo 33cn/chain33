@@ -231,6 +231,7 @@ func (vm *chain33VM) LastAccepted(context.Context) (ids.ID, error) {
 		return ids.Empty, err
 	}
 	choice := reply.GetData().(*types.SnowChoice)
+	atomic.StoreInt64(&vm.acceptedHeight, choice.Height)
 	var id ids.ID
 	copy(id[:], choice.Hash)
 	return id, nil

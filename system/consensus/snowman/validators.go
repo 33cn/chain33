@@ -1,6 +1,7 @@
 package snowman
 
 import (
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -35,6 +36,10 @@ func (s *vdrSet) Len() int {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return len(s.peerIDs)
+}
+
+func (s *vdrSet) String() string {
+	return fmt.Sprintf("Validator Set: Size = %d", s.Len())
 }
 
 // Sample returns a collection of validatorIDs, potentially with duplicates.
