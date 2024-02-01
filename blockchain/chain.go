@@ -21,7 +21,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-//var
+// var
 var (
 	//cache 存贮的block个数
 	zeroHash             [32]byte
@@ -41,7 +41,7 @@ const (
 	defaultChunkBlockNum = 1
 )
 
-//BlockChain 区块链结构体
+// BlockChain 区块链结构体
 type BlockChain struct {
 	client        queue.Client
 	blockCache    *BlockCache
@@ -49,7 +49,7 @@ type BlockChain struct {
 
 	// 永久存储数据到db中
 	blockStore *BlockStore
-	finalizer *finalizer
+	finalizer  *finalizer
 	push       *Push
 	//cache  缓存block方便快速查询
 	cfg             *types.BlockChain
@@ -115,7 +115,7 @@ type BlockChain struct {
 	isStrongConsistency   bool
 	//lock
 	synBlocklock     sync.Mutex
-	peerMaxBlklock   sync.Mutex
+	peerMaxBlklock   sync.RWMutex
 	castlock         sync.Mutex
 	ntpClockSynclock sync.Mutex
 	faultpeerlock    sync.Mutex
@@ -152,7 +152,7 @@ type BlockChain struct {
 	forkPointChan    chan int64
 }
 
-//New new
+// New new
 func New(cfg *types.Chain33Config) *BlockChain {
 	mcfg := cfg.GetModuleConfig().BlockChain
 	futureBlocks, err := lru.New(maxFutureBlocks)
@@ -235,7 +235,7 @@ func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	initAllowPackHeight(chain.cfg)
 }
 
-//Close 关闭区块链
+// Close 关闭区块链
 func (chain *BlockChain) Close() {
 	//等待所有的写线程退出，防止数据库写到一半被暂停
 	atomic.StoreInt32(&chain.isclosed, 1)
@@ -270,7 +270,7 @@ func (chain *BlockChain) Close() {
 	chainlog.Info("blockchain module closed")
 }
 
-//SetQueueClient 设置队列
+// SetQueueClient 设置队列
 func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.client = client
 	chain.client.Sub("blockchain")
@@ -298,20 +298,20 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	go chain.ProcRecvMsg()
 }
 
-//Wait for ready
+// Wait for ready
 func (chain *BlockChain) Wait() {}
 
-//GetStore only used for test
+// GetStore only used for test
 func (chain *BlockChain) GetStore() *BlockStore {
 	return chain.blockStore
 }
 
-//GetOrphanPool 获取孤儿链
+// GetOrphanPool 获取孤儿链
 func (chain *BlockChain) GetOrphanPool() *OrphanPool {
 	return chain.orphanPool
 }
 
-//InitBlockChain 区块链初始化
+// InitBlockChain 区块链初始化
 func (chain *BlockChain) InitBlockChain() {
 	//isRecordBlockSequence配置的合法性检测
 	seqStatus := chain.blockStore.CheckSequenceStatus(chain.isRecordBlockSequence)
@@ -371,7 +371,7 @@ func (chain *BlockChain) getStateHash() []byte {
 	return zeroHash[:]
 }
 
-//SendAddBlockEvent blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
+// SendAddBlockEvent blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
 func (chain *BlockChain) SendAddBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
 		chainlog.Error("SendAddBlockEvent: chain client not bind message queue.")
@@ -405,7 +405,7 @@ func (chain *BlockChain) sendAddBlockEvent(topic string, data interface{}, heigh
 	}
 }
 
-//SendBlockBroadcast blockchain模块广播此block到网络中
+// SendBlockBroadcast blockchain模块广播此block到网络中
 func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	cfg := chain.client.GetConfig()
 	if chain.client == nil {
@@ -426,12 +426,12 @@ func (chain *BlockChain) SendBlockBroadcast(block *types.BlockDetail) {
 	}
 }
 
-//GetBlockHeight 获取区块高度
+// GetBlockHeight 获取区块高度
 func (chain *BlockChain) GetBlockHeight() int64 {
 	return chain.blockStore.Height()
 }
 
-//GetBlock 用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
+// GetBlock 用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
 func (chain *BlockChain) GetBlock(height int64) (detail *types.BlockDetail, err error) {
 
 	cfg := chain.client.GetConfig()
@@ -468,7 +468,7 @@ func (chain *BlockChain) GetBlock(height int64) (detail *types.BlockDetail, err 
 
 }
 
-//SendDelBlockEvent blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
+// SendDelBlockEvent blockchain 模块 del block从db之后通知mempool 和consense以及wallet模块做相应的更新
 func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error) {
 	if chain.client == nil {
 		chainlog.Error("SendDelBlockEvent: chain client not bind message queue.")
@@ -500,12 +500,12 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 	return nil
 }
 
-//GetDB 获取DB
+// GetDB 获取DB
 func (chain *BlockChain) GetDB() dbm.DB {
 	return chain.blockStore.db
 }
 
-//InitCache 初始化缓存
+// InitCache 初始化缓存
 func (chain *BlockChain) InitCache(currHeight int64) {
 
 	if !chain.client.GetConfig().IsEnable("TxHeight") {
@@ -541,7 +541,7 @@ func (chain *BlockChain) InitCache(currHeight int64) {
 	}
 }
 
-//InitIndexAndBestView 第一次启动之后需要将数据库中最新的128个block的node添加到index和bestchain中
+// InitIndexAndBestView 第一次启动之后需要将数据库中最新的128个block的node添加到index和bestchain中
 // 主要是为了接下来分叉时的block处理，.........todo
 func (chain *BlockChain) InitIndexAndBestView() {
 	//获取lastblocks从数据库,创建bestviewtip节点
@@ -589,7 +589,7 @@ func (chain *BlockChain) InitIndexAndBestView() {
 
 }
 
-//UpdateRoutine 定时延时广播futureblock
+// UpdateRoutine 定时延时广播futureblock
 func (chain *BlockChain) UpdateRoutine() {
 	//1秒尝试检测一次futureblock，futureblock的time小于当前系统时间就广播此block
 	futureblockTicker := time.NewTicker(1 * time.Second)
@@ -606,7 +606,7 @@ func (chain *BlockChain) UpdateRoutine() {
 	}
 }
 
-//ProcFutureBlocks 循环遍历所有futureblocks，当futureblock的block生成time小于当前系统时间就将此block广播出去
+// ProcFutureBlocks 循环遍历所有futureblocks，当futureblock的block生成time小于当前系统时间就将此block广播出去
 func (chain *BlockChain) ProcFutureBlocks() {
 	cfg := chain.client.GetConfig()
 	for _, hash := range chain.futureBlocks.Keys() {
@@ -624,12 +624,12 @@ func (chain *BlockChain) ProcFutureBlocks() {
 	}
 }
 
-//SetValueByKey 设置kv对到blockchain数据库
+// SetValueByKey 设置kv对到blockchain数据库
 func (chain *BlockChain) SetValueByKey(kvs *types.LocalDBSet) error {
 	return chain.blockStore.SetConsensusPara(kvs)
 }
 
-//GetValueByKey 通过key值从blockchain数据库中获取value值
+// GetValueByKey 通过key值从blockchain数据库中获取value值
 func (chain *BlockChain) GetValueByKey(keys *types.LocalDBGet) *types.LocalReplyValue {
 	return chain.blockStore.Get(keys)
 }
@@ -641,7 +641,7 @@ func (chain *BlockChain) AddCacheBlock(detail *types.BlockDetail) {
 	chain.blockCache.AddBlock(detail)
 }
 
-//DelCacheBlock 删除缓存的中对应的区块
+// DelCacheBlock 删除缓存的中对应的区块
 func (chain *BlockChain) DelCacheBlock(height int64, hash []byte) {
 	//txHeight缓存先删除
 	chain.txHeightCache.Del(height)
@@ -649,7 +649,7 @@ func (chain *BlockChain) DelCacheBlock(height int64, hash []byte) {
 	chain.blockStore.RemoveActiveBlock(string(hash))
 }
 
-//initAllowPackHeight 根据配置修改LowAllowPackHeight和值HighAllowPackHeight
+// initAllowPackHeight 根据配置修改LowAllowPackHeight和值HighAllowPackHeight
 func initAllowPackHeight(mcfg *types.BlockChain) {
 	if mcfg.HighAllowPackHeight > 0 && mcfg.LowAllowPackHeight > 0 {
 		if mcfg.HighAllowPackHeight+mcfg.LowAllowPackHeight > types.MaxAllowPackInterval {
