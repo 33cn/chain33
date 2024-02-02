@@ -8,7 +8,7 @@ package snowman
 import (
 	"encoding/hex"
 	"runtime"
-	"sync/atomic"
+	"sync"
 	"time"
 
 	sncom "github.com/ava-labs/avalanchego/snow/engine/common"
@@ -44,14 +44,15 @@ type Config struct {
 }
 
 type snowman struct {
-	engine        smeng.Engine
-	vm            *chain33VM
-	vs            *vdrSet
-	ctx           *consensus.Context
-	inMsg         chan *queue.Message
-	engineNotify  chan struct{}
-	params        snowball.Parameters
-	engineStarted atomic.Bool
+	engine       smeng.Engine
+	vm           *chain33VM
+	vs           *vdrSet
+	ctx          *consensus.Context
+	inMsg        chan *queue.Message
+	engineNotify chan struct{}
+	params       snowball.Parameters
+	initDone     bool
+	lock         sync.RWMutex
 }
 
 func (s *snowman) Initialize(ctx *consensus.Context) {
@@ -147,14 +148,18 @@ func (s *snowman) startRoutine() {
 
 	go s.dispatchSyncMsg()
 	go s.handleNotifyAddBlock()
-	s.engineStarted.Store(true)
+	s.lock.Lock()
+	s.initDone = true
+	s.lock.Unlock()
 	snowLog.Debug("snowman startRoutine done")
 
 }
 
 func (s *snowman) AddBlock(blk *types.Block) {
 
-	if !s.engineStarted.Load() {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	if !s.initDone {
 		return
 	}
 	s.vm.addNewBlock(blk)
@@ -164,7 +169,9 @@ func (s *snowman) AddBlock(blk *types.Block) {
 
 func (s *snowman) SubMsg(msg *queue.Message) {
 
-	if !s.engineStarted.Load() {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	if !s.initDone {
 		snowLog.Debug("snowman SubMsg ignore", "id", msg.ID, "name", types.GetEventName(int(msg.ID)))
 		return
 	}
