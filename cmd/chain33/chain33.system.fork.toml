@@ -27,3 +27,5 @@ ForkFormatAddressKey=0
 ForkCheckEthTxSort=0
 ForkProxyExec=0
 ForkMaxTxFeeV1=0
+ForkMaxTxFeeV2=0
+ForkMaxBlockFee=0
