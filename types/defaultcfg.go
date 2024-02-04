@@ -107,6 +107,12 @@ poolCacheSize=102400
 minTxFeeRate=100000
 maxTxNumPerAccount=100000
 
+[mver.mempool.ForkMaxTxFeeV1]
+maxTxFee=5000000000
+[mver.mempool.ForkMaxTxFeeV2]
+maxTxFee=2000000000
+
+
 [consensus]
 name="solo"
 minerstart=true
@@ -250,7 +256,7 @@ useBalance=false
 jdkPath="../../../../build/j2sdk-image"
 `
 
-//GetDefaultCfgstring ...
+// GetDefaultCfgstring ...
 func GetDefaultCfgstring() string {
 	return cfgstring
 }
