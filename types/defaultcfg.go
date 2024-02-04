@@ -110,7 +110,7 @@ maxTxNumPerAccount=100000
 [mver.mempool.ForkMaxTxFeeV1]
 maxTxFee=5000000000
 [mver.mempool.ForkMaxTxFeeV2]
-maxTxFee=2000000000
+maxTxFee=1000000000
 
 
 [consensus]

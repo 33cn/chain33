@@ -63,14 +63,13 @@ func TestSolo(t *testing.T) {
 	//test feelimit txs ,blockfeelimit
 
 	privkey := mock33.GetGenesisKey()
-	txs = util.GenCoinsTxs(cfg, nil, 10)
-	for i := 0; i < 10; i++ {
-		//每笔交易手续费20个比特元
-		txs[i].Fee = 20 * 1e8
+	txs = util.GenCoinsTxs(cfg, nil, 30)
+	for i := 0; i < 30; i++ {
+		//每笔交易手续费10个比特元
+		txs[i].Fee = 10 * 1e8
 		txs[i].Sign(types.SECP256K1, privkey)
 	}
 	for i := 0; i < len(txs); i++ {
-		t.Log(txs[i].GetTxFee())
 		mock33.GetAPI().SendTx(txs[i])
 	}
 	time.Sleep(time.Second * 10)
