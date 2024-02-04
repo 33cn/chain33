@@ -40,7 +40,8 @@ const (
 	MaxFloatCharNum  int   = 15     //float64最大可精确表示15个字符的浮点数，小数点占一位，小数点位置不确定，不好确定最大值
 	MaxTxSize              = 100000 //100K
 	MaxTxGroupSize   int32 = 20
-	MaxBlockSize           = 20000000 //20M
+	MaxBlockSize           = 20000000                  //20M
+	MaxBlockFee            = DefaultCoinPrecision * 50 //区块手续费最大 50 coins
 	MaxTxsPerBlock         = 100000
 	MaxTokenBalance  int64 = 900 * 1e8 * DefaultCoinPrecision //缺省900亿，小数位精度为1e8, 900*1e16 大约为int64最大可表示范围
 	DefaultMinFee    int64 = 1e5
@@ -541,13 +542,11 @@ func (c *Chain33Config) GetMaxTxFeeRate() int64 {
 
 // GetMaxTxFee get max transaction fee by blockheight
 func (c *Chain33Config) GetMaxTxFee(height int64) int64 {
-
 	if c.IsFork(height, "ForkMaxTxFeeV1") {
 		conf := Conf(c, "mver.mempool")
 		if conf.MGInt("maxTxFee", height) != 0 {
 			return conf.MGInt("maxTxFee", height)
 		}
-
 	}
 	return c.GInt("MaxTxFee")
 }

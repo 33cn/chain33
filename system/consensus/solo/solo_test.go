@@ -60,13 +60,32 @@ func TestSolo(t *testing.T) {
 		mock33.GetAPI().SendTx(txs[i])
 	}
 	mock33.WaitHeight(2)
+	//test feelimit txs ,blockfeelimit
+
+	privkey := mock33.GetGenesisKey()
+	txs = util.GenCoinsTxs(cfg, nil, 30)
+	for i := 0; i < 30; i++ {
+		//每笔交易手续费10个比特元
+		txs[i].Fee = 10 * 1e8
+		txs[i].Sign(types.SECP256K1, privkey)
+	}
+	for i := 0; i < len(txs); i++ {
+		mock33.GetAPI().SendTx(txs[i])
+	}
+	time.Sleep(time.Second * 10)
+	t.Log("current height:", mock33.GetBlockChain().GetBlockHeight())
+	for h := 3; h <= int(mock33.GetBlockChain().GetBlockHeight()); h++ {
+		t.Log("blockfee:", mock33.GetBlock(int64(h)).Fee(), "blockheight:", h, "txnum:", len(mock33.GetBlock(int64(h)).Txs))
+		assert.True(t, mock33.GetBlock(int64(h)).Fee() < types.MaxBlockFee)
+	}
+
 }
 
 var (
 	tlog = log15.New("module", "test solo")
 )
 
-//mempool发送交易 10000tx/s
+// mempool发送交易 10000tx/s
 func BenchmarkSendTx(b *testing.B) {
 	if testing.Short() {
 		b.Skip("skipping in short mode.")
@@ -244,7 +263,7 @@ func createCoinsTx(cfg *types.Chain33Config, to string, txHeight int64) *types.T
 	return tx
 }
 
-//测试solo并发
+// 测试solo并发
 func BenchmarkSolo(b *testing.B) {
 
 	if testing.Short() {
@@ -392,7 +411,7 @@ func BenchmarkCheckSign(b *testing.B) {
 	}
 }
 
-//消息队列发送性能, 80w /s
+// 消息队列发送性能, 80w /s
 func BenchmarkMsgQueue(b *testing.B) {
 	if testing.Short() {
 		b.Skip("skipping in short mode.")

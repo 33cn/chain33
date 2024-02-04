@@ -26,7 +26,7 @@ func TestChainConfig(t *testing.T) {
 	assert.Equal(t, adata.(bool), true)
 
 	// tx fee config
-	assert.Equal(t, cfg.GetMaxTxFee(0), int64(1e9))
+	assert.Equal(t, int64(1e9), cfg.GetMaxTxFee(0))
 	assert.Equal(t, cfg.GetMaxTxFeeRate(), int64(1e7))
 	assert.Equal(t, cfg.GetMinTxFeeRate(), int64(1e5))
 	height, ok := cfg.GetModuleConfig().Crypto.EnableHeight[secp256k1.Name]
