@@ -7,11 +7,10 @@ package snowman
 
 import (
 	"encoding/hex"
+	sncom "github.com/ava-labs/avalanchego/snow/engine/common"
 	"runtime"
 	"sync"
 	"time"
-
-	sncom "github.com/ava-labs/avalanchego/snow/engine/common"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -124,21 +123,29 @@ func (s *snowman) getChainSyncStatus() bool {
 func (s *snowman) startRoutine() {
 
 	// check chain sync status
-	for !s.getChainSyncStatus() {
-		snowLog.Debug("startRoutine wait chain state syncing...")
-		time.Sleep(5 * time.Second)
-	}
+	//for !s.getChainSyncStatus() {
+	//	snowLog.Debug("startRoutine wait chain state syncing...")
+	//	time.Sleep(5 * time.Second)
+	//}
 
 	// check connected peers
-	for {
+	//for {
+	//
+	//	peers, err := s.vs.getConnectedPeers()
+	//	if err == nil && len(peers) >= s.params.K {
+	//		break
+	//	}
+	//	snowLog.Debug("startRoutine wait more snowman peer connected...",
+	//		"currConnected", len(peers), "minRequiredNum", s.params.K, "err", err)
+	//	time.Sleep(5 * time.Second)
+	//}
 
-		peers, err := s.vs.getConnectedPeers()
-		if err == nil && len(peers) >= s.params.K {
+	for {
+		c, err := getLastChoice(s.ctx.Base.GetQueueClient())
+		if err == nil && len(c.Hash) > 0 {
 			break
 		}
-		snowLog.Debug("startRoutine wait more snowman peer connected...",
-			"currConnected", len(peers), "minRequiredNum", s.params.K, "err", err)
-		time.Sleep(5 * time.Second)
+		time.Sleep(time.Second * 2)
 	}
 
 	err := s.engine.Start(s.ctx.Base.Context, 0)
@@ -148,33 +155,33 @@ func (s *snowman) startRoutine() {
 
 	go s.dispatchSyncMsg()
 	go s.handleNotifyAddBlock()
-	s.lock.Lock()
-	s.initDone = true
-	s.lock.Unlock()
+	//s.lock.Lock()
+	//s.initDone = true
+	//s.lock.Unlock()
 	snowLog.Debug("snowman startRoutine done")
 
 }
 
 func (s *snowman) AddBlock(blk *types.Block) {
 
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	if !s.initDone {
-		return
+	//s.lock.RLock()
+	//defer s.lock.RUnlock()
+	//if !s.initDone {
+	//	return
+	//}
+	if s.vm.addNewBlock(blk) {
+		s.engineNotify <- struct{}{}
 	}
-	s.vm.addNewBlock(blk)
-	s.engineNotify <- struct{}{}
-
 }
 
 func (s *snowman) SubMsg(msg *queue.Message) {
 
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	if !s.initDone {
-		snowLog.Debug("snowman SubMsg ignore", "id", msg.ID, "name", types.GetEventName(int(msg.ID)))
-		return
-	}
+	//s.lock.RLock()
+	//defer s.lock.RUnlock()
+	//if !s.initDone {
+	//	snowLog.Debug("snowman SubMsg ignore", "id", msg.ID, "name", types.GetEventName(int(msg.ID)))
+	//	return
+	//}
 	s.inMsg <- msg
 }
 

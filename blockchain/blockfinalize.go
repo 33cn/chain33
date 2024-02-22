@@ -61,7 +61,7 @@ func (f *finalizer) snowmanPreferBlock(msg *queue.Message) {
 
 	detail, err := f.chain.LoadBlockByHash(req.GetData())
 	if err != nil {
-		chainlog.Error("snowmanPreferBlock", "hash", hex.EncodeToString(req.GetData()), "load block err", err.Error())
+		chainlog.Warn("snowmanPreferBlock", "hash", hex.EncodeToString(req.GetData()), "load block err", err.Error())
 		return
 	}
 	chainlog.Debug("snowmanPreferBlock", "height", detail.GetBlock().GetHeight(), "hash", hex.EncodeToString(req.GetData()))

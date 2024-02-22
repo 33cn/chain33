@@ -157,11 +157,16 @@ func (vm *chain33VM) ParseBlock(_ context.Context, b []byte) (snowcon.Block, err
 	return sb, nil
 }
 
-func (vm *chain33VM) addNewBlock(blk *types.Block) {
+func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 
+	ah := atomic.LoadInt64(&vm.acceptedHeight)
 	vm.lock.Lock()
 	defer vm.lock.Unlock()
-	vm.pendingBlocks.PushBack(vm.newSnowBlock(blk, choices.Processing))
+	if blk.Height > ah {
+		vm.pendingBlocks.PushBack(vm.newSnowBlock(blk, choices.Processing))
+		return true
+	}
+	return false
 
 	//key := string(blk.ParentHash)
 	//exist, ok := vm.pendingBlock[key]
@@ -211,6 +216,21 @@ func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 	return nil
 }
 
+func getLastChoice(cli queue.Client) (*types.SnowChoice, error) {
+
+	msg := cli.NewMessage("blockchain", types.EventSnowmanLastChoice, &types.ReqNil{})
+	err := cli.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+
+	reply, err := cli.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return reply.GetData().(*types.SnowChoice), nil
+}
+
 // LastAccepted returns the ID of the last accepted block.
 //
 // If no blocks have been accepted by consensus yet, it is assumed there is
@@ -218,19 +238,12 @@ func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 // returned.
 func (vm *chain33VM) LastAccepted(context.Context) (ids.ID, error) {
 
-	msg := vm.qclient.NewMessage("blockchain", types.EventSnowmanLastChoice, &types.ReqNil{})
-	err := vm.qclient.Send(msg, true)
+	choice, err := getLastChoice(vm.qclient)
 	if err != nil {
-		snowLog.Error("LastAccepted", "send msg err", err)
+		snowLog.Error("LastAccepted", "getLastChoice err", err)
 		return ids.Empty, err
 	}
 
-	reply, err := vm.qclient.Wait(msg)
-	if err != nil {
-		snowLog.Error("LastAccepted", "wait msg err", err)
-		return ids.Empty, err
-	}
-	choice := reply.GetData().(*types.SnowChoice)
 	atomic.StoreInt64(&vm.acceptedHeight, choice.Height)
 	var id ids.ID
 	copy(id[:], choice.Hash)

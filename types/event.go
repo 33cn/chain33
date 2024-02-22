@@ -222,6 +222,7 @@ const (
 	EventSnowmanPushQuery   = 380
 	EventSnowmanGetFailed   = 381
 	EventSnowmanQueryFailed = 382
+	EventSnowmanQueryChoice = 383
 )
 
 var eventName = map[int]string{
@@ -403,4 +404,5 @@ var eventName = map[int]string{
 	EventSnowmanPushQuery:           "EventSnowmanPushQuery",
 	EventSnowmanGetFailed:           "EventSnowmanGetFailed",
 	EventSnowmanQueryFailed:         "EventSnowmanQueryFailed",
+	EventSnowmanQueryChoice:         "EventSnowmanQueryChoice",
 }

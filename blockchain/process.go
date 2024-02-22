@@ -378,10 +378,6 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	chain.blockStore.UpdateHeight2(blockdetail.GetBlock().GetHeight())
 	chain.blockStore.UpdateLastBlock2(blockdetail.Block)
 
-	if block.Height == blockFinalizeStartHeight {
-		chain.finalizer.setFinalizedBlock(block.Height, blkHash)
-	}
-
 	// 更新 best chain的tip节点
 	chain.bestChain.SetTip(node)
 
