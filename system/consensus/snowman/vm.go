@@ -69,7 +69,12 @@ func (vm *chain33VM) Init(ctx *consensus.Context) {
 	}
 	vm.decidedHashes = c
 	vm.pendingBlocks = list.New()
-
+	choice, err := getLastChoice(vm.qclient)
+	if err != nil {
+		snowLog.Error("vm Init", "getLastChoice err", err)
+		panic(err)
+	}
+	vm.acceptedHeight = choice.Height
 	go vm.handleNotifyNewBlock(ctx.Base.Context)
 }
 
@@ -160,13 +165,15 @@ func (vm *chain33VM) ParseBlock(_ context.Context, b []byte) (snowcon.Block, err
 func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 
 	ah := atomic.LoadInt64(&vm.acceptedHeight)
+	if blk.GetHeight() <= ah {
+		return false
+	}
+
 	vm.lock.Lock()
 	defer vm.lock.Unlock()
-	if blk.Height > ah {
-		vm.pendingBlocks.PushBack(vm.newSnowBlock(blk, choices.Processing))
-		return true
-	}
-	return false
+	vm.pendingBlocks.PushBack(vm.newSnowBlock(blk, choices.Processing))
+	snowLog.Debug("addNewBlock", "ah", ah, "bh", blk.GetHeight(), "pendingNum", vm.pendingBlocks.Len())
+	return true
 
 	//key := string(blk.ParentHash)
 	//exist, ok := vm.pendingBlock[key]

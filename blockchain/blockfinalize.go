@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	blockFinalizeStartHeight int64
 	blkFinalizeLastChoiceKey = []byte("chain-blockfinalize-lastchoice")
 )
 
@@ -32,25 +31,25 @@ func newFinalizer(chain *BlockChain) *finalizer {
 			chainlog.Error("newFinalizer", "decode err", err)
 			panic(err)
 		}
+		chainlog.Debug("newFinalizer", "height", f.choice.Height, "hash", hex.EncodeToString(f.choice.Hash))
 	} else {
-		go f.waitFinalizeStartBlock()
+		f.choice.Height = chain.client.GetConfig().GetFork(types.ForkBlockFinalize)
+		chainlog.Debug("newFinalizer", "forkHeight", f.choice.Height)
+		go f.waitFinalizeStartBlock(f.choice.Height)
 	}
 
-	chainlog.Debug("newFinalizer", "height", f.choice.Height, "hash", hex.EncodeToString(f.choice.Hash))
-	//go f.finalizedStateSync()
 	return f
 }
 
-func (f *finalizer) waitFinalizeStartBlock() {
+func (f *finalizer) waitFinalizeStartBlock(forkHeight int64) {
 
-	startHeight := blockFinalizeStartHeight
-	for f.chain.blockStore.Height() < startHeight {
+	for f.chain.blockStore.Height() < forkHeight+12 {
 		time.Sleep(time.Second * 5)
 	}
 
-	detail, err := f.chain.GetBlock(startHeight)
+	detail, err := f.chain.GetBlock(forkHeight)
 	if err != nil {
-		chainlog.Error("setFinalizedStartHeight", "height", startHeight, "get block err", err)
+		chainlog.Error("setFinalizedStartHeight", "height", forkHeight, "get block err", err)
 		panic(err)
 	}
 	_ = f.setFinalizedBlock(detail.GetBlock().Height, detail.GetBlock().Hash(f.chain.client.GetConfig()))
