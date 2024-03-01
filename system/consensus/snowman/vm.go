@@ -192,12 +192,13 @@ func (vm *chain33VM) BuildBlock(context.Context) (snowcon.Block, error) {
 
 	vm.lock.Lock()
 	defer vm.lock.Unlock()
-	snowLog.Debug("BuildBlock", "pendingNum", vm.pendingBlocks.Len())
+
 	if vm.pendingBlocks.Len() <= 0 {
 		return nil, utils.ErrBlockNotReady
 	}
 
 	sb := vm.pendingBlocks.Remove(vm.pendingBlocks.Front()).(*snowBlock)
+	snowLog.Debug("BuildBlock", "pendingNum", vm.pendingBlocks.Len(), "height", sb.Height(), "hash", sb.id.Hex())
 	return sb, nil
 }
 

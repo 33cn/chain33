@@ -7,10 +7,11 @@ package snowman
 
 import (
 	"encoding/hex"
-	sncom "github.com/ava-labs/avalanchego/snow/engine/common"
 	"runtime"
 	"sync"
 	"time"
+
+	sncom "github.com/ava-labs/avalanchego/snow/engine/common"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
@@ -154,7 +155,6 @@ func (s *snowman) startRoutine() {
 	}
 
 	go s.dispatchSyncMsg()
-	go s.handleNotifyAddBlock()
 	//s.lock.Lock()
 	//s.initDone = true
 	//s.lock.Unlock()
@@ -185,8 +185,7 @@ func (s *snowman) SubMsg(msg *queue.Message) {
 	s.inMsg <- msg
 }
 
-// 通知新区快事件
-func (s *snowman) handleNotifyAddBlock() {
+func (s *snowman) dispatchSyncMsg() {
 
 	for {
 
@@ -200,19 +199,6 @@ func (s *snowman) handleNotifyAddBlock() {
 			if err != nil {
 				snowLog.Error("snowman NotifyAddBlock", "err", err)
 			}
-
-		}
-	}
-}
-
-func (s *snowman) dispatchSyncMsg() {
-
-	for {
-
-		select {
-
-		case <-s.ctx.Base.Context.Done():
-			return
 
 		case msg := <-s.inMsg:
 			s.handleSyncMsg(msg)
