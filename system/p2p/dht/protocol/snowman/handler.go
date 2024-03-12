@@ -1,6 +1,7 @@
 package snowman
 
 import (
+	"encoding/hex"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
@@ -59,6 +60,7 @@ func (s *snowman) handleEventGetBlock(msg *queue.Message) {
 	if err != nil {
 		log.Error("handleEventGetBlock", "reqID", req.RequestID, "peer", req.PeerName, "writeStream err", err)
 		s.sendQueryFailedMsg(types.EventSnowmanGetFailed, req.RequestID, req.PeerName)
+		return
 	}
 
 	rep := &types.SnowPutBlock{}
@@ -67,6 +69,7 @@ func (s *snowman) handleEventGetBlock(msg *queue.Message) {
 	if err != nil || len(rep.GetBlockData()) == 0 {
 		log.Error("handleEventGetBlock", "reqID", req.RequestID, "peer", req.PeerName, "readStream err", err)
 		s.sendQueryFailedMsg(types.EventSnowmanGetFailed, req.RequestID, req.PeerName)
+		return
 	}
 
 	rep.PeerName = req.PeerName
@@ -173,7 +176,8 @@ func (s *snowman) handleStreamGetBlock(stream network.Stream) {
 	blk, err := s.getBlock(req.GetBlockHash())
 
 	if blk == nil {
-		log.Error("handleStreamGetBlock", "reqID", req.RequestID, "peer", peerName, "getBlock err", err)
+		log.Error("handleStreamGetBlock", "reqID", req.RequestID, "hash", hex.EncodeToString(req.GetBlockHash()),
+			"peer", peerName, "getBlock err", err)
 	} else {
 		reply.BlockData = types.Encode(blk)
 	}
