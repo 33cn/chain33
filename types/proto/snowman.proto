@@ -25,7 +25,8 @@ message snowPutBlock {
 
     uint32 requestID = 1;
     string peerName = 2;
-    bytes blockData = 3;
+    bytes blockHash = 3;
+    bytes blockData = 4;
 }
 
 

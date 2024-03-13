@@ -167,11 +167,11 @@ func (s *snowman) handleStreamGetBlock(stream network.Stream) {
 	err := protocol.ReadStream(req, stream)
 	peerName := stream.Conn().RemotePeer().String()
 	if err != nil {
-		log.Error("handleStreamGetBlock", "reqID", req.RequestID, "peer", peerName, "readStream err", err)
+		log.Error("handleStreamGetBlock", "peer", peerName, "readStream err", err)
 		return
 	}
 
-	reply := &types.SnowPutBlock{RequestID: req.RequestID, PeerName: req.GetPeerName()}
+	reply := &types.SnowPutBlock{RequestID: req.RequestID, PeerName: req.GetPeerName(), BlockHash: req.GetBlockHash()}
 
 	blk, err := s.getBlock(req.GetBlockHash())
 

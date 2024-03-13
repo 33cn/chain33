@@ -259,16 +259,19 @@ func (s *snowman) handleSyncMsg(msg *queue.Message) {
 	case types.EventSnowmanPutBlock:
 
 		req := msg.Data.(*types.SnowPutBlock)
-		snowLog.Debug("handleInMsg putBlock", "reqID", req.GetRequestID(), "peerName", req.GetPeerName())
+		snowLog.Debug("handleInMsg putBlock", "reqID", req.GetRequestID(),
+			"hash", hex.EncodeToString(req.BlockHash), "peerName", req.GetPeerName())
 		nodeID, err := s.vs.toNodeID(req.PeerName)
 		if err != nil {
-			snowLog.Error("handleInMsg putBlock", "reqID", req.RequestID, "peerName", req.PeerName, "toNodeID err", err)
+			snowLog.Error("handleInMsg putBlock", "reqID", req.RequestID, "hash", hex.EncodeToString(req.BlockHash),
+				"peerName", req.PeerName, "toNodeID err", err)
 			return
 		}
 
 		err = s.engine.Put(s.ctx.Base.Context, nodeID, req.RequestID, req.BlockData)
 		if err != nil {
-			snowLog.Error("handleInMsg putBlock", "reqID", req.RequestID, "peerName", req.PeerName, "Put err", err)
+			snowLog.Error("handleInMsg putBlock", "reqID", req.RequestID, "hash", hex.EncodeToString(req.BlockHash),
+				"peerName", req.PeerName, "Put err", err)
 		}
 
 	case types.EventSnowmanPullQuery:

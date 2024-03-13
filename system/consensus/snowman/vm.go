@@ -129,7 +129,7 @@ func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, e
 
 	details, err := vm.api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{blkID[:]}})
 	if err != nil || len(details.GetItems()) < 1 || details.GetItems()[0].GetBlock() == nil {
-		snowLog.Error("GetBlock", "hash", blkID.Hex(), "GetBlockByHashes err", err)
+		snowLog.Error("vmGetBlock", "hash", blkID.Hex(), "GetBlockByHashes err", err)
 		return nil, database.ErrNotFound
 	}
 	sb := vm.newSnowBlock(details.GetItems()[0].GetBlock(), choices.Processing)
@@ -147,7 +147,7 @@ func (vm *chain33VM) ParseBlock(_ context.Context, b []byte) (snowcon.Block, err
 	blk := &types.Block{}
 	err := types.Decode(b, blk)
 	if err != nil {
-		snowLog.Error("ParseBlock", "decode err", err)
+		snowLog.Error("vmParseBlock", "decode err", err)
 		return nil, err
 	}
 	sb := vm.newSnowBlock(blk, choices.Unknown)
@@ -172,7 +172,7 @@ func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 	vm.lock.Lock()
 	defer vm.lock.Unlock()
 	vm.pendingBlocks.PushBack(vm.newSnowBlock(blk, choices.Processing))
-	snowLog.Debug("addNewBlock", "ah", ah, "bh", blk.GetHeight(), "pendingNum", vm.pendingBlocks.Len())
+	snowLog.Debug("vm addNewBlock", "ah", ah, "bh", blk.GetHeight(), "pendingNum", vm.pendingBlocks.Len())
 	return true
 
 	//key := string(blk.ParentHash)
@@ -190,16 +190,20 @@ func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 // returned.
 func (vm *chain33VM) BuildBlock(context.Context) (snowcon.Block, error) {
 
+	ah := atomic.LoadInt64(&vm.acceptedHeight)
 	vm.lock.Lock()
 	defer vm.lock.Unlock()
 
-	if vm.pendingBlocks.Len() <= 0 {
-		return nil, utils.ErrBlockNotReady
+	for vm.pendingBlocks.Len() > 0 {
+		sb := vm.pendingBlocks.Remove(vm.pendingBlocks.Front()).(*snowBlock)
+		if sb.Height() <= uint64(ah) {
+			continue
+		}
+		snowLog.Debug("vmBuildBlock", "pendingNum", vm.pendingBlocks.Len(), "height", sb.Height(), "hash", sb.id.Hex())
+		return sb, nil
 	}
 
-	sb := vm.pendingBlocks.Remove(vm.pendingBlocks.Front()).(*snowBlock)
-	snowLog.Debug("BuildBlock", "pendingNum", vm.pendingBlocks.Len(), "height", sb.Height(), "hash", sb.id.Hex())
-	return sb, nil
+	return nil, utils.ErrBlockNotReady
 }
 
 // SetPreference Notify the VM of the currently preferred block.
@@ -211,13 +215,13 @@ func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 	vm.preferenceID = blkID
 	vm.lock.Unlock()
 
-	snowLog.Debug("SetPreference", "blkHash", blkID.Hex())
+	snowLog.Debug("vmSetPreference", "blkHash", blkID.Hex())
 
 	err := vm.qclient.Send(vm.qclient.NewMessage("blockchain",
 		types.EventSnowmanPreferBlk, &types.ReqBytes{Data: blkID[:]}), false)
 
 	if err != nil {
-		snowLog.Error("SetPreference", "blkHash", blkID.Hex(), "send queue err", err)
+		snowLog.Error("vmSetPreference", "blkHash", blkID.Hex(), "send queue err", err)
 		return err
 	}
 
@@ -248,7 +252,7 @@ func (vm *chain33VM) LastAccepted(context.Context) (ids.ID, error) {
 
 	choice, err := getLastChoice(vm.qclient)
 	if err != nil {
-		snowLog.Error("LastAccepted", "getLastChoice err", err)
+		snowLog.Error("vmLastAccepted", "getLastChoice err", err)
 		return ids.Empty, err
 	}
 
@@ -281,7 +285,7 @@ func (vm *chain33VM) GetBlockIDAtHeight(ctx context.Context, height uint64) (ids
 
 	reply, err := vm.api.GetBlockHash(&types.ReqInt{Height: int64(height)})
 	if err != nil {
-		snowLog.Error("GetBlock", "height", height, "GetBlockHash err", err)
+		snowLog.Error("vmGetBlockIDAtHeight", "height", height, "GetBlockHash err", err)
 		return ids.Empty, database.ErrNotFound
 	}
 	return toSnowID(reply.Hash), nil
