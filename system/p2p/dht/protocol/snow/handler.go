@@ -1,4 +1,4 @@
-package snowman
+package snow
 
 import (
 	"encoding/hex"

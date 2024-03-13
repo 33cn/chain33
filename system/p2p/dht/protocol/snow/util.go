@@ -1,4 +1,4 @@
-package snowman
+package snow
 
 import (
 	"github.com/33cn/chain33/queue"
@@ -6,23 +6,19 @@ import (
 )
 
 const (
-
 	consensusTopic = "consensus"
 )
-
-
 
 func consensusMsg(msgID int64, data interface{}) *queue.Message {
 
 	return queue.NewMessage(msgID, consensusTopic, types.EventForFinalizer, data)
 }
 
-
 func (s *snowman) sendQueryFailedMsg(msgID int64, reqID uint32, peerName string) {
 
 	msg := &types.SnowFailedQuery{
 		RequestID: reqID,
-		PeerName: peerName,
+		PeerName:  peerName,
 	}
 
 	err := s.P2PManager.Client.Send(consensusMsg(msgID, msg), false)
@@ -33,8 +29,7 @@ func (s *snowman) sendQueryFailedMsg(msgID int64, reqID uint32, peerName string)
 	}
 }
 
-
-func (s *snowman) getBlock(hash []byte)  (*types.Block, error) {
+func (s *snowman) getBlock(hash []byte) (*types.Block, error) {
 
 	details, err := s.API.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{hash}})
 	if err != nil || len(details.GetItems()) < 1 {
