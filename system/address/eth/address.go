@@ -2,7 +2,6 @@ package eth
 
 import (
 	"errors"
-
 	"github.com/33cn/chain33/common/crypto/client"
 
 	"github.com/33cn/chain33/common/address"
@@ -82,7 +81,7 @@ func (e *eth) FormatAddr(addr string) string {
 func formatAddr(addr string) string {
 	ctx := client.GetCryptoContext()
 	if ctx.API == nil || ctx.API.GetConfig().IsFork(ctx.CurrBlockHeight, address.ForkFormatAddressKey) {
-		return address.ToLower(addr)
+		return address.FormatEthAddress(addr)
 	}
 	return addr
 }

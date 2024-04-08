@@ -612,7 +612,7 @@ func TestAccountKey(t *testing.T) {
 
 	acc := NewCoinsAccount(types.NewChain33Config(types.GetDefaultCfgstring()))
 	addr := "0x6c0d7BE0d2C8350042890a77393158181716b0d6"
-	addr1 := address.ToLower(addr)
+	addr1 := address.FormatEthAddress(addr)
 	accKey := acc.accountReadKey(addr)
 	require.Equal(t, accKey, acc.AccountKey(addr))
 	require.Equal(t, accKey, acc.AccountKey(addr1))
