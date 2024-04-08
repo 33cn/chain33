@@ -17,7 +17,7 @@ func TestFormatAddrKey(t *testing.T) {
 	addrKey1 := fmt.Sprintf("%s:%s", "addrKey:", FormatAddrKey(addr1))
 	addrKey2 := fmt.Sprintf("%s:%s", "addrKey:", FormatAddrKey(addr2))
 
-	expect := fmt.Sprintf("%s:%s", "addrKey:", string(FormatAddrKey(ToLower(addr1))))
+	expect := fmt.Sprintf("%s:%s", "addrKey:", string(FormatAddrKey(FormatEthAddress(addr1))))
 
 	require.Equal(t, expect, addrKey1)
 	require.Equal(t, expect, addrKey2)

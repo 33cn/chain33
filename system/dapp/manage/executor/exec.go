@@ -42,7 +42,7 @@ func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transac
 		}
 	}
 	action := newAction(c, tx, int32(index))
-	if !IsSuperManager(cfg, action.fromaddr) {
+	if !IsSuperManager(cfg, action.fromaddr, c.GetHeight()) {
 		return nil, mty.ErrNoPrivilege
 	}
 	return action.modifyConfig(manageAction)

@@ -219,7 +219,7 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	if c.forks == nil {
 		c.forks = &Forks{}
 	}
-	c.forks.SetTestNetFork()
+	c.forks.RegisterSystemFork()
 
 	if cfg != nil {
 		if c.isLocal() {

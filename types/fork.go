@@ -5,9 +5,8 @@
 package types
 
 import (
-	"strings"
-
 	"github.com/33cn/chain33/common/address"
+	"strings"
 )
 
 /*
@@ -115,8 +114,8 @@ func (f *Forks) IsDappFork(height int64, dapp, fork string) bool {
 	return f.IsFork(height, dapp+"."+fork)
 }
 
-// SetTestNetFork bityuan test net fork
-func (f *Forks) SetTestNetFork() {
+// RegisterSystemFork 注册系统分叉, 部分分叉高度设为测试网分叉值
+func (f *Forks) RegisterSystemFork() {
 	f.SetFork("ForkChainParamV1", 110000)
 	f.SetFork("ForkChainParamV2", 1692674)
 	f.SetFork("ForkCheckTxDup", 75260)
@@ -142,6 +141,7 @@ func (f *Forks) SetTestNetFork() {
 	f.SetFork("ForkTicketFundAddrV1", 3350000)
 	f.SetFork("ForkRootHash", 4500000)
 	f.SetFork(address.ForkFormatAddressKey, 0)
+	f.SetFork(address.ForkEthAddressFormat, 0)
 	f.setFork("ForkCheckEthTxSort", 0)
 	f.setFork("ForkProxyExec", 0)
 	f.setFork("ForkMaxTxFeeV1", 0)
