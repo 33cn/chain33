@@ -29,7 +29,9 @@ func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transac
 	// 兼容在区块上没有To地址检查的交易数据
 	types.AssertConfig(c.GetAPI())
 	cfg := c.GetAPI().GetConfig()
-
+	if address.IsEthAddress(manageAction.Addr) && cfg.IsFork(c.GetHeight(), address.ForkEthAddressFormat) {
+		manageAction.Addr = address.FormatEthAddress(manageAction.Addr)
+	}
 	confManager := types.ConfSub(cfg, mty.ManageX)
 	autonomyExec := confManager.GStr(types.AutonomyCfgKey)
 	if cfg.IsDappFork(c.GetHeight(), mty.ManageX, mty.ForkManageAutonomyEnable) && len(autonomyExec) > 0 {
