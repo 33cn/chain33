@@ -470,7 +470,12 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	if err != nil {
 		return err
 	}
-	blockdetail = resp.GetData().(*types.BlockDetail)
+	blockdetail, ok := resp.GetData().(*types.BlockDetail)
+	if !ok {
+		err = resp.GetData().(error)
+		tlog.Error("WriteBlock", "height", block.Height, "hash", block.Hash(bc.client.GetConfig()), "addBlock err", err)
+		return err
+	}
 	//从mempool 中删除错误的交易
 	beg := types.Now()
 	// 执行后交易数只会减少, 如果交易数相等,则不需要进行diff操作
