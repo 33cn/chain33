@@ -2,7 +2,6 @@ package snowman
 
 import (
 	"container/list"
-	"encoding/hex"
 	"sync"
 	"sync/atomic"
 
@@ -34,18 +33,14 @@ var (
 // implements the snowman.ChainVM interface
 type chain33VM struct {
 	blankVM
-	api          client.QueueProtocolAPI
-	cfg          *types.Chain33Config
-	qclient      queue.Client
-	pendingBlock map[string]*types.Block
+	api     client.QueueProtocolAPI
+	cfg     *types.Chain33Config
+	qclient queue.Client
 
 	pendingBlocks  *list.List
 	lock           sync.RWMutex
-	preferenceID   ids.ID
 	acceptedHeight int64
-	preferChan     chan ids.ID
-
-	decidedHashes *lru.Cache
+	decidedHashes  *lru.Cache
 }
 
 func (vm *chain33VM) newSnowBlock(blk *types.Block, status choices.Status) *snowBlock {
@@ -61,8 +56,7 @@ func (vm *chain33VM) Init(ctx *consensus.Context) {
 	vm.api = ctx.Base.GetAPI()
 	vm.cfg = vm.api.GetConfig()
 	vm.qclient = ctx.Base.GetQueueClient()
-	vm.pendingBlock = make(map[string]*types.Block, 8)
-	vm.preferChan = make(chan ids.ID, 32)
+
 	c, err := lru.New(1024)
 	if err != nil {
 		panic("chain33VM Init New lru err" + err.Error())
@@ -75,7 +69,6 @@ func (vm *chain33VM) Init(ctx *consensus.Context) {
 		panic(err)
 	}
 	vm.acceptedHeight = choice.Height
-	go vm.handleNotifyNewBlock(ctx.Base.Context)
 }
 
 // Initialize implements the snowman.ChainVM interface
@@ -95,21 +88,8 @@ func (vm *chain33VM) Initialize(
 
 }
 
-func (vm *chain33VM) handleNotifyNewBlock(ctx context.Context) {
-
-	for {
-
-		select {
-
-		case <-ctx.Done():
-			return
-
-		case preferID := <-vm.preferChan:
-
-			snowLog.Debug("handleNotifyNewBlock", "hash", hex.EncodeToString(preferID[:]))
-		}
-
-	}
+func (vm *chain33VM) reset() {
+	vm.decidedHashes.Purge()
 }
 
 // SetState communicates to VM its next state it starts
@@ -129,7 +109,7 @@ func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, e
 
 	details, err := vm.api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{blkID[:]}})
 	if err != nil || len(details.GetItems()) < 1 || details.GetItems()[0].GetBlock() == nil {
-		snowLog.Error("vmGetBlock", "hash", blkID.Hex(), "GetBlockByHashes err", err)
+		snowLog.Error("vmGetBlock", "hash", blkID.Hex(), "stack", getStack())
 		return nil, database.ErrNotFound
 	}
 	sb := vm.newSnowBlock(details.GetItems()[0].GetBlock(), choices.Processing)
@@ -172,16 +152,9 @@ func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 	vm.lock.Lock()
 	defer vm.lock.Unlock()
 	vm.pendingBlocks.PushBack(vm.newSnowBlock(blk, choices.Processing))
-	snowLog.Debug("vm addNewBlock", "ah", ah, "bh", blk.GetHeight(), "pendingNum", vm.pendingBlocks.Len())
+	snowLog.Debug("vm addNewBlock", "height", blk.GetHeight(), "hash", blk.Hash(vm.cfg),
+		"acceptedHeight", ah, "pendingNum", vm.pendingBlocks.Len())
 	return true
-
-	//key := string(blk.ParentHash)
-	//exist, ok := vm.pendingBlock[key]
-	//if ok {
-	//	snowLog.Debug("addNewBlock replace block", "height", blk.Height, "old", hex.EncodeToString(exist.Hash(vm.cfg)),
-	//		"new", hex.EncodeToString(blk.Hash(vm.cfg)))
-	//}
-	//vm.pendingBlock[key] = blk
 }
 
 // BuildBlock Attempt to create a new block from data contained in the VM.
@@ -211,19 +184,14 @@ func (vm *chain33VM) BuildBlock(context.Context) (snowcon.Block, error) {
 // This should always be a block that has no children known to consensus.
 func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 
-	vm.lock.Lock()
-	vm.preferenceID = blkID
-	vm.lock.Unlock()
-
 	snowLog.Debug("vmSetPreference", "blkHash", blkID.Hex())
-
-	err := vm.qclient.Send(vm.qclient.NewMessage("blockchain",
-		types.EventSnowmanPreferBlk, &types.ReqBytes{Data: blkID[:]}), false)
-
-	if err != nil {
-		snowLog.Error("vmSetPreference", "blkHash", blkID.Hex(), "send queue err", err)
-		return err
-	}
+	//err := vm.qclient.Send(vm.qclient.NewMessage("blockchain",
+	//	types.EventSnowmanPreferBlk, &types.ReqBytes{Data: blkID[:]}), false)
+	//
+	//if err != nil {
+	//	snowLog.Error("vmSetPreference", "blkHash", blkID.Hex(), "send queue err", err)
+	//	return err
+	//}
 
 	return nil
 }
@@ -310,14 +278,4 @@ func (vm *chain33VM) acceptBlock(height int64, blkID ids.ID) error {
 func (vm *chain33VM) rejectBlock(height int64, blkID ids.ID) {
 
 	vm.decidedHashes.Add(blkID, false)
-}
-
-func (vm *chain33VM) removeExpireBlock() {
-
-	for key, blk := range vm.pendingBlock {
-
-		if blk.Height <= vm.acceptedHeight {
-			delete(vm.pendingBlock, key)
-		}
-	}
 }

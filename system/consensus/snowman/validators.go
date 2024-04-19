@@ -102,7 +102,9 @@ func (s *vdrSet) getConnectedPeers() ([]*types.Peer, error) {
 	peers := make([]*types.Peer, 0, count)
 	for _, p := range peerlist.GetPeers() {
 
-		if p.Self || p.Blocked || p.Header.GetHeight() < s.self.Finalized.GetHeight() {
+		if p.Self || p.Blocked ||
+			p.Header.GetHeight() < s.self.Finalized.GetHeight() ||
+			p.GetFinalized().GetHeight() < s.self.Finalized.GetHeight()-128 {
 			continue
 		}
 		peers = append(peers, p)

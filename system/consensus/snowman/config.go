@@ -71,3 +71,29 @@ func newSnowContext(cfg *types.Chain33Config) *snow.ConsensusContext {
 
 	return ctx
 }
+
+func (s *snowman) applyConfig(subCfg *types.ConfigSubModule) {
+
+	cfg := &Config{}
+	types.MustDecode(subCfg.Consensus["snowman"], cfg)
+
+	if cfg.K > 0 {
+		s.params.K = cfg.K
+	}
+
+	if cfg.Alpha > 0 {
+		s.params.Alpha = cfg.Alpha
+	}
+
+	if cfg.BetaVirtuous > 0 {
+		s.params.BetaVirtuous = cfg.BetaVirtuous
+	}
+
+	if cfg.BetaRogue > 0 {
+		s.params.BetaRogue = cfg.BetaRogue
+	}
+
+	if cfg.ConcurrentRepolls > 0 {
+		s.params.ConcurrentRepolls = cfg.ConcurrentRepolls
+	}
+}

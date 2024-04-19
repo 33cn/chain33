@@ -70,76 +70,34 @@ func (s *snowman) Initialize(ctx *consensus.Context) {
 
 	s.vs = &vdrSet{}
 	s.vs.init(ctx)
-
-	engineConfig := newSnowmanConfig(s, s.params, newSnowContext(ctx.Base.GetAPI().GetConfig()))
-	engine, err := smeng.New(engineConfig)
-	if err != nil {
-		panic("Initialize snowman engine err:" + err.Error())
-	}
-	s.engine = engine
+	s.initSnowEngine()
 
 	s.inMsg = make(chan *queue.Message, 1024)
 	s.engineNotify = make(chan struct{}, 1024)
 	go s.startRoutine()
 }
 
-func (s *snowman) applyConfig(subCfg *types.ConfigSubModule) {
+func (s *snowman) initSnowEngine() {
 
-	cfg := &Config{}
-	types.MustDecode(subCfg.Consensus["snowman"], cfg)
-
-	if cfg.K > 0 {
-		s.params.K = cfg.K
+	engineConfig := newSnowmanConfig(s, s.params, newSnowContext(s.ctx.Base.GetAPI().GetConfig()))
+	engine, err := smeng.New(engineConfig)
+	if err != nil {
+		panic("Initialize snowman engine err:" + err.Error())
 	}
-
-	if cfg.Alpha > 0 {
-		s.params.Alpha = cfg.Alpha
-	}
-
-	if cfg.BetaVirtuous > 0 {
-		s.params.BetaVirtuous = cfg.BetaVirtuous
-	}
-
-	if cfg.BetaRogue > 0 {
-		s.params.BetaRogue = cfg.BetaRogue
-	}
-
-	if cfg.ConcurrentRepolls > 0 {
-		s.params.ConcurrentRepolls = cfg.ConcurrentRepolls
-	}
+	s.engine = engine
 }
 
-func (s *snowman) getChainSyncStatus() bool {
+func (s *snowman) resetEngine() {
 
-	reply, err := s.ctx.Base.GetAPI().IsSync()
-
-	if err != nil {
-		snowLog.Error("getChainSyncStatus", "err", err)
-		return false
+	snowLog.Debug("reset snowman engine")
+	s.initSnowEngine()
+	s.vm.reset()
+	if err := s.engine.Start(s.ctx.Base.Context, 0); err != nil {
+		snowLog.Error("resetEngine", "start engine err", err)
 	}
-
-	return reply.GetIsOk()
 }
 
 func (s *snowman) startRoutine() {
-
-	// check chain sync status
-	//for !s.getChainSyncStatus() {
-	//	snowLog.Debug("startRoutine wait chain state syncing...")
-	//	time.Sleep(5 * time.Second)
-	//}
-
-	// check connected peers
-	//for {
-	//
-	//	peers, err := s.vs.getConnectedPeers()
-	//	if err == nil && len(peers) >= s.params.K {
-	//		break
-	//	}
-	//	snowLog.Debug("startRoutine wait more snowman peer connected...",
-	//		"currConnected", len(peers), "minRequiredNum", s.params.K, "err", err)
-	//	time.Sleep(5 * time.Second)
-	//}
 
 	for {
 		c, err := getLastChoice(s.ctx.Base.GetQueueClient())
@@ -155,33 +113,18 @@ func (s *snowman) startRoutine() {
 	}
 
 	go s.dispatchSyncMsg()
-	//s.lock.Lock()
-	//s.initDone = true
-	//s.lock.Unlock()
 	snowLog.Debug("snowman startRoutine done")
 
 }
 
 func (s *snowman) AddBlock(blk *types.Block) {
 
-	//s.lock.RLock()
-	//defer s.lock.RUnlock()
-	//if !s.initDone {
-	//	return
-	//}
 	if s.vm.addNewBlock(blk) {
 		s.engineNotify <- struct{}{}
 	}
 }
 
 func (s *snowman) SubMsg(msg *queue.Message) {
-
-	//s.lock.RLock()
-	//defer s.lock.RUnlock()
-	//if !s.initDone {
-	//	snowLog.Debug("snowman SubMsg ignore", "id", msg.ID, "name", types.GetEventName(int(msg.ID)))
-	//	return
-	//}
 	s.inMsg <- msg
 }
 
@@ -212,13 +155,14 @@ func (s *snowman) handleSyncMsg(msg *queue.Message) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			var buf [4048]byte
-			n := runtime.Stack(buf[:], false)
-			snowLog.Error("handleInMsg", "err", r, "stack", buf[:n])
+			snowLog.Error("handleInMsg panic", "err", r, "stack", getStack())
 		}
 	}()
 
 	switch msg.ID {
+
+	case types.EventSnowmanResetEngine:
+		s.resetEngine()
 
 	case types.EventSnowmanChits:
 
@@ -340,4 +284,10 @@ func (s *snowman) handleSyncMsg(msg *queue.Message) {
 		snowLog.Error("snowman handleInMsg, recv unknow msg", "id", msg.ID)
 
 	}
+}
+
+func getStack() string {
+	var buf [4048]byte
+	n := runtime.Stack(buf[:], false)
+	return string(buf[:n])
 }
