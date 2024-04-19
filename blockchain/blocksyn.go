@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"bytes"
+	"github.com/33cn/chain33/queue"
 	"math/big"
 	"sort"
 	"sync"
@@ -742,6 +743,20 @@ func (chain *BlockChain) forkChainDetection(prevMode int) {
 		chainlog.Info("forkDetectBlkHeightIncreased", "prev", localHeight, "curr", chain.GetBlockHeight())
 		return
 	}
+
+	// 分叉点在最终化记录之前, 需要重置最终化引擎
+	finalized, _ := chain.finalizer.getLastFinalized()
+	if forkHeight < finalized {
+		chainlog.Debug("forkChainDetection reset finalize engine", "fork", forkHeight, "finalized", finalized)
+		forkHash, err := chain.blockStore.GetBlockHashByHeight(forkHeight)
+		if err != nil {
+			chainlog.Error("forkChainDetection", "height", forkHeight, "GetBlockHashByHeight err", err)
+			return
+		}
+		chain.finalizer.setFinalizedBlock(forkHeight, forkHash)
+		_ = chain.client.Send(queue.NewMessage(types.EventSnowmanResetEngine, "consensus", types.EventForFinalizer, nil), false)
+	}
+
 	// 检测到存在分叉后, 以最近高度作为结束高度
 	endHeight := cmpPeer.Height - BackBlockNum + 1
 	chainlog.Info("forkDetectDownBlk", "localHeight", localHeight, "endHeight", endHeight, "peers", len(activePeers))
@@ -886,7 +901,7 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	synlog.Info("ProcBlockHeaders find fork point", "height", ForkHeight, "hash", common.ToHex(forkhash))
 
 	if chain.GetDownloadSyncStatus() == forkChainDetectMode {
-		synlog.Error("ProcBlockHeaders forkDetect", "forkHeight", ForkHeight)
+		synlog.Debug("ProcBlockHeaders forkDetect", "forkHeight", ForkHeight)
 		select {
 		case chain.forkPointChan <- ForkHeight:
 		default:

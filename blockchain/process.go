@@ -210,6 +210,15 @@ func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDet
 		return block, true, nil
 	}
 	chainlog.Debug("connectBestChain", "parentHash", common.ToHex(parentHash), "bestChain.Tip().hash", common.ToHex(tip.hash))
+	// 区块侧链分叉重组处理高度不能小于最终化高度
+	fork := chain.bestChain.FindFork(node)
+	finalized, _ := chain.finalizer.getLastFinalized()
+	if fork != nil && fork.height < finalized {
+		chainlog.Debug("connectBestChain alreadyFinalized",
+			"finalized", finalized, "forkHeight", fork.height, "chainHeight", tip.height,
+			"addHeight", node.height, "addHash", common.ToHex(node.hash))
+		return nil, false, types.ErrHeightAlreadyFinalized
+	}
 
 	// 获取tip节点的block总难度tipid
 	tiptd, Err := chain.blockStore.GetTdByBlockHash(tip.hash)
@@ -234,7 +243,6 @@ func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDet
 		iSideChain = false
 	}
 	if iSideChain {
-		fork := chain.bestChain.FindFork(node)
 		if fork != nil && bytes.Equal(parentHash, fork.hash) {
 			chainlog.Info("connectBestChain FORK:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
 		} else {
@@ -249,7 +257,7 @@ func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDet
 	chainlog.Debug("connectBestChain block", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)))
 
 	// 获取需要重组的block node
-	detachNodes, attachNodes := chain.getReorganizeNodes(node)
+	detachNodes, attachNodes := chain.getReorganizeNodes(node, fork)
 
 	// Reorganize the chain.
 	err := chain.reorganizeChain(detachNodes, attachNodes)
@@ -479,12 +487,12 @@ func (chain *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.Blo
 }
 
 // 获取重组blockchain需要删除和添加节点
-func (chain *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List) {
+func (chain *BlockChain) getReorganizeNodes(node, forkNode *blockNode) (*list.List, *list.List) {
 	attachNodes := list.New()
 	detachNodes := list.New()
 
 	// 查找到分叉的节点，并将分叉之后的block从index链push到attachNodes中
-	forkNode := chain.bestChain.FindFork(node)
+	//forkNode := chain.bestChain.FindFork(node)
 	for n := node; n != nil && n != forkNode; n = n.parent {
 		attachNodes.PushFront(n)
 	}

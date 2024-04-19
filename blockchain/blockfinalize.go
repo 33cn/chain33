@@ -9,21 +9,20 @@ import (
 )
 
 var (
-	blkFinalizeLastChoiceKey = []byte("chain-blockfinalize-lastchoice")
+	snowChoiceKey = []byte("blockchain-snowchoice")
 )
 
 type finalizer struct {
 	chain  *BlockChain
 	choice types.SnowChoice
 	lock   sync.RWMutex
-	isSync bool
 }
 
 func newFinalizer(chain *BlockChain) *finalizer {
 
 	f := &finalizer{chain: chain}
 
-	raw, err := chain.blockStore.db.Get(blkFinalizeLastChoiceKey)
+	raw, err := chain.blockStore.db.Get(snowChoiceKey)
 
 	if err == nil {
 		err = types.Decode(raw, &f.choice)
@@ -41,6 +40,30 @@ func newFinalizer(chain *BlockChain) *finalizer {
 	return f
 }
 
+func (f *finalizer) healthCheck(finalizedHeight int64) {
+
+	ticker := time.NewTicker(time.Minute * 3)
+	for {
+
+		select {
+
+		case <-f.chain.quit:
+			return
+
+		case <-ticker.C:
+
+			height, _ := f.getLastFinalized()
+			if height > finalizedHeight {
+				finalizedHeight = height
+				continue
+			}
+			chainlog.Warn("finalizer healthCheck", "height", height)
+			_ = f.chain.client.Send(queue.NewMessage(types.EventSnowmanResetEngine, "consensus", types.EventForFinalizer, nil), false)
+		}
+	}
+
+}
+
 func (f *finalizer) waitFinalizeStartBlock(forkHeight int64) {
 
 	for f.chain.blockStore.Height() < forkHeight+12 {
@@ -53,18 +76,11 @@ func (f *finalizer) waitFinalizeStartBlock(forkHeight int64) {
 		panic(err)
 	}
 	_ = f.setFinalizedBlock(detail.GetBlock().Height, detail.GetBlock().Hash(f.chain.client.GetConfig()))
+	go f.healthCheck(detail.GetBlock().Height)
 }
 
 func (f *finalizer) snowmanPreferBlock(msg *queue.Message) {
-	req := (msg.Data).(*types.ReqBytes)
-
-	detail, err := f.chain.LoadBlockByHash(req.GetData())
-	if err != nil {
-		chainlog.Warn("snowmanPreferBlock", "hash", hex.EncodeToString(req.GetData()), "load block err", err.Error())
-		return
-	}
-	chainlog.Debug("snowmanPreferBlock", "height", detail.GetBlock().GetHeight(), "hash", hex.EncodeToString(req.GetData()))
-
+	//req := (msg.Data).(*types.ReqBytes)
 	return
 
 }
@@ -78,21 +94,14 @@ func (f *finalizer) snowmanAcceptBlock(msg *queue.Message) {
 		chainlog.Debug("snowmanAcceptBlock disorder", "height", req.Height, "hash", hex.EncodeToString(req.Hash))
 		return
 	}
-	detail, err := f.chain.LoadBlockByHash(req.GetHash())
-	if err != nil {
-		chainlog.Error("snowmanAcceptBlock", "height", req.Height,
-			"hash", hex.EncodeToString(req.GetHash()), "load block err", err.Error())
-		return
-	}
-
-	if detail.GetBlock().GetHeight() != req.GetHeight() {
-
-		chainlog.Error("snowmanAcceptBlock height not equal", "expect", req.Height, "actual", detail.GetBlock().GetHeight(),
+	// 已经最终化区块不在当前最佳链中, 即当前节点在侧链上, 最终化记录不更新
+	if !f.chain.bestChain.HaveBlock(req.GetHash(), req.GetHeight()) {
+		chainlog.Debug("snowmanAcceptBlock not in bestChain", "height", req.Height,
 			"hash", hex.EncodeToString(req.GetHash()))
 		return
 	}
 
-	err = f.setFinalizedBlock(detail.GetBlock().GetHeight(), req.GetHash())
+	err := f.setFinalizedBlock(req.GetHeight(), req.GetHash())
 
 	if err != nil {
 		chainlog.Error("snowmanAcceptBlock", "setFinalizedBlock err", err.Error())
@@ -106,7 +115,7 @@ func (f *finalizer) setFinalizedBlock(height int64, hash []byte) error {
 	defer f.lock.Unlock()
 	f.choice.Height = height
 	f.choice.Hash = hash
-	err := f.chain.blockStore.db.Set(blkFinalizeLastChoiceKey, types.Encode(&f.choice))
+	err := f.chain.blockStore.db.Set(snowChoiceKey, types.Encode(&f.choice))
 	if err != nil {
 		chainlog.Error("setFinalizedBlock", "height", height, "hash", hex.EncodeToString(hash), "err", err)
 		return err
@@ -126,64 +135,4 @@ func (f *finalizer) snowmanLastChoice(msg *queue.Message) {
 	chainlog.Debug("snowmanLastChoice", "height", height, "hash", hex.EncodeToString(hash))
 	msg.Reply(f.chain.client.NewMessage(msg.Topic,
 		types.EventSnowmanLastChoice, &types.SnowChoice{Height: height, Hash: hash}))
-}
-
-func (f *finalizer) setSyncStatus(status bool) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-	f.isSync = status
-}
-
-func (f *finalizer) getSyncStatus() bool {
-	f.lock.RLock()
-	defer f.lock.RUnlock()
-	return f.isSync
-}
-
-const finlizeChoiceMaxInterval = 128
-
-func (f *finalizer) finalizedStateSync() {
-
-	//for !f.chain.IsCaughtUp() {
-	//	chainlog.Debug("finalizedStateSync wait chain sync")
-	//	time.Sleep(time.Second * 3)
-	//}
-	//
-	//minPeerCount := snowball.DefaultParameters.K
-	//
-	//for count := f.chain.GetPeerCount(); count < minPeerCount; {
-	//	chainlog.Debug("finalizedStateSync wait more peers", "count", count)
-	//	time.Sleep(time.Second * 3)
-	//}
-	//currHeight := f.chain.blockStore.Height()
-	//finalized, _ := f.getLastFinalized()
-	//if finalized >= currHeight-finlizeChoiceMaxInterval {
-	//	f.setSyncStatus(true)
-	//	return
-	//}
-	//
-	//detail, err := f.chain.GetBlock(currHeight - finlizeChoiceMaxInterval/2)
-	//if err != nil {
-	//	chainlog.Error("finalizedStateSync", "GetBlock err:", err)
-	//	return
-	//}
-	//// query snow choice
-	//req := &types.SnowChoice{
-	//	Height: detail.Block.Height,
-	//	Hash:   detail.Block.Hash(f.chain.client.GetConfig()),
-	//}
-	//
-	//msg := f.chain.client.NewMessage("p2p", types.EventSnowmanQueryChoice, req)
-	//err = f.chain.client.Send(msg, true)
-	//if err != nil {
-	//	chainlog.Error("finalizedStateSync", "client.Send err:", err)
-	//	return
-	//}
-	//
-	//replyMsg, err := f.chain.client.Wait(msg)
-	//if err != nil {
-	//	chainlog.Error("finalizedStateSync", "client.Wait err:", err)
-	//	return
-	//}
-
 }

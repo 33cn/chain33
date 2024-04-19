@@ -223,6 +223,7 @@ const (
 	EventSnowmanGetFailed   = 381
 	EventSnowmanQueryFailed = 382
 	EventSnowmanQueryChoice = 383
+	EventSnowmanResetEngine = 384
 )
 
 var eventName = map[int]string{
