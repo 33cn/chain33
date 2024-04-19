@@ -14,7 +14,7 @@ import (
   "log"
 )
 
-// Example address creation for a ficticious company ComputerVoice Inc. where
+// Example address creation for a fictitious company ComputerVoice Inc. where
 // each department has their own wallet to manage
 func main(){
   // Generate a seed to determine all keys from.

@@ -119,7 +119,7 @@ func TestRelayV2(t *testing.T) {
 	s1, err := unreachable1.NewStream(ctx, unreachable2.ID(), "/chain33/test/customprotocol")
 	assert.Nil(t, err)
 
-	wlen, err := s1.Write([]byte("hello, unreachable2,i am comming..."))
+	wlen, err := s1.Write([]byte("hello, unreachable2,i am coming..."))
 	assert.Nil(t, err)
 	t.Log("wring len:", wlen)
 	var read [1024]byte
