@@ -163,9 +163,3 @@ var LowAllowPackHeight int64 = 200
 // MaxAllowPackInterval 允许打包的最大区间值
 var MaxAllowPackInterval int64 = 5000
 
-// system fork name
-
-const (
-	// ForkBlockFinalize 区块最终化fork
-	ForkBlockFinalize = "ForkBlockFinalize"
-)
