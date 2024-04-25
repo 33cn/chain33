@@ -11,8 +11,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/validators"
-
-	libpeer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 type vdrSet struct {
@@ -125,12 +123,8 @@ func (s *vdrSet) toLibp2pID(id ids.NodeID) string {
 
 func (s *vdrSet) toNodeID(id string) (ids.NodeID, error) {
 
-	pid, err := libpeer.Decode(id)
-	if err != nil {
-		return ids.EmptyNodeID, err
-	}
-
-	nid, err := ids.ToNodeID([]byte(pid)[:20])
+	shortID := id[:10] + id[len(id)-10:]
+	nid, err := ids.ToNodeID([]byte(shortID))
 	if err != nil {
 		return ids.EmptyNodeID, err
 	}
