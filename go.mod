@@ -2,10 +2,6 @@ module github.com/33cn/chain33
 
 go 1.19
 
-replace (
-	github.com/ava-labs/avalanchego => ../../ava-labs/avalanchego
-)
-
 require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/XiaoMi/pegasus-go-client v0.0.0-20210825081735-b8a75c1eac2b
@@ -231,3 +227,5 @@ require (
 )
 
 replace github.com/btcsuite/btcd/btcec => github.com/btcsuite/btcd v0.22.3
+
+replace github.com/ava-labs/avalanchego => github.com/bysomeone/avalanchego v0.0.0-20240425071419-8fa889e91c4d
