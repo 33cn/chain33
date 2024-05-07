@@ -42,7 +42,7 @@ func TestCreateGroupTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(0))
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -85,7 +85,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = group.Check(cfg, testHeight, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
+	err = group.Check(cfg, testHeight, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(0))
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -101,7 +101,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = group.Check(cfg, testHeight, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
+	err = group.Check(cfg, testHeight, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(0))
 	assert.Equal(t, ErrTxGroupParaCount, err)
 
 	tx22.Execer = []byte("user.p.test.paracross")
@@ -110,7 +110,7 @@ func TestCreateParaGroupTx(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	err = group.Check(cfg, testHeight, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
+	err = group.Check(cfg, testHeight, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(0))
 	assert.Nil(t, err)
 	newtx := group.Tx()
 	grouptx := hex.EncodeToString(Encode(newtx))
@@ -151,7 +151,7 @@ func TestCreateGroupTxWithSize(t *testing.T) {
 		return
 	}
 
-	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(0))
 	if err != nil {
 		for i := 0; i < len(group.Txs); i++ {
 			t.Log(group.Txs[i].JSON())
@@ -236,7 +236,7 @@ func TestSignGroupTx(t *testing.T) {
 			return
 		}
 	}
-	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(0))
 	if err != nil {
 		t.Error(err)
 		return

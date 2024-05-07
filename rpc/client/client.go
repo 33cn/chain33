@@ -26,7 +26,7 @@ import (
 
 var log = log15.New("module", "rpc_client")
 
-//ChannelClient ...
+// ChannelClient ...
 type ChannelClient struct {
 	client.QueueProtocolAPI
 	accountdb *account.DB
@@ -96,7 +96,7 @@ func (c *ChannelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	return types.Encode(tx), nil
 }
 
-//ReWriteRawTx rewrite tx
+// ReWriteRawTx rewrite tx
 func (c *ChannelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) {
 	types.AssertConfig(c.QueueProtocolAPI)
 	cfg := c.QueueProtocolAPI.GetConfig()
@@ -262,7 +262,7 @@ func (c *ChannelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
+	err = group.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(0))
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +281,7 @@ func (c *ChannelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 	return newtx, nil
 }
 
-//DecodeTx decode hextx
+// DecodeTx decode hextx
 func DecodeTx(hexstr string) (*types.Transaction, error) {
 	var tx types.Transaction
 	data, err := common.FromHex(hexstr)

@@ -26,7 +26,7 @@ func TestChainConfig(t *testing.T) {
 	assert.Equal(t, adata.(bool), true)
 
 	// tx fee config
-	assert.Equal(t, cfg.GetMaxTxFee(), int64(1e9))
+	assert.Equal(t, cfg.GetMaxTxFee(0), int64(1e9))
 	assert.Equal(t, cfg.GetMaxTxFeeRate(), int64(1e7))
 	assert.Equal(t, cfg.GetMinTxFeeRate(), int64(1e5))
 	height, ok := cfg.GetModuleConfig().Crypto.EnableHeight[secp256k1.Name]
@@ -36,7 +36,7 @@ func TestChainConfig(t *testing.T) {
 	assert.Equal(t, int64(0), height)
 }
 
-//测试实际的配置文件
+// 测试实际的配置文件
 func TestSubConfig(t *testing.T) {
 	cfg, err := initSubModuleString(readFile("testdata/chain33.toml"))
 	assert.Equal(t, 0, len(cfg.Consensus))
@@ -64,11 +64,15 @@ func TestConfigNoInit(t *testing.T) {
 	confsubtoken := Conf(cfg, "config.fork.sub.token")
 	assert.Equal(t, confsubtoken.GInt("Enable"), int64(100899))
 	// tx fee config
-	assert.Equal(t, int64(1e8), cfg.GetMaxTxFee())
+	assert.Equal(t, int64(1e8), cfg.GetMaxTxFee(0))
 	assert.Equal(t, int64(1e6), cfg.GetMaxTxFeeRate())
 	assert.Equal(t, int64(1e5), cfg.GetMinTxFeeRate())
 	cfg.SetTxFeeConfig(1e9, 1e9, 1e9)
-	assert.True(t, int64(1e9) == cfg.GetMinTxFeeRate() && cfg.GetMaxTxFeeRate() == cfg.GetMaxTxFee())
+	assert.True(t, int64(1e9) == cfg.GetMinTxFeeRate() && cfg.GetMaxTxFeeRate() == cfg.GetMaxTxFee(0))
+	//分叉高度30839600
+	assert.True(t, 5000000000 == cfg.GetMaxTxFee(30839600))
+	//分叉高度30939600
+	assert.True(t, 2000000000 == cfg.GetMaxTxFee(30939600))
 }
 
 func TestBityuanInit(t *testing.T) {

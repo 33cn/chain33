@@ -6,6 +6,7 @@
 package executor
 
 import (
+	"github.com/33cn/chain33/common/address"
 	log "github.com/33cn/chain33/common/log/log15"
 	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
@@ -57,9 +58,12 @@ func (c *Manage) CheckTx(tx *types.Transaction, index int) error {
 }
 
 // IsSuperManager is supper manager or not
-func IsSuperManager(cfg *types.Chain33Config, addr string) bool {
+func IsSuperManager(cfg *types.Chain33Config, addr string, height int64) bool {
 	conf := types.ConfSub(cfg, driverName)
 	for _, m := range conf.GStrList("superManager") {
+		if address.IsEthAddress(m) && cfg.IsFork(height, address.ForkEthAddressFormat) {
+			m = address.FormatEthAddress(addr)
+		}
 		if addr == m {
 			return true
 		}

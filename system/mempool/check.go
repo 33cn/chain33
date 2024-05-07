@@ -104,7 +104,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 		return msg
 	}
 
-	err := cacheTx.Check(cfg, mem.GetHeader().GetHeight()+1, mem.cfg.MinTxFeeRate, mem.cfg.MaxTxFee)
+	err := cacheTx.Check(cfg, mem.GetHeader().GetHeight()+1, mem.cfg.MinTxFeeRate, mem.api.GetConfig().GetMaxTxFee(mem.GetHeader().GetHeight()+1))
 	if err == nil && mem.cfg.IsLevelFee {
 		err = mem.checkLevelFee(cacheTx)
 	}

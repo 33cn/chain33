@@ -101,7 +101,7 @@ type DriverBase struct {
 	ety                  types.ExecutorType
 }
 
-//Upgrade default upgrade only print a message
+// Upgrade default upgrade only print a message
 func (d *DriverBase) Upgrade() (*types.LocalDBSet, error) {
 	blog.Info("upgrade ", "dapp", d.GetName())
 	return nil, nil
@@ -120,13 +120,13 @@ func (d *DriverBase) GetExecutorType() types.ExecutorType {
 	return d.ety
 }
 
-//ExecutorOrder 执行顺序, 如果要使用 ExecLocalSameTime
-//那么会同时执行 ExecLocal
+// ExecutorOrder 执行顺序, 如果要使用 ExecLocalSameTime
+// 那么会同时执行 ExecLocal
 func (d *DriverBase) ExecutorOrder() int64 {
 	return 0
 }
 
-//GetLastHash 获取最后区块的hash，主链和平行链不同
+// GetLastHash 获取最后区块的hash，主链和平行链不同
 func (d *DriverBase) GetLastHash() []byte {
 	types.AssertConfig(d.api)
 	cfg := d.api.GetConfig()
@@ -136,7 +136,7 @@ func (d *DriverBase) GetLastHash() []byte {
 	return d.parentHash
 }
 
-//GetParentHash 获取上一个区块的hash
+// GetParentHash 获取上一个区块的hash
 func (d *DriverBase) GetParentHash() []byte {
 	return d.parentHash
 }
@@ -176,7 +176,7 @@ func (d *DriverBase) SetEnv(height, blocktime int64, difficulty uint64) {
 	d.difficulty = difficulty
 }
 
-//SetBlockInfo 设置区块的信息
+// SetBlockInfo 设置区块的信息
 func (d *DriverBase) SetBlockInfo(parentHash, mainHash []byte, mainHeight int64) {
 	d.parentHash = parentHash
 	d.mainHash = mainHash
@@ -384,7 +384,7 @@ func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
 	for i := index; i >= 0 && i >= index-c; i-- {
 		if bytes.Equal(d.txs[i].Header, d.txs[i].Hash()) { //find header
 			txgroup := types.Transactions{Txs: d.txs[i : i+c]}
-			err := txgroup.Check(cfg, d.GetHeight(), cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee())
+			err := txgroup.Check(cfg, d.GetHeight(), cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(d.GetHeight()))
 			if err != nil {
 				return nil, err
 			}
@@ -509,7 +509,7 @@ func (d *DriverBase) CheckReceiptExecOk() bool {
 	return false
 }
 
-//AddRollbackKV add rollback kv
+// AddRollbackKV add rollback kv
 func (d *DriverBase) AddRollbackKV(tx *types.Transaction, execer []byte, kvs []*types.KeyValue) []*types.KeyValue {
 	k := types.CalcRollbackKey(types.GetRealExecName(execer), tx.Hash())
 	kvc := NewKVCreator(d.GetLocalDB(), types.CalcLocalPrefix(execer), k)
@@ -518,7 +518,7 @@ func (d *DriverBase) AddRollbackKV(tx *types.Transaction, execer []byte, kvs []*
 	return kvc.KVList()
 }
 
-//DelRollbackKV del rollback kv when exec_del_local
+// DelRollbackKV del rollback kv when exec_del_local
 func (d *DriverBase) DelRollbackKV(tx *types.Transaction, execer []byte) ([]*types.KeyValue, error) {
 	krollback := types.CalcRollbackKey(types.GetRealExecName(execer), tx.Hash())
 	kvc := NewKVCreator(d.GetLocalDB(), types.CalcLocalPrefix(execer), krollback)

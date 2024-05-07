@@ -9,14 +9,17 @@ import (
 // ForkFormatAddressKey 地址key格式化分叉名称,主要针对eth地址
 const ForkFormatAddressKey = "ForkFormatAddressKey"
 
+// ForkEthAddressFormat eth地址统一格式化
+const ForkEthAddressFormat = "ForkEthAddressFormat"
+
 // IsEthAddress verifies whether a string can represent
 // a valid hex-encoded eth address
 func IsEthAddress(addr string) bool {
 	return common.IsHexAddress(addr)
 }
 
-// ToLower to lower case string
-func ToLower(addr string) string {
+// FormatEthAddress eth地址格式化
+func FormatEthAddress(addr string) string {
 	return strings.ToLower(addr)
 }
 
