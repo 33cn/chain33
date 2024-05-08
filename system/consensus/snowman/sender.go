@@ -21,14 +21,13 @@ import (
 // 向外部模块发送请求, blockchain/p2p等
 type msgSender struct {
 	common.Sender
-	cli client.Client
-	sm  *snowman
+	cli  client.Client
+	vdrs *vdrSet
 }
 
-func newMsgSender(sm *snowman, snowCtx *snow.ConsensusContext) *msgSender {
+func newMsgSender(vdrs *vdrSet, cli client.Client, snowCtx *snow.ConsensusContext) *msgSender {
 
-	s := &msgSender{sm: sm}
-	s.cli = sm.ctx.Base.GetQueueClient()
+	s := &msgSender{vdrs: vdrs, cli: cli}
 	sd, err := sender.New(snowCtx, nil, nil, nil, nil, p2p.EngineType_ENGINE_TYPE_SNOWMAN, nil)
 
 	if err != nil {
@@ -40,9 +39,9 @@ func newMsgSender(sm *snowman, snowCtx *snow.ConsensusContext) *msgSender {
 }
 
 // SendChits send chits to the specified node
-func (s *msgSender) SendChits(ctx context.Context, nodeID ids.NodeID, requestID uint32, preferredID ids.ID, acceptedID ids.ID) {
+func (s *msgSender) SendChits(_ context.Context, nodeID ids.NodeID, requestID uint32, preferredID ids.ID, acceptedID ids.ID) {
 
-	peerName := s.sm.vs.toLibp2pID(nodeID)
+	peerName := s.vdrs.toLibp2pID(nodeID)
 	snowLog.Debug("msgSender SendChits", "reqID", requestID, "peer", peerName,
 		"preferHash", hex.EncodeToString(preferredID[:]),
 		"acceptHash", hex.EncodeToString(acceptedID[:]))
@@ -64,9 +63,9 @@ func (s *msgSender) SendChits(ctx context.Context, nodeID ids.NodeID, requestID 
 }
 
 // SendGet Request that the specified node send the specified container to this node.
-func (s *msgSender) SendGet(ctx context.Context, nodeID ids.NodeID, requestID uint32, blockID ids.ID) {
+func (s *msgSender) SendGet(_ context.Context, nodeID ids.NodeID, requestID uint32, blockID ids.ID) {
 
-	peerName := s.sm.vs.toLibp2pID(nodeID)
+	peerName := s.vdrs.toLibp2pID(nodeID)
 	snowLog.Debug("msgSender SendGet", "reqID", requestID, "peer", peerName, "blkHash", hex.EncodeToString(blockID[:]))
 	req := &types.SnowGetBlock{
 		RequestID: requestID,
@@ -83,9 +82,9 @@ func (s *msgSender) SendGet(ctx context.Context, nodeID ids.NodeID, requestID ui
 }
 
 // SendPut Tell the specified node about [container].
-func (s *msgSender) SendPut(ctx context.Context, nodeID ids.NodeID, requestID uint32, blkData []byte) {
+func (s *msgSender) SendPut(_ context.Context, nodeID ids.NodeID, requestID uint32, blkData []byte) {
 
-	peerName := s.sm.vs.toLibp2pID(nodeID)
+	peerName := s.vdrs.toLibp2pID(nodeID)
 	snowLog.Debug("msgSender SendPut", "reqID", requestID, "peer", peerName)
 	req := &types.SnowPutBlock{
 		RequestID: requestID,
@@ -101,7 +100,7 @@ func (s *msgSender) SendPut(ctx context.Context, nodeID ids.NodeID, requestID ui
 }
 
 // SendPullQuery Request from the specified nodes their preferred frontier, given the existence of the specified container.
-func (s *msgSender) SendPullQuery(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, blockID ids.ID) {
+func (s *msgSender) SendPullQuery(_ context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, blockID ids.ID) {
 
 	snowLog.Debug("msgSender SendPullQuery", "reqID", requestID, "peerLen", nodeIDs.Len(),
 		"blkHash", hex.EncodeToString(blockID[:]))
@@ -111,7 +110,7 @@ func (s *msgSender) SendPullQuery(ctx context.Context, nodeIDs set.Set[ids.NodeI
 		req := &types.SnowPullQuery{
 			RequestID: requestID,
 			BlockHash: blockID[:],
-			PeerName:  s.sm.vs.toLibp2pID(nodeID),
+			PeerName:  s.vdrs.toLibp2pID(nodeID),
 		}
 
 		msg := s.cli.NewMessage("p2p", types.EventSnowmanPullQuery, req)
@@ -128,7 +127,7 @@ func (s *msgSender) SendPullQuery(ctx context.Context, nodeIDs set.Set[ids.NodeI
 // existence of the specified container.
 // This is the same as PullQuery, except that this message includes the body
 // of the container rather than its ID.
-func (s *msgSender) SendPushQuery(ctx context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, blockData []byte) {
+func (s *msgSender) SendPushQuery(_ context.Context, nodeIDs set.Set[ids.NodeID], requestID uint32, blockData []byte) {
 
 	snowLog.Debug("msgSender SendPushQuery", "reqID", requestID, "peerLen", nodeIDs.Len())
 
@@ -137,7 +136,7 @@ func (s *msgSender) SendPushQuery(ctx context.Context, nodeIDs set.Set[ids.NodeI
 		req := &types.SnowPushQuery{
 			RequestID: requestID,
 			BlockData: blockData,
-			PeerName:  s.sm.vs.toLibp2pID(nodeID),
+			PeerName:  s.vdrs.toLibp2pID(nodeID),
 		}
 
 		msg := s.cli.NewMessage("p2p", types.EventSnowmanPushQuery, req)

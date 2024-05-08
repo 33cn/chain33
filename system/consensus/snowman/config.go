@@ -21,7 +21,7 @@ import (
 
 func newSnowmanConfig(sm *snowman, params snowball.Parameters, snowCtx *snow.ConsensusContext) smeng.Config {
 
-	sender := newMsgSender(sm, snowCtx)
+	sender := newMsgSender(sm.vs, sm.ctx.Base.GetQueueClient(), snowCtx)
 	engineConfig := smeng.Config{
 		Ctx:         snowCtx,
 		VM:          sm.vm,

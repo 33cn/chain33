@@ -2,6 +2,7 @@ package snowman
 
 import (
 	"fmt"
+	"github.com/33cn/chain33/queue"
 	"math/rand"
 	"sync"
 	"time"
@@ -16,16 +17,18 @@ import (
 type vdrSet struct {
 	validators.Set
 	ctx     *consensus.Context
+	qclient queue.Client
 	self    *types.Peer
 	peerIDs map[ids.NodeID]string
 	lock    sync.RWMutex
 	rand    *rand.Rand
 }
 
-func (s *vdrSet) init(ctx *consensus.Context) {
+func (s *vdrSet) init(ctx *consensus.Context, cli queue.Client) {
 
 	s.Set = validators.NewSet()
 	s.ctx = ctx
+	s.qclient = cli
 	s.rand = rand.New(rand.NewSource(types.Now().Unix()))
 	s.peerIDs = make(map[ids.NodeID]string)
 }
@@ -46,7 +49,7 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 
 	snowLog.Debug("vdrSet Sample", "require", size)
 	peers, err := s.getConnectedPeers()
-	if err != nil || len(peers) < size {
+	if err != nil || len(peers) < size || size <= 0 {
 		snowLog.Error("vdrSet Sample", "connected", len(peers), "require", size, "err", err)
 		return nil, utils.ErrValidatorSample
 	}
@@ -78,13 +81,13 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 
 func (s *vdrSet) getConnectedPeers() ([]*types.Peer, error) {
 	snowLog.Debug("vdrSet getConnectedPeers")
-	msg := s.ctx.Base.GetQueueClient().NewMessage("p2p", types.EventPeerInfo, nil)
-	err := s.ctx.Base.GetQueueClient().Send(msg, true)
+	msg := s.qclient.NewMessage("p2p", types.EventPeerInfo, nil)
+	err := s.qclient.Send(msg, true)
 	if err != nil {
 		snowLog.Error("getConnectedPeers", "client.Send err:", err)
 		return nil, err
 	}
-	resp, err := s.ctx.Base.GetQueueClient().WaitTimeout(msg, 5*time.Second)
+	resp, err := s.qclient.WaitTimeout(msg, 5*time.Second)
 	if err != nil {
 		snowLog.Error("getConnectedPeers", "client.Wait err:", err)
 		return nil, err
@@ -101,8 +104,7 @@ func (s *vdrSet) getConnectedPeers() ([]*types.Peer, error) {
 	for _, p := range peerlist.GetPeers() {
 
 		if p.Self || p.Blocked ||
-			p.Header.GetHeight() < s.self.Finalized.GetHeight() ||
-			p.GetFinalized().GetHeight() < s.self.Finalized.GetHeight()-128 {
+			p.GetFinalized().GetHeight() < s.self.GetHeader().GetHeight()-128 {
 			continue
 		}
 		peers = append(peers, p)
@@ -123,8 +125,14 @@ func (s *vdrSet) toLibp2pID(id ids.NodeID) string {
 
 func (s *vdrSet) toNodeID(id string) (ids.NodeID, error) {
 
-	shortID := id[:10] + id[len(id)-10:]
-	nid, err := ids.ToNodeID([]byte(shortID))
+	if id == "" {
+		return ids.EmptyNodeID, types.ErrInvalidParam
+	}
+	tempID := id
+	for len(tempID) < 20 {
+		tempID += tempID
+	}
+	nid, err := ids.ToNodeID([]byte(tempID[len(tempID)-20:]))
 	if err != nil {
 		return ids.EmptyNodeID, err
 	}

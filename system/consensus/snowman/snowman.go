@@ -69,7 +69,7 @@ func (s *snowman) Initialize(ctx *consensus.Context) {
 	s.vm.Init(ctx)
 
 	s.vs = &vdrSet{}
-	s.vs.init(ctx)
+	s.vs.init(ctx, ctx.Base.GetQueueClient())
 	s.initSnowEngine()
 
 	s.inMsg = make(chan *queue.Message, 1024)
@@ -119,9 +119,16 @@ func (s *snowman) startRoutine() {
 
 func (s *snowman) AddBlock(blk *types.Block) {
 
-	if s.vm.addNewBlock(blk) {
-		s.engineNotify <- struct{}{}
+	if !s.vm.addNewBlock(blk) {
+		return
 	}
+
+	select {
+	case s.engineNotify <- struct{}{}:
+	default:
+
+	}
+
 }
 
 func (s *snowman) SubMsg(msg *queue.Message) {

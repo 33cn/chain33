@@ -90,6 +90,8 @@ func (vm *chain33VM) Initialize(
 
 func (vm *chain33VM) reset() {
 	vm.decidedHashes.Purge()
+	vm.pendingBlocks.Init()
+	atomic.StoreInt64(&vm.acceptedHeight, 0)
 }
 
 // SetState communicates to VM its next state it starts
@@ -109,13 +111,16 @@ func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, e
 
 	details, err := vm.api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{blkID[:]}})
 	if err != nil || len(details.GetItems()) < 1 || details.GetItems()[0].GetBlock() == nil {
-		snowLog.Error("vmGetBlock", "hash", blkID.Hex(), "stack", getStack())
+		snowLog.Debug("vmGetBlock", "hash", blkID.Hex())
 		return nil, database.ErrNotFound
 	}
 	sb := vm.newSnowBlock(details.GetItems()[0].GetBlock(), choices.Processing)
-	acceptHeight := atomic.LoadInt64(&vm.acceptedHeight)
-	if sb.block.Height <= acceptHeight {
-		sb.status = choices.Accepted
+	accepted, ok := vm.decidedHashes.Get(sb.ID())
+	if ok {
+		sb.status = choices.Rejected
+		if accepted.(bool) {
+			sb.status = choices.Accepted
+		}
 	}
 
 	return sb, nil
@@ -161,7 +166,7 @@ func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 //
 // If the VM doesn't want to issue a new block, an error should be
 // returned.
-func (vm *chain33VM) BuildBlock(context.Context) (snowcon.Block, error) {
+func (vm *chain33VM) BuildBlock(_ context.Context) (snowcon.Block, error) {
 
 	ah := atomic.LoadInt64(&vm.acceptedHeight)
 	vm.lock.Lock()
@@ -216,7 +221,7 @@ func getLastChoice(cli queue.Client) (*types.SnowChoice, error) {
 // If no blocks have been accepted by consensus yet, it is assumed there is
 // a definitionally accepted block, the Genesis block, that will be
 // returned.
-func (vm *chain33VM) LastAccepted(context.Context) (ids.ID, error) {
+func (vm *chain33VM) LastAccepted(_ context.Context) (ids.ID, error) {
 
 	choice, err := getLastChoice(vm.qclient)
 	if err != nil {
