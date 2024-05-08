@@ -18,10 +18,9 @@ type finalizer struct {
 	lock   sync.RWMutex
 }
 
-func newFinalizer(chain *BlockChain) *finalizer {
+func (f *finalizer) Init(chain *BlockChain) {
 
-	f := &finalizer{chain: chain}
-
+	f.chain = chain
 	raw, err := chain.blockStore.db.Get(snowChoiceKey)
 
 	if err == nil {
@@ -36,8 +35,6 @@ func newFinalizer(chain *BlockChain) *finalizer {
 		chainlog.Debug("newFinalizer", "enableHeight", f.choice.Height, "gapHeight", chain.cfg.BlockFinalizeGapHeight)
 		go f.waitFinalizeStartBlock(f.choice.Height)
 	}
-
-	return f
 }
 
 func (f *finalizer) healthCheck(finalizedHeight int64) {
@@ -68,7 +65,8 @@ const defaultFinalizeGapHeight = 128
 
 func (f *finalizer) waitFinalizeStartBlock(beginHeight int64) {
 
-	for f.chain.blockStore.Height() < beginHeight+f.chain.cfg.BlockFinalizeGapHeight {
+	waitHeight := f.chain.cfg.BlockFinalizeGapHeight
+	for f.chain.blockStore.Height() < beginHeight+waitHeight {
 		time.Sleep(time.Second * 5)
 	}
 

@@ -292,8 +292,8 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	// 获取当前最大chunk连续高度
 	chain.maxSerialChunkNum = chain.blockStore.GetMaxSerialChunkNum()
 
-	chain.finalizer = newFinalizer(chain)
-
+	chain.finalizer = &finalizer{}
+	chain.finalizer.Init(chain)
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
 	chain.recvwg.Add(1)
 	//初始化blockchian模块
