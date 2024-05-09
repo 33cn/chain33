@@ -1704,3 +1704,15 @@ func (c *Chain33) ClosePeer(in *types.SetPeer, result *interface{}) error {
 	*result = &resp
 	return nil
 }
+
+// GetFinalizedBlock get finalized block choice
+func (c *Chain33) GetFinalizedBlock(in *types.ReqNil, result *interface{}) error {
+
+	choice, err := c.cli.GetFinalizedBlock()
+	if err != nil {
+		return err
+	}
+
+	*result = choice
+	return nil
+}

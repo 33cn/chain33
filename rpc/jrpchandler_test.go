@@ -1967,3 +1967,18 @@ func TestChain33_ClosePeer(t *testing.T) {
 	_, ok := testResult.(*rpctypes.Reply)
 	assert.True(t, ok)
 }
+
+func TestChain33_GetFinalizedBlock(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetConfig", mock.Anything).Return(cfg)
+	api.On("GetFinalizedBlock", mock.Anything).Return(&types.SnowChoice{Height: 1}, nil)
+
+	chain33 := newTestChain33(api)
+	var testResult interface{}
+	err := chain33.GetFinalizedBlock(nil, &testResult)
+	require.Nil(t, err)
+	sc, ok := testResult.(*types.SnowChoice)
+	require.True(t, ok)
+	require.Equal(t, 1, int(sc.GetHeight()))
+}

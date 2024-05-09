@@ -1235,3 +1235,20 @@ func (q *QueueProtocol) GetHighestBlockNum(param *types.ReqNil) (*types.ReplyBlo
 	}
 	return nil, types.ErrInvalidParam
 }
+
+// GetFinalizedBlock get finalized block choice
+func (q *QueueProtocol) GetFinalizedBlock() (*types.SnowChoice, error) {
+
+	cli := q.client
+	msg := cli.NewMessage("blockchain", types.EventSnowmanLastChoice, &types.ReqNil{})
+	err := cli.Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+
+	reply, err := cli.Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return reply.GetData().(*types.SnowChoice), nil
+}

@@ -594,6 +594,17 @@ func (g *Grpc) SignWalletRecoverTx(ctx context.Context, in *pb.ReqSignWalletReco
 	return g.cli.SignWalletRecoverTx(in)
 }
 
+// GetFinalizedBlock get finalized block choice
+func (g *Grpc) GetFinalizedBlock(ctx context.Context, in *pb.ReqNil) (*pb.SnowChoice, error) {
+
+	choice, err := g.cli.GetFinalizedBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	return choice, nil
+}
+
 // GetChainConfig 获取chain config 参数
 func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConfigInfo, error) {
 	cfg := g.cli.GetConfig()

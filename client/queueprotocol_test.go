@@ -1347,3 +1347,24 @@ func testClosePeer(t *testing.T, api client.QueueProtocolAPI) {
 	assert.Equal(t, "success", string(reply.GetMsg()))
 
 }
+
+func TestQueueProtocol_GetFinalizedBlock(t *testing.T) {
+
+	q := queue.New("test")
+
+	cli := q.Client()
+	api, err := client.New(cli, nil)
+	require.Nil(t, err)
+	defer cli.Close()
+	go func() {
+
+		cli.Sub("blockchain")
+		for msg := range cli.Recv() {
+			msg.Reply(cli.NewMessage("", 0, &types.SnowChoice{Height: 1}))
+		}
+	}()
+
+	sc, err := api.GetFinalizedBlock()
+	require.Nil(t, err)
+	require.Equal(t, 1, int(sc.GetHeight()))
+}
