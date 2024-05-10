@@ -78,9 +78,9 @@ func Test_getConnectedPeers(t *testing.T) {
 	require.Equal(t, utils.ErrValidatorSample, err)
 	_, err = v.Sample(0)
 	require.Equal(t, utils.ErrValidatorSample, err)
-	peer1 := *peer
+	peer1 := types.Clone(peer).(*types.Peer)
 	peer1.Name = "peer1"
-	list.Peers = []*types.Peer{peer,&peer1, self}
+	list.Peers = []*types.Peer{peer, peer1, self}
 	ids, err := v.Sample(2)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(ids))

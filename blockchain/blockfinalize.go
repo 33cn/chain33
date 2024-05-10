@@ -29,10 +29,10 @@ func (f *finalizer) Init(chain *BlockChain) {
 			chainlog.Error("newFinalizer", "decode err", err)
 			panic(err)
 		}
-		chainlog.Debug("newFinalizer", "height", f.choice.Height, "hash", hex.EncodeToString(f.choice.Hash))
-	} else {
+		chainlog.Info("newFinalizer", "height", f.choice.Height, "hash", hex.EncodeToString(f.choice.Hash))
+	} else if chain.client.GetConfig().GetModuleConfig().Consensus.Finalizer != "" {
 		f.choice.Height = chain.cfg.BlockFinalizeEnableHeight
-		chainlog.Debug("newFinalizer", "enableHeight", f.choice.Height, "gapHeight", chain.cfg.BlockFinalizeGapHeight)
+		chainlog.Info("newFinalizer", "enableHeight", f.choice.Height, "gapHeight", chain.cfg.BlockFinalizeGapHeight)
 		go f.waitFinalizeStartBlock(f.choice.Height)
 	}
 }
@@ -72,7 +72,7 @@ func (f *finalizer) waitFinalizeStartBlock(beginHeight int64) {
 
 	detail, err := f.chain.GetBlock(beginHeight)
 	if err != nil {
-		chainlog.Error("setFinalizedStartHeight", "height", beginHeight, "get block err", err)
+		chainlog.Error("waitFinalizeStartBlock", "height", beginHeight, "waitHeight", waitHeight, "get block err", err)
 		panic(err)
 	}
 	_ = f.setFinalizedBlock(detail.GetBlock().Height, detail.GetBlock().Hash(f.chain.client.GetConfig()))

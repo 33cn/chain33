@@ -20,10 +20,10 @@ import (
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -133,6 +133,8 @@ func testBlockReq(q queue.Queue) {
 			switch msg.Ty {
 			case types.EventGetLastHeader:
 				msg.Reply(queue.NewMessage(0, "p2p", types.EventGetLastHeader, &types.Header{}))
+			case types.EventSnowmanLastChoice:
+				msg.Reply(queue.NewMessage(0, "p2p", 0, &types.SnowChoice{}))
 			}
 		}
 	}()
