@@ -2,10 +2,11 @@ package snowman
 
 import (
 	"fmt"
-	"github.com/33cn/chain33/queue"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/queue"
 
 	"github.com/33cn/chain33/system/consensus"
 	"github.com/33cn/chain33/system/consensus/snowman/utils"

@@ -1,13 +1,14 @@
 package snowman
 
 import (
+	"testing"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/bag"
 	"github.com/ava-labs/avalanchego/utils/set"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestMsgSender(t *testing.T) {
@@ -32,20 +33,20 @@ func TestMsgSender(t *testing.T) {
 				req := msg.Data.(*types.SnowChits)
 				checkID = req.GetRequestID()
 				checkName = req.GetPeerName()
-			}else if msg.Ty == types.EventSnowmanPutBlock {
+			} else if msg.Ty == types.EventSnowmanPutBlock {
 				req := msg.Data.(*types.SnowPutBlock)
 				checkID = req.GetRequestID()
 				checkName = req.GetPeerName()
-			}else if msg.Ty == types.EventSnowmanGetBlock{
+			} else if msg.Ty == types.EventSnowmanGetBlock {
 				req := msg.Data.(*types.SnowGetBlock)
 				checkID = req.GetRequestID()
 				checkName = req.GetPeerName()
-			}else if msg.Ty == types.EventSnowmanPullQuery {
+			} else if msg.Ty == types.EventSnowmanPullQuery {
 				req := msg.Data.(*types.SnowPullQuery)
 				checkID = req.GetRequestID()
 				checkName = req.GetPeerName()
 
-			}else if msg.Ty == types.EventSnowmanPushQuery {
+			} else if msg.Ty == types.EventSnowmanPushQuery {
 				req := msg.Data.(*types.SnowPushQuery)
 				checkID = req.GetRequestID()
 				checkName = req.GetPeerName()

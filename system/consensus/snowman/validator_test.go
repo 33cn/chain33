@@ -1,12 +1,13 @@
 package snowman
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/consensus/snowman/utils"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"testing"
 )
 
 func TestNodeID(t *testing.T) {
@@ -49,8 +50,7 @@ func Test_getConnectedPeers(t *testing.T) {
 		}
 	}()
 
-	self :=   &types.Peer{Self: true, Header: &types.Header{Height: 129}}
-
+	self := &types.Peer{Self: true, Header: &types.Header{Height: 129}}
 
 	list.Peers = []*types.Peer{self}
 	peers, err := v.getConnectedPeers()

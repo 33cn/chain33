@@ -2,6 +2,9 @@ package snowman
 
 import (
 	"encoding/hex"
+	"testing"
+	"time"
+
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/consensus"
 	"github.com/33cn/chain33/system/consensus/snowman/utils"
@@ -9,8 +12,6 @@ import (
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/snow/choices"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func newTestCtx() *consensus.Context {
@@ -19,11 +20,10 @@ func newTestCtx() *consensus.Context {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	q.SetConfig(cfg)
 	base := consensus.NewBaseClient(cfg.GetModuleConfig().Consensus)
-	base.InitClient(q.Client(), func(){})
+	base.InitClient(q.Client(), func() {})
 	ctx := &consensus.Context{Base: base}
 	return ctx
 }
-
 
 func mockHandleChainMsg(cli queue.Client) {
 
@@ -33,14 +33,13 @@ func mockHandleChainMsg(cli queue.Client) {
 
 		if msg.Ty == types.EventSnowmanLastChoice {
 			msg.Reply(cli.NewMessage("", 0, &types.SnowChoice{Height: 1, Hash: []byte("test")}))
-		}else if msg.Ty == types.EventGetBlockByHashes {
+		} else if msg.Ty == types.EventGetBlockByHashes {
 			msg.Reply(cli.NewMessage("", 0, &types.BlockDetails{Items: []*types.BlockDetail{{Block: &types.Block{Height: 1}}}}))
-		}else if msg.Ty == types.EventGetBlockHash {
+		} else if msg.Ty == types.EventGetBlockHash {
 			msg.Reply(cli.NewMessage("", 0, &types.ReplyHash{Hash: []byte("test")}))
 		}
 	}
 }
-
 
 func TestChain33VM(t *testing.T) {
 
@@ -67,16 +66,16 @@ func TestChain33VM(t *testing.T) {
 	vm.decidedHashes.Add(sb.ID(), true)
 	sb1, err := vm.ParseBlock(nil, sb.Bytes())
 	require.Equal(t, choices.Accepted, sb1.Status())
-
+	require.Nil(t, err)
 	// test and and build new block
 	require.False(t, vm.addNewBlock(blk))
 	_, err = vm.BuildBlock(nil)
 	require.Equal(t, utils.ErrBlockNotReady, err)
-	blk.Height= vm.acceptedHeight+1
+	blk.Height = vm.acceptedHeight + 1
 	require.True(t, vm.addNewBlock(blk))
 	sb1, err = vm.BuildBlock(nil)
 	require.Equal(t, blk.Height, int64(sb1.Height()))
-
+	require.Nil(t, err)
 	// test GetBlockIDAtHeight
 	id, _ := vm.GetBlockIDAtHeight(nil, 0)
 	require.Equal(t, "test", string(id[:4]))
@@ -99,11 +98,10 @@ func TestChain33VM(t *testing.T) {
 	require.Equal(t, 0, vm.pendingBlocks.Len())
 }
 
-
 func TestVmUnimplementMethod(t *testing.T) {
 
 	vm := &chain33VM{}
-	require.Nil(t, vm.Initialize(nil, nil, nil, nil, nil,nil,nil,nil,nil))
+	require.Nil(t, vm.Initialize(nil, nil, nil, nil, nil, nil, nil, nil, nil))
 	require.Nil(t, vm.SetState(nil, 0))
 	require.Nil(t, vm.SetPreference(nil, ids.Empty))
 	require.Nil(t, vm.Shutdown(nil))
@@ -111,11 +109,11 @@ func TestVmUnimplementMethod(t *testing.T) {
 
 	require.Nil(t, vm.CrossChainAppRequestFailed(nil, ids.Empty, 0))
 	require.Nil(t, vm.CrossChainAppRequest(nil, ids.Empty, 0, types.Now(), nil))
-	require.Nil(t, vm.CrossChainAppResponse(nil, ids.Empty, 0, nil) )
+	require.Nil(t, vm.CrossChainAppResponse(nil, ids.Empty, 0, nil))
 	require.Nil(t, vm.AppRequest(nil, ids.EmptyNodeID, 0, time.Now(), nil))
 	require.Nil(t, vm.AppRequestFailed(nil, ids.EmptyNodeID, 0))
-	require.Nil(t, vm.AppResponse(nil, ids.EmptyNodeID, 0,nil))
-	require.Nil(t, vm.AppGossip(nil, ids.EmptyNodeID,nil))
+	require.Nil(t, vm.AppResponse(nil, ids.EmptyNodeID, 0, nil))
+	require.Nil(t, vm.AppGossip(nil, ids.EmptyNodeID, nil))
 	require.Nil(t, vm.GossipTx(nil))
 	_, err := vm.HealthCheck(nil)
 	require.Nil(t, err)
@@ -128,6 +126,3 @@ func TestVmUnimplementMethod(t *testing.T) {
 	_, err = vm.Version(nil)
 	require.Nil(t, err)
 }
-
-
-
