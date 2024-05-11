@@ -181,7 +181,6 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
-	github.com/supranational/blst v0.3.11 // indirect
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
 	github.com/tklauser/numcpus v0.2.2 // indirect
 	github.com/uber/jaeger-client-go v2.28.0+incompatible // indirect
@@ -228,4 +227,4 @@ require (
 
 replace github.com/btcsuite/btcd/btcec => github.com/btcsuite/btcd v0.22.3
 
-replace github.com/ava-labs/avalanchego => github.com/bysomeone/avalanchego v0.0.0-20240425071419-8fa889e91c4d
+replace github.com/ava-labs/avalanchego => github.com/bysomeone/avalanchego v0.0.0-20240511070301-a9a2aac50464
