@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/33cn/chain33/client/mocks"
 	"sync"
 	"testing"
 	"time"
@@ -66,12 +67,14 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetFinalizedBlock").Return(&types.SnowChoice{}, nil)
 	env1 := protocol.P2PEnv{
 		Ctx:             ctx,
 		ChainCfg:        cfg,
 		QueueClient:     client1,
 		Host:            host1,
+		API:             api,
 		SubConfig:       mcfg,
 		RoutingTable:    kademliaDHT1.RoutingTable(),
 		PeerInfoManager: &peerInfoManager{},
@@ -87,9 +90,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
 	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
 	err = host2.Connect(context.Background(), *peerinfo)
-	if err != nil {
-		t.Fatal("connect error", err)
-	}
+	require.Nil(t, err)
 
 	ps2, err := extension.NewPubSub(ctx, host2, &p2pty.PubSubConfig{})
 	if err != nil {
@@ -101,6 +102,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 		ChainCfg:        cfg,
 		QueueClient:     client2,
 		Host:            host2,
+		API:             api,
 		SubConfig:       mcfg,
 		RoutingTable:    kademliaDHT2.RoutingTable(),
 		PeerInfoManager: &peerInfoManager{},
@@ -133,8 +135,6 @@ func testBlockReq(q queue.Queue) {
 			switch msg.Ty {
 			case types.EventGetLastHeader:
 				msg.Reply(queue.NewMessage(0, "p2p", types.EventGetLastHeader, &types.Header{}))
-			case types.EventSnowmanLastChoice:
-				msg.Reply(queue.NewMessage(0, "p2p", 0, &types.SnowChoice{}))
 			}
 		}
 	}()
@@ -183,6 +183,7 @@ func TestPeerInfoHandler(t *testing.T) {
 
 	testMempoolReq(q)
 	testBlockReq(q)
+	require.Equal(t, 1, len(p.Host.Network().Conns()))
 	remotePid := p.Host.Network().Conns()[0].RemotePeer()
 	stream, err := p.Host.NewStream(p.Ctx, remotePid, peerInfo)
 	require.Nil(t, err)

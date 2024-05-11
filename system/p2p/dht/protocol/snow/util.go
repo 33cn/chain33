@@ -21,7 +21,7 @@ func (s *snowman) sendQueryFailedMsg(msgID int64, reqID uint32, peerName string)
 		PeerName:  peerName,
 	}
 
-	err := s.P2PManager.Client.Send(consensusMsg(msgID, msg), false)
+	err := s.QueueClient.Send(consensusMsg(msgID, msg), false)
 
 	if err != nil {
 

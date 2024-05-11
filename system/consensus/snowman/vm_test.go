@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestCtx() *consensus.Context {
+func newTestCtx() (queue.Queue, *consensus.Context) {
 
 	q := queue.New("test")
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
@@ -22,7 +22,7 @@ func newTestCtx() *consensus.Context {
 	base := consensus.NewBaseClient(cfg.GetModuleConfig().Consensus)
 	base.InitClient(q.Client(), func() {})
 	ctx := &consensus.Context{Base: base}
-	return ctx
+	return q, ctx
 }
 
 func mockHandleChainMsg(cli queue.Client) {
@@ -43,7 +43,7 @@ func mockHandleChainMsg(cli queue.Client) {
 
 func TestChain33VM(t *testing.T) {
 
-	ctx := newTestCtx()
+	_, ctx := newTestCtx()
 	cli := ctx.Base.GetQueueClient()
 	defer cli.Close()
 	go mockHandleChainMsg(cli)

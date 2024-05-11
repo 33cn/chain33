@@ -34,7 +34,7 @@ func (s *snowman) init(env *protocol.P2PEnv) {
 	s.P2PEnv = env
 	protocol.RegisterEventHandler(types.EventSnowmanChits, s.handleEventChits)
 	protocol.RegisterEventHandler(types.EventSnowmanGetBlock, s.handleEventGetBlock)
-	protocol.RegisterEventHandler(types.EventSnowmanPutBlock, s.handleEventPutBlock)
+	//protocol.RegisterEventHandler(types.EventSnowmanPutBlock, s.handleEventPutBlock)
 	protocol.RegisterEventHandler(types.EventSnowmanPullQuery, s.handleEventPullQuery)
 	protocol.RegisterEventHandler(types.EventSnowmanPushQuery, s.handleEventPushQuery)
 

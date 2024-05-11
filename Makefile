@@ -45,7 +45,6 @@ cli: ## Build cli binary
 	@go build $(BUILD_FLAGS) -v -o $(CLI) $(SRC_CLI)
 
 build:cli ## Build the binary file
-	@echo $(GOARCH)
 	@go build $(BUILD_FLAGS) -v -o  $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/bityuan.toml build/

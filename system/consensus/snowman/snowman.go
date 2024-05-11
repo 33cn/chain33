@@ -100,7 +100,7 @@ func (s *snowman) resetEngine() {
 func (s *snowman) startRoutine() {
 
 	for {
-		c, err := getLastChoice(s.ctx.Base.GetQueueClient())
+		c, err := s.ctx.Base.GetAPI().GetFinalizedBlock()
 		if err == nil && len(c.Hash) > 0 {
 			break
 		}
@@ -191,22 +191,22 @@ func (s *snowman) handleSyncMsg(msg *queue.Message) {
 				"chits err", err)
 		}
 
-	case types.EventSnowmanGetBlock:
-
-		req := msg.Data.(*types.SnowGetBlock)
-		snowLog.Debug("handleInMsg getBlock", "reqID", req.GetRequestID(), "peerName", req.GetPeerName(),
-			"hash", hex.EncodeToString(req.BlockHash))
-		nodeID, err := s.vs.toNodeID(req.PeerName)
-		if err != nil {
-			snowLog.Error("handleInMsg getBlock", "reqID", req.RequestID, "peerName", req.PeerName, "toNodeID err", err)
-			return
-		}
-
-		err = s.engine.Get(s.ctx.Base.Context, nodeID, req.RequestID, toSnowID(req.BlockHash))
-		if err != nil {
-			snowLog.Error("handleInMsg getBlock", "reqID", req.RequestID,
-				"hash", hex.EncodeToString(req.BlockHash), "peerName", req.PeerName, "Get err", err)
-		}
+	//case types.EventSnowmanGetBlock:
+	//
+	//	req := msg.Data.(*types.SnowGetBlock)
+	//	snowLog.Debug("handleInMsg getBlock", "reqID", req.GetRequestID(), "peerName", req.GetPeerName(),
+	//		"hash", hex.EncodeToString(req.BlockHash))
+	//	nodeID, err := s.vs.toNodeID(req.PeerName)
+	//	if err != nil {
+	//		snowLog.Error("handleInMsg getBlock", "reqID", req.RequestID, "peerName", req.PeerName, "toNodeID err", err)
+	//		return
+	//	}
+	//
+	//	err = s.engine.Get(s.ctx.Base.Context, nodeID, req.RequestID, toSnowID(req.BlockHash))
+	//	if err != nil {
+	//		snowLog.Error("handleInMsg getBlock", "reqID", req.RequestID,
+	//			"hash", hex.EncodeToString(req.BlockHash), "peerName", req.PeerName, "Get err", err)
+	//	}
 	case types.EventSnowmanPutBlock:
 
 		req := msg.Data.(*types.SnowPutBlock)

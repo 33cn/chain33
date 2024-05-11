@@ -865,7 +865,9 @@ func (bs *BlockStore) GetTdByBlockHash(hash []byte) (*big.Int, error) {
 
 	blocktd, err := bs.db.Get(calcHashToTdKey(hash))
 	if blocktd == nil || err != nil {
-		storeLog.Error("GetTdByBlockHash ", "hash", hex.EncodeToString(hash), "err", err)
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("GetTdByBlockHash ", "hash", hex.EncodeToString(hash), "err", err)
+		}
 		return nil, types.ErrHashNotExist
 	}
 	td := new(big.Int)

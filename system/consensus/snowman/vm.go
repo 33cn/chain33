@@ -2,6 +2,7 @@ package snowman
 
 import (
 	"container/list"
+	"encoding/hex"
 	"sync"
 	"sync/atomic"
 
@@ -63,7 +64,7 @@ func (vm *chain33VM) Init(ctx *consensus.Context) {
 	}
 	vm.decidedHashes = c
 	vm.pendingBlocks = list.New()
-	choice, err := getLastChoice(vm.qclient)
+	choice, err := vm.api.GetFinalizedBlock()
 	if err != nil {
 		snowLog.Error("vm Init", "getLastChoice err", err)
 		panic(err)
@@ -111,7 +112,7 @@ func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, e
 
 	details, err := vm.api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{blkID[:]}})
 	if err != nil || len(details.GetItems()) < 1 || details.GetItems()[0].GetBlock() == nil {
-		snowLog.Debug("vmGetBlock", "hash", blkID.Hex())
+		snowLog.Debug("vmGetBlock", "hash", blkID.Hex(), "err", err)
 		return nil, database.ErrNotFound
 	}
 	sb := vm.newSnowBlock(details.GetItems()[0].GetBlock(), choices.Processing)
@@ -157,7 +158,7 @@ func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 	vm.lock.Lock()
 	defer vm.lock.Unlock()
 	vm.pendingBlocks.PushBack(vm.newSnowBlock(blk, choices.Processing))
-	snowLog.Debug("vm addNewBlock", "height", blk.GetHeight(), "hash", blk.Hash(vm.cfg),
+	snowLog.Debug("vm addNewBlock", "height", blk.GetHeight(), "hash", hex.EncodeToString(blk.Hash(vm.cfg)),
 		"acceptedHeight", ah, "pendingNum", vm.pendingBlocks.Len())
 	return true
 }
@@ -201,21 +202,6 @@ func (vm *chain33VM) SetPreference(ctx context.Context, blkID ids.ID) error {
 	return nil
 }
 
-func getLastChoice(cli queue.Client) (*types.SnowChoice, error) {
-
-	msg := cli.NewMessage("blockchain", types.EventSnowmanLastChoice, &types.ReqNil{})
-	err := cli.Send(msg, true)
-	if err != nil {
-		return nil, err
-	}
-
-	reply, err := cli.Wait(msg)
-	if err != nil {
-		return nil, err
-	}
-	return reply.GetData().(*types.SnowChoice), nil
-}
-
 // LastAccepted returns the ID of the last accepted block.
 //
 // If no blocks have been accepted by consensus yet, it is assumed there is
@@ -223,7 +209,7 @@ func getLastChoice(cli queue.Client) (*types.SnowChoice, error) {
 // returned.
 func (vm *chain33VM) LastAccepted(_ context.Context) (ids.ID, error) {
 
-	choice, err := getLastChoice(vm.qclient)
+	choice, err := vm.api.GetFinalizedBlock()
 	if err != nil {
 		snowLog.Error("vmLastAccepted", "getLastChoice err", err)
 		return ids.Empty, err

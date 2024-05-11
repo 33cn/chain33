@@ -73,32 +73,32 @@ func (s *snowman) handleEventGetBlock(msg *queue.Message) {
 	}
 
 	rep.PeerName = req.PeerName
-	err = s.P2PManager.Client.Send(consensusMsg(types.EventSnowmanPutBlock, rep), false)
+	err = s.QueueClient.Send(consensusMsg(types.EventSnowmanPutBlock, rep), false)
 	if err != nil {
 		log.Error("handleEventGetBlock", "reqID", req.RequestID, "peer", req.PeerName, "send queue err", err)
 	}
 
 }
 
-func (s *snowman) handleEventPutBlock(msg *queue.Message) {
-
-	req := msg.GetData().(*types.SnowPutBlock)
-
-	pid, _ := peer.Decode(req.PeerName)
-	stream, err := s.Host.NewStream(s.Ctx, pid, snowPutBlock)
-	if err != nil {
-		log.Error("handleEventPutBlock", "reqID", req.RequestID, "peer", req.PeerName, "newStream err", err)
-		return
-	}
-
-	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
-	defer protocol.CloseStream(stream)
-
-	err = protocol.WriteStream(req, stream)
-	if err != nil {
-		log.Error("handleEventPutBlock", "reqID", req.RequestID, "peer", req.PeerName, "writeStream err", err)
-	}
-}
+//func (s *snowman) handleEventPutBlock(msg *queue.Message) {
+//
+//	req := msg.GetData().(*types.SnowPutBlock)
+//
+//	pid, _ := peer.Decode(req.PeerName)
+//	stream, err := s.Host.NewStream(s.Ctx, pid, snowPutBlock)
+//	if err != nil {
+//		log.Error("handleEventPutBlock", "reqID", req.RequestID, "peer", req.PeerName, "newStream err", err)
+//		return
+//	}
+//
+//	_ = stream.SetDeadline(time.Now().Add(time.Second * 5))
+//	defer protocol.CloseStream(stream)
+//
+//	err = protocol.WriteStream(req, stream)
+//	if err != nil {
+//		log.Error("handleEventPutBlock", "reqID", req.RequestID, "peer", req.PeerName, "writeStream err", err)
+//	}
+//}
 
 func (s *snowman) handleEventPullQuery(msg *queue.Message) {
 
@@ -154,7 +154,7 @@ func (s *snowman) handleStreamChits(stream network.Stream) {
 		return
 	}
 	req.PeerName = peerName
-	err = s.P2PManager.Client.Send(consensusMsg(types.EventSnowmanChits, req), false)
+	err = s.QueueClient.Send(consensusMsg(types.EventSnowmanChits, req), false)
 
 	if err != nil {
 		log.Error("handleStreamChits", "reqID", req.RequestID, "peer", peerName, "send queue err", err)
@@ -198,7 +198,7 @@ func (s *snowman) handleStreamPullQuery(stream network.Stream) {
 		return
 	}
 	req.PeerName = peerName
-	err = s.P2PManager.Client.Send(consensusMsg(types.EventSnowmanPullQuery, req), false)
+	err = s.QueueClient.Send(consensusMsg(types.EventSnowmanPullQuery, req), false)
 
 	if err != nil {
 		log.Error("handleStreamPullQuery", "reqID", req.RequestID, "peer", req.PeerName, "send queue err", err)
@@ -215,7 +215,7 @@ func (s *snowman) handleStreamPushQuery(stream network.Stream) {
 		return
 	}
 	req.PeerName = peerName
-	err = s.P2PManager.Client.Send(consensusMsg(types.EventSnowmanPushQuery, req), false)
+	err = s.QueueClient.Send(consensusMsg(types.EventSnowmanPushQuery, req), false)
 
 	if err != nil {
 		log.Error("handleStreamPushQuery", "reqID", req.RequestID, "peer", req.PeerName, "send queue err", err)
