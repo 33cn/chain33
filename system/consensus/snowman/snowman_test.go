@@ -37,11 +37,11 @@ func TestSnowman(t *testing.T) {
 	sm := &snowman{}
 	sm.Initialize(ctx)
 
-	for timeout := 0; atomic.LoadInt64(&sm.vm.acceptedHeight) < 1; timeout++ {
+	for timeout := 0; sm.initDone.Load() == false; timeout++ {
 		time.Sleep(time.Second)
 		timeout++
 		if timeout >= 3 {
-			t.Errorf("test timeout acceptHeight=%d", atomic.LoadInt64(&sm.vm.acceptedHeight))
+			t.Errorf("wait snowman init timeout")
 			return
 		}
 	}
@@ -65,10 +65,8 @@ func TestSnowman(t *testing.T) {
 	sm.SubMsg(queue.NewMessage(types.EventSnowmanGetFailed, "", 0,
 		&types.SnowFailedQuery{RequestID: reqID + 5, PeerName: peer}))
 
-	gblock.Height = 2
-	gblock.ParentHash = sc.Hash
-	sc.Height = gblock.Height
-	sc.Hash = gblock.Hash(q.GetConfig())
+	sc.Height = 2
+	sc.Hash = blk.Hash(q.GetConfig())
 	sm.SubMsg(queue.NewMessage(types.EventSnowmanResetEngine, "", 0, nil))
 	for timeout := 0; atomic.LoadInt64(&sm.vm.acceptedHeight) < 2; timeout++ {
 		time.Sleep(time.Second)

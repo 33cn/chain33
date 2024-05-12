@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	sncom "github.com/ava-labs/avalanchego/snow/engine/common"
@@ -51,7 +52,7 @@ type snowman struct {
 	inMsg        chan *queue.Message
 	engineNotify chan struct{}
 	params       snowball.Parameters
-	initDone     bool
+	initDone     atomic.Bool
 	lock         sync.RWMutex
 }
 
@@ -113,6 +114,7 @@ func (s *snowman) startRoutine() {
 	}
 
 	go s.dispatchSyncMsg()
+	s.initDone.Store(true)
 	snowLog.Debug("snowman startRoutine done")
 
 }
