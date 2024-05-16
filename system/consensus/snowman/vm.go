@@ -218,6 +218,7 @@ func (vm *chain33VM) LastAccepted(_ context.Context) (ids.ID, error) {
 	atomic.StoreInt64(&vm.acceptedHeight, choice.Height)
 	var id ids.ID
 	copy(id[:], choice.Hash)
+	vm.decidedHashes.Add(id, true)
 	return id, nil
 }
 

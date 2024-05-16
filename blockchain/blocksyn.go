@@ -753,7 +753,7 @@ func (chain *BlockChain) forkChainDetection(prevMode int) {
 			chainlog.Error("forkChainDetection", "height", forkHeight, "GetBlockHashByHeight err", err)
 			return
 		}
-		chain.finalizer.setFinalizedBlock(forkHeight, forkHash)
+		chain.finalizer.setFinalizedBlock(forkHeight, forkHash, false)
 		_ = chain.client.Send(queue.NewMessage(types.EventSnowmanResetEngine, "consensus", types.EventForFinalizer, nil), false)
 	}
 
