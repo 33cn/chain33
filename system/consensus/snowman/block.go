@@ -13,6 +13,7 @@ import (
 // wrap chain33 block for implementing the snowman.Block interface
 type snowBlock struct {
 	id     ids.ID
+	parent ids.ID
 	block  *types.Block
 	status choices.Status
 	vm     *chain33VM
@@ -25,7 +26,7 @@ func (b *snowBlock) ID() ids.ID { return b.id }
 func (b *snowBlock) Accept(ctx context.Context) error {
 
 	b.status = choices.Accepted
-	snowLog.Debug("snowBlock accept", "hash", b.id.Hex(), "height", b.Height())
+	snowLog.Debug("snowBlock accept", "hash", b.id.Hex(), "height", b.Height(), "parent", b.Parent().Hex())
 	err := b.vm.acceptBlock(b.block.Height, b.id)
 	if err != nil {
 		snowLog.Error("Accepting block error", "hash", b.id.Hex(), "height", b.Height())
@@ -37,7 +38,7 @@ func (b *snowBlock) Accept(ctx context.Context) error {
 // This element will not be accepted by any correct node in the network.
 func (b *snowBlock) Reject(ctx context.Context) error {
 	b.status = choices.Rejected
-	snowLog.Debug("snowBlock reject", "hash", b.ID().Hex(), "height", b.Height())
+	snowLog.Debug("snowBlock reject", "hash", b.ID().Hex(), "height", b.Height(), "parent", b.Parent().Hex())
 	b.vm.rejectBlock(b.block.Height, b.ID())
 	return nil
 }
@@ -53,7 +54,7 @@ func (b *snowBlock) Status() choices.Status {
 
 // Parent implements the snowman.Block interface
 func (b *snowBlock) Parent() ids.ID {
-	return toSnowID(b.block.ParentHash)
+	return b.parent
 }
 
 // Height implements the snowman.Block interface

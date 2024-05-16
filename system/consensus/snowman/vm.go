@@ -48,6 +48,7 @@ func (vm *chain33VM) newSnowBlock(blk *types.Block, status choices.Status) *snow
 
 	sb := &snowBlock{block: blk, vm: vm, status: status}
 	sb.id = toSnowID(blk.Hash(vm.cfg))
+	sb.parent = toSnowID(blk.GetParentHash())
 	return sb
 }
 
@@ -159,7 +160,7 @@ func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 	defer vm.lock.Unlock()
 	vm.pendingBlocks.PushBack(vm.newSnowBlock(blk, choices.Processing))
 	snowLog.Debug("vm addNewBlock", "height", blk.GetHeight(), "hash", hex.EncodeToString(blk.Hash(vm.cfg)),
-		"acceptedHeight", ah, "pendingNum", vm.pendingBlocks.Len())
+		"parent", hex.EncodeToString(blk.ParentHash), "acceptedHeight", ah, "pendingNum", vm.pendingBlocks.Len())
 	return true
 }
 
@@ -178,7 +179,8 @@ func (vm *chain33VM) BuildBlock(_ context.Context) (snowcon.Block, error) {
 		if sb.Height() <= uint64(ah) {
 			continue
 		}
-		snowLog.Debug("vmBuildBlock", "pendingNum", vm.pendingBlocks.Len(), "height", sb.Height(), "hash", sb.id.Hex())
+		snowLog.Debug("vmBuildBlock", "pendingNum", vm.pendingBlocks.Len(), "height", sb.Height(),
+			"hash", sb.id.Hex(), "parent", sb.Parent().Hex())
 		return sb, nil
 	}
 
