@@ -132,7 +132,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.detectNodeAddr()
 	go p.checkBlocked()
 	go func() {
-		ticker := time.NewTicker(time.Second)
+		ticker := time.NewTicker(time.Second * 3)
 		defer ticker.Stop()
 		ticker2 := time.NewTicker(time.Minute * 5)
 		defer ticker2.Stop()
