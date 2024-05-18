@@ -6,7 +6,6 @@ package blockchain
 
 import (
 	"bytes"
-	"github.com/33cn/chain33/queue"
 	"math/big"
 	"sort"
 	"sync"
@@ -753,8 +752,7 @@ func (chain *BlockChain) forkChainDetection(prevMode int) {
 			chainlog.Error("forkChainDetection", "height", forkHeight, "GetBlockHashByHeight err", err)
 			return
 		}
-		chain.finalizer.setFinalizedBlock(forkHeight, forkHash, false)
-		_ = chain.client.Send(queue.NewMessage(types.EventSnowmanResetEngine, "consensus", types.EventForFinalizer, nil), false)
+		_ = chain.finalizer.reset(forkHeight, forkHash)
 	}
 
 	// 检测到存在分叉后, 以最近高度作为结束高度

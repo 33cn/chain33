@@ -38,7 +38,7 @@ func (f *finalizer) Init(chain *BlockChain) {
 	}
 }
 
-func (f *finalizer) healthCheck(finalizedHeight int64) {
+func (f *finalizer) healthCheck(lastFinalized int64) {
 
 	ticker := time.NewTicker(time.Minute * 3)
 	for {
@@ -51,19 +51,19 @@ func (f *finalizer) healthCheck(finalizedHeight int64) {
 		case <-ticker.C:
 
 			chainHeight := f.chain.bestChain.Height()
-			height, _ := f.getLastFinalized()
-			chainlog.Debug("finalizer healthCheck", "lastFinalize", finalizedHeight, "currFinalize", height, "chainHeight", chainHeight)
-			if height > finalizedHeight || chainHeight <= height {
-				finalizedHeight = height
+			finalized, _ := f.getLastFinalized()
+			chainlog.Debug("finalizer healthCheck", "lastFinalize", lastFinalized, "finalized", finalized, "chainHeight", chainHeight)
+			if finalized > lastFinalized || chainHeight <= finalized {
+				lastFinalized = finalized
 				continue
 			}
-			detail, err := f.chain.GetBlock(height)
+			detail, err := f.chain.GetBlock(finalized)
 			if err != nil {
-				chainlog.Error("finalizer healthCheck", "height", height, "get block err", err)
+				chainlog.Error("finalizer healthCheck", "height", finalized, "get block err", err)
 				continue
 			}
-			_ = f.setFinalizedBlock(detail.GetBlock().Height, detail.GetBlock().Hash(f.chain.client.GetConfig()), false)
-			_ = f.chain.client.Send(queue.NewMessage(types.EventSnowmanResetEngine, "consensus", types.EventForFinalizer, nil), false)
+			_ = f.reset(finalized, detail.GetBlock().Hash(f.chain.client.GetConfig()))
+
 		}
 	}
 
@@ -100,8 +100,10 @@ func (f *finalizer) snowmanAcceptBlock(msg *queue.Message) {
 
 	// 已经最终化区块不在当前最佳链中, 即当前节点在侧链上, 最终化记录不更新
 	if !f.chain.bestChain.HaveBlock(req.GetHash(), req.GetHeight()) {
+		chainHeight := f.chain.bestChain.Height()
 		chainlog.Debug("snowmanAcceptBlock not in bestChain", "height", req.Height,
-			"hash", hex.EncodeToString(req.GetHash()), "chainHeight", f.chain.bestChain.height())
+			"hash", hex.EncodeToString(req.GetHash()), "chainHeight", chainHeight)
+		go f.acceptOrReset(chainHeight, req)
 		return
 	}
 
@@ -109,6 +111,57 @@ func (f *finalizer) snowmanAcceptBlock(msg *queue.Message) {
 	if err != nil {
 		chainlog.Error("snowmanAcceptBlock", "setFinalizedBlock err", err.Error())
 	}
+}
+
+func (f *finalizer) acceptOrReset(chainHeight int64, sc *types.SnowChoice) {
+
+	ticker := time.NewTicker(time.Second * 10)
+	var currHeight int64
+	for {
+
+		select {
+
+		case <-f.chain.quit:
+			return
+
+		case <-ticker.C:
+
+			if f.chain.bestChain.HaveBlock(sc.GetHash(), sc.GetHeight()) {
+				_ = f.setFinalizedBlock(sc.GetHeight(), sc.GetHash(), true)
+				return
+			}
+			// 最终化区块不在主链上且主链高度正常增长, 重置最终化引擎, 尝试对该高度重新共识
+			currHeight = f.chain.bestChain.Height()
+			if currHeight > chainHeight && currHeight > sc.GetHeight()+12 {
+				chainlog.Debug("acceptOrReset reset finalizer", "chainHeight", chainHeight,
+					"currHeight", currHeight, "sc.height", sc.GetHeight())
+				_ = f.chain.client.Send(queue.NewMessage(types.EventSnowmanResetEngine, "consensus", types.EventForFinalizer, nil), true)
+				return
+			}
+
+		case <-time.After(2 * time.Minute):
+			chainlog.Debug("acceptOrReset timeout", "chainHeight", chainHeight,
+				"currHeight", currHeight, "sc.height", sc.GetHeight())
+			return
+		}
+
+	}
+
+}
+
+func (f *finalizer) reset(height int64, hash []byte) error {
+
+	chainlog.Debug("finalizer reset", "height", height, "hash", hex.EncodeToString(hash))
+	err := f.setFinalizedBlock(height, hash, false)
+	if err != nil {
+		chainlog.Error("finalizer reset", "setFinalizedBlock err", err)
+		return err
+	}
+	err = f.chain.client.Send(queue.NewMessage(types.EventSnowmanResetEngine, "consensus", types.EventForFinalizer, nil), true)
+	if err != nil {
+		chainlog.Error("finalizer reset", "send msg err", err)
+	}
+	return err
 }
 
 func (f *finalizer) setFinalizedBlock(height int64, hash []byte, mustInorder bool) error {
@@ -139,7 +192,7 @@ func (f *finalizer) getLastFinalized() (int64, []byte) {
 func (f *finalizer) snowmanLastChoice(msg *queue.Message) {
 
 	height, hash := f.getLastFinalized()
-	chainlog.Debug("snowmanLastChoice", "height", height, "hash", hex.EncodeToString(hash))
+	//chainlog.Debug("snowmanLastChoice", "height", height, "hash", hex.EncodeToString(hash))
 	msg.Reply(f.chain.client.NewMessage(msg.Topic,
 		types.EventSnowmanLastChoice, &types.SnowChoice{Height: height, Hash: hash}))
 }

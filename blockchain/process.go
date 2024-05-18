@@ -210,15 +210,6 @@ func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDet
 		return block, true, nil
 	}
 	chainlog.Debug("connectBestChain", "parentHash", common.ToHex(parentHash), "bestChain.Tip().hash", common.ToHex(tip.hash))
-	// 区块侧链分叉重组处理高度不能小于最终化高度
-	fork := chain.bestChain.FindFork(node)
-	finalized, _ := chain.finalizer.getLastFinalized()
-	if fork != nil && fork.height < finalized {
-		chainlog.Debug("connectBestChain alreadyFinalized",
-			"finalized", finalized, "forkHeight", fork.height, "chainHeight", tip.height,
-			"addHeight", node.height, "addHash", common.ToHex(node.hash))
-		return nil, false, types.ErrHeightAlreadyFinalized
-	}
 
 	// 获取tip节点的block总难度tipid
 	tiptd, Err := chain.blockStore.GetTdByBlockHash(tip.hash)
@@ -233,8 +224,8 @@ func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDet
 	}
 	blocktd := new(big.Int).Add(node.Difficulty, parenttd)
 
-	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(tip.hash), "height", tip.height, "TD", difficulty.BigToCompact(tiptd))
-	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", difficulty.BigToCompact(blocktd))
+	chainlog.Debug("connectBestChain difficulty:", "tipHash", common.ToHex(tip.hash), "tipHeight", tip.height, "tipTD", difficulty.BigToCompact(tiptd),
+		"nodeHash", common.ToHex(node.hash), "nodeHeight", node.height, "nodeTD", difficulty.BigToCompact(blocktd))
 
 	//优先选择总难度系数大的区块
 	//总难度系数，区块高度，出块时间以及父区块一致并开启最优区块比较功能时，通过共识模块来确定最优区块
@@ -242,19 +233,29 @@ func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDet
 	if enBestBlockCmp && blocktd.Cmp(tiptd) == 0 && node.height == tip.height && util.CmpBestBlock(chain.client, block.Block, tip.hash) {
 		iSideChain = false
 	}
-	if iSideChain {
-		if fork != nil && bytes.Equal(parentHash, fork.hash) {
-			chainlog.Info("connectBestChain FORK:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
-		} else {
-			chainlog.Info("connectBestChain extends a side chain:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
-		}
+	fork := chain.bestChain.FindFork(node)
+	finalized, hash := chain.finalizer.getLastFinalized()
+	if iSideChain || node.height < finalized+12 {
+
+		chainlog.Debug("connectBestChain side chain:", "nodeHeight", node.height, "nodeHash", common.ToHex(node.hash),
+			"fork.height", fork.height, "fork.hash", common.ToHex(fork.hash),
+			"finalized", finalized, "fHash", common.ToHex(hash))
 		return nil, false, nil
 	}
 
+	if fork != nil && fork.height < finalized {
+
+		chainlog.Debug("connectBestChain reset finalizer",
+			"finalized", finalized, "fHash", common.ToHex(hash),
+			"forkHeight", fork.height, "forkHash", common.ToHex(fork.hash),
+			"tipHeight", tip.height, "tipHash", common.ToHex(tip.hash),
+			"nodeHeight", node.height, "nodeHash", common.ToHex(node.hash))
+		_ = chain.finalizer.reset(fork.height, fork.hash)
+	}
+
 	//print
-	chainlog.Debug("connectBestChain tip", "height", tip.height, "hash", common.ToHex(tip.hash))
-	chainlog.Debug("connectBestChain node", "height", node.height, "hash", common.ToHex(node.hash), "parentHash", common.ToHex(parentHash))
-	chainlog.Debug("connectBestChain block", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)))
+	chainlog.Debug("connectBestChain reorganize", "tipHeight", tip.height, "tipHash", common.ToHex(tip.hash),
+		"nodeHeight", node.height, "nodeHash", common.ToHex(node.hash), "parentHash", common.ToHex(parentHash))
 
 	// 获取需要重组的block node
 	detachNodes, attachNodes := chain.getReorganizeNodes(node, fork)
