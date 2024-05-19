@@ -45,7 +45,7 @@ func (b *snowBlock) Reject(ctx context.Context) error {
 
 // SetStatus implements the InternalBlock interface allowing ChainState
 // to set the status on an existing block
-func (b *snowBlock) SetStatus(status choices.Status) { b.status = status }
+//func (b *snowBlock) SetStatus(status choices.Status) { b.status = status }
 
 // Status implements the snowman.Block interface
 func (b *snowBlock) Status() choices.Status {

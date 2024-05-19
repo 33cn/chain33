@@ -2,6 +2,7 @@ package snowman
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"sync"
 	"time"
@@ -80,8 +81,10 @@ func (s *vdrSet) Sample(size int) ([]ids.NodeID, error) {
 	return nodeIDS, nil
 }
 
+const maxHeightDiff = 128
+
 func (s *vdrSet) getConnectedPeers() ([]*types.Peer, error) {
-	snowLog.Debug("vdrSet getConnectedPeers")
+
 	msg := s.qclient.NewMessage("p2p", types.EventPeerInfo, nil)
 	err := s.qclient.Send(msg, true)
 	if err != nil {
@@ -104,8 +107,18 @@ func (s *vdrSet) getConnectedPeers() ([]*types.Peer, error) {
 	peers := make([]*types.Peer, 0, count)
 	for _, p := range peerlist.GetPeers() {
 
-		if p.Self || p.Blocked ||
-			p.GetFinalized().GetHeight() < s.self.GetHeader().GetHeight()-128 {
+		// 过滤未启用节点
+		if p.Self || p.Blocked || len(p.GetFinalized().GetHash()) <= 0 {
+			continue
+		}
+
+		headerDiff := math.Abs(float64(p.Header.GetHeight() - s.self.Header.GetHeight()))
+		finalizeDiff := math.Abs(float64(p.Finalized.GetHeight() - s.self.Finalized.GetHeight()))
+		// 过滤高度差较大节点
+		if headerDiff > maxHeightDiff && finalizeDiff > maxHeightDiff {
+			snowLog.Debug("getConnectedPeers filter", "peer", p.Name,
+				"pHeight", p.Header.GetHeight(), "fHeight", p.Finalized.GetHeight(),
+				"selfHeight", s.self.Header.GetHeight(), "fHeight", s.self.Finalized.GetHeight())
 			continue
 		}
 		peers = append(peers, p)

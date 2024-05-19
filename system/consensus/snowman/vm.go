@@ -42,6 +42,7 @@ type chain33VM struct {
 	lock           sync.RWMutex
 	acceptedHeight int64
 	decidedHashes  *lru.Cache
+	cacheBlks      *lru.Cache
 }
 
 func (vm *chain33VM) newSnowBlock(blk *types.Block, status choices.Status) *snowBlock {
@@ -64,6 +65,10 @@ func (vm *chain33VM) Init(ctx *consensus.Context) {
 		panic("chain33VM Init New lru err" + err.Error())
 	}
 	vm.decidedHashes = c
+	vm.cacheBlks, err = lru.New(128)
+	if err != nil {
+		panic("chain33VM Init New reqBlks lru err" + err.Error())
+	}
 	vm.pendingBlocks = list.New()
 	choice, err := vm.api.GetFinalizedBlock()
 	if err != nil {
@@ -108,15 +113,8 @@ func (vm *chain33VM) Shutdown(context.Context) error {
 	return nil
 }
 
-// GetBlock get block
-func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, error) {
+func (vm *chain33VM) checkDecided(sb *snowBlock) {
 
-	details, err := vm.api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{blkID[:]}})
-	if err != nil || len(details.GetItems()) < 1 || details.GetItems()[0].GetBlock() == nil {
-		snowLog.Debug("vmGetBlock", "hash", blkID.Hex(), "err", err)
-		return nil, database.ErrNotFound
-	}
-	sb := vm.newSnowBlock(details.GetItems()[0].GetBlock(), choices.Processing)
 	accepted, ok := vm.decidedHashes.Get(sb.ID())
 	if ok {
 		sb.status = choices.Rejected
@@ -124,7 +122,26 @@ func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, e
 			sb.status = choices.Accepted
 		}
 	}
+}
 
+// GetBlock get block
+func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, error) {
+
+	val, ok := vm.cacheBlks.Get(blkID)
+	if ok {
+		sb := val.(*snowBlock)
+		snowLog.Debug("GetBlock cache", "hash", blkID.Hex(), "height", sb.Height(), "status", sb.Status().String())
+		sb.status = choices.Processing
+		vm.checkDecided(sb)
+		return sb, nil
+	}
+	details, err := vm.api.GetBlockByHashes(&types.ReqHashes{Hashes: [][]byte{blkID[:]}})
+	if err != nil || len(details.GetItems()) < 1 || details.GetItems()[0].GetBlock() == nil {
+		snowLog.Debug("vmGetBlock failed", "hash", blkID.Hex(), "err", err)
+		return nil, database.ErrNotFound
+	}
+	sb := vm.newSnowBlock(details.GetItems()[0].GetBlock(), choices.Processing)
+	vm.checkDecided(sb)
 	return sb, nil
 }
 
@@ -137,17 +154,14 @@ func (vm *chain33VM) ParseBlock(_ context.Context, b []byte) (snowcon.Block, err
 		snowLog.Error("vmParseBlock", "decode err", err)
 		return nil, err
 	}
-	sb := vm.newSnowBlock(blk, choices.Unknown)
-	accepted, ok := vm.decidedHashes.Get(sb.ID())
-	if ok {
-		sb.status = choices.Rejected
-		if accepted.(bool) {
-			sb.status = choices.Accepted
-		}
-	}
-
+	sb := vm.newSnowBlock(blk, choices.Processing)
+	vm.checkDecided(sb)
+	// add to cache
+	vm.cacheBlks.Add(sb.ID(), sb)
 	return sb, nil
 }
+
+const maxPendingNum = 128
 
 func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 
@@ -158,6 +172,9 @@ func (vm *chain33VM) addNewBlock(blk *types.Block) bool {
 
 	vm.lock.Lock()
 	defer vm.lock.Unlock()
+	if vm.pendingBlocks.Len() > maxPendingNum {
+		return false
+	}
 	vm.pendingBlocks.PushBack(vm.newSnowBlock(blk, choices.Processing))
 	snowLog.Debug("vm addNewBlock", "height", blk.GetHeight(), "hash", hex.EncodeToString(blk.Hash(vm.cfg)),
 		"parent", hex.EncodeToString(blk.ParentHash), "acceptedHeight", ah, "pendingNum", vm.pendingBlocks.Len())
@@ -175,6 +192,7 @@ func (vm *chain33VM) BuildBlock(_ context.Context) (snowcon.Block, error) {
 	defer vm.lock.Unlock()
 
 	for vm.pendingBlocks.Len() > 0 {
+
 		sb := vm.pendingBlocks.Remove(vm.pendingBlocks.Front()).(*snowBlock)
 		if sb.Height() <= uint64(ah) {
 			continue

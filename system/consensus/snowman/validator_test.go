@@ -66,8 +66,7 @@ func Test_getConnectedPeers(t *testing.T) {
 	peers, err = v.getConnectedPeers()
 	require.Nil(t, err)
 	require.Equal(t, 0, len(peers))
-	peer.Finalized.Height = 1
-
+	peer.Finalized.Hash = []byte("test")
 	peers, err = v.getConnectedPeers()
 	require.Nil(t, err)
 	require.Equal(t, 1, len(peers))

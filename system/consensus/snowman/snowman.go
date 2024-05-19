@@ -90,7 +90,6 @@ func (s *snowman) initSnowEngine() {
 
 func (s *snowman) resetEngine() {
 
-	snowLog.Debug("reset snowman engine")
 	s.initSnowEngine()
 	s.vm.reset()
 	if err := s.engine.Start(s.ctx.Base.Context, 0); err != nil {
@@ -105,7 +104,7 @@ func (s *snowman) startRoutine() {
 		if err == nil && len(c.Hash) > 0 {
 			break
 		}
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Second * 10)
 	}
 
 	err := s.engine.Start(s.ctx.Base.Context, 0)
@@ -128,7 +127,7 @@ func (s *snowman) AddBlock(blk *types.Block) {
 	select {
 	case s.engineNotify <- struct{}{}:
 	default:
-
+		snowLog.Debug("snowman AddBlock max capacity")
 	}
 
 }
@@ -171,6 +170,7 @@ func (s *snowman) handleSyncMsg(msg *queue.Message) {
 	switch msg.ID {
 
 	case types.EventSnowmanResetEngine:
+		snowLog.Debug("handleInMsg reset engine")
 		s.resetEngine()
 
 	case types.EventSnowmanChits:

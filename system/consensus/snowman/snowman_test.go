@@ -30,7 +30,11 @@ func TestSnowman(t *testing.T) {
 
 		cli.Sub("p2p")
 		for msg := range cli.Recv() {
-			msg.Reply(cli.NewMessage("", 0, &types.Reply{}))
+			if msg.Ty == types.EventPeerInfo {
+				msg.Reply(cli.NewMessage("", 0, &types.PeerList{}))
+			} else {
+				msg.Reply(cli.NewMessage("", 0, &types.Reply{}))
+			}
 		}
 	}()
 
