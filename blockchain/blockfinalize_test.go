@@ -7,11 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
+	"time"
 )
 
 func newTestChain(t *testing.T) (*BlockChain, string) {
 
 	chain := InitEnv()
+	chain.client.GetConfig().GetModuleConfig().Consensus.Finalizer = "snowman"
 	dir, err := os.MkdirTemp("", "finalize")
 	require.Nil(t, err)
 	blockStoreDB := dbm.NewDB("blockchain", "leveldb", dir, 64)
@@ -26,7 +28,7 @@ func TestFinalizer(t *testing.T) {
 
 	chain, dir := newTestChain(t)
 	defer os.RemoveAll(dir)
-
+	defer chain.Close()
 	f := &finalizer{}
 	f.Init(chain)
 
@@ -55,4 +57,42 @@ func TestFinalizer(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, msg1.Data, choice)
 	f.Init(chain)
+
+}
+
+func TestResetEngine(t *testing.T) {
+
+	chain, dir := newTestChain(t)
+	defer os.RemoveAll(dir)
+	defer chain.Close()
+	f := &finalizer{}
+	f.Init(chain)
+
+	hash := []byte("testhash")
+	choice := &types.SnowChoice{Height: 1, Hash: hash}
+	node := &blockNode{
+		parent: chain.bestChain.Tip(),
+		height: 14,
+		hash:   hash,
+	}
+	chain.bestChain.SetTip(node)
+	chain.client.Sub(consensusTopic)
+	go f.resetEngine(1, choice, time.Second)
+	recvMsg := func() {
+		select {
+		case msg := <-chain.client.Recv():
+			require.Equal(t, "consensus", msg.Topic)
+			require.Equal(t, int64(types.EventSnowmanResetEngine), msg.ID)
+			require.Equal(t, int64(types.EventForFinalizer), msg.Ty)
+		case <-time.After(time.Second * 5):
+			t.Error("resetEngine timeout")
+		}
+	}
+	recvMsg()
+	f.reset(choice.Height, choice.Hash)
+	recvMsg()
+	height, hash1 := f.getLastFinalized()
+	require.Equal(t, choice.Height, height)
+	require.Equal(t, hash, hash1)
+
 }
