@@ -56,7 +56,6 @@ func TestFinalizer(t *testing.T) {
 	msg1, err := chain.client.Wait(msg)
 	require.Nil(t, err)
 	require.Equal(t, msg1.Data, choice)
-	f.Init(chain)
 
 }
 
