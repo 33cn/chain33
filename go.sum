@@ -214,8 +214,8 @@ github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792/go.mod h1:ghJtE
 github.com/btcsuite/winsvc v1.0.0 h1:J9B4L7e3oqhXOcm+2IuNApwzQec85lE+QaikUcCs+dk=
 github.com/btcsuite/winsvc v1.0.0/go.mod h1:jsenWakMcC0zFBFurPLEAyrnc/teJEM1O46fmI40EZs=
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
-github.com/bysomeone/avalanchego v0.0.0-20240511070301-a9a2aac50464 h1:fjGGreFQgEMo+jTduHpxVpDOVbGd45Wata/KXu9ieWg=
-github.com/bysomeone/avalanchego v0.0.0-20240511070301-a9a2aac50464/go.mod h1:SgoXVssKD3a3diOV4qaTkOEQ+2KEfErcdOASIhV6a1s=
+github.com/bysomeone/avalanchego v0.0.0-20240525154058-c4ea5da7ec71 h1:y70tfpRGONtMp0EqL+uYMTdaTR4OBpC631a97b0dTa4=
+github.com/bysomeone/avalanchego v0.0.0-20240525154058-c4ea5da7ec71/go.mod h1:SgoXVssKD3a3diOV4qaTkOEQ+2KEfErcdOASIhV6a1s=
 github.com/c-bata/go-prompt v0.2.2 h1:uyKRz6Z6DUyj49QVijyM339UJV9yhbr70gESwbNU3e0=
 github.com/c-bata/go-prompt v0.2.2/go.mod h1:VzqtzE2ksDBcdln8G7mk2RX9QyGjH+OVqOCSiVIqS34=
 github.com/cactus/go-statsd-client/statsd v0.0.0-20191106001114-12b4e2b38748/go.mod h1:l/bIBLeOl9eX+wxJAzxS4TveKRtAqlyDpHjhkfO0MEI=

@@ -200,7 +200,7 @@ func (f *finalizer) resetEngine(chainHeight int64, sc *types.SnowChoice, duratio
 			currHeight := f.chain.bestChain.Height()
 			if currHeight > chainHeight && currHeight > sc.GetHeight()+12 {
 				chainlog.Debug("resetEngine", "chainHeight", chainHeight,
-					"currHeight", currHeight, "sc.height", sc.GetHeight())
+					"currHeight", currHeight, "sc.height", sc.GetHeight(), "sc.hash", hex.EncodeToString(sc.GetHash()))
 				_ = f.chain.client.Send(queue.NewMessage(types.EventSnowmanResetEngine, consensusTopic, types.EventForFinalizer, nil), true)
 				return
 			}

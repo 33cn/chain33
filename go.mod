@@ -227,4 +227,4 @@ require (
 
 replace github.com/btcsuite/btcd/btcec => github.com/btcsuite/btcd v0.22.3
 
-replace github.com/ava-labs/avalanchego => github.com/bysomeone/avalanchego v0.0.0-20240511070301-a9a2aac50464
+replace github.com/ava-labs/avalanchego => github.com/bysomeone/avalanchego v0.0.0-20240525154058-c4ea5da7ec71
