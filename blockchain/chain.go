@@ -49,7 +49,6 @@ type BlockChain struct {
 
 	// 永久存储数据到db中
 	blockStore *BlockStore
-	finalizer  *finalizer
 	push       *Push
 	//cache  缓存block方便快速查询
 	cfg             *types.BlockChain
@@ -150,6 +149,7 @@ type BlockChain struct {
 	// 是否正在下载chunk
 	chunkDownloading int32
 	forkPointChan    chan int64
+	finalizer        *finalizer
 }
 
 // New new
