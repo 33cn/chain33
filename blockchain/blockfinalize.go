@@ -107,16 +107,16 @@ func (f *finalizer) healthCheck() {
 		case <-ticker.C:
 			maxPeerHeight := f.chain.GetPeerMaxBlkHeight()
 			// 节点高度落后较多情况不处理, 等待同步
-			if height := f.chain.GetBlockHeight(); height < maxPeerHeight-128 || healthy {
-				chainlog.Debug("finalizer timeout", "healthy", healthy, "height", height, "maxHeight", maxPeerHeight)
+			height := f.chain.GetBlockHeight()
+			if height < maxPeerHeight-128 || healthy {
+				chainlog.Debug("healthCheck not sync", "healthy", healthy, "height", height, "maxHeight", maxPeerHeight)
 				healthy = false
 				continue
 			}
-			chainHeight := f.chain.bestChain.Height()
 			finalized, hash := f.getLastFinalized()
-			chainlog.Debug("finalizer timeout", "lastFinalize", finalized,
-				"hash", hex.EncodeToString(hash), "chainHeight", chainHeight)
-			if finalized >= chainHeight {
+			chainlog.Debug("healthCheck timeout", "lastFinalize", finalized,
+				"hash", hex.EncodeToString(hash), "chainHeight", height)
+			if finalized >= height {
 				continue
 			}
 			// 重新设置高度, 哈希值
@@ -193,13 +193,15 @@ func (f *finalizer) resetEngine(chainHeight int64, sc *types.SnowChoice, duratio
 
 		case <-ticker.C:
 
+			currHeight := f.chain.bestChain.Height()
 			if f.chain.bestChain.HaveBlock(sc.GetHash(), sc.GetHeight()) {
+				chainlog.Debug("resetEngine accept", "chainHeight", chainHeight,
+					"currHeight", currHeight, "sc.height", sc.GetHeight(), "sc.hash", hex.EncodeToString(sc.GetHash()))
 				return
 			}
 			// 最终化区块不在主链上且主链高度正常增长, 重置最终化引擎, 尝试对该高度重新共识
-			currHeight := f.chain.bestChain.Height()
 			if currHeight > chainHeight && currHeight > sc.GetHeight()+12 {
-				chainlog.Debug("resetEngine", "chainHeight", chainHeight,
+				chainlog.Debug("resetEngine reject", "chainHeight", chainHeight,
 					"currHeight", currHeight, "sc.height", sc.GetHeight(), "sc.hash", hex.EncodeToString(sc.GetHash()))
 				_ = f.chain.client.Send(queue.NewMessage(types.EventSnowmanResetEngine, consensusTopic, types.EventForFinalizer, nil), true)
 				return

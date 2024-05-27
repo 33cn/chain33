@@ -1,7 +1,6 @@
 package snowman
 
 import (
-	"encoding/hex"
 	"testing"
 	"time"
 
@@ -37,6 +36,8 @@ func mockHandleChainMsg(cli queue.Client) {
 			msg.Reply(cli.NewMessage("", 0, &types.BlockDetails{Items: []*types.BlockDetail{{Block: &types.Block{Height: 1}}}}))
 		} else if msg.Ty == types.EventGetBlockHash {
 			msg.Reply(cli.NewMessage("", 0, &types.ReplyHash{Hash: []byte("test")}))
+		} else if msg.Ty == types.EventGetLastHeader {
+			msg.Reply(cli.NewMessage("", 0, &types.Header{Height: 130}))
 		}
 	}
 }
@@ -62,9 +63,10 @@ func TestChain33VM(t *testing.T) {
 	require.Equal(t, 1, int(sb.Height()))
 	require.Equal(t, choices.Processing, sb.Status())
 	blk := sb.(*snowBlock).block
-	require.Equal(t, hex.EncodeToString(blk.Hash(vm.cfg)), sb.ID().Hex())
-	vm.decidedHashes.Add(sb.ID(), true)
 	sb1, err := vm.ParseBlock(nil, sb.Bytes())
+	require.Equal(t, choices.Rejected, sb1.Status())
+	vm.decidedHashes.Add(sb.ID(), true)
+	sb1, err = vm.ParseBlock(nil, sb.Bytes())
 	require.Equal(t, choices.Accepted, sb1.Status())
 	require.Nil(t, err)
 	// test and and build new block

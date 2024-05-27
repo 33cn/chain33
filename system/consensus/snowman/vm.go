@@ -1,6 +1,7 @@
 package snowman
 
 import (
+	"bytes"
 	"container/list"
 	"encoding/hex"
 	"sync"
@@ -145,7 +146,36 @@ func (vm *chain33VM) GetBlock(_ context.Context, blkID ids.ID) (snowcon.Block, e
 	return sb, nil
 }
 
-// ParseBlock parse block
+// 检测当前节点对应区块偏好
+func (vm *chain33VM) checkPreference(sb *snowBlock) {
+
+	if sb.Status().Decided() {
+		return
+	}
+	header, err := vm.api.GetLastHeader()
+	if err != nil {
+		snowLog.Error("checkPreference", "height", sb.Height(), "hash", sb.ID().Hex(), "GetLastHeader err", err)
+		return
+	}
+	// 高度128以内不处理
+	if header.GetHeight() < sb.block.Height+128 {
+		return
+	}
+
+	hash, err := vm.api.GetBlockHash(&types.ReqInt{Height: sb.block.GetHeight()})
+	if err != nil || len(hash.GetHash()) <= 0 {
+		snowLog.Error("checkPreference", "height", sb.Height(), "hash", sb.ID().Hex(), "GetBlockHash err", err)
+		return
+	}
+	// hash不一致, 为分叉区块
+	if !bytes.Equal(hash.GetHash(), sb.block.Hash(vm.cfg)) {
+		sb.status = choices.Rejected
+		vm.decidedHashes.Add(sb.ID(), false)
+		snowLog.Debug("checkPreference reject", "height", sb.Height(), "hash", sb.ID().Hex(), "mainHash", hex.EncodeToString(hash.GetHash()))
+	}
+}
+
+// ParseBlock parse block fetch from peer
 func (vm *chain33VM) ParseBlock(_ context.Context, b []byte) (snowcon.Block, error) {
 
 	blk := &types.Block{}
@@ -156,6 +186,7 @@ func (vm *chain33VM) ParseBlock(_ context.Context, b []byte) (snowcon.Block, err
 	}
 	sb := vm.newSnowBlock(blk, choices.Processing)
 	vm.checkDecided(sb)
+	vm.checkPreference(sb)
 	// add to cache
 	vm.cacheBlks.Add(sb.ID(), sb)
 	return sb, nil
