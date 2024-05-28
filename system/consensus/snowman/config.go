@@ -87,6 +87,7 @@ func (s *snowman) applyConfig(subCfg *types.ConfigSubModule) {
 
 	if cfg.BetaVirtuous > 0 {
 		s.params.BetaVirtuous = cfg.BetaVirtuous
+		s.params.BetaRogue = cfg.BetaVirtuous + 1
 	}
 
 	if cfg.BetaRogue > 0 {

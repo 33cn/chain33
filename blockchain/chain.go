@@ -233,6 +233,9 @@ func (chain *BlockChain) initConfig(cfg *types.Chain33Config) {
 	chain.initOnChainTimeout()
 	// 	初始化AllowPackHeight
 	initAllowPackHeight(chain.cfg)
+	if mcfg.BlockFinalizeEnableHeight < 0 {
+		mcfg.BlockFinalizeEnableHeight = 0
+	}
 	if mcfg.BlockFinalizeGapHeight <= 0 {
 		mcfg.BlockFinalizeGapHeight = defaultFinalizeGapHeight
 	}
