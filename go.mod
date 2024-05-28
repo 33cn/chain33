@@ -2,15 +2,19 @@ module github.com/33cn/chain33
 
 go 1.19
 
+replace (
+	github.com/ava-labs/avalanchego => github.com/bysomeone/avalanchego v0.0.0-20240525154058-c4ea5da7ec71
+	github.com/btcsuite/btcd => github.com/btcsuite/btcd v0.22.3
+)
+
 require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/XiaoMi/pegasus-go-client v0.0.0-20210825081735-b8a75c1eac2b
 	github.com/ava-labs/avalanchego v1.10.9
 	github.com/btcsuite/btcd v0.23.4
-	github.com/btcsuite/btcd/btcec v0.0.0-00010101000000-000000000000
-	github.com/btcsuite/btcd/btcec/v2 v2.3.2
 	github.com/btcsuite/btcd/btcutil v1.1.3
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1
+	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/decred/base58 v1.0.3
 	github.com/dgraph-io/badger v1.6.2
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
@@ -59,6 +63,7 @@ require (
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/benbjohnson/immutable v0.2.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
@@ -224,7 +229,3 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
-
-replace github.com/btcsuite/btcd/btcec => github.com/btcsuite/btcd v0.22.3
-
-replace github.com/ava-labs/avalanchego => github.com/bysomeone/avalanchego v0.0.0-20240525154058-c4ea5da7ec71
