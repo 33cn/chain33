@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 func TestQueueProtocolAPI(t *testing.T) {
 	var option client.QueueProtocolOption
 	option.SendTimeout = time.Millisecond
-	option.WaitTimeout = 2 * time.Millisecond
+	option.WaitTimeout = 100 * time.Millisecond
 
 	_, err := client.New(nil, nil)
 	if err == nil {

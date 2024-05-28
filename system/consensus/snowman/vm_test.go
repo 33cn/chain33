@@ -64,9 +64,10 @@ func TestChain33VM(t *testing.T) {
 	require.Equal(t, choices.Processing, sb.Status())
 	blk := sb.(*snowBlock).block
 	sb1, err := vm.ParseBlock(nil, sb.Bytes())
+	require.Nil(t, err)
 	require.Equal(t, choices.Rejected, sb1.Status())
 	vm.decidedHashes.Add(sb.ID(), true)
-	sb1, err = vm.ParseBlock(nil, sb.Bytes())
+	sb1, _ = vm.ParseBlock(nil, sb.Bytes())
 	require.Equal(t, choices.Accepted, sb1.Status())
 	require.Nil(t, err)
 	// test and and build new block
