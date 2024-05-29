@@ -25,7 +25,6 @@ import (
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,19 +37,13 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	b2, _ := hex.DecodeString(privkey2)
 	sk2, _ := crypto.UnmarshalPrivateKey(b2)
 	client1, client2 := q.Client(), q.Client()
-	m1, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 13806))
+
+	host1, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"), libp2p.Identity(sk1))
 	if err != nil {
 		t.Fatal(err)
 	}
-	host1, err := libp2p.New(libp2p.ListenAddrs(m1), libp2p.Identity(sk1))
-	if err != nil {
-		t.Fatal(err)
-	}
-	m2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 13807))
-	if err != nil {
-		t.Fatal(err)
-	}
-	host2, err := libp2p.New(libp2p.ListenAddrs(m2), libp2p.Identity(sk2))
+
+	host2, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"), libp2p.Identity(sk2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,9 +80,12 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	if err != nil {
 		panic(err)
 	}
-	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
-	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
-	err = host2.Connect(context.Background(), *peerinfo)
+
+	addrInfo := peer.AddrInfo{
+		ID:    host1.ID(),
+		Addrs: host1.Addrs(),
+	}
+	err = host2.Connect(context.Background(), addrInfo)
 	require.Nil(t, err)
 
 	ps2, err := extension.NewPubSub(ctx, host2, &p2pty.PubSubConfig{})
