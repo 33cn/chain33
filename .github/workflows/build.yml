@@ -120,4 +120,3 @@ jobs:
         run: go test ./... -covermode=atomic
         env:
           GOARCH: 386
-

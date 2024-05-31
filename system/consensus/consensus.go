@@ -10,15 +10,15 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//Create 创建共识
+// Create 创建共识
 type Create func(cfg *types.Consensus, sub []byte) queue.Module
 
 var regConsensus = make(map[string]Create)
 
-//QueryData 检索数据
+// QueryData 检索数据
 var QueryData = types.NewQueryData("Query_")
 
-//Reg ...
+// Reg ...
 func Reg(name string, create Create) {
 	if create == nil {
 		panic("Consensus: Register driver is nil")
@@ -29,7 +29,7 @@ func Reg(name string, create Create) {
 	regConsensus[name] = create
 }
 
-//Load 加载
+// Load 加载
 func Load(name string) (create Create, err error) {
 	if driver, ok := regConsensus[name]; ok {
 		return driver, nil
@@ -61,4 +61,9 @@ func RegCommitter(name string, c Committer) {
 func LoadCommiter(name string) Committer {
 
 	return committers[name]
+}
+
+// Context 共识相关依赖
+type Context struct {
+	Base *BaseClient
 }

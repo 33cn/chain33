@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/33cn/chain33/types"
-	"github.com/libp2p/go-libp2p/core/peer"
 	ps "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type deniedInfo struct {
@@ -111,7 +111,8 @@ func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) 
 	// 忽略系统性错误, 区块存在错误可能是广播和下载不协调导致, 可能误判, 暂不做处理
 	if errMsg == types.ErrMemFull.Error() ||
 		errMsg == types.ErrNotSync.Error() ||
-		errMsg == types.ErrBlockExist.Error() {
+		errMsg == types.ErrBlockExist.Error() ||
+		errMsg == types.ErrHeightAlreadyFinalized.Error() {
 		return
 	}
 	denyTime := int64(errBlockDenyTime)

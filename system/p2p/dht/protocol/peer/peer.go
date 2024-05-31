@@ -27,7 +27,7 @@ const (
 	mempool    = "mempool"
 )
 
-//UnitTime key time value:time.Second
+// UnitTime key time value:time.Second
 var UnitTime = map[string]int64{
 	"hour":   3600,
 	"min":    60,
@@ -36,7 +36,7 @@ var UnitTime = map[string]int64{
 var log = log15.New("module", "p2p.peer")
 var processStart = time.Now()
 
-//CaculateLifeTime parase time string to time.Duration
+// CaculateLifeTime parase time string to time.Duration
 func CaculateLifeTime(timestr string) (time.Duration, error) {
 	var lifetime int64
 	if timestr == "" {
@@ -132,7 +132,7 @@ func InitProtocol(env *protocol.P2PEnv) {
 	go p.detectNodeAddr()
 	go p.checkBlocked()
 	go func() {
-		ticker := time.NewTicker(time.Second / 2)
+		ticker := time.NewTicker(time.Second * 3)
 		defer ticker.Stop()
 		ticker2 := time.NewTicker(time.Minute * 5)
 		defer ticker2.Stop()

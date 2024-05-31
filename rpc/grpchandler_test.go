@@ -823,6 +823,17 @@ func TestGrpc_ConvertExectoAddr(t *testing.T) {
 	assert.Equal(t, "1GaHYpWmqAJsqRwrpoNcB8VvgKtSwjcHqt", replyStr.GetData())
 }
 
+func TestGrpc_GetFinalizedBlock(t *testing.T) {
+	g := Grpc{}
+	qapi = new(mocks.QueueProtocolAPI)
+	qapi.On("GetFinalizedBlock", mock.Anything).Return(&types.SnowChoice{Height: 1}, nil)
+	g.cli.QueueProtocolAPI = qapi
+	sc, err := g.GetFinalizedBlock(nil, nil)
+
+	require.Nil(t, err)
+	require.Equal(t, 1, int(sc.Height))
+}
+
 func TestGrpc_GetCoinSymbol(t *testing.T) {
 
 	reply, err := g.GetCoinSymbol(context.Background(), &types.ReqNil{})

@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/33cn/chain33/client/mocks"
 	"sync"
 	"testing"
 	"time"
@@ -20,11 +21,10 @@ import (
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,19 +37,13 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	b2, _ := hex.DecodeString(privkey2)
 	sk2, _ := crypto.UnmarshalPrivateKey(b2)
 	client1, client2 := q.Client(), q.Client()
-	m1, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 13806))
+
+	host1, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"), libp2p.Identity(sk1))
 	if err != nil {
 		t.Fatal(err)
 	}
-	host1, err := libp2p.New(libp2p.ListenAddrs(m1), libp2p.Identity(sk1))
-	if err != nil {
-		t.Fatal(err)
-	}
-	m2, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", 13807))
-	if err != nil {
-		t.Fatal(err)
-	}
-	host2, err := libp2p.New(libp2p.ListenAddrs(m2), libp2p.Identity(sk2))
+
+	host2, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"), libp2p.Identity(sk2))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,12 +60,14 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	api := new(mocks.QueueProtocolAPI)
+	api.On("GetFinalizedBlock").Return(&types.SnowChoice{}, nil)
 	env1 := protocol.P2PEnv{
 		Ctx:             ctx,
 		ChainCfg:        cfg,
 		QueueClient:     client1,
 		Host:            host1,
+		API:             api,
 		SubConfig:       mcfg,
 		RoutingTable:    kademliaDHT1.RoutingTable(),
 		PeerInfoManager: &peerInfoManager{},
@@ -84,12 +80,13 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 	if err != nil {
 		panic(err)
 	}
-	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
-	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
-	err = host2.Connect(context.Background(), *peerinfo)
-	if err != nil {
-		t.Fatal("connect error", err)
+
+	addrInfo := peer.AddrInfo{
+		ID:    host1.ID(),
+		Addrs: host1.Addrs(),
 	}
+	err = host2.Connect(context.Background(), addrInfo)
+	require.Nil(t, err)
 
 	ps2, err := extension.NewPubSub(ctx, host2, &p2pty.PubSubConfig{})
 	if err != nil {
@@ -101,6 +98,7 @@ func initEnv(t *testing.T, q queue.Queue) (*Protocol, context.CancelFunc) {
 		ChainCfg:        cfg,
 		QueueClient:     client2,
 		Host:            host2,
+		API:             api,
 		SubConfig:       mcfg,
 		RoutingTable:    kademliaDHT2.RoutingTable(),
 		PeerInfoManager: &peerInfoManager{},
@@ -181,6 +179,7 @@ func TestPeerInfoHandler(t *testing.T) {
 
 	testMempoolReq(q)
 	testBlockReq(q)
+	require.Equal(t, 1, len(p.Host.Network().Conns()))
 	remotePid := p.Host.Network().Conns()[0].RemotePeer()
 	stream, err := p.Host.NewStream(p.Ctx, remotePid, peerInfo)
 	require.Nil(t, err)

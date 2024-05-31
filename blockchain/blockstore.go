@@ -6,6 +6,7 @@ package blockchain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -865,7 +866,7 @@ func (bs *BlockStore) GetTdByBlockHash(hash []byte) (*big.Int, error) {
 	blocktd, err := bs.db.Get(calcHashToTdKey(hash))
 	if blocktd == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
-			storeLog.Error("GetTdByBlockHash ", "error", err)
+			storeLog.Error("GetTdByBlockHash ", "hash", hex.EncodeToString(hash), "err", err)
 		}
 		return nil, types.ErrHashNotExist
 	}
@@ -944,7 +945,8 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	} else {
 		parenttd, err := bs.GetTdByBlockHash(parentHash)
 		if err != nil {
-			chainlog.Error("dbMaybeStoreBlock GetTdByBlockHash", "height", height, "parentHash", common.ToHex(parentHash))
+			chainlog.Error("dbMaybeStoreBlock GetTdByBlockHash",
+				"height", height, "parentHash", common.ToHex(parentHash), "err", err)
 			return err
 		}
 		blocktd = new(big.Int).Add(difficulty, parenttd)

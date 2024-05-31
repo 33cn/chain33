@@ -41,7 +41,7 @@ func TestMain(m *testing.M) {
 func TestQueueProtocolAPI(t *testing.T) {
 	var option client.QueueProtocolOption
 	option.SendTimeout = time.Millisecond
-	option.WaitTimeout = 2 * time.Millisecond
+	option.WaitTimeout = 100 * time.Millisecond
 
 	_, err := client.New(nil, nil)
 	if err == nil {
@@ -1346,4 +1346,25 @@ func testClosePeer(t *testing.T, api client.QueueProtocolAPI) {
 	assert.Nil(t, err)
 	assert.Equal(t, "success", string(reply.GetMsg()))
 
+}
+
+func TestQueueProtocol_GetFinalizedBlock(t *testing.T) {
+
+	q := queue.New("test")
+
+	cli := q.Client()
+	api, err := client.New(cli, nil)
+	require.Nil(t, err)
+	defer cli.Close()
+	go func() {
+
+		cli.Sub("blockchain")
+		for msg := range cli.Recv() {
+			msg.Reply(cli.NewMessage("", 0, &types.SnowChoice{Height: 1}))
+		}
+	}()
+
+	sc, err := api.GetFinalizedBlock()
+	require.Nil(t, err)
+	require.Equal(t, 1, int(sc.GetHeight()))
 }

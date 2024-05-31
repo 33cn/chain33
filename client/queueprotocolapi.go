@@ -148,4 +148,6 @@ type QueueProtocolAPI interface {
 	DialPeer(in *types.SetPeer) (*types.Reply, error)
 	//ClosePeer close specified peer
 	ClosePeer(in *types.SetPeer) (*types.Reply, error)
+	//GetFinalizedBlock get finalized block choice
+	GetFinalizedBlock() (*types.SnowChoice, error)
 }

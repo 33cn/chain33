@@ -82,15 +82,10 @@ func CloseStream(stream network.Stream) {
 	if stream == nil {
 		return
 	}
-	_ = stream.CloseWrite()
-	_ = stream.CloseRead()
-	go func() {
-		err := AwaitEOF(stream)
-		if err != nil {
-			//just log it because it dose not matter
-			log.Debug("CloseStream", "err", err, "protocol ID", stream.Protocol())
-		}
-	}()
+	err := stream.Close()
+	if err != nil {
+		log.Debug("CloseStream", "err", err, "protocol ID", stream.Protocol())
+	}
 }
 
 // AuthenticateMessage authenticates p2p message.
@@ -384,7 +379,8 @@ func AwaitEOF(s network.Stream) error {
 		_ = s.Reset()
 		return err
 	}
-	return s.Close()
+	_ = s.Close()
+	return nil
 }
 
 // migrated from github.com/multiformats/go-multicodec@v0.1.6: header.go

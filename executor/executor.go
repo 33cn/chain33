@@ -445,7 +445,7 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 		for i := 0; i < len(b.Txs); i++ {
 			tx := b.Txs[i]
 			execute.localDB.(*LocalDB).StartTx()
-			elog.Info("procExecAddBlock", "execute.execLocalTx:", ctx.height, "tx.From", tx.From(), "tx.Nonce", tx.Nonce)
+			//elog.Info("procExecAddBlock", "execute.execLocalTx:", ctx.height, "tx.From", tx.From(), "tx.Nonce", tx.Nonce)
 
 			//解析TX PROXY_EXEC,优先解析代理执行交易进行execlocal 处理
 			if execute.checkProxyExecTx(tx) {

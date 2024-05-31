@@ -101,6 +101,7 @@ var (
 	ErrUnmarshal              = errors.New("ErrUnmarshal")
 	ErrMarshal                = errors.New("ErrMarshal")
 	ErrBlockExist             = errors.New("ErrBlockExist")
+	ErrHeightAlreadyFinalized = errors.New("ErrHeightAlreadyFinalized")
 	ErrParentBlockNoExist     = errors.New("ErrParentBlockNoExist")
 	ErrBlockHeightNoMatch     = errors.New("ErrBlockHeightNoEqual")
 	ErrParentTdNoExist        = errors.New("ErrParentTdNoExist")

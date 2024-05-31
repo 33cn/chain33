@@ -17,9 +17,9 @@ import (
 	"github.com/33cn/chain33/util"
 )
 
-//ProcessBlock 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
+// ProcessBlock 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
 // 共识模块和peer广播过来的block需要广播出去
-//共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
+// 共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
 // 返回参数说明：是否主链，是否孤儿节点，具体err
 func (chain *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addBlock bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
 	chainlog.Debug("ProcessBlock:Processing", "height", block.Block.Height, "blockHash", common.ToHex(block.Block.Hash(chain.client.GetConfig())))
@@ -103,7 +103,7 @@ func (chain *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, 
 	return chain.maybeAddBestChain(broadcast, block, pid, sequence)
 }
 
-//基本检测通过之后尝试将此block添加到主链上
+// 基本检测通过之后尝试将此block添加到主链上
 func (chain *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
 	chain.chainLock.Lock()
 	defer chain.chainLock.Unlock()
@@ -127,7 +127,7 @@ func (chain *BlockChain) maybeAddBestChain(broadcast bool, block *types.BlockDet
 	return blockdetail, isMainChain, false, nil
 }
 
-//检查block是否已经存在index或者数据库中
+// 检查block是否已经存在index或者数据库中
 func (chain *BlockChain) blockExists(hash []byte) bool {
 	// Check block index first (could be main chain or side chain blocks).
 	if chain.index.HaveBlock(hash) {
@@ -192,7 +192,7 @@ func (chain *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDeta
 	return block, isMainChain, nil
 }
 
-//将block添加到主链中
+// 将block添加到主链中
 func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDetail) (*types.BlockDetail, bool, error) {
 
 	enBestBlockCmp := chain.client.GetConfig().GetModuleConfig().Consensus.EnableBestBlockCmp
@@ -224,8 +224,8 @@ func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDet
 	}
 	blocktd := new(big.Int).Add(node.Difficulty, parenttd)
 
-	chainlog.Debug("connectBestChain tip:", "hash", common.ToHex(tip.hash), "height", tip.height, "TD", difficulty.BigToCompact(tiptd))
-	chainlog.Debug("connectBestChain node:", "hash", common.ToHex(node.hash), "height", node.height, "TD", difficulty.BigToCompact(blocktd))
+	chainlog.Debug("connectBestChain difficulty:", "tipHash", common.ToHex(tip.hash), "tipHeight", tip.height, "tipTD", difficulty.BigToCompact(tiptd),
+		"nodeHash", common.ToHex(node.hash), "nodeHeight", node.height, "nodeTD", difficulty.BigToCompact(blocktd))
 
 	//优先选择总难度系数大的区块
 	//总难度系数，区块高度，出块时间以及父区块一致并开启最优区块比较功能时，通过共识模块来确定最优区块
@@ -233,23 +233,32 @@ func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDet
 	if enBestBlockCmp && blocktd.Cmp(tiptd) == 0 && node.height == tip.height && util.CmpBestBlock(chain.client, block.Block, tip.hash) {
 		iSideChain = false
 	}
-	if iSideChain {
-		fork := chain.bestChain.FindFork(node)
-		if fork != nil && bytes.Equal(parentHash, fork.hash) {
-			chainlog.Info("connectBestChain FORK:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
-		} else {
-			chainlog.Info("connectBestChain extends a side chain:", "Block hash", common.ToHex(node.hash), "fork.height", fork.height, "fork.hash", common.ToHex(fork.hash))
-		}
+	fork := chain.bestChain.FindFork(node)
+	finalized, hash := chain.finalizer.getLastFinalized()
+	if iSideChain || node.height < finalized+12 {
+
+		chainlog.Debug("connectBestChain side chain:", "nodeHeight", node.height, "nodeHash", common.ToHex(node.hash),
+			"fork.height", fork.height, "fork.hash", common.ToHex(fork.hash),
+			"finalized", finalized, "fHash", common.ToHex(hash))
 		return nil, false, nil
 	}
 
+	if fork != nil && fork.height < finalized {
+
+		chainlog.Debug("connectBestChain reset finalizer",
+			"finalized", finalized, "fHash", common.ToHex(hash),
+			"forkHeight", fork.height, "forkHash", common.ToHex(fork.hash),
+			"tipHeight", tip.height, "tipHash", common.ToHex(tip.hash),
+			"nodeHeight", node.height, "nodeHash", common.ToHex(node.hash))
+		_ = chain.finalizer.reset(fork.height, fork.hash)
+	}
+
 	//print
-	chainlog.Debug("connectBestChain tip", "height", tip.height, "hash", common.ToHex(tip.hash))
-	chainlog.Debug("connectBestChain node", "height", node.height, "hash", common.ToHex(node.hash), "parentHash", common.ToHex(parentHash))
-	chainlog.Debug("connectBestChain block", "height", block.Block.Height, "hash", common.ToHex(block.Block.Hash(cfg)))
+	chainlog.Debug("connectBestChain reorganize", "tipHeight", tip.height, "tipHash", common.ToHex(tip.hash),
+		"nodeHeight", node.height, "nodeHash", common.ToHex(node.hash), "parentHash", common.ToHex(parentHash))
 
 	// 获取需要重组的block node
-	detachNodes, attachNodes := chain.getReorganizeNodes(node)
+	detachNodes, attachNodes := chain.getReorganizeNodes(node, fork)
 
 	// Reorganize the chain.
 	err := chain.reorganizeChain(detachNodes, attachNodes)
@@ -260,7 +269,7 @@ func (chain *BlockChain) connectBestChain(node *blockNode, block *types.BlockDet
 	return nil, true, nil
 }
 
-//将本block信息存储到数据库中，并更新bestchain的tip节点
+// 将本block信息存储到数据库中，并更新bestchain的tip节点
 func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetail) (*types.BlockDetail, error) {
 	//blockchain close 时不再处理block
 	if atomic.LoadInt32(&chain.isclosed) == 1 {
@@ -281,7 +290,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 
 	var err error
 	var lastSequence int64
-	cfg := chain.client.GetConfig()
+
 	block := blockdetail.Block
 	prevStateHash := chain.bestChain.Tip().statehash
 	errReturn := (node.pid != "self")
@@ -308,12 +317,13 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 			"hash", common.ToHex(node.hash), "err", err)
 		return nil, err
 	}
+	blkHash := block.Hash(chain.client.GetConfig())
 
 	//要更新node的信息
 	if node.pid == "self" {
 		prevhash := node.hash
 		node.statehash = blockdetail.Block.GetStateHash()
-		node.hash = blockdetail.Block.Hash(cfg)
+		node.hash = blkHash
 		chain.index.UpdateNode(prevhash, node)
 	}
 
@@ -358,7 +368,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 		blocktd = new(big.Int).Add(difficulty, parenttd)
 	}
 
-	err = chain.blockStore.SaveTdByBlockHash(newbatch, blockdetail.Block.Hash(cfg), blocktd)
+	err = chain.blockStore.SaveTdByBlockHash(newbatch, blkHash, blocktd)
 	if err != nil {
 		chainlog.Error("connectBlock SaveTdByBlockHash:", "height", block.Height, "err", err)
 		return nil, err
@@ -371,7 +381,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	}
 	writeCost := types.Since(beg)
 	chainlog.Info("ConnectBlock", "execLocal", txCost, "saveBlk", saveBlkCost, "cacheBlk", cacheCost, "writeBatch", writeCost)
-	chainlog.Debug("connectBlock info", "height", block.Height, "batchsync", sync, "hash", common.ToHex(blockdetail.Block.Hash(cfg)))
+	chainlog.Debug("connectBlock info", "height", block.Height, "batchsync", sync, "hash", common.ToHex(blkHash))
 
 	// 更新最新的高度和header
 	chain.blockStore.UpdateHeight2(blockdetail.GetBlock().GetHeight())
@@ -393,8 +403,8 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	if node.broadcast && !chain.cfg.DisableBlockBroadcast {
 		if blockdetail.Block.BlockTime-types.Now().Unix() > FutureBlockDelayTime {
 			//将此block添加到futureblocks中延时广播
-			chain.futureBlocks.Add(string(blockdetail.Block.Hash(cfg)), blockdetail)
-			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash(cfg)), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
+			chain.futureBlocks.Add(string(blkHash), blockdetail)
+			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blkHash), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 		} else {
 			chain.SendBlockBroadcast(blockdetail)
 		}
@@ -408,7 +418,7 @@ func (chain *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockD
 	return blockdetail, nil
 }
 
-//从主链中删除blocks
+// 从主链中删除blocks
 func (chain *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDetail, sequence int64) error {
 	var lastSequence int64
 	// 只能从 best chain tip节点开始删除
@@ -477,13 +487,13 @@ func (chain *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.Blo
 	return nil
 }
 
-//获取重组blockchain需要删除和添加节点
-func (chain *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List) {
+// 获取重组blockchain需要删除和添加节点
+func (chain *BlockChain) getReorganizeNodes(node, forkNode *blockNode) (*list.List, *list.List) {
 	attachNodes := list.New()
 	detachNodes := list.New()
 
 	// 查找到分叉的节点，并将分叉之后的block从index链push到attachNodes中
-	forkNode := chain.bestChain.FindFork(node)
+	//forkNode := chain.bestChain.FindFork(node)
 	for n := node; n != nil && n != forkNode; n = n.parent {
 		attachNodes.PushFront(n)
 	}
@@ -496,7 +506,7 @@ func (chain *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.
 	return detachNodes, attachNodes
 }
 
-//LoadBlockByHash 根据hash值从缓存中查询区块
+// LoadBlockByHash 根据hash值从缓存中查询区块
 func (chain *BlockChain) LoadBlockByHash(hash []byte) (block *types.BlockDetail, err error) {
 
 	//从缓存的最新区块中获取
@@ -524,7 +534,7 @@ func (chain *BlockChain) LoadBlockByHash(hash []byte) (block *types.BlockDetail,
 	return block, err
 }
 
-//重组blockchain
+// 重组blockchain
 func (chain *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error {
 	detachBlocks := make([]*types.BlockDetail, 0, detachNodes.Len())
 	attachBlocks := make([]*types.BlockDetail, 0, attachNodes.Len())
@@ -602,7 +612,7 @@ func (chain *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) er
 	return nil
 }
 
-//ProcessDelParaChainBlock 只能从 best chain tip节点开始删除，目前只提供给平行链使用
+// ProcessDelParaChainBlock 只能从 best chain tip节点开始删除，目前只提供给平行链使用
 func (chain *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types.BlockDetail, pid string, sequence int64) (*types.BlockDetail, bool, bool, error) {
 
 	//获取当前的tip节点

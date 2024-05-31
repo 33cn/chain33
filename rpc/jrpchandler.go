@@ -659,6 +659,10 @@ func (c *Chain33) GetPeerInfo(in *types.P2PGetPeerReq, result *interface{}) erro
 			pr.RunningTime = peer.GetRunningTime()
 			pr.FullNode = peer.GetFullNode()
 			pr.Blocked = peer.GetBlocked()
+			pr.Finalized = &rpctypes.SnowChoice{
+				Hash: hex.EncodeToString(peer.GetFinalized().GetHash()),
+				Height: peer.GetFinalized().GetHeight(),
+			}
 			peerlist.Peers = append(peerlist.Peers, &pr)
 
 		}
@@ -1698,5 +1702,17 @@ func (c *Chain33) ClosePeer(in *types.SetPeer, result *interface{}) error {
 	resp.IsOk = reply.IsOk
 	resp.Msg = string(reply.GetMsg())
 	*result = &resp
+	return nil
+}
+
+// GetFinalizedBlock get finalized block choice
+func (c *Chain33) GetFinalizedBlock(in *types.ReqNil, result *interface{}) error {
+
+	choice, err := c.cli.GetFinalizedBlock()
+	if err != nil {
+		return err
+	}
+
+	*result = choice
 	return nil
 }

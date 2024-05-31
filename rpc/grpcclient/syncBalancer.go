@@ -30,8 +30,7 @@ type AddrInfo struct {
 // SetAddrInfo returns a copy of addr in which the Attributes field is updated
 // with addrInfo.
 func SetAddrInfo(addr resolver.Address, addrInfo AddrInfo) resolver.Address {
-	addr.Attributes = attributes.New()
-	addr.Attributes = addr.Attributes.WithValues(attributeKey{}, addrInfo)
+	addr.Attributes = attributes.New(attributeKey{}, addrInfo)
 	return addr
 }
 

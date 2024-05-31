@@ -209,6 +209,21 @@ const (
 	//返回节点中最高的区块高度
 	EventHighestBlock = 370
 	EventGetEvmNonce  = 371
+
+	// EventForFinalizer 最终化共识一级消息类型
+	EventForFinalizer       = 372
+	EventSnowmanPreferBlk   = 373
+	EventSnowmanAcceptBlk   = 374
+	EventSnowmanLastChoice  = 375
+	EventSnowmanChits       = 376
+	EventSnowmanGetBlock    = 377
+	EventSnowmanPutBlock    = 378
+	EventSnowmanPullQuery   = 379
+	EventSnowmanPushQuery   = 380
+	EventSnowmanGetFailed   = 381
+	EventSnowmanQueryFailed = 382
+	EventSnowmanQueryChoice = 383
+	EventSnowmanResetEngine = 384
 )
 
 var eventName = map[int]string{
@@ -371,12 +386,25 @@ var eventName = map[int]string{
 	EventDelBlacklist:               "EventDelBlacklist",
 	EventShowBlacklist:              "EventShowBlacklist",
 	EventDialPeer:                   "EventDialPeer",
-	EventClosePeer:                  "EventClosePeer",
-	EventPushEVM:                    "EventPushEVM",
-	EventPushBlock:                  "EventPushBlock",
-	EventPushBlockHeader:            "EventPushBlockHeader",
-	EventPushTxReceipt:              "EventPushTxReceipt",
-	EventPushTxResult:               "EventPushTxResult",
-	EventHighestBlock:               "EventHighestBlock",
-	EventGetEvmNonce:                "EventGetEvmNonce",
+	EventClosePeer:          "EventClosePeer",
+	EventPushEVM:            "EventPushEVM",
+	EventPushBlock:          "EventPushBlock",
+	EventPushBlockHeader:    "EventPushBlockHeader",
+	EventPushTxReceipt:      "EventPushTxReceipt",
+	EventPushTxResult:       "EventPushTxResult",
+	EventHighestBlock:       "EventHighestBlock",
+	EventGetEvmNonce:        "EventGetEvmNonce",
+	EventForFinalizer:       "EventForFinalizer",
+	EventSnowmanPreferBlk:   "EventSnowmanPreferBlk",
+	EventSnowmanAcceptBlk:   "EventSnowmanAcceptBlk",
+	EventSnowmanLastChoice:  "EventSnowmanLastChoice",
+	EventSnowmanChits:       "EventSnowmanChits",
+	EventSnowmanGetBlock:    "EventSnowmanGetBlock",
+	EventSnowmanPutBlock:    "EventSnowmanPutBlock",
+	EventSnowmanPullQuery:   "EventSnowmanPullQuery",
+	EventSnowmanPushQuery:   "EventSnowmanPushQuery",
+	EventSnowmanGetFailed:   "EventSnowmanGetFailed",
+	EventSnowmanQueryFailed: "EventSnowmanQueryFailed",
+	EventSnowmanQueryChoice: "EventSnowmanQueryChoice",
+	EventSnowmanResetEngine: "EventSnowmanResetEngine",
 }

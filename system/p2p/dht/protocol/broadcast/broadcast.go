@@ -30,7 +30,6 @@ func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
 
-//
 type broadcastProtocol struct {
 	*protocol.P2PEnv
 	txFilter    *utils.Filterdata
@@ -302,8 +301,9 @@ func (p *broadcastProtocol) setDefaultConfig() {
 		p.cfg.BlockFilterLen = blockRecvFilterCacheNum
 	}
 	if p.cfg.MinLtBlockSize <= 0 {
-		p.cfg.MinLtBlockSize = defaultMinLtBlockSize * 1024
+		p.cfg.MinLtBlockSize = defaultMinLtBlockSize
 	}
+	p.cfg.MinLtBlockSize *= 1024
 
 	if p.cfg.LtBlockPendTimeout <= 0 {
 		p.cfg.LtBlockPendTimeout = defaultLtBlockTimeout

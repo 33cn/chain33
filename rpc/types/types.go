@@ -7,7 +7,6 @@ package types
 
 import (
 	"encoding/json"
-
 	_ "github.com/33cn/chain33/system/address" // init address
 )
 
@@ -214,6 +213,12 @@ type PeerList struct {
 	Peers []*Peer `json:"peers"`
 }
 
+// SnowChoice snowman finalized choice
+type SnowChoice struct {
+	Height int64  `json:"height"`
+	Hash string   `json:"hash"`
+}
+
 // Peer  information
 type Peer struct {
 	Addr           string  `json:"addr"`
@@ -228,6 +233,7 @@ type Peer struct {
 	RunningTime    string  `json:"runningTime,omitempty"`
 	FullNode       bool    `json:"fullNode,omitempty"`
 	Blocked        bool    `json:"blocked,omitempty"`
+	Finalized *SnowChoice  `json:"finalized"`
 }
 
 // WalletAccounts Wallet Module

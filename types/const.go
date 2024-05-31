@@ -16,43 +16,43 @@ import (
 var slash = []byte("-")
 var sharp = []byte("#")
 
-//Debug 调试开关
+// Debug 调试开关
 var Debug = false
 
-//LogErr log错误信息
+// LogErr log错误信息
 type LogErr []byte
 
-//LogReserved LogReserved信息
+// LogReserved LogReserved信息
 type LogReserved []byte
 
-//LogInfo loginfo信息
+// LogInfo loginfo信息
 type LogInfo struct {
 	Ty   reflect.Type
 	Name string
 }
 
-//UserKeyX 用户自定义执行器前缀字符串
+// UserKeyX 用户自定义执行器前缀字符串
 const (
 	UserKeyX = "user."
 	ParaKeyX = "user.p."
 	NoneX    = "none"
 )
 
-//DefaultCoinsSymbol 默认的主币名称
+// DefaultCoinsSymbol 默认的主币名称
 const (
 	DefaultCoinsExec     = "coins"
 	DefaultCoinsSymbol   = "bty"
 	DefaultCoinPrecision = int64(1e8)
 )
 
-//UserKeyX 用户自定义执行器前缀byte类型
+// UserKeyX 用户自定义执行器前缀byte类型
 var (
 	UserKey    = []byte(UserKeyX)
 	ParaKey    = []byte(ParaKeyX)
 	ExecerNone = []byte(NoneX)
 )
 
-//基本全局常量定义
+// 基本全局常量定义
 const (
 	BTY                          = "BTY"
 	MinerAction                  = "miner"
@@ -67,15 +67,15 @@ const (
 	AutonomyCfgKey               = "autonomyExec"
 )
 
-//ty = 1 -> secp256k1
-//ty = 2 -> ed25519
-//ty = 3 -> sm2
-//ty = 4 -> onetimeed25519
-//ty = 5 -> RingBaseonED25519
-//ty = 1+offset(1<<8) -> secp256r1
-//ty = 2+offset(1<<8) -> sm2
-//ty=  3+offset(1<<8) -> bls
-//ty = 4+offset(1<<8) -> secp256k1eth
+// ty = 1 -> secp256k1
+// ty = 2 -> ed25519
+// ty = 3 -> sm2
+// ty = 4 -> onetimeed25519
+// ty = 5 -> RingBaseonED25519
+// ty = 1+offset(1<<8) -> secp256r1
+// ty = 2+offset(1<<8) -> sm2
+// ty=  3+offset(1<<8) -> bls
+// ty = 4+offset(1<<8) -> secp256k1eth
 const (
 	Invalid      = 0
 	SECP256K1    = secp256k1.ID
@@ -84,7 +84,7 @@ const (
 	SECP256K1ETH = secp256k1eth.ID
 )
 
-//log type
+// log type
 const (
 	TyLogReserved = 0
 	TyLogErr      = 1
@@ -105,7 +105,7 @@ const (
 	TyLogBurn            = 15
 )
 
-//SystemLog 系统log日志
+// SystemLog 系统log日志
 var SystemLog = map[int64]*LogInfo{
 	TyLogReserved:        {reflect.TypeOf(LogReserved{}), "LogReserved"},
 	TyLogErr:             {reflect.TypeOf(LogErr{}), "LogErr"},
@@ -124,7 +124,7 @@ var SystemLog = map[int64]*LogInfo{
 	TyLogBurn:            {reflect.TypeOf(ReceiptAccountBurn{}), "LogBurn"},
 }
 
-//exec type
+// exec type
 const (
 	ExecErr  = 0
 	ExecPack = 1
@@ -143,22 +143,23 @@ const (
 //提供一种可以快速查重的交易类型，和原来的交易完全兼容
 //并且可以通过开关控制是否开启这样的交易
 
-//TxHeightFlag 标记是一个时间还是一个 TxHeight
+// TxHeightFlag 标记是一个时间还是一个 TxHeight
 var TxHeightFlag int64 = 1 << 62
 
-//HighAllowPackHeight txHeight打包上限高度
-//eg: currentHeight = 10000
-//某交易的expire=TxHeightFlag+ currentHeight + 10, 则TxHeight=10010
-//打包的区块高度必须满足， Height >= TxHeight - LowAllowPackHeight && Height <= TxHeight + HighAllowPackHeight
-//那么交易可以打包的范围是: 10010 - 100 = 9910 , 10010 + 200 =  10210 (9910,10210)
-//注意，这两个条件必须同时满足.
-//关于交易查重:
-//也就是说，两笔相同的交易必然有相同的expire，即TxHeight相同，以及对应的打包区间一致，只能被打包在这个区间(9910,10210)。
-//那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易是否有重复
+// HighAllowPackHeight txHeight打包上限高度
+// eg: currentHeight = 10000
+// 某交易的expire=TxHeightFlag+ currentHeight + 10, 则TxHeight=10010
+// 打包的区块高度必须满足， Height >= TxHeight - LowAllowPackHeight && Height <= TxHeight + HighAllowPackHeight
+// 那么交易可以打包的范围是: 10010 - 100 = 9910 , 10010 + 200 =  10210 (9910,10210)
+// 注意，这两个条件必须同时满足.
+// 关于交易查重:
+// 也就是说，两笔相同的交易必然有相同的expire，即TxHeight相同，以及对应的打包区间一致，只能被打包在这个区间(9910,10210)。
+// 那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易是否有重复
 var HighAllowPackHeight int64 = 600
 
-//LowAllowPackHeight 允许打包的low区块高度
+// LowAllowPackHeight 允许打包的low区块高度
 var LowAllowPackHeight int64 = 200
 
-//MaxAllowPackInterval 允许打包的最大区间值
+// MaxAllowPackInterval 允许打包的最大区间值
 var MaxAllowPackInterval int64 = 5000
+
