@@ -1,5 +1,13 @@
 changelog
 
+<a name="1.69.0"></a>
+# [1.69.0](https://github.com/33cn/chain33/compare/v1.68.2...v1.69.0) (2024-05-31)
+
+
+### Features
+
+* import avalanche snowman engine ([25b1b0c](https://github.com/33cn/chain33/commit/25b1b0c))
+
 <a name="1.68.2"></a>
 ## [1.68.2](https://github.com/33cn/chain33/compare/v1.68.1...v1.68.2) (2024-04-12)
 
