@@ -1192,7 +1192,7 @@ func (q *QueueProtocol) ShowBlacklist(req *types.ReqNil) (*types.Blacklist, erro
 
 }
 
-//DialPeer  dial the the specified peer
+//DialPeer  dial the specified peer
 func (q *QueueProtocol) DialPeer(req *types.SetPeer) (*types.Reply, error) {
 	msg, err := q.send(p2pKey, types.EventDialPeer, req)
 	if err != nil {

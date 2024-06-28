@@ -466,7 +466,7 @@ func (e *ethHandler) Mining() (bool, error) {
 }
 
 // Returns:Returns the number of transactions sent from an address.
-// Paramters: address,tag(disable):latest,pending,earliest
+// Parameters: address,tag(disable):latest,pending,earliest
 // GetTransactionCount 获取nonce
 //
 //method:eth_getTransactionCount
