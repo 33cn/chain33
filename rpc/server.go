@@ -313,14 +313,16 @@ func NewJSONRPCServer(c queue.Client, api client.QueueProtocolAPI) *JSONRPCServe
 
 // RPC a type object
 type RPC struct {
-	cfg    *types.RPC
-	allCfg *types.Chain33Config
-	gapi   *Grpcserver
-	japi   *JSONRPCServer
-	eapi   ethrpc.ServerAPI
-	ewsapi ethrpc.ServerAPI
-	cli    queue.Client
-	api    client.QueueProtocolAPI
+	cfg       *types.RPC
+	allCfg    *types.Chain33Config
+	gapi      *Grpcserver
+	japi      *JSONRPCServer
+	eapi      ethrpc.ServerAPI
+	ewsapi    ethrpc.ServerAPI
+	cli       queue.Client
+	api       client.QueueProtocolAPI
+	ctx       context.Context
+	cancelCtx context.CancelFunc
 }
 
 // InitCfg  interfaces
@@ -341,8 +343,9 @@ func New(cfg *types.Chain33Config) *RPC {
 	if mcfg.EnableTrace {
 		grpc.EnableTracing = true
 	}
-
-	return &RPC{cfg: mcfg, allCfg: cfg}
+	r := &RPC{cfg: mcfg, allCfg: cfg}
+	r.ctx, r.cancelCtx = context.WithCancel(context.Background())
+	return r
 }
 
 // SetAPI set api of rpc
@@ -506,6 +509,11 @@ func (r *RPC) GetQueueClient() queue.Client {
 	return r.cli
 }
 
+// Context get rpc context
+func (r *RPC) Context() context.Context {
+	return r.ctx
+}
+
 // GRPC return grpc rpc
 func (r *RPC) GRPC() *grpc.Server {
 	return r.gapi.s
@@ -532,6 +540,7 @@ func (r *RPC) Close() {
 		r.ewsapi.Close()
 	}
 	r.cli.Close()
+	r.cancelCtx()
 }
 
 // InitIPWhitelist init ip whitelist
