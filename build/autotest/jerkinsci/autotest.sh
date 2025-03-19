@@ -58,13 +58,13 @@ function config_autotest() {
 function start_chain33() {
 
     # create and run docker-compose container
-    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml up --build -d
+    docker compose -p "${PROJECT_NAME}" -f compose-autotest.yml up --build -d
 
     local SLEEP=2
     sleep ${SLEEP}
 
-    # docker-compose ps
-    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml ps
+    # docker compose ps
+    docker compose -p "${PROJECT_NAME}" -f compose-autotest.yml ps
 
     # query node run status
     ${CLI} block last_header
@@ -146,7 +146,7 @@ function stop_chain33() {
 
     rv=$?
     echo "=========== #stop docker-compose ============="
-    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down
+    docker compose -p "${PROJECT_NAME}" -f compose-autotest.yml down
     echo "=========== #remove related images ============"
     docker rmi "${PROJECT_NAME}"_autotest || true
     pwd
