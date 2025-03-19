@@ -90,20 +90,20 @@ function base_init() {
 
 function start() {
     echo "=========== # docker-compose ps ============="
-    docker-compose ps
+    docker compose ps
 
     # remove exsit container
-    docker-compose down
+    docker compose down
 
     # create and run docker-compose container
-    #docker-compose -f docker-compose.yml -f docker-compose-paracross.yml -f docker-compose-relay.yml up --build -d
-    docker-compose up --build -d
+    #docker compose -f docker-compose.yml -f docker-compose-paracross.yml -f docker-compose-relay.yml up --build -d
+    docker compose up --build -d
 
     local SLEEP=30
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
-    docker-compose ps
+    docker compose ps
 
     # query node run status
     ${CLI} block last_header
