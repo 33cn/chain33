@@ -15,16 +15,16 @@ set -o pipefail
 PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
 
-NODE3="${1}_chain33_1"
+NODE3="${1}-chain33-1"
 CLI="docker exec ${NODE3} /root/chain33-cli"
 
-NODE2="${1}_chain32_1"
+NODE2="${1}-chain32-1"
 
-NODE1="${1}_chain31_1"
+NODE1="${1}-chain31-1"
 
-NODE4="${1}_chain30_1"
+NODE4="${1}-chain30-1"
 
-NODE5="${1}_chain29_1"
+NODE5="${1}-chain29-1"
 CLI5="docker exec ${NODE5} /root/chain33-cli"
 
 containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}")
@@ -206,8 +206,8 @@ function start() {
 }
 
 function check_docker_status() {
-    status=$(docker compose ps | grep chain33_1 | awk '{print $6}')
-    if [ "${status}" == "Exit" ]; then
+    res=$(docker compose ps | grep chain33-1 )
+    if grep -q Exit <<< "$res"; then
         echo "=========== chain33 service Exit logs ========== "
         docker compose logs chain33
         echo "=========== chain33 service Exit logs End========== "
