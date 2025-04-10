@@ -33,7 +33,7 @@ import (
 	"math/big"
 
 	vrfp "github.com/33cn/chain33/common/vrf"
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcec/v2"
 )
 
 var (

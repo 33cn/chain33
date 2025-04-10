@@ -16,8 +16,8 @@ import (
 	cryptocli "github.com/33cn/chain33/common/crypto/client"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcutil"
 
 	"github.com/33cn/chain33/system/crypto/btcscript/script"
 	_ "github.com/33cn/chain33/system/dapp/init"

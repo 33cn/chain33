@@ -21,7 +21,7 @@ import (
 	"math/big"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth/types"
-	secp256k1 "github.com/btcsuite/btcd/btcec"
+	secp256k1 "github.com/btcsuite/btcd/btcec/v2"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
@@ -33,18 +33,18 @@ var log = log15.New("module", Name)
 var chainID int64
 var coinsPrecision int64
 
-//PrivKeySecp256k1Eth PrivKey
+// PrivKeySecp256k1Eth PrivKey
 type PrivKeySecp256k1Eth [32]byte
 
-//Driver 驱动
+// Driver 驱动
 type Driver struct{}
 
-//SignatureFromBytes  对字节数组签名
+// SignatureFromBytes  对字节数组签名
 func (d Driver) SignatureFromBytes(b []byte) (crypto.Signature, error) {
 	return SignatureSecp256k1Eth(b), nil
 }
 
-//PrivKeyFromBytes 字节转为私钥
+// PrivKeyFromBytes 字节转为私钥
 func (d Driver) PrivKeyFromBytes(b []byte) (crypto.PrivKey, error) {
 	if len(b) != privKeyBytesLen {
 		return nil, errors.New("invalid priv key byte")
@@ -55,7 +55,7 @@ func (d Driver) PrivKeyFromBytes(b []byte) (crypto.PrivKey, error) {
 	return PrivKeySecp256k1Eth(*privKeyBytes), nil
 }
 
-//PubKeyFromBytes must 65 bytes uncompress key
+// PubKeyFromBytes must 65 bytes uncompress key
 func (d Driver) PubKeyFromBytes(b []byte) (crypto.PubKey, error) {
 	if len(b) != pubkeyBytesLen && len(b) != 33 {
 		return nil, errors.New("invalid pub key byte,must be 65 bytes")
@@ -73,29 +73,29 @@ func (d Driver) PubKeyFromBytes(b []byte) (crypto.PubKey, error) {
 	return PubKeySecp256k1Eth(pubKeyBytes), nil
 }
 
-//Validate check signature
+// Validate check signature
 func (d Driver) Validate(msg, pub, sig []byte) error {
 	return crypto.BasicValidation(d, msg, pub, sig)
 }
 
-//GenKey 生成私钥
+// GenKey 生成私钥
 func (d Driver) GenKey() (crypto.PrivKey, error) {
 	privKeyBytes := [32]byte{}
 	copy(privKeyBytes[:], crypto.CRandBytes(32))
 	//fmt.Println(fmt.Sprintf("GenKey:%x", privKeyBytes))
-	priv, _ := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKeyBytes[:])
+	priv, _ := secp256k1.PrivKeyFromBytes(privKeyBytes[:])
 	copy(privKeyBytes[:], priv.Serialize())
 	return PrivKeySecp256k1Eth(privKeyBytes), nil
 }
 
-//Bytes 字节格式
+// Bytes 字节格式
 func (privKey PrivKeySecp256k1Eth) Bytes() []byte {
 	s := make([]byte, 32)
 	copy(s, privKey[:])
 	return s
 }
 
-//Sign 签名 The produced signature is in the [R || S || V] format where V is 0 or 1.
+// Sign 签名 The produced signature is in the [R || S || V] format where V is 0 or 1.
 func (privKey PrivKeySecp256k1Eth) Sign(msg []byte) crypto.Signature {
 
 	priv, err := ethcrypto.ToECDSA(privKey[:])
@@ -110,7 +110,7 @@ func (privKey PrivKeySecp256k1Eth) Sign(msg []byte) crypto.Signature {
 	return SignatureSecp256k1Eth(sig)
 }
 
-//PubKey 私钥生成公钥 非压缩 65 bytes 0x04+pub.X+pub.Y
+// PubKey 私钥生成公钥 非压缩 65 bytes 0x04+pub.X+pub.Y
 func (privKey PrivKeySecp256k1Eth) PubKey() crypto.PubKey {
 	priv, err := ethcrypto.ToECDSA(privKey[:])
 	if nil != err {
@@ -123,7 +123,7 @@ func (privKey PrivKeySecp256k1Eth) PubKey() crypto.PubKey {
 	return pubSecp256k1
 }
 
-//Equals 私钥是否相等
+// Equals 私钥是否相等
 func (privKey PrivKeySecp256k1Eth) Equals(other crypto.PrivKey) bool {
 	if otherSecp, ok := other.(PrivKeySecp256k1Eth); ok {
 		return bytes.Equal(privKey[:], otherSecp[:])
@@ -136,22 +136,22 @@ func (privKey PrivKeySecp256k1Eth) String() string {
 	return "PrivKeySecp256k1{*****}"
 }
 
-//SignatureSecp256k1Eth Signature
+// SignatureSecp256k1Eth Signature
 type SignatureSecp256k1Eth []byte
 
-//SignatureS 签名
+// SignatureS 签名
 type SignatureS struct {
 	crypto.Signature
 }
 
-//Bytes 字节格式
+// Bytes 字节格式
 func (sig SignatureSecp256k1Eth) Bytes() []byte {
 	s := make([]byte, len(sig))
 	copy(s, sig[:])
 	return s
 }
 
-//IsZero 是否是0
+// IsZero 是否是0
 func (sig SignatureSecp256k1Eth) IsZero() bool { return len(sig) == 0 }
 
 func (sig SignatureSecp256k1Eth) String() string {
@@ -161,7 +161,7 @@ func (sig SignatureSecp256k1Eth) String() string {
 
 }
 
-//Equals 相等
+// Equals 相等
 func (sig SignatureSecp256k1Eth) Equals(other crypto.Signature) bool {
 	if otherEd, ok := other.(SignatureSecp256k1Eth); ok {
 		return bytes.Equal(sig[:], otherEd[:])
@@ -172,18 +172,18 @@ func (sig SignatureSecp256k1Eth) Equals(other crypto.Signature) bool {
 
 // PubKey
 
-//PubKeySecp256k1Eth uncompressed pubkey (just the x-cord),
+// PubKeySecp256k1Eth uncompressed pubkey (just the x-cord),
 // prefixed with 0x04
 type PubKeySecp256k1Eth [65]byte
 
-//Bytes 字节格式
+// Bytes 字节格式
 func (pubKey PubKeySecp256k1Eth) Bytes() []byte {
 	s := make([]byte, 65)
 	copy(s, pubKey[:])
 	return s
 }
 
-//VerifyBytes 验证字节
+// VerifyBytes 验证字节
 func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 	var hash []byte
 	action, err := types.DecodeTxAction(msg)
@@ -245,13 +245,13 @@ func (pubKey PubKeySecp256k1Eth) String() string {
 	return fmt.Sprintf("PubKeySecp256k1{%X}", pubKey[:])
 }
 
-//KeyString Must return the full bytes in hex.
+// KeyString Must return the full bytes in hex.
 // Used for map keying, etc.
 func (pubKey PubKeySecp256k1Eth) KeyString() string {
 	return fmt.Sprintf("%X", pubKey[:])
 }
 
-//Equals 公钥相等
+// Equals 公钥相等
 func (pubKey PubKeySecp256k1Eth) Equals(other crypto.PubKey) bool {
 	if otherSecp, ok := other.(PubKeySecp256k1Eth); ok {
 		return bytes.Equal(pubKey[:], otherSecp[:])
@@ -273,12 +273,12 @@ func initEvmIDFun(sub []byte) {
 	}
 }
 
-//GetEvmChainID return evm chainID
+// GetEvmChainID return evm chainID
 func GetEvmChainID() int64 {
 	return chainID
 }
 
-//CaculCoinsEvmAccountKey 兼容eth 账户的nonce 的key
+// CaculCoinsEvmAccountKey 兼容eth 账户的nonce 的key
 func CaculCoinsEvmAccountKey(addr string) []byte {
 	//prefix := "mval-" + "evm" + "-noncestate:" + strings.ToLower(addr)
 	prefix := "LODB-" + "evm" + "-noncestate:" + strings.ToLower(addr)
@@ -286,7 +286,7 @@ func CaculCoinsEvmAccountKey(addr string) []byte {
 
 }
 
-//const
+// const
 const (
 	Name = "secp256k1eth"
 	ID   = 260
