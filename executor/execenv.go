@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+
 	"github.com/33cn/chain33/account"
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/client/api"
@@ -453,8 +454,10 @@ func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, er
 		}
 	}
 	var err error
-	//平行链不收取手续费
-	if !e.cfg.IsPara() && e.cfg.GetMinTxFeeRate() > 0 && !ex.IsFree() {
+	//主网需要收手续费, 平行链开启收费则收取手续费
+	needParaFee := e.cfg.IsFork(e.height, "ForkParaFee")
+	needFee := !e.cfg.IsPara() || needParaFee
+	if needFee && e.cfg.GetMinTxFeeRate() > 0 && !ex.IsFree() {
 		feelog, err = e.processFee(tx)
 		if err != nil {
 			return nil, err

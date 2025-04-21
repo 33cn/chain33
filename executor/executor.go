@@ -198,7 +198,8 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 	//panic 处理
 	defer func() {
 		if r := recover(); r != nil {
-			elog.Error("query panic error", "err", r)
+      stacks := GetStack()
+      elog.Error("query panic error", "err", r, "stack", stacks)
 			msg.Reply(exec.client.NewMessage("", types.EventReceipts, types.ErrExecPanic))
 			return
 		}
