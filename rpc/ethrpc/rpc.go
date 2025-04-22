@@ -36,7 +36,6 @@ const (
 type initAPI func(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{}
 type rpcAPIs map[string]initAPI
 
-
 var (
 	log = log15.New("module", "eth_rpc")
 	// default apis

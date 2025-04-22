@@ -24,9 +24,9 @@ import (
 //多对多消息队列
 //消息：topic
 
-//1. 队列特点：
-//1.1 一个topic 只有一个订阅者（以后会变成多个）目前基本够用，模块都只有一个实例.
-//1.2 消息的回复直接通过消息自带的channel 回复
+// 1. 队列特点：
+// 1.1 一个topic 只有一个订阅者（以后会变成多个）目前基本够用，模块都只有一个实例.
+// 1.2 消息的回复直接通过消息自带的channel 回复
 var qlog = log.New("module", "queue")
 
 const (
@@ -34,7 +34,7 @@ const (
 	defaultLowChanBuffer = 40960
 )
 
-//消息队列的错误
+// 消息队列的错误
 var (
 	ErrIsQueueClosed    = errors.New("ErrIsQueueClosed")
 	ErrQueueTimeout     = errors.New("ErrQueueTimeout")

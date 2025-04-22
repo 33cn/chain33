@@ -66,7 +66,7 @@ var (
 	tlog = log15.New("module", "test solo")
 )
 
-//mempool发送交易 10000tx/s
+// mempool发送交易 10000tx/s
 func BenchmarkSendTx(b *testing.B) {
 	if testing.Short() {
 		b.Skip("skipping in short mode.")
@@ -244,7 +244,7 @@ func createCoinsTx(cfg *types.Chain33Config, to string, txHeight int64) *types.T
 	return tx
 }
 
-//测试solo并发
+// 测试solo并发
 func BenchmarkSolo(b *testing.B) {
 
 	if testing.Short() {
@@ -392,7 +392,7 @@ func BenchmarkCheckSign(b *testing.B) {
 	}
 }
 
-//消息队列发送性能, 80w /s
+// 消息队列发送性能, 80w /s
 func BenchmarkMsgQueue(b *testing.B) {
 	if testing.Short() {
 		b.Skip("skipping in short mode.")

@@ -64,12 +64,12 @@ func init() {
 
 }
 
-//InitFork init
+// InitFork init
 func InitFork(cfg *types.Chain33Config) {
 	cfg.RegisterDappFork(NoneX, ForkUseTimeDelay, 0)
 }
 
-//InitExecutor init Executor
+// InitExecutor init Executor
 func InitExecutor(cfg *types.Chain33Config) {
 	types.RegistorExecutor(NoneX, NewType(cfg))
 }
@@ -92,7 +92,7 @@ func (n *NoneType) GetPayload() types.Message {
 	return &NoneAction{}
 }
 
-//DecodePayloadValue decode payload value
+// DecodePayloadValue decode payload value
 func (n *NoneType) DecodePayloadValue(tx *types.Transaction) (string, reflect.Value, error) {
 	name, value, err := decodeNonePayload(tx)
 	return name, value, err

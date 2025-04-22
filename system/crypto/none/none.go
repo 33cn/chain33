@@ -9,7 +9,7 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 )
 
-//const
+// const
 const (
 	Name = "none"
 	ID   = 10
@@ -20,25 +20,25 @@ func init() {
 	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID), crypto.WithRegOptionDefaultDisable())
 }
 
-//Driver 驱动
+// Driver 驱动
 type Driver struct{}
 
-//GenKey 生成私钥
+// GenKey 生成私钥
 func (d Driver) GenKey() (crypto.PrivKey, error) {
 	return nil, nil
 }
 
-//PrivKeyFromBytes 字节转为私钥
+// PrivKeyFromBytes 字节转为私钥
 func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
 	return nil, nil
 }
 
-//PubKeyFromBytes 字节转为公钥
+// PubKeyFromBytes 字节转为公钥
 func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
 	return nil, nil
 }
 
-//SignatureFromBytes 字节转为签名
+// SignatureFromBytes 字节转为签名
 func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	return nil, nil
 }

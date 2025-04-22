@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//UpdateInitCmd 升级初始命令
+// UpdateInitCmd 升级初始命令
 func UpdateInitCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "updateinit",

@@ -7,10 +7,11 @@
 package types
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -1078,7 +1079,7 @@ func (x *PruneData) GetHashs() [][]byte {
 	return nil
 }
 
-//用于存储db Pool数据的Value
+// 用于存储db Pool数据的Value
 type StoreValuePool struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

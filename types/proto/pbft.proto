@@ -2,7 +2,7 @@ syntax = "proto3";
 
 import "blockchain.proto";
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 message Operation {
     Block value = 1;
@@ -81,12 +81,12 @@ message RequestCheckpoint {
 }
 
 message RequestViewChange {
-    uint32   view                   = 1;
-    uint32   sequence               = 2;
+    uint32              view        = 1;
+    uint32              sequence    = 2;
     repeated Checkpoint checkpoints = 3;
-    repeated Entry preps            = 4;
-    repeated Entry prepreps         = 5;
-    uint32         replica          = 6;
+    repeated Entry      preps       = 4;
+    repeated Entry      prepreps    = 5;
+    uint32              replica     = 6;
 }
 
 message RequestAck {
@@ -97,10 +97,10 @@ message RequestAck {
 }
 
 message RequestNewView {
-    uint32   view                   = 1;
+    uint32              view        = 1;
     repeated ViewChange viewchanges = 2;
-    repeated Summary summaries      = 4;
-    uint32           replica        = 5;
+    repeated Summary    summaries   = 4;
+    uint32              replica     = 5;
 }
 
 message ClientReply {

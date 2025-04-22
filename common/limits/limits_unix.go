@@ -58,7 +58,7 @@ func SetLimits() error {
 	return nil
 }
 
-//GetLimits 获取limits
+// GetLimits 获取limits
 func GetLimits() (syscall.Rlimit, error) {
 	var rLimit syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)

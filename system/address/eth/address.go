@@ -2,6 +2,7 @@ package eth
 
 import (
 	"errors"
+
 	"github.com/33cn/chain33/common/crypto/client"
 
 	"github.com/33cn/chain33/common/address"

@@ -6,7 +6,7 @@ import "blockchain.proto";
 import "evm_event.proto";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 message TxReceipts4SubscribePerBlk {
     repeated Transaction tx          = 1;

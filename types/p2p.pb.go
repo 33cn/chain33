@@ -8,13 +8,14 @@ package types
 
 import (
 	context "context"
+	reflect "reflect"
+	sync "sync"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -24,7 +25,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-//*
+// *
 // 请求获取远程节点的节点信息
 type P2PGetPeerInfo struct {
 	state         protoimpl.MessageState
@@ -74,7 +75,7 @@ func (x *P2PGetPeerInfo) GetVersion() int32 {
 	return 0
 }
 
-//*
+// *
 // 节点信息
 type P2PPeerInfo struct {
 	state         protoimpl.MessageState
@@ -208,7 +209,7 @@ func (x *P2PPeerInfo) GetBlocked() bool {
 	return false
 }
 
-//*
+// *
 // p2p节点间发送版本数据结构
 type P2PVersion struct {
 	state         protoimpl.MessageState
@@ -321,7 +322,7 @@ func (x *P2PVersion) GetStartHeight() int64 {
 	return 0
 }
 
-//*
+// *
 // P2P 版本返回
 type P2PVerAck struct {
 	state         protoimpl.MessageState
@@ -386,7 +387,7 @@ func (x *P2PVerAck) GetNonce() int64 {
 	return 0
 }
 
-//*
+// *
 // P2P 心跳包
 type P2PPing struct {
 	state         protoimpl.MessageState
@@ -463,7 +464,7 @@ func (x *P2PPing) GetSign() *Signature {
 	return nil
 }
 
-//*
+// *
 // 心跳返回包
 type P2PPong struct {
 	state         protoimpl.MessageState
@@ -512,7 +513,7 @@ func (x *P2PPong) GetNonce() int64 {
 	return 0
 }
 
-//*
+// *
 // 获取对方节点所连接的其他节点地址的请求包
 type P2PGetAddr struct {
 	state         protoimpl.MessageState
@@ -561,7 +562,7 @@ func (x *P2PGetAddr) GetNonce() int64 {
 	return 0
 }
 
-//*
+// *
 // 返回请求地址列表的社保
 type P2PAddr struct {
 	state         protoimpl.MessageState
@@ -674,7 +675,7 @@ func (x *P2PAddrList) GetPeerinfo() []*P2PPeerInfo {
 	return nil
 }
 
-//*
+// *
 // 节点外网信息
 type P2PExternalInfo struct {
 	state         protoimpl.MessageState
@@ -733,7 +734,7 @@ func (x *P2PExternalInfo) GetIsoutside() bool {
 	return false
 }
 
-//*
+// *
 // 获取区间区块
 type P2PGetBlocks struct {
 	state         protoimpl.MessageState
@@ -798,7 +799,7 @@ func (x *P2PGetBlocks) GetEndHeight() int64 {
 	return 0
 }
 
-//*
+// *
 // 获取mempool
 type P2PGetMempool struct {
 	state         protoimpl.MessageState
@@ -961,7 +962,7 @@ func (x *Inventory) GetHeight() int64 {
 	return 0
 }
 
-//*
+// *
 // 通过invs 下载数据
 type P2PGetData struct {
 	state         protoimpl.MessageState
@@ -1020,7 +1021,6 @@ func (x *P2PGetData) GetInvs() []*Inventory {
 	return nil
 }
 
-//
 type P2PRoute struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1068,7 +1068,7 @@ func (x *P2PRoute) GetTTL() int32 {
 	return 0
 }
 
-//*
+// *
 // p2p 发送交易协议
 type P2PTx struct {
 	state         protoimpl.MessageState
@@ -1125,7 +1125,7 @@ func (x *P2PTx) GetRoute() *P2PRoute {
 	return nil
 }
 
-//*
+// *
 // p2p 发送区块协议
 type P2PBlock struct {
 	state         protoimpl.MessageState
@@ -1174,7 +1174,7 @@ func (x *P2PBlock) GetBlock() *Block {
 	return nil
 }
 
-//*
+// *
 // p2p 轻量级区块, 广播交易短哈希列表
 type LightBlock struct {
 	state         protoimpl.MessageState
@@ -1610,7 +1610,7 @@ func (*P2PQueryData_TxReq) isP2PQueryData_Value() {}
 
 func (*P2PQueryData_BlockTxReq) isP2PQueryData_Value() {}
 
-//*
+// *
 // p2p 协议和软件版本
 type Versions struct {
 	state         protoimpl.MessageState
@@ -1675,7 +1675,7 @@ func (x *Versions) GetPeername() string {
 	return ""
 }
 
-//*
+// *
 // p2p 广播数据协议
 type BroadCastData struct {
 	state         protoimpl.MessageState
@@ -1841,7 +1841,7 @@ func (*BroadCastData_Query) isBroadCastData_Value() {}
 
 func (*BroadCastData_BlockRep) isBroadCastData_Value() {}
 
-//*
+// *
 // p2p 获取区块区间头部信息协议
 type P2PGetHeaders struct {
 	state         protoimpl.MessageState
@@ -1906,7 +1906,7 @@ func (x *P2PGetHeaders) GetEndHeight() int64 {
 	return 0
 }
 
-//*
+// *
 // p2p 区块头传输协议
 type P2PHeaders struct {
 	state         protoimpl.MessageState
@@ -1955,7 +1955,7 @@ func (x *P2PHeaders) GetHeaders() []*Header {
 	return nil
 }
 
-//*
+// *
 // inv 请求协议
 type InvData struct {
 	state         protoimpl.MessageState
@@ -2045,7 +2045,7 @@ func (*InvData_Tx) isInvData_Value() {}
 
 func (*InvData_Block) isInvData_Value() {}
 
-//*
+// *
 // inv 返回数据
 type InvDatas struct {
 	state         protoimpl.MessageState
@@ -2094,7 +2094,7 @@ func (x *InvDatas) GetItems() []*InvData {
 	return nil
 }
 
-//*
+// *
 // peer 信息
 type Peer struct {
 	state         protoimpl.MessageState
@@ -2239,7 +2239,7 @@ func (x *Peer) GetFinalized() *SnowChoice {
 	return nil
 }
 
-//*
+// *
 // peer 列表
 type PeerList struct {
 	state         protoimpl.MessageState
@@ -2288,7 +2288,7 @@ func (x *PeerList) GetPeers() []*Peer {
 	return nil
 }
 
-//*
+// *
 // p2p get peer req
 type P2PGetPeerReq struct {
 	state         protoimpl.MessageState
@@ -2337,7 +2337,7 @@ func (x *P2PGetPeerReq) GetP2PType() string {
 	return ""
 }
 
-//*
+// *
 // p2p get net info req
 type P2PGetNetInfoReq struct {
 	state         protoimpl.MessageState
@@ -2386,8 +2386,8 @@ func (x *P2PGetNetInfoReq) GetP2PType() string {
 	return ""
 }
 
-//*
-//当前节点的网络信息
+// *
+// 当前节点的网络信息
 type NodeNetInfo struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

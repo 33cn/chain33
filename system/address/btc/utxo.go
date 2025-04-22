@@ -2,9 +2,10 @@ package btc
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/33cn/chain33/common/address"
 	"github.com/btcsuite/btcd/wire"
-	"strings"
 )
 
 func init() {

@@ -20,18 +20,18 @@ type taskInfo struct {
 	mtx     sync.Mutex
 }
 
-//Len size of the Invs data
+// Len size of the Invs data
 func (t tasks) Len() int {
 	return len(t)
 }
 
-//TODO bug
-//Less Sort from low to high
+// TODO bug
+// Less Sort from low to high
 func (t tasks) Less(a, b int) bool {
 	return t[a].Latency < t[b].Latency
 }
 
-//Swap  the param
+// Swap  the param
 func (t tasks) Swap(a, b int) {
 	t[a], t[b] = t[b], t[a]
 }

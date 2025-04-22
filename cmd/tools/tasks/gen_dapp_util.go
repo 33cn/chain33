@@ -17,7 +17,8 @@ type actionInfoItem struct {
 	memberType string
 }
 
-/**
+/*
+*
 通过正则获取Action的成员变量名和类型，其具体操作步骤如下：
 1. 读取需要解析的proto文件
 2. 通过搜索，定位到指定Action的起始为止

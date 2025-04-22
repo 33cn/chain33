@@ -416,7 +416,7 @@ func totalFee(cmd *cobra.Command, args []string) {
 	fmt.Println(buf.String())
 }
 
-//get last block header
+// get last block header
 func getLastBlock(rpc *jsonclient.JSONClient) (*rpctypes.Header, error) {
 
 	res := &rpctypes.Header{}
@@ -427,7 +427,7 @@ func getLastBlock(rpc *jsonclient.JSONClient) (*rpctypes.Header, error) {
 	return res, nil
 }
 
-//get block hash with height
+// get block hash with height
 func getBlockHash(height int64, rpc *jsonclient.JSONClient) (string, error) {
 
 	params := types.ReqInt{Height: height}

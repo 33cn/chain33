@@ -113,7 +113,7 @@ func (mem *Mempool) eventProcess() {
 	}
 }
 
-//EventTx 初步筛选后存入mempool
+// EventTx 初步筛选后存入mempool
 func (mem *Mempool) eventTx(msg *queue.Message) {
 	if !mem.getSync() {
 		msg.Reply(mem.client.NewMessage("", types.EventReply, &types.Reply{Msg: []byte(types.ErrNotSync.Error())}))

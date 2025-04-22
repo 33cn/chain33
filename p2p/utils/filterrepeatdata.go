@@ -102,7 +102,7 @@ func (f *Filterdata) Get(key string) (interface{}, bool) {
 	return val, ok
 }
 
-//AddWithCheckAtomic add key if key not exist with atomic lock, return true if exist
+// AddWithCheckAtomic add key if key not exist with atomic lock, return true if exist
 func (f *Filterdata) AddWithCheckAtomic(key string, val interface{}) (exist bool) {
 
 	f.GetAtomicLock()

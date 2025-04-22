@@ -20,13 +20,13 @@ type tabler interface {
 	getRow(value []byte) (*Row, error)
 }
 
-//Query 列表查询结构
+// Query 列表查询结构
 type Query struct {
 	table tabler
 	kvdb  db.KVDB
 }
 
-//List 通过某个数据，查询
+// List 通过某个数据，查询
 func (query *Query) List(indexName string, data types.Message, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	var prefix []byte
 	if data != nil {
@@ -46,7 +46,7 @@ func (query *Query) List(indexName string, data types.Message, primaryKey []byte
 	return query.ListIndex(indexName, prefix, primaryKey, count, direction)
 }
 
-//ListOne 通过某个数据，查询一行
+// ListOne 通过某个数据，查询一行
 func (query *Query) ListOne(indexName string, data types.Message, primaryKey []byte) (row *Row, err error) {
 	rows, err := query.List(indexName, data, primaryKey, 1, db.ListDESC)
 	if err != nil {
@@ -59,12 +59,12 @@ func isPrimaryIndex(indexName string) bool {
 	return indexName == "" || indexName == "auto" || indexName == "primary"
 }
 
-//ListIndex 根据索引查询列表
-//index 用哪个index
-//prefix 必须要符合的前缀, 可以为空
-//primaryKey 开始查询的位置(不包含数据本身)
-//count 最多取的数量
-//direction 方向
+// ListIndex 根据索引查询列表
+// index 用哪个index
+// prefix 必须要符合的前缀, 可以为空
+// primaryKey 开始查询的位置(不包含数据本身)
+// count 最多取的数量
+// direction 方向
 func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	if isPrimaryIndex(indexName) || indexName == query.table.getOpt().Primary {
 		return query.listPrimary(prefix, primaryKey, count, direction)
@@ -106,7 +106,7 @@ func (query *Query) ListIndex(indexName string, prefix []byte, primaryKey []byte
 	return rows, nil
 }
 
-//ListPrimary list primary data
+// ListPrimary list primary data
 func (query *Query) listPrimary(prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	metaPrefix := query.table.primaryPrefix()
 	var key []byte

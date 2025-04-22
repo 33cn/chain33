@@ -9,13 +9,13 @@ import (
 
 var shashlog = log.New("module", "mempool.shash")
 
-//SHashTxCache 通过shorthash缓存交易
+// SHashTxCache 通过shorthash缓存交易
 type SHashTxCache struct {
 	max int
 	l   *listmap.ListMap
 }
 
-//NewSHashTxCache 创建通过短hash交易的cache
+// NewSHashTxCache 创建通过短hash交易的cache
 func NewSHashTxCache(size int) *SHashTxCache {
 	return &SHashTxCache{
 		max: size,
@@ -23,7 +23,7 @@ func NewSHashTxCache(size int) *SHashTxCache {
 	}
 }
 
-//GetSHashTxCache 返回shorthash对应的tx交易信息
+// GetSHashTxCache 返回shorthash对应的tx交易信息
 func (cache *SHashTxCache) GetSHashTxCache(sHash string) *types.Transaction {
 	tx, err := cache.l.GetItem(sHash)
 	if err != nil {
@@ -33,13 +33,13 @@ func (cache *SHashTxCache) GetSHashTxCache(sHash string) *types.Transaction {
 
 }
 
-//Remove remove tx of SHashTxCache
+// Remove remove tx of SHashTxCache
 func (cache *SHashTxCache) Remove(txHash string) {
 	cache.l.Remove(types.CalcTxShortHash(types.Str2Bytes(txHash)))
 	//shashlog.Debug("SHashTxCache:Remove", "shash", types.CalcTxShortHash(txhash), "txhash", common.ToHex(txhash))
 }
 
-//Push tx into SHashTxCache
+// Push tx into SHashTxCache
 func (cache *SHashTxCache) Push(tx *types.Transaction, txHash []byte) {
 	shash := types.CalcTxShortHash(txHash)
 
@@ -55,7 +55,7 @@ func (cache *SHashTxCache) Push(tx *types.Transaction, txHash []byte) {
 	//shashlog.Debug("SHashTxCache:Push", "shash", shash, "txhash", common.ToHex(tx.Hash()))
 }
 
-//Exist 是否存在
+// Exist 是否存在
 func (cache *SHashTxCache) Exist(shash string) bool {
 	return cache.l.Exist(shash)
 }

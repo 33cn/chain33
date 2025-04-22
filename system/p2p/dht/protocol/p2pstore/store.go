@@ -19,7 +19,7 @@ const (
 	AlphaValue        = 3
 )
 
-//LocalChunkInfo wraps local chunk key with time.
+// LocalChunkInfo wraps local chunk key with time.
 type LocalChunkInfo struct {
 	*types.ChunkInfoMsg
 	Time time.Time

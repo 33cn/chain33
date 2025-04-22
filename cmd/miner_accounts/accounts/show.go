@@ -27,14 +27,14 @@ const monitorBtyLowLimit = 3 * 1e7
 
 var log = l.New("module", "accounts")
 
-//ShowMinerAccount 挖矿账户
+// ShowMinerAccount 挖矿账户
 type ShowMinerAccount struct {
 	DataDir       string
 	Addrs         []string
 	CoinPrecision int64
 }
 
-//Echo 打印
+// Echo 打印
 func (*ShowMinerAccount) Echo(in *string, out *interface{}) error {
 	if in == nil {
 		return types.ErrInvalidParam
@@ -43,14 +43,14 @@ func (*ShowMinerAccount) Echo(in *string, out *interface{}) error {
 	return nil
 }
 
-//TimeAt time
+// TimeAt time
 type TimeAt struct {
 	// YYYY-mm-dd-HH
 	TimeAt string   `json:"timeAt,omitempty"`
 	Addrs  []string `json:"addrs,omitempty"`
 }
 
-//Get get
+// Get get
 func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	if in == nil {
 		log.Error("show", "in", "nil")

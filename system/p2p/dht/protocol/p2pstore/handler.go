@@ -9,9 +9,9 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	kb "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-	kb "github.com/libp2p/go-libp2p-kbucket"
 )
 
 func (p *Protocol) handleStreamRequestPeerInfoForChunk(stream network.Stream) {
@@ -227,7 +227,7 @@ func (p *Protocol) handleStreamPeerAddr(req *types.P2PRequest, res *types.P2PRes
 	return nil
 }
 
-//TODO:
+// TODO:
 // Deprecated:
 func (p *Protocol) handleStreamIsFullNode(resp *types.P2PResponse) error {
 	resp.Response = &types.P2PResponse_NodeInfo{
@@ -377,7 +377,7 @@ func (p *Protocol) handleStreamGetChunkRecord(req *types.P2PRequest, res *types.
 	return nil
 }
 
-//handleEventNotifyStoreChunk handles notification of blockchain,
+// handleEventNotifyStoreChunk handles notification of blockchain,
 // store chunk if this node is the nearest *count* node in the local routing table.
 func (p *Protocol) handleEventNotifyStoreChunk(m *queue.Message) {
 	req := m.GetData().(*types.ChunkInfoMsg)

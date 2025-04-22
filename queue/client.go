@@ -81,8 +81,8 @@ func (client *client) GetConfig() *types.Chain33Config {
 }
 
 // Send 发送消息,msg 消息 ,waitReply 是否等待回应
-//1. 系统保证send出去的消息就是成功了，除非系统崩溃
-//2. 系统保证每个消息都有对应的 response 消息
+// 1. 系统保证send出去的消息就是成功了，除非系统崩溃
+// 2. 系统保证每个消息都有对应的 response 消息
 func (client *client) Send(msg *Message, waitReply bool) (err error) {
 	timeout := time.Duration(-1)
 	err = client.SendTimeout(msg, waitReply, timeout)

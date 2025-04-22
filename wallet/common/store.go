@@ -22,7 +22,7 @@ var (
 	storelog = log15.New("wallet", "store")
 )
 
-//AddrInfo 通过seed指定index创建的账户信息，目前主要用于空投地址
+// AddrInfo 通过seed指定index创建的账户信息，目前主要用于空投地址
 type AddrInfo struct {
 	Index  uint32 `json:"index,omitempty"`
 	Addr   string `json:"addr,omitempty"`
@@ -64,7 +64,7 @@ func (store *Store) GetBlockBatch(sync bool) db.Batch {
 	return store.blkBatch
 }
 
-//FreeBlockBatch free
+// FreeBlockBatch free
 func (store *Store) FreeBlockBatch() {
 	store.batchLock.Unlock()
 }
@@ -204,7 +204,7 @@ func (store *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore
 	return WalletAccountStores, nil
 }
 
-//GetTxDetailByIter 迭代获取从指定key：height*100000+index 开始向前或者向后查找指定count的交易
+// GetTxDetailByIter 迭代获取从指定key：height*100000+index 开始向前或者向后查找指定count的交易
 func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	var txDetails types.WalletTxDetails
 	if TxList == nil {
@@ -329,7 +329,7 @@ func (store *Store) DelAccountByLabel(label string) {
 	}
 }
 
-//SetWalletVersion 升级数据库的版本号
+// SetWalletVersion 升级数据库的版本号
 func (store *Store) SetWalletVersion(ver int64) error {
 	data, err := json.Marshal(ver)
 	if err != nil {
@@ -354,7 +354,7 @@ func (store *Store) GetWalletVersion() int64 {
 	return ver
 }
 
-//HasSeed 判断钱包是否已经保存seed
+// HasSeed 判断钱包是否已经保存seed
 func (store *Store) HasSeed() (bool, error) {
 	seed, err := store.Get(CalcWalletSeed())
 	if len(seed) == 0 || err != nil {

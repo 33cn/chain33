@@ -20,7 +20,7 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 )
 
-//const
+// const
 const (
 	Name = "btcscript"
 	ID   = 11
@@ -31,7 +31,7 @@ func init() {
 	crypto.Register(Name, &Driver{}, crypto.WithRegOptionTypeID(ID))
 }
 
-//Driver 驱动, 除验证外，其余接口同secp256k1
+// Driver 驱动, 除验证外，其余接口同secp256k1
 type Driver struct {
 	secp256k1.Driver
 }

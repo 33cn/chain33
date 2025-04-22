@@ -13,11 +13,11 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//ProcGetTransactionByAddr 获取地址对应的所有交易信息
-//存储格式key:addr:flag:height ,value:txhash
-//key=addr :获取本地参与的所有交易
-//key=addr:1 :获取本地作为from方的所有交易
-//key=addr:2 :获取本地作为to方的所有交易
+// ProcGetTransactionByAddr 获取地址对应的所有交易信息
+// 存储格式key:addr:flag:height ,value:txhash
+// key=addr :获取本地参与的所有交易
+// key=addr:1 :获取本地作为from方的所有交易
+// key=addr:2 :获取本地作为to方的所有交易
 func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.ReplyTxInfos, error) {
 	if addr == nil || len(addr.Addr) == 0 {
 		return nil, types.ErrInvalidParam
@@ -56,11 +56,13 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	return txinfos.(*types.ReplyTxInfos), nil
 }
 
-//ProcGetTransactionByHashes 返回类型
-//type TransactionDetails struct {
-//	Txs []*Transaction
-//}
-//通过hashs获取交易详情
+// ProcGetTransactionByHashes 返回类型
+//
+//	type TransactionDetails struct {
+//		Txs []*Transaction
+//	}
+//
+// 通过hashs获取交易详情
 func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *types.TransactionDetails, err error) {
 	if int64(len(hashs)) > types.MaxBlockCountPerTime {
 		return nil, types.ErrMaxCountPerTime
@@ -82,7 +84,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 	return &txDetails, nil
 }
 
-//getTxHashProofs 获取指定txindex在txs中的proof ，注释：index从0开始
+// getTxHashProofs 获取指定txindex在txs中的proof ，注释：index从0开始
 func getTxHashProofs(Txs []*types.Transaction, index int32) [][]byte {
 	txlen := len(Txs)
 	leaves := make([][]byte, txlen)
@@ -97,13 +99,14 @@ func getTxHashProofs(Txs []*types.Transaction, index int32) [][]byte {
 	return proofs
 }
 
-//GetTxResultFromDb 通过txhash 从txindex db中获取tx信息
-//type TxResult struct {
-//	Height int64
-//	Index  int32
-//	Tx     *types.Transaction
-//  Receiptdate *ReceiptData
-//}
+// GetTxResultFromDb 通过txhash 从txindex db中获取tx信息
+//
+//	type TxResult struct {
+//		Height int64
+//		Index  int32
+//		Tx     *types.Transaction
+//	 Receiptdate *ReceiptData
+//	}
 func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, err error) {
 	txinfo, err := chain.blockStore.GetTx(txhash)
 	if err != nil {
@@ -112,7 +115,7 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 	return txinfo, nil
 }
 
-//HasTx 是否包含该交易
+// HasTx 是否包含该交易
 func (chain *BlockChain) HasTx(txhash []byte, txHeight int64) (has bool, err error) {
 
 	if txHeight > 0 {
@@ -121,7 +124,7 @@ func (chain *BlockChain) HasTx(txhash []byte, txHeight int64) (has bool, err err
 	return chain.blockStore.HasTx(txhash)
 }
 
-//GetDuplicateTxHashList 获取重复的交易
+// GetDuplicateTxHashList 获取重复的交易
 func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList, err error) {
 	var dupTxHashList types.TxHashList
 	//onlyquerycache := false
@@ -148,7 +151,8 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 	return &dupTxHashList, nil
 }
 
-/*ProcQueryTxMsg 函数功能：
+/*
+ProcQueryTxMsg 函数功能：
 EventQueryTx(types.ReqHash) : rpc模块会向 blockchain 模块 发送 EventQueryTx(types.ReqHash) 消息 ，
 查询交易的默克尔树，回复消息 EventTransactionDetail(types.TransactionDetail)
 结构体：
@@ -210,11 +214,12 @@ func setTxDetailFromTxResult(TransactionDetail *types.TransactionDetail, txresul
 	TransactionDetail.Fromaddr = txresult.GetTx().From()
 }
 
-//ProcGetAddrOverview 获取addrOverview
-//type  AddrOverview {
-//	int64 reciver = 1;
-//	int64 balance = 2;
-//	int64 txCount = 3;}
+// ProcGetAddrOverview 获取addrOverview
+//
+//	type  AddrOverview {
+//		int64 reciver = 1;
+//		int64 balance = 2;
+//		int64 txCount = 3;}
 func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOverview, error) {
 	cfg := chain.client.GetConfig()
 	if addr == nil || len(addr.Addr) == 0 {
@@ -254,7 +259,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	return &addrOverview, nil
 }
 
-//getTxFullHashProofs 获取指定txinde在txs中的proof, ForkRootHash之后使用fullhash来计算
+// getTxFullHashProofs 获取指定txinde在txs中的proof, ForkRootHash之后使用fullhash来计算
 func getTxFullHashProofs(Txs []*types.Transaction, index int32) [][]byte {
 	txlen := len(Txs)
 	leaves := make([][]byte, txlen)
@@ -268,7 +273,7 @@ func getTxFullHashProofs(Txs []*types.Transaction, index int32) [][]byte {
 	return proofs
 }
 
-//获取指定交易在子链中的路径证明,使用fullhash
+// 获取指定交易在子链中的路径证明,使用fullhash
 func (chain *BlockChain) getMultiLayerProofs(height int64, blockHash []byte, Txs []*types.Transaction, index int32) []*types.TxProof {
 	var proofs []*types.TxProof
 

@@ -4,7 +4,7 @@ import "transaction.proto";
 import "account.proto";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 //钱包模块存贮的tx交易详细信息
 // 	 tx : tx交易信息

@@ -65,7 +65,7 @@ func newRPCTransaction(tx *etypes.Transaction, blockHash common.Hash, blockNumbe
 	return result
 }
 
-//makeDERSigToRSV der sig data to rsv
+// makeDERSigToRSV der sig data to rsv
 func makeDERSigToRSV(eipSigner etypes.Signer, sig []byte) (r, s, v *big.Int, err error) {
 	if len(sig) == 65 {
 		r = new(big.Int).SetBytes(sig[:32])
@@ -92,7 +92,7 @@ func makeDERSigToRSV(eipSigner etypes.Signer, sig []byte) (r, s, v *big.Int, err
 	return r, s, v, nil
 }
 
-//CaculateRealV  return v
+// CaculateRealV  return v
 func CaculateRealV(v *big.Int, chainID uint64, txTyppe uint8) (byte, error) {
 
 	switch txTyppe {
@@ -146,7 +146,7 @@ func paraseDERCode(sig []byte) (r, s []byte, err error) {
 	return
 }
 
-//makeDERsignature ...
+// makeDERsignature ...
 func makeDERsignature(rb, sb []byte) []byte {
 	if rb[0] > 0x7F {
 		rb = append([]byte{0}, rb...)
@@ -278,7 +278,7 @@ func paraseChain33TxPayload(execer string, payload []byte, blockHash common.Hash
 
 }
 
-//TxsToEthTxs chain33 txs format transfer to eth txs format
+// TxsToEthTxs chain33 txs format transfer to eth txs format
 func TxsToEthTxs(blockHash common.Hash, blockNum int64, ctxs []*ctypes.Transaction, cfg *ctypes.Chain33Config, full bool) (txs []interface{}, fee int64, err error) {
 	for index, itx := range ctxs {
 		fee += itx.GetFee()
@@ -306,7 +306,7 @@ func TxsToEthTxs(blockHash common.Hash, blockNum int64, ctxs []*ctypes.Transacti
 	return txs, fee, nil
 }
 
-//TxDetailsToEthReceipts chain33 txdetails transfer to eth tx receipts
+// TxDetailsToEthReceipts chain33 txdetails transfer to eth tx receipts
 func TxDetailsToEthReceipts(txDetails *ctypes.TransactionDetails, blockHash common.Hash, cfg *ctypes.Chain33Config) (txs Transactions, receipts []*Receipt, err error) {
 	for index, detail := range txDetails.GetTxs() {
 		if detail.GetTx() == nil {
@@ -460,7 +460,7 @@ func CreateBloom(receipts []*Receipt) etypes.Bloom {
 	return bin
 }
 
-//AssembleChain33Tx 通过eth tx 组装chain33 tx 全部走evm 通道
+// AssembleChain33Tx 通过eth tx 组装chain33 tx 全部走evm 通道
 func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.Chain33Config) *ctypes.Transaction {
 	rawData, err := etx.MarshalBinary()
 	if err != nil {

@@ -3,7 +3,7 @@ syntax = "proto3";
 import "common.proto";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 // merkle avl tree
 message LeafNode {
@@ -21,7 +21,7 @@ message InnerNode {
 }
 
 message MAVLProof {
-    bytes    leafHash             = 1;
+    bytes              leafHash   = 1;
     repeated InnerNode innerNodes = 2;
     bytes              rootHash   = 3;
 }
@@ -58,9 +58,9 @@ message LocalReplyValue {
 }
 
 message StoreSet {
-    bytes    stateHash       = 1;
-    repeated KeyValue KV     = 2;
-    int64             height = 3;
+    bytes             stateHash = 1;
+    repeated KeyValue KV        = 2;
+    int64             height    = 3;
 }
 
 message StoreDel {
@@ -75,8 +75,8 @@ message StoreSetWithSync {
 }
 
 message StoreGet {
-    bytes    stateHash  = 1;
-    repeated bytes keys = 2;
+    bytes          stateHash = 1;
+    repeated bytes keys      = 2;
 }
 
 message StoreReplyValue {
@@ -93,15 +93,15 @@ message StoreList {
 }
 
 message StoreListReply {
-    bytes    start        = 1;
-    bytes    end          = 2;
-    bytes    suffix       = 3;
-    int64    count        = 4;
-    int64    num          = 5;
-    int64    mode         = 6;
-    bytes    nextKey      = 7;
-    repeated bytes keys   = 8;
-    repeated bytes values = 9;
+    bytes          start   = 1;
+    bytes          end     = 2;
+    bytes          suffix  = 3;
+    int64          count   = 4;
+    int64          num     = 5;
+    int64          mode    = 6;
+    bytes          nextKey = 7;
+    repeated bytes keys    = 8;
+    repeated bytes values  = 9;
 }
 
 message PruneData {

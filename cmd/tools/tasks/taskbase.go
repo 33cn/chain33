@@ -10,22 +10,22 @@ var (
 	mlog = log15.New("module", "task")
 )
 
-//TaskBase task base
+// TaskBase task base
 type TaskBase struct {
 	NextTask Task
 }
 
-//Execute 执行
+// Execute 执行
 func (t *TaskBase) Execute() error {
 	return nil
 }
 
-//SetNext set next
+// SetNext set next
 func (t *TaskBase) SetNext(task Task) {
 	t.NextTask = task
 }
 
-//Next 获取next
+// Next 获取next
 func (t *TaskBase) Next() Task {
 	return t.NextTask
 }

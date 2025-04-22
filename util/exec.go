@@ -14,7 +14,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//CheckBlock : To check the block's validaty
+// CheckBlock : To check the block's validaty
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	req := block
 	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
@@ -33,7 +33,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	return errors.New(string(reply.GetMsg()))
 }
 
-//ExecTx : To send lists of txs within a block to exector for execution
+// ExecTx : To send lists of txs within a block to exector for execution
 func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*types.Receipts, error) {
 	list := &types.ExecTxList{
 		StateHash:  prevStateRoot,
@@ -59,7 +59,7 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*typ
 	return receipts, nil
 }
 
-//ExecKVMemSet : send kv values to memory store and set it in db
+// ExecKVMemSet : send kv values to memory store and set it in db
 func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset []*types.KeyValue, sync bool, upgrade bool) ([]byte, error) {
 	set := &types.StoreSet{StateHash: prevStateRoot, KV: kvset, Height: height}
 	setwithsync := &types.StoreSetWithSync{Storeset: set, Sync: sync, Upgrade: upgrade}
@@ -77,7 +77,7 @@ func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset
 	return hash.GetHash(), nil
 }
 
-//ExecKVSetCommit : commit the data set opetation to db
+// ExecKVSetCommit : commit the data set opetation to db
 func ExecKVSetCommit(client queue.Client, hash []byte, upgrade bool) error {
 	req := &types.ReqHash{Hash: hash, Upgrade: upgrade}
 	msg := client.NewMessage("store", types.EventStoreCommit, req)
@@ -94,7 +94,7 @@ func ExecKVSetCommit(client queue.Client, hash []byte, upgrade bool) error {
 	return nil
 }
 
-//ExecKVSetRollback : do the db's roll back operation
+// ExecKVSetRollback : do the db's roll back operation
 func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	req := &types.ReqHash{Hash: hash}
 	msg := client.NewMessage("store", types.EventStoreRollback, req)
@@ -111,7 +111,7 @@ func ExecKVSetRollback(client queue.Client, hash []byte) error {
 	return nil
 }
 
-//DelDupTx 删除重复的交易
+// DelDupTx 删除重复的交易
 func DelDupTx(txs []*types.TransactionCache) (ret []*types.TransactionCache) {
 	dupindex := make(map[string]int)
 	hasdup := false
@@ -136,7 +136,7 @@ func DelDupTx(txs []*types.TransactionCache) (ret []*types.TransactionCache) {
 	return txs[0:index]
 }
 
-//CheckDupTx : check use txs []*types.Transaction and not []*types.TransactionCache
+// CheckDupTx : check use txs []*types.Transaction and not []*types.TransactionCache
 func CheckDupTx(client queue.Client, txs []*types.Transaction, height int64) (transactions []*types.Transaction, err error) {
 	txcache := make([]*types.TransactionCache, len(txs))
 	for i := 0; i < len(txcache); i++ {
@@ -152,7 +152,7 @@ func CheckDupTx(client queue.Client, txs []*types.Transaction, height int64) (tr
 	return transactions, nil
 }
 
-//CheckTxDup : check whether the tx is duplicated within the while chain
+// CheckTxDup : check whether the tx is duplicated within the while chain
 func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList
 	types.AssertConfig(client)
@@ -198,8 +198,8 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	return transactions, nil
 }
 
-//ReportErrEventToFront 上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，
-//然后由钱包模块前端定时调用显示给客户
+// ReportErrEventToFront 上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，
+// 然后由钱包模块前端定时调用显示给客户
 func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule string, tomodule string, err error) {
 	if client == nil || len(tomodule) == 0 || len(frommodule) == 0 || err == nil {
 		logger.Error("SendErrEventToFront  input para err .")
@@ -224,7 +224,7 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	}
 }
 
-//DelDupKey 删除重复的key
+// DelDupKey 删除重复的key
 func DelDupKey(kvs []*types.KeyValue) []*types.KeyValue {
 	dupindex := make(map[string]int)
 	n := 0
@@ -241,7 +241,7 @@ func DelDupKey(kvs []*types.KeyValue) []*types.KeyValue {
 	return kvs[0:n]
 }
 
-//CmpBestBlock : 选择最优区块,通知共识模块newblock是否是最优区块
+// CmpBestBlock : 选择最优区块,通知共识模块newblock是否是最优区块
 // height,time,parentHash一致时根据共识各自规则判断
 func CmpBestBlock(client queue.Client, newBlock *types.Block, cmpHash []byte) bool {
 	cfg := client.GetConfig()

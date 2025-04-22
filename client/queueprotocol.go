@@ -183,7 +183,7 @@ func (q *QueueProtocol) GetTxList(param *types.TxHashList) (*types.ReplyTxList, 
 	return nil, types.ErrTypeAsset
 }
 
-//GetTxListByAddr get transactions by addr from mempool
+// GetTxListByAddr get transactions by addr from mempool
 func (q *QueueProtocol) GetTxListByAddr(param *types.ReqAddrs) (*types.TransactionDetails, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -201,7 +201,7 @@ func (q *QueueProtocol) GetTxListByAddr(param *types.ReqAddrs) (*types.Transacti
 	return nil, types.ErrTypeAsset
 }
 
-//RemoveTxsByHashList remove txs by tx  hash list
+// RemoveTxsByHashList remove txs by tx  hash list
 func (q *QueueProtocol) RemoveTxsByHashList(hashList *types.TxHashList) error {
 	if hashList == nil {
 		err := types.ErrInvalidParam
@@ -323,7 +323,7 @@ func (q *QueueProtocol) PeerInfo(req *types.P2PGetPeerReq) (*types.PeerList, err
 	return nil, types.ErrTypeAsset
 }
 
-//NetProtocols protocols list
+// NetProtocols protocols list
 func (q *QueueProtocol) NetProtocols(req *types.ReqNil) (*types.NetProtocolInfos, error) {
 	msg, err := q.send(p2pKey, types.EventNetProtocols, req)
 	if err != nil {
@@ -568,7 +568,7 @@ func (q *QueueProtocol) LocalSet(param *types.LocalDBSet) error {
 	return nil
 }
 
-//LocalNew new a localdb object
+// LocalNew new a localdb object
 func (q *QueueProtocol) LocalNew(readOnly bool) (*types.Int64, error) {
 	msg, err := q.send(blockchainKey, types.EventLocalNew, readOnly)
 	if err != nil {
@@ -581,7 +581,7 @@ func (q *QueueProtocol) LocalNew(readOnly bool) (*types.Int64, error) {
 	return nil, types.ErrTypeAsset
 }
 
-//LocalBegin begin a transaction
+// LocalBegin begin a transaction
 func (q *QueueProtocol) LocalBegin(param *types.Int64) error {
 	_, err := q.send(blockchainKey, types.EventLocalBegin, param)
 	if err != nil {
@@ -591,7 +591,7 @@ func (q *QueueProtocol) LocalBegin(param *types.Int64) error {
 	return nil
 }
 
-//LocalClose begin a transaction
+// LocalClose begin a transaction
 func (q *QueueProtocol) LocalClose(param *types.Int64) error {
 	_, err := q.send(blockchainKey, types.EventLocalClose, param)
 	if err != nil {
@@ -601,7 +601,7 @@ func (q *QueueProtocol) LocalClose(param *types.Int64) error {
 	return nil
 }
 
-//LocalCommit commit a transaction
+// LocalCommit commit a transaction
 func (q *QueueProtocol) LocalCommit(param *types.Int64) error {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -616,7 +616,7 @@ func (q *QueueProtocol) LocalCommit(param *types.Int64) error {
 	return nil
 }
 
-//LocalRollback rollback a transaction
+// LocalRollback rollback a transaction
 func (q *QueueProtocol) LocalRollback(param *types.Int64) error {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -817,7 +817,7 @@ func (q *QueueProtocol) StoreDel(param *types.StoreDel) (*types.ReplyHash, error
 	return nil, err
 }
 
-//StoreList query list from statedb
+// StoreList query list from statedb
 func (q *QueueProtocol) StoreList(param *types.StoreList) (*types.StoreListReply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -1044,7 +1044,7 @@ func (q *QueueProtocol) GetMainSequenceByHash(param *types.ReqHash) (*types.Int6
 	return nil, types.ErrTypeAsset
 }
 
-//GetParaTxByTitle 通过seq以及title获取对应平行连的交易
+// GetParaTxByTitle 通过seq以及title获取对应平行连的交易
 func (q *QueueProtocol) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.ParaTxDetails, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -1063,7 +1063,7 @@ func (q *QueueProtocol) GetParaTxByTitle(param *types.ReqParaTxByTitle) (*types.
 	return nil, types.ErrTypeAsset
 }
 
-//LoadParaTxByTitle //获取拥有此title交易的区块高度
+// LoadParaTxByTitle //获取拥有此title交易的区块高度
 func (q *QueueProtocol) LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types.ReplyHeightByTitle, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -1082,7 +1082,7 @@ func (q *QueueProtocol) LoadParaTxByTitle(param *types.ReqHeightByTitle) (*types
 	return nil, types.ErrTypeAsset
 }
 
-//GetParaTxByHeight //通过区块高度列表+title获取平行链交易
+// GetParaTxByHeight //通过区块高度列表+title获取平行链交易
 func (q *QueueProtocol) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -1101,7 +1101,7 @@ func (q *QueueProtocol) GetParaTxByHeight(param *types.ReqParaTxByHeight) (*type
 	return nil, types.ErrTypeAsset
 }
 
-//GetConfig 通过seq以及title获取对应平行连的交易
+// GetConfig 通过seq以及title获取对应平行连的交易
 func (q *QueueProtocol) GetConfig() *types.Chain33Config {
 	if q.client == nil {
 		panic("client is nil, can not get Chain33Config")
@@ -1149,7 +1149,7 @@ func (q *QueueProtocol) SendDelayTx(param *types.DelayTx, waitReply bool) (*type
 	return reply, err
 }
 
-//AddBlacklist add peer to blacklist
+// AddBlacklist add peer to blacklist
 func (q *QueueProtocol) AddBlacklist(req *types.BlackPeer) (*types.Reply, error) {
 	msg, err := q.send(p2pKey, types.EventAddBlacklist, req)
 	if err != nil {
@@ -1163,7 +1163,7 @@ func (q *QueueProtocol) AddBlacklist(req *types.BlackPeer) (*types.Reply, error)
 	return nil, types.ErrInvalidParam
 }
 
-//DelBlacklist delete peer from blacklist
+// DelBlacklist delete peer from blacklist
 func (q *QueueProtocol) DelBlacklist(req *types.BlackPeer) (*types.Reply, error) {
 	msg, err := q.send(p2pKey, types.EventDelBlacklist, req)
 	if err != nil {
@@ -1176,7 +1176,7 @@ func (q *QueueProtocol) DelBlacklist(req *types.BlackPeer) (*types.Reply, error)
 	return nil, types.ErrInvalidParam
 }
 
-//ShowBlacklist show all blacklist peers
+// ShowBlacklist show all blacklist peers
 func (q *QueueProtocol) ShowBlacklist(req *types.ReqNil) (*types.Blacklist, error) {
 	msg, err := q.send(p2pKey, types.EventShowBlacklist, req)
 	if err != nil {
@@ -1192,7 +1192,7 @@ func (q *QueueProtocol) ShowBlacklist(req *types.ReqNil) (*types.Blacklist, erro
 
 }
 
-//DialPeer  dial the the specified peer
+// DialPeer  dial the the specified peer
 func (q *QueueProtocol) DialPeer(req *types.SetPeer) (*types.Reply, error) {
 	msg, err := q.send(p2pKey, types.EventDialPeer, req)
 	if err != nil {
@@ -1207,7 +1207,7 @@ func (q *QueueProtocol) DialPeer(req *types.SetPeer) (*types.Reply, error) {
 
 }
 
-//ClosePeer close the specified peer
+// ClosePeer close the specified peer
 func (q *QueueProtocol) ClosePeer(req *types.SetPeer) (*types.Reply, error) {
 	msg, err := q.send(p2pKey, types.EventClosePeer, req)
 	if err != nil {
@@ -1222,7 +1222,7 @@ func (q *QueueProtocol) ClosePeer(req *types.SetPeer) (*types.Reply, error) {
 
 }
 
-//GetHighestBlockNum return heightest block num.
+// GetHighestBlockNum return heightest block num.
 func (q *QueueProtocol) GetHighestBlockNum(param *types.ReqNil) (*types.ReplyBlockHeight, error) {
 	msg, err := q.send(blockchainKey, types.EventHighestBlock, param)
 	if err != nil {

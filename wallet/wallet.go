@@ -128,7 +128,7 @@ func New(cfg *types.Chain33Config) *Wallet {
 	return wallet
 }
 
-//Wait for wallet ready
+// Wait for wallet ready
 func (wallet *Wallet) Wait() {}
 
 // RegisterMineStatusReporter 向钱包注册状态回报
@@ -147,7 +147,7 @@ func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport)
 	return nil
 }
 
-//检测当policy和Consensus有冲突时，不挂接对应的reporter
+// 检测当policy和Consensus有冲突时，不挂接对应的reporter
 func isConflict(curConsensus string, policy string) bool {
 	walletlog.Info("isConflict", "curConsensus", curConsensus, "policy", policy)
 
@@ -380,7 +380,7 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 	return false
 }
 
-//IsTransfer 检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
+// IsTransfer 检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
 func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -388,7 +388,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	return wallet.isTransfer(addr)
 }
 
-//isTransfer 检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
+// isTransfer 检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
 func (wallet *Wallet) isTransfer(addr string) (bool, error) {
 
 	ok, err := wallet.checkWalletStatus()
@@ -408,7 +408,7 @@ func (wallet *Wallet) isTransfer(addr string) (bool, error) {
 	return ok, err
 }
 
-//CheckWalletStatus 钱包状态检测函数,解锁状态，seed是否已保存
+// CheckWalletStatus 钱包状态检测函数,解锁状态，seed是否已保存
 func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	if !wallet.isInited() {
 		return false, types.ErrNotInited
@@ -420,7 +420,7 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	return wallet.checkWalletStatus()
 }
 
-//CheckWalletStatus 钱包状态检测函数,解锁状态，seed是否已保存
+// CheckWalletStatus 钱包状态检测函数,解锁状态，seed是否已保存
 func (wallet *Wallet) checkWalletStatus() (bool, error) {
 	// 钱包锁定，ticket已经解锁，返回只解锁了ticket的错误
 	if wallet.IsWalletLocked() && !wallet.isTicketLocked() {
@@ -469,13 +469,15 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 }
 
 // GetWalletAccounts 获取账号列表
-//output:
-//type WalletAccountStore struct {
-//	Privkey   string  //加密后的私钥hex值
-//	Label     string
-//	Addr      string
-//	TimeStamp string
-//获取钱包的所有账户地址列表，
+// output:
+//
+//	type WalletAccountStore struct {
+//		Privkey   string  //加密后的私钥hex值
+//		Label     string
+//		Addr      string
+//		TimeStamp string
+//
+// 获取钱包的所有账户地址列表，
 func (wallet *Wallet) getWalletAccounts() ([]*types.WalletAccountStore, error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited
@@ -490,7 +492,7 @@ func (wallet *Wallet) getWalletAccounts() ([]*types.WalletAccountStore, error) {
 	return WalletAccStores, err
 }
 
-//GetWalletAccounts 获取账号列表
+// GetWalletAccounts 获取账号列表
 func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 	if !wallet.isInited() {
 		return nil, types.ErrNotInited

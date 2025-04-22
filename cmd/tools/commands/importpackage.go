@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//ImportCmd 导入命令
+// ImportCmd 导入命令
 func ImportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import",
@@ -26,7 +26,7 @@ func ImportCmd() *cobra.Command {
 	return cmd
 }
 
-//import 之前默认做处理
+// import 之前默认做处理
 func importPackage(cmd *cobra.Command, args []string) {
 	out, _ := cmd.Flags().GetString("out")
 	conf, _ := cmd.Flags().GetString("conf")

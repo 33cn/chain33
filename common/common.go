@@ -17,7 +17,7 @@ var globalPointerMap = make(map[int64]interface{})
 var globalPointerID int64
 var gloabalMu sync.Mutex
 
-//ErrPointerNotFound 指针没有找到
+// ErrPointerNotFound 指针没有找到
 var ErrPointerNotFound = errors.New("ErrPointerNotFound")
 
 func init() {
@@ -35,7 +35,7 @@ func init() {
 	}()
 }
 
-//StorePointer 保存指针返回int64
+// StorePointer 保存指针返回int64
 func StorePointer(p interface{}) int64 {
 	gloabalMu.Lock()
 	defer gloabalMu.Unlock()
@@ -47,14 +47,14 @@ func StorePointer(p interface{}) int64 {
 	return globalPointerID
 }
 
-//RemovePointer 删除指针
+// RemovePointer 删除指针
 func RemovePointer(id int64) {
 	gloabalMu.Lock()
 	defer gloabalMu.Unlock()
 	delete(globalPointerMap, id)
 }
 
-//GetPointer 删除指针
+// GetPointer 删除指针
 func GetPointer(id int64) (interface{}, error) {
 	gloabalMu.Lock()
 	defer gloabalMu.Unlock()
@@ -65,7 +65,7 @@ func GetPointer(id int64) (interface{}, error) {
 	return p, nil
 }
 
-//MinInt32 min
+// MinInt32 min
 func MinInt32(left, right int32) int32 {
 	if left > right {
 		return right
@@ -73,7 +73,7 @@ func MinInt32(left, right int32) int32 {
 	return left
 }
 
-//MaxInt32 max
+// MaxInt32 max
 func MaxInt32(left, right int32) int32 {
 	if left > right {
 		return left
@@ -81,7 +81,7 @@ func MaxInt32(left, right int32) int32 {
 	return right
 }
 
-//GetRandBytes 获取随机字节
+// GetRandBytes 获取随机字节
 func GetRandBytes(min, max int) []byte {
 	length := max
 	if min < max {
@@ -94,14 +94,14 @@ func GetRandBytes(min, max int) []byte {
 	return result
 }
 
-//GetRandString 获取随机字符串
+// GetRandString 获取随机字符串
 func GetRandString(length int) string {
 	return string(GetRandBytes(length, length))
 }
 
 var printString = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-//GetRandPrintString 获取随机可打印字符串
+// GetRandPrintString 获取随机可打印字符串
 func GetRandPrintString(min, max int) string {
 	l := max
 	if min < max {

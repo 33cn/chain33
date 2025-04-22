@@ -192,7 +192,7 @@ func TestTreeHeightAndSize(t *testing.T) {
 	db.Close()
 }
 
-//获取共享的老数据
+// 获取共享的老数据
 func TestSetAndGetOld(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -221,7 +221,7 @@ func TestSetAndGetOld(t *testing.T) {
 	assert.Equal(t, []byte("22"), v)
 }
 
-//开启mvcc 和 prefix 要保证 hash 不变
+// 开启mvcc 和 prefix 要保证 hash 不变
 func TestHashSame(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -282,7 +282,7 @@ func TestHashSame2(t *testing.T) {
 
 }
 
-//测试hash，save,load以及节点value值的更新功能
+// 测试hash，save,load以及节点value值的更新功能
 func TestPersistence(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -414,7 +414,7 @@ func kindsSet(t *Tree, mvccdb *db.MVCCHelper, key []byte, value []byte, version 
 	return t.Set(key, value)
 }
 
-//测试key:value对的proof证明功能
+// 测试key:value对的proof证明功能
 func TestIAVLProof(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)

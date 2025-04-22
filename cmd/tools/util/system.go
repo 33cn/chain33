@@ -23,13 +23,13 @@ func DirExists(path string) (bool, error) {
 	return false, err
 }
 
-//CheckPathExisted : check the path exists or not
+// CheckPathExisted : check the path exists or not
 func CheckPathExisted(path string) bool {
 	existed, _ := DirExists(path)
 	return existed
 }
 
-//CheckFileExists : check file exists or not
+// CheckFileExists : check file exists or not
 func CheckFileExists(fileName string) (bool, error) {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
 		return false, err
@@ -37,7 +37,7 @@ func CheckFileExists(fileName string) (bool, error) {
 	return true, nil
 }
 
-//DeleteFile : delete the file
+// DeleteFile : delete the file
 func DeleteFile(fileName string) error {
 	if existed, _ := CheckFileExists(fileName); existed {
 		return os.Remove(fileName)
@@ -45,7 +45,7 @@ func DeleteFile(fileName string) error {
 	return nil
 }
 
-//OpenFile : OpenFile
+// OpenFile : OpenFile
 func OpenFile(fileName string) (*os.File, error) {
 	var file *os.File
 	var err error
@@ -63,13 +63,13 @@ func OpenFile(fileName string) (*os.File, error) {
 	return file, nil
 }
 
-//MakeDir : MakeDir
+// MakeDir : MakeDir
 func MakeDir(path string) error {
 	dir := filepath.Dir(path)
 	return os.MkdirAll(dir, os.ModePerm)
 }
 
-//Pwd : Pwd
+// Pwd : Pwd
 func Pwd() string {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
@@ -78,7 +78,7 @@ func Pwd() string {
 	return dir
 }
 
-//DirEmpty : DirEmpty
+// DirEmpty : DirEmpty
 func DirEmpty(path string) (bool, error) {
 	f, err := os.Open(path)
 	if err != nil {

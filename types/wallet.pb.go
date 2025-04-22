@@ -7,10 +7,11 @@
 package types
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -20,17 +21,18 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-//钱包模块存贮的tx交易详细信息
-// 	 tx : tx交易信息
-//	 receipt :交易收据信息
-//	 height :交易所在的区块高度
-//	 index :交易所在区块中的索引
-//	 blocktime :交易所在区块的时标
-//	 amount :交易量
-//	 fromaddr :交易打出地址
-//	 txhash : 交易对应的哈希值
-//	 actionName  :交易对应的函数调用
-//   payload: 保存额外的一些信息，主要是给插件使用
+// 钱包模块存贮的tx交易详细信息
+//
+//		 tx : tx交易信息
+//		 receipt :交易收据信息
+//		 height :交易所在的区块高度
+//		 index :交易所在区块中的索引
+//		 blocktime :交易所在区块的时标
+//		 amount :交易量
+//		 fromaddr :交易打出地址
+//		 txhash : 交易对应的哈希值
+//		 actionName  :交易对应的函数调用
+//	  payload: 保存额外的一些信息，主要是给插件使用
 type WalletTxDetail struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -197,11 +199,12 @@ func (x *WalletTxDetails) GetTxDetails() []*WalletTxDetail {
 	return nil
 }
 
-//钱包模块存贮的账户信息
-// 	 privkey : 账户地址对应的私钥
-//	 label :账户地址对应的标签
-//	 addr :账户地址
-//	 timeStamp :创建账户时的时标
+// 钱包模块存贮的账户信息
+//
+//	privkey : 账户地址对应的私钥
+//	label :账户地址对应的标签
+//	addr :账户地址
+//	timeStamp :创建账户时的时标
 type WalletAccountStore struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -273,9 +276,10 @@ func (x *WalletAccountStore) GetTimeStamp() string {
 	return ""
 }
 
-//钱包模块通过一个随机值对钱包密码加密
-// 	 pwHash : 对钱包密码和一个随机值组合进行哈希计算
-//	 randstr :对钱包密码加密的一个随机值
+// 钱包模块通过一个随机值对钱包密码加密
+//
+//	pwHash : 对钱包密码和一个随机值组合进行哈希计算
+//	randstr :对钱包密码加密的一个随机值
 type WalletPwHash struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -331,11 +335,12 @@ func (x *WalletPwHash) GetRandstr() string {
 	return ""
 }
 
-//钱包当前的状态
-// 	 isWalletLock : 钱包是否锁状态，true锁定，false解锁
-//	 isAutoMining :钱包是否开启挖矿功能，true开启挖矿，false关闭挖矿
-// 	 isHasSeed : 钱包是否有种子，true已有，false没有
-//	 isTicketLock :钱包挖矿买票锁状态，true锁定，false解锁，只能用于挖矿转账
+// 钱包当前的状态
+//
+//	isWalletLock : 钱包是否锁状态，true锁定，false解锁
+//	isAutoMining :钱包是否开启挖矿功能，true开启挖矿，false关闭挖矿
+//	isHasSeed : 钱包是否有种子，true已有，false没有
+//	isTicketLock :钱包挖矿买票锁状态，true锁定，false解锁，只能用于挖矿转账
 type WalletStatus struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -509,10 +514,11 @@ func (x *WalletAccount) GetLabel() string {
 	return ""
 }
 
-//钱包解锁
-// 	 passwd : 钱包密码
-//	 timeout :钱包解锁时间，0，一直解锁，非0值，超时之后继续锁定
-//	 walletOrTicket :解锁整个钱包还是只解锁挖矿买票功能，1只解锁挖矿买票，0解锁整个钱包
+// 钱包解锁
+//
+//	passwd : 钱包密码
+//	timeout :钱包解锁时间，0，一直解锁，非0值，超时之后继续锁定
+//	walletOrTicket :解锁整个钱包还是只解锁挖矿买票功能，1只解锁挖矿买票，0解锁整个钱包
 type WalletUnLock struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -670,9 +676,10 @@ func (x *GetSeedByPw) GetPasswd() string {
 	return ""
 }
 
-//存储钱包的种子
-// 	 seed : 钱包种子
-//	 passwd :钱包密码
+// 存储钱包的种子
+//
+//	seed : 钱包种子
+//	passwd :钱包密码
 type SaveSeedByPw struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -885,7 +892,7 @@ func (x *ReqNewAccount) GetAddressID() int32 {
 	return 0
 }
 
-//根据label获取账户地址
+// 根据label获取账户地址
 type ReqGetAccount struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -933,8 +940,9 @@ func (x *ReqGetAccount) GetLabel() string {
 	return ""
 }
 
-//获取钱包交易的详细信息
-// 	 fromTx : []byte( Sprintf("%018d", height*100000 + index)，
+// 获取钱包交易的详细信息
+//
+//	 fromTx : []byte( Sprintf("%018d", height*100000 + index)，
 //				表示从高度 height 中的 index 开始获取交易列表；
 //			    第一次传参为空，获取最新的交易。)
 //	 count :获取交易列表的个数。
@@ -1066,11 +1074,12 @@ func (x *ReqWalletImportPrivkey) GetAddressID() int32 {
 	return 0
 }
 
-//发送交易
-// 	 from : 打出地址
-//	 to :接受地址
-// 	 amount : 转账额度
-//	 note :转账备注
+// 发送交易
+//
+//	from : 打出地址
+//	to :接受地址
+//	amount : 转账额度
+//	note :转账备注
 type ReqWalletSendToAddress struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -2,11 +2,12 @@ package blockchain
 
 import (
 	"encoding/hex"
-	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/types"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 var (

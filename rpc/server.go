@@ -387,7 +387,7 @@ func (r *RPC) SetQueueClientNoListen(c queue.Client) {
 
 }
 
-//处理订阅的rpc事件,目前只有订阅事件
+// 处理订阅的rpc事件,目前只有订阅事件
 func (r *RPC) handleSysEvent() {
 	r.cli.Sub("rpc")
 	var cli rclient.ChannelClient

@@ -49,7 +49,7 @@ const (
 	PushEVMEvent
 )
 
-//String format string
+// String format string
 func (p PushType) String() string {
 	str := [...]string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "PushEVMEvent", "NotSupported"}
 	if p < 0 || int(p) >= len(str) {
@@ -69,7 +69,7 @@ type CommonStore interface {
 	List(prefix []byte) ([][]byte, error)
 }
 
-//SequenceStore ...
+// SequenceStore ...
 type SequenceStore interface {
 	LoadBlockLastSequence() (int64, error)
 	// seqUpdateChan -> block sequence
@@ -84,16 +84,16 @@ type SequenceStore interface {
 	GetSequenceByHash(hash []byte) (int64, error)
 }
 
-//PostService ... post rawdata to subscriber
+// PostService ... post rawdata to subscriber
 type PostService interface {
 	PostData(subscribe *types.PushSubscribeReq, postdata []byte, seq int64) (err error)
 }
 
-//当前的实现是为每个订阅者单独启动一个协程goroute，然后单独为每个subscriber分别过滤指定类型的交易，
-//进行归类，这种方式集成了区块推送方式的处理机制，但是对于订阅者数量大的情况，势必会浪费cpu的开销，
-//数据库的读取开销不会额外增加明星，因为会有cach
-//TODO：后续需要考虑将区块推送和交易执行回执推送进行重构，提高并行推送效率
-//pushNotify push Notify
+// 当前的实现是为每个订阅者单独启动一个协程goroute，然后单独为每个subscriber分别过滤指定类型的交易，
+// 进行归类，这种方式集成了区块推送方式的处理机制，但是对于订阅者数量大的情况，势必会浪费cpu的开销，
+// 数据库的读取开销不会额外增加明星，因为会有cach
+// TODO：后续需要考虑将区块推送和交易执行回执推送进行重构，提高并行推送效率
+// pushNotify push Notify
 type pushNotify struct {
 	subscribe      *types.PushSubscribeReq
 	seqUpdateChan  chan int64
@@ -102,7 +102,7 @@ type pushNotify struct {
 	postFail2Sleep int32
 }
 
-//Push ...
+// Push ...
 type Push struct {
 	store          CommonStore
 	sequenceStore  SequenceStore
@@ -114,7 +114,7 @@ type Push struct {
 	postwg         *sync.WaitGroup
 }
 
-//PushClient ...
+// PushClient ...
 type PushClient struct {
 	client  *http.Client
 	qclient queue.Client
@@ -158,7 +158,7 @@ func buildRPCData(data []byte, subscribe *types.PushSubscribeReq) (*types.PushDa
 
 }
 
-//PostData ...
+// PostData ...
 func (pushClient *PushClient) PostData(subscribe *types.PushSubscribeReq, postdata []byte, seq int64) (err error) {
 	//post data in body
 	if subscribe.GetEncode() == encodeGrpc && subscribe.GetURL() == "" { //通过queue模块推送给rpc订阅者 GRPC订阅模式
@@ -219,7 +219,7 @@ func (pushClient *PushClient) PostData(subscribe *types.PushSubscribeReq, postda
 	return resp.Body.Close()
 }
 
-//ProcAddBlockSeqCB 添加seq callback
+// ProcAddBlockSeqCB 添加seq callback
 func (chain *BlockChain) procSubscribePush(subscribe *types.PushSubscribeReq) error {
 	if !chain.enablePushSubscribe {
 		chainlog.Error("Push is not enabled for subscribed")
@@ -243,7 +243,7 @@ func (chain *BlockChain) procSubscribePush(subscribe *types.PushSubscribeReq) er
 	return chain.push.addSubscriber(subscribe)
 }
 
-//ProcListPush 列出所有已经设置的推送订阅
+// ProcListPush 列出所有已经设置的推送订阅
 func (chain *BlockChain) ProcListPush() (*types.PushSubscribes, error) {
 	if !chain.isRecordBlockSequence {
 		return nil, types.ErrRecordBlockSequence
@@ -321,7 +321,7 @@ func newpush(commonStore CommonStore, seqStore SequenceStore, qclient queue.Clie
 	return service
 }
 
-//初始化: 从数据库读出seq的数目
+// 初始化: 从数据库读出seq的数目
 func (push *Push) init() {
 	var subscribes []*types.PushSubscribeReq
 	values, err := push.store.List(pushPrefix)
@@ -447,7 +447,7 @@ func (push *Push) subscriberCount() int64 {
 	return push.store.PrefixCount(pushPrefix)
 }
 
-//向数据库添加交易回执订阅信息
+// 向数据库添加交易回执订阅信息
 func (push *Push) persisAndStart(subscribe *types.PushSubscribeReq) error {
 	if len(subscribe.Name) > 128 || len(subscribe.URL) > 1024 {
 		storeLog.Error("Invalid para to persisAndStart due to wrong length", "len(subscribe.Name)=", len(subscribe.Name),
@@ -530,7 +530,7 @@ func (push *Push) check2ResumePush(subscribe *types.PushSubscribeReq) error {
 	return nil
 }
 
-//每次add一个新push时,发送最新的seq
+// 每次add一个新push时,发送最新的seq
 func (push *Push) updateLastSeq(name string) {
 	last, err := push.sequenceStore.LoadBlockLastSequence()
 	if err != nil {

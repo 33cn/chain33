@@ -14,7 +14,7 @@ type SkipValue struct {
 	Value interface{}
 }
 
-//Compare Const
+// Compare Const
 const (
 	Big   = -1
 	Small = 1
@@ -120,7 +120,7 @@ func newskipListNode(level int, value *SkipValue) *skipListNode {
 	return node
 }
 
-//NewSkipList 构建一个跳跃表
+// NewSkipList 构建一个跳跃表
 func NewSkipList(min *SkipValue) *SkipList {
 	sl := &SkipList{}
 	sl.level = 1
@@ -287,7 +287,7 @@ func (sl *SkipList) Print() {
 	}
 }
 
-//Walk 遍历整个结构中SkipValue的Value,如果cb 返回false 那么停止遍历
+// Walk 遍历整个结构中SkipValue的Value,如果cb 返回false 那么停止遍历
 func (sl *SkipList) Walk(cb func(value interface{}) bool) {
 	for e := sl.header.Next(); e != nil; e = e.Next() {
 		if cb == nil {
@@ -299,7 +299,7 @@ func (sl *SkipList) Walk(cb func(value interface{}) bool) {
 	}
 }
 
-//WalkS 遍历整个结构中的SkipValue,如果cb 返回false 那么停止遍历
+// WalkS 遍历整个结构中的SkipValue,如果cb 返回false 那么停止遍历
 func (sl *SkipList) WalkS(cb func(value interface{}) bool) {
 	for e := sl.header.Next(); e != nil; e = e.Next() {
 		if cb == nil {

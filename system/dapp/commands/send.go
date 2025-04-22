@@ -17,7 +17,7 @@ import (
 	"github.com/33cn/chain33/common/address"
 )
 
-//OneStepSendCmd send cmd
+// OneStepSendCmd send cmd
 func OneStepSendCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:                "send",

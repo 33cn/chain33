@@ -29,10 +29,10 @@ const (
 	//缓存的临时的节点连接数量，虽然达到了最大限制，但是有的节点连接是查询需要，开辟缓冲区
 )
 
-//CacheLimit cachebuffer
+// CacheLimit cachebuffer
 var CacheLimit int32 = 20
 
-//Conngater gater struct data
+// Conngater gater struct data
 type Conngater struct {
 	host          *host.Host
 	maxConnectNum int32
@@ -41,7 +41,7 @@ type Conngater struct {
 	whitPeerList  map[peer.ID]multiaddr.Multiaddr
 }
 
-//NewConnGater connect gater
+// NewConnGater connect gater
 func NewConnGater(h *host.Host, limit int32, cache *TimeCache, whitPeers []*peer.AddrInfo) *Conngater {
 	gater := &Conngater{}
 	gater.host = h
@@ -182,7 +182,7 @@ func (s *Conngater) isPeerAtLimit(direction network.Direction) bool {
 	return outboundNum >= s.maxConnectNum+CacheLimit
 }
 
-//TimeCache data struct
+// TimeCache data struct
 type TimeCache struct {
 	cacheLock sync.Mutex
 	Q         *list.List
@@ -191,21 +191,21 @@ type TimeCache struct {
 	span      time.Duration
 }
 
-//对系统的连接时长按照从大到小的顺序排序
+// 对系统的连接时长按照从大到小的顺序排序
 type blacklist []*types.BlackInfo
 
-//Len return size of blackinfo
+// Len return size of blackinfo
 func (b blacklist) Len() int { return len(b) }
 
-//Swap swap data between i,j
+// Swap swap data between i,j
 func (b blacklist) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 
-//Less check lifetime
+// Less check lifetime
 func (b blacklist) Less(i, j int) bool { //从小到大排序，即index=0 ，表示数值最大
 	return b[i].Lifetime < b[j].Lifetime
 }
 
-//NewTimeCache new time cache obj.
+// NewTimeCache new time cache obj.
 func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
 	cache := &TimeCache{
 		Q:    list.New(),
@@ -217,7 +217,7 @@ func NewTimeCache(ctx context.Context, span time.Duration) *TimeCache {
 	return cache
 }
 
-//Add add key
+// Add add key
 func (tc *TimeCache) Add(s string, lifetime time.Duration) {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()
@@ -265,7 +265,7 @@ func (tc *TimeCache) checkOvertimekey() {
 
 }
 
-//Has check key
+// Has check key
 func (tc *TimeCache) Has(s string) bool {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()
@@ -274,7 +274,7 @@ func (tc *TimeCache) Has(s string) bool {
 	return ok
 }
 
-//List show all peers
+// List show all peers
 func (tc *TimeCache) List() *types.Blacklist {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()

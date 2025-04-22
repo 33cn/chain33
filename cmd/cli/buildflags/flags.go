@@ -5,7 +5,7 @@
 // Package buildflags build flags
 package buildflags
 
-//var
+// var
 var (
 	ParaName string
 	RPCAddr  string

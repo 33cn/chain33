@@ -12,7 +12,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//UpgradeChain 升级localdb
+// UpgradeChain 升级localdb
 func (chain *BlockChain) UpgradeChain() {
 	meta, err := chain.blockStore.GetUpgradeMeta()
 	if err != nil {
@@ -135,9 +135,9 @@ func (chain *BlockChain) reIndexForTable(start, end int64, isSeq bool) {
 	chainlog.Info("reindex:reIndexForTable:complete")
 }
 
-//使用table的方式保存block的header和body以及paratx信息，
-//然后删除对应的bodyPrefix, headerPrefix, heightToHeaderPrefix,key值
-//需要区分是按照seq还是height来升级block
+// 使用table的方式保存block的header和body以及paratx信息，
+// 然后删除对应的bodyPrefix, headerPrefix, heightToHeaderPrefix,key值
+// 需要区分是按照seq还是height来升级block
 func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq bool) error {
 	newbatch := chain.blockStore.NewBatch(false)
 	var blockdetail *types.BlockDetail
@@ -208,7 +208,7 @@ func (chain *BlockChain) reIndexForTableOne(index int64, lastindex int64, isSeq 
 	return newbatch.Write()
 }
 
-//返回当前版本的V1,V2,V3的值
+// 返回当前版本的V1,V2,V3的值
 func getLocalDBVersion() (int, int, int) {
 
 	version := version.GetLocalDBVersion()

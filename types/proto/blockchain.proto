@@ -3,7 +3,7 @@ import "transaction.proto";
 import "common.proto";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 //区块头信息
 // 	 version : 版本信息
@@ -30,17 +30,17 @@ message Header {
 //  参考Header解释
 // mainHash 平行链上使用的字段，代表这个区块的主链hash
 message Block {
-    int64     version        = 1;
-    bytes     parentHash     = 2;
-    bytes     txHash         = 3;
-    bytes     stateHash      = 4;
-    int64     height         = 5;
-    int64     blockTime      = 6;
-    uint32    difficulty     = 11;
-    bytes     mainHash       = 12;
-    int64     mainHeight     = 13;
-    Signature signature      = 8;
-    repeated Transaction txs = 7;
+    int64                version    = 1;
+    bytes                parentHash = 2;
+    bytes                txHash     = 3;
+    bytes                stateHash  = 4;
+    int64                height     = 5;
+    int64                blockTime  = 6;
+    uint32               difficulty = 11;
+    bytes                mainHash   = 12;
+    int64                mainHeight = 13;
+    Signature            signature  = 8;
+    repeated Transaction txs        = 7;
 }
 
 message Blocks {
@@ -82,8 +82,8 @@ message HeadersPid {
 //	 txCount :区块上交易个数
 // 	 txHashes : 区块上交易的哈希列表
 message BlockOverview {
-    Header   head           = 1;
-    int64    txCount        = 2;
+    Header         head     = 1;
+    int64          txCount  = 2;
     repeated bytes txHashes = 3;
 }
 
@@ -91,10 +91,10 @@ message BlockOverview {
 // 	 block : 区块信息
 //	 receipts :区块上所有交易的收据信息列表
 message BlockDetail {
-    Block    block                   = 1;
-    repeated ReceiptData receipts    = 2;
-    repeated KeyValue KV             = 3;
-    bytes             prevStatusHash = 4;
+    Block                block          = 1;
+    repeated ReceiptData receipts       = 2;
+    repeated KeyValue    KV             = 3;
+    bytes                prevStatusHash = 4;
 }
 
 message Receipts {
@@ -121,10 +121,10 @@ message ChainStatus {
 // 	 Isdetail : 是否需要获取区块的详细信息
 // 	 pid : peer列表
 message ReqBlocks {
-    int64    start      = 1;
-    int64    end        = 2;
-    bool     isDetail   = 3;
-    repeated string pid = 4;
+    int64           start    = 1;
+    int64           end      = 2;
+    bool            isDetail = 3;
+    repeated string pid      = 4;
 }
 
 message MempoolSize {
@@ -219,12 +219,12 @@ message ParaTxDetails {
 // childHash:此平行链交易的子roothash
 // index:对应平行链子roothash在整个区块中的索引
 message ParaTxDetail {
-    int64    type               = 1;
-    Header   header             = 2;
+    int64             type      = 1;
+    Header            header    = 2;
     repeated TxDetail txDetails = 3;
     bytes             childHash = 4;
     uint32            index     = 5;
-    repeated bytes proofs       = 6;
+    repeated bytes    proofs    = 6;
 }
 
 //交易的详情：
@@ -233,10 +233,10 @@ message ParaTxDetail {
 // receipt:本交易在主链的执行回执
 // proofs:本交易hash在block中merkel中的路径
 message TxDetail {
-    uint32      index     = 1;
-    Transaction tx        = 2;
-    ReceiptData receipt   = 3;
-    repeated bytes proofs = 4;
+    uint32         index   = 1;
+    Transaction    tx      = 2;
+    ReceiptData    receipt = 3;
+    repeated bytes proofs  = 4;
 }
 
 //通过seq区间和title请求平行链的交易
@@ -312,7 +312,7 @@ message ReqHeightByTitle {
 }
 
 message ReplyHeightByTitle {
-    string   title           = 1;
+    string             title = 1;
     repeated BlockInfo items = 2;
 }
 
@@ -365,10 +365,10 @@ message ChunkInfo {
 // 	 Isdetail : 是否需要获取所有Chunk Record 信息，false时候获取到chunkNum--->chunkhash的KV对，true获取全部
 // 	 pid : peer列表
 message ReqChunkRecords {
-    int64    start      = 1;
-    int64    end        = 2;
-    bool     isDetail   = 3;
-    repeated string pid = 4;
+    int64           start    = 1;
+    int64           end      = 2;
+    bool            isDetail = 3;
+    repeated string pid      = 4;
 }
 
 message PushSubscribeReq {
@@ -400,14 +400,13 @@ message ReplySubscribePush {
 }
 
 message ReqSubscribe {
-    string name     = 1;
+    string name = 1;
     // 0:代表区块；1:代表区块头信息；2：代表交易回执,4 evm event
     int32 type      = 2;
     int64 fromBlock = 3;
     int64 toBlock   = 4;
     //允许订阅多个类型的交易回执
     map<string, bool> contract = 5;
-
 }
 
 message SubscribeStatus {

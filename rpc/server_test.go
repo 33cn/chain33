@@ -7,10 +7,11 @@ package rpc
 import (
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/rpc/ethrpc"

@@ -7,10 +7,11 @@
 package types
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -921,8 +922,8 @@ func (x *ReqRandHash) GetHash() []byte {
 	return nil
 }
 
-//*
-//当前软件版本信息
+// *
+// 当前软件版本信息
 type VersionInfo struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -24,12 +24,12 @@ type CreateFileFromStrTemplateTask struct {
 	fileContent     string
 }
 
-//GetName 获取name
+// GetName 获取name
 func (c *CreateFileFromStrTemplateTask) GetName() string {
 	return "CreateFileFromStrTemplateTask"
 }
 
-//Execute 执行
+// Execute 执行
 func (c *CreateFileFromStrTemplateTask) Execute() error {
 	if len(c.BlockStrBegin) > 0 && len(c.BlockStrEnd) > 0 {
 		c.SourceStr = fmt.Sprintf("%s%s%s", c.BlockStrBegin, c.SourceStr, c.BlockStrEnd)

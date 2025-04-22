@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
-//BlockDetailToEthBlock chain33 blockdetails transfer to  eth block format
+// BlockDetailToEthBlock chain33 blockdetails transfer to  eth block format
 func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config, full bool) (*Block, error) {
 	var block Block
 	var header Header
@@ -42,7 +42,7 @@ func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config
 	return &block, nil
 }
 
-//BlockHeaderToEthHeader transfer chain33 header to eth header
+// BlockHeaderToEthHeader transfer chain33 header to eth header
 func BlockHeaderToEthHeader(cHeader *types.Header) (*Header, error) {
 	var header Header
 	header.Time = hexutil.Uint64(cHeader.GetBlockTime())

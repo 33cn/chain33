@@ -17,13 +17,13 @@ var (
 	mlog = log15.New("module", "strategy")
 )
 
-//Strategy 策略
+// Strategy 策略
 type Strategy interface {
 	SetParam(key string, value string)
 	Run() error
 }
 
-//New new
+// New new
 func New(name string) Strategy {
 	switch name {
 	case types.KeyImportPackage:
@@ -58,7 +58,7 @@ type strategyBasic struct {
 	params map[string]string
 }
 
-//SetParam 设置参数
+// SetParam 设置参数
 func (s *strategyBasic) SetParam(key string, value string) {
 	s.params[key] = value
 }
@@ -70,7 +70,7 @@ func (s *strategyBasic) getParam(key string) (string, error) {
 	return "", fmt.Errorf("Key:%v not exist", key)
 }
 
-//Run 运行
+// Run 运行
 func (s *strategyBasic) Run() error {
 	return errors.New("NotSupport")
 }

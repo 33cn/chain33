@@ -286,7 +286,7 @@ func CreateTxWithCert(signType string, privateKey crypto.PrivKey, hexTx string, 
 	return common.ToHex(types.Encode(&tx)), nil
 }
 
-//GetChainConfig get system config parameters
+// GetChainConfig get system config parameters
 func GetChainConfig(rpcAddr string) (*rpctypes.ChainConfigInfo, error) {
 	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {

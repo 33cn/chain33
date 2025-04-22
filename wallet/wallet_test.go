@@ -237,7 +237,7 @@ func testWalletImportPrivkeysFile2(t *testing.T) {
 	testProcImportPrivkeysFile2(t, wallet)
 }
 
-//ProcWalletLock
+// ProcWalletLock
 func testSeed(t *testing.T, wallet *Wallet) {
 	println("TestSeed begin")
 
@@ -547,7 +547,7 @@ func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
-//(SendToAddress *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
+// (SendToAddress *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
 func testProcSendToAddress(t *testing.T, wallet *Wallet) {
 	println("TestProcSendToAddress begin")
 	transfer := &types.ReqWalletSendToAddress{
@@ -574,7 +574,7 @@ func testProcSendToAddress(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
-//ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
+// ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
 func testProcWalletSetFee(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletSetFee begin")
 	var fee int64 = 1000000
@@ -587,7 +587,7 @@ func testProcWalletSetFee(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
-//ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*types.WalletAccount, error)
+// ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*types.WalletAccount, error)
 func testProcWalletSetLabel(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletSetLabel begin")
 	setLabel := &types.ReqWalletSetLabel{
@@ -619,7 +619,7 @@ func testProcWalletSetLabel(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
-//ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
+// ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
 func testProcMergeBalance(t *testing.T, wallet *Wallet) {
 	println("TestProcMergeBalance begin")
 	mergeBalance := &types.ReqWalletMergeBalance{To: ToAddr2}
@@ -634,7 +634,7 @@ func testProcMergeBalance(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
-//ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) error {
+// ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) error {
 func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletSetPasswd begin")
 	passwd := &types.ReqWalletSetPasswd{
@@ -653,7 +653,7 @@ func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
-//ProcWalletLock
+// ProcWalletLock
 func testProcWalletLock(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletLock begin")
 	_, err := wallet.GetAPI().ExecWalletFunc("wallet", "WalletLock", &types.ReqNil{})

@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-//how to create transafer for para
+// how to create transafer for para
 func TestCallCreateTxPara(t *testing.T) {
 	str := types.ReadFile("testdata/guodun2.toml")
 	new := strings.Replace(str, "Title=\"user.p.guodun2.\"", "Title=\"user.p.sto.\"", 1)

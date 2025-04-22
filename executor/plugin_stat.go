@@ -60,8 +60,8 @@ func delCountInfo(ex *executor, b *types.BlockDetail) ([]*types.KeyValue, error)
 	return kvset.KV, nil
 }
 
-//这两个功能需要重构到 ticket 里面去。
-//有些功能需要开启选项，才会启用功能。并且功能必须从0开始
+// 这两个功能需要重构到 ticket 里面去。
+// 有些功能需要开启选项，才会启用功能。并且功能必须从0开始
 func countTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
 	return nil, nil
 }

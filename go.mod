@@ -1,6 +1,6 @@
 module github.com/33cn/chain33
 
-go 1.19
+go 1.20
 
 replace github.com/ava-labs/avalanchego => github.com/33cn/avalanchego v1.10.10-0.20240529041529-ada691598153
 
@@ -8,7 +8,6 @@ require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/XiaoMi/pegasus-go-client v0.0.0-20210825081735-b8a75c1eac2b
 	github.com/btcsuite/btcd v0.24.2
-	//github.com/btcsuite/btcd/btcec v0.0.0-00010101000000-000000000000
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4
 	github.com/btcsuite/btcd/btcutil v1.1.5
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0

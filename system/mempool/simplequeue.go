@@ -15,14 +15,14 @@ type SubConfig struct {
 	ProperFee     int64 `json:"properFee"`
 }
 
-//SimpleQueue 简单队列模式(默认提供一个队列，便于测试)
+// SimpleQueue 简单队列模式(默认提供一个队列，便于测试)
 type SimpleQueue struct {
 	txList     *listmap.ListMap
 	subConfig  SubConfig
 	cacheBytes int64
 }
 
-//NewSimpleQueue 创建队列
+// NewSimpleQueue 创建队列
 func NewSimpleQueue(subConfig SubConfig) *SimpleQueue {
 	return &SimpleQueue{
 		txList:    listmap.New(),
@@ -30,12 +30,12 @@ func NewSimpleQueue(subConfig SubConfig) *SimpleQueue {
 	}
 }
 
-//Exist 是否存在
+// Exist 是否存在
 func (cache *SimpleQueue) Exist(hash string) bool {
 	return cache.txList.Exist(hash)
 }
 
-//GetItem 获取数据通过 key
+// GetItem 获取数据通过 key
 func (cache *SimpleQueue) GetItem(hash string) (*Item, error) {
 	item, err := cache.txList.GetItem(hash)
 	if err != nil {

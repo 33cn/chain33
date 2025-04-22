@@ -84,13 +84,14 @@ func Test_TwoTxMerkle(t *testing.T) {
 	}
 }
 
-//测试三个交易的roothash以及branch
-//"height": 99960,
-//  "merkleroot": "34d5a57822efa653019edfee29b9586a0d0d807572275b45f39a7e9c25614bf9",
-//  "tx": [
-//    "f89c65bdcd695e4acc621256085f20d7c093097e04a1ce34b606a5829cbaf2c6",
-//    "1818bef9c6aeed09de0ed999b5f2868b3555084437e1c63f29d5f37b69bb214f",
-//    "d43a40a2db5bad2bd176c27911ed86d97bff734425953b19c8cf77910b21020d"
+// 测试三个交易的roothash以及branch
+// "height": 99960,
+//
+//	"merkleroot": "34d5a57822efa653019edfee29b9586a0d0d807572275b45f39a7e9c25614bf9",
+//	"tx": [
+//	  "f89c65bdcd695e4acc621256085f20d7c093097e04a1ce34b606a5829cbaf2c6",
+//	  "1818bef9c6aeed09de0ed999b5f2868b3555084437e1c63f29d5f37b69bb214f",
+//	  "d43a40a2db5bad2bd176c27911ed86d97bff734425953b19c8cf77910b21020d"
 func Test_OddTxMerkle(t *testing.T) {
 
 	RootHash := "34d5a57822efa653019edfee29b9586a0d0d807572275b45f39a7e9c25614bf9"
@@ -275,7 +276,7 @@ func BenchmarkHashTwo2(b *testing.B) {
 	}
 }
 
-//原来的版本更快，这个方案只是做一个性能测试的对比
+// 原来的版本更快，这个方案只是做一个性能测试的对比
 func getHashFromTwoHash(left []byte, right []byte) []byte {
 	if left == nil || right == nil {
 		return nil
