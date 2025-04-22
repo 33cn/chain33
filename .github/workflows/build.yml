@@ -3,7 +3,7 @@ on: [push,pull_request]
 
 jobs:
   check_fmt:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -31,7 +31,7 @@ jobs:
 
   unit-test:
     name: unit-test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -48,7 +48,7 @@ jobs:
 
   coverage:
     name: coverage
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -69,7 +69,7 @@ jobs:
   build-with-latest-stable-go:
     strategy:
       matrix:
-        os: [ ubuntu-20.04, macos-14 ]
+        os: [ ubuntu-22.04, macos-14 ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -85,7 +85,7 @@ jobs:
 
   deploy:
     name: deploy
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -103,7 +103,7 @@ jobs:
 
   test-goarch-386:
     name: Run test cases with GOARCH=386
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v3
