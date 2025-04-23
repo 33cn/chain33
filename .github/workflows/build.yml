@@ -19,7 +19,7 @@ jobs:
           # https://github.com/actions/setup-go/issues/14
           export PATH=${PATH}:`go env GOPATH`/bin
           go install golang.org/x/tools/cmd/goimports@v0.24.0
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.2
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.2
           go install mvdan.cc/sh/v3/cmd/shfmt@v3.7.0
           go install mvdan.cc/sh/v3/cmd/gosh@v3.7.0
 
