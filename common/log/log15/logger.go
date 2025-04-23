@@ -140,6 +140,9 @@ func (l *logger) SetMaxLevel(maxLevel int) {
 
 func newContext(prefix []interface{}, suffix []interface{}) []interface{} {
 	normalizedSuffix := normalize(suffix)
+	if len(normalizedSuffix) > 1e8 {
+		panic("too many suffix")
+	}
 	newCtx := make([]interface{}, len(prefix)+len(normalizedSuffix))
 	n := copy(newCtx, prefix)
 	copy(newCtx[n:], normalizedSuffix)
@@ -217,8 +220,10 @@ type Lazy struct {
 type Ctx map[string]interface{}
 
 func (c Ctx) toArray() []interface{} {
+	if len(c) > 1e8 {
+		panic("toArray too many arguments")
+	}
 	arr := make([]interface{}, len(c)*2)
-
 	i := 0
 	for k, v := range c {
 		arr[i] = k
