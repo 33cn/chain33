@@ -194,7 +194,7 @@ func (p *Protocol) handleEventNetInfo(msg *queue.Message) {
 	msg.Reply(p.QueueClient.NewMessage("rpc", types.EventReplyNetInfo, &netinfo))
 }
 
-//add peerName to blacklist
+// add peerName to blacklist
 func (p *Protocol) handleEventAddBlacklist(msg *queue.Message) {
 	var err error
 	defer func() {
@@ -237,7 +237,7 @@ func (p *Protocol) handleEventAddBlacklist(msg *queue.Message) {
 
 }
 
-//delete peerName from blacklist
+// delete peerName from blacklist
 func (p *Protocol) handleEventDelBlacklist(msg *queue.Message) {
 	var err error
 	defer func() {
@@ -260,7 +260,7 @@ func (p *Protocol) handleEventDelBlacklist(msg *queue.Message) {
 	err = errors.New("no this peerName")
 }
 
-//show all peers from blacklist
+// show all peers from blacklist
 func (p *Protocol) handleEventShowBlacklist(msg *queue.Message) {
 	peers := p.P2PEnv.ConnBlackList.List()
 	//添加peer remoteAddr

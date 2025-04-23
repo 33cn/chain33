@@ -14,22 +14,22 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 )
 
-//ErrNotFoundInDb error
+// ErrNotFoundInDb error
 var ErrNotFoundInDb = types.ErrNotFound
 
-//Lister 列表接口
+// Lister 列表接口
 type Lister interface {
 	List(prefix, key []byte, count, direction int32) ([][]byte, error)
 	PrefixCount(prefix []byte) int64
 }
 
-//TxKV transaction Key Value
+// TxKV transaction Key Value
 type TxKV interface {
 	KV
 	IteratorDB
 }
 
-//KV kv
+// KV kv
 type KV interface {
 	Get(key []byte) ([]byte, error)
 	Set(key []byte, value []byte) (err error)
@@ -38,13 +38,13 @@ type KV interface {
 	Rollback()
 }
 
-//KVDB kvdb
+// KVDB kvdb
 type KVDB interface {
 	KV
 	Lister
 }
 
-//DB db
+// DB db
 type DB interface {
 	KV
 	IteratorDB
@@ -62,13 +62,13 @@ type DB interface {
 	GetCache() *lru.ARCCache
 }
 
-//KVDBList list
+// KVDBList list
 type KVDBList struct {
 	DB
 	list *ListHelper
 }
 
-//List 列表
+// List 列表
 func (l *KVDBList) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
 	vals := l.list.List(prefix, key, count, direction)
 	if vals == nil {
@@ -77,17 +77,17 @@ func (l *KVDBList) List(prefix, key []byte, count, direction int32) ([][]byte, e
 	return vals, nil
 }
 
-//PrefixCount 前缀长度
+// PrefixCount 前缀长度
 func (l *KVDBList) PrefixCount(prefix []byte) int64 {
 	return l.list.PrefixCount(prefix)
 }
 
-//NewKVDB new
+// NewKVDB new
 func NewKVDB(db DB) KVDB {
 	return &KVDBList{DB: db, list: NewListHelper(db)}
 }
 
-//Batch batch
+// Batch batch
 type Batch interface {
 	Set(key, value []byte)
 	Delete(key []byte)
@@ -106,7 +106,7 @@ func MustWrite(batch Batch) {
 	}
 }
 
-//IteratorSeeker ...
+// IteratorSeeker ...
 type IteratorSeeker interface {
 	Rewind() bool
 	// 返回false， 表示系统中没有指定的key，Iterator会指向key附近
@@ -114,7 +114,7 @@ type IteratorSeeker interface {
 	Next() bool
 }
 
-//Iterator 迭代器
+// Iterator 迭代器
 type Iterator interface {
 	IteratorSeeker
 	Valid() bool
@@ -147,7 +147,7 @@ func (it *itBase) checkKey(key []byte) bool {
 	return ok
 }
 
-//Prefix 前缀
+// Prefix 前缀
 func (it *itBase) Prefix() []byte {
 	return nil
 }
@@ -156,7 +156,7 @@ func (it *itBase) IsReverse() bool {
 	return it.reverse
 }
 
-//IteratorDB 迭代
+// IteratorDB 迭代
 type IteratorDB interface {
 	Iterator(start []byte, end []byte, reserver bool) Iterator
 }
@@ -196,7 +196,7 @@ func registerDBCreator(backend string, creator dbCreator, force bool) {
 	backends[backend] = creator
 }
 
-//NewDB new
+// NewDB new
 func NewDB(name string, backend string, dir string, cache int32) DB {
 	dbCreator, ok := backends[backend]
 	if !ok {
@@ -211,17 +211,17 @@ func NewDB(name string, backend string, dir string, cache int32) DB {
 	return db
 }
 
-//BaseDB 交易缓存
+// BaseDB 交易缓存
 type BaseDB struct {
 	cache *lru.ARCCache
 }
 
-//GetCache 获取缓存
+// GetCache 获取缓存
 func (db *BaseDB) GetCache() *lru.ARCCache {
 	return db.cache
 }
 
-//SetCacheSize 设置缓存大小
+// SetCacheSize 设置缓存大小
 func (db *BaseDB) SetCacheSize(size int) {
 	if db.cache != nil {
 		return
@@ -233,27 +233,27 @@ func (db *BaseDB) SetCacheSize(size int) {
 	}
 }
 
-//Begin call panic when Begin not rewrite
+// Begin call panic when Begin not rewrite
 func (db *BaseDB) Begin() {
 	panic("Begin not impl")
 }
 
-//Commit call panic when Commit not rewrite
+// Commit call panic when Commit not rewrite
 func (db *BaseDB) Commit() error {
 	panic("Commit not impl")
 }
 
-//Rollback call panic when Rollback not rewrite
+// Rollback call panic when Rollback not rewrite
 func (db *BaseDB) Rollback() {
 	panic("Rollback not impl")
 }
 
-//BeginTx call panic when BeginTx not rewrite
+// BeginTx call panic when BeginTx not rewrite
 func (db *BaseDB) BeginTx() (TxKV, error) {
 	panic("BeginTx not impl")
 }
 
-//CompactRange call panic when CompactRange not rewrite
+// CompactRange call panic when CompactRange not rewrite
 func (db *BaseDB) CompactRange(start, limit []byte) error {
 	panic("CompactRange not impl")
 }

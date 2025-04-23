@@ -31,12 +31,12 @@ import (
 	"github.com/33cn/chain33/types"
 	libp2pLog "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	"github.com/libp2p/go-libp2p/core"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery/routing"
+	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -288,7 +288,7 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 
 		mgr, err := connmgr.NewConnManager(minconnect, maxconnect, connmgr.WithGracePeriod(time.Minute))
 		if err != nil {
-			panic("NewConnManager err:"+ err.Error())
+			panic("NewConnManager err:" + err.Error())
 		}
 		//1分钟的宽限期,定期清理
 		options = append(options, libp2p.ConnectionManager(mgr))

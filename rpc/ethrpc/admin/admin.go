@@ -17,7 +17,7 @@ type adminHandler struct {
 	cfg *ctypes.Chain33Config
 }
 
-//NewAdminAPI create a admin api
+// NewAdminAPI create a admin api
 func NewAdminAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
 	p := &adminHandler{}
 	p.cli.Init(c, api)
@@ -25,7 +25,7 @@ func NewAdminAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProt
 	return p
 }
 
-//Peers admin_peers
+// Peers admin_peers
 func (p *adminHandler) Peers() ([]*etypes.Peer, error) {
 	var in = types.P2PGetPeerReq{}
 	reply, err := p.cli.PeerInfo(&in)
@@ -65,14 +65,14 @@ func (p *adminHandler) Peers() ([]*etypes.Peer, error) {
 	return peerlist, nil
 }
 
-//Datadir admin_datadir
+// Datadir admin_datadir
 func (p *adminHandler) Datadir() (string, error) {
 	mcfg := p.cfg.GetModuleConfig()
 	dbpath := mcfg.BlockChain.DbPath
 	return dbpath, nil
 }
 
-//NodeInfo admin_nodeInfo
+// NodeInfo admin_nodeInfo
 func (p *adminHandler) NodeInfo() (*etypes.Peer, error) {
 
 	peers, err := p.Peers()

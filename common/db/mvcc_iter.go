@@ -10,19 +10,19 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//MVCCIter mvcc迭代器版本
-//支持db 原生迭代器接口
-//为了支持快速迭代，我这里采用了复制数据的做法
+// MVCCIter mvcc迭代器版本
+// 支持db 原生迭代器接口
+// 为了支持快速迭代，我这里采用了复制数据的做法
 type MVCCIter struct {
 	*MVCCHelper
 }
 
-//NewMVCCIter new
+// NewMVCCIter new
 func NewMVCCIter(db DB) *MVCCIter {
 	return &MVCCIter{MVCCHelper: NewMVCC(db)}
 }
 
-//AddMVCC add
+// AddMVCC add
 func (m *MVCCIter) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte, version int64) ([]*types.KeyValue, error) {
 	kvlist, err := m.MVCCHelper.AddMVCC(kvs, hash, prevHash, version)
 	if err != nil {
@@ -37,7 +37,7 @@ func (m *MVCCIter) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte, 
 	return kvlist, nil
 }
 
-//DelMVCC del
+// DelMVCC del
 func (m *MVCCIter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.KeyValue, error) {
 	kvs, err := m.GetDelKVList(version)
 	if err != nil {
@@ -64,7 +64,7 @@ func (m *MVCCIter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.Ke
 	return kvlist, nil
 }
 
-//Iterator 迭代
+// Iterator 迭代
 func (m *MVCCIter) Iterator(start, end []byte, reserver bool) Iterator {
 	if start == nil {
 		start = mvccLast
@@ -83,12 +83,12 @@ type mvccIt struct {
 	Iterator
 }
 
-//Prefix 前缀
+// Prefix 前缀
 func (dbit *mvccIt) Prefix() []byte {
 	return mvccLast
 }
 
-//Key key
+// Key key
 func (dbit *mvccIt) Key() []byte {
 	key := dbit.Iterator.Key()
 	if bytes.HasPrefix(key, dbit.Prefix()) {
@@ -97,7 +97,7 @@ func (dbit *mvccIt) Key() []byte {
 	return nil
 }
 
-//Valid 检查合法性
+// Valid 检查合法性
 func (dbit *mvccIt) Valid() bool {
 	if !dbit.Iterator.Valid() {
 		return false

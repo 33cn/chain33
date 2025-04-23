@@ -16,22 +16,22 @@ func init() {
 	l.SetLogLevel("err")
 }
 
-//测试订阅topic
+// 测试订阅topic
 func testHandleSubTopicEvent(p *Protocol, msg *queue.Message) {
 	p.handleEventSubTopic(msg)
 }
 
-//测试删除topic
+// 测试删除topic
 func testHandleRemoveTopicEvent(p *Protocol, msg *queue.Message) {
 	p.handleEventRemoveTopic(msg)
 }
 
-//测试获取topicList
+// 测试获取topicList
 func testHandleGetTopicsEvent(p *Protocol, msg *queue.Message) {
 	p.handleEventGetTopics(msg)
 }
 
-//测试pubmsg
+// 测试pubmsg
 func testHandlerPubMsg(p *Protocol, msg *queue.Message) {
 	p.handleEventPubMsg(msg)
 }
@@ -106,7 +106,7 @@ func testPushMsg(t *testing.T, protocol *Protocol) {
 
 }
 
-//测试获取topicList
+// 测试获取topicList
 func testFetchTopics(t *testing.T, protocol *Protocol) []string {
 	//获取topicList
 	fetchTopicMsg := protocol.QueueClient.NewMessage("p2p", types.EventFetchTopics, &types.FetchTopicList{})
@@ -126,7 +126,7 @@ func testFetchTopics(t *testing.T, protocol *Protocol) []string {
 	return topiclist.GetTopics()
 }
 
-//测试推送订阅的消息内容
+// 测试推送订阅的消息内容
 func testSendTopicData(t *testing.T, protocol *Protocol) {
 	//发送收到的订阅消息,预期mempool,blockchain模块都会收到 hello,world 1
 	//protocol.msgChan <- &types.TopicData{Topic: "bzTest", From: "123435555", Data: []byte("hello,world 1")}
@@ -135,7 +135,7 @@ func testSendTopicData(t *testing.T, protocol *Protocol) {
 
 }
 
-//测试删除某一个module的topic
+// 测试删除某一个module的topic
 func testRemoveModuleTopic(t *testing.T, p *Protocol, topic, module string) {
 	//删除topic
 	removetopic := p.QueueClient.NewMessage("p2p", types.EventRemoveTopic, &types.RemoveTopic{

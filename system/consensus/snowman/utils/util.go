@@ -2,11 +2,9 @@ package utils
 
 import "errors"
 
-const (
-	UnknowMsgID = iota
-)
-
 var (
-	ErrBlockNotReady   = errors.New("ErrBlockNotReady")
+	// ErrBlockNotReady block not ready
+	ErrBlockNotReady = errors.New("ErrBlockNotReady")
+	// ErrValidatorSample sample validator error
 	ErrValidatorSample = errors.New("ErrValidatorSample")
 )

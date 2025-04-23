@@ -133,7 +133,7 @@ type childstate struct {
 	index int
 }
 
-//GetMerkleRoot 256构成一个组，进行计算
+// GetMerkleRoot 256构成一个组，进行计算
 // n * step = hashes
 // (hashes / n)
 func GetMerkleRoot(hashes [][]byte) []byte {
@@ -261,7 +261,7 @@ func Computation(leaves [][]byte, flage int, branchpos uint32) (roothash []byte,
 	return h, mutated, branch
 }
 
-//GetHashFromTwoHash 计算左右节点hash的父hash
+// GetHashFromTwoHash 计算左右节点hash的父hash
 func GetHashFromTwoHash(parent []byte, left []byte, right []byte) []byte {
 	if left == nil || right == nil {
 		return nil
@@ -271,13 +271,13 @@ func GetHashFromTwoHash(parent []byte, left []byte, right []byte) []byte {
 	return common.Sha2Sum(parent)
 }
 
-//GetMerkleBranch 获取指定txindex的branch position 从0开始
+// GetMerkleBranch 获取指定txindex的branch position 从0开始
 func GetMerkleBranch(leaves [][]byte, position uint32) [][]byte {
 	_, _, branchs := Computation(leaves, 2, position)
 	return branchs
 }
 
-//GetMerkleRootFromBranch 通过branch 获取对应的roothash 用于指定txhash的proof证明
+// GetMerkleRootFromBranch 通过branch 获取对应的roothash 用于指定txhash的proof证明
 func GetMerkleRootFromBranch(merkleBranch [][]byte, leaf []byte, Index uint32) []byte {
 	hash := leaf
 	hashcache := make([]byte, 64)
@@ -292,7 +292,7 @@ func GetMerkleRootFromBranch(merkleBranch [][]byte, leaf []byte, Index uint32) [
 	return hash
 }
 
-//GetMerkleRootAndBranch 获取merkle roothash 以及指定tx index的branch，注释：position从0开始
+// GetMerkleRootAndBranch 获取merkle roothash 以及指定tx index的branch，注释：position从0开始
 func GetMerkleRootAndBranch(leaves [][]byte, position uint32) (roothash []byte, branchs [][]byte) {
 	roothash, _, branchs = Computation(leaves, 3, position)
 	return
@@ -300,7 +300,7 @@ func GetMerkleRootAndBranch(leaves [][]byte, position uint32) (roothash []byte, 
 
 var zeroHash [32]byte
 
-//CalcMerkleRoot 计算merkle树根
+// CalcMerkleRoot 计算merkle树根
 func CalcMerkleRoot(cfg *types.Chain33Config, height int64, txs []*types.Transaction) []byte {
 	if !cfg.IsFork(height, "ForkRootHash") {
 		return calcMerkleRoot(txs)
@@ -309,7 +309,7 @@ func CalcMerkleRoot(cfg *types.Chain33Config, height int64, txs []*types.Transac
 	return calcHash
 }
 
-//calcMerkleRoot 计算merkle树根hash
+// calcMerkleRoot 计算merkle树根hash
 func calcMerkleRoot(txs []*types.Transaction) []byte {
 	var hashes [][]byte
 	for _, tx := range txs {
@@ -325,7 +325,7 @@ func calcMerkleRoot(txs []*types.Transaction) []byte {
 	return merkleroot
 }
 
-//calcSingleLayerMerkleRoot 计算单层merkle树根hash使用fullhash
+// calcSingleLayerMerkleRoot 计算单层merkle树根hash使用fullhash
 func calcSingleLayerMerkleRoot(txs []*types.Transaction) []byte {
 	var hashes [][]byte
 	for _, tx := range txs {
@@ -341,7 +341,7 @@ func calcSingleLayerMerkleRoot(txs []*types.Transaction) []byte {
 	return merkleroot
 }
 
-//CalcMerkleRootCache 计算merkle树根缓存
+// CalcMerkleRootCache 计算merkle树根缓存
 func CalcMerkleRootCache(txs []*types.TransactionCache) []byte {
 	var hashes [][]byte
 	for _, tx := range txs {
@@ -357,7 +357,7 @@ func CalcMerkleRootCache(txs []*types.TransactionCache) []byte {
 	return merkleroot
 }
 
-//CalcMultiLayerMerkleInfo 计算多层merkle树根hash以及子链根hash信息
+// CalcMultiLayerMerkleInfo 计算多层merkle树根hash以及子链根hash信息
 func CalcMultiLayerMerkleInfo(cfg *types.Chain33Config, height int64, txs []*types.Transaction) ([]byte, []*types.ChildChain) {
 	if !cfg.IsFork(height, "ForkRootHash") {
 		return nil, nil
@@ -365,10 +365,10 @@ func CalcMultiLayerMerkleInfo(cfg *types.Chain33Config, height int64, txs []*typ
 	return calcMultiLayerMerkleInfo(txs)
 }
 
-//calcMultiLayerMerkleInfo 计算多层merkle树根hash使用fullhash
-//1,交易列表中都是主链的交易
-//2,交易列表中都是某个平行链的交易（平行链节点上的情况）
-//3,交易列表中是主链和平行链交易都存在，及混合交易
+// calcMultiLayerMerkleInfo 计算多层merkle树根hash使用fullhash
+// 1,交易列表中都是主链的交易
+// 2,交易列表中都是某个平行链的交易（平行链节点上的情况）
+// 3,交易列表中是主链和平行链交易都存在，及混合交易
 func calcMultiLayerMerkleInfo(txs []*types.Transaction) ([]byte, []*types.ChildChain) {
 	var fristParaTitle string
 	var childchains []*types.ChildChain

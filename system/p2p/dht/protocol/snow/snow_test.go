@@ -2,6 +2,9 @@ package snow
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/33cn/chain33/client/mocks"
 	commlog "github.com/33cn/chain33/common/log"
 	"github.com/33cn/chain33/queue"
@@ -13,8 +16,6 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func init() {

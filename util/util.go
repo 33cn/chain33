@@ -36,7 +36,7 @@ func init() {
 
 var ulog = log15.New("module", "util")
 
-//GetParaExecName : 如果 name 没有 paraName 前缀，那么加上这个前缀
+// GetParaExecName : 如果 name 没有 paraName 前缀，那么加上这个前缀
 func GetParaExecName(paraName string, name string) string {
 	if strings.HasPrefix(name, "user.p.") {
 		return name
@@ -74,7 +74,7 @@ func MakeStringToLower(in string, pos, count int) (out string, err error) {
 	return
 }
 
-//GenNoneTxs : 创建一些 none 执行器的 交易列表，一般用于测试
+// GenNoneTxs : 创建一些 none 执行器的 交易列表，一般用于测试
 func GenNoneTxs(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	for i := 0; i < int(n); i++ {
 		txs = append(txs, CreateNoneTx(cfg, priv))
@@ -82,7 +82,7 @@ func GenNoneTxs(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) (txs []*
 	return txs
 }
 
-//GenCoinsTxs : generate txs to be executed on exector coin
+// GenCoinsTxs : generate txs to be executed on exector coin
 func GenCoinsTxs(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 	to, _ := Genaddress()
 	for i := 0; i < int(n); i++ {
@@ -91,7 +91,7 @@ func GenCoinsTxs(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) (txs []
 	return txs
 }
 
-//Genaddress : generate a address
+// Genaddress : generate a address
 func Genaddress() (string, crypto.PrivKey) {
 	cr, err := crypto.Load(types.GetSignName("", types.SECP256K1), -1)
 	if err != nil {
@@ -126,7 +126,7 @@ func CreateCoinsTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to
 	return tx
 }
 
-//CreateNoneTxWithTxHeight 使用txHeight作为交易过期
+// CreateNoneTxWithTxHeight 使用txHeight作为交易过期
 func CreateNoneTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, txHeight int64) *types.Transaction {
 
 	tx := CreateNoneTx(cfg, nil)
@@ -152,7 +152,7 @@ func CreateTxWithExecer(cfg *types.Chain33Config, priv crypto.PrivKey, execer st
 	return tx
 }
 
-//TestingT 测试类型
+// TestingT 测试类型
 type TestingT interface {
 	Error(args ...interface{})
 	Log(args ...interface{})
@@ -220,7 +220,7 @@ func createCoinsTx(cfg *types.Chain33Config, to string, amount int64) *types.Tra
 	return tx
 }
 
-//CreateTxWithTxHeight : Create Tx With Tx Height
+// CreateTxWithTxHeight : Create Tx With Tx Height
 func CreateTxWithTxHeight(cfg *types.Chain33Config, priv crypto.PrivKey, to string, amount, expire int64) *types.Transaction {
 	tx := createCoinsTx(cfg, to, amount)
 	tx.Expire = expire + types.TxHeightFlag
@@ -251,7 +251,7 @@ func CreateNoneBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *ty
 	return newblock
 }
 
-//CreateCoinsBlock : create coins block, n size
+// CreateCoinsBlock : create coins block, n size
 func CreateCoinsBlock(cfg *types.Chain33Config, priv crypto.PrivKey, n int64) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = 1
@@ -499,7 +499,7 @@ func ExecBlockUpgrade(client queue.Client, prevStateRoot []byte, block *types.Bl
 	return err
 }
 
-//CreateNewBlock : Create a New Block
+// CreateNewBlock : Create a New Block
 func CreateNewBlock(cfg *types.Chain33Config, parent *types.Block, txs []*types.Transaction) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = parent.Height + 1
@@ -515,7 +515,7 @@ func CreateNewBlock(cfg *types.Chain33Config, parent *types.Block, txs []*types.
 	return newblock
 }
 
-//ExecAndCheckBlock ...
+// ExecAndCheckBlock ...
 func ExecAndCheckBlock(qclient queue.Client, block *types.Block, txs []*types.Transaction, result []int) (*types.Block, error) {
 	return ExecAndCheckBlockCB(qclient, block, txs, func(index int, receipt *types.ReceiptData) error {
 		if len(result) <= index {
@@ -535,7 +535,7 @@ func ExecAndCheckBlock(qclient queue.Client, block *types.Block, txs []*types.Tr
 	})
 }
 
-//ExecAndCheckBlockCB :
+// ExecAndCheckBlockCB :
 func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.Transaction, cb func(int, *types.ReceiptData) error) (*types.Block, error) {
 	block2 := CreateNewBlock(qclient.GetConfig(), block, txs)
 	detail, deltx, err := ExecBlock(qclient, block.StateHash, block2, false, true, false)
@@ -571,7 +571,7 @@ func ExecAndCheckBlockCB(qclient queue.Client, block *types.Block, txs []*types.
 	return detail.Block, nil
 }
 
-//ResetDatadir 重写datadir
+// ResetDatadir 重写datadir
 func ResetDatadir(cfg *types.Config, datadir string) string {
 	// Check in case of paths like "/something/~/something/"
 	if len(datadir) >= 2 && datadir[:2] == "~/" {
@@ -598,7 +598,7 @@ func ResetDatadir(cfg *types.Config, datadir string) string {
 	return datadir
 }
 
-//CreateTestDB 创建一个测试数据库
+// CreateTestDB 创建一个测试数据库
 func CreateTestDB() (string, db.DB, db.KVDB) {
 	dir, err := ioutil.TempDir("", "goleveldb")
 	if err != nil {
@@ -611,7 +611,7 @@ func CreateTestDB() (string, db.DB, db.KVDB) {
 	return dir, leveldb, db.NewKVDB(leveldb)
 }
 
-//CloseTestDB 创建一个测试数据库
+// CloseTestDB 创建一个测试数据库
 func CloseTestDB(dir string, dbm db.DB) {
 	err := os.RemoveAll(dir)
 	if err != nil {
@@ -620,7 +620,7 @@ func CloseTestDB(dir string, dbm db.DB) {
 	dbm.Close()
 }
 
-//SaveKVList 保存kvs to database
+// SaveKVList 保存kvs to database
 func SaveKVList(kvdb db.DB, kvs []*types.KeyValue) {
 	//printKV(kvs)
 	batch := kvdb.NewBatch(true)
@@ -637,7 +637,7 @@ func SaveKVList(kvdb db.DB, kvs []*types.KeyValue) {
 	}
 }
 
-//PrintKV 打印KVList
+// PrintKV 打印KVList
 func PrintKV(kvs []*types.KeyValue) {
 	for i := 0; i < len(kvs); i++ {
 		fmt.Printf("KV %d %s(%s)\n", i, string(kvs[i].Key), common.ToHex(kvs[i].Value))

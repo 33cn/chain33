@@ -24,7 +24,7 @@ var configOpt = &table.Option{
 	Index:   []string{"addr", "status", "addr_status"},
 }
 
-//NewConfigTable 新建表
+// NewConfigTable 新建表
 func NewConfigTable(kvdb db.KV) *table.Table {
 	rowmeta := NewConfigRow()
 	newTable, err := table.NewTable(rowmeta, kvdb, configOpt)
@@ -34,22 +34,22 @@ func NewConfigTable(kvdb db.KV) *table.Table {
 	return newTable
 }
 
-//ConfigRow table meta 结构
+// ConfigRow table meta 结构
 type ConfigRow struct {
 	*mty.ConfigStatus
 }
 
-//NewConfigRow 新建一个meta 结构
+// NewConfigRow 新建一个meta 结构
 func NewConfigRow() *ConfigRow {
 	return &ConfigRow{ConfigStatus: &mty.ConfigStatus{}}
 }
 
-//CreateRow 新建数据行(注意index 数据一定也要保存到数据中,不能就保存heightindex)
+// CreateRow 新建数据行(注意index 数据一定也要保存到数据中,不能就保存heightindex)
 func (r *ConfigRow) CreateRow() *table.Row {
 	return &table.Row{Data: &mty.ConfigStatus{}}
 }
 
-//SetPayload 设置数据
+// SetPayload 设置数据
 func (r *ConfigRow) SetPayload(data types.Message) error {
 	if d, ok := data.(*mty.ConfigStatus); ok {
 		r.ConfigStatus = d
@@ -58,7 +58,7 @@ func (r *ConfigRow) SetPayload(data types.Message) error {
 	return types.ErrTypeAsset
 }
 
-//Get 按照indexName 查询 indexValue
+// Get 按照indexName 查询 indexValue
 func (r *ConfigRow) Get(key string) ([]byte, error) {
 	if key == "heightindex" {
 		return []byte(dapp.HeightIndexStr(r.Height, int64(r.Index))), nil

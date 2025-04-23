@@ -12,20 +12,20 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
-//Sha256Len sha256 bytes len
+// Sha256Len sha256 bytes len
 const Sha256Len = 32
 
-//Hash type
+// Hash type
 type Hash [Sha256Len]byte
 
-//BytesToHash []byte -> hash
+// BytesToHash []byte -> hash
 func BytesToHash(b []byte) Hash {
 	var h Hash
 	h.SetBytes(b)
 	return h
 }
 
-//HexToHash hex -> hash
+// HexToHash hex -> hash
 func HexToHash(s string) Hash {
 	b, err := FromHex(s)
 	if err != nil {
@@ -34,10 +34,10 @@ func HexToHash(s string) Hash {
 	return BytesToHash(b)
 }
 
-//Bytes Get the []byte representation of the underlying hash
+// Bytes Get the []byte representation of the underlying hash
 func (h Hash) Bytes() []byte { return h[:] }
 
-//SetBytes Sets the hash to the value of b. If b is larger than len(h), 'b' will be cropped (from the left).
+// SetBytes Sets the hash to the value of b. If b is larger than len(h), 'b' will be cropped (from the left).
 func (h *Hash) SetBytes(b []byte) {
 	if len(b) > len(h) {
 		b = b[len(b)-Sha256Len:]
@@ -45,7 +45,7 @@ func (h *Hash) SetBytes(b []byte) {
 	copy(h[Sha256Len-len(b):], b)
 }
 
-//ToHex []byte -> hex
+// ToHex []byte -> hex
 func ToHex(b []byte) string {
 	hex := hex.EncodeToString(b)
 	// Prefer output of "0x0" instead of "0x"
@@ -55,14 +55,14 @@ func ToHex(b []byte) string {
 	return "0x" + hex
 }
 
-//HashHex []byte -> hex
+// HashHex []byte -> hex
 func HashHex(d []byte) string {
 	var buf [Sha256Len * 2]byte
 	hex.Encode(buf[:], d)
 	return string(buf[:])
 }
 
-//FromHex hex -> []byte
+// FromHex hex -> []byte
 func FromHex(s string) ([]byte, error) {
 	if len(s) > 1 {
 		if s[0:2] == "0x" || s[0:2] == "0X" {
@@ -87,19 +87,19 @@ func CopyBytes(b []byte) (copiedBytes []byte) {
 	return
 }
 
-//IsHex 是否是hex字符串
+// IsHex 是否是hex字符串
 func IsHex(str string) bool {
 	l := len(str)
 	return l >= 4 && l%2 == 0 && str[0:2] == "0x"
 }
 
-//Sha256 加密
+// Sha256 加密
 func Sha256(b []byte) []byte {
 	data := sha256.Sum256(b)
 	return data[:]
 }
 
-//Sha3 加密
+// Sha3 加密
 func Sha3(b []byte) []byte {
 	data := sha3.KeccakSum256(b)
 	return data[:]

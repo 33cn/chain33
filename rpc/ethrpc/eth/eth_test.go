@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
+
 	clientMocks "github.com/33cn/chain33/client/mocks"
 	"github.com/33cn/chain33/queue"
 	etypes "github.com/33cn/chain33/rpc/ethrpc/types"
@@ -12,7 +14,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
-	"math/rand"
+
+	"math/big"
+	"strings"
+	"testing"
+	"time"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -20,10 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"strings"
-	"testing"
-	"time"
 
 	chain33crypto "github.com/33cn/chain33/common/crypto"
 	"github.com/ethereum/go-ethereum/accounts/abi"

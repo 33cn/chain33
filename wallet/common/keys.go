@@ -38,7 +38,7 @@ func CalcLabelKey(label string) []byte {
 }
 
 // CalcTxKey 通过height*100000+index 查询Tx交易信息
-//key:Tx:height*100000+index
+// key:Tx:height*100000+index
 func CalcTxKey(key string) []byte {
 	return []byte(fmt.Sprintf("%s:%s", keyTx, key))
 }

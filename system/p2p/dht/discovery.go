@@ -9,12 +9,12 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kbt "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	rout "github.com/libp2p/go-libp2p/p2p/discovery/routing"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
-	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
 const (
@@ -52,7 +52,7 @@ func InitDhtDiscovery(ctx context.Context, host host.Host, peersInfo []peer.Addr
 
 }
 
-//Start  the dht
+// Start  the dht
 func (d *Discovery) Start() {
 	//连接内置种子，以及addrbook存储的节点
 	go initInnerPeers(d.ctx, d.host, d.bootstraps, d.subCfg)
@@ -64,7 +64,7 @@ func (d *Discovery) Start() {
 	d.RoutingDiscovery = rout.NewRoutingDiscovery(d.kademliaDHT)
 }
 
-//Close close the dht
+// Close close the dht
 func (d *Discovery) Close() error {
 	if d.kademliaDHT != nil {
 		return d.kademliaDHT.Close()

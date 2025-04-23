@@ -10,12 +10,12 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	"github.com/33cn/chain33/common"
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
 )
 
 const (
@@ -56,7 +56,7 @@ type BtcAddr2Script struct {
 
 // NewBtcKeyFromBytes 获取比特币公私钥
 func NewBtcKeyFromBytes(priv []byte) (*btcec.PrivateKey, *btcec.PublicKey) {
-	return btcec.PrivKeyFromBytes(btcec.S256(), priv)
+	return btcec.PrivKeyFromBytes(priv)
 }
 
 // GetBtcLockScript 根据地址类型，生成锁定脚本
@@ -103,7 +103,7 @@ func CheckBtcScript(msg []byte, sig *Signature) error {
 
 	tx := getBindBtcTx(msg)
 	setBtcTx(tx, sig.LockTime, sig.UtxoSequence, sig.UnlockScript)
-	vm, err := txscript.NewEngine(sig.LockScript, tx, 0, txscript.StandardVerifyFlags, nil, nil, 0)
+	vm, err := txscript.NewEngine(sig.LockScript, tx, 0, txscript.StandardVerifyFlags, nil, nil, 0, nil)
 	if err != nil {
 		return errors.New("new Script engine err:" + err.Error())
 	}

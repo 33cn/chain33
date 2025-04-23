@@ -2,11 +2,12 @@ package blockchain
 
 import (
 	"encoding/hex"
-	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/types"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/types"
 )
 
 var (
@@ -150,9 +151,6 @@ func (f *finalizer) waitFinalizeStartBlock(beginHeight int64) {
 }
 
 func (f *finalizer) snowmanPreferBlock(msg *queue.Message) {
-	//req := (msg.Data).(*types.ReqBytes)
-	return
-
 }
 
 func (f *finalizer) snowmanAcceptBlock(msg *queue.Message) {

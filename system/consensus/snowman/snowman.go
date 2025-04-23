@@ -2,13 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package snowman
+// Package snowman snow finalizer
 package snowman
 
 import (
 	"encoding/hex"
 	"runtime"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -53,7 +52,7 @@ type snowman struct {
 	engineNotify chan struct{}
 	params       snowball.Parameters
 	initDone     atomic.Bool
-	lock         sync.RWMutex
+	//lock         sync.RWMutex
 }
 
 func (s *snowman) Initialize(ctx *consensus.Context) {

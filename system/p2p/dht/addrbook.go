@@ -82,7 +82,7 @@ func (a *AddrBook) loadDb() bool {
 
 }
 
-//Randkey Rand keypair
+// Randkey Rand keypair
 func (a *AddrBook) Randkey() crypto.PrivKey {
 	a.initKey()
 	return a.GetPrivkey()
@@ -258,7 +258,7 @@ func GenPubkey(key string) (string, error) {
 
 }
 
-//PeerIDToPubkey 提供节点ID转换为pubkey,进而通过pubkey创建chain33 地址的功能
+// PeerIDToPubkey 提供节点ID转换为pubkey,进而通过pubkey创建chain33 地址的功能
 func PeerIDToPubkey(id string) (string, error) {
 	//encodeIdStr := "16Uiu2HAm7vDB7XDuEv8XNPcoPqumVngsjWoogGXENNDXVYMiCJHM"
 	//hexpubStr:="02b99bc73bfb522110634d5644d476b21b3171eefab517da0646ef2aba39dbf4a0"

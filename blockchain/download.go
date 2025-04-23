@@ -14,13 +14,13 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-//var
+// var
 var (
 	tempBlockKey     = []byte("TB:")
 	lastTempBlockKey = []byte("LTB:")
 )
 
-//const
+// const
 const (
 	//waitTimeDownLoad 节点启动之后等待开始快速下载的时间秒，超时就切换到普通同步模式
 	waitTimeDownLoad = 120
@@ -34,44 +34,44 @@ const (
 	forkChainDetectMode = 3
 )
 
-//DownLoadInfo blockchain模块下载block处理结构体
+// DownLoadInfo blockchain模块下载block处理结构体
 type DownLoadInfo struct {
 	StartHeight int64
 	EndHeight   int64
 	Pids        []string
 }
 
-//ErrCountInfo  启动download时read一个block失败等待最长时间为2分钟，120秒
+// ErrCountInfo  启动download时read一个block失败等待最长时间为2分钟，120秒
 type ErrCountInfo struct {
 	Height int64
 	Count  int64
 }
 
-//存储temp block height 对应的block
+// 存储temp block height 对应的block
 func calcHeightToTempBlockKey(height int64) []byte {
 	return append(tempBlockKey, []byte(fmt.Sprintf("%012d", height))...)
 }
 
-//存储last temp block height
+// 存储last temp block height
 func calcLastTempBlockHeightKey() []byte {
 	return lastTempBlockKey
 }
 
-//GetDownloadSyncStatus 获取下载区块的同步模式
+// GetDownloadSyncStatus 获取下载区块的同步模式
 func (chain *BlockChain) GetDownloadSyncStatus() int {
 	chain.downLoadModeLock.Lock()
 	defer chain.downLoadModeLock.Unlock()
 	return chain.downloadMode
 }
 
-//UpdateDownloadSyncStatus 更新下载区块的同步模式
+// UpdateDownloadSyncStatus 更新下载区块的同步模式
 func (chain *BlockChain) UpdateDownloadSyncStatus(mode int) {
 	chain.downLoadModeLock.Lock()
 	defer chain.downLoadModeLock.Unlock()
 	chain.downloadMode = mode
 }
 
-//FastDownLoadBlocks 开启快速下载区块的模式
+// FastDownLoadBlocks 开启快速下载区块的模式
 func (chain *BlockChain) FastDownLoadBlocks() {
 	curHeight := chain.GetBlockHeight()
 	lastTempHight := chain.GetLastTempBlockHeight()
@@ -113,7 +113,7 @@ func (chain *BlockChain) FastDownLoadBlocks() {
 	}
 }
 
-//ReadBlockToExec 执行快速下载临时存储在db中的block
+// ReadBlockToExec 执行快速下载临时存储在db中的block
 func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 	synlog.Info("ReadBlockToExec starting!!!", "height", height, "isNewStart", isNewStart)
 	var waitCount ErrCountInfo
@@ -191,7 +191,7 @@ func (chain *BlockChain) ReadBlockToExec(height int64, isNewStart bool) {
 	}
 }
 
-//ReadChunkBlockToExec 执行Chunk下载临时存储在db中的block
+// ReadChunkBlockToExec 执行Chunk下载临时存储在db中的block
 func (chain *BlockChain) ReadChunkBlockToExec() {
 	synlog.Info("ReadChunkBlockToExec starting!!!")
 	cfg := chain.client.GetConfig()
@@ -236,7 +236,7 @@ func (chain *BlockChain) ReadChunkBlockToExec() {
 	}
 }
 
-//CancelDownLoadFlag 清除快速下载模式的一些标志
+// CancelDownLoadFlag 清除快速下载模式的一些标志
 func (chain *BlockChain) cancelDownLoadFlag(isNewStart bool) {
 	if isNewStart {
 		chain.UpdateDownloadSyncStatus(normalDownLoadMode)
@@ -245,7 +245,7 @@ func (chain *BlockChain) cancelDownLoadFlag(isNewStart bool) {
 	synlog.Info("cancelFastDownLoadFlag", "isNewStart", isNewStart)
 }
 
-//ReadBlockByHeight 从数据库中读取快速下载临时存储的block信息
+// ReadBlockByHeight 从数据库中读取快速下载临时存储的block信息
 func (chain *BlockChain) ReadBlockByHeight(height int64) (*types.Block, error) {
 	blockByte, err := chain.blockStore.db.Get(calcHeightToTempBlockKey(height))
 	if blockByte == nil || err != nil {
@@ -265,7 +265,7 @@ func (chain *BlockChain) ReadBlockByHeight(height int64) (*types.Block, error) {
 	return &block, err
 }
 
-//WriteBlockToDbTemp 快速下载的block临时存贮到数据库
+// WriteBlockToDbTemp 快速下载的block临时存贮到数据库
 func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block, lastHeightSave bool) error {
 	if block == nil {
 		panic("WriteBlockToDbTemp block is nil")
@@ -293,7 +293,7 @@ func (chain *BlockChain) WriteBlockToDbTemp(block *types.Block, lastHeightSave b
 	return nil
 }
 
-//GetLastTempBlockHeight 从数据库中获取快速下载的最新的block高度
+// GetLastTempBlockHeight 从数据库中获取快速下载的最新的block高度
 func (chain *BlockChain) GetLastTempBlockHeight() int64 {
 	heightbytes, err := chain.blockStore.db.Get(calcLastTempBlockHeightKey())
 	if heightbytes == nil || err != nil {
@@ -310,7 +310,7 @@ func (chain *BlockChain) GetLastTempBlockHeight() int64 {
 	return height.Data
 }
 
-//DelLastTempBlockHeight 快速下载结束时删除此标志位
+// DelLastTempBlockHeight 快速下载结束时删除此标志位
 func (chain *BlockChain) DelLastTempBlockHeight() {
 	err := chain.blockStore.db.Delete(calcLastTempBlockHeightKey())
 	if err != nil {
@@ -318,7 +318,7 @@ func (chain *BlockChain) DelLastTempBlockHeight() {
 	}
 }
 
-//ProcDownLoadBlocks 处理下载blocks
+// ProcDownLoadBlocks 处理下载blocks
 func (chain *BlockChain) ProcDownLoadBlocks(StartHeight int64, EndHeight int64, pids []string) {
 	info := chain.GetDownLoadInfo()
 
@@ -333,7 +333,7 @@ func (chain *BlockChain) ProcDownLoadBlocks(StartHeight int64, EndHeight int64, 
 
 }
 
-//InitDownLoadInfo 开始新的DownLoad处理
+// InitDownLoadInfo 开始新的DownLoad处理
 func (chain *BlockChain) InitDownLoadInfo(StartHeight int64, EndHeight int64, pids []string) {
 	chain.downLoadlock.Lock()
 	defer chain.downLoadlock.Unlock()
@@ -345,7 +345,7 @@ func (chain *BlockChain) InitDownLoadInfo(StartHeight int64, EndHeight int64, pi
 
 }
 
-//DefaultDownLoadInfo 将DownLoadInfo恢复成默认值
+// DefaultDownLoadInfo 将DownLoadInfo恢复成默认值
 func (chain *BlockChain) DefaultDownLoadInfo() {
 	chain.downLoadlock.Lock()
 	defer chain.downLoadlock.Unlock()
@@ -356,14 +356,14 @@ func (chain *BlockChain) DefaultDownLoadInfo() {
 	synlog.Debug("DefaultDownLoadInfo")
 }
 
-//GetDownLoadInfo 获取DownLoadInfo
+// GetDownLoadInfo 获取DownLoadInfo
 func (chain *BlockChain) GetDownLoadInfo() *DownLoadInfo {
 	chain.downLoadlock.Lock()
 	defer chain.downLoadlock.Unlock()
 	return chain.downLoadInfo
 }
 
-//UpdateDownLoadStartHeight 更新DownLoad请求的起始block高度
+// UpdateDownLoadStartHeight 更新DownLoad请求的起始block高度
 func (chain *BlockChain) UpdateDownLoadStartHeight(StartHeight int64) {
 	chain.downLoadlock.Lock()
 	defer chain.downLoadlock.Unlock()
@@ -372,7 +372,7 @@ func (chain *BlockChain) UpdateDownLoadStartHeight(StartHeight int64) {
 	synlog.Debug("UpdateDownLoadStartHeight", "StartHeight", chain.downLoadInfo.StartHeight, "EndHeight", chain.downLoadInfo.EndHeight, "pids", len(chain.downLoadInfo.Pids))
 }
 
-//UpdateDownLoadPids 更新bestpeers列表
+// UpdateDownLoadPids 更新bestpeers列表
 func (chain *BlockChain) UpdateDownLoadPids() {
 	pids := chain.GetBestChainPids()
 
@@ -384,7 +384,7 @@ func (chain *BlockChain) UpdateDownLoadPids() {
 	}
 }
 
-//ReqDownLoadBlocks 请求DownLoad处理的blocks
+// ReqDownLoadBlocks 请求DownLoad处理的blocks
 func (chain *BlockChain) ReqDownLoadBlocks() {
 	info := chain.GetDownLoadInfo()
 	if info.StartHeight != -1 && info.EndHeight != -1 && info.Pids != nil {
@@ -396,7 +396,7 @@ func (chain *BlockChain) ReqDownLoadBlocks() {
 	}
 }
 
-//DownLoadTimeOutProc 快速下载模式下载区块超时的处理函数
+// DownLoadTimeOutProc 快速下载模式下载区块超时的处理函数
 func (chain *BlockChain) DownLoadTimeOutProc(height int64) {
 	info := chain.GetDownLoadInfo()
 	synlog.Info("DownLoadTimeOutProc", "timeoutheight", height, "StartHeight", info.StartHeight, "EndHeight", info.EndHeight)
@@ -450,7 +450,7 @@ func (chain *BlockChain) DownLoadBlocks() {
 	}
 }
 
-//ChunkDownLoadBlocks 开启快速下载区块的模式
+// ChunkDownLoadBlocks 开启快速下载区块的模式
 func (chain *BlockChain) ChunkDownLoadBlocks() {
 	curHeight := chain.GetBlockHeight()
 	lastTempHight := chain.GetLastTempBlockHeight()

@@ -14,7 +14,7 @@ import (
 	"github.com/33cn/chain33/cmd/tools/util"
 )
 
-//CopyTemplateToOutputTask ...
+// CopyTemplateToOutputTask ...
 type CopyTemplateToOutputTask struct {
 	TaskBase
 	TemplatePath string
@@ -23,12 +23,12 @@ type CopyTemplateToOutputTask struct {
 	ClassName    string
 }
 
-//GetName 获取name
+// GetName 获取name
 func (c *CopyTemplateToOutputTask) GetName() string {
 	return "CopyTemplateToOutputTask"
 }
 
-//Execute 执行
+// Execute 执行
 func (c *CopyTemplateToOutputTask) Execute() error {
 	mlog.Info("Execute copy template task.")
 	err := filepath.Walk(c.TemplatePath, func(path string, info os.FileInfo, err error) error {

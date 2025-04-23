@@ -25,7 +25,7 @@ type personalHandler struct {
 	cfg *ctypes.Chain33Config
 }
 
-//NewPersonalAPI new persional object
+// NewPersonalAPI new persional object
 func NewPersonalAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
 	p := &personalHandler{}
 	p.cli.Init(c, api)
@@ -33,7 +33,7 @@ func NewPersonalAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueP
 	return p
 }
 
-//ListAccounts personal_listAccounts show all account
+// ListAccounts personal_listAccounts show all account
 func (p *personalHandler) ListAccounts() ([]string, error) {
 	req := &ctypes.ReqAccountList{WithoutBalance: true}
 	msg, err := p.cli.ExecWalletFunc("wallet", "WalletGetAccountList", req)
@@ -53,7 +53,7 @@ func (p *personalHandler) ListAccounts() ([]string, error) {
 	return accounts, nil
 }
 
-//NewAccount  personal_newaccount
+// NewAccount  personal_newaccount
 func (p *personalHandler) NewAccount(label string) (string, error) {
 	req := &ctypes.ReqNewAccount{Label: label, AddressID: 2}
 	resp, err := p.cli.ExecWalletFunc("wallet", "NewAccount", req)
@@ -65,7 +65,7 @@ func (p *personalHandler) NewAccount(label string) (string, error) {
 	return account.Acc.Addr, nil
 }
 
-//UnlockAccount personal_unlockAccount
+// UnlockAccount personal_unlockAccount
 func (p *personalHandler) UnlockAccount(account, passwd string, duration int64) bool {
 	req := &ctypes.WalletUnLock{Passwd: passwd, Timeout: duration}
 	resp, err := p.cli.ExecWalletFunc("wallet", "WalletUnLock", req)
@@ -76,7 +76,7 @@ func (p *personalHandler) UnlockAccount(account, passwd string, duration int64) 
 	return result
 }
 
-//ImportRawKey personal_importRawKey
+// ImportRawKey personal_importRawKey
 func (p *personalHandler) ImportRawKey(keydata, label string) (string, error) {
 	req := &ctypes.ReqWalletImportPrivkey{Privkey: keydata, Label: label, AddressID: 2}
 	resp, err := p.cli.ExecWalletFunc("wallet", "WalletImportPrivkey", req)
@@ -88,7 +88,7 @@ func (p *personalHandler) ImportRawKey(keydata, label string) (string, error) {
 	return account.Acc.Addr, nil
 }
 
-//Sign personal_sign
+// Sign personal_sign
 func (p *personalHandler) Sign(data *hexutil.Bytes, address, passwd string) (string, error) {
 	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(*data), *data)
 	sha3Hash := common.Sha3([]byte(msg))

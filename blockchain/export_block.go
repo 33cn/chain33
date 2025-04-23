@@ -40,7 +40,7 @@ func calcblockHeightKey(height int64) []byte {
 	return append(blockHeightKey, []byte(fmt.Sprintf("%012d", height))...)
 }
 
-//ExportBlockProc 通过title导出对应的区块到指定文件中
+// ExportBlockProc 通过title导出对应的区块到指定文件中
 func (chain *BlockChain) ExportBlockProc(title string, dir string, startHeight int64) {
 	//获取文件路径
 	dataDir := getDataDir(dir)
@@ -49,7 +49,7 @@ func (chain *BlockChain) ExportBlockProc(title string, dir string, startHeight i
 	syscall.Exit(0)
 }
 
-//ImportBlockProc 导入区块的处理，区块导入结束后退出整个系统
+// ImportBlockProc 导入区块的处理，区块导入结束后退出整个系统
 func (chain *BlockChain) ImportBlockProc(filename string, dir string) {
 
 	//获取文件路径,空字符串默认当前目录下
@@ -64,7 +64,7 @@ func (chain *BlockChain) ImportBlockProc(filename string, dir string) {
 	syscall.Exit(0)
 }
 
-//ExportBlock 通过指定title和起始高度将block信息导出到一个指定文件中。
+// ExportBlock 通过指定title和起始高度将block信息导出到一个指定文件中。
 // title:chain33/bityuan
 // startHeight:需要导入/导出的起始高度
 // dbPath:存储到指定路径,默认当前目录下
@@ -166,7 +166,7 @@ func (chain *BlockChain) ExportBlock(title, dbPath string, startHeight int64) er
 	return chain.exportMainBlock(startHeight, curheight-blockCount, batch)
 }
 
-//导出主链block信息到文件中
+// 导出主链block信息到文件中
 func (chain *BlockChain) exportMainBlock(startHeight, endheight int64, batch dbm.Batch) error {
 	cfg := chain.client.GetConfig()
 	var count = 0
@@ -209,7 +209,7 @@ func (chain *BlockChain) exportMainBlock(startHeight, endheight int64, batch dbm
 	return nil
 }
 
-//ImportBlock 通过指定文件导入block
+// ImportBlock 通过指定文件导入block
 func (chain *BlockChain) ImportBlock(filename, dbPath string) error {
 	cfg := chain.client.GetConfig()
 	if len(filename) == 0 {
@@ -273,7 +273,7 @@ func (chain *BlockChain) ImportBlock(filename, dbPath string) error {
 	return nil
 }
 
-//mainChainImport 主链的导入区块处理函数
+// mainChainImport 主链的导入区块处理函数
 func (chain *BlockChain) mainChainImport(block *types.Block) error {
 	cfg := chain.client.GetConfig()
 	blockDetail := types.BlockDetail{
@@ -296,7 +296,7 @@ func (chain *BlockChain) mainChainImport(block *types.Block) error {
 	return nil
 }
 
-//isValidFileHeader 校验文件头信息
+// isValidFileHeader 校验文件头信息
 func isValidFileHeader(oldFileHeader, newFileHeader *types.FileHeader) bool {
 	if oldFileHeader.Title != newFileHeader.Title ||
 		oldFileHeader.Driver != newFileHeader.Driver ||
@@ -306,7 +306,7 @@ func isValidFileHeader(oldFileHeader, newFileHeader *types.FileHeader) bool {
 	return true
 }
 
-//getFileHeader获取文件头信息
+// getFileHeader获取文件头信息
 func getFileHeader(db dbm.DB) (*types.FileHeader, error) {
 	headertitle, err := db.Get(fileHeaderKey)
 	if err != nil {
@@ -321,13 +321,13 @@ func getFileHeader(db dbm.DB) (*types.FileHeader, error) {
 	return &fileHeader, nil
 }
 
-//setFileHeader 设置文件头信息到数据库中
+// setFileHeader 设置文件头信息到数据库中
 func setFileHeader(batch dbm.Batch, fileHeader *types.FileHeader) {
 	fileHeaderinfo := types.Encode(fileHeader)
 	batch.Set(fileHeaderKey, fileHeaderinfo)
 }
 
-//getEndBlock 获取endblock的信息
+// getEndBlock 获取endblock的信息
 func getEndBlock(db dbm.DB) (*types.EndBlock, error) {
 	var endBlock types.EndBlock
 
@@ -344,13 +344,13 @@ func getEndBlock(db dbm.DB) (*types.EndBlock, error) {
 	return &endBlock, nil
 }
 
-//setEndBlock 设置endblock的信息
+// setEndBlock 设置endblock的信息
 func setEndBlock(batch dbm.Batch, endBlock *types.EndBlock) {
 	endBlockinfo := types.Encode(endBlock)
 	batch.Set(endBlockKey, endBlockinfo)
 }
 
-//从数据库中获取对应高度的block信息
+// 从数据库中获取对应高度的block信息
 func getBlock(db dbm.DB, height int64) (*types.Block, error) {
 	data, err := db.Get(calcblockHeightKey(height))
 	if err != nil {

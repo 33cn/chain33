@@ -16,7 +16,7 @@ import (
 	"github.com/33cn/chain33/common/log/log15"
 )
 
-//TestOperator 测试操作符
+// TestOperator 测试操作符
 type TestOperator struct {
 	addDone     chan bool
 	sendDone    chan bool
@@ -38,7 +38,7 @@ type TestOperator struct {
 	failID    []string
 }
 
-//AddCaseArray 添加用例
+// AddCaseArray 添加用例
 func (tester *TestOperator) AddCaseArray(caseArrayList ...interface{}) {
 
 	for i := range caseArrayList {
@@ -70,7 +70,7 @@ func (tester *TestOperator) AddCaseArray(caseArrayList ...interface{}) {
 
 }
 
-//HandleDependency 管理依赖
+// HandleDependency 管理依赖
 func (tester *TestOperator) HandleDependency() {
 
 	keepLoop := true
@@ -141,7 +141,7 @@ func (tester *TestOperator) HandleDependency() {
 	}
 }
 
-//RunSendFlow send
+// RunSendFlow send
 func (tester *TestOperator) RunSendFlow() {
 
 	depEmpty := false
@@ -236,7 +236,7 @@ func (tester *TestOperator) RunSendFlow() {
 	tester.sendDone <- true
 }
 
-//RunCheckFlow check
+// RunCheckFlow check
 func (tester *TestOperator) RunCheckFlow() {
 
 	checkList := (*list.List)(nil)
@@ -324,7 +324,7 @@ func (tester *TestOperator) RunCheckFlow() {
 	tester.checkDone <- true
 }
 
-//WaitTest 等待测试
+// WaitTest 等待测试
 func (tester *TestOperator) WaitTest() *AutoTestResult {
 
 	<-tester.checkDone
@@ -336,7 +336,7 @@ func (tester *TestOperator) WaitTest() *AutoTestResult {
 	}
 }
 
-//NewTestOperator new
+// NewTestOperator new
 func NewTestOperator(stdLog log15.Logger, fileLog log15.Logger, dapp string) (tester *TestOperator) {
 
 	tester = new(TestOperator)

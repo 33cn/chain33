@@ -25,20 +25,20 @@ func init() {
 	registerDBCreator(memDBBackendStr, dbCreator, false)
 }
 
-//GoMemDB db
+// GoMemDB db
 type GoMemDB struct {
 	BaseDB
 	db *memdb.DB
 }
 
-//NewGoMemDB new
+// NewGoMemDB new
 func NewGoMemDB(name string, dir string, cache int) (*GoMemDB, error) {
 	return &GoMemDB{
 		db: memdb.New(comparer.DefaultComparer, 0),
 	}, nil
 }
 
-//Get get
+// Get get
 func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	v, err := db.db.Get(key)
 	if err != nil {
@@ -47,7 +47,7 @@ func (db *GoMemDB) Get(key []byte) ([]byte, error) {
 	return cloneByte(v), nil
 }
 
-//Set set
+// Set set
 func (db *GoMemDB) Set(key []byte, value []byte) error {
 	err := db.db.Put(key, value)
 	if err != nil {
@@ -57,7 +57,7 @@ func (db *GoMemDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-//SetSync 设置同步
+// SetSync 设置同步
 func (db *GoMemDB) SetSync(key []byte, value []byte) error {
 	err := db.db.Put(key, value)
 	if err != nil {
@@ -67,7 +67,7 @@ func (db *GoMemDB) SetSync(key []byte, value []byte) error {
 	return nil
 }
 
-//Delete 删除
+// Delete 删除
 func (db *GoMemDB) Delete(key []byte) error {
 	err := db.db.Delete(key)
 	if err != nil {
@@ -77,7 +77,7 @@ func (db *GoMemDB) Delete(key []byte) error {
 	return nil
 }
 
-//DeleteSync 删除同步
+// DeleteSync 删除同步
 func (db *GoMemDB) DeleteSync(key []byte) error {
 	err := db.db.Delete(key)
 	if err != nil {
@@ -87,16 +87,16 @@ func (db *GoMemDB) DeleteSync(key []byte) error {
 	return nil
 }
 
-//DB db
+// DB db
 func (db *GoMemDB) DB() *memdb.DB {
 	return db.db
 }
 
-//Close 关闭
+// Close 关闭
 func (db *GoMemDB) Close() {
 }
 
-//Print 打印
+// Print 打印
 func (db *GoMemDB) Print() {
 	it := db.db.NewIterator(nil)
 	for it.Next() {
@@ -104,13 +104,13 @@ func (db *GoMemDB) Print() {
 	}
 }
 
-//Stats ...
+// Stats ...
 func (db *GoMemDB) Stats() map[string]string {
 	//TODO
 	return nil
 }
 
-//Iterator 迭代器
+// Iterator 迭代器
 func (db *GoMemDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
 	if end == nil {
 		end = bytesPrefix(start)
@@ -132,7 +132,7 @@ type memBatch struct {
 	len    int
 }
 
-//NewBatch new
+// NewBatch new
 func (db *GoMemDB) NewBatch(sync bool) Batch {
 	return &memBatch{db: db}
 }
@@ -166,7 +166,7 @@ func (b *memBatch) ValueSize() int {
 	return b.size
 }
 
-//ValueLen  batch数量
+// ValueLen  batch数量
 func (b *memBatch) ValueLen() int {
 	return b.len
 }

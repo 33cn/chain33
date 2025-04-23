@@ -651,7 +651,7 @@ func updateLocalMemTree(t *Tree, node *Node) {
 	}
 }
 
-//cache缓存节点
+// cache缓存节点
 func (ndb *nodeDB) cacheNode(node *Node) {
 	//接进叶子节点，不容易命中cache，就不做cache
 	if ndb.cache != nil && node.height > 2 {

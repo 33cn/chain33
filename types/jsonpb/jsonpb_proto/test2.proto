@@ -16,11 +16,11 @@ package jsonpb_test;
 
 // Test message for holding primitive types.
 message Simple {
-    optional bool o_bool         = 1;
-    optional int32 o_int32       = 2;
-    optional int32 o_int32_str   = 3;
-    optional int64 o_int64       = 4;
-    optional int64 o_int64_str   = 5;
+    optional bool   o_bool       = 1;
+    optional int32  o_int32      = 2;
+    optional int32  o_int32_str  = 3;
+    optional int64  o_int64      = 4;
+    optional int64  o_int64_str  = 5;
     optional uint32 o_uint32     = 6;
     optional uint32 o_uint32_str = 7;
     optional uint64 o_uint64     = 8;
@@ -34,7 +34,7 @@ message Simple {
     optional double o_double     = 16;
     optional double o_double_str = 17;
     optional string o_string     = 18;
-    optional bytes o_bytes       = 19;
+    optional bytes  o_bytes      = 19;
 }
 
 // Test message for holding special non-finites primitives.
@@ -49,9 +49,9 @@ message NonFinites {
 
 // Test message for holding repeated primitives.
 message Repeats {
-    repeated bool r_bool     = 1;
-    repeated int32 r_int32   = 2;
-    repeated int64 r_int64   = 3;
+    repeated bool   r_bool   = 1;
+    repeated int32  r_int32  = 2;
+    repeated int64  r_int64  = 3;
     repeated uint32 r_uint32 = 4;
     repeated uint64 r_uint64 = 5;
     repeated sint32 r_sint32 = 6;
@@ -59,7 +59,7 @@ message Repeats {
     repeated float  r_float  = 8;
     repeated double r_double = 9;
     repeated string r_string = 10;
-    repeated bytes r_bytes   = 11;
+    repeated bytes  r_bytes  = 11;
 }
 
 // Test message for holding enums and nested messages.
@@ -136,9 +136,9 @@ message MsgWithRequired {
 }
 
 message MsgWithIndirectRequired {
-    optional MsgWithRequired subm = 1;
-    map<string, MsgWithRequired> map_field = 2;
-    repeated MsgWithRequired slice_field = 3;
+    optional MsgWithRequired     subm        = 1;
+    map<string, MsgWithRequired> map_field   = 2;
+    repeated MsgWithRequired     slice_field = 3;
 }
 
 message MsgWithRequiredBytes {

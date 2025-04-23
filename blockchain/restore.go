@@ -48,7 +48,7 @@ func (chain *BlockChain) UpgradePlugin() {
 	chain.blockStore.mustSaveKvset(kv)
 }
 
-//UpgradeStore 升级storedb
+// UpgradeStore 升级storedb
 func (chain *BlockChain) UpgradeStore() {
 	meta, err := chain.blockStore.GetStoreUpgradeMeta()
 	if err != nil {

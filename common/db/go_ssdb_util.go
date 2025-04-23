@@ -15,7 +15,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//const
+// const
 const (
 	ENDN = '\n'
 	ENDR = '\r'
@@ -33,20 +33,20 @@ const (
 	PooledSize = 3
 )
 
-//SDBClient ...
+// SDBClient ...
 type SDBClient struct {
 	sock     *net.TCPConn
 	timeZero time.Time
 	mu       sync.Mutex
 }
 
-//SDBPool SDB池
+// SDBPool SDB池
 type SDBPool struct {
 	clients []*SDBClient
 	round   *RoundInt
 }
 
-//RoundInt ...
+// RoundInt ...
 type RoundInt struct {
 	round int
 	index int
@@ -71,7 +71,7 @@ func (pool *SDBPool) close() {
 	}
 }
 
-//NewSDBPool new
+// NewSDBPool new
 func NewSDBPool(nodes []*SsdbNode) (pool *SDBPool, err error) {
 	dbpool := &SDBPool{}
 	for i := 0; i < PooledSize; i++ {
@@ -88,7 +88,7 @@ func NewSDBPool(nodes []*SsdbNode) (pool *SDBPool, err error) {
 	return dbpool, nil
 }
 
-//Connect 连接
+// Connect 连接
 func Connect(ip string, port int) (*SDBClient, error) {
 	addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", ip, port))
 	if err != nil {
@@ -106,10 +106,11 @@ func Connect(ip string, port int) (*SDBClient, error) {
 	return &c, nil
 }
 
-//Get 获取指定 key 的值内容
-//  key 键值
-//  返回 一个 Value,可以方便的向其它类型转换
-//  返回 一个可能的错误，操作成功返回 nil
+// Get 获取指定 key 的值内容
+//
+//	key 键值
+//	返回 一个 Value,可以方便的向其它类型转换
+//	返回 一个可能的错误，操作成功返回 nil
 func (c *SDBClient) Get(key string) (*Value, error) {
 	resp, err := c.Do("get", key)
 	if err != nil {
@@ -127,11 +128,12 @@ func (c *SDBClient) Get(key string) (*Value, error) {
 	return nil, makeError(resp, key)
 }
 
-//Set 设置指定 key 的值内容
-//  key 键值
-//  val 存贮的 value 值,val只支持基本的类型，如果要支持复杂的类型，需要开启连接池的 Encoding 选项
-//  ttl 可选，设置的过期时间，单位为秒
-//  返回 err，可能的错误，操作成功返回 nil
+// Set 设置指定 key 的值内容
+//
+//	key 键值
+//	val 存贮的 value 值,val只支持基本的类型，如果要支持复杂的类型，需要开启连接池的 Encoding 选项
+//	ttl 可选，设置的过期时间，单位为秒
+//	返回 err，可能的错误，操作成功返回 nil
 func (c *SDBClient) Set(key string, val []byte) (err error) {
 	var resp []string
 	resp, err = c.Do("set", key, val)
@@ -144,9 +146,10 @@ func (c *SDBClient) Set(key string, val []byte) (err error) {
 	return makeError(resp, key)
 }
 
-//Del 删除指定 key
-//  key 要删除的 key
-//  返回 err，执行的错误，操作成功返回 nil
+// Del 删除指定 key
+//
+//	key 要删除的 key
+//	返回 err，执行的错误，操作成功返回 nil
 func (c *SDBClient) Del(key string) error {
 	resp, err := c.Do("del", key)
 	if err != nil {
@@ -160,9 +163,10 @@ func (c *SDBClient) Del(key string) error {
 	return makeError(resp, key)
 }
 
-//MultiSet 批量设置一批 key-value.
-//  包含 key-value 的字典
-//  返回 err，可能的错误，操作成功返回 nil
+// MultiSet 批量设置一批 key-value.
+//
+//	包含 key-value 的字典
+//	返回 err，可能的错误，操作成功返回 nil
 func (c *SDBClient) MultiSet(kvs map[string][]byte) (err error) {
 
 	args := []interface{}{"multi_set"}
@@ -183,9 +187,10 @@ func (c *SDBClient) MultiSet(kvs map[string][]byte) (err error) {
 	return makeError(resp, kvs)
 }
 
-//MultiDel 批量删除一批 key 和其对应的值内容.
-//  key，要删除的 key，可以为多个
-//  返回 err，可能的错误，操作成功返回 nil
+// MultiDel 批量删除一批 key 和其对应的值内容.
+//
+//	key，要删除的 key，可以为多个
+//	返回 err，可能的错误，操作成功返回 nil
 func (c *SDBClient) MultiDel(key ...string) (err error) {
 	if len(key) == 0 {
 		return nil
@@ -205,9 +210,10 @@ func (c *SDBClient) MultiDel(key ...string) (err error) {
 	return makeError(resp, key)
 }
 
-//MultiGet 批量删除一批 key 和其对应的值内容.
-//  key，要删除的 key，可以为多个
-//  返回 err，可能的错误，操作成功返回 nil
+// MultiGet 批量删除一批 key 和其对应的值内容.
+//
+//	key，要删除的 key，可以为多个
+//	返回 err，可能的错误，操作成功返回 nil
 func (c *SDBClient) MultiGet(key ...string) (vals []*Value, err error) {
 	if len(key) == 0 {
 		return nil, nil
@@ -232,12 +238,13 @@ func (c *SDBClient) MultiGet(key ...string) (vals []*Value, err error) {
 	return nil, makeError(resp, key)
 }
 
-//Keys 列出处于区间 (key_start, key_end] 的 key 列表.("", ""] 表示整个区间.
-//  keyStart int 返回的起始 key(不包含), 空字符串表示 -inf.
-//  keyEnd int 返回的结束 key(包含), 空字符串表示 +inf.
-//  limit int 最多返回这么多个元素.
-//  返回 返回包含 key 的数组.
-//  返回 err，可能的错误，操作成功返回 nil
+// Keys 列出处于区间 (key_start, key_end] 的 key 列表.("", ""] 表示整个区间.
+//
+//	keyStart int 返回的起始 key(不包含), 空字符串表示 -inf.
+//	keyEnd int 返回的结束 key(包含), 空字符串表示 +inf.
+//	limit int 最多返回这么多个元素.
+//	返回 返回包含 key 的数组.
+//	返回 err，可能的错误，操作成功返回 nil
 func (c *SDBClient) Keys(keyStart, keyEnd string, limit int64) ([]string, error) {
 
 	resp, err := c.Do("keys", keyStart, keyEnd, limit)
@@ -251,12 +258,13 @@ func (c *SDBClient) Keys(keyStart, keyEnd string, limit int64) ([]string, error)
 	return nil, makeError(resp, keyStart, keyEnd, limit)
 }
 
-//Rkeys 列出处于区间 (key_start, key_end] 的 key 列表.("", ""] 表示整个区间.反向选择
-//  keyStart int 返回的起始 key(不包含), 空字符串表示 -inf.
-//  keyEnd int 返回的结束 key(包含), 空字符串表示 +inf.
-//  limit int 最多返回这么多个元素.
-//  返回 返回包含 key 的数组.
-//  返回 err，可能的错误，操作成功返回 nil
+// Rkeys 列出处于区间 (key_start, key_end] 的 key 列表.("", ""] 表示整个区间.反向选择
+//
+//	keyStart int 返回的起始 key(不包含), 空字符串表示 -inf.
+//	keyEnd int 返回的结束 key(包含), 空字符串表示 +inf.
+//	limit int 最多返回这么多个元素.
+//	返回 返回包含 key 的数组.
+//	返回 err，可能的错误，操作成功返回 nil
 func (c *SDBClient) Rkeys(keyStart, keyEnd string, limit int64) ([]string, error) {
 
 	resp, err := c.Do("rkeys", keyStart, keyEnd, limit)
@@ -270,7 +278,7 @@ func (c *SDBClient) Rkeys(keyStart, keyEnd string, limit int64) ([]string, error
 	return nil, makeError(resp, keyStart, keyEnd, limit)
 }
 
-//Do do
+// Do do
 func (c *SDBClient) Do(args ...interface{}) ([]string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -435,7 +443,7 @@ func (c *SDBClient) Close() error {
 	return c.sock.Close()
 }
 
-//生成通过的错误信息，已经确定是有错误
+// 生成通过的错误信息，已经确定是有错误
 func makeError(resp []string, errKey ...interface{}) error {
 	if len(resp) < 1 {
 		return newError("ssdb response error")
@@ -451,17 +459,17 @@ func makeError(resp []string, errKey ...interface{}) error {
 
 }
 
-//Value 扩展值，原始类型为 string
+// Value 扩展值，原始类型为 string
 type Value struct {
 	val []byte
 }
 
-//返回 string 的值
+// 返回 string 的值
 func (v *Value) String() string {
 	return string(v.val)
 }
 
-//Bytes 返回 []byte 类型的值
+// Bytes 返回 []byte 类型的值
 func (v *Value) Bytes() []byte {
 	return v.val
 }
@@ -486,7 +494,7 @@ var (
 	minByteSize byte = 48
 )
 
-//ToNum []byte -> int
+// ToNum []byte -> int
 func ToNum(bs []byte) int {
 	re := 0
 	for _, v := range bs {
@@ -503,13 +511,13 @@ var (
 	FormatString = "%v\nthe trace error is\n%s"
 )
 
-//返回一个错误
+// 返回一个错误
 func newError(format string, p ...interface{}) error {
 	return fmt.Errorf(format, p...)
 }
 
-//按格式返回一个错误
-//同时携带原始的错误信息
+// 按格式返回一个错误
+// 同时携带原始的错误信息
 func newErrorf(err error, format string, p ...interface{}) error {
 	return fmt.Errorf(FormatString, fmt.Sprintf(format, p...), err)
 }

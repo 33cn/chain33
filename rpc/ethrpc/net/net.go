@@ -18,7 +18,7 @@ type netHandler struct {
 	cfg *ctypes.Chain33Config
 }
 
-//NewNetAPI create a net  api
+// NewNetAPI create a net  api
 func NewNetAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{} {
 	p := &netHandler{}
 	p.cli.Init(c, api)
@@ -26,7 +26,7 @@ func NewNetAPI(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtoc
 	return p
 }
 
-//PeerCount net_peerCount
+// PeerCount net_peerCount
 func (n *netHandler) PeerCount() (string, error) {
 
 	var in = types.P2PGetPeerReq{}
@@ -39,12 +39,12 @@ func (n *netHandler) PeerCount() (string, error) {
 	return hexutil.EncodeUint64(uint64(numPeers)), nil
 }
 
-//Listening net_listening
+// Listening net_listening
 func (n *netHandler) Listening() (bool, error) {
 	return true, nil
 }
 
-//Version net_version
+// Version net_version
 func (n *netHandler) Version() (string, error) {
 	return strconv.FormatInt(secp256k1eth.GetEvmChainID(), 10), nil
 }

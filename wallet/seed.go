@@ -39,9 +39,9 @@ var (
 const BACKUPKEYINDEX = "backupkeyindex"
 
 // CreateSeed 通过指定语言类型生成seed种子，传入语言类型以及
-//lang = 0 通过英语单词生成种子
-//lang = 1 通过中文生成种子
-//bitsize=128 返回12个单词或者汉子，bitsize+32=160  返回15个单词或者汉子，bitszie=256 返回24个单词或者汉子
+// lang = 0 通过英语单词生成种子
+// lang = 1 通过中文生成种子
+// bitsize=128 返回12个单词或者汉子，bitsize+32=160  返回15个单词或者汉子，bitszie=256 返回24个单词或者汉子
 func CreateSeed(folderpath string, lang int32) (string, error) {
 	mnem, err := bipwallet.NewMnemonicString(int(lang), 160)
 	if err != nil {
@@ -94,7 +94,7 @@ func SaveSeedInBatch(db dbm.DB, seed string, password string, batch dbm.Batch) (
 	return true, nil
 }
 
-//GetSeed 使用password解密seed上报给上层
+// GetSeed 使用password解密seed上报给上层
 func GetSeed(db dbm.DB, password string) (string, error) {
 	if len(password) == 0 {
 		return "", types.ErrInvalidParam
@@ -114,7 +114,7 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 	return string(seed), nil
 }
 
-//GetPrivkeyBySeed 通过seed生成子私钥十六进制字符串
+// GetPrivkeyBySeed 通过seed生成子私钥十六进制字符串
 func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32, SignType int, coinType uint32) (string, error) {
 	var backupindex uint32
 	var Hexsubprivkey string
@@ -187,7 +187,7 @@ func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32, SignType int
 	return Hexsubprivkey, nil
 }
 
-//AesgcmEncrypter 使用钱包的password对seed进行aesgcm加密,返回加密后的seed
+// AesgcmEncrypter 使用钱包的password对seed进行aesgcm加密,返回加密后的seed
 func AesgcmEncrypter(password []byte, seed []byte) ([]byte, error) {
 	key := make([]byte, 32)
 	if len(password) > 32 {
@@ -212,7 +212,7 @@ func AesgcmEncrypter(password []byte, seed []byte) ([]byte, error) {
 	return Encrypted, nil
 }
 
-//AesgcmDecrypter 使用钱包的password对seed进行aesgcm解密,返回解密后的seed
+// AesgcmDecrypter 使用钱包的password对seed进行aesgcm解密,返回解密后的seed
 func AesgcmDecrypter(password []byte, seed []byte) ([]byte, error) {
 	key := make([]byte, 32)
 	if len(password) > 32 {

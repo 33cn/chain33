@@ -7,10 +7,11 @@
 package types
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -172,7 +173,7 @@ func (x *AccountInfo) GetSeed() string {
 	return ""
 }
 
-//账户余额改变的一个交易回报（合约内）
+// 账户余额改变的一个交易回报（合约内）
 type ReceiptExecAccountTransfer struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -239,7 +240,7 @@ func (x *ReceiptExecAccountTransfer) GetCurrent() *Account {
 	return nil
 }
 
-//账户余额改变的一个交易回报（coins内）
+// 账户余额改变的一个交易回报（coins内）
 type ReceiptAccountTransfer struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -297,7 +298,7 @@ func (x *ReceiptAccountTransfer) GetCurrent() *Account {
 	return nil
 }
 
-//铸币账户余额增加
+// 铸币账户余额增加
 type ReceiptAccountMint struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -410,7 +411,7 @@ func (x *ReceiptAccountBurn) GetCurrent() *Account {
 	return nil
 }
 
-//查询一个地址列表在某个执行器中余额
+// 查询一个地址列表在某个执行器中余额
 type ReqBalance struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

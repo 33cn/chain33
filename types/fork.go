@@ -5,8 +5,9 @@
 package types
 
 import (
-	"github.com/33cn/chain33/common/address"
 	"strings"
+
+	"github.com/33cn/chain33/common/address"
 )
 
 /*

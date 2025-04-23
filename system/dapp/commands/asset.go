@@ -49,6 +49,7 @@ func addAssetBalanceFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("asset_exec", "", "coins", "the asset executor")
 	cmd.Flags().StringP("asset_symbol", "", "bty", "the asset symbol")
 	cmd.Flags().IntP("height", "", -1, "block height")
+	cmd.Flags().Int64P("precision", "p", -1, "coin precision length")
 }
 
 func assetBalance(cmd *cobra.Command, args []string) {
@@ -58,6 +59,7 @@ func assetBalance(cmd *cobra.Command, args []string) {
 	assetSymbol, _ := cmd.Flags().GetString("asset_symbol")
 	assetExec, _ := cmd.Flags().GetString("asset_exec")
 	height, _ := cmd.Flags().GetInt("height")
+	precision, _ := cmd.Flags().GetInt64("precision")
 
 	err := address.CheckAddress(addr, -1)
 	if err != nil {
@@ -107,6 +109,12 @@ func assetBalance(cmd *cobra.Command, args []string) {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
+	}
+	coinPrecision := int64(1) // max 1e8
+	for i := 0; precision > 0 && i < 8; precision-- {
+		coinPrecision *= 10
+		cfg.CoinPrecision = coinPrecision
+		i++
 	}
 	ctx.RunExt(cfg)
 }

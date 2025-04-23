@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//GenDappCmd advance cmd
+// GenDappCmd advance cmd
 func GenDappCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "gendapp",

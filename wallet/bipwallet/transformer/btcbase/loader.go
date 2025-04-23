@@ -8,7 +8,7 @@ import (
 	"github.com/33cn/chain33/wallet/bipwallet/transformer"
 )
 
-//不同币种的前缀版本号
+// 不同币种的前缀版本号
 var coinPrefix = map[string][]byte{
 	"BTC":  {0x00},
 	"BCH":  {0x00},

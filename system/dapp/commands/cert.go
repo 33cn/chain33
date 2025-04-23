@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//CertCmd generate cert
+// CertCmd generate cert
 func CertCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cert",

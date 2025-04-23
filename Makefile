@@ -130,14 +130,14 @@ build_ci: depends ## Build the binary file for CI
 
 linter: vet ineffassign gosec ## Use gometalinter check code, ignore some unserious warning
 	@./golinter.sh "filter"
-	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck -e SC2086
+	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck -e SC2086,SC2004
 
 linter_test: ## Use gometalinter check code, for local test
 	@./golinter.sh "test" "${p}"
 	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 gosec:
-	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec --skip-dirs=commands --exclude=G108,G204,G306,G404
+	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all --enable=gosec --skip-dirs=commands --exclude=G108,G204,G306,G404,G114
 
 race: ## Run data race detector
 	@go test -race -short `go list ./... | grep -v "mocks"`

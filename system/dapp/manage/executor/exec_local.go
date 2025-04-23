@@ -10,12 +10,12 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//ExecLocal_Apply local apply
+// ExecLocal_Apply local apply
 func (c *Manage) ExecLocal_Apply(payload *mty.ApplyConfig, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return c.execAutoLocalItem(tx, receiptData)
 }
 
-//ExecLocal_Approve local approve
+// ExecLocal_Approve local approve
 func (c *Manage) ExecLocal_Approve(payload *mty.ApproveConfig, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return c.execAutoLocalItem(tx, receiptData)
 }

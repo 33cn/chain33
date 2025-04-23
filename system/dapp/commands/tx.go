@@ -153,8 +153,8 @@ func addQueryTxFlags(cmd *cobra.Command) {
 func queryTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	hash, _ := cmd.Flags().GetString("hash")
-	if len(hash) != 66 {
-		fmt.Print(types.ErrHashNotExist.Error())
+	if len(hash) != 66 && len(hash) != 64 {
+		_, _ = fmt.Fprintln(os.Stderr, "invalid tx hash length")
 		return
 	}
 

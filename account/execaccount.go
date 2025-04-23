@@ -95,7 +95,7 @@ func (acc *DB) TransferWithdraw(from, to string, amount int64) (*types.Receipt, 
 	return acc.mergeReceipt(receipt, receipt2), nil
 }
 
-//ExecFrozen 执行冻结资金，四个操作中 Deposit 自动完成，不需要模块外的函数来调用
+// ExecFrozen 执行冻结资金，四个操作中 Deposit 自动完成，不需要模块外的函数来调用
 func (acc *DB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv

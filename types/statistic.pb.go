@@ -7,10 +7,11 @@
 package types
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-//手续费
+// 手续费
 type TotalFee struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -76,7 +77,7 @@ func (x *TotalFee) GetTxCount() int64 {
 	return 0
 }
 
-//查询symbol代币总额
+// 查询symbol代币总额
 type ReqGetTotalCoins struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -156,7 +157,7 @@ func (x *ReqGetTotalCoins) GetExecer() string {
 	return ""
 }
 
-//查询symbol代币总额应答
+// 查询symbol代币总额应答
 type ReplyGetTotalCoins struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -228,7 +229,7 @@ func (x *ReplyGetTotalCoins) GetNextKey() []byte {
 	return nil
 }
 
-//迭代查询symbol代币总额
+// 迭代查询symbol代币总额
 type IterateRangeByStateHash struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -348,7 +349,7 @@ func (x *TotalAmount) GetTotal() int64 {
 	return 0
 }
 
-//查询symbol在合约中的代币总额，如果execAddr为空，则为查询symbol在所有合约中的代币总额
+// 查询symbol在合约中的代币总额，如果execAddr为空，则为查询symbol在所有合约中的代币总额
 type ReqGetExecBalance struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -507,7 +508,7 @@ func (x *ExecBalanceItem) GetActive() int64 {
 	return 0
 }
 
-//查询symbol在合约中的代币总额应答
+// 查询symbol在合约中的代币总额应答
 type ReplyGetExecBalance struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

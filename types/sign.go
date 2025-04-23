@@ -22,7 +22,7 @@ const (
 	EthAddressID = 2
 )
 
-//IsEthSignID check chain33 tx sigtype
+// IsEthSignID check chain33 tx sigtype
 func IsEthSignID(txSignID int32) bool {
 	return txSignID == EncodeSignID(secp256k1eth.ID, EthAddressID)
 }
@@ -45,7 +45,7 @@ func ExtractCryptoID(signID int32) int32 {
 	return signID & CryptoIDMask
 }
 
-//GetSignName  获取签名类型
+// GetSignName  获取签名类型
 func GetSignName(execer string, signID int) string {
 	//优先加载执行器的签名类型
 	if execer != "" {
@@ -61,7 +61,7 @@ func GetSignName(execer string, signID int) string {
 	return crypto.GetName(int(ExtractCryptoID(int32(signID))))
 }
 
-//GetSignType  获取签名类型
+// GetSignType  获取签名类型
 func GetSignType(execer string, name string) int {
 	//优先加载执行器的签名类型
 	if execer != "" {

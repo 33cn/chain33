@@ -22,7 +22,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-//申请修改配置项
+// 申请修改配置项
 type ApplyConfig struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -70,7 +70,7 @@ func (x *ApplyConfig) GetConfig() *types.ModifyConfig {
 	return nil
 }
 
-//批准配置项
+// 批准配置项
 type ApproveConfig struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

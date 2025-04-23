@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-//Filter 过滤器
+// Filter 过滤器
 type Filter struct {
 	grpcCli     ctypes.Chain33Client
 	cfg         *ctypes.Chain33Config
@@ -19,7 +19,7 @@ type Filter struct {
 	filterTopic bool
 }
 
-//NewFilter 创建filter 对象
+// NewFilter 创建filter 对象
 func NewFilter(gcli ctypes.Chain33Client, cfg *ctypes.Chain33Config, option *FilterQuery) (*Filter, error) {
 	var bloom types.Bloom
 	filterTopic := false
@@ -67,7 +67,7 @@ func NewFilter(gcli ctypes.Chain33Client, cfg *ctypes.Chain33Config, option *Fil
 	}, nil
 }
 
-//FilterBlockDetail 根据blockhash 过滤evmlog
+// FilterBlockDetail 根据blockhash 过滤evmlog
 func (f *Filter) FilterBlockDetail(blockHashes [][]byte) ([]*EvmLog, error) {
 	blockdetails, err := f.grpcCli.GetBlockByHashes(context.Background(), &ctypes.ReqHashes{Hashes: blockHashes})
 	if err != nil {
@@ -124,7 +124,7 @@ func (f *Filter) filterReceipt(receipts []*Receipt) (evmlogs []*EvmLog) {
 	return evmlogs
 }
 
-//FilterEvmTxLogs 过滤EVMTxLogPerBlk
+// FilterEvmTxLogs 过滤EVMTxLogPerBlk
 func (f *Filter) FilterEvmTxLogs(logs *ctypes.EVMTxLogPerBlk) (evmlogs []*EvmLog) {
 
 	for _, txlog := range logs.TxAndLogs {

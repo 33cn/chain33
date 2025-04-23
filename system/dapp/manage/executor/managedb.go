@@ -127,7 +127,7 @@ func (a *action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	return receipt, nil
 }
 
-//ManaeKeyWithHeigh 超级管理员账户key
+// ManaeKeyWithHeigh 超级管理员账户key
 func (a *action) manageKeyWithHeigh(key string) []byte {
 	if a.api.GetConfig().IsFork(a.height, "ForkExecKey") {
 		return []byte(types.ManageKey(key))

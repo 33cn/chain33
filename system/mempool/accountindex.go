@@ -5,13 +5,13 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//AccountTxIndex 账户和交易索引
+// AccountTxIndex 账户和交易索引
 type AccountTxIndex struct {
 	maxperaccount int
 	accMap        map[string]*listmap.ListMap
 }
 
-//NewAccountTxIndex 创建一个新的索引
+// NewAccountTxIndex 创建一个新的索引
 func NewAccountTxIndex(maxperaccount int) *AccountTxIndex {
 	return &AccountTxIndex{
 		maxperaccount: maxperaccount,
@@ -52,7 +52,7 @@ func (cache *AccountTxIndex) GetAccTxs(addrs *types.ReqAddrs) *types.Transaction
 	return res
 }
 
-//Remove 根据交易哈希删除对应账户的对应交易
+// Remove 根据交易哈希删除对应账户的对应交易
 func (cache *AccountTxIndex) Remove(tx *types.Transaction, txHash string) {
 	addr := tx.From()
 	if lm, ok := cache.accMap[addr]; ok {
@@ -77,7 +77,7 @@ func (cache *AccountTxIndex) Push(tx *types.Transaction, txHash string) error {
 	return nil
 }
 
-//CanPush 是否可以push 进 account index
+// CanPush 是否可以push 进 account index
 func (cache *AccountTxIndex) CanPush(tx *types.Transaction) bool {
 	if item, ok := cache.accMap[tx.From()]; ok {
 		return item.Size() < cache.maxperaccount

@@ -7,10 +7,11 @@
 package types
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -260,7 +261,7 @@ func (*MessageUtil_Getblocks) isMessageUtil_Value() {}
 
 func (*MessageUtil_Invdatas) isMessageUtil_Value() {}
 
-//*
+// *
 // 请求获取远程节点的节点信息
 type MessagePeerInfoReq struct {
 	state         protoimpl.MessageState
@@ -2452,7 +2453,7 @@ func (x *PublishTopicMsgReply) GetMsg() string {
 	return ""
 }
 
-//*
+// *
 // p2p 接收topic消息
 type TopicData struct {
 	state         protoimpl.MessageState
@@ -2729,8 +2730,8 @@ func (x *RemoveTopicReply) GetMsg() string {
 	return ""
 }
 
-//*
-//dht protos 网络带宽信息
+// *
+// dht protos 网络带宽信息
 type NetProtocolInfos struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

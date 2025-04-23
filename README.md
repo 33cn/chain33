@@ -39,7 +39,7 @@ L3 20000
 
 ## Building from source
 
-环境要求: Go 1.19+
+环境要求: Go 1.20+
 
 编译:
 

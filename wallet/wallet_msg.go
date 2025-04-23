@@ -328,7 +328,7 @@ func (wallet *Wallet) On_DumpPrivkeysFile(req *types.ReqPrivkeysFile) (types.Mes
 	return reply, err
 }
 
-//On_ImportPrivkeysFile 响应导入多个私钥
+// On_ImportPrivkeysFile 响应导入多个私钥
 func (wallet *Wallet) On_ImportPrivkeysFile(req *types.ReqPrivkeysFile) (types.Message, error) {
 	reply := &types.Reply{
 		IsOk: true,

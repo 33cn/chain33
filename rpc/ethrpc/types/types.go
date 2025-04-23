@@ -6,7 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-//Header block header
+// Header block header
 type Header struct {
 	ParentHash  common.Hash      `json:"parentHash"       gencodec:"required"`
 	UncleHash   common.Hash      `json:"sha3Uncles"   gencodec:"required"`
@@ -50,10 +50,10 @@ type Transaction struct {
 	S                *hexutil.Big      `json:"s"`
 }
 
-//Transactions txs types
+// Transactions txs types
 type Transactions []*Transaction
 
-//Block ETH 交易结构体
+// Block ETH 交易结构体
 type Block struct {
 	*Header
 	Uncles       []*Header   `json:"uncles"`
@@ -61,7 +61,7 @@ type Block struct {
 	Hash         string      `json:"hash"`
 }
 
-//Receipt tx Receipt
+// Receipt tx Receipt
 type Receipt struct {
 	Type              hexutil.Uint64  `json:"type"`
 	Status            hexutil.Uint64  `json:"status"`
@@ -77,7 +77,7 @@ type Receipt struct {
 	From              *common.Address `json:"from"`
 }
 
-//CallMsg eth api param
+// CallMsg eth api param
 type CallMsg struct {
 	From     string          `json:"from"`
 	To       string          `json:"to"`
@@ -90,7 +90,7 @@ type CallMsg struct {
 	Data *hexutil.Bytes `json:"data"`
 }
 
-//EvmLog evm log
+// EvmLog evm log
 type EvmLog struct {
 	Address     common.Address `json:"address"`
 	Topics      []common.Hash  `json:"topics"`
@@ -103,7 +103,7 @@ type EvmLog struct {
 	Removed     bool           `json:"removed"`
 }
 
-//Peer peer info
+// Peer peer info
 type Peer struct {
 	ID         string     `json:"id,omitempty"`
 	Name       string     `json:"name,omitempty"`
@@ -115,18 +115,18 @@ type Peer struct {
 	ListenAddr string     `json:"listenAddr,omitempty"`
 }
 
-//Network network info
+// Network network info
 type Network struct {
 	LocalAddress  string `json:"localAddress,omitempty"`
 	RemoteAddress string `json:"remoteAddress,omitempty"`
 }
 
-//Protocols  peer protocols
+// Protocols  peer protocols
 type Protocols struct {
 	EthProto *EthProto `json:"eth,omitempty"`
 }
 
-//EthProto eth proto
+// EthProto eth proto
 type EthProto struct {
 	Difficulty uint32 `json:"difficulty,omitempty"`
 	Head       string `json:"head,omitempty"`
@@ -134,14 +134,14 @@ type EthProto struct {
 	NetworkID  int    `json:"network,omitempty"`
 }
 
-//Ports ...
+// Ports ...
 type Ports struct {
 	Discovery int32 `json:"discovery,omitempty"`
 	Listener  int32 `json:"listener,omitempty"`
 }
 
-//FilterQuery ...
-//logs Subscription
+// FilterQuery ...
+// logs Subscription
 type FilterQuery struct {
 	Address   interface{}   `json:"address,omitempty"`
 	Topics    []interface{} `json:"topics,omitempty"`

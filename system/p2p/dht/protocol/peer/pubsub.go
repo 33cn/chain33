@@ -9,7 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-//处理订阅topic的请求
+// 处理订阅topic的请求
 func (p *Protocol) handleEventSubTopic(msg *queue.Message) {
 	//先检查是否已经订阅相关topic
 	//接收chain33其他模块发来的请求消息
@@ -47,7 +47,7 @@ func (p *Protocol) handleEventSubTopic(msg *queue.Message) {
 	//接收订阅的消息
 }
 
-//处理收到的数据
+// 处理收到的数据
 func (p *Protocol) subCallBack(topic string, msg extension.SubMsg) {
 	p.topicMutex.RLock()
 	defer p.topicMutex.RUnlock()
@@ -66,7 +66,7 @@ func (p *Protocol) subCallBack(topic string, msg extension.SubMsg) {
 	}
 }
 
-//获取所有已经订阅的topic
+// 获取所有已经订阅的topic
 func (p *Protocol) handleEventGetTopics(msg *queue.Message) {
 	_, ok := msg.GetData().(*types.FetchTopicList)
 	if !ok {
@@ -80,7 +80,7 @@ func (p *Protocol) handleEventGetTopics(msg *queue.Message) {
 	msg.Reply(p.QueueClient.NewMessage("", types.EventFetchTopics, &types.Reply{IsOk: true, Msg: types.Encode(&reply)}))
 }
 
-//删除已经订阅的某一个topic
+// 删除已经订阅的某一个topic
 func (p *Protocol) handleEventRemoveTopic(msg *queue.Message) {
 	p.topicMutex.Lock()
 	defer p.topicMutex.Unlock()
@@ -111,7 +111,7 @@ func (p *Protocol) handleEventRemoveTopic(msg *queue.Message) {
 	msg.Reply(p.QueueClient.NewMessage("", types.EventRemoveTopic, &types.Reply{IsOk: true, Msg: types.Encode(&reply)}))
 }
 
-//发布Topic消息
+// 发布Topic消息
 func (p *Protocol) handleEventPubMsg(msg *queue.Message) {
 	v, ok := msg.GetData().(*types.PublishTopicMsg)
 	if !ok {
