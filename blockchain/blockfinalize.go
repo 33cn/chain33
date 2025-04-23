@@ -151,9 +151,6 @@ func (f *finalizer) waitFinalizeStartBlock(beginHeight int64) {
 }
 
 func (f *finalizer) snowmanPreferBlock(msg *queue.Message) {
-	//req := (msg.Data).(*types.ReqBytes)
-	return
-
 }
 
 func (f *finalizer) snowmanAcceptBlock(msg *queue.Message) {

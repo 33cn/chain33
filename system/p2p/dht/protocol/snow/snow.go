@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	snowChitsID   = "/chain33/snowman/chits/1.0"
-	snowGetBlock  = "/chain33/snowman/get/1.0"
-	snowPutBlock  = "/chain33/snowman/put/1.0"
+	snowChitsID  = "/chain33/snowman/chits/1.0"
+	snowGetBlock = "/chain33/snowman/get/1.0"
+	//snowPutBlock  = "/chain33/snowman/put/1.0"
 	snowPullQuery = "/chain33/snowman/pullq/1.0"
 	snowPushQuery = "/chain33/snowman/pushq/1.0"
 )

@@ -238,7 +238,7 @@ func TestChckSigns(t *testing.T) {
 
 	for i, tx := range txs {
 		if !tx.CheckSign(0) {
-			t.Error(fmt.Sprintf("error check tx[%d]", i+1))
+			t.Errorf("error check tx[%d]", i+1)
 			return
 		}
 	}

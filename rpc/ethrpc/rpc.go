@@ -176,7 +176,8 @@ func (h *httpServer) Start() (int, error) {
 	}
 
 	h.server = &http.Server{
-		Handler: h,
+		Handler:           h,
+		ReadHeaderTimeout: h.timeouts.ReadHeaderTimeout,
 	}
 
 	h.server.ReadTimeout = h.timeouts.ReadTimeout

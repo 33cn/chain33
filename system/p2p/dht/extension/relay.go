@@ -24,7 +24,7 @@ import (
 // Relay p2p relay
 type Relay struct {
 	crelay *circuit.Relay
-	client *circuitClient.Client
+	//client *circuitClient.Client
 }
 
 func newRelay(host host.Host, opts []circuit.Option) (*circuit.Relay, error) {
@@ -74,6 +74,7 @@ func ReserveRelaySlot(ctx context.Context, host host.Host, relayInfo peer.AddrIn
 
 }
 
+// Close close relay
 func (r *Relay) Close() {
 	r.crelay.Close()
 }
