@@ -6,6 +6,7 @@
 package client
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -15,9 +16,12 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+type msgHandler func(message *queue.Message)
+
 var (
-	ctx  = &CryptoContext{}
-	lock = sync.RWMutex{}
+	ctx      = &CryptoContext{}
+	lock     = sync.RWMutex{}
+	handlers map[int64]msgHandler
 )
 
 // CryptoContext system context for crypto
@@ -37,6 +41,23 @@ func New() queue.Module {
 	return module{
 		done: make(chan struct{}),
 	}
+}
+
+// RegisterCryptoHandler register handler
+func RegisterCryptoHandler(id int64, handler msgHandler) {
+	lock.Lock()
+	defer lock.Unlock()
+	_, exist := handlers[id]
+	if exist {
+		panic(fmt.Sprintf("duplicate handler id %d", id))
+	}
+	handlers[id] = handler
+}
+
+func getHandler(id int64) msgHandler {
+	lock.RLock()
+	defer lock.RUnlock()
+	return handlers[id]
 }
 
 // SetQueueClient set queue client
@@ -60,7 +81,8 @@ func (m module) SetQueueClient(cli queue.Client) {
 					if header, ok := msg.Data.(*types.Header); ok {
 						SetCurrentBlock(header.GetHeight(), header.GetBlockTime())
 					}
-
+				} else if handler := getHandler(msg.Ty); handler != nil {
+					handler(msg)
 				}
 			case <-ticker.C:
 				// 首次启动, 需要主动获取依次区块头信息
