@@ -1,8 +1,10 @@
 package tss
 
-type Message struct {
-	Name string
-	Data interface{}
+// MessageWrapper tss message wrapper
+type MessageWrapper struct {
+	PeerID   string
+	Protocol string
+	Msg      []byte
 }
 
 type DKGRequest struct {

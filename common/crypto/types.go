@@ -59,6 +59,8 @@ type Config struct {
 	// [crypto.enableHeight]
 	// secp256k1=0
 	EnableHeight map[string]int64 `json:"enableHeight,omitempty"`
+	//是否开启门限签名服务
+	EnableTSS bool `json:"enableTSS,omitempty"`
 }
 
 // DriverInitFunc 插件初始化接口，参数是序列化的json数据，需要unmarshal为自定义的结构

@@ -11,28 +11,36 @@ import (
 )
 
 // MessageHandler handle system message
-type MessageHandler func(msg *Message)
+type MessageHandler func(msg []byte)
 
 var (
 	lock     sync.Mutex
 	initOnce sync.Once
 	handlers = make(map[string]MessageHandler)
-	msgChan  = make(chan *Message, 128)
+	msgChan  = make(chan *MessageWrapper, 128)
 	log      = log15.New("module", "tss")
 )
 
 func init() {
 	cryptocli.RegisterCryptoHandler(types.EventCryptoTssMsg, dispatchMessage)
+	cryptocli.RegisterSubInitFunc("tss", initTSS)
 }
 
-// Init init tss service
-func Init(ctx context.Context) {
+// init tss service
+func initTSS(ctx cryptocli.CryptoContext) error {
+	cfg := ctx.API.GetConfig()
+	if !cfg.GetModuleConfig().Crypto.EnableTSS {
+		return nil
+	}
+
 	initOnce.Do(func() {
 
 		for i := 0; i < 2*runtime.NumCPU(); i++ {
-			go handleTssMsg(ctx)
+			go handleTssMsg(ctx.Ctx)
 		}
 	})
+
+	return nil
 }
 
 // RegisterMsgHandler register handler
@@ -47,7 +55,7 @@ func RegisterMsgHandler(name string, handler MessageHandler) {
 }
 
 func dispatchMessage(queueMsg *queue.Message) {
-	msg, ok := queueMsg.Data.(*Message)
+	msg, ok := queueMsg.Data.(*MessageWrapper)
 	if !ok {
 		log.Error("invalid message type")
 		return
@@ -55,7 +63,7 @@ func dispatchMessage(queueMsg *queue.Message) {
 	select {
 	case msgChan <- msg:
 	default:
-		log.Error("msgChan is full", "discard msg", msg.Name)
+		log.Error("msgChan is full", "discard msg", msg.Protocol)
 	}
 }
 
@@ -65,10 +73,13 @@ func handleTssMsg(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case msg := <-msgChan:
-			if handler := handlers[msg.Name]; handler != nil {
-				handler(msg)
+		case wMsg := <-msgChan:
+			handler, ok := handlers[wMsg.Protocol]
+			if !ok {
+				log.Error("handleTssMsg", "invalid protocol", wMsg.Protocol)
+				continue
 			}
+			handler(wMsg.Msg)
 		}
 	}
 }
