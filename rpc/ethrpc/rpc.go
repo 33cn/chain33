@@ -36,7 +36,6 @@ const (
 type initAPI func(cfg *ctypes.Chain33Config, c queue.Client, api client.QueueProtocolAPI) interface{}
 type rpcAPIs map[string]initAPI
 
-
 var (
 	log = log15.New("module", "eth_rpc")
 	// default apis
@@ -177,7 +176,8 @@ func (h *httpServer) Start() (int, error) {
 	}
 
 	h.server = &http.Server{
-		Handler: h,
+		Handler:           h,
+		ReadHeaderTimeout: h.timeouts.ReadHeaderTimeout,
 	}
 
 	h.server.ReadTimeout = h.timeouts.ReadTimeout

@@ -10,7 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//TestPrivkeyHex ：
+// TestPrivkeyHex ：
 var TestPrivkeyHex = []string{
 	"4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01",
 	"CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944",
@@ -38,7 +38,7 @@ var TestPrivkeyList = []crypto.PrivKey{
 	HexToPrivkey("2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989"),
 }
 
-//HexToPrivkey ： convert hex string to private key
+// HexToPrivkey ： convert hex string to private key
 func HexToPrivkey(key string) crypto.PrivKey {
 	cr, err := crypto.Load(types.GetSignName("", types.SECP256K1), -1)
 	if err != nil {

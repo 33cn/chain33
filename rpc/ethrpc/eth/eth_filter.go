@@ -10,7 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 )
 
-//Type ...
+// Type ...
 type Type byte
 
 const (
@@ -29,7 +29,7 @@ type filter struct {
 	timeout  time.Duration
 }
 
-//NewFilter eth_newFilter
+// NewFilter eth_newFilter
 func (e *ethHandler) NewFilter(options *types.FilterQuery) (*rpc.ID, error) {
 	logs := make(chan []*types.EvmLog)
 	id := rpc.NewID()
@@ -59,7 +59,7 @@ func (e *ethHandler) NewFilter(options *types.FilterQuery) (*rpc.ID, error) {
 	return &id, nil
 }
 
-//UninstallFilter 取消filter eth_uninstallFilter
+// UninstallFilter 取消filter eth_uninstallFilter
 func (e *ethHandler) UninstallFilter(id rpc.ID) bool {
 	e.filtersMu.Lock()
 	f, found := e.filters[id]
@@ -74,7 +74,7 @@ func (e *ethHandler) UninstallFilter(id rpc.ID) bool {
 	return found
 }
 
-//GetFilterLogs eth_getfilterlogs returns the logs for the filter with the given id.
+// GetFilterLogs eth_getfilterlogs returns the logs for the filter with the given id.
 // If the filter could not be found an empty array of logs is returned.
 // https://eth.wiki/json-rpc/API#eth_getfilterlogs
 func (e *ethHandler) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*types.EvmLog, error) {
@@ -94,7 +94,7 @@ func (e *ethHandler) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*types.Evm
 
 }
 
-//GetFilterChanges eth_getFilterChanges
+// GetFilterChanges eth_getFilterChanges
 func (e *ethHandler) GetFilterChanges(id rpc.ID) (interface{}, error) {
 	e.filtersMu.Lock()
 	defer e.filtersMu.Unlock()
@@ -129,7 +129,7 @@ func returnLogs(logs []*types.EvmLog) []*types.EvmLog {
 	return logs
 }
 
-//timeoutLoop 定时器定时检测是否有超时的filter,超时则删除处理
+// timeoutLoop 定时器定时检测是否有超时的filter,超时则删除处理
 func (e *ethHandler) timeoutLoop(timeout time.Duration) {
 	ticker := time.NewTicker(timeout)
 	defer ticker.Stop()

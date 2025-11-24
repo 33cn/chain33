@@ -51,9 +51,9 @@ table2 更新了 txhash 对应的 addr -> 触发 join_table2_table1 所有对应
 table2 中自动可以查询 addr & status 这个index
 */
 
-//JoinTable 是由两个表格组合成的一个表格，自动维护一个联合结构
-//其中主表: LeftTable
-//连接表: RightTable
+// JoinTable 是由两个表格组合成的一个表格，自动维护一个联合结构
+// 其中主表: LeftTable
+// 连接表: RightTable
 type JoinTable struct {
 	left  *Table
 	right *Table
@@ -63,7 +63,7 @@ type JoinTable struct {
 	rightIndex []string
 }
 
-//NewJoinTable 新建一个JoinTable
+// NewJoinTable 新建一个JoinTable
 func NewJoinTable(left *Table, right *Table, indexes []string) (*JoinTable, error) {
 	if left.kvdb != right.kvdb {
 		return nil, errors.New("jointable: kvdb must same")
@@ -114,17 +114,17 @@ func NewJoinTable(left *Table, right *Table, indexes []string) (*JoinTable, erro
 	return join, nil
 }
 
-//GetLeft get left table
+// GetLeft get left table
 func (join *JoinTable) GetLeft() *Table {
 	return join.left
 }
 
-//GetRight get right table
+// GetRight get right table
 func (join *JoinTable) GetRight() *Table {
 	return join.right
 }
 
-//GetTable get table by name
+// GetTable get table by name
 func (join *JoinTable) GetTable(name string) (*Table, error) {
 	if join.left.opt.Name == name {
 		return join.left, nil
@@ -135,7 +135,7 @@ func (join *JoinTable) GetTable(name string) (*Table, error) {
 	return nil, types.ErrNotFound
 }
 
-//MustGetTable if name not exist, panic
+// MustGetTable if name not exist, panic
 func (join *JoinTable) MustGetTable(name string) *Table {
 	table, err := join.GetTable(name)
 	if err != nil {
@@ -144,7 +144,7 @@ func (join *JoinTable) MustGetTable(name string) *Table {
 	return table
 }
 
-//GetData rewrite get data of jointable
+// GetData rewrite get data of jointable
 func (join *JoinTable) GetData(primaryKey []byte) (*Row, error) {
 	leftrow, err := join.left.GetData(primaryKey)
 	if err != nil {
@@ -166,7 +166,7 @@ func (join *JoinTable) GetData(primaryKey []byte) (*Row, error) {
 	return rowjoin, nil
 }
 
-//ListIndex 查询jointable 数据
+// ListIndex 查询jointable 数据
 func (join *JoinTable) ListIndex(indexName string, prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	if !strings.Contains(indexName, joinsep) || !join.canGet(indexName) {
 		return nil, errors.New("joinable query: indexName must be join index")
@@ -175,13 +175,13 @@ func (join *JoinTable) ListIndex(indexName string, prefix []byte, primaryKey []b
 	return query.ListIndex(indexName, prefix, primaryKey, count, direction)
 }
 
-//Save 重写默认的save 函数，不仅仅 Save left,right table
-//还要save jointable
-//没有update 到情况，只有del, add, 性能考虑可以加上 update 的情况
-//目前update 是通过 del + add 完成
-//left modify: del index, add new index (query right by primary) (check in cache)
-//right modify: query all primary in left, include in cache, del index, add new index
-//TODO: 没有修改过的数据不需要修改
+// Save 重写默认的save 函数，不仅仅 Save left,right table
+// 还要save jointable
+// 没有update 到情况，只有del, add, 性能考虑可以加上 update 的情况
+// 目前update 是通过 del + add 完成
+// left modify: del index, add new index (query right by primary) (check in cache)
+// right modify: query all primary in left, include in cache, del index, add new index
+// TODO: 没有修改过的数据不需要修改
 func (join *JoinTable) Save() (kvs []*types.KeyValue, err error) {
 	for _, row := range join.left.rows {
 		if row.Ty == None {
@@ -312,42 +312,42 @@ func (join *JoinTable) saveRight(row *Row) error {
 	return nil
 }
 
-//JoinData 由left 和 right 两个数据组成
+// JoinData 由left 和 right 两个数据组成
 type JoinData struct {
 	Left  types.Message
 	Right types.Message
 }
 
-//Reset data
+// Reset data
 func (msg *JoinData) Reset() {
 	msg.Left.Reset()
 	msg.Right.Reset()
 }
 
-//ProtoMessage data
+// ProtoMessage data
 func (msg *JoinData) ProtoMessage() {
 	msg.Left.ProtoMessage()
 	msg.Right.ProtoMessage()
 }
 
-//String string
+// String string
 func (msg *JoinData) String() string {
 	return msg.Left.String() + msg.Right.String()
 }
 
-//JoinMeta left right 合成的一个meta 结构
+// JoinMeta left right 合成的一个meta 结构
 type JoinMeta struct {
 	left  RowMeta
 	right RowMeta
 	data  *JoinData
 }
 
-//CreateRow create a meta struct
+// CreateRow create a meta struct
 func (tx *JoinMeta) CreateRow() *Row {
 	return &Row{Data: &JoinData{}}
 }
 
-//SetPayload 设置数据
+// SetPayload 设置数据
 func (tx *JoinMeta) SetPayload(data types.Message) error {
 	if txdata, ok := data.(*JoinData); ok {
 		tx.data = txdata
@@ -366,7 +366,7 @@ func (tx *JoinMeta) SetPayload(data types.Message) error {
 	return types.ErrTypeAsset
 }
 
-//Get 按照indexName 查询 indexValue
+// Get 按照indexName 查询 indexValue
 func (tx *JoinMeta) Get(key string) ([]byte, error) {
 	indexs := strings.Split(key, joinsep)
 	//获取primary
@@ -388,7 +388,7 @@ func (tx *JoinMeta) Get(key string) ([]byte, error) {
 	return JoinKey(leftvalue, rightvalue), nil
 }
 
-//JoinKey 两个left 和 right key 合并成一个key
+// JoinKey 两个left 和 right key 合并成一个key
 func JoinKey(leftvalue, rightvalue []byte) []byte {
 	return types.Encode(&types.KeyValue{Key: leftvalue, Value: rightvalue})
 }

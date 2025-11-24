@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package btcbase 转换基于比特币地址规则的币种
-//使用此规则的币种有：BTC、BCH、LTC、ZEC、USDT、 BTY
+// 使用此规则的币种有：BTC、BCH、LTC、ZEC、USDT、 BTY
 package btcbase
 
 import (
@@ -57,7 +57,7 @@ func (t btcBaseTransformer) PrivKeyToPub(keyTy uint32, priv []byte) (pub []byte,
 
 }
 
-//checksum: first four bytes of double-SHA256.
+// checksum: first four bytes of double-SHA256.
 func checksum(input []byte) (cksum [4]byte) {
 	h := sha256.New()
 	_, err := h.Write(input)
@@ -76,7 +76,7 @@ func checksum(input []byte) (cksum [4]byte) {
 }
 
 // PubKeyToAddress 传入压缩或非压缩形式的公钥，生成base58编码的地址
-//（压缩和非压缩形式的公钥生成的地址是不同的，但都是合法的）
+// （压缩和非压缩形式的公钥生成的地址是不同的，但都是合法的）
 func (t btcBaseTransformer) PubKeyToAddress(pub []byte) (addr string, err error) {
 	if len(pub) != 33 && len(pub) != 65 { //压缩格式 与 非压缩格式
 		//return "", fmt.Errorf("invalid public key byte:%v", len(pub))

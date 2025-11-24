@@ -42,7 +42,7 @@ type Config struct {
 	Address          *address.Config `json:"address,omitempty"`
 }
 
-//ConfigSubModule 子模块的配置
+// ConfigSubModule 子模块的配置
 type ConfigSubModule struct {
 	Store     map[string][]byte
 	Exec      map[string][]byte

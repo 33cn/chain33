@@ -157,3 +157,5 @@ func FormatBtcAddr(version byte, pubKey []byte) string {
 	copy(ad[21:25], common.Sha2Sum(ad[0:21])[:4])
 	return base58.Encode(ad[:])
 }
+
+//

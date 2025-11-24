@@ -12,11 +12,11 @@ import (
 	"github.com/33cn/chain33/system/p2p/dht/extension"
 	types2 "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
+	kbt "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/libp2p/go-libp2p/core/discovery"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
-	kbt "github.com/libp2p/go-libp2p-kbucket"
 )
 
 // P2PEnv p2p全局公共变量

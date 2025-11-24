@@ -7,6 +7,11 @@ package executor_test
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
+	"sync"
+	"testing"
+
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/merkle"
@@ -16,10 +21,6 @@ import (
 	"github.com/33cn/chain33/util"
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	_ "net/http/pprof"
-	"sync"
-	"testing"
 )
 
 var runonce sync.Once
@@ -274,7 +275,7 @@ func TestExecBlock(t *testing.T) {
 //4. 排除掉网络掉影响
 //5. 先对leveldb 做一个性能的测试
 
-//区块执行新能测试
+// 区块执行新能测试
 func BenchmarkExecBlock(b *testing.B) {
 	b.ReportAllocs()
 	mock33 := newMockNode()

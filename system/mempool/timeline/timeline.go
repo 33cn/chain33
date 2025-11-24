@@ -14,7 +14,7 @@ func init() {
 	drivers.Reg("timeline", New)
 }
 
-//New 创建timeline cache 结构的 mempool
+// New 创建timeline cache 结构的 mempool
 func New(cfg *types.Mempool, sub []byte) queue.Module {
 	c := drivers.NewMempool(cfg)
 	var subcfg drivers.SubConfig

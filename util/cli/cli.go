@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//Run :
+// Run :
 func Run(RPCAddr, ParaName, name string) {
 	// cli 命令只打印错误级别到控制台
 	log.SetLogLevel("error")

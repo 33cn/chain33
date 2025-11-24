@@ -6,7 +6,7 @@ package broadcast
 
 import "errors"
 
-//TTL
+// TTL
 const (
 
 	// 默认最小区块轻广播的大小， 100KB

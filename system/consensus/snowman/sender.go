@@ -6,6 +6,7 @@ package snowman
 
 import (
 	"encoding/hex"
+
 	client "github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/ava-labs/avalanchego/ids"

@@ -624,7 +624,7 @@ func getRealBlockDetail() *BlockDetail {
 	return &block
 }
 
-//go test -run=none -bench=2Str -benchmem
+// go test -run=none -bench=2Str -benchmem
 func BenchmarkBytes2Str(b *testing.B) {
 	if testing.Short() {
 		b.Skip("skipping in short mode.")

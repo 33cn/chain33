@@ -6,7 +6,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//Scorer 接口实现 Value的 Score 功能
+// Scorer 接口实现 Value的 Score 功能
 type Scorer interface {
 	GetScore() int64
 	Hash() []byte
@@ -68,24 +68,24 @@ func (cache *Queue) deleteSkipValue(item *list.Element) error {
 	return nil
 }
 
-//CreateSkipValue 创建一个 仅仅有 score 的Value
+// CreateSkipValue 创建一个 仅仅有 score 的Value
 func (cache *Queue) CreateSkipValue(item Scorer) *SkipValue {
 	skvalue := &SkipValue{Score: item.GetScore()}
 	return skvalue
 }
 
-//MaxSize 最大的cache数量
+// MaxSize 最大的cache数量
 func (cache *Queue) MaxSize() int64 {
 	return cache.maxsize
 }
 
-//Exist 是否存在
+// Exist 是否存在
 func (cache *Queue) Exist(hash string) bool {
 	_, exists := cache.txMap[hash]
 	return exists
 }
 
-//GetItem 获取数据通过 key
+// GetItem 获取数据通过 key
 func (cache *Queue) GetItem(hash string) (Scorer, error) {
 	if k, exist := cache.txMap[hash]; exist {
 		return k.Value.(Scorer), nil
@@ -93,12 +93,12 @@ func (cache *Queue) GetItem(hash string) (Scorer, error) {
 	return nil, types.ErrNotFound
 }
 
-//GetCacheBytes get cache byte size
+// GetCacheBytes get cache byte size
 func (cache *Queue) GetCacheBytes() int64 {
 	return cache.cacheBytes
 }
 
-//Insert Scorer item to queue
+// Insert Scorer item to queue
 func (cache *Queue) Insert(hash string, item Scorer) {
 	cache.cacheBytes += item.ByteSize()
 	cache.txMap[hash] = cache.insertSkipValue(item)
@@ -150,7 +150,7 @@ func (cache *Queue) Size() int {
 	return len(cache.txMap)
 }
 
-//Last 取出最后一个交易
+// Last 取出最后一个交易
 func (cache *Queue) Last() Scorer {
 	if cache.Size() == 0 {
 		return nil
@@ -160,7 +160,7 @@ func (cache *Queue) Last() Scorer {
 	return tail
 }
 
-//First 取出第一个交易
+// First 取出第一个交易
 func (cache *Queue) First() Scorer {
 	if cache.Size() == 0 {
 		return nil

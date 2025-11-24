@@ -28,11 +28,11 @@ import (
 3. GetRandNum
 */
 
-//ErrAPIEnv api的执行环境出问题，区块执行的时候，遇到这一个的错误需要retry
+// ErrAPIEnv api的执行环境出问题，区块执行的时候，遇到这一个的错误需要retry
 var errAPIEnv = errors.New("ErrAPIEnv")
 
-//ExecutorAPI 提供给执行器使用的接口
-//因为合约是主链和平行链通用的，所以，主链和平行链都可以调用这套接口
+// ExecutorAPI 提供给执行器使用的接口
+// 因为合约是主链和平行链通用的，所以，主链和平行链都可以调用这套接口
 type ExecutorAPI interface {
 	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
 	GetRandNum(param *types.ReqRandHash) ([]byte, error)
@@ -45,7 +45,7 @@ type mainChainAPI struct {
 	errflag int32
 }
 
-//New 新建接口
+// New 新建接口
 func New(api client.QueueProtocolAPI, grpcClient types.Chain33Client) ExecutorAPI {
 	types.AssertConfig(api)
 	types := api.GetConfig()
@@ -127,7 +127,7 @@ func seterr(err error, flag *int32) error {
 	return err
 }
 
-//IsGrpcError 判断系统api 错误，还是 rpc 本身的错误
+// IsGrpcError 判断系统api 错误，还是 rpc 本身的错误
 func IsGrpcError(err error) bool {
 	if err == nil {
 		return false
@@ -141,7 +141,7 @@ func IsGrpcError(err error) bool {
 	return true
 }
 
-//IsQueueError 是否是队列错误
+// IsQueueError 是否是队列错误
 func IsQueueError(err error) bool {
 	if err == nil {
 		return false
@@ -157,7 +157,7 @@ func IsQueueError(err error) bool {
 	return false
 }
 
-//IsFatalError 是否是必须停止执行的系统错误
+// IsFatalError 是否是必须停止执行的系统错误
 func IsFatalError(err error) bool {
 	if err == nil {
 		return false
@@ -171,7 +171,7 @@ func IsFatalError(err error) bool {
 	return false
 }
 
-//IsAPIEnvError 是否是api执行环境的错误
+// IsAPIEnvError 是否是api执行环境的错误
 func IsAPIEnvError(err error) bool {
 	return IsGrpcError(err) || IsQueueError(err) || IsFatalError(err)
 }

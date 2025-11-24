@@ -26,7 +26,7 @@ func InitExec(cfg *typ.Chain33Config) {
 	})
 }
 
-//GetExecList 获取插件名字列表
+// GetExecList 获取插件名字列表
 func GetExecList() (datas []string) {
 	for _, plugin := range pluginItems {
 		datas = append(datas, plugin.GetExecutorName())

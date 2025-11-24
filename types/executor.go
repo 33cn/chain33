@@ -113,7 +113,7 @@ func CallExecNewTx(c *Chain33Config, execName, action string, param interface{})
 	return FormatTxEncode(c, execName, tx)
 }
 
-//CallCreateTransaction 创建一个交易
+// CallCreateTransaction 创建一个交易
 func CallCreateTransaction(execName, action string, param Message) (*Transaction, error) {
 	exec := LoadExecutorType(execName)
 	if exec == nil {
@@ -137,7 +137,7 @@ func CallCreateTx(c *Chain33Config, execName, action string, param Message) ([]b
 	return FormatTxEncode(c, execName, tx)
 }
 
-//CallCreateTxJSON create tx by json
+// CallCreateTxJSON create tx by json
 func CallCreateTxJSON(c *Chain33Config, execName, action string, param json.RawMessage) ([]byte, error) {
 	exec := LoadExecutorType(execName)
 	if exec == nil {
@@ -190,7 +190,7 @@ func FormatTx(c *Chain33Config, execName string, tx *Transaction) (*Transaction,
 	return tx, nil
 }
 
-//FormatTxExt 根据输入参数格式化tx
+// FormatTxExt 根据输入参数格式化tx
 func FormatTxExt(chainID int32, isPara bool, minFee int64, execName string, tx *Transaction) (*Transaction, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
 	tx.Nonce = rand.Int63()
@@ -432,7 +432,7 @@ func (base *ExecTypeBase) IsFork(height int64, key string) bool {
 	return base.forks.IsFork(height, key)
 }
 
-//GetRealToAddr 用户看到的ToAddr
+// GetRealToAddr 用户看到的ToAddr
 func (base *ExecTypeBase) GetRealToAddr(tx *Transaction) string {
 	if !base.cfg.IsPara() {
 		return tx.To
@@ -449,7 +449,7 @@ func (base *ExecTypeBase) GetRealToAddr(tx *Transaction) string {
 	return tx.To
 }
 
-//三种assert的结构体,genesis 排除
+// 三种assert的结构体,genesis 排除
 func getTo(payload interface{}) (string, bool) {
 	if ato, ok := payload.(*AssetsTransfer); ok {
 		return ato.GetTo(), true
@@ -463,7 +463,7 @@ func getTo(payload interface{}) (string, bool) {
 	return "", false
 }
 
-//IsAssetsTransfer 是否是资产转移相关的交易
+// IsAssetsTransfer 是否是资产转移相关的交易
 func IsAssetsTransfer(payload interface{}) bool {
 	if _, ok := payload.(*AssetsTransfer); ok {
 		return true
@@ -477,12 +477,12 @@ func IsAssetsTransfer(payload interface{}) bool {
 	return false
 }
 
-//Amounter 转账金额
+// Amounter 转账金额
 type Amounter interface {
 	GetAmount() int64
 }
 
-//Amount 获取tx交易中的转账金额
+// Amount 获取tx交易中的转账金额
 func (base *ExecTypeBase) Amount(tx *Transaction) (int64, error) {
 	_, v, err := base.child.DecodePayloadValue(tx)
 	if err != nil {
@@ -496,17 +496,17 @@ func (base *ExecTypeBase) Amount(tx *Transaction) (int64, error) {
 	return 0, nil
 }
 
-//GetViewFromToAddr 用户看到的FromAddr
+// GetViewFromToAddr 用户看到的FromAddr
 func (base *ExecTypeBase) GetViewFromToAddr(tx *Transaction) (string, string) {
 	return tx.From(), tx.To
 }
 
-//GetFuncMap 获取函数列表
+// GetFuncMap 获取函数列表
 func (base *ExecTypeBase) GetFuncMap() map[string]reflect.Method {
 	return base.actionFunList
 }
 
-//DecodePayload 解析tx交易中的payload
+// DecodePayload 解析tx交易中的payload
 func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 	if base.child == nil {
 		return nil, ErrActionNotSupport
@@ -522,7 +522,7 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (Message, error) {
 	return payload, nil
 }
 
-//DecodePayloadValue 解析tx交易中的payload具体Value值
+// DecodePayloadValue 解析tx交易中的payload具体Value值
 func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
 	name, value, err := base.decodePayloadValue(tx)
 	return name, value, err
@@ -551,7 +551,7 @@ func (base *ExecTypeBase) decodePayloadValue(tx *Transaction) (string, reflect.V
 	return name, val, nil
 }
 
-//ActionName 获取交易中payload的action name
+// ActionName 获取交易中payload的action name
 func (base *ExecTypeBase) ActionName(tx *Transaction) string {
 	payload, err := base.child.DecodePayload(tx)
 	if err != nil {
@@ -581,7 +581,7 @@ func lowcaseFirst(v string) string {
 	return v
 }
 
-//CreateQuery Query接口查询
+// CreateQuery Query接口查询
 func (base *ExecTypeBase) CreateQuery(funcname string, message json.RawMessage) (Message, error) {
 	if _, ok := base.queryMap[funcname]; !ok {
 		return nil, ErrActionNotSupport
@@ -603,7 +603,7 @@ func (base *ExecTypeBase) CreateQuery(funcname string, message json.RawMessage) 
 	return nil, ErrActionNotSupport
 }
 
-//QueryToJSON 转换成json格式
+// QueryToJSON 转换成json格式
 func (base *ExecTypeBase) QueryToJSON(funcname string, message Message) ([]byte, error) {
 	if _, ok := base.queryMap[funcname]; !ok {
 		return nil, ErrActionNotSupport
@@ -646,7 +646,7 @@ func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg inte
 	return tx, err
 }
 
-//AssertCreate 构造assets资产交易
+// AssertCreate 构造assets资产交易
 func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
 	if c.ExecName != "" && !IsAllowExecName([]byte(c.ExecName), []byte(c.ExecName)) {
 		tlog.Error("CreateTx", "Error", ErrExecNameNotMatch)
@@ -669,7 +669,7 @@ func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
 	return base.child.CreateTransaction("Transfer", v)
 }
 
-//Create 构造tx交易
+// Create 构造tx交易
 func (base *ExecTypeBase) Create(action string, msg Message) (*Transaction, error) {
 	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
 	if msg == nil {
@@ -697,7 +697,7 @@ func (base *ExecTypeBase) Create(action string, msg Message) (*Transaction, erro
 	return nil, ErrActionNotSupport
 }
 
-//GetAction 获取action
+// GetAction 获取action
 func (base *ExecTypeBase) GetAction(action string) (Message, error) {
 	typemap := base.child.GetTypeMap()
 	fieldName := base.getActionFieldName(action)
@@ -708,7 +708,7 @@ func (base *ExecTypeBase) GetAction(action string) (Message, error) {
 	return nil, ErrActionNotSupport
 }
 
-//CreateTx 通过json rpc 创建交易
+// CreateTx 通过json rpc 创建交易
 func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
 	data, err := base.GetAction(action)
 	if err != nil {
@@ -736,7 +736,7 @@ func (base *ExecTypeBase) setActionFieldName(name protoreflect.Name) {
 
 }
 
-//CreateTransaction 构造Transaction
+// CreateTransaction 构造Transaction
 func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Transaction, err error) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -798,12 +798,12 @@ func (base *ExecTypeBase) GetAssets(tx *Transaction) ([]*Asset, error) {
 	return []*Asset{asset}, nil
 }
 
-//GetConfig ...
+// GetConfig ...
 func (base *ExecTypeBase) GetConfig() *Chain33Config {
 	return base.cfg
 }
 
-//SetConfig ...
+// SetConfig ...
 func (base *ExecTypeBase) SetConfig(cfg *Chain33Config) {
 	base.cfg = cfg
 }

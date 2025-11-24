@@ -11,7 +11,7 @@ import "push_tx_receipt.proto";
 import "snowman.proto";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 message serverTime {
     int64 currentTimestamp = 1;
@@ -44,7 +44,7 @@ message delayTx {
 
 // 获取钱包找回地址请求
 message ReqGetWalletRecoverAddr {
-    string   ctrPubKey                = 1;
+    string          ctrPubKey         = 1;
     repeated string recoverPubKeys    = 2;
     int64           relativeDelayTime = 3;
 }
@@ -258,7 +258,7 @@ service chain33 {
     rpc SignWalletRecoverTx(ReqSignWalletRecoverTx) returns (ReplySignRawTx) {}
 
     // 获取最终化区块
-    rpc GetFinalizedBlock(ReqNil) returns(snowChoice) {}
+    rpc GetFinalizedBlock(ReqNil) returns (snowChoice) {}
 
     // 获取节点配置信息
     rpc GetChainConfig(ReqNil) returns (ChainConfigInfo) {}

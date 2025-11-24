@@ -17,12 +17,12 @@ type FormatDappSourceTask struct {
 	OutputFolder string
 }
 
-//GetName 获取name
+// GetName 获取name
 func (f *FormatDappSourceTask) GetName() string {
 	return "FormatDappSourceTask"
 }
 
-//Execute 执行
+// Execute 执行
 func (f *FormatDappSourceTask) Execute() error {
 	mlog.Info("Execute format dapp source task.")
 	err := filepath.Walk(f.OutputFolder, func(fpath string, info os.FileInfo, err error) error {

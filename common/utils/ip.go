@@ -31,7 +31,7 @@ func IsPublicIP(ip string) bool {
 	return false
 }
 
-//LocalIPv4s ...
+// LocalIPv4s ...
 // LocalIPs return all non-loopback IPv4 addresses
 func LocalIPv4s() ([]string, error) {
 	var ips []string

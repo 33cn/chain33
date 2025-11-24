@@ -26,7 +26,7 @@ func GetDefaultMainClient() types.Chain33Client {
 	return defaultClient
 }
 
-//NewMainChainClient 创建一个平行链的 主链 grpc chain33 客户端
+// NewMainChainClient 创建一个平行链的 主链 grpc chain33 客户端
 func NewMainChainClient(cfg *types.Chain33Config, grpcaddr string) (types.Chain33Client, error) {
 	mu.Lock()
 	defer mu.Unlock()

@@ -130,7 +130,7 @@ func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
 	return it.PrefixCount(prefix)
 }
 
-//Begin 开启内存事务处理
+// Begin 开启内存事务处理
 func (l *LocalDB) Begin() {
 	l.mu.Lock()
 	defer l.mu.Unlock()

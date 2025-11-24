@@ -7,10 +7,11 @@
 package types
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -1077,11 +1078,11 @@ func (x *RingSignatureItem) GetSignature() [][]byte {
 	return nil
 }
 
-//对于一个交易组中的交易，要么全部成功，要么全部失败
-//这个要好好设计一下
-//最好交易构成一个链条[prevhash].独立的交易构成链条
-//只要这个组中有一个执行是出错的，那么就执行不成功
-//三种签名支持
+// 对于一个交易组中的交易，要么全部成功，要么全部失败
+// 这个要好好设计一下
+// 最好交易构成一个链条[prevhash].独立的交易构成链条
+// 只要这个组中有一个执行是出错的，那么就执行不成功
+// 三种签名支持
 // ty = 1 -> secp256k1
 // ty = 2 -> ed25519
 // ty = 3 -> sm2
@@ -1782,7 +1783,7 @@ func (x *ReplyTxInfos) GetTxInfos() []*ReplyTxInfo {
 	return nil
 }
 
-//根据Addr查询和此Addr相关的交易费交易记录
+// 根据Addr查询和此Addr相关的交易费交易记录
 type AddrTxFeeInfo struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2590,7 +2591,7 @@ func (x *UpgradeMeta) GetHeight() int64 {
 	return 0
 }
 
-//通过交易hash获取交易列表，需要区分是短hash还是全hash值
+// 通过交易hash获取交易列表，需要区分是短hash还是全hash值
 type ReqTxHashList struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2646,7 +2647,7 @@ func (x *ReqTxHashList) GetIsShortHash() bool {
 	return false
 }
 
-//使用多层merkle树之后的proof证明结构体
+// 使用多层merkle树之后的proof证明结构体
 type TxProof struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

@@ -67,7 +67,7 @@ func Init(cfg *Config, subCfg map[string][]byte) {
 	}
 }
 
-//Register 注册加密算法，支持选项，设置typeID相关参数
+// Register 注册加密算法，支持选项，设置typeID相关参数
 func Register(name string, crypto Crypto, options ...RegOption) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()
@@ -113,7 +113,7 @@ func Register(name string, crypto Crypto, options ...RegOption) {
 	driversType[driver.typeID] = name
 }
 
-//GetName 获取name
+// GetName 获取name
 func GetName(ty int) string {
 
 	name, ok := driversType[int32(ty)]
@@ -123,7 +123,7 @@ func GetName(ty int) string {
 	return "unknown"
 }
 
-//GetType 获取type
+// GetType 获取type
 func GetType(name string) int {
 	if driver, ok := drivers[name]; ok {
 		return int(driver.typeID)

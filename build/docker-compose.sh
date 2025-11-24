@@ -206,8 +206,8 @@ function start() {
 }
 
 function check_docker_status() {
-    res=$(docker compose ps | grep chain33-1 )
-    if grep -q Exit <<< "$res"; then
+    res=$(docker compose ps | grep chain33-1)
+    if grep -q Exit <<<"$res"; then
         echo "=========== chain33 service Exit logs ========== "
         docker compose logs chain33
         echo "=========== chain33 service Exit logs End========== "

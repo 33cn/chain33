@@ -149,7 +149,7 @@ func TestUpgradeChain(t *testing.T) {
 	require.Equal(t, ver.GetVersion(), "2.0.0")
 }
 
-//GetUpgradeMeta 获取blockchain的数据库版本号
+// GetUpgradeMeta 获取blockchain的数据库版本号
 func getUpgradeMeta(db dbm.DB) (*types.UpgradeMeta, error) {
 	ver := types.UpgradeMeta{}
 	version, err := db.Get(version.LocalDBMeta)

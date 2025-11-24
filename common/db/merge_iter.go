@@ -18,7 +18,7 @@ const (
 	dirSeek
 )
 
-//合并错误列表
+// 合并错误列表
 var (
 	ErrIterReleased = errors.New("ErrIterReleased")
 )
@@ -261,7 +261,7 @@ type mergedIteratorDB struct {
 	iters []IteratorDB
 }
 
-//NewMergedIteratorDB 合并两个迭代数据库
+// NewMergedIteratorDB 合并两个迭代数据库
 func NewMergedIteratorDB(iters []IteratorDB) IteratorDB {
 	return &mergedIteratorDB{iters: iters}
 }

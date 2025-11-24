@@ -9,7 +9,7 @@ import (
 	_ "github.com/33cn/chain33/cmd/tools/gencode/dappcode" //init dapp code
 )
 
-//GetCodeFilesWithType get code file with type
+// GetCodeFilesWithType get code file with type
 func GetCodeFilesWithType(typeName string) []base.ICodeFile {
 
 	if fileArr, ok := base.CodeFileManager[typeName]; ok {

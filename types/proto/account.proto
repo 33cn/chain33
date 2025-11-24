@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 // Account 的信息
 message Account {
@@ -80,7 +80,7 @@ message ExecAccount {
 }
 
 message AllExecBalance {
-    string   addr                    = 1;
+    string               addr        = 1;
     repeated ExecAccount ExecAccount = 2;
 }
 
@@ -101,7 +101,6 @@ message ReqEvmAccountNonce {
 
 message EvmAccountNonce {
     //地址列表
-    string addr = 1;
-    int64 Nonce = 2;
-
+    string addr  = 1;
+    int64  Nonce = 2;
 }

@@ -7,13 +7,14 @@ package wallet
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/33cn/chain33/system/address/eth"
 	"io/ioutil"
 	"os"
 	"strings"
 	"sync/atomic"
 	"time"
 	"unicode"
+
+	"github.com/33cn/chain33/system/address/eth"
 
 	"github.com/pkg/errors"
 
@@ -29,16 +30,18 @@ import (
 )
 
 // ProcSignRawTx 用钱包对交易进行签名
-//input:
-//type ReqSignRawTx struct {
-//	Addr    string
-//	Privkey string
-//	TxHex   string
-//	Expire  string
-//}
-//output:
-//string
-//签名交易
+// input:
+//
+//	type ReqSignRawTx struct {
+//		Addr    string
+//		Privkey string
+//		TxHex   string
+//		Expire  string
+//	}
+//
+// output:
+// string
+// 签名交易
 func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -191,13 +194,16 @@ func (wallet *Wallet) ProcGetAccount(req *types.ReqGetAccount) (*types.WalletAcc
 }
 
 // ProcGetAccountList 获取钱包账号列表
-//output:
-//type WalletAccounts struct {
-//	Wallets []*WalletAccount
-//type WalletAccount struct {
-//	Acc   *Account
-//	Label string
-//获取钱包的地址列表
+// output:
+//
+//	type WalletAccounts struct {
+//		Wallets []*WalletAccount
+//
+//	type WalletAccount struct {
+//		Acc   *Account
+//		Label string
+//
+// 获取钱包的地址列表
 func (wallet *Wallet) ProcGetAccountList(req *types.ReqAccountList) (*types.WalletAccounts, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -264,19 +270,24 @@ func makeAccountWithoutBalance(accountStores []*types.WalletAccountStore) (*type
 }
 
 // ProcCreateNewAccount 处理创建新账号
-//input:
-//type ReqNewAccount struct {
-//	Label string
-//output:
-//type WalletAccount struct {
-//	Acc   *Account
-//	Label string
-//type Account struct {
-//	Currency int32
-//	Balance  int64
-//	Frozen   int64
-//	Addr     string
-//创建一个新的账户
+// input:
+//
+//	type ReqNewAccount struct {
+//		Label string
+//
+// output:
+//
+//	type WalletAccount struct {
+//		Acc   *Account
+//		Label string
+//
+//	type Account struct {
+//		Currency int32
+//		Balance  int64
+//		Frozen   int64
+//		Addr     string
+//
+// 创建一个新的账户
 func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.WalletAccount, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -424,19 +435,24 @@ func (wallet *Wallet) ProcNewRandAccount(req *types.GenSeedLang) (*types.Account
 }
 
 // ProcWalletTxList 处理获取钱包交易列表
-//input:
-//type ReqWalletTransactionList struct {
-//	FromTx []byte
-//	Count  int32
-//output:
-//type WalletTxDetails struct {
-//	TxDetails []*WalletTxDetail
-//type WalletTxDetail struct {
-//	Tx      *Transaction
-//	Receipt *ReceiptData
-//	Height  int64
-//	Index   int64
-//获取所有钱包的交易记录
+// input:
+//
+//	type ReqWalletTransactionList struct {
+//		FromTx []byte
+//		Count  int32
+//
+// output:
+//
+//	type WalletTxDetails struct {
+//		TxDetails []*WalletTxDetail
+//
+//	type WalletTxDetail struct {
+//		Tx      *Transaction
+//		Receipt *ReceiptData
+//		Height  int64
+//		Index   int64
+//
+// 获取所有钱包的交易记录
 func (wallet *Wallet) ProcWalletTxList(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -466,15 +482,19 @@ func (wallet *Wallet) ProcWalletTxList(TxList *types.ReqWalletTransactionList) (
 }
 
 // ProcImportPrivKey 处理导入私钥
-//input:
-//type ReqWalletImportPrivKey struct {
-//	Privkey string
-//	Label   string
-//output:
-//type WalletAccount struct {
-//	Acc   *Account
-//	Label string
-//导入私钥，并且同时会导入交易
+// input:
+//
+//	type ReqWalletImportPrivKey struct {
+//		Privkey string
+//		Label   string
+//
+// output:
+//
+//	type WalletAccount struct {
+//		Acc   *Account
+//		Label string
+//
+// 导入私钥，并且同时会导入交易
 func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -564,16 +584,20 @@ func (wallet *Wallet) procImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 }
 
 // ProcSendToAddress 响应发送到地址
-//input:
-//type ReqWalletSendToAddress struct {
-//	From   string
-//	To     string
-//	Amount int64
-//	Note   string
-//output:
-//type ReplyHash struct {
-//	Hashe []byte
-//发送一笔交易给对方地址，返回交易hash
+// input:
+//
+//	type ReqWalletSendToAddress struct {
+//		From   string
+//		To     string
+//		Amount int64
+//		Note   string
+//
+// output:
+//
+//	type ReplyHash struct {
+//		Hashe []byte
+//
+// 发送一笔交易给对方地址，返回交易hash
 func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddress) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -649,9 +673,11 @@ func (wallet *Wallet) ProcSendToAddress(SendToAddress *types.ReqWalletSendToAddr
 }
 
 // ProcWalletSetFee 处理设置手续费
-//type ReqWalletSetFee struct {
-//	Amount int64
-//设置钱包默认的手续费
+//
+//	type ReqWalletSetFee struct {
+//		Amount int64
+//
+// 设置钱包默认的手续费
 func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) error {
 	if WalletSetFee.Amount < wallet.minFee {
 		walletlog.Error("ProcWalletSetFee err!", "Amount", WalletSetFee.Amount, "MinFee", wallet.minFee)
@@ -668,15 +694,19 @@ func (wallet *Wallet) ProcWalletSetFee(WalletSetFee *types.ReqWalletSetFee) erro
 }
 
 // ProcWalletSetLabel 处理设置账号标签
-//input:
-//type ReqWalletSetLabel struct {
-//	Addr  string
-//	Label string
-//output:
-//type WalletAccount struct {
-//	Acc   *Account
-//	Label string
-//设置某个账户的标签
+// input:
+//
+//	type ReqWalletSetLabel struct {
+//		Addr  string
+//		Label string
+//
+// output:
+//
+//	type WalletAccount struct {
+//		Acc   *Account
+//		Label string
+//
+// 设置某个账户的标签
 func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*types.WalletAccount, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -719,13 +749,17 @@ func (wallet *Wallet) ProcWalletSetLabel(SetLabel *types.ReqWalletSetLabel) (*ty
 }
 
 // ProcMergeBalance 处理
-//input:
-//type ReqWalletMergeBalance struct {
-//	To string
-//output:
-//type ReplyHashes struct {
-//	Hashes [][]byte
-//合并所有的balance 到一个地址
+// input:
+//
+//	type ReqWalletMergeBalance struct {
+//		To string
+//
+// output:
+//
+//	type ReplyHashes struct {
+//		Hashes [][]byte
+//
+// 合并所有的balance 到一个地址
 func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance) (*types.ReplyHashes, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -848,11 +882,13 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 }
 
 // ProcWalletSetPasswd 处理钱包的保存密码
-//input:
-//type ReqWalletSetPasswd struct {
-//	Oldpass string
-//	Newpass string
-//设置或者修改密码
+// input:
+//
+//	type ReqWalletSetPasswd struct {
+//		Oldpass string
+//		Newpass string
+//
+// 设置或者修改密码
 func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -948,7 +984,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 	return nil
 }
 
-//ProcWalletLock 锁定钱包
+// ProcWalletLock 锁定钱包
 func (wallet *Wallet) ProcWalletLock() error {
 	//判断钱包是否已保存seed
 	has, err := wallet.walletStore.HasSeed()
@@ -964,11 +1000,13 @@ func (wallet *Wallet) ProcWalletLock() error {
 }
 
 // ProcWalletUnLock 处理钱包解锁
-//input:
-//type WalletUnLock struct {
-//	Passwd  string
-//	Timeout int64
-//解锁钱包Timeout时间，超时后继续锁住
+// input:
+//
+//	type WalletUnLock struct {
+//		Passwd  string
+//		Timeout int64
+//
+// 解锁钱包Timeout时间，超时后继续锁住
 func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -1007,7 +1045,7 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 
 }
 
-//解锁超时处理，需要区分整个钱包的解锁或者只挖矿的解锁
+// 解锁超时处理，需要区分整个钱包的解锁或者只挖矿的解锁
 func (wallet *Wallet) resetTimeout(Timeout int64) {
 	if wallet.timeout == nil {
 		wallet.timeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
@@ -1019,7 +1057,7 @@ func (wallet *Wallet) resetTimeout(Timeout int64) {
 	}
 }
 
-//ProcWalletAddBlock wallet模块收到blockchain广播的addblock消息，需要解析钱包相关的tx并存储到db中
+// ProcWalletAddBlock wallet模块收到blockchain广播的addblock消息，需要解析钱包相关的tx并存储到db中
 func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	if block == nil {
 		walletlog.Error("ProcWalletAddBlock input para is nil!")
@@ -1090,7 +1128,6 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	}
 }
 
-//
 type buildStoreWalletTxDetailParam struct {
 	tokenname    string
 	block        *types.BlockDetail
@@ -1133,7 +1170,7 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 	}
 }
 
-//ProcWalletDelBlock wallet模块收到blockchain广播的delblock消息，需要解析钱包相关的tx并存db中删除
+// ProcWalletDelBlock wallet模块收到blockchain广播的delblock消息，需要解析钱包相关的tx并存db中删除
 func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 	if block == nil {
 		walletlog.Error("ProcWalletDelBlock input para is nil!")
@@ -1232,7 +1269,7 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 	}
 }
 
-//生成一个随机的seed种子, 目前支持英文单词和简体中文
+// 生成一个随机的seed种子, 目前支持英文单词和简体中文
 func (wallet *Wallet) genSeed(lang int32) (*types.ReplySeed, error) {
 	seed, err := CreateSeed("", lang)
 	if err != nil {
@@ -1249,7 +1286,7 @@ func (wallet *Wallet) GenSeed(lang int32) (*types.ReplySeed, error) {
 	return wallet.genSeed(lang)
 }
 
-//GetSeed 获取seed种子, 通过钱包密码
+// GetSeed 获取seed种子, 通过钱包密码
 func (wallet *Wallet) GetSeed(password string) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -1257,7 +1294,7 @@ func (wallet *Wallet) GetSeed(password string) (string, error) {
 	return wallet.getSeed(password)
 }
 
-//获取seed种子, 通过钱包密码
+// 获取seed种子, 通过钱包密码
 func (wallet *Wallet) getSeed(password string) (string, error) {
 	ok, err := wallet.checkWalletStatus()
 	if !ok {
@@ -1277,7 +1314,7 @@ func (wallet *Wallet) SaveSeed(password string, seed string) (bool, error) {
 	return wallet.saveSeed(password, seed)
 }
 
-//保存seed种子到数据库中, 并通过钱包密码加密, 钱包起来首先要设置seed
+// 保存seed种子到数据库中, 并通过钱包密码加密, 钱包起来首先要设置seed
 func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -1349,7 +1386,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	return true, nil
 }
 
-//ProcDumpPrivkey 获取地址对应的私钥
+// ProcDumpPrivkey 获取地址对应的私钥
 func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -1371,7 +1408,7 @@ func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 	return common.ToHex(priv), nil
 }
 
-//收到其他模块上报的系统有致命性故障，需要通知前端
+// 收到其他模块上报的系统有致命性故障，需要通知前端
 func (wallet *Wallet) setFatalFailure(reportErrEvent *types.ReportErrEvent) {
 
 	walletlog.Error("setFatalFailure", "reportErrEvent", reportErrEvent.String())
@@ -1384,7 +1421,7 @@ func (wallet *Wallet) getFatalFailure() int32 {
 	return atomic.LoadInt32(&wallet.fatalFailureFlag)
 }
 
-//密码合法性校验,密码长度在8-30位之间。必须是数字+字母的组合
+// 密码合法性校验,密码长度在8-30位之间。必须是数字+字母的组合
 func isValidPassWord(password string) bool {
 	pwLen := len(password)
 	if pwLen < 8 || pwLen > 30 {
@@ -1549,7 +1586,7 @@ func (wallet *Wallet) createNewAccountByIndex(index uint32) (string, error) {
 	return privkeyhex, nil
 }
 
-//isValidIndex校验index的合法性
+// isValidIndex校验index的合法性
 func isValidIndex(index uint32) bool {
 	if types.AirDropMinIndex <= index && index <= types.AirDropMaxIndex {
 		return true
@@ -1557,7 +1594,7 @@ func isValidIndex(index uint32) bool {
 	return false
 }
 
-//ProcDumpPrivkeysFile 获取全部私钥保存到文件
+// ProcDumpPrivkeysFile 获取全部私钥保存到文件
 func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 	_, err := os.Stat(fileName)
 	if err == nil {
@@ -1613,11 +1650,13 @@ func (wallet *Wallet) ProcDumpPrivkeysFile(fileName, passwd string) error {
 }
 
 // ProcImportPrivkeysFile 处理导入私钥
-//input:
-//type  struct {
-//	fileName string
-//  passwd   string
-//导入私钥，并且同时会导入交易
+// input:
+//
+//	type  struct {
+//		fileName string
+//	 passwd   string
+//
+// 导入私钥，并且同时会导入交易
 func (wallet *Wallet) ProcImportPrivkeysFile(fileName, passwd string) error {
 	if _, err := os.Stat(fileName); os.IsNotExist(err) {
 		walletlog.Error("ProcImportPrivkeysFile file is not exist!", "fileName", fileName)

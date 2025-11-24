@@ -8,7 +8,7 @@ import (
 	"github.com/33cn/chain33/common"
 )
 
-//ErrBytesFormat 错误的bytes 类型
+// ErrBytesFormat 错误的bytes 类型
 var ErrBytesFormat = errors.New("ErrBytesFormat")
 
 func parseBytes(jsonstr string, enableUTF8BytesToString bool) ([]byte, error) {

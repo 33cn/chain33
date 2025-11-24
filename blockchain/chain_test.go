@@ -439,7 +439,7 @@ func testProcGetHeadersMsg(t *testing.T, blockchain *blockchain.BlockChain) {
 	chainlog.Debug("TestProcGetHeadersMsg end --------------------")
 }
 
-//新增区块时代码中是先更新UpdateHeight2，然后再更新UpdateLastBlock2
+// 新增区块时代码中是先更新UpdateHeight2，然后再更新UpdateLastBlock2
 // 可能存在调用GetBlockHeight时已经更新，但UpdateLastBlock2还没有来得及更新最新区块
 // GetBlockHeight()获取的最新高度 >= ProcGetLastHeaderMsg()获取的区块高度
 func testProcGetLastHeaderMsg(t *testing.T, blockchain *blockchain.BlockChain) {
@@ -1043,7 +1043,7 @@ func testCheckBestChainProc(t *testing.T, cfg *types.Chain33Config, blockchain *
 	chainlog.Debug("testCheckBestChainProc end --------------------")
 }
 
-//测试kv对的读写
+// 测试kv对的读写
 func TestSetValueByKey(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer func() {

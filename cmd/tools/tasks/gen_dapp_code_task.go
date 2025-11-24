@@ -27,12 +27,12 @@ type GenDappCodeTask struct {
 	replacePairs map[string]string
 }
 
-//GetName 获取name
+// GetName 获取name
 func (c *GenDappCodeTask) GetName() string {
 	return "GenDappCodeTask"
 }
 
-//Execute 执行
+// Execute 执行
 func (c *GenDappCodeTask) Execute() error {
 	mlog.Info("Execute generate dapp code task.")
 

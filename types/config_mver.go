@@ -12,7 +12,7 @@ import (
 	tml "github.com/BurntSushi/toml"
 )
 
-//multi version config
+// multi version config
 type versionList struct {
 	data     []int64
 	key      string

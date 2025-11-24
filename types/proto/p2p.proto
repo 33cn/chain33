@@ -6,7 +6,7 @@ import "blockchain.proto";
 import "snowman.proto";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 service p2pgservice {
     //广播交易
@@ -156,7 +156,7 @@ message P2PAddr {
  **/
 
 message P2PAddrList {
-    int64    nonce                = 1;
+    int64                nonce    = 1;
     repeated P2PPeerInfo peerinfo = 2;
 }
 
@@ -235,9 +235,9 @@ message P2PBlock {
  */
 message LightBlock {
 
-    int64       size          = 1;
-    Header      header        = 2;
-    Transaction minerTx       = 3;
+    int64           size      = 1;
+    Header          header    = 2;
+    Transaction     minerTx   = 3;
     repeated string sTxHashes = 4;
 }
 
@@ -260,15 +260,15 @@ message P2PTxReq {
 
 // 请求区块内交易数据
 message P2PBlockTxReq {
-    string   blockHash       = 1;
+    string         blockHash = 1;
     repeated int32 txIndices = 2;
 }
 
 // 区块交易数据返回
 message P2PBlockTxReply {
-    string   blockHash       = 1;
-    repeated int32 txIndices = 2;
-    repeated Transaction txs = 3;
+    string               blockHash = 1;
+    repeated int32       txIndices = 2;
+    repeated Transaction txs       = 3;
 }
 
 /* 节点收到区块或交易hash,
@@ -344,19 +344,19 @@ message InvDatas {
  * peer 信息
  */
 message Peer {
-    string addr           = 1;
-    int32  port           = 2;
-    string name           = 3;
-    bool   self           = 4;
-    int32  mempoolSize    = 5;
-    Header header         = 6;
-    string version        = 7;
-    string localDBVersion = 8;
-    string storeDBVersion = 9;
-    string runningTime    = 10;
-    bool   fullNode       = 11;
-    bool   blocked        = 12;
-    snowChoice finalized  = 13;
+    string     addr           = 1;
+    int32      port           = 2;
+    string     name           = 3;
+    bool       self           = 4;
+    int32      mempoolSize    = 5;
+    Header     header         = 6;
+    string     version        = 7;
+    string     localDBVersion = 8;
+    string     storeDBVersion = 9;
+    string     runningTime    = 10;
+    bool       fullNode       = 11;
+    bool       blocked        = 12;
+    snowChoice finalized      = 13;
 }
 
 /**

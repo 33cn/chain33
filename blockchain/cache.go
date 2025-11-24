@@ -13,7 +13,7 @@ import (
 
 const defaultBlockHashCacheSize = 10000 //区块哈希缓存个数暂时采用固定值，约0.4MB内存占用
 
-//BlockCache 区块缓存
+// BlockCache 区块缓存
 type BlockCache struct {
 	hashCache     map[int64]string              //高度->区块哈希
 	blockCache    map[string]*types.BlockDetail //区块哈希->区块数据
@@ -25,7 +25,7 @@ type BlockCache struct {
 	cfg           *types.Chain33Config
 }
 
-//newBlockCache new
+// newBlockCache new
 func newBlockCache(cfg *types.Chain33Config, blockHashCacheSize int64) *BlockCache {
 	blkCacheSize := cfg.GetModuleConfig().BlockChain.DefCacheSize
 	if blkCacheSize > blockHashCacheSize {
@@ -51,7 +51,7 @@ func (bc *BlockCache) GetBlockHash(height int64) []byte {
 	return nil
 }
 
-//GetBlockByHeight 从cache缓存中获取block信息
+// GetBlockByHeight 从cache缓存中获取block信息
 func (bc *BlockCache) GetBlockByHeight(height int64) *types.BlockDetail {
 	bc.cacheLock.RLock()
 	defer bc.cacheLock.RUnlock()
@@ -66,7 +66,7 @@ func (bc *BlockCache) GetBlockByHeight(height int64) *types.BlockDetail {
 	return nil
 }
 
-//GetBlockByHash 不做移动，cache最后的 128个区块
+// GetBlockByHash 不做移动，cache最后的 128个区块
 func (bc *BlockCache) GetBlockByHash(hash []byte) (block *types.BlockDetail) {
 	bc.cacheLock.RLock()
 	defer bc.cacheLock.RUnlock()
@@ -76,7 +76,7 @@ func (bc *BlockCache) GetBlockByHash(hash []byte) (block *types.BlockDetail) {
 	return nil
 }
 
-//AddBlock 区块增长，添加block到cache中，方便快速查询
+// AddBlock 区块增长，添加block到cache中，方便快速查询
 func (bc *BlockCache) AddBlock(detail *types.BlockDetail) {
 	bc.cacheLock.Lock()
 	defer bc.cacheLock.Unlock()
@@ -101,7 +101,7 @@ func (bc *BlockCache) AddBlock(detail *types.BlockDetail) {
 	bc.blockCache[blkHash] = detail
 }
 
-//DelBlock 区块回滚，删除block
+// DelBlock 区块回滚，删除block
 func (bc *BlockCache) DelBlock(height int64) {
 	bc.cacheLock.Lock()
 	defer bc.cacheLock.Unlock()
@@ -145,7 +145,7 @@ type txHashCache struct {
 	chain              *BlockChain
 }
 
-//newTxHashCache new tx height cache type
+// newTxHashCache new tx height cache type
 func newTxHashCache(chain *BlockChain, lowerTxHeightRange, upperTxHeightRange int64) *txHashCache {
 	return &txHashCache{
 		txHashes:           make(map[int64]map[string]struct{}, lowerTxHeightRange+upperTxHeightRange),
@@ -236,7 +236,7 @@ func (tc *txHashCache) delTxList(txs []*types.Transaction) {
 	}
 }
 
-//Contains 缓存中是否包含该交易
+// Contains 缓存中是否包含该交易
 func (tc *txHashCache) Contains(hash []byte, txHeight int64) bool {
 	tc.lock.RLock()
 	defer tc.lock.RUnlock()

@@ -359,7 +359,7 @@ func parseCreateAccountRes(arg ...interface{}) (interface{}, error) {
 	return result, nil
 }
 
-//NewRandAccountCmd get rand account
+// NewRandAccountCmd get rand account
 func NewRandAccountCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "rand",
@@ -423,7 +423,7 @@ func getPubKey(cmd *cobra.Command, args []string) {
 	fmt.Println(hex.EncodeToString(priv.PubKey().Bytes()))
 }
 
-//PubKeyToAddrCmd get rand account
+// PubKeyToAddrCmd get rand account
 func PubKeyToAddrCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "p2addr",
@@ -456,7 +456,7 @@ func getPubToAddr(cmd *cobra.Command, args []string) {
 	fmt.Println(driver.PubKeyToAddr(pubHex))
 }
 
-//GetAccountCmd get account by label
+// GetAccountCmd get account by label
 func GetAccountCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
@@ -540,7 +540,7 @@ func parseSetLabelRes(arg ...interface{}) (interface{}, error) {
 	return result, nil
 }
 
-//DumpKeysFileCmd dump file
+// DumpKeysFileCmd dump file
 func DumpKeysFileCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dump_keys",
@@ -554,7 +554,7 @@ func DumpKeysFileCmd() *cobra.Command {
 	return cmd
 }
 
-//ImportKeysFileCmd import key
+// ImportKeysFileCmd import key
 func ImportKeysFileCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "import_keys",

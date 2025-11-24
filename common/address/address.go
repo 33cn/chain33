@@ -24,10 +24,10 @@ var execPubKeyCache *lru.Cache
 // ErrCheckVersion :
 var ErrCheckVersion = errors.New("check version error")
 
-//ErrCheckChecksum :
+// ErrCheckChecksum :
 var ErrCheckChecksum = errors.New("Address Checksum error")
 
-//ErrAddressChecksum :
+// ErrAddressChecksum :
 var ErrAddressChecksum = errors.New("address checksum error")
 
 var (
@@ -37,13 +37,13 @@ var (
 	ErrAddressLength = errors.New("ErrAddressLength")
 )
 
-//MaxExecNameLength 执行器名最大长度
+// MaxExecNameLength 执行器名最大长度
 const MaxExecNameLength = 100
 
-//NormalVer 普通地址的版本号
+// NormalVer 普通地址的版本号
 var NormalVer byte
 
-//MultiSignVer 多重签名地址的版本号
+// MultiSignVer 多重签名地址的版本号
 var MultiSignVer byte = 5
 
 func init() {
@@ -63,8 +63,8 @@ func init() {
 	}
 }
 
-//ExecAddress 计算量有点大，做一次cache
-//contract address
+// ExecAddress 计算量有点大，做一次cache
+// contract address
 func ExecAddress(name string) string {
 	if value, ok := execAddrCache.Get(name); ok {
 		return value.(string)
@@ -77,7 +77,7 @@ func ExecAddress(name string) string {
 	return addr
 }
 
-//ExecPubKey 计算公钥
+// ExecPubKey 计算公钥
 func ExecPubKey(name string) []byte {
 	if len(name) > MaxExecNameLength {
 		panic("name too long")
@@ -93,7 +93,7 @@ func ExecPubKey(name string) []byte {
 	return hash[:]
 }
 
-//GetExecAddress 获取地址
+// GetExecAddress 获取地址
 func GetExecAddress(execName string, addressType int32) (string, error) {
 	d, err := LoadDriver(addressType, -1)
 	if err != nil {
@@ -103,7 +103,7 @@ func GetExecAddress(execName string, addressType int32) (string, error) {
 	return d.PubKeyToAddr(pubKey), nil
 }
 
-//PubKeyToAddr pubKey to specific address
+// PubKeyToAddr pubKey to specific address
 // pass DefaultID for default address format
 func PubKeyToAddr(addressID int32, pubKey []byte) string {
 
@@ -148,8 +148,8 @@ func GetAddressType(addr string) (int32, error) {
 	return -1, ErrUnknownAddressType
 }
 
-//BytesToBtcAddress hash32 to address
-//Deprecated: btc address legacy
+// BytesToBtcAddress hash32 to address
+// Deprecated: btc address legacy
 func BytesToBtcAddress(version byte, in []byte) *Address {
 	a := new(Address)
 	a.Pubkey = make([]byte, len(in))
@@ -197,8 +197,8 @@ func CheckBase58Address(ver byte, addr string) (e error) {
 	return e
 }
 
-//Address btc address
-//Deprecated
+// Address btc address
+// Deprecated
 type Address struct {
 	Version  byte
 	Hash160  [20]byte // For a stealth address: it's HASH160
@@ -207,7 +207,7 @@ type Address struct {
 	Enc58str string
 }
 
-//SetBytes 设置地址的bytes
+// SetBytes 设置地址的bytes
 func (a *Address) SetBytes(b []byte) {
 	copy(a.Hash160[:], b)
 }
@@ -228,7 +228,7 @@ func (a *Address) String() string {
 	return a.Enc58str
 }
 
-//SetNormalAddrVer 根据配置设置生成普通地址的version版本号，默认是0
+// SetNormalAddrVer 根据配置设置生成普通地址的version版本号，默认是0
 func SetNormalAddrVer(ver byte) {
 	if MultiSignVer == ver {
 		panic("the version of the normal address conflicts with the version of the multi-signature address!")
@@ -237,8 +237,8 @@ func SetNormalAddrVer(ver byte) {
 	NormalVer = ver
 }
 
-//NewBtcAddress new btc address
-//Deprecated: legacy
+// NewBtcAddress new btc address
+// Deprecated: legacy
 func NewBtcAddress(addr string) (*Address, error) {
 	dec := base58.Decode(addr)
 	if dec == nil {

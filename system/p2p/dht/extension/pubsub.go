@@ -10,9 +10,9 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	p2ptypes "github.com/33cn/chain33/system/p2p/dht/types"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 var log = log15.New("module", "extension")

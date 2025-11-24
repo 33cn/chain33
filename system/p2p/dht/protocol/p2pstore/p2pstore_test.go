@@ -28,8 +28,8 @@ const chunkNum int64 = 1000
 const blockHeight int64 = 14000 - 1
 const p2pA, p2pB = "p2pA", "p2pB"
 
-//HOST1 ID: Qma91H212PWtAFcioW7h9eKiosJtwHsb9x3RmjqRWTwciZ
-//HOST2 ID: QmbazrBU4HthhnQWcUTiJLnj5ihbFHXsAkGAG6QfmrqJDs
+// HOST1 ID: Qma91H212PWtAFcioW7h9eKiosJtwHsb9x3RmjqRWTwciZ
+// HOST2 ID: QmbazrBU4HthhnQWcUTiJLnj5ihbFHXsAkGAG6QfmrqJDs
 func TestInit(t *testing.T) {
 	os.RemoveAll(dataDir)
 	defer os.RemoveAll(dataDir)

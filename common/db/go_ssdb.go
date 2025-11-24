@@ -28,7 +28,7 @@ func init() {
 	registerDBCreator(ssDBBackendStr, dbCreator, false)
 }
 
-//SsdbBench ...
+// SsdbBench ...
 type SsdbBench struct {
 	// 写次数
 	writeCount int
@@ -41,13 +41,13 @@ type SsdbBench struct {
 	readTime  time.Duration
 }
 
-//SsdbNode 节点
+// SsdbNode 节点
 type SsdbNode struct {
 	ip   string
 	port int
 }
 
-//GoSSDB db
+// GoSSDB db
 type GoSSDB struct {
 	BaseDB
 	pool  *SDBPool
@@ -103,7 +103,7 @@ func parseSsdbNode(url string) (nodes []*SsdbNode) {
 	return nodes
 }
 
-//NewGoSSDB new
+// NewGoSSDB new
 func NewGoSSDB(name string, dir string, cache int) (*GoSSDB, error) {
 	database := &GoSSDB{}
 	database.nodes = parseSsdbNode(dir)
@@ -124,7 +124,7 @@ func NewGoSSDB(name string, dir string, cache int) (*GoSSDB, error) {
 	return database, nil
 }
 
-//Get get
+// Get get
 func (db *GoSSDB) Get(key []byte) ([]byte, error) {
 	start := time.Now()
 
@@ -141,7 +141,7 @@ func (db *GoSSDB) Get(key []byte) ([]byte, error) {
 	return value.Bytes(), nil
 }
 
-//Set 设置
+// Set 设置
 func (db *GoSSDB) Set(key []byte, value []byte) error {
 	start := time.Now()
 
@@ -154,12 +154,12 @@ func (db *GoSSDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-//SetSync 同步
+// SetSync 同步
 func (db *GoSSDB) SetSync(key []byte, value []byte) error {
 	return db.Set(key, value)
 }
 
-//Delete 删除
+// Delete 删除
 func (db *GoSSDB) Delete(key []byte) error {
 	start := time.Now()
 
@@ -172,26 +172,26 @@ func (db *GoSSDB) Delete(key []byte) error {
 	return nil
 }
 
-//DeleteSync 删除同步
+// DeleteSync 删除同步
 func (db *GoSSDB) DeleteSync(key []byte) error {
 	return db.Delete(key)
 }
 
-//Close 关闭
+// Close 关闭
 func (db *GoSSDB) Close() {
 	db.pool.close()
 }
 
-//Print 打印
+// Print 打印
 func (db *GoSSDB) Print() {
 }
 
-//Stats ...
+// Stats ...
 func (db *GoSSDB) Stats() map[string]string {
 	return make(map[string]string)
 }
 
-//Iterator 迭代器
+// Iterator 迭代器
 func (db *GoSSDB) Iterator(itbeg []byte, itend []byte, reverse bool) Iterator {
 	start := time.Now()
 
@@ -437,7 +437,7 @@ type ssDBBatch struct {
 	size     int
 }
 
-//NewBatch new
+// NewBatch new
 func (db *GoSSDB) NewBatch(sync bool) Batch {
 	return &ssDBBatch{db: db, batchset: make(map[string][]byte), batchdel: make(map[string]bool)}
 }
@@ -491,7 +491,7 @@ func (db *ssDBBatch) ValueSize() int {
 	return db.size
 }
 
-//ValueLen  batch数量
+// ValueLen  batch数量
 func (db *ssDBBatch) ValueLen() int {
 	return len(db.batchset)
 }

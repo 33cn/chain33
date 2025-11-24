@@ -17,7 +17,7 @@ import (
 	proto "github.com/golang/protobuf/proto"
 )
 
-//QueryFunc support query
+// QueryFunc support query
 var QueryFunc = NewQueryData("Query_")
 
 func buildFuncList(funclist []interface{}) map[string]bool {
@@ -347,7 +347,7 @@ func (q *QueryData) Call(driver, name string, in Message) (reply Message, err er
 	return CallQueryFunc(m, f, in)
 }
 
-//IsNil 判断所有的空值
+// IsNil 判断所有的空值
 func IsNil(a interface{}) (ok bool) {
 	defer func() {
 		if e := recover(); e != nil {
@@ -363,7 +363,7 @@ func IsNil(a interface{}) (ok bool) {
 	return a == nil || reflect.ValueOf(a).IsNil()
 }
 
-//IsNilP 空指针或者接口
+// IsNilP 空指针或者接口
 func IsNilP(a interface{}) bool {
 	if a == nil {
 		return true

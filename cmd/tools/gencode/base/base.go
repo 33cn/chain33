@@ -18,7 +18,7 @@ type ICodeFile interface {
 	GetFileReplaceTags() []string
 }
 
-//RegisterCodeFile regeister code file
+// RegisterCodeFile regeister code file
 func RegisterCodeFile(filer ICodeFile) {
 
 	codeType := filer.GetCodeType()
@@ -31,30 +31,30 @@ func RegisterCodeFile(filer ICodeFile) {
 type CodeFile struct {
 }
 
-//GetCodeType get cody type
+// GetCodeType get cody type
 func (CodeFile) GetCodeType() string {
 	return ""
 }
 
-//GetDirName get directory name
+// GetDirName get directory name
 func (CodeFile) GetDirName() string {
 
 	return ""
 }
 
-//GetFiles get files
+// GetFiles get files
 func (CodeFile) GetFiles() map[string]string {
 
 	return nil
 }
 
-//GetDirReplaceTags get directory replace tags
+// GetDirReplaceTags get directory replace tags
 func (CodeFile) GetDirReplaceTags() []string {
 
 	return nil
 }
 
-//GetFileReplaceTags get file replace tags
+// GetFileReplaceTags get file replace tags
 func (CodeFile) GetFileReplaceTags() []string {
 
 	return nil

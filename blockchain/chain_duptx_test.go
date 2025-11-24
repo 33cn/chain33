@@ -37,7 +37,7 @@ func addTestBlock(t *testing.T, mock33 *testnode.Chain33Mock, blockNum int, isTx
 	return txs
 }
 
-//构造10个区块，10笔交易不带TxHeight，缓存size128
+// 构造10个区块，10笔交易不带TxHeight，缓存size128
 func TestCheckDupTxHashList01(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer func() {
@@ -67,7 +67,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 	chainlog.Debug("TestCheckDupTxHashList01 end --------------------")
 }
 
-//构造10个区块，10笔交易带TxHeight，缓存size128
+// 构造10个区块，10笔交易带TxHeight，缓存size128
 func TestCheckDupTxHashList02(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer func() {
@@ -97,7 +97,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	chainlog.Debug("TestCheckDupTxHashList02 end --------------------")
 }
 
-//构造130个区块，130笔交易不带TxHeight，缓存满
+// 构造130个区块，130笔交易不带TxHeight，缓存满
 func TestCheckDupTxHashList03(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer func() {
@@ -126,7 +126,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 	chainlog.Debug("TestCheckDupTxHashList03 end --------------------")
 }
 
-//构造130个区块，130笔交易带TxHeight，缓存满
+// 构造130个区块，130笔交易带TxHeight，缓存满
 func TestCheckDupTxHashList04(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer func() {
@@ -157,7 +157,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	chainlog.Debug("TestCheckDupTxHashList04 end --------------------")
 }
 
-//异常：构造10个区块，10笔交易带TxHeight，TxHeight不满足条件 size128
+// 异常：构造10个区块，10笔交易带TxHeight，TxHeight不满足条件 size128
 func TestCheckDupTxHashList05(t *testing.T) {
 	mock33 := testnode.New("", nil)
 	defer func() {

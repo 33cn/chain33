@@ -15,7 +15,7 @@ import (
 	"github.com/mr-tron/base58/base58"
 )
 
-//TODO: 更新USDT的测试数据
+// TODO: 更新USDT的测试数据
 var testPrivkey = map[string]string{
 	"BTC":  "L3U5kJqHAPXzRGeHvtV5HXTwyjmiAvYG8bk42zswDPz7XwUJ6XfP",
 	"BCH":  "L3U5kJqHAPXzRGeHvtV5HXTwyjmiAvYG8bk42zswDPz7XwUJ6XfP",
@@ -54,7 +54,7 @@ var ansAddress = map[string]string{
 	"BTY":  "1MeionVMkdVuPV82BAXSZsHyxtXNxLFVN8",
 }
 
-//测试基于BTC规则的币种
+// 测试基于BTC规则的币种
 func TestBtcBaseTransformer(t *testing.T) {
 	initialBTCPrivByte()
 	for name := range testPrivkey {
@@ -63,7 +63,7 @@ func TestBtcBaseTransformer(t *testing.T) {
 	}
 }
 
-//将base58编码的私钥初始化成32字节的形式
+// 将base58编码的私钥初始化成32字节的形式
 func initialBTCPrivByte() (err error) {
 	for name, privKey := range testPrivkey {
 		privByte, err := base58.Decode(privKey)
@@ -75,7 +75,7 @@ func initialBTCPrivByte() (err error) {
 	return nil
 }
 
-//测试私钥生成公钥
+// 测试私钥生成公钥
 func testPrivToPub(t *testing.T, name string) {
 	coinTrans, err := transformer.New(name)
 	if err != nil {
@@ -92,7 +92,7 @@ func testPrivToPub(t *testing.T, name string) {
 	}
 }
 
-//测试公钥生成地址
+// 测试公钥生成地址
 func testPubToAddr(t *testing.T, name string) {
 	coinTrans, err := transformer.New(name)
 	if err != nil {

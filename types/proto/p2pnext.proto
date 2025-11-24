@@ -4,7 +4,7 @@ import "p2p.proto";
 import "blockchain.proto";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 /**
  * 通用消息体
@@ -275,12 +275,12 @@ message NodeInfo {
 }
 
 message PeerInfo {
-    bytes    ID              = 1;
+    bytes          ID        = 1;
     repeated bytes MultiAddr = 2;
 }
 
 message ChunkProvider {
-    bytes    chunkHash          = 1;
+    bytes             chunkHash = 1;
     repeated PeerInfo peerInfos = 2;
 }
 

@@ -660,7 +660,7 @@ func (c *Chain33) GetPeerInfo(in *types.P2PGetPeerReq, result *interface{}) erro
 			pr.FullNode = peer.GetFullNode()
 			pr.Blocked = peer.GetBlocked()
 			pr.Finalized = &rpctypes.SnowChoice{
-				Hash: hex.EncodeToString(peer.GetFinalized().GetHash()),
+				Hash:   hex.EncodeToString(peer.GetFinalized().GetHash()),
 				Height: peer.GetFinalized().GetHeight(),
 			}
 			peerlist.Peers = append(peerlist.Peers, &pr)

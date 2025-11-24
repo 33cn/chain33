@@ -11,7 +11,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//Count 计数器
+// Count 计数器
 type Count struct {
 	prefix  string
 	name    string
@@ -20,7 +20,7 @@ type Count struct {
 	keydata []byte
 }
 
-//NewCount 创建一个计数器
+// NewCount 创建一个计数器
 func NewCount(prefix string, name string, kvdb db.KV) *Count {
 	keydata := []byte(prefix + sep + name)
 	return &Count{
@@ -36,7 +36,7 @@ func (c *Count) getKey() []byte {
 	return c.keydata
 }
 
-//Save 保存kv
+// Save 保存kv
 func (c *Count) Save() (kvs []*types.KeyValue, err error) {
 	if c.num == math.MinInt64 {
 		return nil, nil
@@ -48,7 +48,7 @@ func (c *Count) Save() (kvs []*types.KeyValue, err error) {
 	return
 }
 
-//Get count
+// Get count
 func (c *Count) Get() (int64, error) {
 	if c.num == math.MinInt64 {
 		data, err := c.kvdb.Get(c.getKey())
@@ -67,7 +67,7 @@ func (c *Count) Get() (int64, error) {
 	return c.num, nil
 }
 
-//Inc 增加1
+// Inc 增加1
 func (c *Count) Inc() (num int64, err error) {
 	c.num, err = c.Get()
 	if err != nil {
@@ -77,7 +77,7 @@ func (c *Count) Inc() (num int64, err error) {
 	return c.num, nil
 }
 
-//Dec 减少1
+// Dec 减少1
 func (c *Count) Dec() (num int64, err error) {
 	c.num, err = c.Get()
 	if err != nil {
@@ -87,7 +87,7 @@ func (c *Count) Dec() (num int64, err error) {
 	return c.num, nil
 }
 
-//Set 这个操作要谨慎使用
+// Set 这个操作要谨慎使用
 func (c *Count) Set(i int64) {
 	c.num = i
 }
