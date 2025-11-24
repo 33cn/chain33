@@ -1,13 +1,14 @@
 package blockchain
 
 import (
+	"os"
+	"testing"
+	"time"
+
 	dbm "github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
-	"time"
 )
 
 func newTestChain(t *testing.T) (*BlockChain, string) {

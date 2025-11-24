@@ -108,7 +108,7 @@ func netInfo(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-//NetProtocolsCmd get all prototols netinfo
+// NetProtocolsCmd get all prototols netinfo
 func NetProtocolsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "protocols",
@@ -160,7 +160,7 @@ func timestatus(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-//BlacklistCmd get all prototols netinfo
+// BlacklistCmd get all prototols netinfo
 func BlacklistCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "blacklist",
@@ -176,7 +176,7 @@ func BlacklistCmd() *cobra.Command {
 	return cmd
 }
 
-//Add add peer to blacklist
+// Add add peer to blacklist
 func Add() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add",
@@ -188,7 +188,7 @@ func Add() *cobra.Command {
 	return cmd
 }
 
-//Del del peer from blacklist
+// Del del peer from blacklist
 func Del() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "del",
@@ -199,7 +199,7 @@ func Del() *cobra.Command {
 	return cmd
 }
 
-//Show print all peers from blacklist
+// Show print all peers from blacklist
 func Show() *cobra.Command {
 	//黑名单列表打印出来
 	cmd := &cobra.Command{
@@ -267,7 +267,7 @@ func showblacklist(cmd *cobra.Command, args []string) {
 
 }
 
-//DialCmd dial the specified node
+// DialCmd dial the specified node
 func DialCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dial",
@@ -296,7 +296,7 @@ func dialPeer(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-//CloseCmd close the specified peer
+// CloseCmd close the specified peer
 func CloseCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "close",

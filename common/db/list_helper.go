@@ -12,19 +12,19 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//ListHelper ...
+// ListHelper ...
 type ListHelper struct {
 	db IteratorDB
 }
 
 var listlog = log.New("module", "db.ListHelper")
 
-//NewListHelper new
+// NewListHelper new
 func NewListHelper(db IteratorDB) *ListHelper {
 	return &ListHelper{db: db}
 }
 
-//PrefixScan 前缀
+// PrefixScan 前缀
 func (db *ListHelper) PrefixScan(prefix []byte) [][]byte {
 	it := db.db.Iterator(prefix, nil, false)
 	defer it.Close()
@@ -41,7 +41,7 @@ func (db *ListHelper) PrefixScan(prefix []byte) [][]byte {
 	return resutls.result()
 }
 
-//const
+// const
 const (
 	// direction 位模式指定direction 参数
 	// 000， <- 位从低位开始数
@@ -56,7 +56,7 @@ const (
 	ListKeyOnly = int32(8) // 10xx
 )
 
-//List 列表
+// List 列表
 func (db *ListHelper) List(prefix, key []byte, count, direction int32) [][]byte {
 	if len(key) != 0 && count == 1 && direction == ListSeek {
 		return db.nextKeyValue(prefix, key, count, direction)
@@ -71,7 +71,7 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) [][]byte 
 	return db.IteratorScan(prefix, key, count, direction)
 }
 
-//IteratorScan 迭代
+// IteratorScan 迭代
 func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direction int32) [][]byte {
 	reverse := isReverse(direction)
 	it := db.db.Iterator(prefix, nil, reverse)
@@ -127,12 +127,12 @@ func (db *ListHelper) iteratorScan(prefix []byte, count int32, reverse bool, dir
 	return results.result()
 }
 
-//IteratorScanFromFirst 从头迭代
+// IteratorScanFromFirst 从头迭代
 func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32, direction int32) (values [][]byte) {
 	return db.iteratorScan(prefix, count, false, direction)
 }
 
-//IteratorScanFromLast 从尾迭代
+// IteratorScanFromLast 从尾迭代
 func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32, direction int32) (values [][]byte) {
 	return db.iteratorScan(prefix, count, true, direction)
 }
@@ -141,7 +141,7 @@ func isdeleted(d []byte) bool {
 	return len(d) == 0
 }
 
-//PrefixCount 前缀数量
+// PrefixCount 前缀数量
 func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 	it := db.db.Iterator(prefix, nil, true)
 	defer it.Close()
@@ -159,7 +159,7 @@ func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 	return
 }
 
-//IteratorCallback 迭代回滚
+// IteratorCallback 迭代回滚
 func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, direction int32, fn func(key, value []byte) bool) {
 	reserse := isReverse(direction)
 	it := db.db.Iterator(start, end, reserse)
@@ -208,7 +208,7 @@ func isReverse(direction int32) bool {
 	return !isASC(direction)
 }
 
-//nextKeyValue List 时, count 为 1, deriction 为 ListSeek, key 非空， 取key 的下一个KV
+// nextKeyValue List 时, count 为 1, deriction 为 ListSeek, key 非空， 取key 的下一个KV
 func (db *ListHelper) nextKeyValue(prefix, key []byte, count, direction int32) (values [][]byte) {
 	it := db.db.Iterator(prefix, nil, true)
 	defer it.Close()

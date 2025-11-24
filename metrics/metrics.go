@@ -23,7 +23,7 @@ var (
 	log = chain33log.New("module", "chain33 metrics")
 )
 
-//StartMetrics 根据配置文件相关参数启动m
+// StartMetrics 根据配置文件相关参数启动m
 func StartMetrics(cfg *types.Chain33Config) {
 	metrics := cfg.GetModuleConfig().Metrics
 	if !metrics.EnableMetrics {

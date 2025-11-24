@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//Package table 实现一个基于kv的关系型数据库的表格功能
+// Package table 实现一个基于kv的关系型数据库的表格功能
 package table
 
 import (
@@ -39,9 +39,9 @@ del:
 利用 primaryKey + index 删除所有的 数据 和 索引
 */
 
-//表关联设计
-//指出是 添加 还是 删除 行
-//primary key auto 的del 需要指定 primary key
+// 表关联设计
+// 指出是 添加 还是 删除 行
+// primary key auto 的del 需要指定 primary key
 const (
 	None = iota
 	Add
@@ -49,18 +49,18 @@ const (
 	Del
 )
 
-//meta key
+// meta key
 const meta = sep + "m" + sep
 const data = sep + "d" + sep
 
-//RowMeta 定义行的操作
+// RowMeta 定义行的操作
 type RowMeta interface {
 	CreateRow() *Row
 	SetPayload(types.Message) error
 	Get(key string) ([]byte, error)
 }
 
-//Row 行操作
+// Row 行操作
 type Row struct {
 	Ty      int
 	Primary []byte
@@ -87,7 +87,7 @@ func decodeInt64(p []byte) (int64, error) {
 	return i, nil
 }
 
-//Encode row
+// Encode row
 func (row *Row) Encode() ([]byte, error) {
 	b, err := encodeInt64(int64(len(row.Primary)))
 	if err != nil {
@@ -98,7 +98,7 @@ func (row *Row) Encode() ([]byte, error) {
 	return b, nil
 }
 
-//DecodeRow from data
+// DecodeRow from data
 func DecodeRow(data []byte) ([]byte, []byte, error) {
 	if len(data) <= 8 {
 		return nil, nil, types.ErrDecode
@@ -113,7 +113,7 @@ func DecodeRow(data []byte) ([]byte, []byte, error) {
 	return data[8 : int(l)+8], data[int(l)+8:], nil
 }
 
-//Table 定一个表格, 并且添加 primary key, index key
+// Table 定一个表格, 并且添加 primary key, index key
 type Table struct {
 	meta       RowMeta
 	rows       []*Row
@@ -125,7 +125,7 @@ type Table struct {
 	metaprefix string
 }
 
-//Option table 的选项
+// Option table 的选项
 type Option struct {
 	Prefix  string
 	Name    string
@@ -137,9 +137,9 @@ type Option struct {
 const sep = "-"
 const joinsep = "#"
 
-//NewTable  新建一个表格
-//primary 可以为: auto, 由系统自动创建
-//index 可以为nil
+// NewTable  新建一个表格
+// primary 可以为: auto, 由系统自动创建
+// index 可以为nil
 func NewTable(rowmeta RowMeta, kvdb db.KV, opt *Option) (*Table, error) {
 	if len(opt.Index) > 16 {
 		return nil, ErrTooManyIndex
@@ -285,9 +285,9 @@ func (table *Table) getPrimaryAuto() ([]byte, error) {
 	return []byte(pad(i)), nil
 }
 
-//primaryKey 获取主键
-//1. auto 的情况下,只能自增。
-//2. 没有auto的情况下从数据中取
+// primaryKey 获取主键
+// 1. auto 的情况下,只能自增。
+// 2. 没有auto的情况下从数据中取
 func (table *Table) primaryKey(data types.Message) (primaryKey []byte, err error) {
 	if table.opt.Primary == "auto" {
 		primaryKey, err = table.getPrimaryAuto()
@@ -312,7 +312,7 @@ func (table *Table) getPrimaryFromData(data types.Message) (primaryKey []byte, e
 	return
 }
 
-//ListIndex  list table index
+// ListIndex  list table index
 func (table *Table) ListIndex(indexName string, prefix []byte, primaryKey []byte, count, direction int32) (rows []*Row, err error) {
 	kvdb, ok := table.kvdb.(db.KVDB)
 	if !ok {
@@ -322,7 +322,7 @@ func (table *Table) ListIndex(indexName string, prefix []byte, primaryKey []byte
 	return query.ListIndex(indexName, prefix, primaryKey, count, direction)
 }
 
-//Replace 如果有重复的，那么替换
+// Replace 如果有重复的，那么替换
 func (table *Table) Replace(data types.Message) error {
 	if err := table.checkIndex(data); err != nil {
 		return err
@@ -353,7 +353,7 @@ func (table *Table) Replace(data types.Message) error {
 	return nil
 }
 
-//Add 在表格中添加一行
+// Add 在表格中添加一行
 func (table *Table) Add(data types.Message) error {
 	if err := table.checkIndex(data); err != nil {
 		return err
@@ -372,7 +372,7 @@ func (table *Table) Add(data types.Message) error {
 	return nil
 }
 
-//Update 更新数据库
+// Update 更新数据库
 func (table *Table) Update(primaryKey []byte, newdata types.Message) (err error) {
 	if err := table.checkIndex(newdata); err != nil {
 		return err
@@ -398,7 +398,7 @@ func (table *Table) Update(primaryKey []byte, newdata types.Message) (err error)
 	return nil
 }
 
-//Del 在表格中删除一行(包括删除索引)
+// Del 在表格中删除一行(包括删除索引)
 func (table *Table) Del(primaryKey []byte) error {
 	row, incache, err := table.findRow(primaryKey)
 	if err != nil {
@@ -418,7 +418,7 @@ func (table *Table) Del(primaryKey []byte) error {
 	return nil
 }
 
-//DelRow 删除一行
+// DelRow 删除一行
 func (table *Table) DelRow(data types.Message) error {
 	primaryKey, err := table.primaryKey(data)
 	if err != nil {
@@ -427,12 +427,12 @@ func (table *Table) DelRow(data types.Message) error {
 	return table.Del(primaryKey)
 }
 
-//getDataKey data key 构造
+// getDataKey data key 构造
 func (table *Table) getDataKey(primaryKey []byte) []byte {
 	return append([]byte(table.dataprefix), primaryKey...)
 }
 
-//GetIndexKey data key 构造
+// GetIndexKey data key 构造
 func (table *Table) getIndexKey(indexName string, index, primaryKey []byte) []byte {
 	key := table.indexPrefix(indexName)
 	key = append(key, index...)
@@ -467,7 +467,7 @@ func (table *Table) getData(primaryKey []byte) ([]byte, error) {
 	return value, nil
 }
 
-//GetData 根据主键获取数据
+// GetData 根据主键获取数据
 func (table *Table) GetData(primaryKey []byte) (*Row, error) {
 	value, err := table.getData(primaryKey)
 	if err != nil {
@@ -490,7 +490,7 @@ func (table *Table) getRow(value []byte) (*Row, error) {
 	return row, nil
 }
 
-//Save 保存表格
+// Save 保存表格
 func (table *Table) Save() (kvs []*types.KeyValue, err error) {
 	for _, row := range table.rows {
 		kvlist, err := table.saveRow(row)
@@ -621,7 +621,7 @@ func (table *Table) getModify(row, oldrow *Row, index string) ([]byte, []byte, b
 	return indexkey, oldkey, true, nil
 }
 
-//GetQuery 获取查询结构(允许传入 kvdb 为nil)
+// GetQuery 获取查询结构(允许传入 kvdb 为nil)
 func (table *Table) GetQuery(kvdb db.KVDB) *Query {
 	if kvdb == nil {
 		var ok bool
@@ -637,7 +637,7 @@ func (table *Table) getMeta() RowMeta {
 	return table.meta
 }
 
-//GetMeta 获取meta
+// GetMeta 获取meta
 func (table *Table) GetMeta() RowMeta {
 	return table.getMeta()
 }

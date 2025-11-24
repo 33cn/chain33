@@ -9,7 +9,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//GetBlockSequences 通过记录的block序列号获取blockd序列存储的信息
+// GetBlockSequences 通过记录的block序列号获取blockd序列存储的信息
 func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*types.BlockSequences, error) {
 	blockLastSeq, err := chain.blockStore.LoadBlockLastSequence()
 	if err != nil {
@@ -48,7 +48,7 @@ func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*type
 	return &blockSequences, nil
 }
 
-//ProcDelParaChainBlockMsg 处理共识过来的删除block的消息，目前只提供给平行链使用
+// ProcDelParaChainBlockMsg 处理共识过来的删除block的消息，目前只提供给平行链使用
 func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (err error) {
 	cfg := chain.client.GetConfig()
 	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
@@ -65,7 +65,7 @@ func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblock
 	return err
 }
 
-//ProcAddParaChainBlockMsg 处理共识过来的add block的消息，目前只提供给平行链使用
+// ProcAddParaChainBlockMsg 处理共识过来的add block的消息，目前只提供给平行链使用
 func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (*types.BlockDetail, error) {
 	cfg := chain.client.GetConfig()
 	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
@@ -82,7 +82,7 @@ func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblock
 	return fullBlockDetail, err
 }
 
-//ProcGetSeqByHash 处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
+// ProcGetSeqByHash 处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
 func (chain *BlockChain) ProcGetSeqByHash(hash []byte) (int64, error) {
 	if len(hash) == 0 {
 		chainlog.Error("ProcGetSeqByHash input hash is null")
@@ -94,7 +94,7 @@ func (chain *BlockChain) ProcGetSeqByHash(hash []byte) (int64, error) {
 	return seq, err
 }
 
-//ProcGetMainSeqByHash 处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
+// ProcGetMainSeqByHash 处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
 func (chain *BlockChain) ProcGetMainSeqByHash(hash []byte) (int64, error) {
 	if len(hash) == 0 {
 		chainlog.Error("ProcGetMainSeqByHash input hash is null")

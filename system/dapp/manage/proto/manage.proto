@@ -3,7 +3,7 @@ syntax = "proto3";
 import "executor.proto";
 
 package types;
-option go_package = "../types";
+option  go_package = "../types";
 
 //申请修改配置项
 message ApplyConfig {

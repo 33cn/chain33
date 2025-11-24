@@ -18,7 +18,7 @@ func init() {
 	RegisterPlugin(addrFeeIndex, &addrFeeIndexPlugin{})
 }
 
-//地址相关交易费列表
+// 地址相关交易费列表
 type addrFeeIndexPlugin struct {
 	pluginBase
 }
@@ -67,7 +67,7 @@ type txFeeIndex struct {
 	index     *types.AddrTxFeeInfo
 }
 
-//交易中 from fee 的索引
+// 交易中 from fee 的索引
 func getTxFeeIndex(executor *executor, tx *types.Transaction, receipt *types.ReceiptData, index int) *txFeeIndex {
 	var txFeeIndexInfo txFeeIndex
 	var txinf types.AddrTxFeeInfo

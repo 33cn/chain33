@@ -91,7 +91,7 @@ func (store *BaseStore) SetQueueClient(c queue.Client) {
 	}()
 }
 
-//Wait wait for basestore ready
+// Wait wait for basestore ready
 func (store *BaseStore) Wait() {}
 
 func (store *BaseStore) processMessage(msg *queue.Message) {

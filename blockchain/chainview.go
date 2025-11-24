@@ -19,18 +19,20 @@ const blockNodeCacheLimit = 10240 //目前best主链保存最新的10240个block
 // for comparing chains.
 //
 // For example, assume a block chain with a side chain as depicted below:
-//   genesis -> 1 -> 2 -> 3 -> 4  -> 5 ->  6  -> 7  -> 8
-//                         \-> 4a -> 5a -> 6a
+//
+//	genesis -> 1 -> 2 -> 3 -> 4  -> 5 ->  6  -> 7  -> 8
+//	                      \-> 4a -> 5a -> 6a
 //
 // The chain view for the branch ending in 6a consists of:
-//   genesis -> 1 -> 2 -> 3 -> 4a -> 5a -> 6a
+//
+//	genesis -> 1 -> 2 -> 3 -> 4a -> 5a -> 6a
 type chainView struct {
 	mtx        sync.Mutex
 	nodes      map[int64]*list.Element
 	cacheQueue *list.List
 }
 
-//需要从数据库中获取lastblock然后组装成node节点开始创建ChainView
+// 需要从数据库中获取lastblock然后组装成node节点开始创建ChainView
 func newChainView(tip *blockNode) *chainView {
 
 	chainview := &chainView{
@@ -126,7 +128,7 @@ func (c *chainView) Height() int64 {
 	return height
 }
 
-//获取指定height的node
+// 获取指定height的node
 func (c *chainView) nodeByHeight(height int64) *blockNode {
 	if height < 0 || height > c.height() {
 		return nil

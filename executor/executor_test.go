@@ -91,7 +91,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	assert.Equal(t, err, types.ErrTxGroupFormat)
 }
 
-//gen 1万币需要 2s，主要是签名的花费
+// gen 1万币需要 2s，主要是签名的花费
 func BenchmarkGenRandBlock(b *testing.B) {
 	exec, _ := initEnv(types.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
@@ -199,7 +199,7 @@ func Register(cfg *types.Chain33Config) {
 	})
 }
 
-//ErrEnvAPI 测试
+// ErrEnvAPI 测试
 type demoApp struct {
 	*drivers.DriverBase
 }

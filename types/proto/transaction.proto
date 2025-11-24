@@ -3,7 +3,7 @@ syntax = "proto3";
 import "common.proto";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 // assert transfer struct
 message AssetsGenesis {
@@ -156,9 +156,9 @@ message HexTx {
 }
 
 message ReplyTxInfo {
-    bytes    hash         = 1;
-    int64    height       = 2;
-    int64    index        = 3;
+    bytes          hash   = 1;
+    int64          height = 2;
+    int64          index  = 3;
     repeated Asset assets = 4;
 }
 
@@ -218,13 +218,13 @@ message ReceiptLog {
 // ty = 1 -> CutFee //cut fee ,bug exec not ok
 // ty = 2 -> exec ok
 message Receipt {
-    int32    ty              = 1;
-    repeated KeyValue KV     = 2;
+    int32               ty   = 1;
+    repeated KeyValue   KV   = 2;
     repeated ReceiptLog logs = 3;
 }
 
 message ReceiptData {
-    int32    ty              = 1;
+    int32               ty   = 1;
     repeated ReceiptLog logs = 3;
 }
 
@@ -238,18 +238,18 @@ message TxResult {
 }
 
 message TransactionDetail {
-    Transaction tx            = 1;
-    ReceiptData receipt       = 2;
-    repeated bytes proofs     = 3;
-    int64          height     = 4;
-    int64          index      = 5;
-    int64          blocktime  = 6;
-    int64          amount     = 7;
-    string         fromaddr   = 8;
-    string         actionName = 9;
-    repeated Asset assets     = 10;
-    repeated TxProof txProofs = 11;
-    bytes            fullHash = 12;
+    Transaction      tx         = 1;
+    ReceiptData      receipt    = 2;
+    repeated bytes   proofs     = 3;
+    int64            height     = 4;
+    int64            index      = 5;
+    int64            blocktime  = 6;
+    int64            amount     = 7;
+    string           fromaddr   = 8;
+    string           actionName = 9;
+    repeated Asset   assets     = 10;
+    repeated TxProof txProofs   = 11;
+    bytes            fullHash   = 12;
 }
 
 message TransactionDetails {

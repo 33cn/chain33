@@ -253,7 +253,7 @@ const Name = "secp256r1"
 // ID id
 const ID = 257
 
-//New new
+// New new
 func New(sub []byte) {
 	var subcfg authority.SubConfig
 	if sub != nil {

@@ -27,6 +27,7 @@ func MakeRelayAddrs(relayID, destID string) (ma.Multiaddr, error) {
 	return ma.NewMultiaddr("/p2p/" + relayID + "/p2p-circuit/p2p/" + destID)
 }
 
+// WithRelayAddrs relay address to addrs
 func WithRelayAddrs(relays []string) config.AddrsFactory { //添加多个relay地址
 	return func(addrs []ma.Multiaddr) []ma.Multiaddr {
 		if len(relays) == 0 {

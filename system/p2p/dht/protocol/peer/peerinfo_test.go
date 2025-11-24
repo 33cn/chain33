@@ -8,10 +8,11 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/33cn/chain33/client/mocks"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/33cn/chain33/client/mocks"
 
 	"github.com/33cn/chain33/common/utils"
 

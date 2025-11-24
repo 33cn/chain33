@@ -174,7 +174,8 @@ func (loader *UserLoader) Get(userName, orgName string) (*User, error) {
 	return resp, nil
 }
 
-/**
+/*
+*
 初始化Author实例和userloader
 */
 func initEnv() (*types.Chain33Config, error) {
@@ -208,7 +209,8 @@ func initEnv() (*types.Chain33Config, error) {
 	return cfg, nil
 }
 
-/**
+/*
+*
 TestCase01 带证书的交易验签
 */
 func TestChckSign(t *testing.T) {
@@ -222,7 +224,8 @@ func TestChckSign(t *testing.T) {
 	assert.Equal(t, true, tx1.CheckSign(0))
 }
 
-/**
+/*
+*
 TestCase02 带证书的多交易验签
 */
 func TestChckSigns(t *testing.T) {
@@ -235,13 +238,14 @@ func TestChckSigns(t *testing.T) {
 
 	for i, tx := range txs {
 		if !tx.CheckSign(0) {
-			t.Error(fmt.Sprintf("error check tx[%d]", i+1))
+			t.Errorf("error check tx[%d]", i+1)
 			return
 		}
 	}
 }
 
-/**
+/*
+*
 TestCase03 带证书的交易并行验签
 */
 func TestChckSignsPara(t *testing.T) {
@@ -260,7 +264,8 @@ func TestChckSignsPara(t *testing.T) {
 	}
 }
 
-/**
+/*
+*
 TestCase04 不带证书，公链签名算法验证
 */
 func TestChckSignWithNoneAuth(t *testing.T) {
@@ -278,7 +283,8 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 	}
 }
 
-/**
+/*
+*
 TestCase05 不带证书，SM2签名验证
 */
 func TestChckSignWithSm2(t *testing.T) {

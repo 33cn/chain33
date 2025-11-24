@@ -25,19 +25,19 @@ func RegisterStreamHandler(h host.Host, p protocol.ID, handler network.StreamHan
 	h.SetStreamHandler(p, HandlerWithClose(f))
 }
 
-//Initializer is a initial function which any protocol should have.
+// Initializer is a initial function which any protocol should have.
 type Initializer func(env *P2PEnv)
 
 var (
 	protocolInitializerArray []Initializer
 )
 
-//RegisterProtocolInitializer registers the initial function.
+// RegisterProtocolInitializer registers the initial function.
 func RegisterProtocolInitializer(initializer Initializer) {
 	protocolInitializerArray = append(protocolInitializerArray, initializer)
 }
 
-//InitAllProtocol initials all protocols.
+// InitAllProtocol initials all protocols.
 func InitAllProtocol(env *P2PEnv) {
 	for _, initializer := range protocolInitializerArray {
 		initializer(env)

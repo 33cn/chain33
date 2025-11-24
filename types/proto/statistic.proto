@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 //手续费
 message TotalFee {
@@ -58,9 +58,9 @@ message ExecBalanceItem {
 
 //查询symbol在合约中的代币总额应答
 message ReplyGetExecBalance {
-    int64    amount                = 1;
-    int64    amountFrozen          = 2;
-    int64    amountActive          = 3;
-    bytes    nextKey               = 4;
-    repeated ExecBalanceItem items = 5;
+    int64                    amount       = 1;
+    int64                    amountFrozen = 2;
+    int64                    amountActive = 3;
+    bytes                    nextKey      = 4;
+    repeated ExecBalanceItem items        = 5;
 }

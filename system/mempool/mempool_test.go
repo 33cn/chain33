@@ -7,11 +7,12 @@ package mempool
 import (
 	"errors"
 	"fmt"
+	"math/rand"
+	"testing"
+
 	"github.com/33cn/chain33/system/address/eth"
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"github.com/stretchr/testify/assert"
-	"math/rand"
-	"testing"
 
 	nty "github.com/33cn/chain33/system/dapp/none/types"
 

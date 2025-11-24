@@ -28,7 +28,7 @@ type ReplaceTargetTask struct {
 	ExecName    string
 }
 
-//GetName 获取name
+// GetName 获取name
 func (r *ReplaceTargetTask) GetName() string {
 	return "ReplaceTargetTask"
 }

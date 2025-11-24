@@ -36,7 +36,7 @@ const maxConcurrency = 10
 
 var log = log15.New("module", "protocol.p2pstore")
 
-//Protocol ...
+// Protocol ...
 type Protocol struct {
 	concurrency      int64
 	*protocol.P2PEnv //协议共享接口变量
@@ -72,7 +72,7 @@ func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
 
-//InitProtocol initials the protocol.
+// InitProtocol initials the protocol.
 func InitProtocol(env *protocol.P2PEnv) {
 	exRT, _ := kbt.NewRoutingTable(20, kbt.ConvertPeerID(env.Host.ID()), time.Minute, env.Host.Peerstore(), time.Hour, nil)
 	p := &Protocol{

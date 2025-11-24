@@ -98,13 +98,13 @@ func (policy *walletBizPlicy) Call(funName string, in types.Message) (ret types.
 	return
 }
 
-//从blockchain模块同步addr参与的所有交易详细信息
+// 从blockchain模块同步addr参与的所有交易详细信息
 func (policy *walletBizPlicy) rescanReqTxDetailByAddr(addr string, wg *sync.WaitGroup) {
 	defer wg.Done()
 	policy.reqTxDetailByAddr(addr)
 }
 
-//从blockchain模块同步addr参与的所有交易详细信息
+// 从blockchain模块同步addr参与的所有交易详细信息
 func (policy *walletBizPlicy) reqTxDetailByAddr(addr string) {
 	if len(addr) == 0 {
 		walletlog.Error("reqTxDetailByAddr input addr is nil!")

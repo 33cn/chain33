@@ -90,7 +90,7 @@ func (c *CoinsType) GetTypeMap() map[string]int32 {
 	return actionName
 }
 
-//DecodePayloadValue 为了性能考虑，coins 是最常用的合约，我们这里不用反射吗，做了特殊化的优化
+// DecodePayloadValue 为了性能考虑，coins 是最常用的合约，我们这里不用反射吗，做了特殊化的优化
 func (c *CoinsType) DecodePayloadValue(tx *types.Transaction) (string, reflect.Value, error) {
 	name, value, err := c.decodePayloadValue(tx)
 	return name, value, err

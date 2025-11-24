@@ -58,7 +58,7 @@ var coinNameType = map[string]uint32{
 	"YCC": TypeYcc,
 }
 
-//GetSLIP0044CoinType 获取货币的 CoinType 值
+// GetSLIP0044CoinType 获取货币的 CoinType 值
 func GetSLIP0044CoinType(name string) uint32 {
 	name = strings.ToUpper(name)
 	if ty, ok := coinNameType[name]; ok {
@@ -148,7 +148,7 @@ func PubToAddress(pub []byte) (string, error) {
 	return address.PubKeyToAddr(address.DefaultID, pub), nil
 }
 
-//NewMnemonicString 创建助记词 lang=0 英文助记词，lang=1 中文助记词bitsize=[128,256]并且bitsize%32=0
+// NewMnemonicString 创建助记词 lang=0 英文助记词，lang=1 中文助记词bitsize=[128,256]并且bitsize%32=0
 func NewMnemonicString(lang, bitsize int) (string, error) {
 	entropy, err := bip39.NewEntropy(bitsize)
 	if err != nil {

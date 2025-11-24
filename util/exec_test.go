@@ -36,7 +36,7 @@ func BenchmarkDelDupKeyNew(b *testing.B) {
 	}
 }
 
-//DelDupKey 删除重复的key
+// DelDupKey 删除重复的key
 func DelDupKeyOld(kvs []*types.KeyValue) []*types.KeyValue {
 	dupindex := make(map[string]int)
 	n := 0

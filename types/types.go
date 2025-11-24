@@ -39,7 +39,7 @@ const Size1Kshiftlen uint = 10
 // Message 声明proto.Message
 type Message proto.Message
 
-//ExecName  执行器name
+// ExecName  执行器name
 func (c *Chain33Config) ExecName(name string) string {
 	if len(name) > 1 && name[0] == '#' {
 		return name[1:]
@@ -53,7 +53,7 @@ func (c *Chain33Config) ExecName(name string) string {
 	return name
 }
 
-//GetExecName 根据paraName 获取exec name
+// GetExecName 根据paraName 获取exec name
 func GetExecName(exec, paraName string) string {
 	if len(exec) > 1 && exec[0] == '#' {
 		return exec[1:]
@@ -67,8 +67,8 @@ func GetExecName(exec, paraName string) string {
 	return exec
 }
 
-//IsAllowExecName 默认的allow 规则->根据 GetRealExecName 来判断
-//name 必须大于3 小于 100
+// IsAllowExecName 默认的allow 规则->根据 GetRealExecName 来判断
+// name 必须大于3 小于 100
 func IsAllowExecName(name []byte, execer []byte) bool {
 	// name长度不能超过系统限制
 	if len(name) > address.MaxExecNameLength || len(execer) > address.MaxExecNameLength {
@@ -98,7 +98,7 @@ func IsAllowExecName(name []byte, execer []byte) bool {
 var bytesExec = []byte("exec-")
 var commonPrefix = []byte("mavl-")
 
-//GetExecKey  获取执行器key
+// GetExecKey  获取执行器key
 func GetExecKey(key []byte) (string, bool) {
 	n := 0
 	start := 0
@@ -130,7 +130,7 @@ func GetExecKey(key []byte) (string, bool) {
 	return "", false
 }
 
-//FindExecer  查找执行器
+// FindExecer  查找执行器
 func FindExecer(key []byte) (execer []byte, err error) {
 	if !bytes.HasPrefix(key, commonPrefix) {
 		return nil, ErrMavlKeyNotStartWithMavl
@@ -143,7 +143,7 @@ func FindExecer(key []byte) (execer []byte, err error) {
 	return nil, ErrNoExecerInMavlKey
 }
 
-//GetParaExec  获取平行链执行
+// GetParaExec  获取平行链执行
 func (c *Chain33Config) GetParaExec(execer []byte) []byte {
 	//必须是平行链
 	if !c.IsPara() {
@@ -156,7 +156,7 @@ func (c *Chain33Config) GetParaExec(execer []byte) []byte {
 	return execer[len(c.GetTitle()):]
 }
 
-//GetParaExecName 获取平行链上的执行器
+// GetParaExecName 获取平行链上的执行器
 func GetParaExecName(execer []byte) []byte {
 	if !bytes.HasPrefix(execer, ParaKey) {
 		return execer
@@ -174,7 +174,7 @@ func GetParaExecName(execer []byte) []byte {
 	return execer
 }
 
-//GetRealExecName  获取真实的执行器name
+// GetRealExecName  获取真实的执行器name
 func GetRealExecName(execer []byte) []byte {
 	//平行链执行器，获取真实执行器的规则
 	execer = GetParaExecName(execer)
@@ -209,7 +209,7 @@ func EncodeWithBuffer(data proto.Message, buf *proto.Buffer) []byte {
 	return encodeProto(data, buf)
 }
 
-//Encode encode msg
+// Encode encode msg
 func Encode(data proto.Message) []byte {
 	return encodeProto(data, nil)
 }
@@ -233,28 +233,28 @@ func encodeProto(data proto.Message, buf *proto.Buffer) []byte {
 	return buf.Bytes()
 }
 
-//Size  消息大小
+// Size  消息大小
 func Size(data proto.Message) int {
 	return proto.Size(data)
 }
 
-//Decode  解码
+// Decode  解码
 func Decode(data []byte, msg proto.Message) error {
 	return proto.Unmarshal(data, msg)
 }
 
-//JSONToPB  JSON格式转换成protobuffer格式
+// JSONToPB  JSON格式转换成protobuffer格式
 func JSONToPB(data []byte, msg proto.Message) error {
 	return jsonpb.Unmarshal(bytes.NewReader(data), msg)
 }
 
-//JSONToPBUTF8 默认解码utf8的字符串成bytes
+// JSONToPBUTF8 默认解码utf8的字符串成bytes
 func JSONToPBUTF8(data []byte, msg proto.Message) error {
 	decode := &jsonpb.Unmarshaler{EnableUTF8BytesToString: true}
 	return decode.Unmarshal(bytes.NewReader(data), msg)
 }
 
-//Hash  计算叶子节点的hash
+// Hash  计算叶子节点的hash
 func (leafnode *LeafNode) Hash() []byte {
 	data := Encode(leafnode)
 	return common.Sha256(data)
@@ -262,7 +262,7 @@ func (leafnode *LeafNode) Hash() []byte {
 
 var sha256Len = 32
 
-//Hash  计算中间节点的hash
+// Hash  计算中间节点的hash
 func (innernode *InnerNode) Hash() []byte {
 	rightHash := innernode.RightHash
 	leftHash := innernode.LeftHash
@@ -279,14 +279,14 @@ func (innernode *InnerNode) Hash() []byte {
 	return common.Sha256(data)
 }
 
-//NewErrReceipt  new一个新的Receipt
+// NewErrReceipt  new一个新的Receipt
 func NewErrReceipt(err error) *Receipt {
 	berr := err.Error()
 	errlog := &ReceiptLog{Ty: TyLogErr, Log: []byte(berr)}
 	return &Receipt{Ty: ExecErr, KV: nil, Logs: []*ReceiptLog{errlog}}
 }
 
-//CheckAmount  检测转账金额
+// CheckAmount  检测转账金额
 func CheckAmount(amount, coinPrecision int64) bool {
 	if amount <= 0 || amount >= MaxCoin*coinPrecision {
 		return false
@@ -294,7 +294,7 @@ func CheckAmount(amount, coinPrecision int64) bool {
 	return true
 }
 
-//GetEventName  获取时间name通过事件id
+// GetEventName  获取时间name通过事件id
 func GetEventName(event int) string {
 	name, ok := eventName[event]
 	if ok {
@@ -315,19 +315,19 @@ func ConfigKey(key string) string {
 // ManagePrefix 超级管理员账户配置前缀key
 var ManagePrefix = "mavl-"
 
-//ManageKey 超级管理员账户key
+// ManageKey 超级管理员账户key
 func ManageKey(key string) string {
 	return fmt.Sprintf("%s-%s", ManagePrefix+"manage", key)
 }
 
-//ReceiptDataResult 回执数据
+// ReceiptDataResult 回执数据
 type ReceiptDataResult struct {
 	Ty     int32               `json:"ty"`
 	TyName string              `json:"tyname"`
 	Logs   []*ReceiptLogResult `json:"logs"`
 }
 
-//ReceiptLogResult 回执log数据
+// ReceiptLogResult 回执log数据
 type ReceiptLogResult struct {
 	Ty     int32       `json:"ty"`
 	TyName string      `json:"tyname"`
@@ -335,7 +335,7 @@ type ReceiptLogResult struct {
 	RawLog string      `json:"rawlog"`
 }
 
-//DecodeReceiptLog 编码回执数据
+// DecodeReceiptLog 编码回执数据
 func (r *ReceiptData) DecodeReceiptLog(execer []byte) (*ReceiptDataResult, error) {
 	result := &ReceiptDataResult{Ty: r.GetTy()}
 	switch r.Ty {
@@ -372,7 +372,7 @@ func (r *ReceiptData) DecodeReceiptLog(execer []byte) (*ReceiptDataResult, error
 	return result, nil
 }
 
-//OutputReceiptDetails 输出回执数据详情
+// OutputReceiptDetails 输出回执数据详情
 func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
 	rds, err := r.DecodeReceiptLog(execer)
 	if err == nil {
@@ -385,7 +385,7 @@ func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
 	}
 }
 
-//IterateRangeByStateHash 迭代查找
+// IterateRangeByStateHash 迭代查找
 func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	tlog.Debug("ReplyGetTotalCoins.IterateRangeByStateHash", "key", string(key))
 	var acc Account
@@ -434,7 +434,7 @@ func PBToJSONUTF8(r Message) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-//MustPBToJSON panic when error
+// MustPBToJSON panic when error
 func MustPBToJSON(req Message) []byte {
 	data, err := PBToJSON(req)
 	if err != nil {
@@ -483,12 +483,12 @@ func CloneAccount(acc *Account) *Account {
 	}
 }
 
-//Clone  克隆
+// Clone  克隆
 func Clone(data proto.Message) proto.Message {
 	return proto.Clone(data)
 }
 
-//Clone 添加一个浅拷贝函数
+// Clone 添加一个浅拷贝函数
 func (sig *Signature) Clone() *Signature {
 	if sig == nil {
 		return nil
@@ -500,7 +500,7 @@ func (sig *Signature) Clone() *Signature {
 	}
 }
 
-//Clone 浅拷贝： BlockDetail
+// Clone 浅拷贝： BlockDetail
 func (b *BlockDetail) Clone() *BlockDetail {
 	if b == nil {
 		return nil
@@ -513,7 +513,7 @@ func (b *BlockDetail) Clone() *BlockDetail {
 	}
 }
 
-//Clone 浅拷贝ReceiptData
+// Clone 浅拷贝ReceiptData
 func (r *ReceiptData) Clone() *ReceiptData {
 	if r == nil {
 		return nil
@@ -524,7 +524,7 @@ func (r *ReceiptData) Clone() *ReceiptData {
 	}
 }
 
-//Clone 浅拷贝 receiptLog
+// Clone 浅拷贝 receiptLog
 func (r *ReceiptLog) Clone() *ReceiptLog {
 	if r == nil {
 		return nil
@@ -535,7 +535,7 @@ func (r *ReceiptLog) Clone() *ReceiptLog {
 	}
 }
 
-//Clone KeyValue
+// Clone KeyValue
 func (kv *KeyValue) Clone() *KeyValue {
 	if kv == nil {
 		return nil
@@ -546,7 +546,7 @@ func (kv *KeyValue) Clone() *KeyValue {
 	}
 }
 
-//Clone Block 浅拷贝(所有的types.Message 进行了拷贝)
+// Clone Block 浅拷贝(所有的types.Message 进行了拷贝)
 func (b *Block) Clone() *Block {
 	if b == nil {
 		return nil
@@ -566,7 +566,7 @@ func (b *Block) Clone() *Block {
 	}
 }
 
-//Clone BlockBody 浅拷贝(所有的types.Message 进行了拷贝)
+// Clone BlockBody 浅拷贝(所有的types.Message 进行了拷贝)
 func (b *BlockBody) Clone() *BlockBody {
 	if b == nil {
 		return nil
@@ -581,7 +581,7 @@ func (b *BlockBody) Clone() *BlockBody {
 	}
 }
 
-//CloneReceipts 浅拷贝交易回报
+// CloneReceipts 浅拷贝交易回报
 func CloneReceipts(b []*ReceiptData) []*ReceiptData {
 	if b == nil {
 		return nil
@@ -593,7 +593,7 @@ func CloneReceipts(b []*ReceiptData) []*ReceiptData {
 	return rs
 }
 
-//cloneReceiptLogs 浅拷贝 ReceiptLogs
+// cloneReceiptLogs 浅拷贝 ReceiptLogs
 func cloneReceiptLogs(b []*ReceiptLog) []*ReceiptLog {
 	if b == nil {
 		return nil
@@ -605,7 +605,7 @@ func cloneReceiptLogs(b []*ReceiptLog) []*ReceiptLog {
 	return rs
 }
 
-//cloneKVList 拷贝kv 列表
+// cloneKVList 拷贝kv 列表
 func cloneKVList(b []*KeyValue) []*KeyValue {
 	if b == nil {
 		return nil
@@ -633,17 +633,17 @@ func Str2Bytes(s string) []byte {
 	return *(*[]byte)(unsafe.Pointer(&h))
 }
 
-//Hash  计算hash
+// Hash  计算hash
 func (hashes *ReplyHashes) Hash() []byte {
 	data := Encode(hashes)
 	return common.Sha256(data)
 }
 
-//FormatAmount2FloatDisplay 将传输、计算的amount值按精度格式化成浮点显示值，支持精度可配置
-//strconv.FormatFloat(float64(amount/types.Int1E4)/types.Float1E4, 'f', 4, 64) 的方法在amount很大的时候会丢失精度
-//比如在9001234567812345678时候，float64 最大精度只能在900123456781234的大小，decimal处理可以完整保持精度
-//在coinPrecision支持可配时候，对不同精度统一处理,而不是限定在1e4
-//round:是否需要对小数后四位值圆整，以912345678为例，912345678/1e8=9.1235, 非圆整例子:(912345678/1e4)/float(1e4)
+// FormatAmount2FloatDisplay 将传输、计算的amount值按精度格式化成浮点显示值，支持精度可配置
+// strconv.FormatFloat(float64(amount/types.Int1E4)/types.Float1E4, 'f', 4, 64) 的方法在amount很大的时候会丢失精度
+// 比如在9001234567812345678时候，float64 最大精度只能在900123456781234的大小，decimal处理可以完整保持精度
+// 在coinPrecision支持可配时候，对不同精度统一处理,而不是限定在1e4
+// round:是否需要对小数后四位值圆整，以912345678为例，912345678/1e8=9.1235, 非圆整例子:(912345678/1e4)/float(1e4)
 func FormatAmount2FloatDisplay(amount, coinPrecision int64, round bool) string {
 	n := int64(math.Log10(float64(coinPrecision)))
 	//小数左移n位，0保持不变
@@ -664,7 +664,7 @@ func FormatAmount2FloatDisplay(amount, coinPrecision int64, round bool) string {
 	return d.StringFixedBank(int32(n))
 }
 
-//FormatAmount2FixPrecisionDisplay 将传输、计算的amount值按配置精度格式化成浮点显示值，不设缺省精度
+// FormatAmount2FixPrecisionDisplay 将传输、计算的amount值按配置精度格式化成浮点显示值，不设缺省精度
 func FormatAmount2FixPrecisionDisplay(amount, coinPrecision int64) string {
 	n := int64(math.Log10(float64(coinPrecision)))
 	//小数左移n位，0保持不变
@@ -673,9 +673,9 @@ func FormatAmount2FixPrecisionDisplay(amount, coinPrecision int64) string {
 	return d.StringFixedBank(int32(n))
 }
 
-//FormatFloatDisplay2Value 将显示、输入的float amount值按精度格式化成计算值，小数点后精度只保留4位
-//浮点数算上浮点能精确表达最大16位长的数字(1234567.12345678),考虑到16个9会被表示为1e16,这里限制最多15个字符
-//本函数然后小数位只精确到4位，后面补0
+// FormatFloatDisplay2Value 将显示、输入的float amount值按精度格式化成计算值，小数点后精度只保留4位
+// 浮点数算上浮点能精确表达最大16位长的数字(1234567.12345678),考虑到16个9会被表示为1e16,这里限制最多15个字符
+// 本函数然后小数位只精确到4位，后面补0
 func FormatFloatDisplay2Value(amount float64, coinPrecision int64) (int64, error) {
 	f := decimal.NewFromFloat(amount)
 	strVal := f.String()

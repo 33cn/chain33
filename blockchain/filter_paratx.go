@@ -16,7 +16,7 @@ var (
 	filterlog = chainlog.New("submodule", "filter")
 )
 
-//GetParaTxByTitle 通过seq以及title获取对应平行连的交易
+// GetParaTxByTitle 通过seq以及title获取对应平行连的交易
 func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.ParaTxDetails, error) {
 
 	//入参数校验
@@ -82,7 +82,7 @@ func (chain *BlockChain) GetParaTxByTitle(seq *types.ReqParaTxByTitle) (*types.P
 	return &paraTxs, nil
 }
 
-//checkInputParam 入参检测，主要检测req的end的值以及title是否合法
+// checkInputParam 入参检测，主要检测req的end的值以及title是否合法
 func (chain *BlockChain) checkInputParam(req *types.ReqParaTxByTitle) error {
 	var err error
 	var lastblock int64
@@ -105,7 +105,7 @@ func (chain *BlockChain) checkInputParam(req *types.ReqParaTxByTitle) error {
 	return nil
 }
 
-//GetParaTxByHeight 通过height以及title获取对应平行连的交易
+// GetParaTxByHeight 通过height以及title获取对应平行连的交易
 func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types.ParaTxDetails, error) {
 	//入参数校验
 	if req == nil {
@@ -153,7 +153,7 @@ func (chain *BlockChain) GetParaTxByHeight(req *types.ReqParaTxByHeight) (*types
 	return &paraTxs, nil
 }
 
-//获取指定title子链roothash在指定高度上的路径证明
+// 获取指定title子链roothash在指定高度上的路径证明
 func (chain *BlockChain) getChildChainProofs(height int64, blockHash []byte, title string, txs []*types.Transaction) ([][]byte, []byte, uint32) {
 	var branch [][]byte
 	var childHash []byte
@@ -195,7 +195,7 @@ func (chain *BlockChain) getChildChainProofs(height int64, blockHash []byte, tit
 	return nil, nil, 0
 }
 
-//LoadParaTxByTitle 通过title获取本平行链交易所在的区块高度信息前后翻页
+// LoadParaTxByTitle 通过title获取本平行链交易所在的区块高度信息前后翻页
 func (chain *BlockChain) LoadParaTxByTitle(req *types.ReqHeightByTitle) (*types.ReplyHeightByTitle, error) {
 	var primaryKey []byte
 
@@ -228,7 +228,7 @@ func (chain *BlockChain) LoadParaTxByTitle(req *types.ReqHeightByTitle) (*types.
 	return &reply, nil
 }
 
-//LoadParaTxByHeight 通过height获取本高度上的平行链title前后翻页;预留接口
+// LoadParaTxByHeight 通过height获取本高度上的平行链title前后翻页;预留接口
 func (chain *BlockChain) LoadParaTxByHeight(height int64, title string, count, direction int32) (*types.HeightParas, error) {
 	//入参合法性检测
 	curHeight := chain.GetBlockHeight()

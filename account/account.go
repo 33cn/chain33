@@ -207,7 +207,7 @@ func (acc *DB) SaveAccount(acc1 *types.Account) {
 	}
 }
 
-//SaveKVSet 保存Key Value set
+// SaveKVSet 保存Key Value set
 func (acc *DB) SaveKVSet(set []*types.KeyValue) {
 	for i := 0; i < len(set); i++ {
 		err := acc.db.Set(set[i].GetKey(), set[i].Value)

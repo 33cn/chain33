@@ -14,21 +14,21 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
-//Sha256 加密算法
+// Sha256 加密算法
 func Sha256(bytes []byte) []byte {
 	hasher := sha256.New()
 	hasher.Write(bytes)
 	return hasher.Sum(nil)
 }
 
-//Ripemd160 加密算法
+// Ripemd160 加密算法
 func Ripemd160(bytes []byte) []byte {
 	hasher := ripemd160.New()
 	hasher.Write(bytes)
 	return hasher.Sum(nil)
 }
 
-//Sm3Hash 加密算法
+// Sm3Hash 加密算法
 func Sm3Hash(msg []byte) []byte {
 	c := sm3.New()
 	c.Write(msg)
@@ -52,7 +52,7 @@ func BasicValidation(c Crypto, msg, pub, sig []byte) error {
 	return nil
 }
 
-//ToAggregate 判断签名是否可以支持聚合签名，并且返回聚合签名的接口
+// ToAggregate 判断签名是否可以支持聚合签名，并且返回聚合签名的接口
 func ToAggregate(c Crypto) (AggregateCrypto, error) {
 	if aggr, ok := c.(AggregateCrypto); ok {
 		return aggr, nil

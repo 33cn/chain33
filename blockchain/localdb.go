@@ -57,7 +57,7 @@ func (chain *BlockChain) localGet(msg *queue.Message) {
 	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, &reply))
 }
 
-//只允许设置 通过 transaction 来 set 信息
+// 只允许设置 通过 transaction 来 set 信息
 func (chain *BlockChain) localSet(msg *queue.Message) {
 	kvs := (msg.Data).(*types.LocalDBSet)
 	if kvs.Txid == 0 {
@@ -79,14 +79,14 @@ func (chain *BlockChain) localSet(msg *queue.Message) {
 	msg.Reply(chain.client.NewMessage("", types.EventLocalSet, nil))
 }
 
-//创建 localdb transaction
+// 创建 localdb transaction
 func (chain *BlockChain) localNew(msg *queue.Message) {
 	tx := db.NewLocalDB(chain.blockStore.db, msg.GetData().(bool))
 	id := common.StorePointer(tx)
 	msg.Reply(chain.client.NewMessage("", types.EventLocalNew, &types.Int64{Data: id}))
 }
 
-//关闭 localdb transaction
+// 关闭 localdb transaction
 func (chain *BlockChain) localClose(msg *queue.Message) {
 	id := (msg.Data).(*types.Int64).Data
 	_, err := common.GetPointer(id)
@@ -147,7 +147,7 @@ func (chain *BlockChain) localList(msg *queue.Message) {
 	msg.Reply(chain.client.NewMessage("", types.EventLocalReplyValue, &types.LocalReplyValue{Values: values}))
 }
 
-//获取指定前缀key的数量
+// 获取指定前缀key的数量
 func (chain *BlockChain) localPrefixCount(msg *queue.Message) {
 	Prefix := (msg.Data).(*types.ReqKey)
 	counts := db.NewListHelper(chain.blockStore.db).PrefixCount(Prefix.Key)

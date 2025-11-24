@@ -4,7 +4,7 @@
 
 package crypto
 
-//Crypto 加密
+// Crypto 加密
 type Crypto interface {
 	GenKey() (PrivKey, error)
 	SignatureFromBytes([]byte) (Signature, error)
@@ -13,7 +13,7 @@ type Crypto interface {
 	Validate(msg, pub, sig []byte) error
 }
 
-//AggregateCrypto 聚合签名
+// AggregateCrypto 聚合签名
 type AggregateCrypto interface {
 	Aggregate(sigs []Signature) (Signature, error)
 	AggregatePublic(pubs []PubKey) (PubKey, error)
@@ -21,7 +21,7 @@ type AggregateCrypto interface {
 	VerifyAggregatedN(pubs []PubKey, ms [][]byte, sig Signature) error
 }
 
-//PrivKey 私钥
+// PrivKey 私钥
 type PrivKey interface {
 	Bytes() []byte
 	Sign(msg []byte) Signature
@@ -29,7 +29,7 @@ type PrivKey interface {
 	Equals(PrivKey) bool
 }
 
-//Signature 签名
+// Signature 签名
 type Signature interface {
 	Bytes() []byte
 	IsZero() bool
@@ -37,7 +37,7 @@ type Signature interface {
 	Equals(Signature) bool
 }
 
-//PubKey 公钥
+// PubKey 公钥
 type PubKey interface {
 	Bytes() []byte
 	KeyString() string
@@ -45,7 +45,7 @@ type PubKey interface {
 	Equals(PubKey) bool
 }
 
-//CertSignature 签名
+// CertSignature 签名
 type CertSignature struct {
 	Signature []byte
 	Cert      []byte

@@ -11,7 +11,7 @@ const (
 	statisticalInfo = "/chain33/statistical/1.0.0"
 )
 
-//handlerStreamStatistical 返回当前连接的节点信息以及网络带宽信息
+// handlerStreamStatistical 返回当前连接的节点信息以及网络带宽信息
 func (p *Protocol) handlerStreamStatistical(stream network.Stream) {
 	defer protocol.CloseStream(stream)
 	var statistical types.Statistical
