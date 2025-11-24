@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-//CreatePluginCmd 构造插件命令
+// CreatePluginCmd 构造插件命令
 func CreatePluginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "createplugin",

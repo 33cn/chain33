@@ -34,12 +34,12 @@ var (
 	heightFile    = "height.txt"
 )
 
-//Config 配置
+// Config 配置
 type Config struct {
 	UserWriteConf *UserWriteConf
 }
 
-//UserWriteConf 用户配置
+// UserWriteConf 用户配置
 type UserWriteConf struct {
 	ReceiveAddr   string
 	CurrentHeight int64

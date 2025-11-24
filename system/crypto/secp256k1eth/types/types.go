@@ -10,7 +10,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-//CommonAction ...
+// CommonAction ...
 type CommonAction struct {
 	Note   []byte //存放metamask 签名后的rawtx hexdata
 	To     string //to地址（目的地址或者合约地址）
@@ -19,7 +19,7 @@ type CommonAction struct {
 	Nonce  int64
 }
 
-//DecodeTxAction decode chain33Tx ethTx
+// DecodeTxAction decode chain33Tx ethTx
 func DecodeTxAction(msg []byte) (*CommonAction, error) {
 	var tx TransactionChain33
 	err := proto.Unmarshal(msg, &tx)

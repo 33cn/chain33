@@ -17,7 +17,7 @@ func HeightIndexStr(height, index int64) string {
 	return fmt.Sprintf("%018d", v)
 }
 
-//KVCreator 创建KV的辅助工具
+// KVCreator 创建KV的辅助工具
 type KVCreator struct {
 	kvs          []*types.KeyValue
 	kvdb         db.KV
@@ -27,8 +27,8 @@ type KVCreator struct {
 	rollbackkvs  []*types.KeyValue
 }
 
-//NewKVCreator 创建创建者
-//注意: 自动回滚可能会严重影响系统性能
+// NewKVCreator 创建创建者
+// 注意: 自动回滚可能会严重影响系统性能
 func NewKVCreator(kv db.KV, prefix []byte, rollbackkey []byte) *KVCreator {
 	return &KVCreator{
 		kvdb:         kv,
@@ -84,7 +84,7 @@ func (c *KVCreator) addnoprefix(key, value []byte, set bool) *KVCreator {
 	return c
 }
 
-//Get 从KV中获取 value
+// Get 从KV中获取 value
 func (c *KVCreator) Get(key []byte) ([]byte, error) {
 	if c.prefix != nil {
 		newkey := c.addPrefix(key)
@@ -93,22 +93,22 @@ func (c *KVCreator) Get(key []byte) ([]byte, error) {
 	return c.kvdb.Get(key)
 }
 
-//GetNoPrefix 从KV中获取 value, 不自动添加前缀
+// GetNoPrefix 从KV中获取 value, 不自动添加前缀
 func (c *KVCreator) GetNoPrefix(key []byte) ([]byte, error) {
 	return c.kvdb.Get(key)
 }
 
-//Add add and set to kvdb
+// Add add and set to kvdb
 func (c *KVCreator) Add(key, value []byte) *KVCreator {
 	return c.add(key, value, true)
 }
 
-//AddNoPrefix 不自动添加prefix
+// AddNoPrefix 不自动添加prefix
 func (c *KVCreator) AddNoPrefix(key, value []byte) *KVCreator {
 	return c.addnoprefix(key, value, true)
 }
 
-//AddListNoPrefix only add KVList
+// AddListNoPrefix only add KVList
 func (c *KVCreator) AddListNoPrefix(list []*types.KeyValue) *KVCreator {
 	for _, kv := range list {
 		c.addnoprefix(kv.Key, kv.Value, true)
@@ -116,7 +116,7 @@ func (c *KVCreator) AddListNoPrefix(list []*types.KeyValue) *KVCreator {
 	return c
 }
 
-//AddList only add KVList
+// AddList only add KVList
 func (c *KVCreator) AddList(list []*types.KeyValue) *KVCreator {
 	for _, kv := range list {
 		c.add(kv.Key, kv.Value, true)
@@ -124,7 +124,7 @@ func (c *KVCreator) AddList(list []*types.KeyValue) *KVCreator {
 	return c
 }
 
-//AddKVOnly only add KV(can't auto rollback)
+// AddKVOnly only add KV(can't auto rollback)
 func (c *KVCreator) AddKVOnly(key, value []byte) *KVCreator {
 	if c.autorollback {
 		panic("autorollback open, AddKVOnly not allow")
@@ -132,7 +132,7 @@ func (c *KVCreator) AddKVOnly(key, value []byte) *KVCreator {
 	return c.add(key, value, false)
 }
 
-//AddKVListOnly only add KVList (can't auto rollback)
+// AddKVListOnly only add KVList (can't auto rollback)
 func (c *KVCreator) AddKVListOnly(list []*types.KeyValue) *KVCreator {
 	if c.autorollback {
 		panic("autorollback open, AddKVListOnly not allow")
@@ -143,12 +143,12 @@ func (c *KVCreator) AddKVListOnly(list []*types.KeyValue) *KVCreator {
 	return c
 }
 
-//KVList 读取所有的kv列表
+// KVList 读取所有的kv列表
 func (c *KVCreator) KVList() []*types.KeyValue {
 	return c.kvs
 }
 
-//AddRollbackKV 添加回滚数据到 KV
+// AddRollbackKV 添加回滚数据到 KV
 func (c *KVCreator) AddRollbackKV() {
 	rbLog := c.rollbackLog()
 	if rbLog != nil {
@@ -158,14 +158,14 @@ func (c *KVCreator) AddRollbackKV() {
 
 }
 
-//DelRollbackKV 删除rollback kv
+// DelRollbackKV 删除rollback kv
 func (c *KVCreator) DelRollbackKV() {
 	if len(c.kvs) > 0 {
 		c.kvs = append(c.kvs, &types.KeyValue{Key: c.rollbackkey})
 	}
 }
 
-//GetRollbackKVList 获取 rollback 到 Key and Vaue
+// GetRollbackKVList 获取 rollback 到 Key and Vaue
 func (c *KVCreator) GetRollbackKVList() ([]*types.KeyValue, error) {
 	data, err := c.kvdb.Get(c.rollbackkey)
 	if err == types.ErrNotFound {
@@ -190,7 +190,7 @@ func (c *KVCreator) GetRollbackKVList() ([]*types.KeyValue, error) {
 	return kvs, nil
 }
 
-//rollbackLog rollback log
+// rollbackLog rollback log
 func (c *KVCreator) rollbackLog() *types.ReceiptLog {
 	if len(c.rollbackkvs) == 0 {
 		return nil
@@ -199,7 +199,7 @@ func (c *KVCreator) rollbackLog() *types.ReceiptLog {
 	return &types.ReceiptLog{Ty: types.TyLogRollback, Log: data}
 }
 
-//ParseRollback 解析rollback的数据
+// ParseRollback 解析rollback的数据
 func (c *KVCreator) parseRollback(log *types.ReceiptLog) ([]*types.KeyValue, error) {
 	var data types.LocalDBSet
 	if log.Ty != types.TyLogRollback {
@@ -212,7 +212,7 @@ func (c *KVCreator) parseRollback(log *types.ReceiptLog) ([]*types.KeyValue, err
 	return data.KV, nil
 }
 
-//AddToLogs add not empty log to logs
+// AddToLogs add not empty log to logs
 func (c *KVCreator) AddToLogs(logs []*types.ReceiptLog) []*types.ReceiptLog {
 	if len(c.rollbackkvs) == 0 {
 		return logs

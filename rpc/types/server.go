@@ -5,6 +5,7 @@
 package types
 
 import (
+	"context"
 	"net/rpc"
 
 	"github.com/33cn/chain33/account"
@@ -19,6 +20,7 @@ type RPCServer interface {
 	GetQueueClient() queue.Client
 	GRPC() *grpc.Server
 	JRPC() *rpc.Server
+	Context() context.Context
 }
 
 // ChannelClient interface

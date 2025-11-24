@@ -54,17 +54,17 @@ function init() {
 function start() {
 
     # remove exsit container
-    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down --remove-orphans
+    docker compose -p "${PROJECT_NAME}" -f compose-autotest.yml down --remove-orphans
 
     # create and run docker-compose container
-    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml up --build -d
+    docker compose -p "${PROJECT_NAME}" -f compose-autotest.yml up --build -d
 
     local SLEEP=30
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
-    # docker-compose ps
-    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml ps
+    # docker compose ps
+    docker compose -p "${PROJECT_NAME}" -f compose-autotest.yml ps
 
     # query node run status
     ${CLI} block last_header
@@ -218,7 +218,7 @@ function stop_chain33() {
 
     rv=$?
     echo "=========== #stop docker-compose ============="
-    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down && rm -rf ./chain33* ./*.toml ./autotest
+    docker compose -p "${PROJECT_NAME}" -f compose-autotest.yml down && rm -rf ./chain33* ./*.toml ./autotest
     echo "=========== #remove related images ============"
     docker rmi "${PROJECT_NAME}"_autotest || true
     exit ${rv}

@@ -101,7 +101,6 @@ func (mgr *Manager) PubBroadCast(hash string, data interface{}, eventTy int) (*q
 	return msg, nil
 }
 
-//
 func (mgr *Manager) pub2All(msg *queue.Message) {
 
 	for _, ty := range mgr.p2pCfg.Types {
@@ -110,7 +109,6 @@ func (mgr *Manager) pub2All(msg *queue.Message) {
 
 }
 
-//
 func (mgr *Manager) pub2P2P(msg *queue.Message, p2pType string) {
 
 	mgr.PubSub.Pub(msg, p2pType)

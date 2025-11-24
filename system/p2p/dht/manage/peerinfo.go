@@ -14,11 +14,11 @@ import (
 
 // PeerInfoManager peer info manager
 type PeerInfoManager struct {
+	maxHeight int64
 	ctx       context.Context
 	peerInfo  sync.Map
 	client    queue.Client
 	host      host.Host
-	maxHeight int64
 }
 
 type peerStoreInfo struct {

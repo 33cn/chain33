@@ -114,22 +114,22 @@ var optgame = &Option{
 	Index:   []string{"status"},
 }
 
-//GameRow table meta 结构
+// GameRow table meta 结构
 type GameRow struct {
 	*protodata.Game
 }
 
-//NewGameRow 新建一个meta 结构
+// NewGameRow 新建一个meta 结构
 func NewGameRow() *GameRow {
 	return &GameRow{Game: &protodata.Game{}}
 }
 
-//CreateRow 新建数据行(注意index 数据一定也要保存到数据中,不能就保存eventid)
+// CreateRow 新建数据行(注意index 数据一定也要保存到数据中,不能就保存eventid)
 func (tx *GameRow) CreateRow() *Row {
 	return &Row{Data: &protodata.Game{}}
 }
 
-//SetPayload 设置数据
+// SetPayload 设置数据
 func (tx *GameRow) SetPayload(data types.Message) error {
 	if txdata, ok := data.(*protodata.Game); ok {
 		tx.Game = txdata
@@ -138,7 +138,7 @@ func (tx *GameRow) SetPayload(data types.Message) error {
 	return types.ErrTypeAsset
 }
 
-//Get 按照indexName 查询 indexValue
+// Get 按照indexName 查询 indexValue
 func (tx *GameRow) Get(key string) ([]byte, error) {
 	if key == "gameID" {
 		return []byte(tx.GameID), nil
@@ -161,22 +161,22 @@ var optgameaddr = &Option{
 	Index:   []string{"gameID", "addr"},
 }
 
-//GameAddrRow table meta 结构
+// GameAddrRow table meta 结构
 type GameAddrRow struct {
 	*protodata.GameAddr
 }
 
-//NewGameAddrRow 新建一个meta 结构
+// NewGameAddrRow 新建一个meta 结构
 func NewGameAddrRow() *GameAddrRow {
 	return &GameAddrRow{GameAddr: &protodata.GameAddr{}}
 }
 
-//CreateRow 新建数据行(注意index 数据一定也要保存到数据中,不能就保存eventid)
+// CreateRow 新建数据行(注意index 数据一定也要保存到数据中,不能就保存eventid)
 func (tx *GameAddrRow) CreateRow() *Row {
 	return &Row{Data: &protodata.GameAddr{}}
 }
 
-//SetPayload 设置数据
+// SetPayload 设置数据
 func (tx *GameAddrRow) SetPayload(data types.Message) error {
 	if txdata, ok := data.(*protodata.GameAddr); ok {
 		tx.GameAddr = txdata
@@ -185,7 +185,7 @@ func (tx *GameAddrRow) SetPayload(data types.Message) error {
 	return types.ErrTypeAsset
 }
 
-//Get 按照indexName 查询 indexValue
+// Get 按照indexName 查询 indexValue
 func (tx *GameAddrRow) Get(key string) ([]byte, error) {
 	if key == "gameID" {
 		return []byte(tx.GameID), nil

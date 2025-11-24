@@ -28,7 +28,7 @@ chain33背后故事: [chain33诞生记](https://mp.weixin.qq.com/s/9g5ZFDKJi9uzR
 
 ## Building from source
 
-环境要求: Go 1.19+
+环境要求: Go 1.20+
 
 编译:
 

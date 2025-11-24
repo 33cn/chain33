@@ -10,7 +10,7 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//QueueCache 排队交易处理
+// QueueCache 排队交易处理
 type QueueCache interface {
 	Exist(hash string) bool
 	GetItem(hash string) (*Item, error)
@@ -29,7 +29,7 @@ type Item struct {
 	EnterTime int64
 }
 
-//TxCache 管理交易cache 包括账户索引，最后的交易，排队策略缓存
+// TxCache 管理交易cache 包括账户索引，最后的交易，排队策略缓存
 type txCache struct {
 	*AccountTxIndex
 	*LastTxCache
@@ -39,7 +39,7 @@ type txCache struct {
 	delayCache *delayTxCache
 }
 
-//NewTxCache init accountIndex and last cache
+// NewTxCache init accountIndex and last cache
 func newCache(maxTxPerAccount int64, sizeLast int64, poolCacheSize int64) *txCache {
 	return &txCache{
 		AccountTxIndex: NewAccountTxIndex(int(maxTxPerAccount)),
@@ -49,12 +49,12 @@ func newCache(maxTxPerAccount int64, sizeLast int64, poolCacheSize int64) *txCac
 	}
 }
 
-//SetQueueCache set queue cache , 这个接口可以扩展
+// SetQueueCache set queue cache , 这个接口可以扩展
 func (cache *txCache) SetQueueCache(qcache QueueCache) {
 	cache.qcache = qcache
 }
 
-//Remove 移除txCache中给定tx
+// Remove 移除txCache中给定tx
 func (cache *txCache) Remove(hash string) {
 	item, err := cache.qcache.GetItem(hash)
 	if err != nil {
@@ -71,7 +71,7 @@ func (cache *txCache) Remove(hash string) {
 	cache.SHashTxCache.Remove(hash)
 }
 
-//Exist 是否存在
+// Exist 是否存在
 func (cache *txCache) Exist(hash string) bool {
 	if cache.qcache == nil {
 		return false
@@ -79,7 +79,7 @@ func (cache *txCache) Exist(hash string) bool {
 	return cache.qcache.Exist(hash)
 }
 
-//Size cache tx num
+// Size cache tx num
 func (cache *txCache) Size() int {
 	if cache.qcache == nil {
 		return 0
@@ -87,12 +87,12 @@ func (cache *txCache) Size() int {
 	return cache.qcache.Size()
 }
 
-//TotalFee 手续费总和
+// TotalFee 手续费总和
 func (cache *txCache) TotalFee() int64 {
 	return cache.totalFee
 }
 
-//Walk iter all txs
+// Walk iter all txs
 func (cache *txCache) Walk(count int, cb func(tx *Item) bool) {
 	if cache.qcache == nil {
 		return
@@ -100,14 +100,14 @@ func (cache *txCache) Walk(count int, cb func(tx *Item) bool) {
 	cache.qcache.Walk(count, cb)
 }
 
-//RemoveTxs 删除一组交易
+// RemoveTxs 删除一组交易
 func (cache *txCache) RemoveTxs(txs []string) {
 	for _, t := range txs {
 		cache.Remove(t)
 	}
 }
 
-//Push 存入交易到cache 中
+// Push 存入交易到cache 中
 func (cache *txCache) Push(tx *types.Transaction) error {
 	if !cache.AccountTxIndex.CanPush(tx) {
 		return types.ErrManyTx
@@ -142,7 +142,7 @@ func (cache *txCache) removeExpiredTx(cfg *types.Chain33Config, height, blocktim
 	}
 }
 
-//判断交易是否过期
+// 判断交易是否过期
 func isExpired(cfg *types.Chain33Config, item *Item, height, blockTime int64) bool {
 	if types.Now().Unix()-item.EnterTime >= mempoolExpiredInterval {
 		return true
@@ -153,7 +153,7 @@ func isExpired(cfg *types.Chain33Config, item *Item, height, blockTime int64) bo
 	return false
 }
 
-//getTxByHash 通过交易hash获取tx交易信息
+// getTxByHash 通过交易hash获取tx交易信息
 func (cache *txCache) getTxByHash(hash string) *types.Transaction {
 	item, err := cache.qcache.GetItem(hash)
 	if err != nil {
@@ -162,7 +162,7 @@ func (cache *txCache) getTxByHash(hash string) *types.Transaction {
 	return item.Value
 }
 
-//delayTxCache 延时交易缓存
+// delayTxCache 延时交易缓存
 type delayTxCache struct {
 	size      int
 	txCache   map[int64][]*types.Transaction // 以延时时间作为key索引

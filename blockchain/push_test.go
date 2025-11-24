@@ -50,22 +50,22 @@ type Chain33Mock struct {
 	datadir string
 }
 
-//GetAPI :
+// GetAPI :
 func (mock *Chain33Mock) GetAPI() client.QueueProtocolAPI {
 	return mock.api
 }
 
-//GetRPC :
+// GetRPC :
 func (mock *Chain33Mock) GetRPC() *rpc.RPC {
 	return mock.rpc
 }
 
-//GetCfg :
+// GetCfg :
 func (mock *Chain33Mock) GetCfg() *types.Config {
 	return mock.cfg
 }
 
-//Close :
+// Close :
 func (mock *Chain33Mock) Close() {
 	mock.closeNoLock()
 }
@@ -86,22 +86,22 @@ func (mock *Chain33Mock) closeNoLock() {
 	}
 }
 
-//GetClient :
+// GetClient :
 func (mock *Chain33Mock) GetClient() queue.Client {
 	return mock.client
 }
 
-//GetBlockChain :
+// GetBlockChain :
 func (mock *Chain33Mock) GetBlockChain() *BlockChain {
 	return mock.chain
 }
 
-//GetGenesisKey :
+// GetGenesisKey :
 func (mock *Chain33Mock) GetGenesisKey() crypto.PrivKey {
 	return util.TestPrivkeyList[1]
 }
 
-//WaitHeight :
+// WaitHeight :
 func (mock *Chain33Mock) WaitHeight(height int64) error {
 	for {
 		header, err := mock.api.GetLastHeader()
@@ -124,7 +124,7 @@ func (mock *Chain33Mock) GetJSONC() *jsonclient.JSONClient {
 	return jsonc
 }
 
-//WaitTx :
+// WaitTx :
 func (mock *Chain33Mock) WaitTx(hash []byte) (*rpctypes.TransactionDetail, error) {
 	if hash == nil {
 		return nil, nil
@@ -1097,7 +1097,7 @@ func Test_rmPushFailTask(t *testing.T) {
 	chain.push.mu.Unlock()
 }
 
-//推送失败之后能够重新激活并成功推送
+// 推送失败之后能够重新激活并成功推送
 func Test_ReactivePush(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	ps := &bcMocks.PostService{}
@@ -1164,7 +1164,6 @@ func Test_ReactivePush(t *testing.T) {
 	mock33.Close()
 }
 
-//
 func Test_RecoverPush(t *testing.T) {
 	chain, mock33 := createBlockChain(t)
 	ps := &bcMocks.PostService{}
@@ -1215,7 +1214,7 @@ func Test_RecoverPush(t *testing.T) {
 	mock33.Close()
 }
 
-//init work
+// init work
 func NewChain33Mock(cfgpath string, mockapi client.QueueProtocolAPI) *Chain33Mock {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	return newWithConfigNoLock(cfg, mockapi)
@@ -1375,7 +1374,7 @@ func newWalletRealize(qAPI client.QueueProtocolAPI) {
 type mockP2P struct {
 }
 
-//SetQueueClient :
+// SetQueueClient :
 func (m *mockP2P) SetQueueClient(client queue.Client) {
 	go func() {
 		p2pKey := "p2p"
@@ -1394,9 +1393,9 @@ func (m *mockP2P) SetQueueClient(client queue.Client) {
 	}()
 }
 
-//Wait for ready
+// Wait for ready
 func (m *mockP2P) Wait() {}
 
-//Close :
+// Close :
 func (m *mockP2P) Close() {
 }

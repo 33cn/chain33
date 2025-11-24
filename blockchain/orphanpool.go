@@ -19,7 +19,7 @@ var (
 
 const orphanExpirationTime = time.Second * 600 // 孤儿过期时间设置为10分钟
 
-//孤儿节点，就是本节点的父节点未知的block
+// 孤儿节点，就是本节点的父节点未知的block
 type orphanBlock struct {
 	block      *types.Block
 	expiration time.Time
@@ -28,7 +28,7 @@ type orphanBlock struct {
 	sequence   int64
 }
 
-//OrphanPool 孤儿节点的存储以blockhash作为map的索引。hash转换成string
+// OrphanPool 孤儿节点的存储以blockhash作为map的索引。hash转换成string
 type OrphanPool struct {
 	orphanLock   sync.RWMutex
 	orphans      map[string]*orphanBlock
@@ -37,7 +37,7 @@ type OrphanPool struct {
 	param        *types.Chain33Config
 }
 
-//NewOrphanPool new
+// NewOrphanPool new
 func NewOrphanPool(param *types.Chain33Config) *OrphanPool {
 	op := &OrphanPool{
 		orphans:     make(map[string]*orphanBlock),
@@ -47,7 +47,7 @@ func NewOrphanPool(param *types.Chain33Config) *OrphanPool {
 	return op
 }
 
-//IsKnownOrphan 判断本节点是不是已知的孤儿节点
+// IsKnownOrphan 判断本节点是不是已知的孤儿节点
 func (op *OrphanPool) IsKnownOrphan(hash []byte) bool {
 	op.orphanLock.RLock()
 	_, exists := op.orphans[string(hash)]
@@ -56,7 +56,7 @@ func (op *OrphanPool) IsKnownOrphan(hash []byte) bool {
 	return exists
 }
 
-//GetOrphanRoot 获取本孤儿节点的祖先节点hash在孤儿链中，没有的话就返回孤儿节点本身hash
+// GetOrphanRoot 获取本孤儿节点的祖先节点hash在孤儿链中，没有的话就返回孤儿节点本身hash
 func (op *OrphanPool) GetOrphanRoot(hash []byte) []byte {
 	op.orphanLock.RLock()
 	defer op.orphanLock.RUnlock()
@@ -76,8 +76,8 @@ func (op *OrphanPool) GetOrphanRoot(hash []byte) []byte {
 	return orphanRoot
 }
 
-//RemoveOrphanBlockByHash 通过指定的区块hash
-//删除孤儿区块从OrphanPool中，以及prevOrphans中的index.
+// RemoveOrphanBlockByHash 通过指定的区块hash
+// 删除孤儿区块从OrphanPool中，以及prevOrphans中的index.
 func (op *OrphanPool) RemoveOrphanBlockByHash(hash []byte) {
 	op.orphanLock.Lock()
 	defer op.orphanLock.Unlock()
@@ -89,7 +89,7 @@ func (op *OrphanPool) RemoveOrphanBlockByHash(hash []byte) {
 	}
 }
 
-//RemoveOrphanBlock 删除孤儿节点从OrphanPool中，以及prevOrphans中的index
+// RemoveOrphanBlock 删除孤儿节点从OrphanPool中，以及prevOrphans中的index
 func (op *OrphanPool) RemoveOrphanBlock(orphan *orphanBlock) {
 	op.orphanLock.Lock()
 	defer op.orphanLock.Unlock()
@@ -99,7 +99,7 @@ func (op *OrphanPool) RemoveOrphanBlock(orphan *orphanBlock) {
 	op.removeOrphanBlock(orphan)
 }
 
-//RemoveOrphanBlock2 删除孤儿节点从OrphanPool中，以及prevOrphans中的index
+// RemoveOrphanBlock2 删除孤儿节点从OrphanPool中，以及prevOrphans中的index
 func (op *OrphanPool) RemoveOrphanBlock2(block *types.Block, expiration time.Time, broadcast bool, pid string, sequence int64) {
 	b := &orphanBlock{
 		block:      block,
@@ -190,12 +190,12 @@ func (op *OrphanPool) AddOrphanBlock(broadcast bool, block *types.Block, pid str
 	op.prevOrphans[string(prevHash)] = append(op.prevOrphans[string(prevHash)], oBlock)
 }
 
-//getChildOrphanCount 获取父hash对应的子孤儿节点的个数,内部函数
+// getChildOrphanCount 获取父hash对应的子孤儿节点的个数,内部函数
 func (op *OrphanPool) getChildOrphanCount(hash string) int {
 	return len(op.prevOrphans[hash])
 }
 
-//getChildOrphan 获取子孤儿连，内部函数
+// getChildOrphan 获取子孤儿连，内部函数
 func (op *OrphanPool) getChildOrphan(hash string, index int) *orphanBlock {
 	if index >= len(op.prevOrphans[hash]) {
 		return nil
@@ -203,7 +203,7 @@ func (op *OrphanPool) getChildOrphan(hash string, index int) *orphanBlock {
 	return op.prevOrphans[hash][index]
 }
 
-//ProcessOrphans 孤儿链的处理,将本hash对应的子block插入chain中
+// ProcessOrphans 孤儿链的处理,将本hash对应的子block插入chain中
 func (op *OrphanPool) ProcessOrphans(hash []byte, b *BlockChain) error {
 	chainlog.Debug("ProcessOrphans:parent", "hash", common.ToHex(hash))
 	op.orphanLock.Lock()

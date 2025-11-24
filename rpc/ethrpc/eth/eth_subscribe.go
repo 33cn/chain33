@@ -19,9 +19,9 @@ const (
 	EvmEvent = 4
 )
 
-//NewHeads ...
-//eth_subscribe
-//params:["newHeads"]
+// NewHeads ...
+// eth_subscribe
+// params:["newHeads"]
 func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
 	log.Info("eth_subscribe", "NewHeads ", "")
 	notifier, supported := rpc.NotifierFromContext(ctx)
@@ -65,11 +65,11 @@ func (e *ethHandler) NewHeads(ctx context.Context) (*rpc.Subscription, error) {
 	return subscription, nil
 }
 
-//Logs ...
-//eth_subscribe
-//params:["logs",{"address":"","topics":[""]}]
-//address：要监听日志的源地址或地址数组，可选
-//topics：要监听日志的主题匹配条件，可选
+// Logs ...
+// eth_subscribe
+// params:["logs",{"address":"","topics":[""]}]
+// address：要监听日志的源地址或地址数组，可选
+// topics：要监听日志的主题匹配条件，可选
 func (e *ethHandler) Logs(ctx context.Context, options *types.FilterQuery) (*rpc.Subscription, error) {
 	log.Info("eth_subscribe", "Logs,fromBlock:", options.FromBlock, "address:", options.Address)
 	notifier, supported := rpc.NotifierFromContext(ctx)

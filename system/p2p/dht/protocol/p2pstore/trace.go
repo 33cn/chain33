@@ -115,7 +115,7 @@ func (p *Protocol) addChunkProviderCache(chunkHash []byte, provider peer.ID) (ex
 	return
 }
 
-//TODO: 按时延对节点排序
+// TODO: 按时延对节点排序
 func (p *Protocol) getChunkProviderCache(chunkHash []byte) []peer.ID {
 	var peers []peer.ID
 	p.chunkProviderCacheMutex.RLock()

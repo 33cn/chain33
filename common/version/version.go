@@ -5,10 +5,10 @@
 // Package version 软件版本号
 package version
 
-//Version chain33 version
+// Version chain33 version
 var Version = "1.69.0"
 
-//var version key
+// var version key
 var (
 	WalletVerKey     = []byte("WalletVerKey")
 	BlockChainVerKey = []byte("BlockChainVerKey")
@@ -22,14 +22,14 @@ var (
 	BuildTime        string
 )
 
-//GetLocalDBKeyList 获取本地key列表
+// GetLocalDBKeyList 获取本地key列表
 func GetLocalDBKeyList() [][]byte {
 	return [][]byte{
 		WalletVerKey, BlockChainVerKey, LocalDBMeta, StoreDBMeta, MavlTreeVerKey,
 	}
 }
 
-//GetVersion 获取版本信息
+// GetVersion 获取版本信息
 func GetVersion() string {
 	if GitCommit != "" {
 		return Version + "-" + GitCommit
@@ -46,7 +46,7 @@ func GetLocalDBVersion() string {
 	return localversion
 }
 
-//SetLocalDBVersion 通过设置版本号，强制重建数据库
+// SetLocalDBVersion 通过设置版本号，强制重建数据库
 func SetLocalDBVersion(version string) {
 	if version != "" {
 		localversion = version
@@ -62,19 +62,19 @@ func GetStoreDBVersion() string {
 	return storeversion
 }
 
-//SetStoreDBVersion 通过设置版本号，强制重建数据库
+// SetStoreDBVersion 通过设置版本号，强制重建数据库
 func SetStoreDBVersion(version string) {
 	if version != "" {
 		storeversion = version
 	}
 }
 
-//GetAppVersion 获取应用 app 的版本
+// GetAppVersion 获取应用 app 的版本
 func GetAppVersion() string {
 	return appversion
 }
 
-//SetAppVersion 设置饮用的版本
+// SetAppVersion 设置饮用的版本
 func SetAppVersion(version string) {
 	if version != "" {
 		appversion = version

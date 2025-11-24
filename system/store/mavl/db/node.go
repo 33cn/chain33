@@ -138,7 +138,7 @@ func (node *Node) getHash(t *Tree, key []byte) (index int32, hash []byte, exists
 	return index, hash, exists
 }
 
-//通过index获取leaf节点信息
+// 通过index获取leaf节点信息
 func (node *Node) getByIndex(t *Tree, index int32) (key []byte, value []byte) {
 	if node.height == 0 {
 		if index == 0 {
@@ -260,7 +260,7 @@ func (node *Node) saveRootHash(t *Tree) (err error) {
 	return nil
 }
 
-//将内存中的node转换成存储到db中的格式
+// 将内存中的node转换成存储到db中的格式
 func (node *Node) storeNode(t *Tree) []byte {
 	var storeNode types.StoreNode
 
@@ -294,7 +294,7 @@ func (node *Node) storeNode(t *Tree) []byte {
 	return types.Encode(&storeNode)
 }
 
-//从指定node开始插入一个新的node，updated表示是否有叶子结点的value更新
+// 从指定node开始插入一个新的node，updated表示是否有叶子结点的value更新
 func (node *Node) set(t *Tree, key []byte, value []byte) (newSelf *Node, updated bool) {
 	if node.height == 0 {
 		cmp := bytes.Compare(key, node.key)

@@ -10,9 +10,9 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//CalcBitMap subs are align with subData,get the bases' tx's bitmap from subs result
+// CalcBitMap subs are align with subData,get the bases' tx's bitmap from subs result
 // if the tx ty is OK in subs, find the tx in base and set the index to 1, this function return base's bitmap
-//if all tx failed, the setBit will normalize result and just return nil slice
+// if all tx failed, the setBit will normalize result and just return nil slice
 func CalcBitMap(bases, subs [][]byte, subData []*types.ReceiptData) []byte {
 	rst := big.NewInt(0)
 
@@ -32,7 +32,7 @@ func CalcBitMap(bases, subs [][]byte, subData []*types.ReceiptData) []byte {
 	return rst.Bytes()
 }
 
-//CalcSingleBitMap calc bitmap to bases by data
+// CalcSingleBitMap calc bitmap to bases by data
 func CalcSingleBitMap(bases [][]byte, data []*types.ReceiptData) []byte {
 	rst := big.NewInt(0)
 
@@ -45,7 +45,7 @@ func CalcSingleBitMap(bases [][]byte, data []*types.ReceiptData) []byte {
 	return rst.Bytes()
 }
 
-//CalcBitMapByBitMap bitmap align with subs
+// CalcBitMapByBitMap bitmap align with subs
 func CalcBitMapByBitMap(bases, subs [][]byte, bitmap []byte) []byte {
 	rst := big.NewInt(0)
 	bit := big.NewInt(0).SetBytes(bitmap)
@@ -66,7 +66,7 @@ func CalcBitMapByBitMap(bases, subs [][]byte, bitmap []byte) []byte {
 	return rst.Bytes()
 }
 
-//SetAddrsBitMap 设置addrGroup范围内的bitmap，如果addrs在addrGroup不存在，也不设置,返回未命中的addrs
+// SetAddrsBitMap 设置addrGroup范围内的bitmap，如果addrs在addrGroup不存在，也不设置,返回未命中的addrs
 func SetAddrsBitMap(addrGroup, addrs []string) ([]byte, map[string]bool) {
 	rst := big.NewInt(0)
 	addrsMap := make(map[string]bool)
@@ -83,7 +83,7 @@ func SetAddrsBitMap(addrGroup, addrs []string) ([]byte, map[string]bool) {
 	return rst.Bytes(), addrsMap
 }
 
-//GetAddrsByBitMap 根据bitmap获取addrGroup范围内的addrs，
+// GetAddrsByBitMap 根据bitmap获取addrGroup范围内的addrs，
 func GetAddrsByBitMap(addrGroup []string, bitmap []byte) []string {
 	rst := big.NewInt(0).SetBytes(bitmap)
 	addrs := make([]string, 0)
@@ -96,7 +96,7 @@ func GetAddrsByBitMap(addrGroup []string, bitmap []byte) []string {
 	return addrs
 }
 
-//BitMapBit :index begin from 0, find the index bit, 1 or 0
+// BitMapBit :index begin from 0, find the index bit, 1 or 0
 func BitMapBit(bitmap []byte, index uint32) bool {
 	rst := big.NewInt(0).SetBytes(bitmap)
 	return rst.Bit(int(index)) == uint(0x1)

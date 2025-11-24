@@ -20,7 +20,7 @@ const ntpEpochOffset = 2208988800
 // 如果获取的ntp时间和自己时间相差太大，超过阈值，保守起见，不采用
 const safeDeltaScope = 300 * 1000 * int64(time.Millisecond)
 
-//ErrNetWorkDealy error
+// ErrNetWorkDealy error
 var ErrNetWorkDealy = errors.New("ErrNetWorkDealy")
 
 // NTP packet format (v3 with optional v4 fields removed)
@@ -52,7 +52,6 @@ var ErrNetWorkDealy = errors.New("ErrNetWorkDealy")
 // +                      Transmit Timestamp (64)                  +
 // |                                                               |
 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-//
 type packet struct {
 	Settings       uint8  // leap yr indicator, ver number, and mode
 	Stratum        uint8  // stratum of local clock
@@ -82,9 +81,9 @@ type packet struct {
         t1                t4         t5                  t8
 */
 
-//GetNtpTime 利用服务器返回的 t2, t3, 和本地的 t1, t4 校准时间
-//delt = ((t2-t1)+(t3-t4))/2
-//current = t4 + delt
+// GetNtpTime 利用服务器返回的 t2, t3, 和本地的 t1, t4 校准时间
+// delt = ((t2-t1)+(t3-t4))/2
+// current = t4 + delt
 func GetNtpTime(host string) (time.Time, error) {
 
 	// Setup a UDP connection
@@ -141,15 +140,15 @@ func GetNtpTime(host string) (time.Time, error) {
 	return t4.Add(delt), nil
 }
 
-//n timeserver
-//n/2+1 is ok and the same
+// n timeserver
+// n/2+1 is ok and the same
 type durationSlice []time.Duration
 
 func (s durationSlice) Len() int           { return len(s) }
 func (s durationSlice) Less(i, j int) bool { return abs(s[i]) < abs(s[j]) }
 func (s durationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-//GetRealTime 获取实际时间
+// GetRealTime 获取实际时间
 func GetRealTime(hosts []string) time.Time {
 	q := len(hosts)/2 + 1
 	//q := 5
@@ -223,7 +222,7 @@ func maxSubList(list []time.Duration, dt time.Duration) (sub []time.Duration) {
 	return sub
 }
 
-//GetRealTimeRetry 重试获取实际时间
+// GetRealTimeRetry 重试获取实际时间
 func GetRealTimeRetry(hosts []string, retry int) time.Time {
 	for i := 0; i < retry; i++ {
 		t := GetRealTime(hosts)

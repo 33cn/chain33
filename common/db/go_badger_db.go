@@ -15,7 +15,7 @@ import (
 
 var blog = log.New("module", "db.gobadgerdb")
 
-//GoBadgerDB db
+// GoBadgerDB db
 type GoBadgerDB struct {
 	BaseDB
 	db *badger.DB
@@ -28,7 +28,7 @@ func init() {
 	registerDBCreator(goBadgerDBBackendStr, dbCreator, false)
 }
 
-//NewGoBadgerDB new
+// NewGoBadgerDB new
 func NewGoBadgerDB(name string, dir string, cache int) (*GoBadgerDB, error) {
 	opts := badger.DefaultOptions(dir)
 	if cache <= 128 {
@@ -51,7 +51,7 @@ func NewGoBadgerDB(name string, dir string, cache int) (*GoBadgerDB, error) {
 	return &GoBadgerDB{db: db}, nil
 }
 
-//Get get
+// Get get
 func (db *GoBadgerDB) Get(key []byte) ([]byte, error) {
 	var val []byte
 	err := db.db.View(func(txn *badger.Txn) error {
@@ -85,7 +85,7 @@ func (db *GoBadgerDB) Get(key []byte) ([]byte, error) {
 	return val, nil
 }
 
-//Set set
+// Set set
 func (db *GoBadgerDB) Set(key []byte, value []byte) error {
 	err := db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set(key, value)
@@ -99,7 +99,7 @@ func (db *GoBadgerDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-//SetSync 同步
+// SetSync 同步
 func (db *GoBadgerDB) SetSync(key []byte, value []byte) error {
 	err := db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Set(key, value)
@@ -113,7 +113,7 @@ func (db *GoBadgerDB) SetSync(key []byte, value []byte) error {
 	return nil
 }
 
-//Delete 删除
+// Delete 删除
 func (db *GoBadgerDB) Delete(key []byte) error {
 	err := db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Delete(key)
@@ -127,7 +127,7 @@ func (db *GoBadgerDB) Delete(key []byte) error {
 	return nil
 }
 
-//DeleteSync 删除同步
+// DeleteSync 删除同步
 func (db *GoBadgerDB) DeleteSync(key []byte) error {
 	err := db.db.Update(func(txn *badger.Txn) error {
 		err := txn.Delete(key)
@@ -141,12 +141,12 @@ func (db *GoBadgerDB) DeleteSync(key []byte) error {
 	return nil
 }
 
-//DB db
+// DB db
 func (db *GoBadgerDB) DB() *badger.DB {
 	return db.db
 }
 
-//Close 关闭
+// Close 关闭
 func (db *GoBadgerDB) Close() {
 	err := db.db.Close()
 	if err != nil {
@@ -154,7 +154,7 @@ func (db *GoBadgerDB) Close() {
 	}
 }
 
-//Print 打印
+// Print 打印
 func (db *GoBadgerDB) Print() {
 	// TODO: Returns statistics of the underlying DB
 	err := db.db.View(func(txn *badger.Txn) error {
@@ -179,13 +179,13 @@ func (db *GoBadgerDB) Print() {
 	}
 }
 
-//Stats ...
+// Stats ...
 func (db *GoBadgerDB) Stats() map[string]string {
 	//TODO
 	return nil
 }
 
-//Iterator 迭代器
+// Iterator 迭代器
 func (db *GoBadgerDB) Iterator(start, end []byte, reverse bool) Iterator {
 	txn := db.db.NewTransaction(false)
 	opts := badger.DefaultIteratorOptions
@@ -212,13 +212,13 @@ type goBadgerDBIt struct {
 	err error
 }
 
-//Next next
+// Next next
 func (it *goBadgerDBIt) Next() bool {
 	it.Iterator.Next()
 	return it.Valid()
 }
 
-//Rewind ...
+// Rewind ...
 func (it *goBadgerDBIt) Rewind() bool {
 	if it.reverse {
 		it.Seek(it.end)
@@ -228,19 +228,19 @@ func (it *goBadgerDBIt) Rewind() bool {
 	return it.Valid()
 }
 
-//Seek 查找
+// Seek 查找
 func (it *goBadgerDBIt) Seek(key []byte) bool {
 	it.Iterator.Seek(key)
 	return it.Valid()
 }
 
-//Close 关闭
+// Close 关闭
 func (it *goBadgerDBIt) Close() {
 	it.Iterator.Close()
 	it.txn.Discard()
 }
 
-//Valid 是否合法
+// Valid 是否合法
 func (it *goBadgerDBIt) Valid() bool {
 	return it.Iterator.Valid() && it.checkKey(it.Key())
 }
@@ -269,7 +269,7 @@ func (it *goBadgerDBIt) Error() error {
 	return it.err
 }
 
-//GoBadgerDBBatch batch
+// GoBadgerDBBatch batch
 type GoBadgerDBBatch struct {
 	db    *GoBadgerDB
 	batch *badger.Txn
@@ -278,13 +278,13 @@ type GoBadgerDBBatch struct {
 	len  int
 }
 
-//NewBatch new
+// NewBatch new
 func (db *GoBadgerDB) NewBatch(sync bool) Batch {
 	batch := db.db.NewTransaction(true)
 	return &GoBadgerDBBatch{db, batch, 0, 0}
 }
 
-//Set set
+// Set set
 func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
 	err := mBatch.batch.Set(key, value)
 	if err != nil {
@@ -295,7 +295,7 @@ func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
 	mBatch.len += len(value)
 }
 
-//Delete 设置
+// Delete 设置
 func (mBatch *GoBadgerDBBatch) Delete(key []byte) {
 	err := mBatch.batch.Delete(key)
 	if err != nil {
@@ -305,7 +305,7 @@ func (mBatch *GoBadgerDBBatch) Delete(key []byte) {
 	mBatch.len++
 }
 
-//Write 写入
+// Write 写入
 func (mBatch *GoBadgerDBBatch) Write() error {
 	defer mBatch.batch.Discard()
 
@@ -316,17 +316,17 @@ func (mBatch *GoBadgerDBBatch) Write() error {
 	return nil
 }
 
-//ValueSize batch大小
+// ValueSize batch大小
 func (mBatch *GoBadgerDBBatch) ValueSize() int {
 	return mBatch.size
 }
 
-//ValueLen  batch数量
+// ValueLen  batch数量
 func (mBatch *GoBadgerDBBatch) ValueLen() int {
 	return mBatch.len
 }
 
-//Reset 重置
+// Reset 重置
 func (mBatch *GoBadgerDBBatch) Reset() {
 	if nil != mBatch.db && nil != mBatch.db.db {
 		mBatch.batch = mBatch.db.db.NewTransaction(true)

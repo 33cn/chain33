@@ -7,10 +7,11 @@
 package types
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -179,7 +180,7 @@ func (x *EVMTxAndLogs) GetLogsPerTx() *EVMLogsPerTx {
 	return nil
 }
 
-//一个块中包含的多条evm event log数据
+// 一个块中包含的多条evm event log数据
 type EVMTxLogPerBlk struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -275,7 +276,7 @@ func (x *EVMTxLogPerBlk) GetSeqNum() int64 {
 	return 0
 }
 
-//多个块中包含的多条evm event log数据
+// 多个块中包含的多条evm event log数据
 type EVMTxLogsInBlks struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

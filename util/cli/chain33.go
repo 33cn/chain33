@@ -63,7 +63,7 @@ var (
 	startHeight = flag.Int64("startheight", 0, "export block start height")
 )
 
-//RunChain33 : run Chain33
+// RunChain33 : run Chain33
 func RunChain33(name, defCfg string) {
 	flag.Parse()
 	if *versionCmd {

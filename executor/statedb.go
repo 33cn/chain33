@@ -85,7 +85,7 @@ func (s *StateDB) Rollback() {
 	s.resetTx()
 }
 
-//ResetCache evm 使用
+// ResetCache evm 使用
 func (s *StateDB) ResetCache() {
 	s.cache.Reset()
 	s.resetTx()

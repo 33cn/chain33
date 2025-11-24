@@ -7,10 +7,10 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
-//LocalDB 本地数据库，类似localdb，不加入区块链的状态。
-//数据库只读，不能落盘
-//数据的get set 主要经过 cache
-//如果需要进行list, 那么把get set 的内容加入到 后端数据库
+// LocalDB 本地数据库，类似localdb，不加入区块链的状态。
+// 数据库只读，不能落盘
+// 数据的get set 主要经过 cache
+// 如果需要进行list, 那么把get set 的内容加入到 后端数据库
 type LocalDB struct {
 	cache        *cacheDB
 	txcache      *cacheDB
@@ -25,7 +25,7 @@ type LocalDB struct {
 	disablewrite bool
 }
 
-//NewLocalDB 创建一个新的LocalDB
+// NewLocalDB 创建一个新的LocalDB
 func NewLocalDB(cli queue.Client, api client.QueueProtocolAPI, readOnly bool) db.KVDB {
 
 	txid, err := api.LocalNew(readOnly)
@@ -41,22 +41,22 @@ func NewLocalDB(cli queue.Client, api client.QueueProtocolAPI, readOnly bool) db
 	}
 }
 
-//DisableRead 禁止读取LocalDB数据库
+// DisableRead 禁止读取LocalDB数据库
 func (l *LocalDB) DisableRead() {
 	l.disableread = true
 }
 
-//DisableWrite 禁止写LocalDB数据库
+// DisableWrite 禁止写LocalDB数据库
 func (l *LocalDB) DisableWrite() {
 	l.disablewrite = true
 }
 
-//EnableRead 启动读取LocalDB数据库
+// EnableRead 启动读取LocalDB数据库
 func (l *LocalDB) EnableRead() {
 	l.disableread = false
 }
 
-//EnableWrite 启动写LocalDB数据库
+// EnableWrite 启动写LocalDB数据库
 func (l *LocalDB) EnableWrite() {
 	l.disablewrite = false
 }
@@ -78,7 +78,7 @@ func (l *LocalDB) GetSetKeys() (keys []string) {
 	return l.keys
 }
 
-//Begin 开始一个事务
+// Begin 开始一个事务
 func (l *LocalDB) Begin() {
 	l.intx = true
 	l.keys = nil
@@ -93,7 +93,7 @@ func (l *LocalDB) begin() {
 	}
 }
 
-//第一次save 的时候，远程做一个 begin 操作，开始事务
+// 第一次save 的时候，远程做一个 begin 操作，开始事务
 func (l *LocalDB) save() error {
 	if l.kvs != nil {
 		if !l.hasbegin {
@@ -111,7 +111,7 @@ func (l *LocalDB) save() error {
 	return nil
 }
 
-//Commit 提交一个事务
+// Commit 提交一个事务
 func (l *LocalDB) Commit() error {
 	l.cache.Merge(l.txcache)
 	err := l.save()
@@ -125,7 +125,7 @@ func (l *LocalDB) Commit() error {
 	return err
 }
 
-//Close 提交一个事务
+// Close 提交一个事务
 func (l *LocalDB) Close() error {
 	l.cache.Reset()
 	l.resetTx()
@@ -134,13 +134,13 @@ func (l *LocalDB) Close() error {
 
 }
 
-//ResetCache evm 使用
+// ResetCache evm 使用
 func (l *LocalDB) ResetCache() {
 	l.cache.Reset()
 	l.resetTx()
 }
 
-//Rollback 回滚修改
+// Rollback 回滚修改
 func (l *LocalDB) Rollback() {
 	if l.hasbegin {
 		err := l.api.LocalRollback(l.txid)
@@ -151,7 +151,7 @@ func (l *LocalDB) Rollback() {
 	l.resetTx()
 }
 
-//Get 获取key
+// Get 获取key
 func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	if l.disableread {
 		return nil, types.ErrDisableRead
@@ -180,7 +180,7 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 	return resp.Values[0], nil
 }
 
-//Set 获取key
+// Set 获取key
 func (l *LocalDB) Set(key []byte, value []byte) error {
 
 	if l.disablewrite {
@@ -234,7 +234,7 @@ func newcacheDB(size int) *cacheDB {
 	}
 }
 
-//return a flag: is key is in cache
+// return a flag: is key is in cache
 func (db *cacheDB) Get(key []byte) (value []byte, incache bool, err error) {
 	if db.data == nil {
 		return nil, false, types.ErrNotFound

@@ -7,10 +7,11 @@
 package types
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -20,16 +21,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-//区块头信息
-// 	 version : 版本信息
-//	 parentHash :父哈希
-// 	 txHash : 交易根哈希
-//	 stateHash :状态哈希
-// 	 height : 区块高度
-//	 blockTime :区块产生时的时标
-// 	 txCount : 区块上所有交易个数
-//	 difficulty :区块难度系数，
-//	 signature :交易签名
+// 区块头信息
+//
+//	version : 版本信息
+//	parentHash :父哈希
+//	txHash : 交易根哈希
+//	stateHash :状态哈希
+//	height : 区块高度
+//	blockTime :区块产生时的时标
+//	txCount : 区块上所有交易个数
+//	difficulty :区块难度系数，
+//	signature :交易签名
 type Header struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -149,7 +151,8 @@ func (x *Header) GetSignature() *Signature {
 	return nil
 }
 
-//  参考Header解释
+//	参考Header解释
+//
 // mainHash 平行链上使用的字段，代表这个区块的主链hash
 type Block struct {
 	state         protoimpl.MessageState
@@ -435,7 +438,7 @@ func (x *BlockSeqs) GetSeqs() []*BlockSeq {
 	return nil
 }
 
-//节点ID以及对应的Block
+// 节点ID以及对应的Block
 type BlockPid struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -642,10 +645,11 @@ func (x *HeadersPid) GetHeaders() *Headers {
 	return nil
 }
 
-//区块视图
-// 	 head : 区块头信息
-//	 txCount :区块上交易个数
-// 	 txHashes : 区块上交易的哈希列表
+// 区块视图
+//
+//	head : 区块头信息
+//	txCount :区块上交易个数
+//	txHashes : 区块上交易的哈希列表
 type BlockOverview struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -709,9 +713,10 @@ func (x *BlockOverview) GetTxHashes() [][]byte {
 	return nil
 }
 
-//区块详细信息
-// 	 block : 区块信息
-//	 receipts :区块上所有交易的收据信息列表
+// 区块详细信息
+//
+//	block : 区块信息
+//	receipts :区块上所有交易的收据信息列表
 type BlockDetail struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -877,10 +882,11 @@ func (x *ReceiptCheckTxList) GetErrs() []string {
 	return nil
 }
 
-//区块链状态
-// 	 currentHeight : 区块最新高度
-//	 mempoolSize :内存池大小
-// 	 msgQueueSize : 消息队列大小
+// 区块链状态
+//
+//	currentHeight : 区块最新高度
+//	mempoolSize :内存池大小
+//	msgQueueSize : 消息队列大小
 type ChainStatus struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -944,11 +950,12 @@ func (x *ChainStatus) GetMsgQueueSize() int64 {
 	return 0
 }
 
-//获取区块信息
-// 	 start : 获取区块的开始高度
-//	 end :获取区块的结束高度
-// 	 Isdetail : 是否需要获取区块的详细信息
-// 	 pid : peer列表
+// 获取区块信息
+//
+//	start : 获取区块的开始高度
+//	end :获取区块的结束高度
+//	Isdetail : 是否需要获取区块的详细信息
+//	pid : peer列表
 type ReqBlocks struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1114,13 +1121,14 @@ func (x *ReplyBlockHeight) GetHeight() int64 {
 	return 0
 }
 
-//区块体信息
-// 	 txs : 区块上所有交易列表
-//	 receipts :区块上所有交易的收据信息列表
-// 	 mainHash : 主链区块hash，平行链使用
-//	 mainHeight :主链区块高度，平行链使用
-// 	 hash : 本链区块hash
-//	 height :本链区块高度
+// 区块体信息
+//
+//	txs : 区块上所有交易列表
+//	receipts :区块上所有交易的收据信息列表
+//	mainHash : 主链区块hash，平行链使用
+//	mainHeight :主链区块高度，平行链使用
+//	hash : 本链区块hash
+//	height :本链区块高度
 type BlockBody struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1208,10 +1216,11 @@ func (x *BlockBody) GetHeight() int64 {
 	return 0
 }
 
-//区块回执
-//	 receipts :区块上所有交易的收据信息列表
-// 	 hash : 本链区块hash
-//	 height :本链区块高度
+// 区块回执
+//
+//	receipts :区块上所有交易的收据信息列表
+//	hash : 本链区块hash
+//	height :本链区块高度
 type BlockReceipt struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1338,7 +1347,7 @@ func (x *BlockKVs) GetHeight() int64 {
 	return 0
 }
 
-//  区块追赶主链状态，用于判断本节点区块是否已经同步好
+// 区块追赶主链状态，用于判断本节点区块是否已经同步好
 type IsCaughtUp struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1386,7 +1395,7 @@ func (x *IsCaughtUp) GetIscaughtup() bool {
 	return false
 }
 
-//  ntp时钟状态
+// ntp时钟状态
 type IsNtpClockSync struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1514,7 +1523,7 @@ func (x *ChainExecutor) GetExtra() []byte {
 	return nil
 }
 
-//  通过block hash记录block的操作类型及add/del：1/2
+// 通过block hash记录block的操作类型及add/del：1/2
 type BlockSequence struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1618,10 +1627,11 @@ func (x *BlockSequences) GetItems() []*BlockSequence {
 	return nil
 }
 
-//平行链区块详细信息
-// 	 blockdetail : 区块详细信息
-//	 sequence :区块序列号
-//   isSync:写数据库时是否需要刷盘
+// 平行链区块详细信息
+//
+//		 blockdetail : 区块详细信息
+//		 sequence :区块序列号
+//	  isSync:写数据库时是否需要刷盘
 type ParaChainBlockDetail struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1826,7 +1836,7 @@ func (x *ParaTxDetail) GetProofs() [][]byte {
 	return nil
 }
 
-//交易的详情：
+// 交易的详情：
 // index:本交易在block中索引值，用于proof的证明
 // tx:本交易内容
 // receipt:本交易在主链的执行回执
@@ -1902,7 +1912,7 @@ func (x *TxDetail) GetProofs() [][]byte {
 	return nil
 }
 
-//通过seq区间和title请求平行链的交易
+// 通过seq区间和title请求平行链的交易
 type ReqParaTxByTitle struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1974,7 +1984,7 @@ func (x *ReqParaTxByTitle) GetIsSeq() bool {
 	return false
 }
 
-//导出block文件头信息
+// 导出block文件头信息
 type FileHeader struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2046,7 +2056,7 @@ func (x *FileHeader) GetTestNet() bool {
 	return false
 }
 
-//存储block高度和hash
+// 存储block高度和hash
 type EndBlock struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2102,7 +2112,7 @@ func (x *EndBlock) GetHash() []byte {
 	return nil
 }
 
-//通过seq获取区块的header信息
+// 通过seq获取区块的header信息
 type HeaderSeq struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2166,7 +2176,7 @@ func (x *HeaderSeq) GetHeader() *Header {
 	return nil
 }
 
-//批量推送区块的header信息
+// 批量推送区块的header信息
 type HeaderSeqs struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2214,7 +2224,7 @@ func (x *HeaderSeqs) GetSeqs() []*HeaderSeq {
 	return nil
 }
 
-//记录本平行链所在区块的信息以及子根hash值
+// 记录本平行链所在区块的信息以及子根hash值
 // childHash:平行链子roothash值
 // startIndex:此平行链的第一笔交易的index索引值
 // childHashIndex:此平行链子roothash在本区块中的索引值
@@ -2361,7 +2371,7 @@ func (x *HeightParas) GetItems() []*HeightPara {
 	return nil
 }
 
-//记录平行链第一笔交易的index,以及平行链的roothash
+// 记录平行链第一笔交易的index,以及平行链的roothash
 // title:子链名字，主链的默认是main
 // startIndex:子链第一笔交易的索引
 // childHash:子链的根hash
@@ -2437,7 +2447,7 @@ func (x *ChildChain) GetTxCount() int32 {
 	return 0
 }
 
-//通过指定title以及height翻页获取拥有此title交易的区块高度列表
+// 通过指定title以及height翻页获取拥有此title交易的区块高度列表
 type ReqHeightByTitle struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2620,7 +2630,7 @@ func (x *BlockInfo) GetHash() []byte {
 	return nil
 }
 
-//通过高度列表和title获取平行链交易
+// 通过高度列表和title获取平行链交易
 type ReqParaTxByHeight struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2676,7 +2686,7 @@ func (x *ReqParaTxByHeight) GetTitle() string {
 	return ""
 }
 
-//用于比较最优区块的消息结构
+// 用于比较最优区块的消息结构
 type CmpBlock struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2964,11 +2974,12 @@ func (x *ChunkInfo) GetEnd() int64 {
 	return 0
 }
 
-//获取ChunkRecord信息
-// 	 start : 获取Chunk的开始高度
-//	 end :获取Chunk的结束高度
-// 	 Isdetail : 是否需要获取所有Chunk Record 信息，false时候获取到chunkNum--->chunkhash的KV对，true获取全部
-// 	 pid : peer列表
+// 获取ChunkRecord信息
+//
+//	start : 获取Chunk的开始高度
+//	end :获取Chunk的结束高度
+//	Isdetail : 是否需要获取所有Chunk Record 信息，false时候获取到chunkNum--->chunkhash的KV对，true获取全部
+//	pid : peer列表
 type ReqChunkRecords struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

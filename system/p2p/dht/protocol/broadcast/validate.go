@@ -281,7 +281,6 @@ func (v *validator) validateBlock(ctx context.Context, _ peer.ID, msg *ps.Messag
 	return ps.ValidationAccept
 }
 
-//
 func (v *validator) validatePeer(ctx context.Context, _ peer.ID, msg *ps.Message) ps.ValidationResult {
 	id := msg.GetFrom()
 	if v.isDeniedPeer(id) {

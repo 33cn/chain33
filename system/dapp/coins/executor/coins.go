@@ -49,7 +49,7 @@ func Init(name string, cfg *types.Chain33Config, sub []byte) {
 	InitExecType()
 }
 
-//InitExecType the initialization process is relatively heavyweight, lots of reflect, so it's global
+// InitExecType the initialization process is relatively heavyweight, lots of reflect, so it's global
 func InitExecType() {
 	ety := types.LoadExecutorType(driverName)
 	ety.InitFuncList(types.ListMethod(&Coins{}))

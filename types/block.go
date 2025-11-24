@@ -21,7 +21,7 @@ func (block *Block) Hash(cfg *Chain33Config) []byte {
 	return block.HashOld()
 }
 
-//HashByForkHeight hash 通过自己设置的fork 高度计算 hash
+// HashByForkHeight hash 通过自己设置的fork 高度计算 hash
 func (block *Block) HashByForkHeight(forkheight int64) []byte {
 	if block.Height >= forkheight {
 		return block.HashNew()
@@ -29,13 +29,13 @@ func (block *Block) HashByForkHeight(forkheight int64) []byte {
 	return block.HashOld()
 }
 
-//HashNew 新版本的Hash
+// HashNew 新版本的Hash
 func (block *Block) HashNew() []byte {
 	data := Encode(block.getHeaderHashNew())
 	return common.Sha256(data)
 }
 
-//HashOld 老版本的hash
+// HashOld 老版本的hash
 func (block *Block) HashOld() []byte {
 	data := Encode(block.getHeaderHashOld())
 	return common.Sha256(data)
@@ -197,11 +197,11 @@ func CheckSign(data []byte, execer string, sign *Signature, blockHeight int64) b
 	return c.Validate(data, sign.Pubkey, sign.Signature) == nil
 }
 
-//FilterParaTxsByTitle 过滤指定title的平行链交易
-//1，单笔平行连交易
-//2,交易组中的平行连交易，需要将整个交易组都过滤出来
-//目前暂时不返回单个交易的proof证明路径，
-//后面会将平行链的交易组装到一起，构成一个子roothash。会返回子roothash的proof证明路径
+// FilterParaTxsByTitle 过滤指定title的平行链交易
+// 1，单笔平行连交易
+// 2,交易组中的平行连交易，需要将整个交易组都过滤出来
+// 目前暂时不返回单个交易的proof证明路径，
+// 后面会将平行链的交易组装到一起，构成一个子roothash。会返回子roothash的proof证明路径
 func (blockDetail *BlockDetail) FilterParaTxsByTitle(cfg *Chain33Config, title string) *ParaTxDetail {
 	var paraTx ParaTxDetail
 	paraTx.Header = blockDetail.Block.GetHeader(cfg)
@@ -230,7 +230,7 @@ func (blockDetail *BlockDetail) FilterParaTxsByTitle(cfg *Chain33Config, title s
 	return &paraTx
 }
 
-//filterParaTxGroup 获取para交易所在交易组信息
+// filterParaTxGroup 获取para交易所在交易组信息
 func (blockDetail *BlockDetail) filterParaTxGroup(tx *Transaction, index int) ([]*TxDetail, int) {
 	var headIdx int
 	var txDetails []*TxDetail

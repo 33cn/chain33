@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package types;
-option go_package = "github.com/33cn/chain33/types";
+option  go_package = "github.com/33cn/chain33/types";
 
 message Reply {
     bool  isOk = 1;

@@ -92,7 +92,7 @@ func init() {
 	resolver.Register(&multipleBuilder{})
 }
 
-//NewMultipleURL 创建url
+// NewMultipleURL 创建url
 func NewMultipleURL(url string) string {
 	return multiPleHostsBalancerPrefix + url
 }

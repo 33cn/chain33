@@ -6,7 +6,7 @@
 
 package strategy
 
-//const
+// const
 const (
 	// 創建main.go的文件模板
 	CpftMainGo = `package main
