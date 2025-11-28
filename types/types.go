@@ -26,9 +26,6 @@ import (
 	_ "github.com/33cn/chain33/system/address/btc"
 	"github.com/33cn/chain33/types/jsonpb"
 	"github.com/golang/protobuf/proto"
-
-	// 注册system的crypto 加密算法
-	_ "github.com/33cn/chain33/system/crypto/init"
 )
 
 var tlog = log.New("module", "types")

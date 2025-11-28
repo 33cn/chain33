@@ -24,8 +24,8 @@ type subInitFunc func(ctx CryptoContext) error
 var (
 	cryptoCtx    = &CryptoContext{}
 	lock         = sync.RWMutex{}
-	handlers     map[int64]msgHandler
-	subInitFuncs map[string]subInitFunc
+	handlers     = make(map[int64]msgHandler)
+	subInitFuncs = make(map[string]subInitFunc)
 	log          = log15.New("module", "crypto.client")
 )
 
