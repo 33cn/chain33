@@ -1,13 +1,14 @@
 package gg18
 
 import (
+	"sync"
+
 	"github.com/33cn/chain33/system/crypto/tss"
 	"github.com/getamis/alice/crypto/elliptic"
 	"github.com/getamis/alice/crypto/homo/paillier"
 	"github.com/getamis/alice/crypto/tss/dkg"
 	"github.com/getamis/alice/crypto/tss/ecdsa/gg18/reshare"
 	"github.com/getamis/alice/crypto/tss/ecdsa/gg18/signer"
-	"sync"
 )
 
 var (
@@ -42,8 +43,8 @@ func ProcessSign(peers []string, msg []byte, dkgResult *dkg.Result) (*signer.Res
 	defer lock.Unlock()
 
 	var err error
-	pm := tss.NewPeerManager(peers, DkgProtocol)
-	listener := tss.NewListener(DkgProtocol)
+	pm := tss.NewPeerManager(peers, SignProtocol)
+	listener := tss.NewListener(SignProtocol)
 	homo, err := paillier.NewPaillier(2048)
 	if err != nil {
 		log.Error("ProcessSign", "NewPaillier err", err)
@@ -73,8 +74,8 @@ func ProcessReshare(peers []string, dkgRes *dkg.Result, threshold uint32) (*resh
 	defer lock.Unlock()
 
 	var err error
-	pm := tss.NewPeerManager(peers, DkgProtocol)
-	listener := tss.NewListener(DkgProtocol)
+	pm := tss.NewPeerManager(peers, ReshareProtocol)
+	listener := tss.NewListener(ReshareProtocol)
 
 	reshareCore, err = reshare.NewReshare(pm, threshold, dkgRes.PublicKey, dkgRes.Share,
 		dkgRes.Bks, listener)
