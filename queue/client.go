@@ -41,6 +41,7 @@ type Client interface {
 	NewMessage(topic string, ty int64, data interface{}) (msg *Message)
 	FreeMessage(msg ...*Message) //回收msg， 需要注意回收时上下文不再引用
 	GetConfig() *types.Chain33Config
+	GetQueue() Queue
 }
 
 // Module be used for module interface
@@ -78,6 +79,11 @@ func (client *client) GetConfig() *types.Chain33Config {
 		panic("Chain33Config is nil")
 	}
 	return cfg
+}
+
+// GetQueue get queue
+func (client *client) GetQueue() Queue {
+	return client.q
 }
 
 // Send 发送消息,msg 消息 ,waitReply 是否等待回应
