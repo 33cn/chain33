@@ -16,7 +16,7 @@ var (
 )
 
 // ProcessDKG run dkg
-func ProcessDKG(peers []string, threshold, rank uint32) (*dkg.Result, error) {
+func ProcessDKG(peers []string, threshold, rank uint32) (*tss.DKGResult, error) {
 	lock.Lock()
 	defer lock.Unlock()
 	var err error
@@ -34,11 +34,16 @@ func ProcessDKG(peers []string, threshold, rank uint32) (*dkg.Result, error) {
 		log.Error("ProcessDKG", "listener done err", err)
 		return nil, err
 	}
-	return dkgCore.GetResult()
+	result, err := dkgCore.GetResult()
+	if err != nil {
+		log.Error("ProcessDKG", "GetResult err", err)
+		return nil, err
+	}
+	return tss.NewDKGResult(result), nil
 }
 
 // ProcessSign sign message
-func ProcessSign(peers []string, msg []byte, dkgResult *dkg.Result) (*signer.Result, error) {
+func ProcessSign(peers []string, msg []byte, result *tss.DKGResult) (*signer.Result, error) {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -48,6 +53,11 @@ func ProcessSign(peers []string, msg []byte, dkgResult *dkg.Result) (*signer.Res
 	homo, err := paillier.NewPaillier(2048)
 	if err != nil {
 		log.Error("ProcessSign", "NewPaillier err", err)
+		return nil, err
+	}
+	dkgResult, err := tss.ConvertDKGResult(result)
+	if err != nil {
+		log.Error("ProcessSign", "ConvertDKGResult err", err)
 		return nil, err
 	}
 	signerCore, err = signer.NewSigner(pm, dkgResult.PublicKey, homo, dkgResult.Share,
@@ -69,11 +79,15 @@ func ProcessSign(peers []string, msg []byte, dkgResult *dkg.Result) (*signer.Res
 }
 
 // ProcessReshare reshare public key
-func ProcessReshare(peers []string, dkgRes *dkg.Result, threshold uint32) (*reshare.Result, error) {
+func ProcessReshare(peers []string, result *tss.DKGResult, threshold uint32) (*reshare.Result, error) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	var err error
+	dkgRes, err := tss.ConvertDKGResult(result)
+	if err != nil {
+		log.Error("ProcessReshare", "ConvertDKGResult err", err)
+		return nil, err
+	}
 	pm := tss.NewPeerManager(peers, ReshareProtocol)
 	listener := tss.NewListener(ReshareProtocol)
 
