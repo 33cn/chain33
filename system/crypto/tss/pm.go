@@ -19,7 +19,7 @@ type peerManager struct {
 	ctx       context.Context
 }
 
-// NewPeerManager new pm， peers是参与节点列表，可能包含本节点
+// NewPeerManager new pm， peers是参与节点id列表
 func NewPeerManager(peers []string, protocol, sessionID string) *peerManager {
 
 	ctx := cryptocli.GetCryptoContext()
@@ -80,9 +80,9 @@ func (p *peerManager) EnsurePeersReady() {
 			continue
 		}
 		if p.selfID == "" {
-			p.syncSelfAndPeers(peers)
+			p.selfID = peers[len(peers)-1].Name
 		}
-		if len(peers) > len(p.peerIDs) && p.hasAllPeersConnected(peers) {
+		if p.hasAllPeersConnected(peers) {
 			return
 		}
 		log.Debug("EnsurePeersReady waiting for peers to sync", "session", p.sessionID)
@@ -108,7 +108,7 @@ func (p *peerManager) EnsureSignerReady(threshold uint32, bks map[string]*BK) {
 			continue
 		}
 		if p.selfID == "" {
-			p.syncSelfAndPeers(peers)
+			p.selfID = peers[len(peers)-1].Name
 		}
 
 		if isValidPeerCombination(peers, threshold, bks) {
@@ -124,6 +124,9 @@ func (p *peerManager) EnsureSignerReady(threshold uint32, bks map[string]*BK) {
 }
 
 func (p *peerManager) hasAllPeersConnected(peers []*types.Peer) bool {
+	if len(peers) < len(p.peerIDs) {
+		return false
+	}
 	peerMap := make(map[string]struct{}, len(peers))
 	for _, peer := range peers {
 		peerMap[peer.Name] = struct{}{}
@@ -152,20 +155,6 @@ func (p *peerManager) fetchConnectedPeers() ([]*types.Peer, error) {
 	}
 	return resp.GetData().(*types.PeerList).GetPeers(), nil
 
-}
-
-func (p *peerManager) syncSelfAndPeers(peers []*types.Peer) {
-	
-	// 根据p2p协议，selfID是最后一个节点
-	p.selfID = peers[len(peers)-1].Name
-	filtered := p.peerIDs[:0]
-	for _, peerID := range p.peerIDs {
-		if peerID == p.selfID {
-			continue
-		}
-		filtered = append(filtered, peerID)
-	}
-	p.peerIDs = filtered
 }
 
 
