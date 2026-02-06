@@ -24,7 +24,7 @@ func ProcessDKG(peers []string, threshold, rank uint32) (*tss.DKGResult, error) 
 		return nil, err
 	}
 	session.dkg = dkgCore
-	pm.EnsureAllConnected()
+	pm.EnsurePeersReady()
 	dkgCore.Start()
 	defer dkgCore.Stop()
 
@@ -41,7 +41,7 @@ func ProcessDKG(peers []string, threshold, rank uint32) (*tss.DKGResult, error) 
 }
 
 // ProcessSign sign message
-func ProcessSign(peers []string, msg []byte, result *tss.DKGResult) (*signer.Result, error) {
+func ProcessSign(peers []string, msg []byte, result *tss.DKGResult, threshold uint32) (*signer.Result, error) {
 	sessionID, session := newSession()
 	defer func() {
 		session.signer = nil
@@ -66,7 +66,7 @@ func ProcessSign(peers []string, msg []byte, result *tss.DKGResult) (*signer.Res
 		return nil, err
 	}
 	session.signer = signerCore
-	pm.EnsureAllConnected()
+	pm.EnsureSignerReady(threshold, result.Bks)
 	signerCore.Start()
 	defer signerCore.Stop()
 
@@ -100,7 +100,7 @@ func ProcessReshare(peers []string, result *tss.DKGResult, threshold uint32) (*r
 		return nil, err
 	}
 	session.reshare = reshareCore
-	pm.EnsureAllConnected()
+	pm.EnsurePeersReady()
 	reshareCore.Start()
 	defer reshareCore.Stop()
 
