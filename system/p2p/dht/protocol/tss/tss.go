@@ -38,15 +38,24 @@ func (t *tss) init(env *protocol.P2PEnv) {
 
 func (t *tss) handleTSSEvent(qMsg *queue.Message) {
 
-	wMsg := qMsg.GetData().(MessageWrapper)
+	var wMsg *MessageWrapper
+	switch data := qMsg.GetData().(type) {
+	case *MessageWrapper:
+		wMsg = data
+	case MessageWrapper:
+		wMsg = &data
+	default:
+		log.Error("handleTSSEvent", "err", "invalid message type")
+		return
+	}
 	tssMsg := &types.TSSMessage{
-		Protocol: wMsg.Protocol,
+		Protocol: ComposeProtocol(wMsg.Protocol, wMsg.SessionID),
 		Msg:      wMsg.Msg,
 	}
 	pid, _ := peer.Decode(wMsg.PeerID)
 	stream, err := t.Host.NewStream(t.Ctx, pid, protocolID)
 	if err != nil {
-		log.Error("handleTSSEvent", "peer", wMsg.PeerID, "newStream err", err)
+		log.Error("handleTSSEvent", "peer", wMsg.PeerID, "session", wMsg.SessionID, "newStream err", err)
 		return
 	}
 
@@ -55,7 +64,7 @@ func (t *tss) handleTSSEvent(qMsg *queue.Message) {
 
 	err = protocol.WriteStream(tssMsg, stream)
 	if err != nil {
-		log.Error("handleTSSEvent", "peer", wMsg.PeerID, "writeStream err", err)
+		log.Error("handleTSSEvent", "peer", wMsg.PeerID, "session", wMsg.SessionID, "writeStream err", err)
 	}
 }
 
@@ -68,15 +77,17 @@ func (t *tss) handleTSSStream(stream network.Stream) {
 		log.Error("handleTSSStream", "peer", peerName, "readStream err", err)
 		return
 	}
+	baseProtocol, sessionID := SplitProtocol(tssMsg.Protocol)
 	wMsg := &MessageWrapper{
-		Protocol: tssMsg.Protocol,
-		Msg:      tssMsg.Msg,
-		PeerID:   peerName,
+		Protocol:  baseProtocol,
+		SessionID: sessionID,
+		Msg:       tssMsg.Msg,
+		PeerID:    peerName,
 	}
 	qMsg := t.QueueClient.NewMessage("crypto", types.EventCryptoTssMsg, wMsg)
 	err = t.QueueClient.Send(qMsg, false)
 
 	if err != nil {
-		log.Error("handleTSSStream", "peer", peerName, "send queue err", err)
+		log.Error("handleTSSStream", "peer", peerName, "session", sessionID, "send queue err", err)
 	}
 }

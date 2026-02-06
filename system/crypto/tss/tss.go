@@ -2,22 +2,23 @@ package tss
 
 import (
 	"context"
+	"runtime"
+	"sync"
+
 	cryptocli "github.com/33cn/chain33/common/crypto/client"
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
-	"runtime"
-	"sync"
 )
 
 // MessageHandler handle system message
-type MessageHandler func(msg []byte)
+type MessageHandler func(msg *MessageWrapper)
 
 var (
 	lock     sync.Mutex
 	initOnce sync.Once
 	handlers = make(map[string]MessageHandler)
-	msgChan  = make(chan *MessageWrapper, 128)
+	msgChan  = make(chan *MessageWrapper, 1024)
 	log      = log15.New("module", "tss")
 )
 
@@ -63,7 +64,7 @@ func dispatchMessage(queueMsg *queue.Message) {
 	select {
 	case msgChan <- msg:
 	default:
-		log.Error("msgChan is full", "discard msg", msg.Protocol)
+		log.Error("msgChan is full", "discard msg", msg.Protocol, "session", msg.SessionID)
 	}
 }
 
@@ -76,10 +77,10 @@ func handleTssMsg(ctx context.Context) {
 		case wMsg := <-msgChan:
 			handler, ok := handlers[wMsg.Protocol]
 			if !ok {
-				log.Error("handleTssMsg", "invalid protocol", wMsg.Protocol)
+				log.Error("handleTssMsg", "invalid protocol", wMsg.Protocol, "session", wMsg.SessionID)
 				continue
 			}
-			handler(wMsg.Msg)
+			handler(wMsg)
 		}
 	}
 }

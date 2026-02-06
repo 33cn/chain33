@@ -9,22 +9,24 @@ import (
 )
 
 type peerManager struct {
-	protocol string
-	selfID   string
-	tssPeers []string
-	cli      queue.Client
-	ctx      context.Context
+	protocol  string
+	sessionID string
+	selfID    string
+	tssPeers  []string
+	cli       queue.Client
+	ctx       context.Context
 }
 
 // NewPeerManager new pm
-func NewPeerManager(peers []string, protocol string) *peerManager {
+func NewPeerManager(peers []string, protocol, sessionID string) *peerManager {
 
 	ctx := cryptocli.GetCryptoContext()
 	return &peerManager{
-		protocol: protocol,
-		tssPeers: peers,
-		cli:      ctx.Client,
-		ctx:      ctx.Ctx,
+		protocol:  protocol,
+		sessionID: sessionID,
+		tssPeers:  peers,
+		cli:       ctx.Client,
+		ctx:       ctx.Ctx,
 	}
 }
 
@@ -48,16 +50,17 @@ func (p *peerManager) MustSend(peerId string, message interface{}) {
 		return
 	}
 	wMsg := &MessageWrapper{
-		PeerID:   peerId,
-		Protocol: p.protocol,
-		Msg:      types.Encode(protoMsg),
+		PeerID:    peerId,
+		Protocol:  p.protocol,
+		SessionID: p.sessionID,
+		Msg:       types.Encode(protoMsg),
 	}
 
 	msg := p.cli.NewMessage("p2p", types.EventCryptoTssMsg, wMsg)
 	err := p.cli.Send(msg, false)
 	if err != nil {
 		log.Error("peerManager MustSend", "peer", peerId,
-			"protocol", p.protocol, "client.Send err:", err)
+			"protocol", p.protocol, "session", p.sessionID, "client.Send err:", err)
 	}
 
 }

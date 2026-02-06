@@ -2,6 +2,7 @@ package tss
 
 import (
 	"math/big"
+	"strings"
 
 	"github.com/getamis/alice/crypto/birkhoffinterpolation"
 	"github.com/getamis/alice/crypto/ecpointgrouplaw"
@@ -11,15 +12,38 @@ import (
 
 // MessageWrapper tss message wrapper
 type MessageWrapper struct {
-	PeerID   string
-	Protocol string
-	Msg      []byte
+	PeerID    string
+	Protocol  string
+	SessionID string
+	Msg       []byte
 }
 
 type DKGRequest struct {
 	Rank      uint32
 	Threshold uint32
 	PeerIDs   []string
+}
+
+const sessionProtocolSeparator = "|"
+
+// ComposeProtocol combines protocol and session for transport.
+func ComposeProtocol(protocol, sessionID string) string {
+	if sessionID == "" {
+		return protocol
+	}
+	return protocol + sessionProtocolSeparator + sessionID
+}
+
+// SplitProtocol extracts protocol and session from transport form.
+func SplitProtocol(protocol string) (string, string) {
+	if protocol == "" {
+		return "", ""
+	}
+	idx := strings.LastIndex(protocol, sessionProtocolSeparator)
+	if idx <= 0 || idx >= len(protocol)-1 {
+		return protocol, ""
+	}
+	return protocol[:idx], protocol[idx+1:]
 }
 
 // NewDKGResult new value

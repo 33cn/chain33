@@ -6,17 +6,17 @@
 
 syntax = "proto3";
 
-//package tss;
-option  go_package = "./tss";
+// package tss;
+option go_package = "./tss";
 
 message DKGResult {
-  bytes pubX  = 1;
-  bytes pubY  = 2;
-  bytes share = 3;
-  map<string, BK> Bks = 4;
+    bytes           pubX  = 1;
+    bytes           pubY  = 2;
+    bytes           share = 3;
+    map<string, BK> Bks   = 4;
 }
 
 message BK {
-  uint32 rank = 1;
-  bytes  x = 2;
+    uint32 rank = 1;
+    bytes  x    = 2;
 }
