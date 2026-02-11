@@ -46,6 +46,7 @@ func (p *peerManager) PeerIDs() []string {
 
 func (p *peerManager) MustSend(peerId string, message interface{}) {
 
+	log.Info("peerManager MustSend start", "peerID", peerId, "protocol", p.protocol, "session", p.sessionID)
 	protoMsg, ok := message.(types.Message)
 	if !ok {
 		log.Error("peerManager MustSend, invalid proto message")
@@ -57,7 +58,6 @@ func (p *peerManager) MustSend(peerId string, message interface{}) {
 		SessionID: p.sessionID,
 		Msg:       types.Encode(protoMsg),
 	}
-
 	msg := p.cli.NewMessage("p2p", types.EventCryptoTssMsg, wMsg)
 	err := p.cli.Send(msg, false)
 	if err != nil {
@@ -67,54 +67,38 @@ func (p *peerManager) MustSend(peerId string, message interface{}) {
 
 }
 
+func (p *peerManager) removeSelf() {
+	ids := p.peerIDs[:0]
+	for _, id := range p.peerIDs {
+		if id != p.selfID {
+			ids = append(ids, id)
+		}
+	}
+	p.peerIDs = ids
+}
+
 // EnsurePeersReady waits for peers to sync and initializes self info.
 func (p *peerManager) EnsurePeersReady() {
 
-	ticker := time.NewTicker(time.Second * 5)
+	timeout := 3 * time.Second
+	ticker := time.NewTicker(timeout)
 	defer ticker.Stop()
 	for {
-		peers, err := p.fetchConnectedPeers()
+		peers, err := FetchConnectedPeers(p.cli, timeout)
 		if err != nil || len(peers) == 0 {
-			log.Debug("EnsurePeersReady", "session", p.sessionID, "fetchConnectedPeers err:", err)
-			time.Sleep(time.Second*2)
+			log.Debug("EnsurePeersReady", "session", p.sessionID, "fetchConnectedPeers err:", err, "peers", len(peers))
+			time.Sleep(timeout)
 			continue
 		}
 		if p.selfID == "" {
 			p.selfID = peers[len(peers)-1].Name
+			p.removeSelf()
 		}
 		if p.hasAllPeersConnected(peers) {
 			return
 		}
-		log.Debug("EnsurePeersReady waiting for peers to sync", "session", p.sessionID)
-	
-		select {
-		case <-p.ctx.Done():
-			return
-		case <-ticker.C:
-		}
-	}
-}
+		log.Debug("EnsurePeersReady waiting for peers to sync", "session", p.sessionID, "fetchPeers", len(peers))
 
-// EnsureSignerReady waits until connected peers satisfy threshold/rank requirements.
-func (p *peerManager) EnsureSignerReady(threshold uint32, bks map[string]*BK) {
-	
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-	for {
-		peers, err := p.fetchConnectedPeers()
-		if err != nil || len(peers) == 0 {
-			log.Debug("EnsureSignerReady", "session", p.sessionID, "fetchConnectedPeers err:", err)
-			time.Sleep(time.Second*2)
-			continue
-		}
-		if p.selfID == "" {
-			p.selfID = peers[len(peers)-1].Name
-		}
-
-		if isValidPeerCombination(peers, threshold, bks) {
-			return
-		}
-		log.Debug("EnsureSignerReady waiting for peers to sync", "session", p.sessionID)
 		select {
 		case <-p.ctx.Done():
 			return
@@ -140,65 +124,68 @@ func (p *peerManager) hasAllPeersConnected(peers []*types.Peer) bool {
 	return true
 }
 
-func (p *peerManager) fetchConnectedPeers() ([]*types.Peer, error) {
+// FetchConnectedPeers 获取已连接的节点
+func FetchConnectedPeers(cli queue.Client, timeout time.Duration) ([]*types.Peer, error) {
 
-	msg := p.cli.NewMessage("p2p", types.EventPeerInfo, nil)
-	err := p.cli.Send(msg, true)
+	msg := cli.NewMessage("p2p", types.EventPeerInfo, nil)
+	err := cli.Send(msg, true)
 	if err != nil {
-		log.Error("fetchConnectedPeers", "client.Send err:", err)
+		log.Error("FetchConnectedPeers", "client.Send err:", err)
 		return nil, err
 	}
-	resp, err := p.cli.WaitTimeout(msg, 5*time.Second)
+	resp, err := cli.WaitTimeout(msg, timeout)
 	if err != nil {
-		log.Error("fetchConnectedPeers", "client.Wait err:", err)
+		log.Error("FetchConnectedPeers", "client.Wait err:", err)
 		return nil, err
 	}
 	return resp.GetData().(*types.PeerList).GetPeers(), nil
 
 }
 
+// GetValidPeerCombination 获取满足签名阈值要求的节点列表
+func GetValidPeerCombination(cli queue.Client, threshold uint32, bks map[string]*BK) []string {
 
-
-
-func isValidPeerCombination(connectedPeers []*types.Peer, threshold uint32, bks map[string]*BK) bool {
-
-	if uint32(len(connectedPeers)) < threshold {
-		return false
+	connectedPeers, err := FetchConnectedPeers(cli, 3*time.Second)
+	if err != nil || len(connectedPeers) < int(threshold) {
+		log.Warn("GetValidPeerCombination", "threshold", threshold, 
+		"connectedPeers", len(connectedPeers), "fetchConnectedPeers err:", err)
+		return nil
 	}
 
 	ranks := make([]uint32, 0, len(bks))
+	validPeers := make([]string, 0, len(connectedPeers))
 	for _, peer := range connectedPeers {
-		bk, ok := bks[peer.Name]
-		if !ok {
-			continue
+		if bk, ok := bks[peer.Name]; ok {
+			ranks = append(ranks, bk.Rank)
+			validPeers = append(validPeers, peer.Name)
 		}
-		ranks = append(ranks, bk.Rank)
 	}
-	return isValidRankCombination(ranks, threshold)
+	if isValidRankCombination(ranks, threshold) {
+		return validPeers
+	}
+	return nil
 }
-
-
 
 // isValidRankCombination 验证无序rank列表是否有效
 // ranks: 参与签名的rank列表（可以无序）
 // threshold: 签名阈值
 func isValidRankCombination(ranks []uint32, threshold uint32) bool {
-    // 1. 检查参与人数是否足够
-    if uint32(len(ranks)) < threshold {
-        return false
-    }
-    
-    // 2. 升序排序
-    sort.Slice(ranks, func(i, j int) bool {
-        return ranks[i] < ranks[j]
-    })
-    
-    // 3. 核心验证：rank_i <= i (i = 0, 1, ..., threshold-1)
-    for i := uint32(0); i < threshold; i++ {
-        if ranks[i] > i {
-            return false
-        }
-    }
-    
-    return true
+	// 1. 检查参与人数是否足够
+	if uint32(len(ranks)) < threshold {
+		return false
+	}
+
+	// 2. 升序排序
+	sort.Slice(ranks, func(i, j int) bool {
+		return ranks[i] < ranks[j]
+	})
+
+	// 3. 核心验证：rank_i <= i (i = 0, 1, ..., threshold-1)
+	for i := uint32(0); i < threshold; i++ {
+		if ranks[i] > i {
+			return false
+		}
+	}
+
+	return true
 }

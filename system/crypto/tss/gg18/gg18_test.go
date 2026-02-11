@@ -1,4 +1,4 @@
-package gg18_test
+package gg18
 
 import (
 	"crypto/rand"
@@ -12,8 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGG18(t *testing.T) {
+func TestGG18PeerID(t *testing.T) {
 
+	if testing.Short() {
+		t.Skip("skip gg18 peer id test in short mode")
+	}
 	pk, pub, err := crypto.GenerateECDSAKeyPair(rand.Reader)
 	require.NoError(t, err)
 	pid, err := peer.IDFromPublicKey(pub)
@@ -23,7 +26,7 @@ func TestGG18(t *testing.T) {
 	fmt.Println(pid.String())
 }
 
-func TestConvertPubkey(t *testing.T) {
+func TestGG18ConvertPubkey(t *testing.T) {
 
 	priv, err := btcec.NewPrivateKey()
 	require.NoError(t, err)

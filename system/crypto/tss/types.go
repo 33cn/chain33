@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/33cn/chain33/types"
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/getamis/alice/crypto/birkhoffinterpolation"
 	"github.com/getamis/alice/crypto/ecpointgrouplaw"
 	"github.com/getamis/alice/crypto/elliptic"
@@ -63,7 +65,7 @@ func NewDKGResult(res *dkg.Result) *DKGResult {
 }
 
 // ConvertDKGResult converts DKG result from proto type
-func ConvertDKGResult(res *DKGResult) (*dkg.Result, error) {
+func ConvertDKGResult(peers []string, res *DKGResult) (*dkg.Result, error) {
 
 	// Build public key.
 	x := new(big.Int).SetBytes(res.PubX)
@@ -78,13 +80,29 @@ func ConvertDKGResult(res *DKGResult) (*dkg.Result, error) {
 	dkgResult := &dkg.Result{
 		PublicKey: pubkey,
 		Share:     share,
-		Bks:       make(map[string]*birkhoffinterpolation.BkParameter),
+		Bks:       make(map[string]*birkhoffinterpolation.BkParameter, len(peers)),
 	}
-	// Build bks.
-	for peerID, bk := range res.Bks {
-		x := new(big.Int).SetBytes(bk.X)
-		dkgResult.Bks[peerID] = birkhoffinterpolation.NewBkParameter(x, bk.Rank)
+	// Build bks, only build bks for peers in the list
+	for _, peerID := range peers {
+		if bk, ok := res.Bks[peerID]; ok {
+			x := new(big.Int).SetBytes(bk.X)
+			dkgResult.Bks[peerID] = birkhoffinterpolation.NewBkParameter(x, bk.Rank)
+		}
 	}
 
 	return dkgResult, nil
+}
+
+
+// ParseBtcecPublicKey 解析btcec公钥
+func ParseBtcecPublicKey(result *DKGResult) (*btcec.PublicKey, error) {
+	var fieldX, fieldY btcec.FieldVal
+	if fieldX.SetByteSlice(result.PubX) {
+		return nil, types.ErrInvalidParam
+	}
+	if fieldY.SetByteSlice(result.PubY) {
+		return nil, types.ErrInvalidParam
+	}
+	pubKey := btcec.NewPublicKey(&fieldX, &fieldY)
+	return pubKey, nil
 }

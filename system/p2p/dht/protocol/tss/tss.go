@@ -1,6 +1,8 @@
 package tss
 
 import (
+	"time"
+
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
 	. "github.com/33cn/chain33/system/crypto/tss"
@@ -8,7 +10,6 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"time"
 )
 
 const (

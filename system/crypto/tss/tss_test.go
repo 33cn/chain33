@@ -20,7 +20,7 @@ func TestConvertDKGResult(t *testing.T) {
 	}
 	dkgRes.Bks["test"] = &BK{X: pub.X().Bytes()}
 
-	d, err := ConvertDKGResult(dkgRes)
+	d, err := ConvertDKGResult([]string{"test"}, dkgRes)
 	require.NoError(t, err)
 	pub1 := &ecdsa.PublicKey{
 		X: d.PublicKey.GetX(),
