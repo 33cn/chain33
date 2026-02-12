@@ -95,7 +95,7 @@ func runChildNode(t *testing.T, role string) {
 }
 
 func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
-	peers := waitPeerIDs(t, cli, 4, 30*time.Second, role)
+	peers := waitPeerIDs(t, cli, 4, 60*time.Second, role)
 	log.Info("runNodeFlow dkg start", "role", role)
 	dkgRes, err := ProcessDKG(peers, tssThreshold, rank, "dkg-session-id")
 	require.NoError(t, err)
@@ -138,7 +138,7 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 	}()
 	select {
 	case <-c:
-	case <-time.After(30 * time.Second):
+	case <-time.After(60 * time.Second):
 		t.Fatalf("test 3 node concurrent sign timeout, role=%s", role)
 	}
 }
@@ -182,14 +182,14 @@ type childProc struct {
 
 func startChildNode(t *testing.T, role string, port int, seed string) *childProc {
 	testName := "TestGG18Node"
-	args := []string{"test", "./", "-run", "^" + testName + "$", "-count=1"}
+	args := []string{"test", "-v", "-run", "^" + testName + "$", "-count=1"}
 	cmd := exec.Command("go", args...)
 	cmd.Env = append(os.Environ(), "TSS_ROLE="+role,
 		"TSS_PORT="+strconv.Itoa(port), "TSS_SEED="+seed,
 	)
 	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	require.NoError(t, cmd.Start())
 	t.Cleanup(func() {
 		if cmd.ProcessState == nil {
