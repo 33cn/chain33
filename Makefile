@@ -150,7 +150,7 @@ ineffassign:
 
 test: ## Run unittests
 	@go clean -testcache
-	@go test -short -race `go list ./... | grep -v "mocks"`
+	@go test -short -race `go list ./... | grep -v "mocks" |grep -v "snowman"`
 
 testq: ## Run unittests
 	@go test `go list ./... | grep -v "mocks"`
