@@ -5,7 +5,7 @@ import (
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/queue"
-	. "github.com/33cn/chain33/system/crypto/tss"
+	"github.com/33cn/chain33/system/crypto/tss"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -22,35 +22,35 @@ func init() {
 	protocol.RegisterProtocolInitializer(InitProtocol)
 }
 
-type tss struct {
+type tssProtocol struct {
 	*protocol.P2PEnv
 }
 
 // InitProtocol init protocol
 func InitProtocol(env *protocol.P2PEnv) {
-	new(tss).init(env)
+	new(tssProtocol).init(env)
 }
 
-func (t *tss) init(env *protocol.P2PEnv) {
+func (t *tssProtocol) init(env *protocol.P2PEnv) {
 	t.P2PEnv = env
 	protocol.RegisterEventHandler(types.EventCryptoTssMsg, t.handleTSSEvent)
 	protocol.RegisterStreamHandler(t.Host, protocolID, t.handleTSSStream)
 }
 
-func (t *tss) handleTSSEvent(qMsg *queue.Message) {
+func (t *tssProtocol) handleTSSEvent(qMsg *queue.Message) {
 
-	var wMsg *MessageWrapper
+	var wMsg *tss.MessageWrapper
 	switch data := qMsg.GetData().(type) {
-	case *MessageWrapper:
+	case *tss.MessageWrapper:
 		wMsg = data
-	case MessageWrapper:
+	case tss.MessageWrapper:
 		wMsg = &data
 	default:
 		log.Error("handleTSSEvent", "err", "invalid message type")
 		return
 	}
 	tssMsg := &types.TSSMessage{
-		Protocol: ComposeProtocol(wMsg.Protocol, wMsg.SessionID),
+		Protocol: tss.ComposeProtocol(wMsg.Protocol, wMsg.SessionID),
 		Msg:      wMsg.Msg,
 	}
 	pid, _ := peer.Decode(wMsg.PeerID)
@@ -69,7 +69,7 @@ func (t *tss) handleTSSEvent(qMsg *queue.Message) {
 	}
 }
 
-func (t *tss) handleTSSStream(stream network.Stream) {
+func (t *tssProtocol) handleTSSStream(stream network.Stream) {
 
 	tssMsg := &types.TSSMessage{}
 	err := protocol.ReadStream(tssMsg, stream)
@@ -78,8 +78,8 @@ func (t *tss) handleTSSStream(stream network.Stream) {
 		log.Error("handleTSSStream", "peer", peerName, "readStream err", err)
 		return
 	}
-	baseProtocol, sessionID := SplitProtocol(tssMsg.Protocol)
-	wMsg := &MessageWrapper{
+	baseProtocol, sessionID := tss.SplitProtocol(tssMsg.Protocol)
+	wMsg := &tss.MessageWrapper{
 		Protocol:  baseProtocol,
 		SessionID: sessionID,
 		Msg:       tssMsg.Msg,

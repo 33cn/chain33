@@ -8,6 +8,7 @@ import (
 	cryptocli "github.com/33cn/chain33/common/crypto/client"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+	alicetypes "github.com/getamis/alice/types"
 )
 
 type peerManager struct {
@@ -20,20 +21,20 @@ type peerManager struct {
 }
 
 // NewPeerManager new pm， peers是参与节点id列表
-func NewPeerManager(peers []string, protocol, sessionID string) *peerManager {
+func NewReadyPeerManager(peers []string, protocol, sessionID string) alicetypes.PeerManager {
 
 	ctx := cryptocli.GetCryptoContext()
 	pids := make([]string, len(peers))
-	for i, id := range peers {
-		pids[i] = id
-	}
-	return &peerManager{
+	copy(pids, peers)
+	pm := &peerManager{
 		protocol:  protocol,
 		sessionID: sessionID,
 		peerIDs:   pids,
 		cli:       ctx.Client,
 		ctx:       ctx.Ctx,
 	}
+	pm.ensurePeersReady()
+	return pm
 }
 
 func (p *peerManager) NumPeers() uint32 {
@@ -48,7 +49,7 @@ func (p *peerManager) PeerIDs() []string {
 	return p.peerIDs
 }
 
-func (p *peerManager) MustSend(peerId string, message interface{}) {
+func (p *peerManager) MustSend(peerID string, message interface{}) {
 
 	protoMsg, ok := message.(types.Message)
 	if !ok {
@@ -56,7 +57,7 @@ func (p *peerManager) MustSend(peerId string, message interface{}) {
 		return
 	}
 	wMsg := &MessageWrapper{
-		PeerID:    peerId,
+		PeerID:    peerID,
 		Protocol:  p.protocol,
 		SessionID: p.sessionID,
 		Msg:       types.Encode(protoMsg),
@@ -64,7 +65,7 @@ func (p *peerManager) MustSend(peerId string, message interface{}) {
 	msg := p.cli.NewMessage("p2p", types.EventCryptoTssMsg, wMsg)
 	err := p.cli.Send(msg, false)
 	if err != nil {
-		log.Error("peerManager MustSend", "peer", peerId,
+		log.Error("peerManager MustSend", "peer", peerID,
 			"protocol", p.protocol, "session", p.sessionID, "client.Send err:", err)
 	}
 
@@ -80,8 +81,8 @@ func (p *peerManager) removeSelf() {
 	p.peerIDs = ids
 }
 
-// EnsurePeersReady waits for peers to sync and initializes self info.
-func (p *peerManager) EnsurePeersReady() {
+// ensurePeersReady waits for peers to sync and initializes self info.
+func (p *peerManager) ensurePeersReady() {
 
 	timeout := 3 * time.Second
 	ticker := time.NewTicker(timeout)

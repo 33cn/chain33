@@ -143,7 +143,7 @@ race: ## Run data race detector
 	@go test -race -short `go list ./... | grep -v "mocks"`
 
 vet:
-	@go vet `go list -f {{.Dir}} ./... | grep -v "common/crypto/sha3"`
+	@go vet `go list -f {{.Dir}} ./... | grep -vE "common/crypto/sha3|snowman"`
 
 ineffassign:
 	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign  ./...

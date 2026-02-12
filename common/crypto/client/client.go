@@ -8,9 +8,10 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/33cn/chain33/common/log/log15"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/common/log/log15"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/crypto"
@@ -93,7 +94,7 @@ func (m module) SetQueueClient(cli queue.Client) {
 	if err != nil {
 		panic("crypto SetQueueClient, new client api err:" + err.Error())
 	}
-	initCryptoCtx(cli, api, m.ctx)
+	initCryptoCtx(m.ctx, cli, api)
 	initSubModule()
 	cli.Sub("crypto")
 	ticker := time.NewTicker(time.Second)
@@ -157,7 +158,7 @@ func initSubModule() {
 }
 
 // init crypto context
-func initCryptoCtx(cli queue.Client, api client.QueueProtocolAPI, ctx context.Context) {
+func initCryptoCtx(ctx context.Context, cli queue.Client, api client.QueueProtocolAPI) {
 	lock.Lock()
 	defer lock.Unlock()
 	cryptoCtx.Client = cli

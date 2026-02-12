@@ -10,7 +10,7 @@ import (
 
 // Backend 底层处理组件
 type Backend interface {
-	AddMessage(senderId string, msg types.Message) error
+	AddMessage(senderID string, msg types.Message) error
 }
 
 type sessionCore struct {

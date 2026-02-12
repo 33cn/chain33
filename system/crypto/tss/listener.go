@@ -2,6 +2,7 @@ package tss
 
 import (
 	"fmt"
+
 	"github.com/getamis/alice/types"
 )
 

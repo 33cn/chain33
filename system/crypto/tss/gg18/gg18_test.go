@@ -22,6 +22,7 @@ func TestGG18PeerID(t *testing.T) {
 	pid, err := peer.IDFromPublicKey(pub)
 	require.NoError(t, err)
 	pkBytes, err := crypto.MarshalPrivateKey(pk)
+	require.NoError(t, err)
 	fmt.Println(base64.StdEncoding.EncodeToString(pkBytes))
 	fmt.Println(pid.String())
 }

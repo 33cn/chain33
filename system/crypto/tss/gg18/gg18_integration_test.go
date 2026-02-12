@@ -132,8 +132,6 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 	case <-time.After(30 * time.Second):
 		require.FailNow(t, "test 3 node concurrent sign timeout")
 	}
-	return
-
 }
 
 func verifySignatureWithDKG(t *testing.T, pubKey *btcec.PublicKey, msg []byte, signRes *signer.Result) {
@@ -220,7 +218,7 @@ func waitSelfPeerID(t *testing.T, cli queue.Client, timeout time.Duration) strin
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
 		peers, err := tss.FetchConnectedPeers(cli, 3*time.Second)
-		if err == nil && len(peers) > 0 {
+		if err == nil && len(peers) > 0 && peers[len(peers)-1].Name != "" {
 			return peers[len(peers)-1].Name
 		}
 		time.Sleep(time.Second)

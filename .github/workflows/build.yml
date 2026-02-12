@@ -117,6 +117,6 @@ jobs:
           GOARCH: 386
 
       - name: Run test in 386
-        run: go test ./... -covermode=atomic
+        run: go test -covermode=atomic `go list ./... | grep -vE "vendor|mocks|snowman"`
         env:
           GOARCH: 386

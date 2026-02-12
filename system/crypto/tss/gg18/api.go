@@ -17,9 +17,8 @@ import (
 // ProcessDKG process dkg，return DKGResult
 // sessionID 各节点同一Dkg的sessionID相同
 func ProcessDKG(peers []string, threshold, rank uint32, sessionID string) (*tss.DKGResult, error) {
-	
-	pm := tss.NewPeerManager(peers, DkgProtocol, sessionID)
-	pm.EnsurePeersReady()
+
+	pm := tss.NewReadyPeerManager(peers, DkgProtocol, sessionID)
 	listener := tss.NewListener(DkgProtocol)
 	dkgCore, err := dkg.NewDKG(elliptic.Secp256k1(), pm, threshold, rank, listener)
 	if err != nil {
@@ -57,8 +56,7 @@ func ProcessSign(peers []string, msg []byte, result *tss.DKGResult, threshold ui
 		log.Error("ProcessSign", "session", sessionID, "ConvertDKGResult err", err)
 		return nil, err
 	}
-	pm := tss.NewPeerManager(peers, SignProtocol, sessionID)
-	pm.EnsurePeersReady()
+	pm := tss.NewReadyPeerManager(peers, SignProtocol, sessionID)
 	listener := tss.NewListener(SignProtocol)
 	homo, err := paillier.NewPaillier(2048)
 	if err != nil {
@@ -100,8 +98,7 @@ func ProcessReshare(peers []string, result *tss.DKGResult, threshold uint32, ses
 		log.Error("ProcessReshare", "session", sessionID, "ConvertDKGResult err", err)
 		return nil, err
 	}
-	pm := tss.NewPeerManager(peers, ReshareProtocol, sessionID)
-	pm.EnsurePeersReady()
+	pm := tss.NewReadyPeerManager(peers, ReshareProtocol, sessionID)
 	listener := tss.NewListener(ReshareProtocol)
 	reshareCore, err := reshare.NewReshare(pm, threshold, dkgRes.PublicKey, dkgRes.Share,
 		dkgRes.Bks, listener)
@@ -147,7 +144,7 @@ func bigIntToModNScalar(val *big.Int) (*btcec.ModNScalar, error) {
 	return &scalar, nil
 }
 
-// Alice 签名转 btcec Signature
+// AliceToBtcecSignature converts Alice signer result to btcec Signature.
 func AliceToBtcecSignature(result *signer.Result) (*ecdsa.Signature, error) {
 	rScalar, err := bigIntToModNScalar(result.R)
 	if err != nil {

@@ -20,6 +20,7 @@ type MessageWrapper struct {
 	Msg       []byte
 }
 
+// DKGRequest is the request payload for DKG protocol.
 type DKGRequest struct {
 	Rank      uint32
 	Threshold uint32
@@ -92,7 +93,6 @@ func ConvertDKGResult(peers []string, res *DKGResult) (*dkg.Result, error) {
 
 	return dkgResult, nil
 }
-
 
 // ParseBtcecPublicKey 解析btcec公钥
 func ParseBtcecPublicKey(result *DKGResult) (*btcec.PublicKey, error) {
