@@ -20,7 +20,7 @@ type peerManager struct {
 	ctx       context.Context
 }
 
-// NewPeerManager new pm， peers是参与节点id列表
+// NewReadyPeerManager new peer manager with peers ready
 func NewReadyPeerManager(peers []string, protocol, sessionID string) alicetypes.PeerManager {
 
 	ctx := cryptocli.GetCryptoContext()
@@ -94,11 +94,11 @@ func (p *peerManager) ensurePeersReady() {
 			time.Sleep(timeout)
 			continue
 		}
-		if p.selfID == "" {
+		if p.selfID == "" && peers[len(peers)-1].Self {
 			p.selfID = peers[len(peers)-1].Name
 			p.removeSelf()
 		}
-		if p.hasAllPeersConnected(peers) {
+		if p.hasAllPeersConnected(peers) && p.selfID != "" {
 			return
 		}
 		log.Debug("EnsurePeersReady waiting for peers to sync", "session", p.sessionID, "fetchPeers", len(peers))

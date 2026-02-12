@@ -37,21 +37,30 @@ func TestGG18_4Node(t *testing.T) {
 	for i := range ports {
 		ports[i] = getRandomPort(t)
 	}
-	log.Info("TestGG18Integration4Node", "ports", ports, "channel", channel, "name", t.Name())
+
 	mock1, cli1 := startTestNode(t, ports[0], channel, nil)
 	defer mock1.Close()
 
 	selfID := waitSelfPeerID(t, cli1, 10*time.Second)
 	seed := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/p2p/%s", ports[0], selfID)
+	log.Info("TestGG18Integration4Node", "ports", ports, "channel", channel, "seed", seed)
 
-	// rank 0, 1,1,1
+	cmds := make([]*childProc, 0, 3)
 	for i := 1; i <= 3; i++ {
 		role := fmt.Sprintf("node%d", i+1)
-		cmd := startChildNode(t, role, ports[i], seed)
-		defer waitChildExit(t, cmd, role)
+		log.Info("TestGG18_4Node start child node", "role", role, "port", ports[i])
+		cmds = append(cmds, startChildNode(t, role, ports[i], seed))
 	}
-
 	runNodeFlow(t, cli1, 0, "node1")
+	wg := sync.WaitGroup{}
+	for _, cmd := range cmds {
+		wg.Add(1)
+		go func(cmd *childProc) {
+			waitChildExit(t, cmd, cmd.role)
+			wg.Done()
+		}(cmd)
+	}
+	wg.Wait()
 }
 
 func getRandomPort(t *testing.T) int {
@@ -130,7 +139,7 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 	select {
 	case <-c:
 	case <-time.After(30 * time.Second):
-		require.FailNow(t, "test 3 node concurrent sign timeout")
+		t.Fatalf("test 3 node concurrent sign timeout, role=%s", role)
 	}
 }
 
@@ -166,8 +175,9 @@ func startTestNode(t *testing.T, port int, channel int32, seeds []string) (*test
 }
 
 type childProc struct {
-	cmd *exec.Cmd
-	out *bytes.Buffer
+	cmd  *exec.Cmd
+	out  *bytes.Buffer
+	role string
 }
 
 func startChildNode(t *testing.T, role string, port int, seed string) *childProc {
@@ -175,7 +185,7 @@ func startChildNode(t *testing.T, role string, port int, seed string) *childProc
 	args := []string{"test", "./", "-run", "^" + testName + "$", "-count=1"}
 	cmd := exec.Command("go", args...)
 	cmd.Env = append(os.Environ(), "TSS_ROLE="+role,
-		"TSS_PORT="+strconv.Itoa(port), "TSS_SEEDS="+seed,
+		"TSS_PORT="+strconv.Itoa(port), "TSS_SEED="+seed,
 	)
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -186,20 +196,31 @@ func startChildNode(t *testing.T, role string, port int, seed string) *childProc
 			_ = cmd.Process.Kill()
 		}
 	})
-	return &childProc{cmd: cmd, out: &out}
+	return &childProc{cmd: cmd, out: &out, role: role}
 }
 
-func waitChildExit(t *testing.T, child *childProc, label string) {
-	err := child.cmd.Wait()
-	if err != nil {
-		t.Fatalf("%s process failed: %v\n%s", label, err, child.out.String())
+func waitChildExit(t *testing.T, child *childProc, role string) {
+	log.Info("waitChildExit", "role", role)
+	c := make(chan error)
+	go func() {
+		c <- child.cmd.Wait()
+	}()
+	select {
+	case err := <-c:
+		if err != nil {
+			t.Fatalf("child exit with error: %v, role %s, output: %s", err, role, child.out.String())
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatalf("timeout waiting for child exit, role %s, output: %s", role, child.out.String())
 	}
+	log.Info("waitChildExit end", "role", role)
 }
 
 func waitPeerIDs(t *testing.T, cli queue.Client, want int, timeout time.Duration, role string) []string {
 	deadline := time.Now().Add(timeout)
-	peers, err := tss.FetchConnectedPeers(cli, 3*time.Second)
+
 	for time.Now().Before(deadline) {
+		peers, err := tss.FetchConnectedPeers(cli, 3*time.Second)
 		if err == nil && len(peers) == want {
 			ids := make([]string, 0, len(peers))
 			for _, peer := range peers {
@@ -207,10 +228,10 @@ func waitPeerIDs(t *testing.T, cli queue.Client, want int, timeout time.Duration
 			}
 			return ids
 		}
-		time.Sleep(time.Second)
-		peers, err = tss.FetchConnectedPeers(cli, 3*time.Second)
+		log.Info("waitPeerIDs", "role", role, "want", want, "actual", len(peers), "err", err)
+		time.Sleep(time.Second * 3)
 	}
-	t.Fatalf("timeout waiting for %d peers, actual=%d, role %s", want, len(peers), role)
+	t.Fatalf("timeout waiting for %d peers, role %s", want, role)
 	return nil
 }
 
