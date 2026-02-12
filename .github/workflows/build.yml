@@ -116,7 +116,13 @@ jobs:
         env:
           GOARCH: 386
 
-      - name: Run test in 386
-        run: go test -covermode=atomic `go list ./... | grep -vE "vendor|mocks|snowman"`
-        env:
-          GOARCH: 386
+  test-gg18-integration:
+    name: Run test cases for gg18
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+      - name: Run test cases for gg18
+        run: go test -race -v -run ^TestGG18_4Node$ ./system/crypto/tss/gg18

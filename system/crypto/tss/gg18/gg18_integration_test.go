@@ -32,6 +32,9 @@ const (
 
 func TestGG18_4Node(t *testing.T) {
 
+	if testing.Short() {
+		t.Skip("skip gg18 integration test in short mode")
+	}
 	channel := testChannel
 	ports := make([]int, 4)
 	for i := range ports {
