@@ -2,7 +2,9 @@ package tss
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/stretchr/testify/require"
@@ -31,4 +33,18 @@ func TestConvertDKGResult(t *testing.T) {
 	require.Equal(t, pub1.Y.String(), pub.Y().String())
 	d1 := NewDKGResult(d)
 	require.Equal(t, dkgRes.PubX, d1.PubX)
+}
+
+func TestRegisterMsgHandler_DuplicatePanics(t *testing.T) {
+	// Use a unique name so we don't conflict with gg18 init or other tests.
+	name := "test_dup_" + fmt.Sprintf("%d", time.Now().UnixNano())
+	var recovered interface{}
+	func() {
+		defer func() { recovered = recover() }()
+		RegisterMsgHandler(name, func(*MessageWrapper) {})
+		RegisterMsgHandler(name, func(*MessageWrapper) {}) // should panic
+	}()
+	require.NotNil(t, recovered, "expected panic on duplicate RegisterMsgHandler")
+	require.Contains(t, fmt.Sprint(recovered), "duplicate handler")
+	require.Contains(t, fmt.Sprint(recovered), name)
 }

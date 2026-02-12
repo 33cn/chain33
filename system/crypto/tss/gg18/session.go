@@ -49,6 +49,7 @@ func addMessage(protocol, sessionID string, msg types.Message) error {
 func registerSession(protocol, sessionID string, backend Backend) error {
 	id := tss.ComposeProtocol(protocol, sessionID)
 	sessionsMu.Lock()
+	defer sessionsMu.Unlock()
 	_, ok := sessions[id]
 	if ok {
 		return fmt.Errorf("session already registered")
@@ -56,7 +57,6 @@ func registerSession(protocol, sessionID string, backend Backend) error {
 	sessions[id] = &sessionCore{
 		backend: backend,
 	}
-	sessionsMu.Unlock()
 	// flush buffer messages
 	for _, msg := range pendingMessages[id] {
 		err := backend.AddMessage(msg.GetId(), msg)
