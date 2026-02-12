@@ -49,7 +49,6 @@ func handleDkgMsg(wMsg *tss.MessageWrapper) {
 
 func handleSignMsg(wMsg *tss.MessageWrapper) {
 
-	log.Info("handleSignMsg start", "peerID", wMsg.PeerID, "session", wMsg.SessionID)
 	if wMsg.Protocol != SignProtocol {
 		log.Error("handleSignMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "invalid protocol", wMsg.Protocol)
 		return

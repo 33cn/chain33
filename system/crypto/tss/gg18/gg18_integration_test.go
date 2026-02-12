@@ -19,6 +19,7 @@ import (
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util/testnode"
+	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/getamis/alice/crypto/tss/ecdsa/gg18/signer"
 	"github.com/stretchr/testify/require"
 )
@@ -30,9 +31,6 @@ const (
 )
 
 func TestGG18_4Node(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skip gg18 integration test in short mode")
-	}
 
 	channel := testChannel
 	ports := make([]int, 4)
@@ -96,8 +94,9 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 	log.Info("runNodeFlow sign start", "role", role)
 	signRes, err := ProcessSign(peers, msg, dkgRes, tssThreshold, "sign-session")
 	require.NoError(t, err)
-	require.NotNil(t, signRes)
-	verifySignatureWithDKG(t, dkgRes, msg, signRes)
+	pubKey, err := tss.ParseBtcecPublicKey(dkgRes)
+	require.NoError(t, err)
+	verifySignatureWithDKG(t, pubKey, msg, signRes)
 	log.Info("runNodeFlow reshare start", "role", role)
 	reshareRes, err := ProcessReshare(peers, dkgRes, tssThreshold, "reshare-session-id")
 	require.NoError(t, err)
@@ -114,10 +113,11 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 		wg.Add(1)
 		go func(idx int) {
 			id := fmt.Sprintf("sign-session-%d", idx)
+			signMsg := []byte(id)
 			log.Info("test 3 node concurrent sign start", "role", role, "id", id)
-			signRes, err = ProcessSign(peers, msg, dkgRes, tssThreshold, id)
+			signRes, err := ProcessSign(peers, signMsg, dkgRes, tssThreshold, id)
 			require.NoError(t, err)
-			verifySignatureWithDKG(t, dkgRes, msg, signRes)
+			verifySignatureWithDKG(t, pubKey, signMsg, signRes)
 			log.Info("test 3 node concurrent sign end", "role", role, "id", id)
 			wg.Done()
 		}(i + 1)
@@ -136,9 +136,7 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 
 }
 
-func verifySignatureWithDKG(t *testing.T, dkgRes *tss.DKGResult, msg []byte, signRes *signer.Result) {
-	pubKey, err := tss.ParseBtcecPublicKey(dkgRes)
-	require.NoError(t, err)
+func verifySignatureWithDKG(t *testing.T, pubKey *btcec.PublicKey, msg []byte, signRes *signer.Result) {
 	sig, err := AliceToBtcecSignature(signRes)
 	require.NoError(t, err)
 	ok := sig.Verify(msg, pubKey)

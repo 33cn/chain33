@@ -23,10 +23,14 @@ type peerManager struct {
 func NewPeerManager(peers []string, protocol, sessionID string) *peerManager {
 
 	ctx := cryptocli.GetCryptoContext()
+	pids := make([]string, len(peers))
+	for i, id := range peers {
+		pids[i] = id
+	}
 	return &peerManager{
 		protocol:  protocol,
 		sessionID: sessionID,
-		peerIDs:   peers,
+		peerIDs:   pids,
 		cli:       ctx.Client,
 		ctx:       ctx.Ctx,
 	}
@@ -46,7 +50,6 @@ func (p *peerManager) PeerIDs() []string {
 
 func (p *peerManager) MustSend(peerId string, message interface{}) {
 
-	log.Info("peerManager MustSend start", "peerID", peerId, "protocol", p.protocol, "session", p.sessionID)
 	protoMsg, ok := message.(types.Message)
 	if !ok {
 		log.Error("peerManager MustSend, invalid proto message")
@@ -147,8 +150,8 @@ func GetValidPeerCombination(cli queue.Client, threshold uint32, bks map[string]
 
 	connectedPeers, err := FetchConnectedPeers(cli, 3*time.Second)
 	if err != nil || len(connectedPeers) < int(threshold) {
-		log.Warn("GetValidPeerCombination", "threshold", threshold, 
-		"connectedPeers", len(connectedPeers), "fetchConnectedPeers err:", err)
+		log.Warn("GetValidPeerCombination", "threshold", threshold,
+			"connectedPeers", len(connectedPeers), "fetchConnectedPeers err:", err)
 		return nil
 	}
 
