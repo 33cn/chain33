@@ -125,4 +125,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Run test cases for gg18
-        run: go test -race -v -run ^TestGG18_4Node$ ./system/crypto/tss/gg18
+        run: |
+          sudo sysctl -w net.core.rmem_max=2500000
+          cd system/crypto/tss/gg18
+          go test -race -v -run ^TestGG18_4Node$ .

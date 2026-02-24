@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -49,9 +50,11 @@ func TestGG18_4Node(t *testing.T) {
 	log.Info("TestGG18Integration4Node", "ports", ports, "channel", channel, "seed", seed)
 
 	cmds := make([]*childProc, 0, 3)
+	cwd, err := os.Getwd()
+	require.NoError(t, err)
 	for i := 1; i <= 3; i++ {
 		role := fmt.Sprintf("node%d", i+1)
-		log.Info("TestGG18_4Node start child node", "role", role, "port", ports[i])
+		log.Info("TestGG18_4Node start child node", "role", role, "port", ports[i], "cwd", cwd)
 		cmds = append(cmds, startChildNode(t, role, ports[i], seed))
 	}
 	runNodeFlow(t, cli1, 0, "node1")
@@ -90,7 +93,7 @@ func TestGG18Node(t *testing.T) {
 func runChildNode(t *testing.T, role string) {
 	port := getEnvInt(t, "TSS_PORT")
 	seed := strings.TrimSpace(os.Getenv("TSS_SEED"))
-
+	log.Info("runChildNode", "role", role, "port", port, "seed", seed)
 	mock, cli := startTestNode(t, port, testChannel, []string{seed})
 	defer mock.Close()
 
@@ -98,7 +101,7 @@ func runChildNode(t *testing.T, role string) {
 }
 
 func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
-	peers := waitPeerIDs(t, cli, 4, 60*time.Second, role)
+	peers := waitPeerIDs(t, cli, 4, 120*time.Second, role)
 	log.Info("runNodeFlow dkg start", "role", role)
 	dkgRes, err := ProcessDKG(peers, tssThreshold, rank, "dkg-session-id")
 	require.NoError(t, err)
@@ -184,15 +187,14 @@ type childProc struct {
 }
 
 func startChildNode(t *testing.T, role string, port int, seed string) *childProc {
-	testName := "TestGG18Node"
-	args := []string{"test", "-v", "-run", "^" + testName + "$", "-count=1"}
-	cmd := exec.Command("go", args...)
+
+	cmd := exec.Command(os.Args[0], "-test.run", "^TestGG18Node$", "-test.v")
 	cmd.Env = append(os.Environ(), "TSS_ROLE="+role,
 		"TSS_PORT="+strconv.Itoa(port), "TSS_SEED="+seed,
 	)
 	var out bytes.Buffer
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = io.MultiWriter(os.Stdout, &out)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &out)
 	require.NoError(t, cmd.Start())
 	t.Cleanup(func() {
 		if cmd.ProcessState == nil {
