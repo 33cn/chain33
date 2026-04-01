@@ -412,9 +412,6 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash)
 				}
 				cAddr = common.HexToAddress(receiptEVMContract.ContractAddr)
 				contractorAddr = &cAddr
-				for _, elog := range elogs {
-					elog.Address = cAddr
-				}
 			} else {
 				log.Error("receiptLogs2EvmLog", " decode receiptEVMContract err:", err.Error(), "log:", string(recpResult.Logs[0].Log))
 			}
@@ -428,9 +425,13 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash)
 		elog.TxHash = common.BytesToHash(detail.GetTx().Hash())
 		elog.BlockNumber = hexutil.Uint64(detail.Height)
 		elog.BlockHash = blockHash
+		elog.Removed = evmLog.Removed
 		elog.Data = evmLog.Data
 		if elog.Data == nil {
 			elog.Data = []byte{}
+		}
+		if evmLog.Address != "" {
+			elog.Address = common.HexToAddress(evmLog.Address)
 		}
 		for _, topic := range evmLog.Topic {
 			elog.Topics = append(elog.Topics, common.BytesToHash(topic))
