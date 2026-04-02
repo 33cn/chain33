@@ -445,7 +445,7 @@ func (p *P2P) genAirDropKey() {
 	//用助记词和随机索引创建空投地址
 	r := rand.New(rand.NewSource(types.Now().Unix()))
 	var minIndex int32 = 100000000
-	randIndex := minIndex + r.Int31n(1000000)
+	randIndex := minIndex + r.Int31n(minIndex)
 	reqIndex := &types.Int32{Data: randIndex}
 	msg, err := p.api.ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
 	if err != nil {

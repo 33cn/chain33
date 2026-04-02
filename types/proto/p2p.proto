@@ -411,3 +411,9 @@ message PeersInfo {
     string softversion = 4;
     int32  p2pversion  = 5;
 }
+
+
+message TSSMessage {
+    string protocol = 1;
+    bytes  msg  = 2;
+}

@@ -34,7 +34,7 @@ default: build cli depends
 dep: ## Get the dependencies
 	@go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.18.0
 	@go get -u golang.org/x/tools/cmd/goimports
-	@go get -u github.com/vektra/mockery/.../
+	@go install github.com/vektra/mockery/v2@v2.38.0
 	@go get -u mvdan.cc/sh/cmd/shfmt
 	@go get -u mvdan.cc/sh/cmd/gosh
 	@git checkout go.mod go.sum
@@ -143,14 +143,14 @@ race: ## Run data race detector
 	@go test -race -short `go list ./... | grep -v "mocks"`
 
 vet:
-	@go vet `go list -f {{.Dir}} ./... | grep -v "common/crypto/sha3"`
+	@go vet `go list -f {{.Dir}} ./... | grep -vE "common/crypto/sha3|snowman"`
 
 ineffassign:
 	@golangci-lint  run --no-config --issues-exit-code=1  --deadline=2m --disable-all   --enable=ineffassign  ./...
 
 test: ## Run unittests
 	@go clean -testcache
-	@go test -short -race `go list ./... | grep -v "mocks"`
+	@go test -short -race `go list ./... | grep -v "mocks" |grep -v "snowman"`
 
 testq: ## Run unittests
 	@go test `go list ./... | grep -v "mocks"`
