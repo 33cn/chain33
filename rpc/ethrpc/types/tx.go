@@ -432,6 +432,8 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash)
 		}
 		if evmLog.Address != "" {
 			elog.Address = common.HexToAddress(evmLog.Address)
+		} else if contractorAddr != nil {
+			elog.Address = *contractorAddr
 		}
 		for _, topic := range evmLog.Topic {
 			elog.Topics = append(elog.Topics, common.BytesToHash(topic))
