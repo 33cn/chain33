@@ -17,7 +17,6 @@ import (
 
 	"strings"
 
-	_ "github.com/33cn/chain33/system/crypto/init"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
 )

@@ -224,6 +224,7 @@ const (
 	EventSnowmanQueryFailed = 382
 	EventSnowmanQueryChoice = 383
 	EventSnowmanResetEngine = 384
+	EventCryptoTssMsg       = 385
 )
 
 var eventName = map[int]string{
@@ -407,4 +408,5 @@ var eventName = map[int]string{
 	EventSnowmanQueryFailed:         "EventSnowmanQueryFailed",
 	EventSnowmanQueryChoice:         "EventSnowmanQueryChoice",
 	EventSnowmanResetEngine:         "EventSnowmanResetEngine",
+	EventCryptoTssMsg:               "EventCryptoTssMsg",
 }

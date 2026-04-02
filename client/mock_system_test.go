@@ -107,6 +107,10 @@ func (mock *mockClient) GetConfig() *types.Chain33Config {
 	return mock.c.GetConfig()
 }
 
+func (mock *mockClient) GetQueue() queue.Queue {
+	return mock.c.GetQueue()
+}
+
 func (mock *mockClient) Clone() queue.Client {
 	clone := mockClient{}
 	clone.c = mock.c

@@ -6,6 +6,9 @@ OP="${1}"
 path="${2}"
 
 function filterLinter() {
+    # Convert package dirs to relative paths (., ./pkg, ...) for golangci-lint.
+    ROOT=$(go list -m -f '{{.Dir}}')
+    LINT_DIRS=$(go list -f '{{.Dir}}' ./... | grep -v snowman | while read -r d; do echo ".${d#"$ROOT"}"; done)
     res=$(
         golangci-lint run --no-config --issues-exit-code=1 --deadline=2m --disable-all \
             --enable=gofmt \
@@ -18,7 +21,8 @@ function filterLinter() {
             --enable=misspell \
             --enable=golint \
             --exclude=underscores \
-            --exclude-use-default=false
+            --exclude-use-default=false \
+            $LINT_DIRS
     )
     #	    --enable=staticcheck \
     #	    --enable=gocyclo \

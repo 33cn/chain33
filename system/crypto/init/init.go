@@ -15,4 +15,5 @@ import (
 	_ "github.com/33cn/chain33/system/crypto/secp256k1eth"
 	_ "github.com/33cn/chain33/system/crypto/secp256r1"
 	_ "github.com/33cn/chain33/system/crypto/sm2"
+	_ "github.com/33cn/chain33/system/crypto/tss"
 )

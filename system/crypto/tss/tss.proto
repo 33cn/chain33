@@ -1,0 +1,22 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// protoc --go_out=../ tss.proto
+
+syntax = "proto3";
+
+// package tss;
+option go_package = "./tss";
+
+message DKGResult {
+    bytes           pubX  = 1;
+    bytes           pubY  = 2;
+    bytes           share = 3;
+    map<string, BK> Bks   = 4;
+}
+
+message BK {
+    uint32 rank = 1;
+    bytes  x    = 2;
+}

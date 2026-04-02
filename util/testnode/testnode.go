@@ -132,14 +132,6 @@ func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolA
 	mock.mem.SetQueueClient(q.Client())
 	mock.mem.Wait()
 	lognode.Info("init mempool")
-	if mfg.P2P.Enable {
-		mock.network = p2p.NewP2PMgr(cfg)
-		mock.network.SetQueueClient(q.Client())
-	} else {
-		mock.network = &mockP2P{}
-		mock.network.SetQueueClient(q.Client())
-	}
-	lognode.Info("init P2P")
 	cli := q.Client()
 	w := wallet.New(cfg)
 	mock.client = q.Client()
@@ -155,6 +147,14 @@ func newWithConfigNoLock(cfg *types.Chain33Config, mockapi client.QueueProtocolA
 		newWalletRealize(mockapi)
 	}
 	mock.api = mockapi
+	if mfg.P2P.Enable {
+		mock.network = p2p.NewP2PMgr(cfg)
+		mock.network.SetQueueClient(q.Client())
+	} else {
+		mock.network = &mockP2P{}
+		mock.network.SetQueueClient(q.Client())
+	}
+	lognode.Info("init P2P")
 	server := rpc.New(cfg)
 	server.SetAPI(mock.api)
 	server.SetQueueClientNoListen(q.Client())

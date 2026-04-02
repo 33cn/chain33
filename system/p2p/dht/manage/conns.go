@@ -166,7 +166,8 @@ func (s *ConnManager) procConnections() {
 	for _, seed := range s.cfg.Seeds {
 		info, err := genAddrInfo(seed)
 		if err != nil {
-			panic(`invalid seeds format in config, use format of "/ip4/118.89.190.76/tcp/13803/p2p/16Uiu2HAmRao56AsxpobLBvbNfDttheQxnke9y1uWQRMWW7XaEdk5"`)
+			log.Error("procConnections invalid seeds format, use format of /ip4/ip/tcp/port/p2p/peerid", "error", err, "seed", seed)
+			continue
 		}
 		_ = s.host.Connect(context.Background(), *info)
 	}
@@ -174,7 +175,8 @@ func (s *ConnManager) procConnections() {
 	for _, node := range s.cfg.BootStraps {
 		info, err := genAddrInfo(node)
 		if err != nil {
-			panic(`invalid bootStraps format in config, use format of "/ip4/118.89.190.76/tcp/13803/p2p/16Uiu2HAmRao56AsxpobLBvbNfDttheQxnke9y1uWQRMWW7XaEdk5"`)
+			log.Error("procConnections invalid bootStraps format, use format of /ip4/ip/tcp/port/p2p/peerid", "error", err, "bootstrap", node)
+			continue
 		}
 		_ = s.host.Connect(context.Background(), *info)
 	}
