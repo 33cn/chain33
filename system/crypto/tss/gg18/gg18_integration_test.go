@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -49,15 +50,19 @@ func TestGG18_4Node(t *testing.T) {
 	seed := fmt.Sprintf("/ip4/127.0.0.1/tcp/%d/p2p/%s", ports[0], selfID)
 	log.Info("TestGG18Integration4Node", "ports", ports, "channel", channel, "seed", seed)
 
+	barrierDir := t.TempDir()
 	cmds := make([]*childProc, 0, 3)
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 	for i := 1; i <= 3; i++ {
 		role := fmt.Sprintf("node%d", i+1)
 		log.Info("TestGG18_4Node start child node", "role", role, "port", ports[i], "cwd", cwd)
-		cmds = append(cmds, startChildNode(t, role, ports[i], seed))
+		cmds = append(cmds, startChildNode(t, role, ports[i], seed, barrierDir))
 	}
 	runNodeFlow(t, cli1, 0, "node1")
+	signalBarrier(barrierDir, "node1")
+	waitBarrier(t, barrierDir, 60*time.Second)
+
 	wg := sync.WaitGroup{}
 	for _, cmd := range cmds {
 		wg.Add(1)
@@ -93,11 +98,16 @@ func TestGG18Node(t *testing.T) {
 func runChildNode(t *testing.T, role string) {
 	port := getEnvInt(t, "TSS_PORT")
 	seed := strings.TrimSpace(os.Getenv("TSS_SEED"))
+	barrierDir := strings.TrimSpace(os.Getenv("TSS_BARRIER_DIR"))
 	log.Info("runChildNode", "role", role, "port", port, "seed", seed)
 	mock, cli := startTestNode(t, port, testChannel, []string{seed})
 	defer mock.Close()
 
 	runNodeFlow(t, cli, 1, role)
+	if barrierDir != "" && role != "node4" {
+		signalBarrier(barrierDir, role)
+		waitBarrier(t, barrierDir, 60*time.Second)
+	}
 }
 
 func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
@@ -127,6 +137,7 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(idx int) {
+			defer wg.Done()
 			id := fmt.Sprintf("sign-session-%d", idx)
 			signMsg := []byte(id)
 			log.Info("test 3 node concurrent sign start", "role", role, "id", id)
@@ -134,7 +145,6 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 			require.NoError(t, err)
 			verifySignatureWithDKG(t, pubKey, signMsg, signRes)
 			log.Info("test 3 node concurrent sign end", "role", role, "id", id)
-			wg.Done()
 		}(i + 1)
 	}
 	c := make(chan struct{})
@@ -186,11 +196,12 @@ type childProc struct {
 	role string
 }
 
-func startChildNode(t *testing.T, role string, port int, seed string) *childProc {
+func startChildNode(t *testing.T, role string, port int, seed, barrierDir string) *childProc {
 
 	cmd := exec.Command(os.Args[0], "-test.run", "^TestGG18Node$", "-test.v")
 	cmd.Env = append(os.Environ(), "TSS_ROLE="+role,
 		"TSS_PORT="+strconv.Itoa(port), "TSS_SEED="+seed,
+		"TSS_BARRIER_DIR="+barrierDir,
 	)
 	var out bytes.Buffer
 	cmd.Stdout = io.MultiWriter(os.Stdout, &out)
@@ -251,6 +262,31 @@ func waitSelfPeerID(t *testing.T, cli queue.Client, timeout time.Duration) strin
 	}
 	t.Fatalf("timeout waiting for self peer id")
 	return ""
+}
+
+var barrierPeers = []string{"node1", "node2", "node3"}
+
+func signalBarrier(dir, role string) {
+	_ = os.WriteFile(filepath.Join(dir, role+".done"), []byte("ok"), 0644)
+}
+
+func waitBarrier(t *testing.T, dir string, timeout time.Duration) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		allDone := true
+		for _, role := range barrierPeers {
+			if _, err := os.Stat(filepath.Join(dir, role+".done")); err != nil {
+				allDone = false
+				break
+			}
+		}
+		if allDone {
+			return
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	t.Fatalf("waitBarrier timeout waiting for peers: %v", barrierPeers)
 }
 
 func getEnvInt(t *testing.T, key string) int {
