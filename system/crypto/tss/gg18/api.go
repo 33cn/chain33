@@ -49,7 +49,7 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string) (*tss.
 // ProcessSign sign message
 // sessionID 各节点同一Sign的sessionID需相同
 // 门限签名peers可以是部分节点，需保证调用时各节点peers参数相同
-func ProcessSign(peers []string, msg []byte, result *tss.DKGResult, threshold uint32, sessionID string) (*signer.Result, error) {
+func ProcessSign(peers []string, msg []byte, result *tss.DKGResult, sessionID string) (*signer.Result, error) {
 
 	dkgResult, err := tss.ConvertDKGResult(peers, result)
 	if err != nil {
