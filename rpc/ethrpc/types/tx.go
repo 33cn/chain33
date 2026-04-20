@@ -412,6 +412,13 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash)
 				}
 				cAddr = common.HexToAddress(receiptEVMContract.ContractAddr)
 				contractorAddr = &cAddr
+				// Backfill historical 605 logs that don't carry address field.
+				// Keep per-log address for newer logs when it's already set.
+				for _, elog := range elogs {
+					if elog.Address == (common.Address{}) {
+						elog.Address = cAddr
+					}
+				}
 			} else {
 				log.Error("receiptLogs2EvmLog", " decode receiptEVMContract err:", err.Error(), "log:", string(recpResult.Logs[0].Log))
 			}
@@ -432,8 +439,6 @@ func receiptLogs2EvmLog(detail *ctypes.TransactionDetail, blockHash common.Hash)
 		}
 		if evmLog.Address != "" {
 			elog.Address = common.HexToAddress(evmLog.Address)
-		} else if contractorAddr != nil {
-			elog.Address = *contractorAddr
 		}
 		for _, topic := range evmLog.Topic {
 			elog.Topics = append(elog.Topics, common.BytesToHash(topic))
