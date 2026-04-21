@@ -163,8 +163,16 @@ func (q *queue) Close() {
 	q.mu.Lock()
 	for topic, ch := range q.chanSubs {
 		if ch.isClose == 0 {
-			ch.high <- &Message{}
-			ch.low <- &Message{}
+			// Avoid blocking on full channels while closing.
+			select {
+			case ch.high <- &Message{}:
+			default:
+			}
+			select {
+			case ch.low <- &Message{}:
+			default:
+			}
+			close(ch.done)
 			q.chanSubs[topic] = &chanSub{isClose: 1}
 		}
 	}
@@ -201,8 +209,15 @@ func (q *queue) closeTopic(topic string) {
 		return
 	}
 	if sub.isClose == 0 {
-		sub.high <- &Message{}
-		sub.low <- &Message{}
+		// Avoid deadlock when channels are already full during topic close.
+		select {
+		case sub.high <- &Message{}:
+		default:
+		}
+		select {
+		case sub.low <- &Message{}:
+		default:
+		}
 	}
 	close(sub.done)
 	q.chanSubs[topic] = &chanSub{isClose: 1}

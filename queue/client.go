@@ -265,6 +265,9 @@ func (client *client) Sub(topic string) {
 					return
 				}
 				client.Recv() <- data
+			case <-sub.done:
+				qlog.Info("unsub5", "topic", topic)
+				return
 			default:
 				select {
 				case data, ok := <-sub.high:
