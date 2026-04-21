@@ -128,30 +128,37 @@ func (f *Filter) filterReceipt(receipts []*Receipt) (evmlogs []*EvmLog) {
 func (f *Filter) FilterEvmTxLogs(logs *ctypes.EVMTxLogPerBlk) (evmlogs []*EvmLog) {
 
 	for _, txlog := range logs.TxAndLogs {
-		if f.bloomFilterAddress(common.HexToAddress(txlog.GetTx().GetTo()).Bytes()) {
-			for j, tlog := range txlog.GetLogsPerTx().GetLogs() {
-				var topics [][]byte
-				var info EvmLog
-				if f.bloomFilterTopics(tlog.Topic[0]) {
-					topics = append(topics, tlog.Topic...)
-				} else {
-					continue
-				}
-
-				info.Index = hexutil.Uint(j)
-				for _, topic := range topics {
-					info.Topics = append(info.Topics, common.BytesToHash(topic))
-				}
-
-				to := common.HexToAddress(txlog.GetTx().GetTo())
-				info.Address = to
-				info.Index = hexutil.Uint(j)
-				info.BlockHash = common.BytesToHash(logs.GetBlockHash()) //hexutil.Encode(logs.BlockHash)
-				info.TxHash = common.BytesToHash(txlog.GetTx().Hash())
-				info.BlockNumber = hexutil.Uint64(uint64(logs.Height))
-				info.Data = tlog.Data
-				evmlogs = append(evmlogs, &info)
+		for j, tlog := range txlog.GetLogsPerTx().GetLogs() {
+			var topics [][]byte
+			var info EvmLog
+			if len(tlog.Topic) == 0 || !f.bloomFilterTopics(tlog.Topic[0]) {
+				continue
 			}
+			topics = append(topics, tlog.Topic...)
+
+			info.Index = hexutil.Uint(j)
+			for _, topic := range topics {
+				info.Topics = append(info.Topics, common.BytesToHash(topic))
+			}
+
+			entryAddr := common.HexToAddress(txlog.GetTx().GetTo())
+			logAddr := common.HexToAddress(tlog.GetAddress())
+			if tlog.GetAddress() == "" {
+				// fallback for historical logs generated before EVMLog.address was added
+				logAddr = common.HexToAddress(txlog.GetTx().GetTo())
+			}
+			if !f.bloomFilterAddress(entryAddr.Bytes()) && !f.bloomFilterAddress(logAddr.Bytes()) {
+				continue
+			}
+
+			info.Address = logAddr
+			info.Index = hexutil.Uint(j)
+			info.BlockHash = common.BytesToHash(logs.GetBlockHash()) //hexutil.Encode(logs.BlockHash)
+			info.TxHash = common.BytesToHash(txlog.GetTx().Hash())
+			info.BlockNumber = hexutil.Uint64(uint64(logs.Height))
+			info.Data = tlog.Data
+			info.Removed = tlog.GetRemoved()
+			evmlogs = append(evmlogs, &info)
 		}
 	}
 
