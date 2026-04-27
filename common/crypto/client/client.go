@@ -6,8 +6,12 @@
 package client
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/33cn/chain33/common/log/log15"
 
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/crypto"
@@ -15,28 +19,71 @@ import (
 	"github.com/33cn/chain33/types"
 )
 
+type msgHandler func(message *queue.Message)
+type subInitFunc func(ctx CryptoContext) error
+
 var (
-	ctx  = &CryptoContext{}
-	lock = sync.RWMutex{}
+	cryptoCtx    = &CryptoContext{}
+	lock         = sync.RWMutex{}
+	handlers     = make(map[int64]msgHandler)
+	subInitFuncs = make(map[string]subInitFunc)
+	log          = log15.New("module", "crypto.client")
 )
 
 // CryptoContext system context for crypto
 type CryptoContext struct {
-	// API queue api
-	API             client.QueueProtocolAPI
+	// CurrBlockHeight current height
 	CurrBlockHeight int64
-	CurrBlockTime   int64
+	// CurrBlockTime current block time
+	CurrBlockTime int64
+	// Client queue client
+	Client queue.Client
+	// API queue api
+	API client.QueueProtocolAPI
+	// Ctx context
+	Ctx context.Context
 }
 
 type module struct {
-	done chan struct{}
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // New new module
 func New() queue.Module {
+	ctx, cancel := context.WithCancel(context.Background())
 	return module{
-		done: make(chan struct{}),
+		ctx:    ctx,
+		cancel: cancel,
 	}
+}
+
+// RegisterSubInitFunc register sub module init func
+func RegisterSubInitFunc(name string, initFunc subInitFunc) {
+	lock.Lock()
+	defer lock.Unlock()
+	_, exist := subInitFuncs[name]
+	if exist {
+		panic("duplicate sub module init func, name=" + name)
+	}
+	subInitFuncs[name] = initFunc
+}
+
+// RegisterCryptoHandler register handler
+func RegisterCryptoHandler(id int64, handler msgHandler) {
+	lock.Lock()
+	defer lock.Unlock()
+	_, exist := handlers[id]
+	if exist {
+		panic(fmt.Sprintf("duplicate handler id %d", id))
+	}
+	handlers[id] = handler
+}
+
+func getHandler(id int64) msgHandler {
+	lock.RLock()
+	defer lock.RUnlock()
+	return handlers[id]
 }
 
 // SetQueueClient set queue client
@@ -47,7 +94,8 @@ func (m module) SetQueueClient(cli queue.Client) {
 	if err != nil {
 		panic("crypto SetQueueClient, new client api err:" + err.Error())
 	}
-	SetQueueAPI(api)
+	initCryptoCtx(m.ctx, cli, api)
+	initSubModule()
 	cli.Sub("crypto")
 	ticker := time.NewTicker(time.Second)
 	go func() {
@@ -60,7 +108,8 @@ func (m module) SetQueueClient(cli queue.Client) {
 					if header, ok := msg.Data.(*types.Header); ok {
 						SetCurrentBlock(header.GetHeight(), header.GetBlockTime())
 					}
-
+				} else if handler := getHandler(msg.Ty); handler != nil {
+					handler(msg)
 				}
 			case <-ticker.C:
 				// 首次启动, 需要主动获取依次区块头信息
@@ -69,7 +118,7 @@ func (m module) SetQueueClient(cli queue.Client) {
 					SetCurrentBlock(h.GetHeight(), h.GetBlockTime())
 					ticker.Stop()
 				}
-			case <-m.done:
+			case <-m.ctx.Done():
 				return
 			}
 
@@ -78,9 +127,9 @@ func (m module) SetQueueClient(cli queue.Client) {
 
 }
 
-// Close close
+// Close exit routine
 func (m module) Close() {
-	close(m.done)
+	m.cancel()
 }
 
 // Wait wait
@@ -92,20 +141,42 @@ func (m module) Wait() {
 func GetCryptoContext() CryptoContext {
 	lock.RLock()
 	defer lock.RUnlock()
-	return *ctx
+	return *cryptoCtx
+}
+
+// init sub module
+func initSubModule() {
+	lock.RLock()
+	defer lock.RUnlock()
+	ctx := *cryptoCtx
+	for name, initFunc := range subInitFuncs {
+		err := initFunc(ctx)
+		if err != nil {
+			log.Error("init sub module failed", "name", name, "err", err)
+		}
+	}
+}
+
+// init crypto context
+func initCryptoCtx(ctx context.Context, cli queue.Client, api client.QueueProtocolAPI) {
+	lock.Lock()
+	defer lock.Unlock()
+	cryptoCtx.Client = cli
+	cryptoCtx.API = api
+	cryptoCtx.Ctx = ctx
 }
 
 // SetQueueAPI set api
 func SetQueueAPI(api client.QueueProtocolAPI) {
 	lock.Lock()
 	defer lock.Unlock()
-	ctx.API = api
+	cryptoCtx.API = api
 }
 
 // SetCurrentBlock set block
 func SetCurrentBlock(blockHeight, blockTime int64) {
 	lock.Lock()
 	defer lock.Unlock()
-	ctx.CurrBlockHeight = blockHeight
-	ctx.CurrBlockTime = blockTime
+	cryptoCtx.CurrBlockHeight = blockHeight
+	cryptoCtx.CurrBlockTime = blockTime
 }

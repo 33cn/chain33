@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"os/user"
@@ -583,7 +582,7 @@ func ResetDatadir(cfg *types.Config, datadir string) string {
 		datadir = filepath.Join(dir, datadir[2:])
 	}
 	if len(datadir) >= 6 && datadir[:6] == "$TEMP/" {
-		dir, err := ioutil.TempDir("", "chain33datadir-")
+		dir, err := os.MkdirTemp("", "chain33datadir-")
 		if err != nil {
 			panic(err)
 		}
@@ -600,7 +599,7 @@ func ResetDatadir(cfg *types.Config, datadir string) string {
 
 // CreateTestDB 创建一个测试数据库
 func CreateTestDB() (string, db.DB, db.KVDB) {
-	dir, err := ioutil.TempDir("", "goleveldb")
+	dir, err := os.MkdirTemp("", "goleveldb")
 	if err != nil {
 		panic(err)
 	}

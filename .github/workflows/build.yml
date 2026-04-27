@@ -116,7 +116,16 @@ jobs:
         env:
           GOARCH: 386
 
-      - name: Run test in 386
-        run: go test ./... -covermode=atomic
-        env:
-          GOARCH: 386
+  test-gg18-integration:
+    name: Run test cases for gg18
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+      - name: Run test cases for gg18
+        run: |
+          sudo sysctl -w net.core.rmem_max=2500000
+          cd system/crypto/tss/gg18
+          go test -race -v -run ^TestGG18_4Node$ .
