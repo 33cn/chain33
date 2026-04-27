@@ -138,9 +138,87 @@ func TestCallCreateTx(t *testing.T) {
 	assert.Equal(t, tx.Fee, fee)
 }
 
-func TestIsAssetsTransfer(t *testing.T) {
-	assert.Equal(t, true, IsAssetsTransfer(&AssetsTransfer{}))
-	assert.Equal(t, true, IsAssetsTransfer(&AssetsWithdraw{}))
-	assert.Equal(t, true, IsAssetsTransfer(&AssetsTransferToExec{}))
-	assert.Equal(t, false, IsAssetsTransfer(&Transaction{}))
+func TestFormatTxExt(t *testing.T) {
+	tx := &Transaction{
+		Payload: []byte("test payload"),
+		Fee:     100,
+	}
+	tx, err := FormatTxExt(0, false, 100000, "coins", tx)
+	assert.Nil(t, err)
+	assert.Equal(t, int32(0), tx.ChainID)
+	assert.Equal(t, "coins", string(tx.Execer))
+	assert.Equal(t, int64(100), tx.Fee)
+	assert.Greater(t, tx.Nonce, int64(0))
+	assert.NotEmpty(t, tx.To)
+}
+
+func TestFormatTxExtEmptyTo(t *testing.T) {
+	tx := &Transaction{Payload: []byte("test")}
+	tx, err := FormatTxExt(0, false, 100000, "coins", tx)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, tx.To)
+}
+
+func TestCreateFormatTx(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	tx, err := CreateFormatTx(cfg, "coins", []byte("payload"))
+	assert.Nil(t, err)
+	assert.Equal(t, "coins", string(tx.Execer))
+	assert.Equal(t, "payload", string(tx.Payload))
+}
+
+func TestCallCreateTransactionNonExistent(t *testing.T) {
+	modify := &ModifyConfig{
+		Key:   "test-key",
+		Value: "test-value",
+		Op:    "add",
+		Addr:  "",
+	}
+	_, err := CallCreateTransaction("nonexistent", "action", modify)
+	assert.Equal(t, ErrNotSupport, err)
+}
+
+func TestCallCreateTxJSONWithUserExec(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	result, err := CallCreateTxJSON(cfg, "user.p.test", "TestAction", json.RawMessage(`{"key":"value"}`))
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+
+	var tx Transaction
+	err = Decode(result, &tx)
+	assert.Nil(t, err)
+	assert.Equal(t, "user.p.test", string(tx.Execer))
+}
+
+func TestLogTypeName(t *testing.T) {
+	lt := newLogType([]byte("none"), 0)
+	assert.Equal(t, "LogReserved", lt.Name())
+}
+
+func TestLoadLogReturnsNilForReserved(t *testing.T) {
+	NewChain33Config(GetDefaultCfgstring())
+	log := LoadLog([]byte("none"), 0)
+	assert.Nil(t, log)
+}
+
+func TestRegistorExecutor(t *testing.T) {
+	assert.Panics(t, func() {
+		RegistorExecutor("coins", LoadExecutorType("coins"))
+	})
+}
+
+func TestCallExecNewTx(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	modify := &ModifyConfig{
+		Key:   "test-key",
+		Value: "test-value",
+		Op:    "add",
+		Addr:  "",
+	}
+	result, err := CallExecNewTx(cfg, "manage", "Modify", modify)
+	assert.Nil(t, err)
+	assert.NotNil(t, result)
+
+	_, err = CallExecNewTx(cfg, "nonexistent", "action", modify)
+	assert.NotNil(t, err)
 }
