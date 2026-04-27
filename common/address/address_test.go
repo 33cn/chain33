@@ -15,6 +15,7 @@ import (
 	"github.com/33cn/chain33/system/address/btc"
 
 	"github.com/33cn/chain33/common/crypto"
+	_ "github.com/33cn/chain33/system/address"
 	_ "github.com/33cn/chain33/system/crypto/init"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,6 +84,44 @@ func TestExecAddress(t *testing.T) {
 	assert.Equal(t, "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp", address.ExecAddress("ticket"))
 	err := address.CheckBase58Address(address.NormalVer, "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
 	assert.Nil(t, err)
+}
+
+func TestCheckAddressAPI(t *testing.T) {
+	c, err := crypto.Load("secp256k1", -1)
+	require.NoError(t, err)
+	key, err := c.GenKey()
+	require.NoError(t, err)
+
+	addr := address.PubKeyToAddr(address.DefaultID, key.PubKey().Bytes())
+	err = address.CheckAddress(addr, -1)
+	assert.Nil(t, err)
+
+	err = address.CheckAddress(addr+"invalid", -1)
+	assert.NotNil(t, err)
+}
+
+func TestGetAddressType(t *testing.T) {
+	c, err := crypto.Load("secp256k1", -1)
+	require.NoError(t, err)
+	key, err := c.GenKey()
+	require.NoError(t, err)
+
+	addr := address.PubKeyToAddr(address.DefaultID, key.PubKey().Bytes())
+	ty, err := address.GetAddressType(addr)
+	assert.Nil(t, err)
+	assert.GreaterOrEqual(t, ty, int32(0))
+}
+
+func TestAddressStructMethods(t *testing.T) {
+	addr := &address.Address{Version: address.NormalVer}
+	addr.SetBytes([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20})
+	s := addr.String()
+	assert.NotEmpty(t, s)
+	assert.Contains(t, s, "1")
+}
+
+func TestCheckBase58AddressEdgeCases(t *testing.T) {
+	assert.NotNil(t, address.CheckBase58Address(address.NormalVer, ""))
 }
 
 func BenchmarkExecAddress(b *testing.B) {
