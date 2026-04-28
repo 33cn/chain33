@@ -111,3 +111,55 @@ func testFromBytes(t *testing.T) {
 	require.Equal(true, pub.VerifyBytes(msg, sign3))
 	require.Equal(true, pub2.VerifyBytes(msg, sign3))
 }
+
+func TestSignatureIsZero(t *testing.T) {
+	var sig SignatureSecp256k1Eth
+	assert.True(t, sig.IsZero())
+
+	sig = SignatureSecp256k1Eth{1}
+	assert.False(t, sig.IsZero())
+}
+
+func TestSignatureString(t *testing.T) {
+	sig := SignatureSecp256k1Eth{1, 2, 3}
+	s := sig.String()
+	assert.Contains(t, s, "010203")
+}
+
+func TestSignatureEquals(t *testing.T) {
+	sig1 := SignatureSecp256k1Eth{1, 2, 3}
+	sig2 := SignatureSecp256k1Eth{1, 2, 3}
+	sig3 := SignatureSecp256k1Eth{4, 5, 6}
+	assert.True(t, sig1.Equals(sig2))
+	assert.False(t, sig1.Equals(sig3))
+	assert.False(t, sig1.Equals(nil))
+}
+
+func TestPubKeyEquals(t *testing.T) {
+	pub1 := PubKeySecp256k1Eth{1}
+	pub2 := PubKeySecp256k1Eth{1}
+	pub3 := PubKeySecp256k1Eth{2}
+	assert.True(t, pub1.Equals(pub2))
+	assert.False(t, pub1.Equals(pub3))
+	assert.False(t, pub1.Equals(nil))
+}
+
+func TestPubKeyString(t *testing.T) {
+	pub := PubKeySecp256k1Eth{1, 2, 3}
+	assert.Contains(t, pub.String(), "PubKeySecp256k1")
+}
+
+func TestPubKeyKeyString(t *testing.T) {
+	pub := PubKeySecp256k1Eth{1, 2, 3}
+	assert.NotEmpty(t, pub.KeyString())
+}
+
+func TestGetEvmChainID(t *testing.T) {
+	assert.IsType(t, int64(0), GetEvmChainID())
+}
+
+func TestCaculCoinsEvmAccountKey(t *testing.T) {
+	key := CaculCoinsEvmAccountKey("0x1234567890abcdef")
+	assert.Contains(t, string(key), "LODB-evm-noncestate:")
+	assert.Contains(t, string(key), "0x1234567890abcdef")
+}
