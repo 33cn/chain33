@@ -265,22 +265,29 @@ func (tc *TimeCache) checkOvertimekey() {
 
 }
 
-// Has check key
+// Has check key, returns false if expired
 func (tc *TimeCache) Has(s string) bool {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()
 
-	_, ok := tc.M[s]
-	return ok
+	t, ok := tc.M[s]
+	if !ok {
+		return false
+	}
+	return time.Now().Before(t)
 }
 
-// List show all peers
+// List show all non-expired peers
 func (tc *TimeCache) List() *types.Blacklist {
 	tc.cacheLock.Lock()
 	defer tc.cacheLock.Unlock()
 	var list blacklist
+	now := time.Now()
 	for pid, p := range tc.M {
-		list = append(list, &types.BlackInfo{PeerName: pid, Lifetime: int64(^(time.Since(p) / time.Second) + 1)})
+		if now.After(p) {
+			continue
+		}
+		list = append(list, &types.BlackInfo{PeerName: pid, Lifetime: int64(^(now.Sub(p)/time.Second) + 1)})
 	}
 	sort.Sort(list)
 	return &types.Blacklist{Blackinfo: list}

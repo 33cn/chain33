@@ -151,6 +151,6 @@ func Test_timecache(t *testing.T) {
 	require.Equal(t, 2, len(cache.List().Blackinfo))
 	cancel()
 	time.Sleep(time.Second * 2)
-	require.True(t, cache.Has("three"))
-	require.Equal(t, 2, len(cache.List().Blackinfo))
+	require.False(t, cache.Has("three"))
+	require.Equal(t, 1, len(cache.List().Blackinfo))
 }
