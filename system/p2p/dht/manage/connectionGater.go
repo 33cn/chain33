@@ -287,7 +287,7 @@ func (tc *TimeCache) List() *types.Blacklist {
 		if now.After(p) {
 			continue
 		}
-		list = append(list, &types.BlackInfo{PeerName: pid, Lifetime: int64(^(now.Sub(p)/time.Second) + 1)})
+		list = append(list, &types.BlackInfo{PeerName: pid, Lifetime: int64(^(now.Sub(p) / time.Second) + 1)})
 	}
 	sort.Sort(list)
 	return &types.Blacklist{Blackinfo: list}
