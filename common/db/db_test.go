@@ -323,6 +323,20 @@ func testTransaction(t *testing.T, db DB) {
 }
 
 // 返回值测试
+func TestMustWriteFunc(t *testing.T) {
+	dir := t.TempDir()
+	db, err := NewGoMemDB("mustwritetest", dir, 128)
+	require.NoError(t, err)
+	defer db.Close()
+
+	batch := db.NewBatch(true)
+	batch.Set([]byte("mk1"), []byte("mv1"))
+	MustWrite(batch)
+	v, err := db.Get([]byte("mk1"))
+	assert.Nil(t, err)
+	assert.Equal(t, "mv1", string(v))
+}
+
 func testDBIteratorResult(t *testing.T, db DB) {
 	t.Log("test Set")
 	db.Set([]byte("aaaaaa/1"), []byte("aaaaaa/1"))

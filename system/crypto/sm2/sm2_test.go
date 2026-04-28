@@ -112,3 +112,38 @@ func testCryptoCompress(t *testing.T) {
 	assert.True(t, pub2.VerifyBytes(msg, signature))
 	assert.Nil(t, c.Validate(msg, pub.Bytes(), signature.Bytes()))
 }
+
+func TestSignatureIsZero(t *testing.T) {
+	var sig SignatureSM2
+	assert.True(t, sig.IsZero())
+
+	sig = SignatureSM2{1}
+	assert.False(t, sig.IsZero())
+}
+
+func TestSignatureString(t *testing.T) {
+	sig := SignatureSM2{1, 2, 3}
+	assert.NotEmpty(t, sig.String())
+}
+
+func TestSignatureEquals(t *testing.T) {
+	s1 := SignatureSM2{1, 2, 3}
+	s2 := SignatureSM2{1, 2, 3}
+	s3 := SignatureSM2{4, 5, 6}
+	assert.True(t, s1.Equals(s2))
+	assert.False(t, s1.Equals(s3))
+}
+
+func TestPrivKeyEquals(t *testing.T) {
+	p1 := PrivKeySM2{1, 2, 3}
+	p2 := PrivKeySM2{1, 2, 3}
+	p3 := PrivKeySM2{4, 5, 6}
+	assert.True(t, p1.Equals(p2))
+	assert.False(t, p1.Equals(p3))
+}
+
+func TestPubKeyString(t *testing.T) {
+	pub := PubKeySM2{1, 2, 3}
+	assert.NotEmpty(t, pub.String())
+	assert.NotEmpty(t, pub.KeyString())
+}

@@ -107,3 +107,24 @@ func testCryptoCompress(t *testing.T) {
 
 	assert.True(t, pub2.VerifyBytes(msg, signature))
 }
+
+func TestSignatureIsZero(t *testing.T) {
+	var sig SignatureECDSA
+	assert.True(t, sig.IsZero())
+
+	sig = SignatureECDSA{1}
+	assert.False(t, sig.IsZero())
+}
+
+func TestSignatureString(t *testing.T) {
+	sig := SignatureECDSA{1}
+	assert.NotEmpty(t, sig.String())
+}
+
+func TestSignatureEquals(t *testing.T) {
+	s1 := SignatureECDSA{1, 2, 3}
+	s2 := SignatureECDSA{1, 2, 3}
+	s3 := SignatureECDSA{4, 5, 6}
+	assert.True(t, s1.Equals(s2))
+	assert.False(t, s1.Equals(s3))
+}
