@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/libp2p/go-libp2p/core/crypto"
@@ -39,4 +40,15 @@ func TestGG18ConvertPubkey(t *testing.T) {
 	println(res)
 	pub := btcec.NewPublicKey(&x, &y)
 	require.True(t, pub.IsEqual(priv.PubKey()))
+}
+
+func TestNewConfig(t *testing.T) {
+	cfg := newConfig()
+	require.Equal(t, defaultTimeout, cfg.timeout)
+
+	cfg = newConfig(WithTimeout(2 * time.Minute))
+	require.Equal(t, 2*time.Minute, cfg.timeout)
+
+	cfg = newConfig(WithTimeout(0))
+	require.Zero(t, cfg.timeout)
 }

@@ -1,8 +1,11 @@
 package tss
 
 import (
+	"context"
 	"fmt"
+	"time"
 
+	cryptocli "github.com/33cn/chain33/common/crypto/client"
 	"github.com/getamis/alice/types"
 )
 
@@ -10,35 +13,46 @@ import (
 type Listener interface {
 	types.StateChangedListener
 
-	Done() <-chan error
+	Wait() error
 }
 
 // NewListener  new listener
-func NewListener(protocol string) Listener {
+func NewListener(protocol string, timeout time.Duration) Listener {
+	ctx := cryptocli.GetCryptoContext().Ctx
+	if ctx == nil {
+		ctx = context.TODO()
+	}
+	if timeout > 0 {
+		ctx, _ = context.WithTimeout(ctx, timeout)
+	}
 	return &listener{
 		protocol: protocol,
 		errCh:    make(chan error, 1),
+		ctx:      ctx,
 	}
 }
 
 type listener struct {
 	protocol string
 	errCh    chan error
+	ctx      context.Context
 }
 
 func (l *listener) OnStateChanged(oldState types.MainState, newState types.MainState) {
-	if newState == types.StateFailed {
+	switch newState {
+	case types.StateFailed:
 		l.errCh <- fmt.Errorf("state %s -> %s", oldState.String(), newState.String())
-		return
-	} else if newState == types.StateDone {
+	case types.StateDone:
 		l.errCh <- nil
-		return
 	}
-
-	log.Debug("State changed", "protocol", l.protocol,
-		"old", oldState.String(), "new", newState.String())
 }
 
-func (l *listener) Done() <-chan error {
-	return l.errCh
+func (l *listener) Wait() error {
+
+	select {
+	case err := <-l.errCh:
+		return err
+	case <-l.ctx.Done():
+		return fmt.Errorf("tss listener context done: %s", l.ctx.Err())
+	}
 }
