@@ -14,6 +14,12 @@ import (
 func Test_None(t *testing.T) {
 
 	c := &Driver{}
+	priv, err := c.GenKey()
+	require.Nil(t, priv)
+	require.Nil(t, err)
+	priv2, err := c.PrivKeyFromBytes([]byte("test"))
+	require.Nil(t, priv2)
+	require.Nil(t, err)
 	pub, err := c.PubKeyFromBytes([]byte("test"))
 	require.Nil(t, pub)
 	require.Nil(t, err)
