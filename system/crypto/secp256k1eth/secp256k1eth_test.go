@@ -194,3 +194,22 @@ func TestInitEvmIDFun(t *testing.T) {
 	initEvmIDFun([]byte(sub))
 	assert.Equal(t, int64(100), GetEvmChainID())
 }
+
+func TestPrivKeyFromBytesError(t *testing.T) {
+	c := &Driver{}
+	_, err := c.PrivKeyFromBytes([]byte("short"))
+	assert.NotNil(t, err)
+}
+
+func TestPubKeyFromBytesError(t *testing.T) {
+	c := &Driver{}
+	_, err := c.PubKeyFromBytes([]byte("too_short_for_pub_key"))
+	assert.NotNil(t, err)
+
+	// Generate a real key and test compressed format
+	priv, err := c.GenKey()
+	require.Nil(t, err)
+	pub := priv.PubKey()
+	pubBytes := pub.Bytes()
+	assert.Equal(t, 65, len(pubBytes))
+}
