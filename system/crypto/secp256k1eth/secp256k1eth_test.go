@@ -163,3 +163,34 @@ func TestCaculCoinsEvmAccountKey(t *testing.T) {
 	assert.Contains(t, string(key), "LODB-evm-noncestate:")
 	assert.Contains(t, string(key), "0x1234567890abcdef")
 }
+
+func TestValidate(t *testing.T) {
+	c := &Driver{}
+	priv, err := c.GenKey()
+	require.Nil(t, err)
+	pub := priv.PubKey().Bytes()
+	msg := []byte("test message")
+	sig := priv.Sign(msg)
+	assert.Nil(t, c.Validate(msg, pub, sig.Bytes()))
+	assert.NotNil(t, c.Validate(msg, pub, []byte("bad sig")))
+}
+
+func TestPrivKeySecp256k1EthString(t *testing.T) {
+	priv := PrivKeySecp256k1Eth{1, 2, 3}
+	assert.Equal(t, "PrivKeySecp256k1{*****}", priv.String())
+}
+
+func TestPrivKeySecp256k1EthEquals(t *testing.T) {
+	p1 := PrivKeySecp256k1Eth{1, 2, 3}
+	p2 := PrivKeySecp256k1Eth{1, 2, 3}
+	p3 := PrivKeySecp256k1Eth{4, 5, 6}
+	assert.True(t, p1.Equals(p2))
+	assert.False(t, p1.Equals(p3))
+	assert.False(t, p1.Equals(nil))
+}
+
+func TestInitEvmIDFun(t *testing.T) {
+	sub := `{"evmChainID": 100, "coinsPrecision": 100000000}`
+	initEvmIDFun([]byte(sub))
+	assert.Equal(t, int64(100), GetEvmChainID())
+}
