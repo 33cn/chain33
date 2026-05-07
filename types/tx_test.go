@@ -500,6 +500,187 @@ func modifyTxExec(tx1, tx2, tx3 *Transaction, tx1exec, tx2exec, tx3exec string) 
 	return tx11, tx12, tx13
 }
 
+func TestTxCacheGetSet(t *testing.T) {
+	tx := &Transaction{Payload: []byte("cache-test"), Execer: []byte("coins"), Fee: 100}
+	txc := NewTransactionCache(tx)
+	txc.size = 50
+
+	TxCacheSet(tx, txc)
+	cached, ok := TxCacheGet(tx)
+	assert.True(t, ok)
+	assert.Equal(t, int64(100), cached.Fee)
+	assert.Equal(t, 50, cached.Size())
+
+	TxCacheSet(tx, nil)
+	_, ok = TxCacheGet(tx)
+	assert.False(t, ok)
+}
+
+func TestTxsToCache(t *testing.T) {
+	txs := []*Transaction{
+		{Payload: []byte("tx1"), Execer: []byte("coins")},
+		{Payload: []byte("tx2"), Execer: []byte("token")},
+	}
+	caches := TxsToCache(txs)
+	assert.Equal(t, 2, len(caches))
+	assert.NotNil(t, caches[0].Hash())
+	assert.NotNil(t, caches[1].Hash())
+}
+
+func TestCacheToTxs(t *testing.T) {
+	txs := []*Transaction{
+		{Payload: []byte("tx1"), Execer: []byte("coins")},
+		{Payload: []byte("tx2"), Execer: []byte("token")},
+	}
+	caches := TxsToCache(txs)
+	result := CacheToTxs(caches)
+	assert.Equal(t, "coins", string(result[0].Execer))
+	assert.Equal(t, "token", string(result[1].Execer))
+}
+
+func TestTransactionCacheSize(t *testing.T) {
+	tx := &Transaction{Payload: []byte("test"), Execer: []byte("coins")}
+	txc := NewTransactionCache(tx)
+	assert.Greater(t, txc.Size(), 0)
+	assert.Equal(t, txc.Size(), txc.Size()) // cached on second call
+}
+
+func TestTransactionCacheTx(t *testing.T) {
+	tx := &Transaction{Payload: []byte("test")}
+	txc := NewTransactionCache(tx)
+	assert.Equal(t, tx, txc.Tx())
+}
+
+func TestCalcTxShortHash(t *testing.T) {
+	hash := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+	short := CalcTxShortHash(hash)
+	assert.Equal(t, "0102030405", short)
+
+	shortHash := []byte{1, 2}
+	assert.Equal(t, "", CalcTxShortHash(shortHash))
+}
+
+func TestNewTxFreeTx(t *testing.T) {
+	tx := NewTx()
+	tx.Execer = []byte("coins")
+	tx.Fee = 100
+	assert.Equal(t, int64(100), tx.Fee)
+
+	FreeTx(tx)
+	assert.Equal(t, int64(0), tx.Fee)
+	assert.Equal(t, 0, len(tx.Execer))
+}
+
+func TestCloneTx(t *testing.T) {
+	tx := &Transaction{
+		Execer:  []byte("coins"),
+		Payload: []byte("test"),
+		Fee:     100,
+		Expire:  1000,
+		Nonce:   42,
+		To:      "addr",
+		ChainID: 1,
+	}
+	clone := CloneTx(tx)
+	assert.Equal(t, "coins", string(clone.Execer))
+	assert.Equal(t, "test", string(clone.Payload))
+	assert.Equal(t, int64(100), clone.Fee)
+	assert.Equal(t, int64(42), clone.Nonce)
+	assert.Equal(t, "addr", clone.To)
+
+	clone.Fee = 200
+	assert.Equal(t, int64(100), tx.Fee) // original unchanged
+}
+
+func TestClone(t *testing.T) {
+	tx := &Transaction{Execer: []byte("coins"), Fee: 100}
+	clone := tx.Clone()
+	assert.Equal(t, "coins", string(clone.Execer))
+	assert.NotNil(t, clone)
+
+	var nilTx *Transaction
+	assert.Nil(t, nilTx.Clone())
+}
+
+func TestFullHash(t *testing.T) {
+	tx := &Transaction{Payload: []byte("test"), Execer: []byte("coins")}
+	hash := tx.FullHash()
+	assert.NotNil(t, hash)
+	assert.Equal(t, 32, len(hash))
+}
+
+func TestTxSize(t *testing.T) {
+	tx := &Transaction{Payload: []byte("test"), Execer: []byte("coins")}
+	assert.Greater(t, tx.Size(), 0)
+}
+
+func TestTxTx(t *testing.T) {
+	tx := &Transaction{Payload: []byte("test")}
+	assert.Equal(t, tx, tx.Tx())
+}
+
+func TestTransactionJSON(t *testing.T) {
+	tx := &Transaction{
+		Execer:  []byte("coins"),
+		Payload: []byte("test"),
+		Fee:     100,
+		Nonce:   42,
+		To:      "addr",
+		ChainID: 1,
+	}
+	jsonStr := tx.JSON()
+	assert.Contains(t, jsonStr, "coins")
+	assert.Contains(t, jsonStr, "100")
+}
+
+func TestTransactionGetTxFee(t *testing.T) {
+	tx := &Transaction{Fee: 200}
+	assert.Equal(t, int64(200), tx.GetTxFee())
+}
+
+func TestSetExpireWithDuration(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	tx := &Transaction{Execer: []byte("coins")}
+	tx.SetExpire(cfg, 120*time.Second)
+	assert.NotZero(t, tx.Expire)
+}
+
+func TestIsExpireZeroExpire(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	tx := &Transaction{Expire: 0}
+	assert.False(t, tx.IsExpire(cfg, 0, 0))
+}
+
+func TestGetRealFee(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	tx := &Transaction{Payload: []byte("test"), Execer: []byte("coins")}
+	fee, err := tx.GetRealFee(cfg.GetMinTxFeeRate())
+	assert.Nil(t, err)
+	assert.Greater(t, fee, int64(0))
+}
+
+func TestSetRealFee(t *testing.T) {
+	tx := &Transaction{Payload: []byte("test"), Execer: []byte("coins")}
+	err := tx.SetRealFee(100000)
+	assert.Nil(t, err)
+	assert.Greater(t, tx.Fee, int64(0))
+}
+
+func TestCheckTxFeeTooLow(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	tx := &Transaction{Payload: []byte("test"), Execer: []byte("coins"), Fee: 0, ChainID: cfg.GetChainID()}
+	err := tx.Check(cfg, 0, cfg.GetMinTxFeeRate(), cfg.GetMaxTxFee(0))
+	assert.NotNil(t, err)
+}
+
+func TestTransactionGetRealToAddr(t *testing.T) {
+	NewChain33Config(GetDefaultCfgstring())
+	tx := &Transaction{Execer: []byte("coins"), To: "addr"}
+	to := tx.GetRealToAddr()
+	// With exec found, should return the real to addr or the tx.To
+	assert.NotEmpty(t, to)
+}
+
 func TestTxReset(t *testing.T) {
 
 	txStr := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"

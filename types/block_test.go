@@ -10,6 +10,52 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestBlockSize(t *testing.T) {
+	b := &Block{}
+	assert.Equal(t, b.Size(), Size(b))
+	b.Txs = append(b.Txs, &Transaction{Payload: []byte("test")})
+	assert.Greater(t, b.Size(), 0)
+}
+
+func TestBlockGetHeader(t *testing.T) {
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	b := &Block{
+		Version:    1,
+		ParentHash: []byte("parent"),
+		TxHash:     []byte("txhash"),
+		BlockTime:  12345,
+		Height:     100,
+		Difficulty: 5,
+		StateHash:  []byte("state"),
+	}
+	b.Txs = append(b.Txs, &Transaction{Execer: []byte("coins")})
+	header := b.GetHeader(cfg)
+	assert.Equal(t, int64(1), header.Version)
+	assert.Equal(t, "parent", string(header.ParentHash))
+	assert.Equal(t, int64(100), header.Height)
+	assert.Equal(t, int64(1), header.TxCount)
+	assert.NotNil(t, header.Hash)
+}
+
+func TestBlockSetHeader(t *testing.T) {
+	b := &Block{}
+	header := &Header{
+		Version:    2,
+		ParentHash: []byte("newparent"),
+		TxHash:     []byte("newtxhash"),
+		BlockTime:  67890,
+		Height:     200,
+		Difficulty: 3,
+		StateHash:  []byte("newstate"),
+		Signature:  &Signature{Ty: 1},
+	}
+	b.SetHeader(header)
+	assert.Equal(t, int64(2), b.Version)
+	assert.Equal(t, "newparent", string(b.ParentHash))
+	assert.Equal(t, int64(200), b.Height)
+	assert.Equal(t, int32(1), b.Signature.Ty)
+}
+
 func TestBlock(t *testing.T) {
 	cfg := NewChain33Config(GetDefaultCfgstring())
 	b := &Block{}

@@ -14,6 +14,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestSetLogLevel(t *testing.T) {
+	SetLogLevel("error")
+	SetLogLevel("info")
+}
+
+func TestDisableLog(t *testing.T) {
+	DisableLog()
+}
+
 var storecfg0 = &types.Store{Name: "base_test", Driver: "leveldb", DbPath: "/tmp/base_test0", DbCache: 100}
 var storecfg1 = &types.Store{Name: "base_test", Driver: "leveldb", DbPath: "/tmp/base_test1", DbCache: 100}
 
