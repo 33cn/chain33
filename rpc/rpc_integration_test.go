@@ -21,10 +21,10 @@ func TestRPCHealth(t *testing.T) {
 
 	// Test get last header via JSON-RPC
 	var result struct {
-		Version    int32  `json:"version"`
-		Title      string `json:"title"`
-		BlockTime  int64  `json:"blockTime"`
-		Height     int64  `json:"height"`
+		Version   int32  `json:"version"`
+		Title     string `json:"title"`
+		BlockTime int64  `json:"blockTime"`
+		Height    int64  `json:"height"`
 	}
 	err = jsonc.Call("Chain33.GetLastHeader", nil, &result)
 	assert.Nil(t, err)

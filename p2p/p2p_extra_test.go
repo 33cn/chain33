@@ -27,4 +27,3 @@ func TestPubBroadCastNoTypes(t *testing.T) {
 	_, err := mgr.PubBroadCast("hash1", "data", ctypes.EventTx)
 	assert.Nil(t, err)
 }
-
