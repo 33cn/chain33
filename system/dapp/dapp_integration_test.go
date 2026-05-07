@@ -1,3 +1,5 @@
+//go:build integration
+
 package dapp_test
 
 import (
