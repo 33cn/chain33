@@ -173,7 +173,7 @@ func (q *queue) Close() {
 			default:
 			}
 			close(ch.done)
-			q.chanSubs[topic] = &chanSub{isClose: 1}
+			q.chanSubs[topic] = &chanSub{isClose: 1, done: ch.done}
 		}
 	}
 	q.mu.Unlock()
@@ -220,7 +220,7 @@ func (q *queue) closeTopic(topic string) {
 		}
 	}
 	close(sub.done)
-	q.chanSubs[topic] = &chanSub{isClose: 1}
+	q.chanSubs[topic] = &chanSub{isClose: 1, done: sub.done}
 }
 
 func (q *queue) send(msg *Message, timeout time.Duration) (err error) {
