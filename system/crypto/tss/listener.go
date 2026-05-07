@@ -22,13 +22,15 @@ func NewListener(protocol string, timeout time.Duration) Listener {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
+	var cancel context.CancelFunc
 	if timeout > 0 {
-		ctx, _ = context.WithTimeout(ctx, timeout)
+		ctx, cancel = context.WithTimeout(ctx, timeout)
 	}
 	return &listener{
 		protocol: protocol,
 		errCh:    make(chan error, 1),
 		ctx:      ctx,
+		cancel:   cancel,
 	}
 }
 
@@ -36,6 +38,7 @@ type listener struct {
 	protocol string
 	errCh    chan error
 	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
 func (l *listener) OnStateChanged(oldState types.MainState, newState types.MainState) {
@@ -48,6 +51,11 @@ func (l *listener) OnStateChanged(oldState types.MainState, newState types.MainS
 }
 
 func (l *listener) Wait() error {
+	defer func() {
+		if l.cancel != nil {
+			l.cancel()
+		}
+	}()
 
 	select {
 	case err := <-l.errCh:

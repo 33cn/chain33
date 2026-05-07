@@ -23,6 +23,7 @@ type config struct {
 	timeout time.Duration
 }
 
+// Option sets configuration options for TSS operations.
 type Option func(*config)
 
 // WithTimeout set timeout
