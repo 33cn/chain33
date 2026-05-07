@@ -27,4 +27,3 @@ func TestBigIntToModNScalarNegative(t *testing.T) {
 	_, err := bigIntToModNScalar(big.NewInt(-1))
 	assert.Nil(t, err)
 }
-
