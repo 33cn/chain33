@@ -1,3 +1,5 @@
+//go:build integration
+
 package wallet_test
 
 import (

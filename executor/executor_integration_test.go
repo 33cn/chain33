@@ -1,3 +1,5 @@
+//go:build integration
+
 package executor_test
 
 import (
