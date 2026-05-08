@@ -3,6 +3,7 @@ package gg18
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/33cn/chain33/system/crypto/tss"
 	"github.com/btcsuite/btcd/btcec/v2"
@@ -14,12 +15,39 @@ import (
 	"github.com/getamis/alice/crypto/tss/ecdsa/gg18/signer"
 )
 
+const (
+	defaultTimeout = 30 * time.Second
+)
+
+type config struct {
+	timeout time.Duration
+}
+
+// Option sets configuration options for TSS operations.
+type Option func(*config)
+
+// WithTimeout set timeout
+func WithTimeout(timeout time.Duration) Option {
+	return func(o *config) {
+		o.timeout = timeout
+	}
+}
+
+func newConfig(opts ...Option) *config {
+	cfg := &config{timeout: defaultTimeout}
+	for _, opt := range opts {
+		opt(cfg)
+	}
+	return cfg
+}
+
 // ProcessDKG process dkg，return DKGResult
 // sessionID 各节点同一Dkg的sessionID相同
-func ProcessDKG(peers []string, threshold, rank uint32, sessionID string) (*tss.DKGResult, error) {
+func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts ...Option) (*tss.DKGResult, error) {
 
+	cfg := newConfig(opts...)
 	pm := tss.NewReadyPeerManager(peers, DkgProtocol, sessionID)
-	listener := tss.NewListener(DkgProtocol)
+	listener := tss.NewListener(DkgProtocol, cfg.timeout)
 	dkgCore, err := dkg.NewDKG(elliptic.Secp256k1(), pm, threshold, rank, listener)
 	if err != nil {
 		log.Error("ProcessDKG", "session", sessionID, "NewDKG err", err)
@@ -34,7 +62,7 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string) (*tss.
 	dkgCore.Start()
 	defer dkgCore.Stop()
 
-	if err := <-listener.Done(); err != nil {
+	if err := listener.Wait(); err != nil {
 		log.Error("ProcessDKG", "session", sessionID, "listener done err", err)
 		return nil, err
 	}
@@ -49,15 +77,16 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string) (*tss.
 // ProcessSign sign message
 // sessionID 各节点同一Sign的sessionID需相同
 // 门限签名peers可以是部分节点，需保证调用时各节点peers参数相同
-func ProcessSign(peers []string, msg []byte, result *tss.DKGResult, sessionID string) (*signer.Result, error) {
+func ProcessSign(peers []string, msg []byte, result *tss.DKGResult, sessionID string, opts ...Option) (*signer.Result, error) {
 
+	cfg := newConfig(opts...)
 	dkgResult, err := tss.ConvertDKGResult(peers, result)
 	if err != nil {
 		log.Error("ProcessSign", "session", sessionID, "ConvertDKGResult err", err)
 		return nil, err
 	}
 	pm := tss.NewReadyPeerManager(peers, SignProtocol, sessionID)
-	listener := tss.NewListener(SignProtocol)
+	listener := tss.NewListener(SignProtocol, cfg.timeout)
 	homo, err := paillier.NewPaillier(2048)
 	if err != nil {
 		log.Error("ProcessSign", "session", sessionID, "NewPaillier err", err)
@@ -78,7 +107,7 @@ func ProcessSign(peers []string, msg []byte, result *tss.DKGResult, sessionID st
 	signerCore.Start()
 	defer signerCore.Stop()
 
-	if err := <-listener.Done(); err != nil {
+	if err := listener.Wait(); err != nil {
 		log.Error("ProcessSign", "session", sessionID, "listener done err", err)
 		return nil, err
 	}
@@ -92,14 +121,15 @@ func ProcessSign(peers []string, msg []byte, result *tss.DKGResult, sessionID st
 
 // ProcessReshare reshare public key
 // sessionID 各节点同一Reshare的sessionID需相同
-func ProcessReshare(peers []string, result *tss.DKGResult, threshold uint32, sessionID string) (*reshare.Result, error) {
+func ProcessReshare(peers []string, result *tss.DKGResult, threshold uint32, sessionID string, opts ...Option) (*reshare.Result, error) {
+	cfg := newConfig(opts...)
 	dkgRes, err := tss.ConvertDKGResult(peers, result)
 	if err != nil {
 		log.Error("ProcessReshare", "session", sessionID, "ConvertDKGResult err", err)
 		return nil, err
 	}
 	pm := tss.NewReadyPeerManager(peers, ReshareProtocol, sessionID)
-	listener := tss.NewListener(ReshareProtocol)
+	listener := tss.NewListener(ReshareProtocol, cfg.timeout)
 	reshareCore, err := reshare.NewReshare(pm, threshold, dkgRes.PublicKey, dkgRes.Share,
 		dkgRes.Bks, listener)
 
@@ -116,7 +146,7 @@ func ProcessReshare(peers []string, result *tss.DKGResult, threshold uint32, ses
 	reshareCore.Start()
 	defer reshareCore.Stop()
 
-	if err := <-listener.Done(); err != nil {
+	if err := listener.Wait(); err != nil {
 		log.Error("ProcessReshare", "session", sessionID, "listener done err", err)
 		return nil, err
 	}

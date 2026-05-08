@@ -29,8 +29,8 @@ func init() {
 
 // init tss service
 func initTSS(ctx cryptocli.CryptoContext) error {
-	cfg := ctx.API.GetConfig()
-	if !cfg.GetModuleConfig().Crypto.EnableTSS {
+	cryptofg := ctx.API.GetConfig().GetModuleConfig().Crypto
+	if cryptofg == nil || !cryptofg.EnableTSS {
 		return nil
 	}
 
