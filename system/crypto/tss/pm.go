@@ -33,7 +33,7 @@ func NewReadyPeerManager(peers []string, protocol, sessionID string) alicetypes.
 		cli:       ctx.Client,
 		ctx:       ctx.Ctx,
 	}
-	pm.ensurePeersReady()
+	pm.waitPeersReady()
 	return pm
 }
 
@@ -81,28 +81,27 @@ func (p *peerManager) removeSelf() {
 	p.peerIDs = ids
 }
 
-// ensurePeersReady waits for peers to sync and initializes self info.
-func (p *peerManager) ensurePeersReady() {
-
-	timeout := 3 * time.Second
-	ticker := time.NewTicker(timeout)
+// waitPeersReady waits for peers to sync and initializes self info.
+func (p *peerManager) waitPeersReady() {
+	interval := 3 * time.Second
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
-		peers, err := FetchConnectedPeers(p.cli, timeout)
-		if err != nil || len(peers) == 0 {
-			log.Debug("EnsurePeersReady", "session", p.sessionID, "fetchConnectedPeers err:", err, "peers", len(peers))
-			time.Sleep(timeout)
-			continue
+		peers, err := FetchConnectedPeers(p.cli, interval)
+		if err == nil && len(peers) > 0 {
+			if p.selfID == "" && peers[len(peers)-1].Self {
+				p.selfID = peers[len(peers)-1].Name
+				p.removeSelf()
+			}
+			if p.selfID != "" && p.hasAllPeersConnected(peers) {
+				return
+			}
+			log.Debug("waitPeersReady waiting for peers to sync",
+				"session", p.sessionID, "fetchPeers", len(peers))
+		} else {
+			log.Debug("waitPeersReady",
+				"session", p.sessionID, "fetchConnectedPeers err:", err, "peers", len(peers))
 		}
-		if p.selfID == "" && peers[len(peers)-1].Self {
-			p.selfID = peers[len(peers)-1].Name
-			p.removeSelf()
-		}
-		if p.hasAllPeersConnected(peers) && p.selfID != "" {
-			return
-		}
-		log.Debug("EnsurePeersReady waiting for peers to sync", "session", p.sessionID, "fetchPeers", len(peers))
-
 		select {
 		case <-p.ctx.Done():
 			return
