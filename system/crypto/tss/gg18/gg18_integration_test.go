@@ -113,17 +113,19 @@ func runChildNode(t *testing.T, role string) {
 func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 	peers := waitPeerIDs(t, cli, 4, 120*time.Second, role)
 	log.Info("runNodeFlow dkg start", "role", role)
-	dkgRes, err := ProcessDKG(peers, tssThreshold, rank, "dkg-session-id")
+	dkgTimeout := 2 * time.Minute
+	dkgRes, err := ProcessDKG(peers, tssThreshold, rank, "dkg-session-id", WithTimeout(dkgTimeout))
 	require.NoError(t, err)
 	msg := []byte(tssMessage)
 	log.Info("runNodeFlow sign start", "role", role)
-	signRes, err := ProcessSign(peers, msg, dkgRes, "sign-session")
+	signTimeout := 1 * time.Minute
+	signRes, err := ProcessSign(peers, msg, dkgRes, "sign-session", WithTimeout(signTimeout))
 	require.NoError(t, err)
 	pubKey, err := tss.ParseBtcecPublicKey(dkgRes)
 	require.NoError(t, err)
 	verifySignatureWithDKG(t, pubKey, msg, signRes)
 	log.Info("runNodeFlow reshare start", "role", role)
-	reshareRes, err := ProcessReshare(peers, dkgRes, tssThreshold, "reshare-session-id")
+	reshareRes, err := ProcessReshare(peers, dkgRes, tssThreshold, "reshare-session-id", WithTimeout(dkgTimeout))
 	require.NoError(t, err)
 	require.NotNil(t, reshareRes)
 	if role == "node4" {
@@ -141,7 +143,7 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 			id := fmt.Sprintf("sign-session-%d", idx)
 			signMsg := []byte(id)
 			log.Info("test 3 node concurrent sign start", "role", role, "id", id)
-			signRes, err := ProcessSign(peers, signMsg, dkgRes, id)
+			signRes, err := ProcessSign(peers, signMsg, dkgRes, id, WithTimeout(1*time.Minute))
 			require.NoError(t, err)
 			verifySignatureWithDKG(t, pubKey, signMsg, signRes)
 			log.Info("test 3 node concurrent sign end", "role", role, "id", id)
