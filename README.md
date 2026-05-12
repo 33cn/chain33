@@ -4,7 +4,7 @@ https://camo.githubusercontent.com/915b7be44ada53c290eb157634330494ebe3e30a/6874
 [![pipeline status](https://github.com/33cn/chain33/actions/workflows/build.yml/badge.svg)](https://github.com/33cn/chain33/actions/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/33cn/chain33)](https://goreportcard.com/report/github.com/33cn/chain33)
  [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/33cn/chain33?svg=true&branch=master&passingText=Windows%20-%20OK&failingText=Windows%20-%20failed&pendingText=Windows%20-%20pending)](https://ci.appveyor.com/project/33cn/chain33)
-[![code coverage](https://img.shields.io/badge/coverage-48%25-orange)](https://github.com/33cn/chain33/actions/workflows/build.yml)
+[![code coverage](https://img.shields.io/badge/coverage-65.7%25-yellowgreen)](https://github.com/33cn/chain33/actions/workflows/build.yml) *(不含 protobuf 自动代码)*
 [![Join the chat at https://gitter.im/33cn/Lobby](https://badges.gitter.im/33cn/Lobby.svg)](https://gitter.im/33cn/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 
