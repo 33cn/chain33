@@ -146,7 +146,7 @@ func (f *Forks) RegisterSystemFork() {
 	f.setFork("ForkCheckEthTxSort", 0)
 	f.setFork("ForkProxyExec", 0)
 	f.setFork("ForkMaxTxFeeV1", 0)
-	f.SetFork("ForkParaFee", -1)
+	f.setFork("ForkParaFee", -1)
 
 }
 
