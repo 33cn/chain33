@@ -18,6 +18,9 @@ import (
 
 	"strings"
 
+	"github.com/33cn/chain33/client"
+	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/store"
 	_ "github.com/33cn/chain33/system"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
@@ -161,4 +164,129 @@ func TestProxyExec(t *testing.T) {
 
 	//与原始交易对比
 	assert.Equal(t, coinsTx.Hash(), testTx.Hash())
+}
+
+// feeTestApp 用于execFee测试
+type feeTestApp struct {
+	*drivers.DriverBase
+	driverName string
+}
+
+func newFeeTestApp() drivers.Driver {
+	app := &feeTestApp{DriverBase: &drivers.DriverBase{}, driverName: "feetest"}
+	app.SetChild(app)
+	return app
+}
+
+func (app *feeTestApp) GetDriverName() string {
+	return app.driverName
+}
+
+func newFeeTestFreeApp() drivers.Driver {
+	app := &feeTestApp{DriverBase: &drivers.DriverBase{}, driverName: "feetestfree"}
+	app.SetChild(app)
+	app.SetIsFree(true)
+	return app
+}
+
+func TestExecFee(t *testing.T) {
+	// 注册测试驱动
+	defaultCfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	drivers.Register(defaultCfg, "feetest", newFeeTestApp, 0)
+	drivers.Register(defaultCfg, "feetestfree", newFeeTestFreeApp, 0)
+
+	cases := []struct {
+		title        string
+		paraTitle    string // 空表示非平行链
+		height       int64
+		forkHeight   int64
+		minTxFeeRate int64
+		execer       string
+		expectFee    bool // 是否期望调用 processFee
+	}{
+		{
+			title:        "平行链, 高度在ForkParaFee之前, 不收费",
+			paraTitle:    "user.p.tname.",
+			height:       5,
+			forkHeight:   10,
+			minTxFeeRate: 100,
+			execer:       "feetest",
+			expectFee:    false,
+		},
+		{
+			title:        "平行链, 高度在ForkParaFee之后, feeRate>0, !IsFree, 收费",
+			paraTitle:    "user.p.tname.",
+			height:       15,
+			forkHeight:   10,
+			minTxFeeRate: 100,
+			execer:       "feetest",
+			expectFee:    true,
+		},
+		{
+			title:        "平行链, 高度在ForkParaFee之后, feeRate==0, 不收费",
+			paraTitle:    "user.p.tname.",
+			height:       15,
+			forkHeight:   10,
+			minTxFeeRate: 0,
+			execer:       "feetest",
+			expectFee:    false,
+		},
+		{
+			title:        "平行链, 高度在ForkParaFee之后, feeRate>0, IsFree, 不收费",
+			paraTitle:    "user.p.tname.",
+			height:       15,
+			forkHeight:   10,
+			minTxFeeRate: 100,
+			execer:       "feetestfree",
+			expectFee:    false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.title, func(t *testing.T) {
+			cfgstring := types.GetDefaultCfgstring()
+			// 将默认local标题替换为目标标题, 确保needSetForkZero()正确初始化para fork
+			cfgstring = strings.Replace(cfgstring, `Title="local"`, `Title="`+tc.paraTitle+`"`, 1)
+			cfg := types.NewChain33Config(cfgstring)
+			// needSetForkZero() 已将 ForkParaFee 置0, 覆盖为目标值
+			forks, _ := cfg.GetForks()
+			forks["ForkParaFee"] = tc.forkHeight
+			cfg.SetMinFee(tc.minTxFeeRate)
+
+			q := queue.New("channel")
+			q.SetConfig(cfg)
+			st := store.New(cfg)
+			st.SetQueueClient(q.Client())
+			defer st.Close()
+
+			exec := New(cfg)
+			exec.client = q.Client()
+			exec.qclient, _ = client.New(exec.client, nil)
+
+			priv := util.TestPrivkeyList[0]
+			tx := util.CreateTxWithExecer(cfg, priv, tc.execer)
+			// 不手动设置Fee, FormatTxExt会根据minTxFeeRate计算
+
+			ctx := &executorCtx{
+				height:     tc.height,
+				blocktime:  time.Now().Unix(),
+				difficulty: 1,
+			}
+			execute := newExecutor(ctx, exec, nil, []*types.Transaction{tx}, nil)
+
+			receipt, err := execute.execFee(tx, 0)
+			if tc.expectFee {
+				// processFee被调用, 因账户余额为0而返回ErrNoBalance
+				assert.Equal(t, types.ErrNoBalance, err)
+				assert.Nil(t, receipt)
+			} else {
+				assert.Nil(t, err)
+				if receipt == nil {
+					t.Fatal("receipt must not be nil when no error")
+				}
+				assert.Equal(t, int32(types.ExecPack), receipt.Ty)
+				assert.Equal(t, 0, len(receipt.KV))
+			}
+		})
+	}
 }

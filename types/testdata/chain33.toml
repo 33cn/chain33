@@ -156,6 +156,7 @@ ForkV24TxGroupPara= 806578
 ForkStateDBSet=-1
 ForkMaxTxFeeV1=30839600
 ForkMaxTxFeeV2=30939600
+ForkParaFee=-1
 [fork.sub.manage]
 Enable=120000
 ForkV11ManageExec= 400000
