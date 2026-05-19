@@ -11,6 +11,8 @@ datadir*
 .vscode
 *.pprof
 *.test
+coverage_*.out
+build/coverage/
 cmd/chain33/chain33
 cmd/tools/tools
 build/cert.pem
