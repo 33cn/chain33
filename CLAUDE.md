@@ -72,7 +72,7 @@ chain33 在 Makefile 里包了一套自动化 git 命令,日常优先用:
 - 新代码必须有测试,protobuf 自动生成的不计入覆盖率
 
 ## 工作流(用 Claude 时)
-- 非平凡改动走 brainstorm → spec(`docs/superpowers/specs/`)→ plan → TDD → verify
+- 非平凡改动走 brainstorm → spec(`docs/superpowers/specs/`)→ plan → execute(TDD)→ verify
 - 简单 typo / 单行修复直接做
 - 完成前必须跑 `make test && make linter`,凭实际输出宣布完成,不靠"应该会过"
 
