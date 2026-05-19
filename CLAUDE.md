@@ -2,7 +2,7 @@
 
 ## 项目本质
 - 区块链开发框架,Go 1.20+,KISS 原则、高度模块化
-- 19 个顶层模块按 7 层组织(见下方目录速查)
+- 18 个代码模块按 7 层组织(见下方目录速查),另有 `build/` 与 `docs/` 不计入
 - 当前阶段焦点:测试覆盖率(目标稳住 65%+)、CI 稳定性、模块重构
 
 ## 关键命令(日常用 Makefile)
@@ -48,14 +48,14 @@ chain33 在 Makefile 里包了一套自动化 git 命令,日常优先用:
 - `executor/`     交易执行引擎
 
 ### 4. 网络与通信
-- `p2p/`          P2P 网络(含 gg18 TSS 子模块)
+- `p2p/`          P2P 网络主干
 - `rpc/`          RPC:grpc + jsonrpc + ethrpc 三套
 - `queue/`        进程内消息队列(模块间通信主干)
 - `client/`       queue protocol 客户端
 
 ### 5. 应用层
 - `wallet/`       钱包、BIP 助记词、种子管理
-- `system/`       **可插拔系统扩展**:dapp / address / consensus / crypto / store / mempool 的接口与实现注册点 — 新算法/插件加在这里
+- `system/`       **可插拔系统扩展**:dapp / address / consensus / crypto / store / mempool 的接口与实现注册点 — 新算法/插件加在这里(例:gg18 TSS 在 `system/crypto/tss/gg18/`)
 
 ### 6. 基础设施
 - `common/`       通用工具:crypto / address / db / difficulty
