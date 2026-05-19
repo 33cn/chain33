@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(make test:*)",
+      "Bash(make testq:*)",
+      "Bash(make race:*)",
+      "Bash(make coverage:*)",
+      "Bash(make coverhtml:*)",
+      "Bash(make linter:*)",
+      "Bash(make linter_test:*)",
+      "Bash(make vet:*)",
+      "Bash(make gosec:*)",
+      "Bash(make ineffassign:*)",
+      "Bash(make bench:*)",
+      "Bash(make fmt:*)",
+      "Bash(make depends:*)",
+      "Bash(make build:*)",
+      "Bash(make cli:*)",
+
+      "Bash(go test:*)",
+      "Bash(go vet:*)",
+      "Bash(go build:*)",
+      "Bash(go fmt:*)",
+      "Bash(go list:*)",
+      "Bash(go doc:*)",
+      "Bash(go mod download)",
+      "Bash(go mod verify)",
+      "Bash(go mod tidy)",
+      "Bash(gofmt:*)",
+
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git blame:*)",
+      "Bash(git branch)",
+      "Bash(git remote -v)",
+      "Bash(git stash list)",
+
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(wc:*)",
+      "Bash(file:*)",
+
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)"
+    ]
+  }
+}

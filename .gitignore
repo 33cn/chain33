@@ -56,4 +56,5 @@ system/store/mavl/1.png
 system/store/mavl/cpu.pprof
 system/store/mavl/mavl.test
 build/CHANGELOG.md
-.claude*
+.claude/*
+!.claude/settings.json
