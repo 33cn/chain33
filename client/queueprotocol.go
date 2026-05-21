@@ -215,7 +215,7 @@ func (q *QueueProtocol) RemoveTxsByHashList(hashList *types.TxHashList) error {
 	}
 	var ok bool
 	err, ok = msg.GetData().(error)
-	if !ok {
+	if ok {
 		return err
 	}
 	return nil

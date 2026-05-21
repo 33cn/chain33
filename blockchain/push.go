@@ -573,6 +573,7 @@ func (push *Push) runTask(input *pushNotify) {
 	//触发goroutine运行
 	push.updateLastSeq(input.subscribe.Name)
 
+	push.postwg.Add(1)
 	go func(in *pushNotify) {
 		var lastesBlockSeq int64
 		var continueFailCount int32
@@ -690,7 +691,6 @@ func (push *Push) runTask(input *pushNotify) {
 		}
 
 	}(input)
-	push.postwg.Add(1)
 }
 
 // UpdateSeq sequence 更新通知

@@ -5,6 +5,7 @@
 package executor
 
 import (
+	"sort"
 	"sync"
 
 	dbm "github.com/33cn/chain33/common/db"
@@ -21,6 +22,15 @@ type plugin interface {
 }
 
 var globalPlugins = make(map[string]plugin)
+
+func sortedPluginNames() []string {
+	names := make([]string, 0, len(globalPlugins))
+	for name := range globalPlugins {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
 
 // RegisterPlugin register plugin
 func RegisterPlugin(name string, p plugin) {

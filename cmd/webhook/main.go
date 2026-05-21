@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 
 	"gopkg.in/go-playground/webhooks.v5/github"
 )
@@ -18,9 +19,15 @@ const (
 
 var project = flag.String("p", "chain33", "the github project name")
 
+var safeNamePattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+
 func main() {
 	flag.Parse()
-	hook, _ := github.New(github.Options.Secret(""))
+	secret := os.Getenv("WEBHOOK_SECRET")
+	if secret == "" {
+		log.Fatal("WEBHOOK_SECRET environment variable is required")
+	}
+	hook, _ := github.New(github.Options.Secret(secret))
 	qhook := make(chan interface{}, 64)
 	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		payload, err := hook.Parse(r, github.ReleaseEvent, github.PullRequestEvent)
@@ -70,6 +77,15 @@ func processGithubPL(payload github.PullRequestPayload) {
 	id := fmt.Sprintf("%d", payload.PullRequest.ID)
 	user := payload.PullRequest.User.Login
 	branch := payload.PullRequest.Head.Ref
+
+	if !safeNamePattern.MatchString(user) {
+		log.Println("rejected unsafe username:", user)
+		return
+	}
+	if !safeNamePattern.MatchString(branch) {
+		log.Println("rejected unsafe branch name:", branch)
+		return
+	}
 
 	repo := "https://github.com/" + user + "/" + *project + ".git"
 	gitpath := gopath + "/src/github.com/" + user + "/" + *project

@@ -785,6 +785,7 @@ func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue *types.KeyValue, pro
 	proofnode, err := ReadProof(roothash, leafHash, proof)
 	if err != nil {
 		treelog.Info("VerifyKVPairProof ReadProof err！", "err", err)
+		return false
 	}
 	istrue := proofnode.Verify(keyvalue.GetKey(), keyvalue.GetValue(), roothash)
 	if !istrue {

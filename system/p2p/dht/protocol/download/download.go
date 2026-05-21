@@ -3,6 +3,8 @@ package download
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -45,10 +47,23 @@ func InitProtocol(env *protocol.P2PEnv) {
 
 }
 
-func (p *Protocol) downloadBlock(height int64, tasks tasks) error {
+func (p *Protocol) downloadBlock(height int64, tasks tasks, tasksMu ...*sync.Mutex) error {
 
 	var retryCount uint
-	tasks.Sort() //TODO bug 对任务节点时延进行排序，优先选择时延低的节点进行下载
+	lockTasks := func() {
+		if len(tasksMu) > 0 {
+			tasksMu[0].Lock()
+		}
+	}
+	unlockTasks := func() {
+		if len(tasksMu) > 0 {
+			tasksMu[0].Unlock()
+		}
+	}
+
+	lockTasks()
+	tasks.Sort()
+	unlockTasks()
 ReDownload:
 	select {
 	case <-p.Ctx.Done():
@@ -67,7 +82,9 @@ ReDownload:
 		return errors.New("beyound max try count 50")
 	}
 
+	lockTasks()
 	task := p.availbTask(tasks, height)
+	unlockTasks()
 	if task == nil {
 		time.Sleep(time.Millisecond * 400)
 		goto ReDownload
@@ -77,11 +94,11 @@ ReDownload:
 	//一个高度在一个pid上请求。
 	block, err := p.downloadBlockFromPeerOld(height, task.Pid)
 	if err != nil {
-		//发生EOF，剔除无用节点。
-		//EROR[06-16|17:09:26] handleEventDownloadBlock                 module=p2p.download SendRecvPeer="stream reset" pid=16Uiu2HAkzNiDx1mN6muuBRgPpDRaUG5NGs8HMHmp1HND968Y6Kho
 		log.Error("handleEventDownloadBlock", "SendRecvPeer", err, "pid", task.Pid)
 		p.releaseJob(task)
+		lockTasks()
 		tasks = tasks.Remove(task)
+		unlockTasks()
 		goto ReDownload
 	}
 	remotePid := task.Pid.Pretty()
@@ -147,6 +164,12 @@ func (p *Protocol) downloadBlockFromPeerOld(height int64, pid peer.ID) (*types.B
 	if err != nil {
 		return nil, err
 	}
-	block := resp.Message.Items[0].Value.(*types.InvData_Block).Block
-	return block, nil
+	if resp.Message == nil || len(resp.Message.Items) == 0 {
+		return nil, fmt.Errorf("empty block response from peer")
+	}
+	blockData, ok := resp.Message.Items[0].Value.(*types.InvData_Block)
+	if !ok || blockData == nil || blockData.Block == nil {
+		return nil, fmt.Errorf("invalid block data in response")
+	}
+	return blockData.Block, nil
 }

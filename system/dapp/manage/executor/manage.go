@@ -62,7 +62,7 @@ func IsSuperManager(cfg *types.Chain33Config, addr string, height int64) bool {
 	conf := types.ConfSub(cfg, driverName)
 	for _, m := range conf.GStrList("superManager") {
 		if address.IsEthAddress(m) && cfg.IsFork(height, address.ForkEthAddressFormat) {
-			m = address.FormatEthAddress(addr)
+			m = address.FormatEthAddress(m)
 		}
 		if addr == m {
 			return true
