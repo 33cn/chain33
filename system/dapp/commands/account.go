@@ -38,6 +38,7 @@ func AccountCmd() *cobra.Command {
 		NewAccountCmd(),
 		NewRandAccountCmd(),
 		PubKeyToAddrCmd(),
+		PrivKeyToAddrCmd(),
 		SetLabelCmd(),
 		DumpKeysFileCmd(),
 		ImportKeysFileCmd(),
@@ -454,6 +455,44 @@ func getPubToAddr(cmd *cobra.Command, args []string) {
 		return
 	}
 	fmt.Println(driver.PubKeyToAddr(pubHex))
+}
+
+// PrivKeyToAddrCmd convert private key to address
+func PrivKeyToAddrCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "k2addr",
+		Short: "Get addr by private key",
+		Run:   getPrivToAddr,
+	}
+	cmd.Flags().StringP("key", "k", "", "private key (hex)")
+	cmd.MarkFlagRequired("key")
+	cmd.Flags().Int32P("addressType", "t", 0, "address type ID, btc(0), btcMultiSign(1), eth(2)")
+	return cmd
+}
+
+func getPrivToAddr(cmd *cobra.Command, args []string) {
+	key, _ := cmd.Flags().GetString("key")
+	addressType, _ := cmd.Flags().GetInt32("addressType")
+
+	keyBytes, err := common.FromHex(key)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrap(err, "keyFromHex"))
+		return
+	}
+
+	driver := secp256k1.Driver{}
+	priv, err := driver.PrivKeyFromBytes(keyBytes)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrap(err, "PrivKeyFromBytes"))
+		return
+	}
+
+	addrDriver, err := address.LoadDriver(addressType, -1)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, errors.Wrap(err, "LoadAddressDriver"))
+		return
+	}
+	fmt.Println(addrDriver.PubKeyToAddr(priv.PubKey().Bytes()))
 }
 
 // GetAccountCmd get account by label
