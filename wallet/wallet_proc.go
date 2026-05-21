@@ -542,7 +542,9 @@ func (wallet *Wallet) procImportPrivKey(PrivKey *types.ReqWalletImportPrivkey) (
 	//校验PrivKey对应的addr是否已经存在钱包中
 	Account, err = wallet.walletStore.GetAccountByAddr(addr)
 	if Account != nil && err == nil {
-		if Account.Privkey == Encrypteredstr {
+		// CBC 加密带随机 IV，密文每次不同，需解密后比对原始私钥
+		existPriv, _ := common.FromHex(Account.Privkey)
+		if existDec := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), existPriv); len(existDec) == len(privkeybyte) && string(existDec) == string(privkeybyte) {
 			walletlog.Error("ProcImportPrivKey Privkey is exist in wallet!")
 			return nil, types.ErrPrivkeyExist
 		}
