@@ -3,15 +3,12 @@ os: Visual Studio 2019
 
 build: off
 
+stack: go 1.21
+
 clone_folder: c:\gopath\src\github.com\33cn\chain33
 
 environment:
   GOPATH: c:\gopath
-
-
-before_test:
-  - set PATH=C:\go120\bin;%PATH%
-  - set GOROOT=C:\go120
 
 
 test_script:
