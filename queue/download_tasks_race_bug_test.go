@@ -31,7 +31,6 @@ func TestTasksSliceConcurrentAccessBug(t *testing.T) {
 	// (detected by -race flag)
 	t.Run("buggy_concurrent_access", func(t *testing.T) {
 		var wg sync.WaitGroup
-		raceDetected := false
 
 		// Simulate multiple goroutines reading/writing shared slice
 		for i := 0; i < 4; i++ {
@@ -45,13 +44,12 @@ func TestTasksSliceConcurrentAccessBug(t *testing.T) {
 				// We can't safely demonstrate the race without -race flag
 				// but the pattern is clear: shared mutable slice + goroutines
 				if idx < len(tasks) {
-					_ = tasks[idx]
+					_ = tasks[idx].index
+					_ = tasks[idx].name
 				}
 			}(i)
 		}
 		wg.Wait()
-		// The race exists but may not always manifest without -race
-		_ = raceDetected
 	})
 
 	// FIXED: protect shared tasks with mutex
@@ -64,9 +62,9 @@ func TestTasksSliceConcurrentAccessBug(t *testing.T) {
 			go func(idx int) {
 				defer wg.Done()
 				mu.Lock()
-				size := len(tasks)
-				if idx < size {
-					_ = tasks[idx]
+				if idx < len(tasks) {
+					_ = tasks[idx].index
+					_ = tasks[idx].name
 				}
 				mu.Unlock()
 			}(i)
