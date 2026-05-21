@@ -62,6 +62,6 @@ func TestWebhookEmptySecretBug(t *testing.T) {
 	assert.Empty(t, secret, "buggy: empty secret allows forged payloads")
 
 	// FIXED: secret must be non-empty (from env var)
-	fixedSecret := "WEBHOOK_SECRET_FROM_ENV"
+	fixedSecret := "WEBHOOK_SECRET_FROM_ENV" // #nosec G101 -- placeholder string demonstrating env-var sourcing
 	assert.NotEmpty(t, fixedSecret, "fixed: non-empty secret required")
 }

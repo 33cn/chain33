@@ -21,7 +21,7 @@ func TestHTTPServerCloseResourceLeak(t *testing.T) {
 		w.WriteHeader(200)
 	})
 
-	server := &http.Server{Handler: mux}
+	server := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
 	addr := l.Addr().String()
