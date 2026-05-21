@@ -14,12 +14,12 @@ import (
 
 func TestMapIterationNonDeterminism(t *testing.T) {
 	plugins := map[string]int{
-		"fee":      1,
-		"stat":     2,
-		"mvcc":     3,
-		"txindex":  4,
+		"fee":       1,
+		"stat":      2,
+		"mvcc":      3,
+		"txindex":   4,
 		"addrindex": 5,
-		"addrfee":  6,
+		"addrfee":   6,
 	}
 
 	// Run buggy iteration (direct map range) multiple times

@@ -23,11 +23,12 @@ func TestWgDone_NotDeferred_Deadlock(t *testing.T) {
 	go func() {
 		defer func() { recover() }() // catch the panic but wg.Done() is skipped
 
-		// Simulate buggy goroutine pattern (no defer wg.Done())
+		// Simulate buggy goroutine pattern: panic before reaching wg.Done().
+		// The bug is precisely that the goroutine has a non-deferred wg.Done()
+		// after this code path, so a panic skips it. Here we don't write that
+		// dead line — vet would flag it as unreachable, and it's not needed to
+		// reproduce the deadlock.
 		panic("simulated downloadBlock panic")
-
-		// This line is never reached
-		wg.Done() //nolint
 	}()
 
 	go func() {
