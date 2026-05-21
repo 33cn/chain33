@@ -2,8 +2,6 @@ module github.com/33cn/chain33
 
 go 1.21
 
-toolchain go1.24.5
-
 replace github.com/ava-labs/avalanchego => github.com/33cn/avalanchego v1.10.10-0.20240529041529-ada691598153
 
 require (
