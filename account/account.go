@@ -132,7 +132,11 @@ func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 		copyTo := types.CloneAccount(accTo)
 
 		accFrom.Balance = accFrom.GetBalance() - amount
-		accTo.Balance = accTo.GetBalance() + amount
+		newBalance, err := safeAdd(accTo.GetBalance(), amount)
+		if err != nil {
+			return nil, err
+		}
+		accTo.Balance = newBalance
 
 		receiptBalanceFrom := &types.ReceiptAccountTransfer{
 			Prev:    copyFrom,
@@ -158,7 +162,11 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 	}
 	acc1 := acc.LoadAccount(execaddr)
 	copyacc := types.CloneAccount(acc1)
-	acc1.Balance += amount
+	newBalance, err := safeAdd(acc1.GetBalance(), amount)
+	if err != nil {
+		return nil, err
+	}
+	acc1.Balance = newBalance
 	receiptBalance := &types.ReceiptAccountTransfer{
 		Prev:    copyacc,
 		Current: acc1,

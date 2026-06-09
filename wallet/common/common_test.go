@@ -6,19 +6,24 @@ package common
 
 import (
 	"bytes"
+	"crypto/aes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
+// secp256k1 私钥固定 32 字节，这里的测试数据也用 32 字节对齐生产场景
 func TestCBCEncryptDecryptPrivkey(t *testing.T) {
 	password := []byte("test-password-12345678901234567890")
-	privkey := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	privkey := []byte{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+	}
 
 	encrypted := CBCEncrypterPrivkey(password, privkey)
 	assert.NotNil(t, encrypted)
-	assert.Equal(t, len(privkey), len(encrypted))
-	// Encrypted data should be different from original
+	// 新格式 = IV(16) + 密文(len(privkey))
+	assert.Equal(t, aes.BlockSize+len(privkey), len(encrypted))
 	assert.False(t, bytes.Equal(privkey, encrypted))
 
 	decrypted := CBCDecrypterPrivkey(password, encrypted)
@@ -27,7 +32,10 @@ func TestCBCEncryptDecryptPrivkey(t *testing.T) {
 
 func TestCBCEncryptDecryptPrivkeyLongPassword(t *testing.T) {
 	password := []byte("this-is-a-very-long-password-that-exceeds-32-bytes-length")
-	privkey := []byte{16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
+	privkey := []byte{
+		32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17,
+		16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
+	}
 
 	encrypted := CBCEncrypterPrivkey(password, privkey)
 	assert.NotNil(t, encrypted)
@@ -38,7 +46,10 @@ func TestCBCEncryptDecryptPrivkeyLongPassword(t *testing.T) {
 
 func TestCBCEncryptDecryptPrivkeyShortPassword(t *testing.T) {
 	password := []byte("short")
-	privkey := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	privkey := []byte{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+	}
 
 	encrypted := CBCEncrypterPrivkey(password, privkey)
 	assert.NotNil(t, encrypted)
@@ -50,9 +61,11 @@ func TestCBCEncryptDecryptPrivkeyShortPassword(t *testing.T) {
 func TestCBCEncryptDecryptRoundTrip(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		password := make([]byte, 16)
-		privkey := make([]byte, 16)
+		privkey := make([]byte, 32)
 		for j := 0; j < 16; j++ {
 			password[j] = byte(j + i)
+		}
+		for j := 0; j < 32; j++ {
 			privkey[j] = byte(255 - j - i)
 		}
 		encrypted := CBCEncrypterPrivkey(password, privkey)
@@ -64,11 +77,13 @@ func TestCBCEncryptDecryptRoundTrip(t *testing.T) {
 func TestCBCEncryptWrongDecrypt(t *testing.T) {
 	password1 := []byte("password-one-1234567890123456")
 	password2 := []byte("password-two-1234567890123456")
-	privkey := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+	privkey := []byte{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+		17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+	}
 
 	encrypted := CBCEncrypterPrivkey(password1, privkey)
 	decrypted := CBCDecrypterPrivkey(password2, encrypted)
-	// Wrong password should NOT decrypt to original
 	assert.False(t, bytes.Equal(privkey, decrypted))
 }
 

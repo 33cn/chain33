@@ -1,6 +1,7 @@
 package ethrpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -185,7 +186,7 @@ func (h *httpServer) Start() (int, error) {
 	h.server.IdleTimeout = h.timeouts.IdleTimeout
 	l, err := net.Listen("tcp", h.endpoint)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 
 	h.listener = l
@@ -208,18 +209,25 @@ func (h *httpServer) Start() (int, error) {
 func (h *httpServer) Close() {
 	if h.wsHander != nil {
 		h.wsHander.server.Stop()
-	} else if h.wsHander != nil {
-		h.wsHander.server.Stop()
+	}
+	if h.server != nil {
+		h.server.Shutdown(context.Background())
 	}
 }
 
 // ServeHTTP rewrite ServeHTTP
 func (h *httpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "OPTION" {
+	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+
+	if !h.checkIPWhitelist(ip) {
+		http.Error(w, "IP not authorized", http.StatusForbidden)
+		return
+	}
+
 	if utils.IsPublicIP(ip) {
 		log.Debug("ServeHTTP", "remote client", r.RemoteAddr)
 	} else {
@@ -235,4 +243,25 @@ func (h *httpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNotFound)
+}
+
+func (h *httpServer) checkIPWhitelist(addr string) bool {
+	ip := net.ParseIP(addr)
+	if ip.IsLoopback() {
+		return true
+	}
+	whitelist := h.cfg.GetModuleConfig().RPC.Whitelist
+	if len(whitelist) == 0 {
+		return true
+	}
+	ipv4 := ip.To4()
+	if ipv4 != nil {
+		addr = ipv4.String()
+	}
+	for _, allowed := range whitelist {
+		if allowed == "0.0.0.0" || allowed == addr {
+			return true
+		}
+	}
+	return false
 }

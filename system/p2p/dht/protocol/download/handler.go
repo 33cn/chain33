@@ -139,7 +139,8 @@ func (p *Protocol) handleEventDownloadBlock(msg *queue.Message) {
 
 		//一个高度对应一个任务
 		go func(blockheight int64, tasks tasks) {
-			err := p.downloadBlock(blockheight, tasks)
+			defer wg.Done()
+			err := p.downloadBlock(blockheight, tasks, &mutex)
 			if err != nil {
 				mutex.Lock()
 				defer mutex.Unlock()
@@ -163,8 +164,6 @@ func (p *Protocol) handleEventDownloadBlock(msg *queue.Message) {
 
 				}
 			}
-			wg.Done()
-			//atomic.AddInt32(&maxGoroutine, -1)
 
 		}(height, jobS)
 

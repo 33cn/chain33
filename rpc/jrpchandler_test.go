@@ -26,6 +26,7 @@ import (
 	"github.com/33cn/chain33/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestDecodeLogErr(t *testing.T) {
@@ -527,7 +528,11 @@ func TestChain33_SendTransactionSync(t *testing.T) {
 	api.On("GetConfig", mock.Anything).Return(cfg)
 	tx := &types.Transaction{}
 	hash := tx.Hash()
-	api.On("SendTx", tx).Return(&types.Reply{IsOk: true, Msg: hash}, nil)
+	// 用 proto.Equal 做语义比较，避免 protobuf sizeCache 等内部字段差异
+	// 在 mock 注册时和调用时不一致导致的误判
+	api.On("SendTx", mock.MatchedBy(func(arg *types.Transaction) bool {
+		return proto.Equal(arg, tx)
+	})).Return(&types.Reply{IsOk: true, Msg: hash}, nil)
 	api.On("QueryTx", mock.Anything).Return(&types.TransactionDetail{}, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}

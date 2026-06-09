@@ -8,8 +8,10 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"io"
 	"strings"
 
 	"github.com/33cn/chain33/common/crypto"
@@ -207,9 +209,14 @@ func AesgcmEncrypter(password []byte, seed []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	Encrypted := aesgcm.Seal(nil, key[:12], seed, nil)
-	//seedlog.Info("AesgcmEncrypter Seal", "seed", seed, "key", key, "Encrypted", Encrypted)
-	return Encrypted, nil
+	nonce := make([]byte, 12)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		seedlog.Error("AesgcmEncrypter rand nonce err", "err", err)
+		return nil, err
+	}
+
+	ciphertext := aesgcm.Seal(nil, nonce, seed, nil)
+	return append(nonce, ciphertext...), nil
 }
 
 // AesgcmDecrypter 使用钱包的password对seed进行aesgcm解密,返回解密后的seed
@@ -231,11 +238,22 @@ func AesgcmDecrypter(password []byte, seed []byte) ([]byte, error) {
 		seedlog.Error("AesgcmDecrypter", "NewGCM err", err)
 		return nil, err
 	}
+
+	// New format: nonce(12) + ciphertext; try it first
+	if len(seed) > 12 {
+		nonce := seed[:12]
+		ciphertext := seed[12:]
+		decrypted, err := aesgcm.Open(nil, nonce, ciphertext, nil)
+		if err == nil {
+			return decrypted, nil
+		}
+	}
+
+	// Legacy format: nonce = key[:12]
 	decryptered, err := aesgcm.Open(nil, key[:12], seed, nil)
 	if err != nil {
 		seedlog.Error("AesgcmDecrypter", "aesgcm Open err", err)
 		return nil, err
 	}
-	//seedlog.Info("AesgcmDecrypter", "password", string(password), "seed", seed, "decryptered", string(decryptered))
 	return decryptered, nil
 }

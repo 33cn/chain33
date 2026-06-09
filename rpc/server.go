@@ -190,6 +190,11 @@ func checkBasicAuth(r *http.Request) bool {
 	return pair[0] == rpcCfg.JrpcUserName && pair[1] == rpcCfg.JrpcUserPasswd
 }
 
+// CheckIPWhitelist checks if an IP address is in the RPC whitelist
+func CheckIPWhitelist(addr string) bool {
+	return checkIPWhitelist(addr)
+}
+
 func checkIPWhitelist(addr string) bool {
 	//回环网络直接允许
 	ip := net.ParseIP(addr)

@@ -126,20 +126,35 @@ func decodeSignature(sig []byte) (r, s, v *big.Int) {
 
 func paraseDERCode(sig []byte) (r, s []byte, err error) {
 	//0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S]
-
-	if sig[0] != 0x30 && sig[2] != 0x02 {
+	if len(sig) < 4 {
+		return nil, nil, fmt.Errorf("DER signature too short")
+	}
+	if sig[0] != 0x30 || sig[2] != 0x02 {
 		return nil, nil, fmt.Errorf("no der code")
 	}
-	//3045022100af5778b81ae8817c6ae29fad8c1113d501e521c885a65c2c4d71763c4963984b022020687b73f5c90243dc16c99427d6593a711c52c8bf09ca6331cdd42c66edee74
-	if sig[0] == 0x30 && sig[2] == 0x02 {
-		r = sig[4 : int(sig[3])+4]
-		if r[0] == 0x0 {
-			r = r[1:]
-		}
+
+	rLen := int(sig[3])
+	if len(sig) < 4+rLen {
+		return nil, nil, fmt.Errorf("DER R length exceeds signature")
 	}
-	if sig[int(sig[3])+4] == 0x02 { //&&sig[int(sig[3])+5]==0x20
-		s = sig[int(sig[3])+6 : int(sig[3])+6+int(sig[int(sig[3])+5])]
+	r = sig[4 : 4+rLen]
+	if len(r) > 1 && r[0] == 0x0 {
+		r = r[1:]
 	}
+
+	sOffset := 4 + rLen
+	if len(sig) < sOffset+2 {
+		return nil, nil, fmt.Errorf("DER signature missing S marker")
+	}
+	if sig[sOffset] != 0x02 {
+		return nil, nil, fmt.Errorf("DER S marker invalid")
+	}
+	sLen := int(sig[sOffset+1])
+	if len(sig) < sOffset+2+sLen {
+		return nil, nil, fmt.Errorf("DER S length exceeds signature")
+	}
+	s = sig[sOffset+2 : sOffset+2+sLen]
+
 	if len(r) == 0 || len(s) == 0 {
 		err = fmt.Errorf("parase err:no der code")
 	}

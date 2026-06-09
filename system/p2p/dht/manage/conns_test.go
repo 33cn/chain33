@@ -103,10 +103,14 @@ func TestConnManager(t *testing.T) {
 	h1.Peerstore().RecordLatency(h2.ID(), time.Second/100)
 	mgr.printMonitorInfo()
 	mgr.procConnections()
-	kademliaDHT.RoutingTable().TryAddPeer(h2.ID(), true, true)
-	peers := mgr.FetchNearestPeers(1)
-	require.NotNil(t, peers)
-	require.Equal(t, h2.ID(), peers[0])
+	// h2 未运行 DHT 协议,h1 的 DHT 后台维护会把它移出 RoutingTable。
+	// 因此每轮都重新 TryAddPeer 并紧接着读取,直到在某一轮取到 h2;
+	// 这样既不会因空切片越界 panic,也不会因被后台移除而超时。
+	require.Eventually(t, func() bool {
+		kademliaDHT.RoutingTable().TryAddPeer(h2.ID(), true, true)
+		peers := mgr.FetchNearestPeers(1)
+		return len(peers) == 1 && peers[0] == h2.ID()
+	}, 30*time.Second, 50*time.Millisecond, "FetchNearestPeers should return h2 after (re)adding to routing table")
 
 	require.Equal(t, 1, int(mgr.CheckDirection(h2.ID())))
 	require.Equal(t, 1, len(mgr.InBounds()))

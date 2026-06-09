@@ -122,7 +122,7 @@ func (db *PegasusDB) SetSync(key []byte, value []byte) error {
 // Delete 删除
 func (db *PegasusDB) Delete(key []byte) error {
 	start := time.Now()
-	defer pdbBench.write(1, time.Since(start))
+	defer func() { pdbBench.write(1, time.Since(start)) }()
 	hashKey := getHashKey(key)
 	err := db.table.Del(context.Background(), hashKey, key)
 	if err != nil {

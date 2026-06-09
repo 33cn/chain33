@@ -356,8 +356,8 @@ func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Drive
 	}
 	e.setEnv(driver)
 
-	//均不相等时，表明当前交易已更新，需要同步更新缓存，并记录当前交易及其index
-	if e.currExecTx != tx && e.currTxIdx != index {
+	//任一不相等时，表明当前交易已更新，需要同步更新缓存，并记录当前交易及其index
+	if e.currExecTx != tx || e.currTxIdx != index {
 		e.currExecTx = tx
 		e.currTxIdx = index
 		e.currDriver = driver

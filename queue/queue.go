@@ -72,6 +72,7 @@ type queue struct {
 	interrupt chan struct{}
 	callback  chan *Message
 	isClose   int32
+	closeOnce sync.Once
 	name      string
 	cfg       *types.Chain33Config
 	msgPool   *sync.Pool
@@ -157,30 +158,28 @@ func (q *queue) isClosed() bool {
 
 // Close 关闭消息队列
 func (q *queue) Close() {
-	if q.isClosed() {
-		return
-	}
-	q.mu.Lock()
-	for topic, ch := range q.chanSubs {
-		if ch.isClose == 0 {
-			// Avoid blocking on full channels while closing.
-			select {
-			case ch.high <- &Message{}:
-			default:
+	q.closeOnce.Do(func() {
+		q.mu.Lock()
+		for topic, ch := range q.chanSubs {
+			if ch.isClose == 0 {
+				select {
+				case ch.high <- &Message{}:
+				default:
+				}
+				select {
+				case ch.low <- &Message{}:
+				default:
+				}
+				close(ch.done)
+				q.chanSubs[topic] = &chanSub{isClose: 1, done: ch.done}
 			}
-			select {
-			case ch.low <- &Message{}:
-			default:
-			}
-			close(ch.done)
-			q.chanSubs[topic] = &chanSub{isClose: 1, done: ch.done}
 		}
-	}
-	q.mu.Unlock()
-	q.done <- struct{}{}
-	close(q.done)
-	atomic.StoreInt32(&q.isClose, 1)
-	qlog.Info("queue module closed")
+		q.mu.Unlock()
+		q.done <- struct{}{}
+		close(q.done)
+		atomic.StoreInt32(&q.isClose, 1)
+		qlog.Info("queue module closed")
+	})
 }
 
 func (q *queue) chanSub(topic string) *chanSub {

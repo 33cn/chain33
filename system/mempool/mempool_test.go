@@ -1330,7 +1330,7 @@ func TestCheckTxsExist(t *testing.T) {
 		require.Nil(t, err)
 	}
 	_, priv := util.Genaddress()
-	txs1 := append(util.GenCoinsTxs(q.GetConfig(), priv, 10))
+	txs1 := util.GenCoinsTxs(q.GetConfig(), priv, 10)
 
 	checkReq := &types.ReqCheckTxsExist{}
 	// 构造请求数据，存在不存在交替

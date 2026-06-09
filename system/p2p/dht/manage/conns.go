@@ -185,7 +185,8 @@ func (s *ConnManager) procConnections() {
 		for _, node := range s.cfg.RelayNodeAddr {
 			info, err := genAddrInfo(node)
 			if err != nil {
-				panic(`invalid relayNodeAddr in config, use format of "/ip4/118.89.190.76/tcp/13803/p2p/16Uiu2HAmRao56AsxpobLBvbNfDttheQxnke9y1uWQRMWW7XaEdk5"`)
+				log.Error("procConnections invalid relayNodeAddr", "error", err, "addr", node)
+				continue
 			}
 			if len(s.host.Network().ConnsToPeer(info.ID)) == 0 {
 

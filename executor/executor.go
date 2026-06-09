@@ -413,7 +413,8 @@ func (exec *Executor) procExecAddBlock(msg *queue.Message) {
 			panic(err)
 		}
 	}
-	for name, plugin := range globalPlugins {
+	for _, name := range sortedPluginNames() {
+		plugin := globalPlugins[name]
 		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])
 		if err != nil {
 			panic(err)
@@ -513,7 +514,8 @@ func (exec *Executor) procExecDelBlock(msg *queue.Message) {
 			panic(err)
 		}
 	}
-	for name, plugin := range globalPlugins {
+	for _, name := range sortedPluginNames() {
+		plugin := globalPlugins[name]
 		kvs, ok, err := plugin.CheckEnable(execute, exec.pluginEnable[name])
 		if err != nil {
 			panic(err)
