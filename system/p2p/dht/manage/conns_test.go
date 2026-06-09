@@ -104,9 +104,12 @@ func TestConnManager(t *testing.T) {
 	mgr.printMonitorInfo()
 	mgr.procConnections()
 	kademliaDHT.RoutingTable().TryAddPeer(h2.ID(), true, true)
-	peers := mgr.FetchNearestPeers(1)
-	require.NotNil(t, peers)
-	require.Equal(t, h2.ID(), peers[0])
+	// RoutingTable.TryAddPeer 是最终一致的:刚加入的 peer 不一定能被
+	// FetchNearestPeers 立刻取到。轮询等待,避免偶发空切片导致 peers[0] 越界 panic。
+	require.Eventually(t, func() bool {
+		peers := mgr.FetchNearestPeers(1)
+		return len(peers) == 1 && peers[0] == h2.ID()
+	}, 5*time.Second, 20*time.Millisecond, "FetchNearestPeers should eventually return the added peer h2")
 
 	require.Equal(t, 1, int(mgr.CheckDirection(h2.ID())))
 	require.Equal(t, 1, len(mgr.InBounds()))
