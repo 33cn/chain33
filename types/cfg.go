@@ -11,35 +11,36 @@ import (
 
 // Config 配置信息
 type Config struct {
-	Title            string          `json:"title,omitempty"`
-	Version          string          `json:"version,omitempty"`
-	Log              *Log            `json:"log,omitempty"`
-	Store            *Store          `json:"store,omitempty"`
-	Consensus        *Consensus      `json:"consensus,omitempty"`
-	Mempool          *Mempool        `json:"memPool,omitempty"`
-	BlockChain       *BlockChain     `json:"blockChain,omitempty"`
-	Wallet           *Wallet         `json:"wallet,omitempty"`
-	P2P              *P2P            `json:"p2p,omitempty"`
-	RPC              *RPC            `json:"rpc,omitempty"`
-	Exec             *Exec           `json:"exec,omitempty"`
-	TestNet          bool            `json:"testNet,omitempty"`
-	FixTime          bool            `json:"fixTime,omitempty"`
-	TxHeight         bool            `json:"txHeight,omitempty"`
-	Pprof            *Pprof          `json:"pprof,omitempty"`
-	Fork             *ForkList       `json:"fork,omitempty"`
-	Health           *HealthCheck    `json:"health,omitempty"`
-	CoinExec         string          `json:"coinExec,omitempty"`
-	CoinSymbol       string          `json:"coinSymbol,omitempty"`
-	CoinPrecision    int64           `json:"coinPrecision,omitempty"`
-	TokenPrecision   int64           `json:"tokenPrecision,omitempty"`
-	DisableForkCheck bool            `json:"disableForkCheck,omitempty"`
-	EnableParaFork   bool            `json:"enableParaFork,omitempty"`
-	Metrics          *Metrics        `json:"metrics,omitempty"`
-	ChainID          int32           `json:"chainID,omitempty"`
-	AddrVer          byte            `json:"addrVer,omitempty"`
-	Crypto           *crypto.Config  `json:"crypto,omitempty"`
-	NtpHosts         []string        `json:"ntpHosts,omitempty"`
-	Address          *address.Config `json:"address,omitempty"`
+	Title            string                  `json:"title,omitempty"`
+	Version          string                  `json:"version,omitempty"`
+	Log              *Log                    `json:"log,omitempty"`
+	Store            *Store                  `json:"store,omitempty"`
+	Consensus        *Consensus              `json:"consensus,omitempty"`
+	Mempool          *Mempool                `json:"memPool,omitempty"`
+	BlockChain       *BlockChain             `json:"blockChain,omitempty"`
+	Wallet           *Wallet                 `json:"wallet,omitempty"`
+	P2P              *P2P                    `json:"p2p,omitempty"`
+	RPC              *RPC                    `json:"rpc,omitempty"`
+	Exec             *Exec                   `json:"exec,omitempty"`
+	TestNet          bool                    `json:"testNet,omitempty"`
+	FixTime          bool                    `json:"fixTime,omitempty"`
+	TxHeight         bool                    `json:"txHeight,omitempty"`
+	Pprof            *Pprof                  `json:"pprof,omitempty"`
+	Fork             *ForkList               `json:"fork,omitempty"`
+	Health           *HealthCheck            `json:"health,omitempty"`
+	CoinExec         string                  `json:"coinExec,omitempty"`
+	CoinSymbol       string                  `json:"coinSymbol,omitempty"`
+	CoinPrecision    int64                   `json:"coinPrecision,omitempty"`
+	TokenPrecision   int64                   `json:"tokenPrecision,omitempty"`
+	DisableForkCheck bool                    `json:"disableForkCheck,omitempty"`
+	EnableParaFork   bool                    `json:"enableParaFork,omitempty"`
+	Metrics          *Metrics                `json:"metrics,omitempty"`
+	ChainID          int32                   `json:"chainID,omitempty"`
+	AddrVer          byte                    `json:"addrVer,omitempty"`
+	Crypto           *crypto.Config          `json:"crypto,omitempty"`
+	NtpHosts         []string                `json:"ntpHosts,omitempty"`
+	Address          *address.Config         `json:"address,omitempty"`
+	Blacklist        *AccountBlacklistConfig `json:"blacklist,omitempty"`
 }
 
 // ConfigSubModule 子模块的配置
@@ -339,6 +340,11 @@ type HealthCheck struct {
 	ListenAddr     string `json:"listenAddr,omitempty"`
 	CheckInterval  uint32 `json:"checkInterval,omitempty"`
 	UnSyncMaxTimes uint32 `json:"unSyncMaxTimes,omitempty"`
+}
+
+// AccountBlacklistConfig 账户黑名单配置
+type AccountBlacklistConfig struct {
+	AccountBlacklist []string `json:"accountBlacklist,omitempty"`
 }
 
 // Metrics 相关测量配置信息
