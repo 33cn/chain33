@@ -169,6 +169,11 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		elog.Error("checkTx execNameNotAllow", "realname", string(e.getRealExecName(tx, index)), "exec", string(tx.Execer))
 		return types.ErrExecNameNotAllow
 	}
+	// 账户黑名单：命中则在扣手续费前返回 error，最终包装为 ExecErr
+	if err := types.CheckTxBlockedAccount(e.cfg, e.height, tx); err != nil {
+		elog.Error("checkTx blocked account", "txhash", common.ToHex(tx.Hash()), "height", e.height, "err", err)
+		return err
+	}
 	return nil
 }
 
@@ -193,6 +198,11 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		return types.ErrTxExpire
 	}
 	if err := txgroup.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee(e.height)); err != nil {
+		return err
+	}
+	// 交易组不会对组内单笔再调 checkTx，必须在此整组检查黑名单
+	if err := types.CheckTxsBlockedAccount(e.cfg, e.height, txgroup.GetTxs()); err != nil {
+		elog.Error("checkTxGroup blocked account", "height", e.height, "err", err)
 		return err
 	}
 	return nil
@@ -703,7 +713,8 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	err = e.checkTx(tx, index)
 	if err != nil {
 		elog.Error("execTx.checkTx ", "txhash", common.ToHex(tx.Hash()), "err", err)
-		if e.cfg.IsPara() {
+		// 黑名单命中是预期共识错误，平行链也不得 panic，需包装成 ExecErr 使区块非法
+		if e.cfg.IsPara() && !errors.Is(err, types.ErrBlockedAccount) {
 			panic(err)
 		}
 		return nil, err

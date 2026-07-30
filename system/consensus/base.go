@@ -602,6 +602,12 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 			continue
 		}
 		if txGroup == nil {
+			// 出块侧过滤黑名单交易，避免进入 PreExecBlock 后再剔除
+			if err := types.CheckTxBlockedAccount(cfg, block.Height, txs[i]); err != nil {
+				tlog.Error("AddTxsToBlock skip blocked account", "txhash", common.ToHex(txs[i].Hash()),
+					"height", block.Height, "err", err)
+				continue
+			}
 			currentCount++
 			if currentCount > maxTx {
 				return addedTx
@@ -613,6 +619,12 @@ func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction
 			addedTx = append(addedTx, txs[i])
 			block.Txs = append(block.Txs, txs[i])
 		} else {
+			// 交易组任一笔命中黑名单则整组跳过
+			if err := types.CheckTxsBlockedAccount(cfg, block.Height, txGroup.GetTxs()); err != nil {
+				tlog.Error("AddTxsToBlock skip blocked tx group", "txhash", common.ToHex(txs[i].Hash()),
+					"height", block.Height, "err", err)
+				continue
+			}
 			currentCount += int64(len(txGroup.Txs))
 			if currentCount > maxTx {
 				return addedTx

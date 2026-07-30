@@ -56,6 +56,7 @@ var (
 	ErrInvalidExpire           = errors.New("ErrInvalidExpire")
 	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
 	ErrNotInited               = errors.New("ErrNotInited")
+	ErrBlockedAccount          = errors.New("ErrBlockedAccount")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")

@@ -147,6 +147,7 @@ func (f *Forks) RegisterSystemFork() {
 	f.setFork("ForkProxyExec", 0)
 	f.setFork("ForkMaxTxFeeV1", 0)
 	f.setFork("ForkParaFee", -1)
+	f.SetFork(ForkAccountBlacklist, MaxHeight)
 
 }
 
