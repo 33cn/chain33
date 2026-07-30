@@ -287,6 +287,10 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 		if cfg.RPC != nil && cfg.RPC.ParaChain.MainChainGrpcAddr == "" {
 			cfg.RPC.ParaChain.MainChainGrpcAddr = "localhost:8802"
 		}
+
+		if cfg.Blacklist != nil {
+			blockedAccountSet = parseBlockedAccounts(cfg.Blacklist.AccountBlacklist)
+		}
 	}
 	if c.needSetForkZero() { //local 只用于单元测试
 		if c.isLocal() {

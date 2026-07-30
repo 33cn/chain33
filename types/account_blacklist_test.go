@@ -31,6 +31,33 @@ func withBlockedAccounts(t *testing.T, addrs []string) {
 	})
 }
 
+// TestChain33ConfigLoadsBlacklist 验证 toml [blacklist] 段的 accountBlacklist
+// 能在 NewChain33Config 时被读入并生效
+func TestChain33ConfigLoadsBlacklist(t *testing.T) {
+	old := blockedAccountSet
+	t.Cleanup(func() {
+		blockedAccountSet = old
+	})
+
+	cfgstring := GetDefaultCfgstring() + `
+[blacklist]
+accountBlacklist=["` + testBlockedBtcAddr + `"]
+`
+	NewChain33Config(cfgstring)
+
+	assert.True(t, IsBlockedAccount(testBlockedBtcAddr))
+	assert.False(t, IsBlockedAccount(testNormalBtcAddr))
+}
+
+// TestChain33ConfigNoBlacklistSection 验证未配置 [blacklist] 段时不影响既有名单
+func TestChain33ConfigNoBlacklistSection(t *testing.T) {
+	withBlockedAccounts(t, []string{testBlockedBtcAddr})
+
+	NewChain33Config(GetDefaultCfgstring())
+
+	assert.True(t, IsBlockedAccount(testBlockedBtcAddr), "无 [blacklist] 段不应清空已有名单")
+}
+
 func TestDryRunBlockedAccounts(t *testing.T) {
 	// 上线前填充真实名单后，此用例会逐条解析；当前为空名单应直接通过
 	for _, addr := range blockedAccounts {

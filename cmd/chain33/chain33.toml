@@ -7,6 +7,10 @@ TxHeight=true
 ChainID=0
 AddrVer=0
 
+# 账户黑名单：命中地址禁止收发任何交易，支持base58与0x两种地址格式
+[blacklist]
+accountBlacklist=[]
+
 # crypto模块配置
 [crypto]
 enableTypes=[]    #设置启用的加密插件名称，不配置启用所有
