@@ -212,6 +212,12 @@ func (mem *Mempool) addDelayTx(cache *delayTxCache, block *types.Block) {
 			continue
 		}
 
+		// 区块内嵌的延时交易，入 cache 前先过黑名单，到期不会被再次投递
+		if berr := types.CheckTxBlockedAccountImmediate(tx); berr != nil {
+			mlog.Error("addDelayTx skip blocked account", "txHash", common.ToHex(tx.Hash()), "err", berr)
+			continue
+		}
+
 		delayTx := &types.DelayTx{}
 		delayTx.Tx = tx
 		delayTx.EndDelayTime = commitInfo.GetRelativeDelayTime() + block.GetBlockTime()
@@ -329,7 +335,13 @@ func (mem *Mempool) eventAddDelayTx(msg *queue.Message) {
 
 	err := types.ErrInvalidParam
 	if delayTx, ok := msg.GetData().(*types.DelayTx); ok {
-		err = mem.cache.delayCache.addDelayTx(delayTx)
+		// 延时交易提交即拦（不经 checkTx），这里走 Immediate 深度判定
+		if berr := types.CheckTxBlockedAccountImmediate(delayTx.GetTx()); berr != nil {
+			mlog.Error("eventAddDelayTx blocked account", "txhash", common.ToHex(delayTx.GetTx().Hash()), "err", berr)
+			err = berr
+		} else {
+			err = mem.cache.delayCache.addDelayTx(delayTx)
+		}
 	}
 	replyMsg := mem.client.NewMessage("rpc", types.EventReply, nil)
 	if err != nil {

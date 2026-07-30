@@ -157,6 +157,8 @@ ForkStateDBSet=-1
 ForkMaxTxFeeV1=30839600
 ForkMaxTxFeeV2=30939600
 ForkParaFee=-1
+# 账户黑名单启用高度；-1 表示关闭
+ForkAccountBlacklist=-1
 [fork.sub.manage]
 Enable=120000
 ForkV11ManageExec= 400000

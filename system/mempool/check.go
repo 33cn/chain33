@@ -71,6 +71,13 @@ func (mem *Mempool) checkTx(msg *queue.Message) *queue.Message {
 		msg.Data = types.ErrInvalidAddress
 		return msg
 	}
+	// 账户黑名单入口拦截：不加 fork 门控，随二进制升级立即生效（本地 mempool 行为，无共识分叉风险）
+	// 走统一深度判定，覆盖 From / To / RealTo / EVM payload，避免浅层判断漏拦平行链 EVM 纯转账
+	if err := types.CheckTxBlockedAccountImmediate(tx); err != nil {
+		mlog.Error("checkTx blocked account", "txhash", common.ToHex(tx.Hash()), "err", err)
+		msg.Data = err
+		return msg
+	}
 	// 检查交易账户在mempool中是否存在过多交易
 	from := tx.From()
 	if mem.TxNumOfAccount(from) >= mem.cfg.MaxTxNumPerAccount {
@@ -123,7 +130,7 @@ func (mem *Mempool) checkTxs(msg *queue.Message) *queue.Message {
 	if txs == nil {
 		return mem.checkTx(msg)
 	}
-	//txgroup 的交易
+	//txgroup 的交易，逐笔走 checkTx（已含黑名单深度判定）
 	for i := 0; i < len(txs.Txs); i++ {
 		msgitem := mem.checkTx(&queue.Message{Data: txs.Txs[i]})
 		if msgitem.Err() != nil {
