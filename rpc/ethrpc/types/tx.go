@@ -496,8 +496,16 @@ func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.
 
 	if etx.Value() != nil {
 		bigAmount := precisionEth2Coins(etx.Value(), cfg.GetCoinPrecision())
+		if !bigAmount.IsInt64() {
+			log.Error("AssembleChain33Tx", "value exceeds int64 range after precision conversion",
+				"ethValue", etx.Value().String(), "converted", bigAmount.String())
+			return nil
+		}
 		amount = bigAmount.Int64()
-
+		if amount < 0 {
+			log.Error("AssembleChain33Tx", "amount overflow to negative", "amount", amount)
+			return nil
+		}
 	}
 	action := &ctypes.EVMContractAction4Chain33{
 		Amount:       uint64(amount),

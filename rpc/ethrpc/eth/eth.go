@@ -378,6 +378,10 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	}
 
 	chain33Tx := types.AssembleChain33Tx(ntx, sig, pubkey, e.cfg)
+	if chain33Tx == nil {
+		log.Error("SendRawTransaction", "AssembleChain33Tx failed")
+		return nil, errors.New("failed to assemble chain33 tx")
+	}
 	reply, err := e.cli.SendTx(chain33Tx)
 	log.Info("SendRawTransaction", "cacuHash", common.Bytes2Hex(chain33Tx.Hash()),
 		"ethHash:", ntx.Hash().String(), "exec", string(chain33Tx.Execer), "mempool reply:", common.Bytes2Hex(reply.GetMsg()), "err:", err)
