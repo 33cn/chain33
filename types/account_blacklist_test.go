@@ -58,22 +58,6 @@ func TestChain33ConfigNoBlacklistSection(t *testing.T) {
 	assert.True(t, IsBlockedAccount(testBlockedBtcAddr), "无 [blacklist] 段不应清空已有名单")
 }
 
-func TestDryRunBlockedAccounts(t *testing.T) {
-	// 上线前填充真实名单后，此用例会逐条解析；当前为空名单应直接通过
-	for _, addr := range blockedAccounts {
-		raw, err := parseBlockedAccount(addr)
-		require.NoError(t, err, "dry-run parse failed for %s", addr)
-		require.Len(t, raw, 20, "dry-run raw length for %s", addr)
-	}
-	// 双格式样例预校验，防止解析路径回归
-	cases := []string{testBlockedBtcAddr, testBlockedEthAddr}
-	for _, addr := range cases {
-		raw, err := parseBlockedAccount(addr)
-		require.NoError(t, err, addr)
-		require.Len(t, raw, 20, addr)
-	}
-}
-
 func TestParseBlockedAccountFormats(t *testing.T) {
 	btcRaw, err := parseBlockedAccount(testBlockedBtcAddr)
 	require.NoError(t, err)

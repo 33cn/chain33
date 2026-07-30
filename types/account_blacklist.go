@@ -19,16 +19,10 @@ const ForkAccountBlacklist = "ForkAccountBlacklist"
 // evmExecName EVM 执行器真实名，用于从 payload 中解析真实目标地址
 const evmExecName = "evm"
 
-// blockedAccounts 硬编码的攻击地址名单，命中后永久封禁（禁止收发任何交易）。
-// 支持 base58 编码的 1x 地址与 0x 开头的十六进制地址混写。
-// 注意：同一私钥派生的 base58 地址与 0x 地址 hash160 不同，是两个独立账户，
-// 如两种形态都在使用，需分别列入。
-// 上线前必须将 7.20 整数溢出攻击的地址名单填入，并逐条 dry-run 校验可解析。
-var blockedAccounts = []string{}
-
-// blockedAccountSet 黑名单原始 20 字节地址集合，由 blockedAccounts 解析生成。
+// blockedAccountSet 黑名单原始 20 字节地址集合，由 toml [blacklist] 段的
+// accountBlacklist 在 Chain33Config 初始化时解析生成，未配置则为空。
 // 以原始 20 字节为 key，天然兼容 base58 与 0x 两种地址形态。
-var blockedAccountSet = parseBlockedAccounts(blockedAccounts)
+var blockedAccountSet map[[20]byte]struct{}
 
 // SetBlockedAccountsForTest 仅供测试注入黑名单，返回恢复原集合的函数。
 // 生产代码请勿调用。
