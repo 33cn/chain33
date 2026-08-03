@@ -52,14 +52,19 @@ func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
 
 	blockSize := block.BlockSize()
 
-	// New format: IV(16) + ciphertext
+	// New format (since the IV-randomization fix): IV(16) + ciphertext,
+	// produced by CBCEncrypterPrivkey. Wallet private keys are 32 bytes
+	// (secp256k1) or 64 bytes (ed25519), so a new-format blob is 48 or 80
+	// bytes. A legacy blob of the same total length would decode to a
+	// plaintext 16 bytes longer, which is never a valid key size, so the
+	// plaintext length disambiguates the two formats.
 	if len(privkey) > blockSize && len(privkey)%blockSize == 0 {
-		iv := privkey[:blockSize]
-		ciphertext := privkey[blockSize:]
-		decrypted := make([]byte, len(ciphertext))
-		cipher.NewCBCDecrypter(block, iv).CryptBlocks(decrypted, ciphertext)
-		// Validate: if decryption looks valid, return it
-		if len(decrypted) == 32 {
+		plainLen := len(privkey) - blockSize
+		if plainLen == 32 || plainLen == 64 {
+			iv := privkey[:blockSize]
+			ciphertext := privkey[blockSize:]
+			decrypted := make([]byte, len(ciphertext))
+			cipher.NewCBCDecrypter(block, iv).CryptBlocks(decrypted, ciphertext)
 			return decrypted
 		}
 	}

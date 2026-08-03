@@ -7,6 +7,7 @@ package common
 import (
 	"bytes"
 	"crypto/aes"
+	"crypto/cipher"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -72,6 +73,62 @@ func TestCBCEncryptDecryptRoundTrip(t *testing.T) {
 		decrypted := CBCDecrypterPrivkey(password, encrypted)
 		assert.Equal(t, privkey, decrypted, "round trip failed at iteration %d", i)
 	}
+}
+
+// TestCBCEncryptDecryptPrivkey64 覆盖 ed25519 私钥（64 字节）的加解密往返。
+// 回归：CBCDecrypterPrivkey 对随机 IV 新格式仅接受 32 字节明文，64 字节私钥会被
+// 误判为旧格式并用 key[:16] 当 IV 解密，导致 privacy 等钱包的密钥损坏。
+func TestCBCEncryptDecryptPrivkey64(t *testing.T) {
+	password := []byte("test-password-12345678901234567890")
+	privkey := make([]byte, 64)
+	for i := range privkey {
+		privkey[i] = byte(i)
+	}
+
+	encrypted := CBCEncrypterPrivkey(password, privkey)
+	assert.NotNil(t, encrypted)
+	assert.Equal(t, aes.BlockSize+len(privkey), len(encrypted))
+
+	decrypted := CBCDecrypterPrivkey(password, encrypted)
+	assert.Equal(t, privkey, decrypted)
+}
+
+// legacyEncrypt 复现引入随机 IV 之前的旧格式：固定 IV = key[:16]，密文不前置 IV。
+func legacyEncrypt(password []byte, plain []byte) []byte {
+	key := make([]byte, 32)
+	if len(password) > 32 {
+		key = password[0:32]
+	} else {
+		copy(key, password)
+	}
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil
+	}
+	iv := key[:block.BlockSize()]
+	encrypted := make([]byte, len(plain))
+	cipher.NewCBCEncrypter(block, iv).CryptBlocks(encrypted, plain)
+	return encrypted
+}
+
+// TestCBCDecryptLegacyFormat 验证旧格式（固定 IV、密文不前置 IV）仍能正确解密，
+// 保证旧钱包持久化数据向后兼容。
+func TestCBCDecryptLegacyFormat(t *testing.T) {
+	password := []byte("test-password-12345678901234567890")
+
+	legacy32 := make([]byte, 32)
+	for i := range legacy32 {
+		legacy32[i] = byte(255 - i)
+	}
+	dec32 := CBCDecrypterPrivkey(password, legacyEncrypt(password, legacy32))
+	assert.Equal(t, legacy32, dec32)
+
+	legacy64 := make([]byte, 64)
+	for i := range legacy64 {
+		legacy64[i] = byte(i + 1)
+	}
+	dec64 := CBCDecrypterPrivkey(password, legacyEncrypt(password, legacy64))
+	assert.Equal(t, legacy64, dec64)
 }
 
 func TestCBCEncryptWrongDecrypt(t *testing.T) {
