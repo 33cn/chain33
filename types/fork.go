@@ -146,7 +146,7 @@ func (f *Forks) RegisterSystemFork() {
 	f.setFork("ForkCheckEthTxSort", 0)
 	f.setFork("ForkProxyExec", 0)
 	f.setFork("ForkMaxTxFeeV1", 0)
-	f.setFork("ForkParaFee", MaxHeight)
+	f.setFork("ForkParaFee", -1)
 	f.SetFork(ForkAccountBlacklist, MaxHeight)
 
 }
@@ -155,7 +155,6 @@ func (f *Forks) setLocalFork() {
 	f.SetAllFork(0)
 	f.ReplaceFork("ForkBlockHash", 1)
 	f.ReplaceFork("ForkRootHash", 1)
-	f.ReplaceFork("ForkParaFee", MaxHeight)
 }
 
 // paraName not used currently
@@ -163,7 +162,6 @@ func (f *Forks) setForkForParaZero() {
 	f.SetAllFork(0)
 	f.ReplaceFork("ForkBlockHash", 1)
 	f.ReplaceFork("ForkRootHash", 1)
-	f.ReplaceFork("ForkParaFee", MaxHeight)
 }
 
 // IsFork 是否系统 fork高度
