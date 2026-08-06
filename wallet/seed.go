@@ -19,6 +19,7 @@ import (
 	log "github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/wallet/bipwallet"
+	wcom "github.com/33cn/chain33/wallet/common"
 )
 
 var (
@@ -189,14 +190,17 @@ func GetPrivkeyBySeed(db dbm.DB, seed string, specificIndex uint32, SignType int
 	return Hexsubprivkey, nil
 }
 
-// AesgcmEncrypter 使用钱包的password对seed进行aesgcm加密,返回加密后的seed
+// AesgcmEncrypter 使用钱包的password对seed进行aesgcm加密,返回加密后的seed。
+//
+// 新格式: MagicSeed(4) + version(1) + salt(16) + nonce(12) + ciphertext,
+// 密钥由 pbkdf2 派生。旧数据仍可由 AesgcmDecrypter 读取。
 func AesgcmEncrypter(password []byte, seed []byte) ([]byte, error) {
-	key := make([]byte, 32)
-	if len(password) > 32 {
-		key = password[0:32]
-	} else {
-		copy(key, password)
+	salt, err := wcom.NewSalt()
+	if err != nil {
+		seedlog.Error("AesgcmEncrypter NewSalt err", "err", err)
+		return nil, err
 	}
+	key := wcom.DeriveKey(password, salt)
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -216,18 +220,52 @@ func AesgcmEncrypter(password []byte, seed []byte) ([]byte, error) {
 	}
 
 	ciphertext := aesgcm.Seal(nil, nonce, seed, nil)
-	return append(nonce, ciphertext...), nil
+
+	out := make([]byte, 0, len(wcom.MagicSeed)+1+len(salt)+len(nonce)+len(ciphertext))
+	out = append(out, wcom.MagicSeed...)
+	out = append(out, wcom.KdfVersion)
+	out = append(out, salt...)
+	out = append(out, nonce...)
+	out = append(out, ciphertext...)
+	return out, nil
 }
 
-// AesgcmDecrypter 使用钱包的password对seed进行aesgcm解密,返回解密后的seed
+// AesgcmDecrypter 使用钱包的password对seed进行aesgcm解密,返回解密后的seed。
+//
+// 依次尝试三种格式, 保证历史钱包数据可以继续读取:
+//  1. 新格式 MagicSeed + version + salt + nonce + ciphertext (pbkdf2 派生密钥)
+//  2. 旧格式 nonce(12) + ciphertext        (口令零填充为密钥, 随机 nonce)
+//  3. 最初格式 ciphertext, nonce = key[:12] (口令零填充为密钥, 固定 nonce)
 func AesgcmDecrypter(password []byte, seed []byte) ([]byte, error) {
-	key := make([]byte, 32)
-	if len(password) > 32 {
-		key = password[0:32]
-	} else {
-		copy(key, password)
+	// 1. 新格式
+	if wcom.HasSeedMagic(seed) {
+		offset := len(wcom.MagicSeed) + 1
+		if len(seed) < offset+wcom.KdfSaltLen+12 {
+			seedlog.Error("AesgcmDecrypter", "err", "new format too short")
+			return nil, types.ErrInvalidParam
+		}
+		salt := seed[offset : offset+wcom.KdfSaltLen]
+		rest := seed[offset+wcom.KdfSaltLen:]
+		block, err := aes.NewCipher(wcom.DeriveKey(password, salt))
+		if err != nil {
+			seedlog.Error("AesgcmDecrypter", "NewCipher err", err)
+			return nil, err
+		}
+		aesgcm, err := cipher.NewGCM(block)
+		if err != nil {
+			seedlog.Error("AesgcmDecrypter", "NewGCM err", err)
+			return nil, err
+		}
+		decrypted, err := aesgcm.Open(nil, rest[:12], rest[12:], nil)
+		if err != nil {
+			seedlog.Error("AesgcmDecrypter", "aesgcm Open err", err)
+			return nil, err
+		}
+		return decrypted, nil
 	}
 
+	// 旧格式统一使用口令零填充后的密钥
+	key := wcom.LegacyKey(password)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		seedlog.Error("AesgcmDecrypter", "NewCipher err", err)
@@ -239,7 +277,7 @@ func AesgcmDecrypter(password []byte, seed []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// New format: nonce(12) + ciphertext; try it first
+	// 2. 旧格式: nonce(12) + ciphertext
 	if len(seed) > 12 {
 		nonce := seed[:12]
 		ciphertext := seed[12:]
@@ -249,7 +287,7 @@ func AesgcmDecrypter(password []byte, seed []byte) ([]byte, error) {
 		}
 	}
 
-	// Legacy format: nonce = key[:12]
+	// 3. 最初格式: nonce = key[:12]
 	decryptered, err := aesgcm.Open(nil, key[:12], seed, nil)
 	if err != nil {
 		seedlog.Error("AesgcmDecrypter", "aesgcm Open err", err)
