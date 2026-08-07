@@ -137,12 +137,15 @@ func initP2P(p *P2P) *P2P {
 	priv := p.addrBook.GetPrivkey()
 	if priv == nil { //addrbook存储的peer key 为空
 		if p.p2pCfg.WaitPid { //p2p阻塞,直到创建钱包之后
+			p.taskGroup.Add(1)
 			p.genAirDropKey()
 		} else { //创建随机公私钥对,生成临时pid，待创建钱包之后，提换钱包生成的pid
 			p.addrBook.Randkey()
+			p.taskGroup.Add(1)
 			go p.genAirDropKey() //非阻塞模式
 		}
 	} else { //非阻塞模式
+		p.taskGroup.Add(1)
 		go p.genAirDropKey()
 	}
 
@@ -205,9 +208,13 @@ func (p *P2P) StartP2P() {
 	p.env = env
 	protocol.InitAllProtocol(env)
 	p.discovery.Start()
+	// taskGroup.Add 必须在 goroutine 启动前调用, 避免与 waitTaskDone 的 Wait 竞态
+	p.taskGroup.Add(1)
 	go p.managePeers()
+	p.taskGroup.Add(1)
 	go p.findLANPeers()
 	for i := 0; i < runtime.NumCPU(); i++ {
+		p.taskGroup.Add(1)
 		go p.handleP2PEvent()
 	}
 }
@@ -301,10 +308,11 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	return options
 }
 
+// managePeers 由 StartP2P 启动, 调用方需先执行 taskGroup.Add(1)
 func (p *P2P) managePeers() {
-	go p.connManager.MonitorAllPeers(p.taskGroup)
-	p.taskGroup.Add(1)
 	defer p.taskGroup.Done()
+	p.taskGroup.Add(1)
+	go p.connManager.MonitorAllPeers(p.taskGroup)
 	for {
 		log.Debug("managePeers", "table size", p.discovery.RoutingTable().Size())
 		select {
@@ -328,7 +336,9 @@ func (p *P2P) managePeers() {
 }
 
 // 查询本局域网内是否有节点
+// 由 StartP2P 启动, 调用方需先执行 taskGroup.Add(1)
 func (p *P2P) findLANPeers() {
+	defer p.taskGroup.Done()
 	if p.subCfg.DisableFindLANPeers {
 		return
 	}
@@ -337,9 +347,6 @@ func (p *P2P) findLANPeers() {
 		log.Error("findLANPeers", "err", err.Error())
 		return
 	}
-
-	p.taskGroup.Add(1)
-	defer p.taskGroup.Done()
 
 	for {
 		select {
@@ -361,9 +368,8 @@ func (p *P2P) findLANPeers() {
 	}
 }
 
+// handleP2PEvent 由 StartP2P 启动, 调用方需先执行 taskGroup.Add(1)
 func (p *P2P) handleP2PEvent() {
-
-	p.taskGroup.Add(1)
 	defer p.taskGroup.Done()
 	for {
 		select {
@@ -418,14 +424,25 @@ func (p *P2P) waitTaskDone() {
 }
 
 // 创建空投地址
+// 注意: taskGroup.Add 必须由调用方在启动 goroutine 之前完成,
+// 否则会与 waitTaskDone 中的 Wait 形成 data race
 func (p *P2P) genAirDropKey() {
-	p.taskGroup.Add(1)
+	// 必须先归还 taskGroup 名额再 reStart:
+	// reStart -> CloseP2P -> waitTaskDone 会等待本 goroutine 的名额,
+	// 若持有名额调用会自等待 20s 超时
+	needRestart := p.doGenAirDropKey()
+	if needRestart {
+		p.reStart()
+	}
+}
+
+func (p *P2P) doGenAirDropKey() bool {
 	defer p.taskGroup.Done()
 	for { //等待钱包创建，解锁
 		select {
 		case <-p.ctx.Done():
 			log.Info("genAirDropKey", "p2p closed")
-			return
+			return false
 		case <-time.After(time.Second):
 			resp, err := p.api.ExecWalletFunc("wallet", "GetWalletStatus", &types.ReqNil{})
 			if err != nil {
@@ -450,7 +467,7 @@ func (p *P2P) genAirDropKey() {
 	msg, err := p.api.ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
 	if err != nil {
 		log.Error("genAirDropKey", "NewAccountByIndex err", err)
-		return
+		return false
 	}
 	var walletPrivkey string
 	if reply, ok := msg.(*types.ReplyString); !ok {
@@ -467,13 +484,13 @@ func (p *P2P) genAirDropKey() {
 	walletPubkey, err := GenPubkey(walletPrivkey)
 	if err != nil {
 
-		return
+		return false
 	}
 	//如果addrbook之前保存的savePrivkey相同，则意味着节点启动之前已经创建了airdrop 空投地址
 	savePrivkey, _ := p.addrBook.GetPrivPubKey()
 	if savePrivkey == walletPrivkey { //addrbook与wallet保存了相同的空投私钥，不需要继续导入
 		log.Debug("genAirDropKey", " same privekey ,process done")
-		return
+		return false
 	}
 	if len(savePrivkey) != 2*privKeyCompressBytesLen { //非压缩私钥,兼容之前老版本的DHT非压缩私钥
 		log.Debug("len savePrivkey", len(savePrivkey))
@@ -514,7 +531,7 @@ func (p *P2P) genAirDropKey() {
 	}
 
 	p.addrBook.saveKey(walletPrivkey, walletPubkey)
-	p.reStart()
+	return true
 }
 
 func newDB(name, backend, dir string, cache int32) dbm.DB {
