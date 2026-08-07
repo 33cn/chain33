@@ -35,6 +35,10 @@ func TestCreateGroupTx(t *testing.T) {
 	Decode(tx21, &tx22)
 	var tx32 Transaction
 	Decode(tx31, &tx32)
+	//这些十六进制样本早于 chainID 字段, 解码后为 0, 需显式对齐本链 chainID
+	tx12.ChainID = cfg.GetChainID()
+	tx22.ChainID = cfg.GetChainID()
+	tx32.ChainID = cfg.GetChainID()
 
 	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, cfg.GetMinTxFeeRate())
 	if err != nil {
@@ -143,6 +147,10 @@ func TestCreateGroupTxWithSize(t *testing.T) {
 	tx22.Payload = append(tx22.Payload, extSize...)
 	var tx32 Transaction
 	Decode(tx31, &tx32)
+	//这些十六进制样本早于 chainID 字段, 解码后为 0, 需显式对齐本链 chainID
+	tx12.ChainID = cfg.GetChainID()
+	tx22.ChainID = cfg.GetChainID()
+	tx32.ChainID = cfg.GetChainID()
 
 	group, err := CreateTxGroup([]*Transaction{&tx12, &tx22, &tx32}, cfg.GetMinTxFeeRate())
 	if err != nil {
@@ -226,6 +234,20 @@ func TestSignGroupTx(t *testing.T) {
 	}
 	if group == nil {
 		t.Errorf("signN sign a not group tx")
+		return
+	}
+	//该十六进制样本早于 chainID 字段, 解码后为 0。chainID 参与交易 hash,
+	//直接改字段会让组内 header/next 失配, 因此对齐后重建交易组。
+	members := group.GetTxs()
+	for _, gtx := range members {
+		gtx.ChainID = cfg.GetChainID()
+		gtx.Header = nil
+		gtx.Next = nil
+		gtx.GroupCount = 0
+	}
+	group, err = CreateTxGroup(members, cfg.GetMinTxFeeRate())
+	if err != nil {
+		t.Error(err)
 		return
 	}
 	for i := 0; i < len(group.GetTxs()); i++ {

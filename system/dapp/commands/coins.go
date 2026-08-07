@@ -320,6 +320,11 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 		}
 		var transaction types.Transaction
 		types.Decode(txByte, &transaction)
+		// 补全未携带 chainID 的成员(为 0 视为未设置):交易组本身是本链创建,
+		// 成员 chainID 应与本链一致, 否则开启 chainID 严格校验后会误伤本链交易
+		if transaction.ChainID == 0 {
+			transaction.ChainID = cfg.GetChainID()
+		}
 		transactions = append(transactions, &transaction)
 	}
 	group, err := types.CreateTxGroup(transactions, cfg.GetMinTxFeeRate())

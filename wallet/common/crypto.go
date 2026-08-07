@@ -83,13 +83,16 @@ func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
 	blockSize := block.BlockSize()
 
 	// 2. 旧格式: iv(16) + ciphertext
+	// 私钥为 32 字节(secp256k1)或 64 字节(ed25519), 因此该格式总长为 48 或 80
+	// 字节。同样长度的"最初格式"数据解出的明文会比密钥长 16 字节, 不是合法密钥
+	// 长度, 所以可以用明文长度区分两种旧格式。
 	if len(privkey) > blockSize && len(privkey)%blockSize == 0 {
-		iv := privkey[:blockSize]
-		ciphertext := privkey[blockSize:]
-		decrypted := make([]byte, len(ciphertext))
-		cipher.NewCBCDecrypter(block, iv).CryptBlocks(decrypted, ciphertext)
-		// 校验: 私钥固定 32 字节, 命中则认为格式判断正确
-		if len(decrypted) == 32 {
+		plainLen := len(privkey) - blockSize
+		if plainLen == 32 || plainLen == 64 {
+			iv := privkey[:blockSize]
+			ciphertext := privkey[blockSize:]
+			decrypted := make([]byte, len(ciphertext))
+			cipher.NewCBCDecrypter(block, iv).CryptBlocks(decrypted, ciphertext)
 			return decrypted
 		}
 	}

@@ -187,6 +187,11 @@ func (c *ChannelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 		if err != nil {
 			return nil, err
 		}
+		// 补全未携带 chainID 的成员(为 0 视为未设置):交易组本身是本链创建,
+		// 成员 chainID 应与本链一致, 否则开启 chainID 严格校验后会误伤本链交易
+		if transaction.ChainID == 0 {
+			transaction.ChainID = cfg.GetChainID()
+		}
 		transactions = append(transactions, &transaction)
 	}
 	feeRate := cfg.GetMinTxFeeRate()
@@ -239,6 +244,11 @@ func (c *ChannelClient) CreateNoBalanceTxs(in *types.NoBalanceTxs) (*types.Trans
 		}
 		if types.IsParaExecName(string(tx.GetExecer())) {
 			isParaTx = true
+		}
+		// 补全未携带 chainID 的成员(为 0 视为未设置):交易组本身是本链创建,
+		// 成员 chainID 应与本链一致, 否则开启 chainID 严格校验后会误伤本链交易
+		if tx.ChainID == 0 {
+			tx.ChainID = cfg.GetChainID()
 		}
 		transactions = append(transactions, tx)
 	}

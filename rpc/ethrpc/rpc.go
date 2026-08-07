@@ -251,7 +251,8 @@ func (h *httpServer) checkIPWhitelist(addr string) bool {
 		return true
 	}
 	whitelist := h.cfg.GetModuleConfig().RPC.Whitelist
-	if len(whitelist) == 0 {
+	// "*" means allow all IPs, consistent with rpc.InitIPWhitelist
+	if len(whitelist) == 0 || (len(whitelist) == 1 && whitelist[0] == "*") {
 		return true
 	}
 	ipv4 := ip.To4()

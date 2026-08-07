@@ -188,6 +188,8 @@ func (txgroup *Transactions) CheckWithFork(cfg *Chain33Config, checkFork, paraFo
 		if txs[i] == nil {
 			return ErrTxGroupEmpty
 		}
+		// 成员 check 固定传 minfee=0, 该提前返回只应跳过手续费校验。
+		// chainID 校验在 check 内部位于提前返回之前, 因此交易组路径同样被覆盖。
 		err := txs[i].check(cfg, height, 0, maxFee)
 		if err != nil {
 			return err
@@ -499,6 +501,16 @@ func (tx *Transaction) Check(cfg *Chain33Config, height, minfee, maxFee int64) e
 }
 
 func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) error {
+	// chainID 校验与手续费无关, 必须位于 minfee 提前返回之前。
+	// 该提前返回的语义只是「不收最低手续费」, 不应连带跳过 chainID ——
+	// 历史上 chainID 检查写在手续费逻辑内, 导致 minfee=0 时(单笔交易,
+	// 以及交易组内每笔固定传 minfee=0)完全跳过它, 攻击者可以拿其他链上
+	// 已合法签名的交易原样重放到本链。由 fork 门控保证历史区块可重放。
+	if cfg != nil && cfg.IsFork(height, ForkTxChainIDStrict) {
+		if tx.ChainID != cfg.GetChainID() {
+			return ErrTxChainID
+		}
+	}
 	if minfee == 0 {
 		return nil
 	}
