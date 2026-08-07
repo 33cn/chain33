@@ -76,12 +76,12 @@ func (c *RPCCtx) Run() {
 	result, err := c.RunResult()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		os.Exit(1)
 	}
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		os.Exit(1)
 	}
 	fmt.Println(string(data))
 }
@@ -92,13 +92,13 @@ func (c *RPCCtx) RunWithoutMarshal() {
 	rpc, err := NewJSONClient(c.Addr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		os.Exit(1)
 	}
 
 	err = rpc.Call(c.Method, c.Params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		os.Exit(1)
 	}
 
 	fmt.Println(res)
@@ -136,12 +136,12 @@ func (c *RPCCtx) RunExt(arg ...interface{}) {
 	result, err := c.RunResultExt(arg...)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		os.Exit(1)
 	}
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
+		os.Exit(1)
 	}
 	fmt.Println(string(data))
 }

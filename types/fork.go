@@ -212,6 +212,11 @@ func (c *Chain33Config) GetFork(fork string) int64 {
 	return c.forks.GetFork(fork)
 }
 
+// SetFork 设置系统fork高度，主要用于测试
+func (c *Chain33Config) SetFork(fork string, height int64) {
+	c.forks.SetFork(fork, height)
+}
+
 // HasFork 是否有系统fork
 func (c *Chain33Config) HasFork(fork string) bool {
 	return c.forks.HasFork(fork)
