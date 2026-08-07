@@ -99,16 +99,15 @@ func (s *ConnManager) BandTrackerByProtocol() *types.NetProtocolInfos {
 }
 
 // MonitorAllPeers monitory all peers
+// 调用方需在启动 goroutine 之前执行 wg.Add(1), 否则 Add 会与 Wait 形成 data race
 func (s *ConnManager) MonitorAllPeers(wg *sync.WaitGroup) {
+	defer wg.Done()
 	ticker1 := time.NewTicker(time.Minute)
 	defer ticker1.Stop()
 	ticker2 := time.NewTicker(time.Minute * 2)
 	defer ticker2.Stop()
 	ticker3 := time.NewTicker(time.Second * 5)
 	defer ticker3.Stop()
-
-	wg.Add(1)
-	defer wg.Done()
 
 	for {
 		select {
