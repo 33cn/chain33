@@ -67,7 +67,7 @@ func TestMultiAddrAssetTransfer(t *testing.T) {
 		},
 	}
 
-	tx = &types.Transaction{Payload: types.Encode(action), Execer: []byte("coins"), To: execAddr}
+	tx = &types.Transaction{Payload: types.Encode(action), Execer: []byte("coins"), To: execAddr, ChainID: cfg.GetChainID()}
 	tx.Sign(types.EncodeSignID(secp256k1.ID, eth.ID), priv)
 	mock33.SendTx(tx)
 
@@ -90,7 +90,7 @@ func TestMultiAddrAssetTransfer(t *testing.T) {
 		},
 	}
 
-	tx = &types.Transaction{Payload: types.Encode(action), Execer: []byte("coins"), To: execAddr}
+	tx = &types.Transaction{Payload: types.Encode(action), Execer: []byte("coins"), To: execAddr, ChainID: cfg.GetChainID()}
 	tx.Sign(types.EncodeSignID(secp256k1.ID, eth.ID), priv)
 	mock33.SendTx(tx)
 

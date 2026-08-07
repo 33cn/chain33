@@ -16,6 +16,11 @@ MaxHeight 出于forks 过程安全的考虑，比如代码更新，出现了新�
 */
 const MaxHeight = 10000000000000000
 
+// ForkTxChainIDStrict 交易 chainID 严格校验分叉名, 配置在 [fork.system] 节。
+// 启用后, 交易组内的每笔交易以及 minTxFeeRate=0 时的单笔交易都会校验 chainID,
+// 关闭时保持历史行为(这两条路径跳过校验)以保证旧区块可以原样重放。
+const ForkTxChainIDStrict = "ForkTxChainIDStrict"
+
 // Forks fork分叉结构体
 type Forks struct {
 	forks map[string]int64
@@ -148,6 +153,7 @@ func (f *Forks) RegisterSystemFork() {
 	f.setFork("ForkMaxTxFeeV1", 0)
 	f.setFork("ForkParaFee", -1)
 	f.SetFork(ForkAccountBlacklist, MaxHeight)
+	f.SetFork(ForkTxChainIDStrict, MaxHeight)
 
 }
 
