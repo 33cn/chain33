@@ -23,8 +23,8 @@ func TestCBCEncryptDecryptPrivkey(t *testing.T) {
 
 	encrypted := CBCEncrypterPrivkey(password, privkey)
 	assert.NotNil(t, encrypted)
-	// 新格式 = IV(16) + 密文(len(privkey))
-	assert.Equal(t, aes.BlockSize+len(privkey), len(encrypted))
+	// 新格式 = 魔数(4) + 版本(1) + 盐(16) + IV(16) + 密文(len(privkey))
+	assert.Equal(t, len(MagicPrivKey)+1+KdfSaltLen+aes.BlockSize+len(privkey), len(encrypted))
 	assert.False(t, bytes.Equal(privkey, encrypted))
 
 	decrypted := CBCDecrypterPrivkey(password, encrypted)
@@ -87,7 +87,8 @@ func TestCBCEncryptDecryptPrivkey64(t *testing.T) {
 
 	encrypted := CBCEncrypterPrivkey(password, privkey)
 	assert.NotNil(t, encrypted)
-	assert.Equal(t, aes.BlockSize+len(privkey), len(encrypted))
+	// 新格式 = 魔数(4) + 版本(1) + 盐(16) + IV(16) + 密文(len(privkey))
+	assert.Equal(t, len(MagicPrivKey)+1+KdfSaltLen+aes.BlockSize+len(privkey), len(encrypted))
 
 	decrypted := CBCDecrypterPrivkey(password, encrypted)
 	assert.Equal(t, privkey, decrypted)
