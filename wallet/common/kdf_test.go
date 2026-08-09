@@ -153,3 +153,49 @@ func TestDeriveKeyCacheDistinguishesPassword(t *testing.T) {
 		t.Fatal("不同口令派生出相同密钥")
 	}
 }
+
+// TestPrivkeyForgedMagicRejected 验证旧数据即便恰好带有新格式前缀(魔数+版本),
+// 也不会被误解析为新格式。新格式总长为 21(头)+16(iv)+密钥, 即 69 或 101 字节,
+// 而旧格式长度必为 AES 分组倍数(32/48/64/80), 两者不相交, 长度校验会拒绝。
+func TestPrivkeyForgedMagicRejected(t *testing.T) {
+	password := []byte("forged-magic-password")
+	for _, total := range []int{32, 48, 64, 80} {
+		blob := make([]byte, total)
+		copy(blob, MagicPrivKey)
+		blob[len(MagicPrivKey)] = KdfVersion
+
+		if !hasMagic(blob, MagicPrivKey) {
+			t.Fatalf("len=%d 前缀构造失败", total)
+		}
+		if got := CBCDecrypterPrivkey(password, blob); got != nil {
+			t.Errorf("len=%d 带魔数前缀的旧数据被误解析, 返回 %d 字节", total, len(got))
+		}
+	}
+}
+
+// TestPrivkeyNewFormatLengthDisjoint 固化"新格式长度不是 AES 分组倍数"这一前提。
+// 该性质是新旧格式得以区分的基础, 若后续调整格式头长度使其变成分组倍数,
+// 旧数据就可能通过新格式的长度校验, 这里作为护栏。
+func TestPrivkeyNewFormatLengthDisjoint(t *testing.T) {
+	header := len(MagicPrivKey) + 1 + KdfSaltLen + aes.BlockSize
+	for _, keySize := range []int{32, 64} {
+		if (header+keySize)%aes.BlockSize == 0 {
+			t.Errorf("新格式总长 %d 为 AES 分组倍数, 与旧格式长度可能碰撞", header+keySize)
+		}
+	}
+}
+
+// TestPrivkeyEd25519NewFormat 覆盖 64 字节 ed25519 私钥走新格式的往返,
+// 防止新格式只按 32 字节私钥实现而遗漏 privacy 钱包的密钥长度。
+func TestPrivkeyEd25519NewFormat(t *testing.T) {
+	password := []byte("ed25519-password")
+	privkey := bytes.Repeat([]byte{0x5A}, 64)
+
+	encrypted := CBCEncrypterPrivkey(password, privkey)
+	if encrypted == nil {
+		t.Fatal("加密失败")
+	}
+	if !bytes.Equal(CBCDecrypterPrivkey(password, encrypted), privkey) {
+		t.Fatal("64 字节私钥新格式往返失败")
+	}
+}
