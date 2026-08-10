@@ -11,14 +11,16 @@ import (
 	"io"
 )
 
-// CBCEncrypterPrivkey 使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey
+// CBCEncrypterPrivkey 使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey。
+//
+// 新格式: MagicPrivKey(4) + version(1) + salt(16) + iv(16) + ciphertext,
+// 密钥由 pbkdf2 派生, 不再直接使用口令明文。旧数据仍可由 CBCDecrypterPrivkey 读取。
 func CBCEncrypterPrivkey(password []byte, privkey []byte) []byte {
-	key := make([]byte, 32)
-	if len(password) > 32 {
-		key = password[0:32]
-	} else {
-		copy(key, password)
+	salt, err := NewSalt()
+	if err != nil {
+		return nil
 	}
+	key := DeriveKey(password, salt)
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -34,30 +36,56 @@ func CBCEncrypterPrivkey(password []byte, privkey []byte) []byte {
 	encrypter := cipher.NewCBCEncrypter(block, iv)
 	encrypter.CryptBlocks(Encrypted, privkey)
 
-	return append(iv, Encrypted...)
+	out := make([]byte, 0, len(MagicPrivKey)+1+len(salt)+len(iv)+len(Encrypted))
+	out = append(out, MagicPrivKey...)
+	out = append(out, KdfVersion)
+	out = append(out, salt...)
+	out = append(out, iv...)
+	out = append(out, Encrypted...)
+	return out
 }
 
-// CBCDecrypterPrivkey 使用钱包的password对私钥进行aes cbc解密,返回解密后的privkey
+// CBCDecrypterPrivkey 使用钱包的password对私钥进行aes cbc解密,返回解密后的privkey。
+//
+// 依次尝试三种格式, 保证历史钱包数据可以继续读取:
+//  1. 新格式 MagicPrivKey + version + salt + iv + ciphertext (pbkdf2 派生密钥)
+//  2. 旧格式 iv(16) + ciphertext        (口令零填充为密钥, 随机 iv)
+//  3. 最初格式 ciphertext, iv = key[:16] (口令零填充为密钥, 固定 iv)
 func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
-	key := make([]byte, 32)
-	if len(password) > 32 {
-		key = password[0:32]
-	} else {
-		copy(key, password)
+	// 1. 新格式
+	if hasMagic(privkey, MagicPrivKey) {
+		offset := len(MagicPrivKey) + 1
+		if len(privkey) < offset+KdfSaltLen+aes.BlockSize {
+			return nil
+		}
+		salt := privkey[offset : offset+KdfSaltLen]
+		rest := privkey[offset+KdfSaltLen:]
+		block, err := aes.NewCipher(DeriveKey(password, salt))
+		if err != nil {
+			return nil
+		}
+		iv := rest[:aes.BlockSize]
+		ciphertext := rest[aes.BlockSize:]
+		if len(ciphertext) == 0 || len(ciphertext)%aes.BlockSize != 0 {
+			return nil
+		}
+		decrypted := make([]byte, len(ciphertext))
+		cipher.NewCBCDecrypter(block, iv).CryptBlocks(decrypted, ciphertext)
+		return decrypted
 	}
+
+	// 旧格式统一使用口令零填充后的密钥
+	key := LegacyKey(password)
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil
 	}
-
 	blockSize := block.BlockSize()
 
-	// New format (since the IV-randomization fix): IV(16) + ciphertext,
-	// produced by CBCEncrypterPrivkey. Wallet private keys are 32 bytes
-	// (secp256k1) or 64 bytes (ed25519), so a new-format blob is 48 or 80
-	// bytes. A legacy blob of the same total length would decode to a
-	// plaintext 16 bytes longer, which is never a valid key size, so the
-	// plaintext length disambiguates the two formats.
+	// 2. 旧格式: iv(16) + ciphertext
+	// 私钥为 32 字节(secp256k1)或 64 字节(ed25519), 因此该格式总长为 48 或 80
+	// 字节。同样长度的"最初格式"数据解出的明文会比密钥长 16 字节, 不是合法密钥
+	// 长度, 所以可以用明文长度区分两种旧格式。
 	if len(privkey) > blockSize && len(privkey)%blockSize == 0 {
 		plainLen := len(privkey) - blockSize
 		if plainLen == 32 || plainLen == 64 {
@@ -69,7 +97,7 @@ func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
 		}
 	}
 
-	// Legacy format: IV = key[:BlockSize]
+	// 3. 最初格式: iv = key[:BlockSize]
 	iv := key[:blockSize]
 	decryptered := make([]byte, len(privkey))
 	decrypter := cipher.NewCBCDecrypter(block, iv)
