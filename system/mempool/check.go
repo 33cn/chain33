@@ -71,9 +71,10 @@ func (mem *Mempool) checkTx(msg *queue.Message) *queue.Message {
 		msg.Data = types.ErrInvalidAddress
 		return msg
 	}
-	// 账户黑名单入口拦截：不加 fork 门控，随二进制升级立即生效（本地 mempool 行为，无共识分叉风险）
+	// 账户黑名单入口拦截：按即将打包的下一区块高度取名单，与共识层判定完全一致
 	// 走统一深度判定，覆盖 From / To / RealTo / EVM payload，避免浅层判断漏拦平行链 EVM 纯转账
-	if err := types.CheckTxBlockedAccountImmediate(tx); err != nil {
+	nextHeight := atomic.LoadInt64(&mem.currHeight) + 1
+	if err := types.CheckTxBlockedAccountImmediate(mem.client.GetConfig(), nextHeight, tx); err != nil {
 		mlog.Error("checkTx blocked account", "txhash", common.ToHex(tx.Hash()), "err", err)
 		msg.Data = err
 		return msg

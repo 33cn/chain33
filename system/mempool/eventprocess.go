@@ -213,7 +213,7 @@ func (mem *Mempool) addDelayTx(cache *delayTxCache, block *types.Block) {
 		}
 
 		// 区块内嵌的延时交易，入 cache 前先过黑名单，到期不会被再次投递
-		if berr := types.CheckTxBlockedAccountImmediate(tx); berr != nil {
+		if berr := types.CheckTxBlockedAccountImmediate(mem.client.GetConfig(), block.GetHeight()+1, tx); berr != nil {
 			mlog.Error("addDelayTx skip blocked account", "txHash", common.ToHex(tx.Hash()), "err", berr)
 			continue
 		}
@@ -336,7 +336,8 @@ func (mem *Mempool) eventAddDelayTx(msg *queue.Message) {
 	err := types.ErrInvalidParam
 	if delayTx, ok := msg.GetData().(*types.DelayTx); ok {
 		// 延时交易提交即拦（不经 checkTx），这里走 Immediate 深度判定
-		if berr := types.CheckTxBlockedAccountImmediate(delayTx.GetTx()); berr != nil {
+		nextHeight := atomic.LoadInt64(&mem.currHeight) + 1
+		if berr := types.CheckTxBlockedAccountImmediate(mem.client.GetConfig(), nextHeight, delayTx.GetTx()); berr != nil {
 			mlog.Error("eventAddDelayTx blocked account", "txhash", common.ToHex(delayTx.GetTx().Hash()), "err", berr)
 			err = berr
 		} else {

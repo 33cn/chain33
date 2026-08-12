@@ -20,11 +20,11 @@ import (
 
 const blockedMempoolAddr = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 
-// TestMempoolCheckTxBlockedAccount mempool 入口拦截（统一深度判定，无 fork 门控）
+// TestMempoolCheckTxBlockedAccount mempool 入口拦截（统一深度判定，按下一区块高度选版）
 func TestMempoolCheckTxBlockedAccount(t *testing.T) {
 	_, mem := initEnv(1)
 	cfg := mem.client.GetConfig()
-	restore := types.SetBlockedAccountsForTest([]string{blockedMempoolAddr})
+	restore := cfg.SetBlockedAccountsForTest(0, []string{blockedMempoolAddr})
 	defer restore()
 
 	normalPriv := util.TestPrivkeyList[0]
@@ -81,8 +81,8 @@ func TestMempoolCheckTxBlockedAccount(t *testing.T) {
 		tx.Sign(types.SECP256K1, normalPriv)
 
 		// 浅层判断（旧实现）看不到 Para 里的地址
-		assert.False(t, types.IsBlockedAccount(tx.From()))
-		assert.False(t, types.IsBlockedAccount(tx.To))
+		assert.False(t, cfg.IsBlockedAccount(tx.From(), 1))
+		assert.False(t, cfg.IsBlockedAccount(tx.To, 1))
 		// 深度判定能拦住
 		msg := mem.checkTx(&queue.Message{Data: tx})
 		berr, ok := msg.Data.(error)
@@ -108,9 +108,9 @@ func createCommitDelayBlock(innerTx *types.Transaction, height int64) *types.Blo
 func TestEventAddDelayTxBlockedAccount(t *testing.T) {
 	// delayCache 容量为 poolCacheSize/2，取 10 保证正常交易可入 cache
 	_, mem := initEnv(10)
-	restore := types.SetBlockedAccountsForTest([]string{blockedMempoolAddr})
-	defer restore()
 	cfg := mem.client.GetConfig()
+	restore := cfg.SetBlockedAccountsForTest(0, []string{blockedMempoolAddr})
+	defer restore()
 
 	normalPriv := util.TestPrivkeyList[0]
 	blockedPriv := util.TestPrivkeyList[1]
@@ -141,9 +141,9 @@ func TestEventAddDelayTxBlockedAccount(t *testing.T) {
 // TestAddDelayTxBlockedAccount 区块 CommitDelayTx 入 cache 拦截
 func TestAddDelayTxBlockedAccount(t *testing.T) {
 	_, mem := initEnv(1)
-	restore := types.SetBlockedAccountsForTest([]string{blockedMempoolAddr})
-	defer restore()
 	cfg := mem.client.GetConfig()
+	restore := cfg.SetBlockedAccountsForTest(0, []string{blockedMempoolAddr})
+	defer restore()
 
 	blockedPriv := util.TestPrivkeyList[1]
 	normalAddr, _ := util.Genaddress()

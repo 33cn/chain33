@@ -152,6 +152,8 @@ func (f *Forks) RegisterSystemFork() {
 	f.setFork("ForkProxyExec", 0)
 	f.setFork("ForkMaxTxFeeV1", 0)
 	f.setFork("ForkParaFee", -1)
+	// 账户黑名单分叉。名单按高度演进时在此追加 ForkAccountBlacklistV2 等新分叉，
+	// 并同步补全 [fork.system] 与 [mver.blacklist.<分叉名>]，详见 ForkAccountBlacklist 注释
 	f.SetFork(ForkAccountBlacklist, MaxHeight)
 	f.SetFork(ForkTxChainIDStrict, MaxHeight)
 
