@@ -254,6 +254,42 @@ func TestBlacklistBityuanMigration(t *testing.T) {
 	})
 }
 
+// TestBlacklistBityuanAppendV2 后续追加地址的标准姿势：
+// V2 段写【全量】名单（老 8 个 + 新增），不是只写新增的那一个。
+// 老的 ForkAccountBlacklist 段原样保留不动，否则历史区块回放结果会变。
+func TestBlacklistBityuanAppendV2(t *testing.T) {
+	const (
+		h1     = 46561600
+		h2     = 50000000
+		newbie = "0x1111111111111111111111111111111111111111"
+	)
+	quote := func(addrs []string) string {
+		quoted := make([]string, 0, len(addrs))
+		for _, addr := range addrs {
+			quoted = append(quoted, "\""+addr+"\"")
+		}
+		return "[" + strings.Join(quoted, ",") + "]"
+	}
+	cfg := newBlacklistCfg(
+		"ForkAccountBlacklist=46561600\nForkAccountBlacklistV2=50000000\n",
+		"[mver.blacklist]\naccountBlacklist=[]\n"+
+			"[mver.blacklist.ForkAccountBlacklist]\naccountBlacklist="+quote(bityuanBlockedAddrs)+"\n"+
+			"[mver.blacklist.ForkAccountBlacklistV2]\naccountBlacklist="+quote(append(append([]string{}, bityuanBlockedAddrs...), newbie))+"\n",
+		blacklistForkV2)
+
+	for _, addr := range bityuanBlockedAddrs {
+		assert.False(t, cfg.IsBlockedAccount(addr, h1-1), "%s 在 H1 之前放行", addr)
+		assert.True(t, cfg.IsBlockedAccount(addr, h1), "%s 自 H1 起拦截", addr)
+		// 老地址在 V2 里继续保留，跨过 H2 后仍然拦截
+		assert.True(t, cfg.IsBlockedAccount(addr, h2), "%s 跨过 H2 后仍拦截", addr)
+		assert.True(t, cfg.IsBlockedAccount(addr, h2+1), addr)
+	}
+	// 新增地址只从 H2 起生效，H2 之前（含 V1 区间）必须放行，否则就是改历史
+	assert.False(t, cfg.IsBlockedAccount(newbie, h1))
+	assert.False(t, cfg.IsBlockedAccount(newbie, h2-1))
+	assert.True(t, cfg.IsBlockedAccount(newbie, h2))
+}
+
 // TestBlacklistBityuanMigrationTypo 迁移时把键名写成 aaccountBlacklist 之类的笔误必须启动即失败，
 // 否则该版本名单不会进入 versionList，节点会静默按空名单放行攻击地址
 func TestBlacklistBityuanMigrationTypo(t *testing.T) {
