@@ -198,6 +198,72 @@ func TestBlacklistBaseSectionNotGated(t *testing.T) {
 	}
 }
 
+// bityuanBlockedAddrs 现网 bityuan.go 中 [blacklist] 的实际名单，用于迁移前后逐地址对照
+var bityuanBlockedAddrs = []string{
+	"0x36086e9f01a934f36910b45aaabfc1256ee8cb66",
+	"0x2bacf52028b388f004d54958eb1cad8e3fcac263",
+	"0xa1d1e29cd8de11821a31467524282f13deda2976",
+	"0xf1641331e82a1b3e27b81edbdbf7c0750f7ae366",
+	"0xd57d5cf08e6b82191beeb48dff3215b0492b3892",
+	"0xd51d08093b8a2df658ca22f3b9145ff63fbeb62c",
+	"0xba7ebf059a332468b0fe98992ff14fabed199072",
+	"0x125cae868427ec5d791304ca165b040e84506737",
+}
+
+// TestBlacklistBityuanMigration 现网 bityuan 配置的迁移对照：
+// [blacklist] 8 个地址 + ForkAccountBlacklist=46561600 迁到 [mver.blacklist.ForkAccountBlacklist] 后，
+// 每个地址在分叉高度前后的判定必须与旧 IsFork 门控逐一致。
+func TestBlacklistBityuanMigration(t *testing.T) {
+	const h1 = 46561600
+	quoted := make([]string, 0, len(bityuanBlockedAddrs))
+	for _, addr := range bityuanBlockedAddrs {
+		quoted = append(quoted, "\""+addr+"\"")
+	}
+	list := "[" + strings.Join(quoted, ",") + "]"
+	forkSection := "[mver.blacklist.ForkAccountBlacklist]\naccountBlacklist=" + list + "\n"
+	cfg := newBlacklistCfg("ForkAccountBlacklist=46561600\n",
+		"[mver.blacklist]\naccountBlacklist=[]\n"+forkSection)
+
+	priv := mustLoadTestPriv(t)
+	mkTx := func(to string) *Transaction {
+		tx := &Transaction{Execer: []byte("coins"), To: to, Fee: 1e6}
+		tx.Sign(SECP256K1, priv)
+		return tx
+	}
+	for _, addr := range bityuanBlockedAddrs {
+		addr := addr
+		t.Run(addr, func(t *testing.T) {
+			// 分叉高度之前：旧代码 IsFork 为假直接放行，新代码取到空的 base 名单，同样放行
+			assert.False(t, cfg.IsBlockedAccount(addr, h1-1))
+			assert.NoError(t, CheckTxBlockedAccount(cfg, h1-1, mkTx(addr)))
+			// 分叉高度起：两边都用同一份 8 地址名单拦截
+			for _, height := range []int64{h1, h1 + 1, h1 + 1000000} {
+				assert.True(t, cfg.IsBlockedAccount(addr, height), "height %d", height)
+				assert.Error(t, CheckTxBlockedAccount(cfg, height, mkTx(addr)), "height %d", height)
+			}
+		})
+	}
+
+	// 省略 [mver.blacklist] 基线段时，base 名单为空，判定结果必须完全一致（基线段是可选的）
+	t.Run("无基线段", func(t *testing.T) {
+		noBase := newBlacklistCfg("ForkAccountBlacklist=46561600\n", forkSection)
+		for _, addr := range bityuanBlockedAddrs {
+			assert.False(t, noBase.IsBlockedAccount(addr, h1-1), addr)
+			assert.True(t, noBase.IsBlockedAccount(addr, h1), addr)
+		}
+	})
+}
+
+// TestBlacklistBityuanMigrationTypo 迁移时把键名写成 aaccountBlacklist 之类的笔误必须启动即失败，
+// 否则该版本名单不会进入 versionList，节点会静默按空名单放行攻击地址
+func TestBlacklistBityuanMigrationTypo(t *testing.T) {
+	assert.Panics(t, func() {
+		newBlacklistCfg("ForkAccountBlacklist=46561600\n",
+			"[mver.blacklist]\naccountBlacklist=[]\n"+
+				"[mver.blacklist.ForkAccountBlacklist]\naaccountBlacklist=[\""+bityuanBlockedAddrs[0]+"\"]\n")
+	})
+}
+
 // TestBlacklistEmptyConfigNoOp 空名单等价性回归：
 // 默认未启用配置下，任何高度、任何入口都必须放行，保证迁移上线不改变共识判定
 func TestBlacklistEmptyConfigNoOp(t *testing.T) {
