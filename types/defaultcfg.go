@@ -114,6 +114,10 @@ genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 minerExecs=["ticket", "autonomy"]
 
+# 账户黑名单基线，未启用任何分叉版本时生效
+[mver.blacklist]
+accountBlacklist=[]
+
 [mver.consensus]
 fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 powLimitBits = "0x1f00ffff"
