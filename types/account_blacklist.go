@@ -187,6 +187,12 @@ func buildBlacklistVersions(mver *mversion, forks *Forks, forkNames map[string]s
 	if mver != nil {
 		base.set = parseBlockedAccounts(blacklistBaseKey, parseStrList(mver.data[blacklistBaseKey]))
 	}
+	if len(base.set) > 0 {
+		// base 段不受任何分叉门控，自创世高度即生效。已上线的链这样配会改变历史区块的执行结果，
+		// 迁移存量名单必须落到 [mver.blacklist.<分叉名>]，只有全新链才适合直接写 base 段
+		tlog.Warn("accountBlacklist base section takes effect from genesis, it is NOT fork gated",
+			"key", blacklistBaseKey, "size", len(base.set))
+	}
 	byHeight := map[int64]*blacklistVersion{0: base}
 	for fork := range forkNames {
 		height := forks.GetFork(fork)
