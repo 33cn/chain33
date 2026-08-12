@@ -175,6 +175,29 @@ func TestBlacklistMigrationEquivalence(t *testing.T) {
 	require.Error(t, CheckTxBlockedAccount(cfg, h1+1, mkTx()))
 }
 
+// TestBlacklistBaseSectionNotGated 钉死一个迁移陷阱：
+// base 段 [mver.blacklist] 不受任何分叉门控，即使分叉配成 -1 也自创世高度即生效。
+// 迁移旧 [blacklist] 时名单必须落到 [mver.blacklist.ForkAccountBlacklist]，
+// 若误放进 base 段，历史区块回放会用新名单判定旧区块，直接分叉。
+func TestBlacklistBaseSectionNotGated(t *testing.T) {
+	cfg := newBlacklistCfg("ForkAccountBlacklist=-1\n",
+		"[mver.blacklist]\naccountBlacklist=[\""+testBlockedBtcAddr+"\"]\n")
+
+	for _, height := range []int64{0, 1, 46561599, 46561600} {
+		assert.True(t, cfg.IsBlockedAccount(testBlockedBtcAddr, height),
+			"base 段自高度 0 生效，height %d 也应命中", height)
+	}
+
+	// 对照：同一份名单放在分叉段并配 -1（永不启用）时，任何高度都不生效
+	gated := newBlacklistCfg("ForkAccountBlacklist=-1\n",
+		"[mver.blacklist]\naccountBlacklist=[]\n"+
+			"[mver.blacklist.ForkAccountBlacklist]\naccountBlacklist=[\""+testBlockedBtcAddr+"\"]\n")
+	for _, height := range []int64{0, 1, 46561599, 46561600} {
+		assert.False(t, gated.IsBlockedAccount(testBlockedBtcAddr, height),
+			"分叉段配 -1 等同未启用，height %d 不得命中", height)
+	}
+}
+
 // TestBlacklistEmptyConfigNoOp 空名单等价性回归：
 // 默认未启用配置下，任何高度、任何入口都必须放行，保证迁移上线不改变共识判定
 func TestBlacklistEmptyConfigNoOp(t *testing.T) {
