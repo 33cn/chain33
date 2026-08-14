@@ -473,3 +473,35 @@ func TestEthHandler_SendRawTransaction(t *testing.T) {
 	_, err = ethCli.SendRawTransaction(metamaskRawTx)
 	assert.NotNil(t, err)
 }
+
+// 以下测试回归空结果导致的下标越界 panic:
+// 修复前 GetItems()[0] 在空结果时直接 panic。
+// (GetBalance 的 accounts[0] 修复因 mock 链过深、已有 TestEthHandler_GetBalance
+// 覆盖其正常路径, 此处不重复测试空结果。)
+
+func TestEthHandler_GetBlockByNumberEmptyResult(t *testing.T) {
+	old := qapi
+	qapi = &clientMocks.QueueProtocolAPI{}
+	defer func() { qapi = old }()
+	ethCli.cli.Init(q.Client(), qapi)
+
+	qapi.On("GetBlocks", mock.Anything).Return(&ctypes.BlockDetails{}, nil)
+	_, err := ethCli.GetBlockByNumber("0x1", true)
+	assert.NotNil(t, err, "空区块结果应返回错误, 而非下标越界 panic")
+}
+
+func TestEthHandler_GetBlockTransactionCountEmptyResult(t *testing.T) {
+	old := qapi
+	qapi = &clientMocks.QueueProtocolAPI{}
+	defer func() { qapi = old }()
+	ethCli.cli.Init(q.Client(), qapi)
+
+	qapi.On("GetBlocks", mock.Anything).Return(&ctypes.BlockDetails{}, nil)
+	_, err := ethCli.GetBlockTransactionCountByNumber((*hexutil.Big)(big.NewInt(1)))
+	assert.NotNil(t, err, "空区块结果应返回错误")
+
+	qapi.On("GetBlockByHashes", mock.Anything).Return(&ctypes.BlockDetails{}, nil)
+	var hash = "0x660f78e492bf2630ecd4d8fdf09ec64f0e141bdfeb7636ed4992b31dd81338bd"
+	_, err = ethCli.GetBlockTransactionCountByHash(common.HexToHash(hash))
+	assert.NotNil(t, err, "空区块结果应返回错误")
+}
