@@ -76,6 +76,9 @@ func (e *ethHandler) GetBalance(address string, tag *string) (hexutil.Big, error
 	if err != nil {
 		return balance, err
 	}
+	if len(accounts) == 0 {
+		return balance, errors.New("account not found")
+	}
 	//转换成精度为18
 	bn := new(big.Int).SetInt64(accounts[0].GetBalance())
 	bn = bn.Mul(bn, new(big.Int).Div(big.NewInt(1e18), big.NewInt(e.cfg.GetCoinPrecision())))
@@ -123,6 +126,9 @@ func (e *ethHandler) GetBlockByNumber(in string, full bool) (*types.Block, error
 	if err != nil {
 		log.Error("GetBlockByNumber", "err", err)
 		return nil, err
+	}
+	if len(details.GetItems()) == 0 {
+		return nil, errors.New("block not found")
 	}
 
 	fullblock := details.GetItems()[0]
@@ -226,6 +232,9 @@ func (e *ethHandler) GetBlockTransactionCountByNumber(blockNum *hexutil.Big) (he
 	if err != nil {
 		return 0, err
 	}
+	if len(blockdetails.GetItems()) == 0 {
+		return 0, errors.New("block not found")
+	}
 	return hexutil.Uint64(len(blockdetails.GetItems()[0].GetBlock().GetTxs())), nil
 
 }
@@ -243,6 +252,9 @@ func (e *ethHandler) GetBlockTransactionCountByHash(hash common.Hash) (hexutil.U
 	if err != nil {
 		log.Error("GetBlockByNumber", "err", err)
 		return 0, err
+	}
+	if len(blockdetails.GetItems()) == 0 {
+		return 0, errors.New("block not found")
 	}
 
 	return hexutil.Uint64(len(blockdetails.GetItems()[0].GetBlock().GetTxs())), nil
@@ -504,9 +516,16 @@ func (e *ethHandler) GetTransactionCount(address, tag string) (hexutil.Uint64, e
 		Nonce string `json:"nonce,omitempty"`
 	}
 	err = json.Unmarshal(result, &nonce)
-	bigNonce, _ := new(big.Int).SetString(nonce.Nonce, 10)
+	if err != nil {
+		return 0, err
+	}
+	// SetString 失败(空串/非十进制/hex 前缀)会返回 nil, 直接 Uint64() 会 nil deref。
+	bigNonce, ok := new(big.Int).SetString(nonce.Nonce, 10)
+	if !ok {
+		return 0, errors.New("invalid nonce: " + nonce.Nonce)
+	}
 
-	return hexutil.Uint64(bigNonce.Uint64()), err
+	return hexutil.Uint64(bigNonce.Uint64()), nil
 }
 
 // EstimateGas 获取gas
@@ -618,7 +637,11 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 		return 0, err
 	}
 
-	bigGas, _ := new(big.Int).SetString(gas.Gas, 10)
+	// SetString 失败(空串/非十进制)会返回 nil, 直接 Uint64() 会 nil deref。
+	bigGas, ok := new(big.Int).SetString(gas.Gas, 10)
+	if !ok {
+		return 0, errors.New("invalid gas: " + gas.Gas)
+	}
 
 	var finalFee = realFee
 	if bigGas.Uint64() > uint64(realFee) {
