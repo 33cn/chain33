@@ -77,7 +77,7 @@ func (c *Coins) GetDriverName() string {
 	return driverName
 }
 
-// CheckTx check transaction amount 必须不能为负数
+// CheckTx check transaction amount 必须为正数
 func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
 
 	//TODO 数额在账户操作中会做检测, 此处不需要(提升性能), 需要确认在现有链中是否有分叉
@@ -87,7 +87,7 @@ func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
 		if err != nil {
 			return err
 		}
-		if amount < 0 {
+		if amount <= 0 {
 			return types.ErrAmount
 		}
 	}
