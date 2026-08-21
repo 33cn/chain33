@@ -184,7 +184,8 @@ func (acc *DB) ExecTransfer(from, to, execaddr string, amount int64) (*types.Rec
 
 // ExecTransferFrozen 从自己冻结的钱里面扣除，转移到别人的活动钱包里面去
 func (acc *DB) ExecTransferFrozen(from, to, execaddr string, amount int64) (*types.Receipt, error) {
-	if from == to {
+	// compare with formatted address, avoid bypass by address case variants(same as FormatAddrKey used by execAccountKey)
+	if string(address.FormatAddrKey(from)) == string(address.FormatAddrKey(to)) {
 		return nil, types.ErrSendSameToRecv
 	}
 	if !acc.CheckAmount(amount) {
