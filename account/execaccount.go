@@ -134,7 +134,11 @@ func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, 
 		return nil, types.ErrNoBalance
 	}
 	copyacc := types.CloneAccount(acc1)
-	acc1.Balance += amount
+	var err error
+	acc1.Balance, err = safeAdd(acc1.Balance, amount)
+	if err != nil {
+		return nil, err
+	}
 	acc1.Frozen -= amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
@@ -270,7 +274,11 @@ func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
 	copyacc := types.CloneAccount(acc1)
-	acc1.Frozen += amount
+	var err error
+	acc1.Frozen, err = safeAdd(acc1.Frozen, amount)
+	if err != nil {
+		return nil, err
+	}
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
 		Prev:     copyacc,
@@ -291,7 +299,11 @@ func (acc *DB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt,
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
 	copyacc := types.CloneAccount(acc1)
-	acc1.Balance += amount
+	var err error
+	acc1.Balance, err = safeAdd(acc1.Balance, amount)
+	if err != nil {
+		return nil, err
+	}
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
 		Prev:     copyacc,
