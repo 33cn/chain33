@@ -199,6 +199,29 @@ func TestEthHandler_EstimateGas(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+// TestEthValue2CoinsAmount 精度换算后的金额超出 uint64 范围时,
+// 不能再像修复前那样静默截断, 而应返回错误。
+func TestEthValue2CoinsAmount(t *testing.T) {
+	// 正常值: 1 ETH = 1e18 wei, 精度 1e8 时换算为 1e8 coins
+	oneEth := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	amount, err := ethValue2CoinsAmount(oneEth, 1e8)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(1e8), amount)
+
+	// 超 uint64: 2^64 * 1e10 wei, 除以 1e10 后仍为 2^64 > uint64 max
+	overflow := new(big.Int).Lsh(big.NewInt(1), 64)
+	overflow.Mul(overflow, big.NewInt(1e10))
+	_, err = ethValue2CoinsAmount(overflow, 1e8)
+	assert.NotNil(t, err, "超出 uint64 范围的 value 应返回错误, 而非截断")
+
+	// 恰好 uint64 max 边界: 应允许
+	atMax := new(big.Int).SetUint64(^uint64(0))
+	atMax.Mul(atMax, big.NewInt(1e10))
+	amount, err = ethValue2CoinsAmount(atMax, 1e8)
+	assert.Nil(t, err)
+	assert.Equal(t, ^uint64(0), amount)
+}
+
 func TestEthHandler_GetTransactionCount(t *testing.T) {
 	qapi.On("Query", mock.Anything).Return("0x12", nil)
 	addr := "0xd83b69c56834e85e023b1738e69bfa2f0dd52905"

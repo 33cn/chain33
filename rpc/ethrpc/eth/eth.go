@@ -530,9 +530,11 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 
 	var amount uint64
 	if callMsg.Value != nil && callMsg.Value.ToInt() != nil {
-		ethUnit := big.NewInt(1e18)
-		bigAmount := new(big.Int).Div(callMsg.Value.ToInt(), ethUnit.Div(ethUnit, big.NewInt(1).SetInt64(e.cfg.GetCoinPrecision())))
-		amount = bigAmount.Uint64()
+		var err error
+		amount, err = ethValue2CoinsAmount(callMsg.Value.ToInt(), e.cfg.GetCoinPrecision())
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	action := &ctypes.EVMContractAction4Chain33{Amount: amount, GasLimit: 0, GasPrice: 0, Note: "", ContractAddr: callMsg.To}
@@ -628,6 +630,21 @@ func (e *ethHandler) EstimateGas(callMsg *types.CallMsg) (hexutil.Uint64, error)
 	log.Info("EstimateGas", "evmNeedGas:", bigGas, "properFee:", fee, "realFee:", realFee, "finalFee:", finalFee, "tx.size", tx.Size())
 	return hexutil.Uint64(finalFee), err
 
+}
+
+// ethValue2CoinsAmount 把 eth 的 wei 金额按链精度换算为 coins 金额并做 uint64 截断保护。
+// 精度换算后的金额超出 uint64 范围时, 直接返回错误而不是像修复前那样静默截断,
+// 使模拟执行收到与用户意图完全无关的金额。与 AssembleChain33Tx 对同一换算的
+// IsInt64 守卫保持一致。
+func ethValue2CoinsAmount(ethValue *big.Int, coinPrecision int64) (uint64, error) {
+	ethUnit := big.NewInt(1e18)
+	bigAmount := new(big.Int).Div(ethValue, ethUnit.Div(ethUnit, big.NewInt(1).SetInt64(coinPrecision)))
+	if !bigAmount.IsUint64() {
+		log.Error("ethValue2CoinsAmount", "value exceeds uint64 range after precision conversion",
+			"ethValue", ethValue.String(), "converted", bigAmount.String())
+		return 0, errors.New("invalid value: exceeds uint64 range")
+	}
+	return bigAmount.Uint64(), nil
 }
 
 // GasPrice  eth_gasPrice default 10 gwei
