@@ -18,6 +18,9 @@ func safeAdd(balance, amount int64) (int64, error) {
 
 // GenesisInit 生成创世地址账户收据
 func (acc *DB) GenesisInit(addr string, amount int64) (receipt *types.Receipt, err error) {
+	if !acc.CheckAmount(amount) {
+		return nil, types.ErrAmount
+	}
 	accTo := acc.LoadAccount(addr)
 	copyto := types.CloneAccount(accTo)
 	accTo.Balance, err = safeAdd(accTo.GetBalance(), amount)
