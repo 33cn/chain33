@@ -148,7 +148,8 @@ func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, 
 
 // ExecTransfer 执行转帐
 func (acc *DB) ExecTransfer(from, to, execaddr string, amount int64) (*types.Receipt, error) {
-	if from == to {
+	// 比较归一化后的地址(与存储key一致, eth地址大小写变体视为同一地址)
+	if from == to || string(address.FormatAddrKey(from)) == string(address.FormatAddrKey(to)) {
 		return nil, types.ErrSendSameToRecv
 	}
 	if !acc.CheckAmount(amount) {
