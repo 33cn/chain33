@@ -49,8 +49,8 @@ func TestExecTransferSelfTransferCaseVariantRejected(t *testing.T) {
 	execaddr := address.ExecAddress("ticket")
 
 	// 播种：该 eth 地址在执行器账户中有 100 coins
-	origin := int64(100 * types.DefaultCoinPrecision)
-	amount := int64(10 * types.DefaultCoinPrecision)
+	origin := 100 * types.DefaultCoinPrecision
+	amount := 10 * types.DefaultCoinPrecision
 	acc.SaveExecAccount(execaddr, &types.Account{Addr: ethAddrLower, Balance: origin})
 
 	// from 与 to 是同一地址的不同大小写形式，必须被识别为自我转账
@@ -71,8 +71,8 @@ func TestExecTransferNormalNotAffected(t *testing.T) {
 	acc := newTestCoinsDB(t)
 	execaddr := address.ExecAddress("ticket")
 
-	origin := int64(100 * types.DefaultCoinPrecision)
-	amount := int64(10 * types.DefaultCoinPrecision)
+	origin := 100 * types.DefaultCoinPrecision
+	amount := 10 * types.DefaultCoinPrecision
 	acc.SaveExecAccount(execaddr, &types.Account{Addr: addr1, Balance: origin})
 
 	receipt, err := acc.ExecTransfer(addr1, addr2, execaddr, amount)
