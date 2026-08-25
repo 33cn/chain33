@@ -8,10 +8,8 @@ import (
 	"testing"
 
 	"github.com/33cn/chain33/client"
-	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
-	dtypes "github.com/33cn/chain33/system/dapp/coins/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	"github.com/stretchr/testify/require"
@@ -21,9 +19,7 @@ var testCfg = types.NewChain33Config(types.GetDefaultCfgstring())
 
 const testCoinUnit = int64(1e8)
 
-func init() {
-	Init(driverName, testCfg, nil)
-}
+// The coins driver is registered once by the init() in exec_genesis_test.go.
 
 func initTestCoins(t *testing.T) (string, *Coins) {
 	q := queue.New("testcoinsdellocal")
@@ -42,23 +38,7 @@ func closeTestCoins(t *testing.T, dbDir string, c *Coins) {
 	util.CloseTestDB(dbDir, c.GetStateDB().(db.DB))
 }
 
-func signCoinsTx(priv crypto.PrivKey, to string, action *dtypes.CoinsAction) *types.Transaction {
-	tx := &types.Transaction{
-		Execer:  []byte("coins"),
-		Payload: types.Encode(action),
-		To:      to,
-		Fee:     int64(1e6),
-	}
-	tx.Sign(types.SECP256K1, priv)
-	return tx
-}
-
-func genesisAction(amount int64) *dtypes.CoinsAction {
-	return &dtypes.CoinsAction{
-		Ty:    dtypes.CoinsActionGenesis,
-		Value: &dtypes.CoinsAction_Genesis{Genesis: &types.AssetsGenesis{Amount: amount}},
-	}
-}
+// signCoinsTx and genesisAction are shared helpers defined in exec_genesis_test.go.
 
 // TestExecDelLocalGenesis checks that ExecDelLocal of a genesis tx reverts the
 // address receiver stat (LODB-coins-Addr:*) written by ExecLocal, so rolling
