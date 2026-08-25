@@ -40,9 +40,9 @@ func TestExecTransferFrozenRejectSelfTransferCaseVariant(t *testing.T) {
 	acc := newTestCoinsDB(t)
 	execaddr := address.ExecAddress("ticket")
 
-	originBalance := int64(100 * types.DefaultCoinPrecision)
-	originFrozen := int64(20 * types.DefaultCoinPrecision)
-	amount := int64(10 * types.DefaultCoinPrecision)
+	originBalance := 100 * types.DefaultCoinPrecision
+	originFrozen := 20 * types.DefaultCoinPrecision
+	amount := 10 * types.DefaultCoinPrecision
 	acc.SaveExecAccount(execaddr, &types.Account{
 		Addr: testEthAddrLower, Balance: originBalance, Frozen: originFrozen,
 	})
@@ -63,9 +63,9 @@ func TestExecTransferFrozenNormal(t *testing.T) {
 
 	addrFrom := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	addrTo := "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	originBalance := int64(100 * types.DefaultCoinPrecision)
-	originFrozen := int64(20 * types.DefaultCoinPrecision)
-	amount := int64(10 * types.DefaultCoinPrecision)
+	originBalance := 100 * types.DefaultCoinPrecision
+	originFrozen := 20 * types.DefaultCoinPrecision
+	amount := 10 * types.DefaultCoinPrecision
 	acc.SaveExecAccount(execaddr, &types.Account{
 		Addr: addrFrom, Balance: originBalance, Frozen: originFrozen,
 	})
