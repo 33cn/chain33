@@ -22,7 +22,7 @@ const (
 	testEthAddrLower = "0x111111111111111111111111111111111111111a"
 )
 
-func newTestCoinsDB(t *testing.T) *DB {
+func newFrozenTestCoinsDB(t *testing.T) *DB {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	acc := NewCoinsAccount(cfg)
 	memdb, err := db.NewGoMemDB("gomemdb", "exec-frozen", 128)
@@ -37,7 +37,7 @@ func newTestCoinsDB(t *testing.T) *DB {
 // by the to record (Balance increased) under the same normalized DB key,
 // duplicating frozen funds.
 func TestExecTransferFrozenRejectSelfTransferCaseVariant(t *testing.T) {
-	acc := newTestCoinsDB(t)
+	acc := newFrozenTestCoinsDB(t)
 	execaddr := address.ExecAddress("ticket")
 
 	originBalance := 100 * types.DefaultCoinPrecision
@@ -58,7 +58,7 @@ func TestExecTransferFrozenRejectSelfTransferCaseVariant(t *testing.T) {
 
 // ExecTransferFrozen between two different addresses must still work normally.
 func TestExecTransferFrozenNormal(t *testing.T) {
-	acc := newTestCoinsDB(t)
+	acc := newFrozenTestCoinsDB(t)
 	execaddr := address.ExecAddress("ticket")
 
 	addrFrom := "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
