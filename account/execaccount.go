@@ -134,7 +134,11 @@ func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, 
 		return nil, types.ErrNoBalance
 	}
 	copyacc := types.CloneAccount(acc1)
-	acc1.Balance += amount
+	var err error
+	acc1.Balance, err = safeAdd(acc1.Balance, amount)
+	if err != nil {
+		return nil, err
+	}
 	acc1.Frozen -= amount
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
@@ -148,7 +152,8 @@ func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, 
 
 // ExecTransfer 执行转帐
 func (acc *DB) ExecTransfer(from, to, execaddr string, amount int64) (*types.Receipt, error) {
-	if from == to {
+	// 比较归一化后的地址(与存储key一致, eth地址大小写变体视为同一地址)
+	if from == to || string(address.FormatAddrKey(from)) == string(address.FormatAddrKey(to)) {
 		return nil, types.ErrSendSameToRecv
 	}
 	if !acc.CheckAmount(amount) {
@@ -271,7 +276,11 @@ func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
 	copyacc := types.CloneAccount(acc1)
-	acc1.Frozen += amount
+	var err error
+	acc1.Frozen, err = safeAdd(acc1.Frozen, amount)
+	if err != nil {
+		return nil, err
+	}
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
 		Prev:     copyacc,
@@ -292,7 +301,11 @@ func (acc *DB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt,
 	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
 	copyacc := types.CloneAccount(acc1)
-	acc1.Balance += amount
+	var err error
+	acc1.Balance, err = safeAdd(acc1.Balance, amount)
+	if err != nil {
+		return nil, err
+	}
 	receiptBalance := &types.ReceiptExecAccountTransfer{
 		ExecAddr: execaddr,
 		Prev:     copyacc,

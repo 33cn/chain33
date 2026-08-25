@@ -57,6 +57,11 @@ func (c *Coins) Exec_Withdraw(withdraw *types.AssetsWithdraw, tx *types.Transact
 // Exec_Genesis genesis of exec
 func (c *Coins) Exec_Genesis(genesis *types.AssetsGenesis, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if c.GetHeight() == 0 {
+		types.AssertConfig(c.GetAPI())
+		cfg := c.GetAPI().GetConfig()
+		if !types.CheckAmount(genesis.Amount, cfg.GetCoinPrecision()) {
+			return nil, types.ErrAmount
+		}
 		if drivers.IsDriverAddress(tx.GetRealToAddr(), c.GetHeight()) {
 			return c.GetCoinsAccount().GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.GetRealToAddr())
 		}

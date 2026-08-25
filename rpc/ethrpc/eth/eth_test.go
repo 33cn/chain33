@@ -199,6 +199,29 @@ func TestEthHandler_EstimateGas(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+// TestEthValue2CoinsAmount 精度换算后的金额超出 uint64 范围时,
+// 不能再像修复前那样静默截断, 而应返回错误。
+func TestEthValue2CoinsAmount(t *testing.T) {
+	// 正常值: 1 ETH = 1e18 wei, 精度 1e8 时换算为 1e8 coins
+	oneEth := new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+	amount, err := ethValue2CoinsAmount(oneEth, 1e8)
+	assert.Nil(t, err)
+	assert.Equal(t, uint64(1e8), amount)
+
+	// 超 uint64: 2^64 * 1e10 wei, 除以 1e10 后仍为 2^64 > uint64 max
+	overflow := new(big.Int).Lsh(big.NewInt(1), 64)
+	overflow.Mul(overflow, big.NewInt(1e10))
+	_, err = ethValue2CoinsAmount(overflow, 1e8)
+	assert.NotNil(t, err, "超出 uint64 范围的 value 应返回错误, 而非截断")
+
+	// 恰好 uint64 max 边界: 应允许
+	atMax := new(big.Int).SetUint64(^uint64(0))
+	atMax.Mul(atMax, big.NewInt(1e10))
+	amount, err = ethValue2CoinsAmount(atMax, 1e8)
+	assert.Nil(t, err)
+	assert.Equal(t, ^uint64(0), amount)
+}
+
 func TestEthHandler_GetTransactionCount(t *testing.T) {
 	qapi.On("Query", mock.Anything).Return("0x12", nil)
 	addr := "0xd83b69c56834e85e023b1738e69bfa2f0dd52905"
@@ -472,4 +495,36 @@ func TestEthHandler_SendRawTransaction(t *testing.T) {
 
 	_, err = ethCli.SendRawTransaction(metamaskRawTx)
 	assert.NotNil(t, err)
+}
+
+// 以下测试回归空结果导致的下标越界 panic:
+// 修复前 GetItems()[0] 在空结果时直接 panic。
+// (GetBalance 的 accounts[0] 修复因 mock 链过深、已有 TestEthHandler_GetBalance
+// 覆盖其正常路径, 此处不重复测试空结果。)
+
+func TestEthHandler_GetBlockByNumberEmptyResult(t *testing.T) {
+	old := qapi
+	qapi = &clientMocks.QueueProtocolAPI{}
+	defer func() { qapi = old }()
+	ethCli.cli.Init(q.Client(), qapi)
+
+	qapi.On("GetBlocks", mock.Anything).Return(&ctypes.BlockDetails{}, nil)
+	_, err := ethCli.GetBlockByNumber("0x1", true)
+	assert.NotNil(t, err, "空区块结果应返回错误, 而非下标越界 panic")
+}
+
+func TestEthHandler_GetBlockTransactionCountEmptyResult(t *testing.T) {
+	old := qapi
+	qapi = &clientMocks.QueueProtocolAPI{}
+	defer func() { qapi = old }()
+	ethCli.cli.Init(q.Client(), qapi)
+
+	qapi.On("GetBlocks", mock.Anything).Return(&ctypes.BlockDetails{}, nil)
+	_, err := ethCli.GetBlockTransactionCountByNumber((*hexutil.Big)(big.NewInt(1)))
+	assert.NotNil(t, err, "空区块结果应返回错误")
+
+	qapi.On("GetBlockByHashes", mock.Anything).Return(&ctypes.BlockDetails{}, nil)
+	var hash = "0x660f78e492bf2630ecd4d8fdf09ec64f0e141bdfeb7636ed4992b31dd81338bd"
+	_, err = ethCli.GetBlockTransactionCountByHash(common.HexToHash(hash))
+	assert.NotNil(t, err, "空区块结果应返回错误")
 }
