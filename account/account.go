@@ -36,7 +36,6 @@ type DB struct {
 	execAccountKeyPerfix []byte
 	execer               string
 	symbol               string
-	accountKeyBuffer     []byte
 	cfg                  *types.Chain33Config
 }
 
@@ -66,8 +65,6 @@ func NewAccountDB(cfg *types.Chain33Config, execer string, symbol string, db dbm
 func newAccountDB(cfg *types.Chain33Config, prefix string) *DB {
 	acc := &DB{cfg: cfg}
 	acc.accountKeyPerfix = []byte(prefix)
-	acc.accountKeyBuffer = make([]byte, 0, len(acc.accountKeyPerfix)+64)
-	acc.accountKeyBuffer = append(acc.accountKeyBuffer, acc.accountKeyPerfix...)
 	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)
 	//alog.Warn("NewAccountDB", "prefix", prefix, "key1", string(acc.accountKeyPerfix), "key2", string(acc.execAccountKeyPerfix))
 	return acc
@@ -79,10 +76,14 @@ func (acc *DB) SetDB(db dbm.KV) *DB {
 	return acc
 }
 
+// accountReadKey builds the state db key for addr. A fresh slice is returned
+// on every call: reusing a shared buffer here is unsafe under concurrent
+// LoadAccount calls on the same *DB (the backing array gets overwritten while
+// another goroutine's db.Get is still reading it).
 func (acc *DB) accountReadKey(addr string) []byte {
-	acc.accountKeyBuffer = acc.accountKeyBuffer[0:len(acc.accountKeyPerfix)]
-	acc.accountKeyBuffer = append(acc.accountKeyBuffer, address.FormatAddrKey(addr)...)
-	return acc.accountKeyBuffer
+	key := make([]byte, 0, len(acc.accountKeyPerfix)+len(addr)+4)
+	key = append(key, acc.accountKeyPerfix...)
+	return append(key, address.FormatAddrKey(addr)...)
 }
 
 // LoadAccount 根据地址载入账户
