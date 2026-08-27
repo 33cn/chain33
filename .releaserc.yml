@@ -3,13 +3,13 @@
     [
         "@semantic-release/commit-analyzer",
       {
-        "preset": "jshint"
+        "preset": "angular"
       }
     ],
     [
         "@semantic-release/release-notes-generator",
       {
-        "preset": "jshint"
+        "preset": "angular"
       }
     ],
     [
