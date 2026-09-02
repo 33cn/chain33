@@ -1,5 +1,69 @@
 changelog
 
+# [1.70.0](https://github.com/33cn/chain33/compare/v1.69.0...v1.70.0) (2026-09-02)
+
+
+### Bug Fixes
+
+* **account:** add safeAdd overflow protection to exec account balance additions ([9119063](https://github.com/33cn/chain33/commit/91190630427a99113dd907ea824211da36d4169a))
+* **account:** reject non-positive amount in GenesisInit ([76a6573](https://github.com/33cn/chain33/commit/76a65737da7528d004931e034731d36ec0aa33a6))
+* **account:** reject self-transfer across eth address case variants in ExecTransfer ([f777ab9](https://github.com/33cn/chain33/commit/f777ab9c35740d94998ca31fd133ab1467d7547e))
+* **account:** reject self-transfer across eth address case variants in ExecTransferFrozen ([6ea076f](https://github.com/33cn/chain33/commit/6ea076fd1cdd9bea01bf72b75b792a04f7e45275))
+* **account:** stop sharing key buffer in accountReadKey ([85c65a9](https://github.com/33cn/chain33/commit/85c65a96ba7b0d995b27926fa0a3a62fc5947b19))
+* add integration build tag to testnode tests, fix IsRecordFaultErr test ([a6b998f](https://github.com/33cn/chain33/commit/a6b998f37f8852918342c5436fc6e36769ab1cd8))
+* address 20 bugs from codebase review (security, correctness, stability) ([7198f44](https://github.com/33cn/chain33/commit/7198f44b3a32a67e5170fde126cd1bda6c42a376))
+* address check_fmt gosec and goimports failures ([23342cd](https://github.com/33cn/chain33/commit/23342cdf2b2b270df27d4d84af43c900d0ab2fa8)), closes [#nosec](https://github.com/33cn/chain33/issues/nosec)
+* address CI fmt/vet failures ([bb3fb41](https://github.com/33cn/chain33/commit/bb3fb418d4f8cb66d73c7840928481014249f2f7))
+* CBC 随机 IV 后修正下游消费者与测试 ([b707573](https://github.com/33cn/chain33/commit/b70757355f324d77bcc0f745769ebe36a06e7dbd))
+* **ci:** exclude gg18 integration test from coverage to stop flaky timeouts ([337a855](https://github.com/33cn/chain33/commit/337a855bd25b0596ee9bd6140dca6cbdfd84f2ac)), closes [#1378](https://github.com/33cn/chain33/issues/1378)
+* **ci:** switch semantic-release preset from jshint to angular ([a22cff9](https://github.com/33cn/chain33/commit/a22cff9b6d9ff82ce50f1a96de9348cb7bd7e4b1))
+* **ci:** use admin GH_TOKEN to bypass protected branch ([2d8612f](https://github.com/33cn/chain33/commit/2d8612fdefc8d2ae67a6571dc13214d8f6b566d9))
+* **ci:** use built-in GITHUB_TOKEN for semantic-release ([95adb16](https://github.com/33cn/chain33/commit/95adb16c9fea16a752db4c93cc8d0723853e3ece))
+* **cli:** exit non-zero on RPC failure so scripts can detect errors ([250680c](https://github.com/33cn/chain33/commit/250680cf563bcccc44244127b4c59163aa69e8f6))
+* **coins:** add missing ExecDelLocal_Genesis to rollback genesis receiver stats ([aab7c97](https://github.com/33cn/chain33/commit/aab7c9738f7922022318387647d8a6a162c48152))
+* **coins:** reject non-positive amount in genesis tx at executor entry ([8121769](https://github.com/33cn/chain33/commit/812176982f0834e5b5d03e210febc4110a4ea6dc))
+* drop toolchain directive that breaks lint job ([62c9a20](https://github.com/33cn/chain33/commit/62c9a200c129d41483c27536ff6f6b90260b6e26))
+* **ethrpc:** add address field to support fetching logs from called contracts ([#1344](https://github.com/33cn/chain33/issues/1344)) ([2a05aa3](https://github.com/33cn/chain33/commit/2a05aa3e0b57c677b4a0cc013d975a0a3393c664))
+* **ethrpc:** add fallback address for evm logs ([f6402bc](https://github.com/33cn/chain33/commit/f6402bc6ffd6da085008b07f4cabc0e7158378a9))
+* **ethrpc:** backfill historical logs with missing address field ([404c9d7](https://github.com/33cn/chain33/commit/404c9d75d3849b6c895d1b8b7e8ec1177535b031))
+* **ethrpc:** checkIPWhitelist treat '*' as allow-all, consistent with InitIPWhitelist ([528b6ef](https://github.com/33cn/chain33/commit/528b6ef7df0463074903ceadd14563e40d5aeb61))
+* **ethrpc:** guard nil deref and empty-slice index in eth handlers ([95622fd](https://github.com/33cn/chain33/commit/95622fd12d1aa5c6c5fe969034b63e87c7acca4c))
+* **ethrpc:** prevent uint64→int64 overflow in AssembleChain33Tx ([cbeb5f8](https://github.com/33cn/chain33/commit/cbeb5f831d2be72bb22d7b08de76263cb6a556c9))
+* **ethrpc:** reject value overflowing uint64 in EstimateGas ([16f95ae](https://github.com/33cn/chain33/commit/16f95ae8cbb33d4e26cfe17dd393acb775b58fec))
+* ForkParaFee default to MaxHeight to avoid breaking para consensus ([ac7af31](https://github.com/33cn/chain33/commit/ac7af31a9c610c79629ff74adfbe455d5222ea6d))
+* gofmt formatting for p2p, rpc, and gg18 test files ([3e52242](https://github.com/33cn/chain33/commit/3e5224299cccba7e324e2ed0273f762d0122648a))
+* gofmt formatting for types/evm_event.pb.go comment spacing ([4926ac0](https://github.com/33cn/chain33/commit/4926ac035f75b9f973c3f68a495cf1deb355c8ee))
+* gofmt whitespace formatting ([3862ddd](https://github.com/33cn/chain33/commit/3862ddd4c900ebaacad5fdf4072e203cb94ecfb4))
+* increase TSS integration test timeout for CI ([b6b4a46](https://github.com/33cn/chain33/commit/b6b4a46e43c1d33ccaa3b8bc5af9cf3c2f81a993))
+* make gg18 integration test deterministic, remove flaky timeout ([aaf65cf](https://github.com/33cn/chain33/commit/aaf65cf7db85d600a9bc0a05700f303c8f46a1c8)), closes [#1361](https://github.com/33cn/chain33/issues/1361)
+* make TestConnManager deterministic, poll for routing-table convergence ([f2b22f7](https://github.com/33cn/chain33/commit/f2b22f7a409766f864cc97ad286fdd36e5fa232c))
+* make TimeCache.Has() and List() respect expiration time ([d22471f](https://github.com/33cn/chain33/commit/d22471f44f16e3e230be0d06ee27cf8cf9eb3dad))
+* **p2p/dht:** move taskGroup.Add out of goroutines to fix data race ([90e3844](https://github.com/33cn/chain33/commit/90e3844434c27e06d50fdb5030ac2c03ec5e8431))
+* **queue:** ensure proper channel closure by associating done channels with subscriptions ([3df23fc](https://github.com/33cn/chain33/commit/3df23fcadcc8f2fb996a1a2d9283d23653da7637))
+* **queue:** prevent deadlock and improve channel closing in queue management ([c529bfe](https://github.com/33cn/chain33/commit/c529bfe41fd6f91e900bfa0bc9319cc8600bcd0e))
+* read task fields to satisfy structcheck ([9eabcd5](https://github.com/33cn/chain33/commit/9eabcd5d79c8dbfe4a0ab79993406e02f40a64f5))
+* remove flaky TestWaitGroupAdd_AfterGoroutine_Race ([5d04a19](https://github.com/33cn/chain33/commit/5d04a191ecac193f2aecc17800e7b01c1d2f7b44))
+* replace broken codecov with shields.io badge, remove codecov CI step ([1d3ff58](https://github.com/33cn/chain33/commit/1d3ff58fe6a189067e64872f059e7f22b86dc4f9))
+* TestConnManager re-adds peer each poll to beat DHT eviction ([40a62e4](https://github.com/33cn/chain33/commit/40a62e4b16bcb22a0822dfd3e07131e93aafcd3d))
+* **tss:** handle nil configuration for TSS service initialization ([9e2053c](https://github.com/33cn/chain33/commit/9e2053c4be8a5b8fda7c6fe841b3692f3f5ad0b6))
+* **types:** close chainID replay loopholes on txgroup and zero-minfee paths ([dc480c0](https://github.com/33cn/chain33/commit/dc480c01005082413dcd76e8d67306035476e10a))
+* **wallet:** CBCDecrypterPrivkey support 64-byte ed25519 keys with random IV ([7986213](https://github.com/33cn/chain33/commit/79862130543d4765432d7cea7169b375d8b6afe3))
+* **wallet:** derive encryption key via pbkdf2 instead of raw password ([98ac33e](https://github.com/33cn/chain33/commit/98ac33ee5da0f23157e134bd25fc6f4e7fe5a7c0))
+
+
+### Features
+
+* add [blacklist] toml config for account blacklist ([3f8f145](https://github.com/33cn/chain33/commit/3f8f145b215ecc1c67b0eda8a5c37aceb9ea9187))
+* add account k2addr CLI command ([2e58d0b](https://github.com/33cn/chain33/commit/2e58d0bb5a54799dd8ad97e25d718a71c19e75d0))
+* add Chain33Config.SetFork for programmatic system fork override ([1edb5ac](https://github.com/33cn/chain33/commit/1edb5ac8d4fd34aaa9a5a7887b4d90468dd6dc22))
+* add consensus-level account blacklist to block attacker addresses ([aa71469](https://github.com/33cn/chain33/commit/aa71469c0974ea20d69dc01396d7b46d50d3ed40))
+* TSS threshold signing (GG18) and DHT integration ([#1341](https://github.com/33cn/chain33/issues/1341)) ([3086d49](https://github.com/33cn/chain33/commit/3086d49f35ec5189f8b948d61240249c9be3cc1c))
+
+
+### Reverts
+
+* Revert "fix: ForkParaFee default to MaxHeight to avoid breaking para consensus" ([b38fbb3](https://github.com/33cn/chain33/commit/b38fbb311a320c064d4da3eb23e6739b6b0ad2b9))
+
 <a name="1.69.0"></a>
 # [1.69.0](https://github.com/33cn/chain33/compare/v1.68.2...v1.69.0) (2024-05-31)
 
