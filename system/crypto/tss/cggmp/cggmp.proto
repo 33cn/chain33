@@ -1,0 +1,18 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// protoc --go_out=. cggmp.proto
+
+syntax = "proto3";
+
+option go_package = "github.com/33cn/chain33/system/crypto/tss/cggmp";
+
+// PartialPublicKey carries one participant's CGGMP partial public key (g^{share_i})
+// exchanged right after DKG. It is CGGMP-specific transport data, routed under the
+// /cggmp/ppk protocol and independent from the GG18 message set.
+message PartialPublicKey {
+    string sender = 1;
+    bytes  x      = 2;
+    bytes  y      = 3;
+}
