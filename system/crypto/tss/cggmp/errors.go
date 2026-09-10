@@ -11,4 +11,14 @@ var (
 	errPPKTimeout    = errors.New("cggmp: partial public key exchange timed out")
 	errMissingSelfBk = errors.New("cggmp: missing self bk in dkg result")
 	errNilResult     = errors.New("cggmp: nil result")
+
+	// Peer-material completeness errors, wrapped with the offending peer id.
+	errMissingPeerBk  = errors.New("missing birkhoff parameter")
+	errMissingPeerPPK = errors.New("missing partial public key")
+	errMissingPeerPed = errors.New("missing pedersen parameter")
+	errInvalidPeerPPK = errors.New("invalid partial public key")
+	errThresholdPeers = errors.New("len(peers) must equal threshold")
+	// errPPKInconsistent means the exchanged partial public keys do not reconstruct the DKG
+	// group public key: at least one participant broadcast bad material at the ppk stage.
+	errPPKInconsistent = errors.New("partial public keys do not reconstruct the dkg group public key")
 )

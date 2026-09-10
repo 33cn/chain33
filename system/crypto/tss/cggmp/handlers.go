@@ -92,9 +92,17 @@ func handleSignMsg(wMsg *tss.MessageWrapper) {
 // CGGMP DKG session. It is a lightweight per-process registry, separate from the alice-core
 // session registry, because partial public keys travel as PartialPublicKey protos rather than
 // alice types.Message.
+//
+// A partial public key is always attributed to the *transport-authenticated* peer id
+// (tss.MessageWrapper.PeerID), never to the peer-supplied PartialPublicKey.Sender field:
+// Sender is attacker-controlled and keying the collection by it would let one peer satisfy the
+// quorum alone (filling the map with forged sender ids) or impersonate another participant's
+// g^{share}. mu guards got: add runs on the queue message-handler goroutine while result is
+// read by the ProcessDKG goroutine.
 type ppkCollector struct {
+	mu    sync.Mutex
 	total int                                 // number of other participants to collect
-	got   map[string]*ecpointgrouplaw.ECPoint // sender id -> point
+	got   map[string]*ecpointgrouplaw.ECPoint // authenticated peer id -> point
 	done  chan struct{}
 	once  sync.Once
 }
@@ -107,14 +115,16 @@ func newPPKCollector(total int) *ppkCollector {
 	}
 }
 
-func (c *ppkCollector) add(sender string, p *ecpointgrouplaw.ECPoint) {
+func (c *ppkCollector) add(peerID string, p *ecpointgrouplaw.ECPoint) {
 	if p == nil {
 		return
 	}
-	if _, dup := c.got[sender]; dup {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, dup := c.got[peerID]; dup {
 		return
 	}
-	c.got[sender] = p
+	c.got[peerID] = p
 	if len(c.got) >= c.total {
 		c.once.Do(func() { close(c.done) })
 	}
@@ -132,16 +142,39 @@ func (c *ppkCollector) wait(timeout time.Duration) error {
 	}
 }
 
+// result returns a snapshot of the collected partial public keys, so the caller never shares a
+// map with the add path (which may still be running for messages that arrive late).
 func (c *ppkCollector) result() map[string]*ecpointgrouplaw.ECPoint {
-	return c.got
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	got := make(map[string]*ecpointgrouplaw.ECPoint, len(c.got))
+	for id, p := range c.got {
+		got[id] = p
+	}
+	return got
 }
+
+// pendingPPKMsg is a buffered partial public key together with the authenticated peer id it
+// came from, so it can be attributed correctly when it is flushed into a late collector.
+type pendingPPKMsg struct {
+	peerID string
+	msg    *PartialPublicKey
+}
+
+// The ppk buffer is bounded twice over — participants per session and number of sessions — like
+// the alice-core message buffer in session.go, so a malicious peer cannot grow it without bound
+// with duplicates or with random session ids.
+const (
+	maxPendingPPKPerSession = 32
+	maxPendingPPKSessions   = 100
+)
 
 var (
 	ppkMu         sync.Mutex
 	ppkCollectors = make(map[string]*ppkCollector)
 	// pendingPPK buffers partial public keys that arrive before the local ProcessDKG has
 	// registered its collector (a node may finish DKG and broadcast before the others do).
-	pendingPPK = make(map[string][]*PartialPublicKey)
+	pendingPPK = make(map[string][]pendingPPKMsg)
 )
 
 func registerPPKCollector(sessionID string, c *ppkCollector) {
@@ -149,8 +182,8 @@ func registerPPKCollector(sessionID string, c *ppkCollector) {
 	ppkMu.Lock()
 	defer ppkMu.Unlock()
 	ppkCollectors[key] = c
-	for _, msg := range pendingPPK[key] {
-		addPPKToCollector(c, msg)
+	for _, pending := range pendingPPK[key] {
+		addPPKToCollector(c, pending.peerID, pending.msg)
 	}
 	delete(pendingPPK, key)
 }
@@ -163,14 +196,17 @@ func removePPKCollector(sessionID string) {
 	delete(pendingPPK, key)
 }
 
-func addPPKToCollector(c *ppkCollector, msg *PartialPublicKey) {
+// addPPKToCollector records the partial public key of the authenticated peer peerID. It is
+// deliberately independent of msg.Sender: the point is attributed by transport identity, so a
+// forged Sender cannot add a second entry for the same peer.
+func addPPKToCollector(c *ppkCollector, peerID string, msg *PartialPublicKey) {
 	p, err := ecpointgrouplaw.NewECPoint(elliptic.Secp256k1(),
 		new(big.Int).SetBytes(msg.X), new(big.Int).SetBytes(msg.Y))
 	if err != nil {
-		log.Error("addPPKToCollector invalid point", "sender", msg.Sender, "err", err)
+		log.Error("addPPKToCollector invalid point", "peerID", peerID, "err", err)
 		return
 	}
-	c.add(msg.Sender, p)
+	c.add(peerID, p)
 }
 
 func handlePpkMsg(wMsg *tss.MessageWrapper) {
@@ -178,22 +214,56 @@ func handlePpkMsg(wMsg *tss.MessageWrapper) {
 		log.Error("handlePpkMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "invalid protocol", wMsg.Protocol)
 		return
 	}
+	// The transport fills PeerID with the authenticated remote peer id; without it the partial
+	// public key cannot be attributed to a participant, so it must be dropped rather than
+	// buffered under an unauthenticated key.
+	if wMsg.PeerID == "" {
+		log.Error("handlePpkMsg", "session", wMsg.SessionID, "missing authenticated peer id")
+		return
+	}
 	msg := &PartialPublicKey{}
 	if err := types.Decode(wMsg.Msg, msg); err != nil {
 		log.Error("handlePpkMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "decode msg err", err)
 		return
 	}
+	// PartialPublicKey.Sender is untrusted and is never used for attribution or validation: a
+	// disagreement with the authenticated peer id is reported and then ignored.
+	if msg.Sender != "" && msg.Sender != wMsg.PeerID {
+		log.Warn("handlePpkMsg sender does not match authenticated peer id, sender ignored",
+			"peerID", wMsg.PeerID, "sender", msg.Sender, "session", wMsg.SessionID)
+	}
 	key := tss.ComposeProtocol(PpkProtocol, wMsg.SessionID)
 	ppkMu.Lock()
 	defer ppkMu.Unlock()
 	if c, ok := ppkCollectors[key]; ok {
-		addPPKToCollector(c, msg)
+		addPPKToCollector(c, wMsg.PeerID, msg)
 		return
 	}
-	pendingPPK[key] = append(pendingPPK[key], msg)
+	if _, ok := pendingPPK[key]; !ok && len(pendingPPK) >= maxPendingPPKSessions {
+		log.Warn("handlePpkMsg max pending ppk sessions reached, clear pending ppk messages")
+		for id := range pendingPPK {
+			delete(pendingPPK, id)
+		}
+	}
+	// At most one buffered point per authenticated peer, first one wins — the same rule the
+	// collector applies when it is flushed (see ppkCollector.add).
+	for _, pending := range pendingPPK[key] {
+		if pending.peerID == wMsg.PeerID {
+			return
+		}
+	}
+	if len(pendingPPK[key]) >= maxPendingPPKPerSession {
+		log.Warn("handlePpkMsg max pending ppk messages reached, drop message",
+			"peerID", wMsg.PeerID, "session", wMsg.SessionID)
+		return
+	}
+	pendingPPK[key] = append(pendingPPK[key], pendingPPKMsg{peerID: wMsg.PeerID, msg: msg})
 }
 
 // partialPublicKeyMsg builds the on-wire partial public key message for the local node.
+// sender is informational only (a receiver must attribute the point by the authenticated peer
+// id, see handlePpkMsg), but honest nodes fill it in with their own id so a mismatch is
+// visible in the logs.
 func partialPublicKeyMsg(sender string, p *ecpointgrouplaw.ECPoint) *PartialPublicKey {
 	return &PartialPublicKey{
 		Sender: sender,

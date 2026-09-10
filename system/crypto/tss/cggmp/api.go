@@ -87,7 +87,15 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 		log.Error("ProcessDKG", "session", sessionID, "partial pubkey exchange err", err)
 		return nil, err
 	}
-	return newDKGResult(aliceRes, partialPubKeys), nil
+	dkgResult := newDKGResult(aliceRes, partialPubKeys)
+	// The ppk exchange is the last point at which the DKG material is still local and complete:
+	// verify that the collected g^{share_i} reconstruct the group public key so a participant
+	// that broadcast bad material is rejected here rather than in the refresh phase.
+	if err := dkgResult.validatePartialPubKeys(peers, threshold); err != nil {
+		log.Error("ProcessDKG", "session", sessionID, "partial pubkey check err", err)
+		return nil, err
+	}
+	return dkgResult, nil
 }
 
 // exchangePartialPubKeys broadcasts the local g^{share} to all peers and collects theirs.
@@ -118,6 +126,13 @@ func exchangePartialPubKeys(peers []string, selfID string, share *big.Int, curve
 func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, sessionID string, opts ...Option) (*RefreshResult, error) {
 	cfg := newConfig(opts...)
 
+	// Validate the persisted ppk material before handing it to alice: refresh needs every
+	// participant's bk and g^{share}, and a missing or inconsistent entry would otherwise be
+	// dropped silently (toAlicePartialPubKeys) or fail opaquely inside the refresh rounds.
+	if err := dkgRes.validatePartialPubKeys(peers, threshold); err != nil {
+		log.Error("ProcessRefresh", "session", sessionID, "partial pubkey check err", err)
+		return nil, err
+	}
 	aRes, err := dkgRes.aliceResult(peers)
 	if err != nil {
 		log.Error("ProcessRefresh", "session", sessionID, "aliceResult err", err)
@@ -160,11 +175,19 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 
 // ProcessSign runs the CGGMP (4-round) threshold sign for msg. dkgRes is the DKG output of the
 // key and refreshRes the corresponding refresh output. peers is the signer subset (includes the
-// local node id, size == threshold); each node must call with the same peers list. sessionID
-// must be identical across the signing nodes.
+// local node id, size == threshold, which is enforced); each node must call with the same peers
+// list, and every listed signer must have a bk, a partial public key and Pedersen parameters in
+// the two results. sessionID must be identical across the signing nodes.
 func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult, refreshRes *RefreshResult, sessionID string, opts ...Option) (*alicesign.Result, error) {
 	cfg := newConfig(opts...)
 
+	// Refuse incomplete signer material up front: alice indexes bks / partial public keys /
+	// Pedersen parameters by peer id without checking, so a missing entry reached the alice
+	// sign core as a nil dereference instead of an error.
+	if err := refreshRes.validateSignMaterial(dkgRes, peers, threshold); err != nil {
+		log.Error("ProcessSign", "session", sessionID, "sign material check err", err)
+		return nil, err
+	}
 	aRes, err := dkgRes.aliceResult(peers)
 	if err != nil {
 		log.Error("ProcessSign", "session", sessionID, "aliceResult err", err)
