@@ -47,8 +47,8 @@ const (
 	dkgOpTimeout     = 2 * time.Minute   // DKG(+partial public key 交换)兜底超时
 	// refresh 每个节点都要生成一个 2048-bit Paillier 密钥(安全素数),是三个阶段里最慢的,
 	// 比 GG18 的 reshare 重得多,故给到 5min。
-	refreshOpTimeout = 5 * time.Minute  // refresh 兜底超时
-	signOpTimeout    = 2 * time.Minute  // 单次签名兜底超时
+	refreshOpTimeout = 5 * time.Minute   // refresh 兜底超时
+	signOpTimeout    = 2 * time.Minute   // 单次签名兜底超时
 	barrierTimeout   = 120 * time.Second // 进程间 barrier 同步超时
 	childExitTimeout = 6 * time.Minute   // 等待子进程退出超时
 	concurrentSigns  = 4                 // 并发签名路数

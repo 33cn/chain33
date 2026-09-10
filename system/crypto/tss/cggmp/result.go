@@ -132,8 +132,11 @@ func (d *DKGResult) toAlicePartialPubKeys(peers []string) (map[string]*ecpointgr
 	return m, nil
 }
 
-// SelfBkString returns the string form of the local node's Birkhoff parameter used to derive
-// the CGGMP ssid. It must be called with the same field order on every node.
+// SelfBkString returns the string form of the local node's Birkhoff parameter, using the same
+// encoding alice uses when it binds a peer's bk into a zero-knowledge challenge
+// (cggmp.ComputeZKSsid). It is a diagnostics/debugging helper only — the CGGMP ssid this
+// wrapper uses is NOT derived from the local bk (that would differ per node and break the
+// shared challenges); see computeSSID for how the ssid is built.
 func (d *DKGResult) SelfBkString(selfID string, fieldOrder *big.Int) (string, error) {
 	bk, ok := d.Bks[selfID]
 	if !ok || bk == nil {

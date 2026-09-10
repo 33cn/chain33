@@ -107,16 +107,53 @@ downstream are unchanged.
 
 ## Notes / caveats
 
+- **`rank` is the Birkhoff rank, not a node index.** `ProcessDKG`'s `rank` argument is
+  the rank of the *local* node's Birkhoff parameter (the derivative order of the shared
+  polynomial evaluated at its x-coordinate), **not** a 0/1/2/3 participant number:
+
+  - alice requires `rank + 1 < threshold` (`utils.EnsureRank`), i.e. `rank ∈ [0, threshold-2]`;
+  - several participants may share the same rank — they are told apart by their
+    (random) x-coordinate, so a valid set for a threshold-`t` sign is any set of
+    participants whose sorted ranks satisfy `rank_i <= i` for `i = 0..t-1`
+    (`tss.GetValidPeerCombination` picks one);
+  - the p2p integration test uses exactly that: 4 nodes with ranks `{0, 1, 1, 1}` and
+    threshold 3 for DKG/refresh, then the 3-node subset `{0, 1, 1}` for signing.
+
+  So a plain counter `0,1,2,3` cannot be used for 4 nodes: the highest ranks are
+  rejected outright (`rank+1 < threshold`, with `threshold <= 4` here), and the same
+  constraint is what leaves rank-0 participants mandatory in a signer subset — the
+  most common mistake when switching a caller from GG18, where the equivalent
+  parameters are indexed differently.
+- **ppk attribution is by authenticated peer id.** `PartialPublicKey.Sender` is
+  attacker-controlled and is never used to attribute or validate a partial public key:
+  collected points are keyed by `MessageWrapper.PeerID`, the peer id authenticated by the
+  transport (`p2p/dht/protocol/tss` fills it from `stream.Conn().RemotePeer()`). A mismatch
+  between `Sender` and the authenticated id is logged and otherwise ignored, so one peer
+  can neither satisfy the quorum alone nor overwrite another participant's `g^{share}`.
+- **The ppk exchange is verified against the DKG group public key.** Once all partial
+  public keys are collected, `ProcessDKG` (and `ProcessRefresh` on the persisted material)
+  reconstructs the group public key from them through the Birkhoff parameters
+  (`birkhoffinterpolation.BkParameters.ValidatePublicKey`, the same check alice runs at the
+  end of DKG/refresh). A participant that broadcast a bad `g^{share_i}` is rejected at the
+  ppk stage with a `ppk check` error instead of failing later inside the refresh rounds.
+  alice's DKG discards its Feldman commitments, so this reconstruction is the only local
+  check available at that point.
+- **Per-phase timeouts.** The default phase timeout is 30s for DKG, ppk and sign, but
+  5 minutes for refresh: refresh generates a fresh 2048-bit Paillier key (safe primes) on
+  every node, which alone takes ~23s for 4 nodes on localhost. `WithTimeout` overrides the
+  default for all phases (a non-positive value means no timeout).
 - **ssid must be session-shared.** The refresh/sign ZK challenges are derived via
   `cggmp.ComputeZKSsid(ssid, peerBk, N)` on both prover and verifier, which only
   match when `ssid` is identical across participants. `cggmp.computeSSID`
   therefore binds the *shared* session id and the DKG `rid` (alice's own cggmp
   tests likewise pass a single shared nonce). Do not derive ssid from the local
   peer's own Birkhoff parameter.
-- **Threshold signing with a subset**: pass the actual signer subset as `peers`
-  and the matching threshold; only those participants' bks / partial pub keys /
-  Pedersen params are fed to alice (the sign core iterates the passed maps, so
-  non-participant entries would break the Birkhoff coefficient computation).
+- **Threshold signing with a subset**: pass the actual signer subset as `peers` and the
+  matching threshold; `len(peers)` must equal `threshold` (enforced by `ProcessSign` —
+  pick exactly `threshold` signers, e.g. with `tss.GetValidPeerCombination`). Only those
+  participants' bks / partial pub keys / Pedersen params are fed to alice (the sign core
+  iterates the passed maps, so non-participant entries would break the Birkhoff
+  coefficient computation).
 - The full GG18/CGGMP multi-process run is exercised by the p2p integration tests
   (`gg18_integration_test.go`). This package's `e2e_test.go` runs the complete
   DKG → ppk → refresh → sign crypto in-process (three parties) and round-trips
