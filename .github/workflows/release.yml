@@ -27,13 +27,12 @@ jobs:
         with:
           branch: master
           extra_plugins: |
-            conventional-changelog/conventional-changelog-jshint
             semantic-release-replace-plugin@1.2.7
             @semantic-release/exec@6
             @semantic-release/changelog@6
             @semantic-release/git@10
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Do something when a new release published
         if: steps.semantic.outputs.new_release_published == 'true'

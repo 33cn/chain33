@@ -35,3 +35,12 @@ func (c *Coins) ExecDelLocal_Withdraw(withdraw *types.AssetsWithdraw, tx *types.
 	}
 	return &types.LocalDBSet{KV: []*types.KeyValue{kv}}, nil
 }
+
+// ExecDelLocal_Genesis delete genesis of local exec
+func (c *Coins) ExecDelLocal_Genesis(gen *types.AssetsGenesis, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	kv, err := updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), gen.Amount, false)
+	if err != nil {
+		return nil, err
+	}
+	return &types.LocalDBSet{KV: []*types.KeyValue{kv}}, nil
+}
