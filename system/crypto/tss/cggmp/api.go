@@ -19,31 +19,52 @@ import (
 )
 
 const (
+	// defaultTimeout is the default timeout of the DKG, ppk and sign phases.
 	defaultTimeout = 30 * time.Second
+	// refreshDefaultTimeout is the default timeout of the refresh phase. Unlike the other
+	// phases, refresh generates a fresh 2048-bit Paillier key (safe primes) on every node,
+	// which measures ~23s for 4 nodes on localhost alone — the 30s of the other phases would
+	// time out in production, so refresh gets its own, much larger default.
+	refreshDefaultTimeout = 5 * time.Minute
 	// paillierKeySize is the RSA modulus bit length used for the CGGMP Paillier keys.
 	paillierKeySize = 2048
 )
 
 type config struct {
-	timeout time.Duration
+	timeout    time.Duration
+	timeoutSet bool
 }
 
 // Option sets configuration options for CGGMP operations.
 type Option func(*config)
 
-// WithTimeout overrides the default per-phase timeout.
+// WithTimeout overrides the per-phase default timeout for every phase. A non-positive value
+// means no timeout (see tss.NewListener).
 func WithTimeout(timeout time.Duration) Option {
 	return func(o *config) {
 		o.timeout = timeout
+		o.timeoutSet = true
 	}
 }
 
 func newConfig(opts ...Option) *config {
-	cfg := &config{timeout: defaultTimeout}
+	cfg := &config{}
 	for _, opt := range opts {
 		opt(cfg)
 	}
 	return cfg
+}
+
+// phaseTimeout returns the timeout to use for a protocol phase: the explicit WithTimeout
+// override when the caller set one, otherwise the per-phase default.
+func (c *config) phaseTimeout(protocol string) time.Duration {
+	if c.timeoutSet {
+		return c.timeout
+	}
+	if protocol == RefreshProtocol {
+		return refreshDefaultTimeout
+	}
+	return defaultTimeout
 }
 
 // ProcessDKG runs the CGGMP DKG protocol and then the CGGMP partial-public-key exchange,
@@ -56,7 +77,7 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 
 	// Phase 1: alice CGGMP DKG.
 	pm := tss.NewReadyPeerManager(peers, DkgProtocol, sessionID)
-	listener := tss.NewListener(DkgProtocol, cfg.timeout)
+	listener := tss.NewListener(DkgProtocol, cfg.phaseTimeout(DkgProtocol))
 	dkgCore, err := alicedkg.NewDKG(curve, pm, []byte(sessionID), threshold, rank, listener)
 	if err != nil {
 		log.Error("ProcessDKG", "session", sessionID, "NewDKG err", err)
@@ -82,7 +103,7 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 	// Phase 2: partial public key (g^{share}) exchange. The refresh phase needs every
 	// participant's partial public key as an input, so we exchange them right after DKG.
 	selfID := pm.SelfID()
-	partialPubKeys, err := exchangePartialPubKeys(peers, selfID, aliceRes.Share, curve, sessionID, cfg.timeout)
+	partialPubKeys, err := exchangePartialPubKeys(peers, selfID, aliceRes.Share, curve, sessionID, cfg.phaseTimeout(PpkProtocol))
 	if err != nil {
 		log.Error("ProcessDKG", "session", sessionID, "partial pubkey exchange err", err)
 		return nil, err
@@ -145,7 +166,7 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 	}
 
 	pm := tss.NewReadyPeerManager(peers, RefreshProtocol, sessionID)
-	listener := tss.NewListener(RefreshProtocol, cfg.timeout)
+	listener := tss.NewListener(RefreshProtocol, cfg.phaseTimeout(RefreshProtocol))
 	ssid := computeSSID(sessionID, dkgRes.Rid)
 
 	refreshCore, err := alicerefresh.NewRefresh(aRes.Share, aRes.PublicKey, pm, threshold,
@@ -206,7 +227,7 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 	}
 
 	pm := tss.NewReadyPeerManager(peers, SignProtocol, sessionID)
-	listener := tss.NewListener(SignProtocol, cfg.timeout)
+	listener := tss.NewListener(SignProtocol, cfg.phaseTimeout(SignProtocol))
 	ssid := computeSSID(sessionID, dkgRes.Rid)
 
 	signCore, err := alicesign.NewSign(threshold, ssid, new(big.Int).SetBytes(refreshRes.Share),
