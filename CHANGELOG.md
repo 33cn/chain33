@@ -1,5 +1,13 @@
 changelog
 
+# [1.71.0](https://github.com/33cn/chain33/compare/v1.70.0...v1.71.0) (2026-09-11)
+
+
+### Features
+
+* migrate account blacklist to mver multi-version config ([45b6780](https://github.com/33cn/chain33/commit/45b6780e7a10395733611bd46f2527a7a683c0ad))
+* warn when blacklist base section is used without fork gating ([b944c19](https://github.com/33cn/chain33/commit/b944c199179e31c07da18defa956f1b88d7daaaa))
+
 # [1.70.0](https://github.com/33cn/chain33/compare/v1.69.0...v1.70.0) (2026-09-02)
 
 
