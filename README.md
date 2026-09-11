@@ -1,7 +1,6 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/33cn/chain33.svg)](https://pkg.go.dev/github.com/33cn/chain33)
 [![pipeline status](https://github.com/33cn/chain33/actions/workflows/build.yml/badge.svg)](https://github.com/33cn/chain33/actions/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/33cn/chain33)](https://goreportcard.com/report/github.com/33cn/chain33)
-[![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/33cn/chain33?svg=true&branch=master&passingText=Windows%20-%20OK&failingText=Windows%20-%20failed&pendingText=Windows%20-%20pending)](https://ci.appveyor.com/project/33cn/chain33)
 [![Release](https://img.shields.io/github/v/release/33cn/chain33)](https://github.com/33cn/chain33/releases)
 [![code coverage](https://img.shields.io/badge/coverage-65.5%25-yellowgreen)](https://github.com/33cn/chain33/actions/workflows/build.yml) *(不含 protobuf 自动代码)*
 

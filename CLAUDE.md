@@ -79,5 +79,5 @@ chain33 在 Makefile 里包了一套自动化 git 命令,日常优先用:
 ## 防坑清单
 - 改 .proto 后必须跑 `make depends` 重新生成,不要手改 .pb.go
 - 不要把 `coverage_*.out` / `build/coverage/` 这种本地产物提交(已在 .gitignore)
-- 不要碰 `.gitlab-ci.yml` / `.travis.yml` / `appveyor.yml` / `.github/workflows/` 配置文件,改 CI 要确认再问
+- 不要碰 `.gitlab-ci.yml` / `.travis.yml` / `.github/workflows/` 配置文件,改 CI 要确认再问
 - 不要在没有 race detector 的情况下宣布并发代码"修好了" — 跑 `make race`
