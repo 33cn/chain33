@@ -51,7 +51,7 @@ func handleDkgMsg(wMsg *tss.MessageWrapper) {
 		log.Error("handleDkgMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "decode msg err", err)
 		return
 	}
-	if err := addMessage(DkgProtocol, wMsg.SessionID, msg); err != nil {
+	if err := addMessage(DkgProtocol, wMsg.SessionID, wMsg.PeerID, msg); err != nil {
 		log.Error("handleDkgMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "Cannot add message to core, err", err)
 	}
 }
@@ -66,7 +66,7 @@ func handleRefreshMsg(wMsg *tss.MessageWrapper) {
 		log.Error("handleRefreshMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "decode msg err", err)
 		return
 	}
-	if err := addMessage(RefreshProtocol, wMsg.SessionID, msg); err != nil {
+	if err := addMessage(RefreshProtocol, wMsg.SessionID, wMsg.PeerID, msg); err != nil {
 		log.Error("handleRefreshMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "Cannot add message to core, err", err)
 	}
 }
@@ -81,7 +81,7 @@ func handleSignMsg(wMsg *tss.MessageWrapper) {
 		log.Error("handleSignMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "decode msg err", err)
 		return
 	}
-	if err := addMessage(SignProtocol, wMsg.SessionID, msg); err != nil {
+	if err := addMessage(SignProtocol, wMsg.SessionID, wMsg.PeerID, msg); err != nil {
 		log.Error("handleSignMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "Cannot add message to core, err", err)
 	}
 }

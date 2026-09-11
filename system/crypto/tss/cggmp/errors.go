@@ -11,6 +11,9 @@ var (
 	errPPKTimeout    = errors.New("cggmp: partial public key exchange timed out")
 	errMissingSelfBk = errors.New("cggmp: missing self bk in dkg result")
 	errNilResult     = errors.New("cggmp: nil result")
+	// errMissingPeerID means an incoming tss message carried no transport-authenticated peer id,
+	// so it cannot be attributed to a participant and must be rejected rather than trusted.
+	errMissingPeerID = errors.New("cggmp: missing authenticated peer id")
 
 	// Peer-material completeness errors, wrapped with the offending peer id.
 	errMissingPeerBk  = errors.New("missing birkhoff parameter")
