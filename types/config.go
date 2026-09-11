@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"fmt"
 
@@ -56,6 +57,7 @@ type Chain33Config struct {
 	mu               sync.Mutex
 	chainConfig      map[string]interface{}
 	mver             *mversion
+	blacklist        atomic.Pointer[accountBlacklist]
 	coinExec         string
 	coinSymbol       string
 	coinPrecision    int64
@@ -288,9 +290,6 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 			cfg.RPC.ParaChain.MainChainGrpcAddr = "localhost:8802"
 		}
 
-		if cfg.Blacklist != nil {
-			blockedAccountSet = parseBlockedAccounts(cfg.Blacklist.AccountBlacklist)
-		}
 	}
 	if c.needSetForkZero() { //local 只用于单元测试
 		if c.isLocal() {
@@ -308,6 +307,8 @@ func (c *Chain33Config) chain33CfgInit(cfg *Config) {
 	if c.mver != nil {
 		c.mver.UpdateFork(c.forks)
 	}
+	// 黑名单快照依赖最终的fork高度与mver版本表，必须在两者都就绪之后构建
+	c.initAccountBlacklist(cfg)
 }
 
 // 只检查是否是10的指数，不限制最大精度

@@ -126,6 +126,10 @@ genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 minerExecs=["ticket", "autonomy"]
 
+# 账户黑名单基线，名单按 [mver.blacklist.<分叉名>] 分版本演进
+[mver.blacklist]
+accountBlacklist=[]
+
 [mver.consensus]
 fundKeyAddr = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 powLimitBits = "0x1f00ffff"
@@ -237,7 +241,7 @@ genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 [exec.sub.cert]
 # 是否启用证书验证和签名
 enable=false
-# 加密文件路径
+# 加密文件路径	
 cryptoPath="authdir/crypto"
 # 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
 signType="auth_ecdsa"

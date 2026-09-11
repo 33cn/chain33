@@ -131,6 +131,8 @@ name="ticket"
 minerstart=true
 genesisBlockTime=1514533394
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+[mver.blacklist]
+accountBlacklist=[]
 [mver.consensus]
 fundKeyAddr = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 coinReward = 18
@@ -226,7 +228,7 @@ ForkChainParamV2= -1
 ForkBase58AddressCheck=1800000
 ForkTicketFundAddrV1=-1
 ForkRootHash=1
-# 账户黑名单启用高度；-1 表示关闭
+# 账户黑名单启用高度；-1 表示关闭，名单配在 [mver.blacklist.ForkAccountBlacklist]
 ForkAccountBlacklist=-1
 [fork.sub.coins]
 Enable=0

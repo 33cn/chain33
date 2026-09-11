@@ -22,8 +22,8 @@ func newBlockedExecutor(t *testing.T, blockedAddrs []string) (*executor, *types.
 	t.Helper()
 	exec, _ := initEnv(types.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
-	// local 标题下 SetAllFork(0)，ForkAccountBlacklist 从高度 0 启用
-	restore := types.SetBlockedAccountsForTest(blockedAddrs)
+	// 名单自高度 0 起生效，覆盖下面 executorCtx 的高度 1
+	restore := cfg.SetBlockedAccountsForTest(0, blockedAddrs)
 	t.Cleanup(restore)
 	ctx := &executorCtx{
 		height:     1,

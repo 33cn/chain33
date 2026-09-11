@@ -7,10 +7,6 @@ TxHeight=true
 ChainID=0
 AddrVer=0
 
-# 账户黑名单：命中地址禁止收发任何交易，支持base58与0x两种地址格式
-[blacklist]
-accountBlacklist=[]
-
 # crypto模块配置
 [crypto]
 enableTypes=[]    #设置启用的加密插件名称，不配置启用所有
@@ -185,6 +181,19 @@ genesisBlockTime=1514533394
 #创世交易地址
 genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 minerExecs=["ticket", "autonomy"]
+
+# 账户黑名单：命中地址禁止收发任何交易，支持base58与0x两种地址格式
+# 名单按高度分版本演进，每个 [mver.blacklist.<分叉名>] 段是一份全量名单而非增量，
+# 高度 h 生效的是「高度不大于 h 的最大分叉」那一份；下面的基线段在任何分叉生效前使用
+[mver.blacklist]
+accountBlacklist=[]
+
+# 启用名单时按下面的方式配置，分叉名必须先在 RegisterSystemFork 中注册、并在 [fork.system] 里给出高度。
+# 已被链跨过的分叉，其高度与名单内容不可再改，增删地址一律追加新分叉版本
+#[mver.blacklist.ForkAccountBlacklist]
+#accountBlacklist=["1xxx", "0xyyy"]
+#[mver.blacklist.ForkAccountBlacklistV2]
+#accountBlacklist=["1xxx", "0xyyy", "0xzzz"]
 
 [mver.consensus]
 #基金账户地址

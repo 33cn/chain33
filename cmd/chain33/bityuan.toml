@@ -79,6 +79,10 @@ maxTxFeeRate=10000000
 # 单笔交易最大的手续费, 10 coins
 maxTxFee=1000000000
 
+# 账户黑名单基线，名单按 [mver.blacklist.<分叉名>] 分版本演进
+[mver.blacklist]
+accountBlacklist=[]
+
 [mver.mempool.ForkMaxTxFeeV1]
 # 单笔交易最大的手续费, 50 coins
 maxTxFee=5000000000
