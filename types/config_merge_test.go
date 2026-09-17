@@ -220,6 +220,7 @@ ForkTicketFundAddrV1=-1
 ForkRootHash=1
 # 账户黑名单启用高度；-1 表示关闭
 ForkAccountBlacklist=-1
+ForkAccountBlacklistV2=-1
 [fork.sub.coins]
 Enable=0
 

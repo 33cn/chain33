@@ -31,8 +31,10 @@ ForkMaxTxFeeV1=0
 ForkParaFee=-1
 # 账户黑名单启用高度，命中名单的交易在此高度后视为非法交易，所在区块整块拒绝；-1 表示关闭。
 # 名单本身配在 [mver.blacklist.ForkAccountBlacklist]，配了非 -1 高度就必须有对应的 mver 段。
-# 名单演进：新增 ForkAccountBlacklistV2 需先在代码 RegisterSystemFork 里注册，再全网补这里的高度与 mver 段
+# 名单演进：新增版本需先在代码 RegisterSystemFork 里注册，再全网补这里的高度与 mver 段。
+# -1 表示关闭；启用 ForkAccountBlacklistV2 时必须配套 [mver.blacklist.ForkAccountBlacklistV2] 全量名单。
 ForkAccountBlacklist=-1
+ForkAccountBlacklistV2=-1
 # 交易chainID严格校验启用高度，启用后交易组内每笔交易及minTxFeeRate=0时的单笔交易都会校验chainID，防止跨链重放；-1 表示关闭
 ForkTxChainIDStrict=-1
 [fork.sub.none]

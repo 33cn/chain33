@@ -230,6 +230,8 @@ ForkTicketFundAddrV1=-1
 ForkRootHash=1
 # 账户黑名单启用高度；-1 表示关闭，名单配在 [mver.blacklist.ForkAccountBlacklist]
 ForkAccountBlacklist=-1
+# -1 表示关闭；启用时必须配套 [mver.blacklist.ForkAccountBlacklistV2] 全量名单
+ForkAccountBlacklistV2=-1
 [fork.sub.coins]
 Enable=0
 [fork.sub.ticket]

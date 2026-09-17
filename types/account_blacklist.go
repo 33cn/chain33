@@ -31,7 +31,10 @@ import (
 //
 // 已经被链跨过的分叉，其高度与名单内容一律不可再改，只能追加新分叉。
 // 否则历史区块回放会用新名单去判定旧区块，执行结果改变，直接破坏共识一致性。
-const ForkAccountBlacklist = "ForkAccountBlacklist"
+const (
+	ForkAccountBlacklist   = "ForkAccountBlacklist"
+	ForkAccountBlacklistV2 = "ForkAccountBlacklistV2"
+)
 
 // mver 中黑名单配置的段前缀与键名
 const (
