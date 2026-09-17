@@ -23,8 +23,28 @@ const (
 	testNormalBtcAddr  = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
 )
 
-// blacklistForkV2 模拟「代码里新增了第二版名单分叉」，测试通过预注册分叉来等价 RegisterSystemFork
-const blacklistForkV2 = ForkAccountBlacklist + "V2"
+// blacklistForkV2 第二版名单分叉名，与 RegisterSystemFork 中的官方常量一致
+const blacklistForkV2 = ForkAccountBlacklistV2
+
+// blacklistForkV3 第三版尚未在 RegisterSystemFork 注册，测试用 extraForks 预注册来模拟后续升级
+const blacklistForkV3 = ForkAccountBlacklist + "V3"
+
+const testV3EthAddr = "0x2222222222222222222222222222222222222222"
+
+func quoteBlacklistAddrs(addrs []string) string {
+	quoted := make([]string, 0, len(addrs))
+	for _, addr := range addrs {
+		quoted = append(quoted, `"`+addr+`"`)
+	}
+	return "[" + strings.Join(quoted, ",") + "]"
+}
+
+func blacklistMverSection(fork string, addrs []string) string {
+	if fork == "" {
+		return "[mver.blacklist]\naccountBlacklist=" + quoteBlacklistAddrs(addrs) + "\n"
+	}
+	return "[mver.blacklist." + fork + "]\naccountBlacklist=" + quoteBlacklistAddrs(addrs) + "\n"
+}
 
 // defaultBlacklistSection 默认配置自带的黑名单基线段，用例自行拼装名单前需先摘掉，
 // 否则同一个 toml 表被定义两次会直接解析失败
@@ -318,6 +338,16 @@ func TestBlacklistEmptyConfigNoOp(t *testing.T) {
 		assert.NoError(t, CheckTxBlockedAccount(cfg, height, tx2), "height %d", height)
 		assert.False(t, cfg.IsBlockedAccount(testBlockedBtcAddr, height))
 	}
+}
+
+// TestForkAccountBlacklistV2RegisteredClosed 官方 fork 表必须声明 V2，且 -1 加载后为 MaxHeight、名单不生效
+func TestForkAccountBlacklistV2RegisteredClosed(t *testing.T) {
+	cfg := NewChain33Config(MergeCfg(ReadFile("../cmd/chain33/chain33.toml"), ReadFile("../cmd/chain33/chain33.fork.toml")))
+	assert.True(t, cfg.HasFork(ForkAccountBlacklistV2))
+	assert.Equal(t, int64(MaxHeight), cfg.GetFork(ForkAccountBlacklistV2))
+	assert.Equal(t, int64(MaxHeight), cfg.GetFork(ForkAccountBlacklist))
+	assert.False(t, cfg.IsBlockedAccount(testBlockedBtcAddr, 0))
+	assert.False(t, cfg.IsBlockedAccount(testBlockedBtcAddr, 1e12))
 }
 
 // TestBlacklistLocalConfigInit 反向用例：默认 local 配置（SetAllFork(0) 且无 mver 子段）必须能正常初始化
