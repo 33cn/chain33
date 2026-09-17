@@ -26,6 +26,26 @@ const (
 // blacklistForkV2 第二版名单分叉名，与 RegisterSystemFork 中的官方常量一致
 const blacklistForkV2 = ForkAccountBlacklistV2
 
+// blacklistForkV3 第三版尚未在 RegisterSystemFork 注册，测试用 extraForks 预注册来模拟后续升级
+const blacklistForkV3 = ForkAccountBlacklist + "V3"
+
+const testV3EthAddr = "0x2222222222222222222222222222222222222222"
+
+func quoteBlacklistAddrs(addrs []string) string {
+	quoted := make([]string, 0, len(addrs))
+	for _, addr := range addrs {
+		quoted = append(quoted, `"`+addr+`"`)
+	}
+	return "[" + strings.Join(quoted, ",") + "]"
+}
+
+func blacklistMverSection(fork string, addrs []string) string {
+	if fork == "" {
+		return "[mver.blacklist]\naccountBlacklist=" + quoteBlacklistAddrs(addrs) + "\n"
+	}
+	return "[mver.blacklist." + fork + "]\naccountBlacklist=" + quoteBlacklistAddrs(addrs) + "\n"
+}
+
 // defaultBlacklistSection 默认配置自带的黑名单基线段，用例自行拼装名单前需先摘掉，
 // 否则同一个 toml 表被定义两次会直接解析失败
 const defaultBlacklistSection = "[mver.blacklist]\naccountBlacklist=[]\n"
