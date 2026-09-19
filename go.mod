@@ -4,23 +4,6 @@ go 1.23
 
 replace github.com/ava-labs/avalanchego => github.com/33cn/avalanchego v1.10.10-0.20240529041529-ada691598153
 
-// getamis/alice v1.0.7 requires go-libp2p v0.35 (only for its example/ tooling; its crypto/types
-// packages do not import libp2p). chain33's own system/p2p + cmd/dht_crawler are written against
-// the older libp2p API, so pin the libp2p ecosystem back to the versions chain33 was on before.
-replace github.com/libp2p/go-libp2p => github.com/libp2p/go-libp2p v0.30.0
-
-replace github.com/libp2p/go-libp2p-asn-util => github.com/libp2p/go-libp2p-asn-util v0.3.0
-
-replace github.com/multiformats/go-multiaddr => github.com/multiformats/go-multiaddr v0.11.0
-
-replace github.com/multiformats/go-multistream => github.com/multiformats/go-multistream v0.4.1
-
-replace github.com/quic-go/quic-go => github.com/quic-go/quic-go v0.37.6
-
-replace github.com/quic-go/webtransport-go => github.com/quic-go/webtransport-go v0.5.3
-
-replace github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.0
-
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/XiaoMi/pegasus-go-client v0.0.0-20210825081735-b8a75c1eac2b
@@ -34,6 +17,7 @@ require (
 	github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2
 	github.com/ethereum/go-ethereum v1.14.8
 	github.com/getamis/alice v1.0.7
+	github.com/getamis/sirius v1.1.7
 	github.com/go-stack/stack v1.8.1
 	github.com/golang/protobuf v1.5.4
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb
@@ -45,7 +29,7 @@ require (
 	github.com/libp2p/go-libp2p v0.35.0
 	github.com/libp2p/go-libp2p-kad-dht v0.23.0
 	github.com/libp2p/go-libp2p-kbucket v0.5.0
-	github.com/libp2p/go-libp2p-pubsub v0.9.3
+	github.com/libp2p/go-libp2p-pubsub v0.11.0
 	github.com/libp2p/go-msgio v0.3.0
 	github.com/mattn/go-colorable v0.1.13
 	github.com/mr-tron/base58 v1.2.0
@@ -111,7 +95,6 @@ require (
 	github.com/ethereum/c-kzg-4844 v1.0.0 // indirect
 	github.com/flynn/noise v1.1.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
-	github.com/getamis/sirius v1.1.7 // indirect
 	github.com/getsentry/sentry-go v0.27.0 // indirect
 	github.com/go-logr/logr v1.3.0 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -122,7 +105,6 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
-	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/flatbuffers v2.0.8+incompatible // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
@@ -191,6 +173,22 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pegasus-kv/thrift v0.13.0 // indirect
+	github.com/pion/datachannel v1.5.6 // indirect
+	github.com/pion/dtls/v2 v2.2.11 // indirect
+	github.com/pion/ice/v2 v2.3.24 // indirect
+	github.com/pion/interceptor v0.1.29 // indirect
+	github.com/pion/logging v0.2.2 // indirect
+	github.com/pion/mdns v0.0.12 // indirect
+	github.com/pion/randutil v0.1.0 // indirect
+	github.com/pion/rtcp v1.2.14 // indirect
+	github.com/pion/rtp v1.8.6 // indirect
+	github.com/pion/sctp v1.8.16 // indirect
+	github.com/pion/sdp/v3 v3.0.9 // indirect
+	github.com/pion/srtp/v2 v2.0.18 // indirect
+	github.com/pion/stun v0.6.1 // indirect
+	github.com/pion/transport/v2 v2.2.5 // indirect
+	github.com/pion/turn/v2 v2.1.6 // indirect
+	github.com/pion/webrtc/v3 v3.2.40 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
@@ -199,7 +197,6 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/qianlnk/to v0.0.0-20191230085244-91e712717368 // indirect
 	github.com/quic-go/qpack v0.4.0 // indirect
-	github.com/quic-go/qtls-go1-20 v0.3.2 // indirect
 	github.com/quic-go/quic-go v0.44.0 // indirect
 	github.com/quic-go/webtransport-go v0.8.0 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect

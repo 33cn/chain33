@@ -134,7 +134,7 @@ func (s *ConnManager) printMonitorInfo() {
 		if tduration == 0 {
 			continue
 		}
-		LatencyInfo += fmt.Sprintln("PeerID:", pid.Pretty(), "LatencyEWMA:", tduration)
+		LatencyInfo += fmt.Sprintln("PeerID:", pid.String(), "LatencyEWMA:", tduration)
 		if stat, ok := bandByPeer[pid]; ok {
 			trackerInfo += fmt.Sprintf("PeerID:%s,RateIn:%f bytes/s,RateOut:%f bytes/s,totalIn:%d bytes,totalOut:%d\n",
 				pid,
@@ -219,12 +219,12 @@ func (s *ConnManager) AddNeighbors(pr *peer.AddrInfo) {
 	if pr == nil {
 		return
 	}
-	s.neighborStore.Store(pr.ID.Pretty(), pr)
+	s.neighborStore.Store(pr.ID.String(), pr)
 }
 
 // IsNeighbors check is neighbors by id
 func (s *ConnManager) IsNeighbors(pid peer.ID) bool {
-	_, ok := s.neighborStore.Load(pid.Pretty())
+	_, ok := s.neighborStore.Load(pid.String())
 	return ok
 }
 
@@ -258,9 +258,9 @@ func (s *ConnManager) FetchConnPeers() []peer.ID {
 
 	//对当前连接的节点时长进行排序
 	sort.Sort(allconns)
-	//log.Debug("FetchConnPeers", "stream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().Pretty())
+	//log.Debug("FetchConnPeers", "stream Num", len(conn.GetStreams()), "pid", conn.RemotePeer().String())
 	for _, conn := range allconns {
-		peers[conn.RemotePeer().Pretty()] = conn.RemotePeer()
+		peers[conn.RemotePeer().String()] = conn.RemotePeer()
 		if len(peers) >= maxBounds {
 			break
 		}

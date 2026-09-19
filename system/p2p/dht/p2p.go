@@ -358,7 +358,7 @@ func (p *P2P) findLANPeers() {
 				log.Error("findLANPeers", "err", err.Error())
 				continue
 			}
-			log.Info("findLANPeers", "connect neighbors success", neighbors.ID.Pretty())
+			log.Info("findLANPeers", "connect neighbors success", neighbors.ID.String())
 			p.connManager.AddNeighbors(&neighbors)
 
 		case <-p.ctx.Done():
