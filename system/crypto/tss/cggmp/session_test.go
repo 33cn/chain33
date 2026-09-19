@@ -9,6 +9,8 @@ import (
 
 	"github.com/33cn/chain33/system/crypto/tss"
 	chaintypes "github.com/33cn/chain33/types"
+	"github.com/getamis/alice/crypto/birkhoffinterpolation"
+	"github.com/getamis/alice/crypto/elliptic"
 	alicedkg "github.com/getamis/alice/crypto/tss/ecdsa/cggmp/dkg"
 	alicetypes "github.com/getamis/alice/types"
 	alicemsg "github.com/getamis/alice/types/message"
@@ -159,6 +161,109 @@ func TestBufferedMessageKeepsTransportPeerID(t *testing.T) {
 
 	require.Len(t, backend.calls, 1)
 	require.Equal(t, "peer-transport", backend.calls[0].senderID)
+}
+
+// stubPeerManager is a minimal alice types.PeerManager. The retry tests below drive the session
+// registry in-process, so nothing is ever sent over a transport (the echo layer's relay calls
+// land here as no-ops).
+type stubPeerManager struct {
+	self  string
+	peers []string
+}
+
+func (p *stubPeerManager) NumPeers() uint32             { return uint32(len(p.peers)) }
+func (p *stubPeerManager) PeerIDs() []string            { return p.peers }
+func (p *stubPeerManager) SelfID() string               { return p.self }
+func (p *stubPeerManager) MustSend(string, interface{}) {}
+
+// newSessionDKG builds a real alice cggmp DKG core, so the retry tests hit alice's own echo layer
+// (the source of ErrDifferentHash) instead of a re-implementation of it. The core is never started:
+// only its AddMessage path is exercised.
+func newSessionDKG(t *testing.T) *alicedkg.DKG {
+	t.Helper()
+	pm := &stubPeerManager{self: "peer-self", peers: []string{"peer-a", "peer-b"}}
+	core, err := alicedkg.NewDKG(elliptic.Secp256k1(), pm, []byte("retry-session"), 2, 0, stubListener{})
+	require.NoError(t, err)
+	return core
+}
+
+// sessionPeerMsg returns a Type_Peer message from id. Its body carries the sender's Birkhoff
+// parameter, whose x is drawn randomly by alice on every DKG round (newPeerHandler) — so two
+// rounds of the same participant produce two *different* bodies under the same (type, sender) key,
+// which is exactly what makes a cross-round batch collide in the echo layer.
+func sessionPeerMsg(id string, x byte) *alicedkg.Message {
+	return &alicedkg.Message{
+		Type: alicedkg.Type_Peer,
+		Id:   id,
+		Body: &alicedkg.Message_Peer{Peer: &alicedkg.BodyPeer{
+			Bk: &birkhoffinterpolation.BkParameterMessage{X: []byte{x}},
+		}},
+	}
+}
+
+// requireNoSessionState asserts nothing is kept for sessionID: neither a registered session nor a
+// pending buffer. Both would outlive the round they belong to, and the next round (which must reuse
+// the same session name, see TestRegisterSessionRecoversAfterFailedRound) would inherit them.
+func requireNoSessionState(t *testing.T, sessionID string) {
+	t.Helper()
+	id := tss.ComposeProtocol(DkgProtocol, sessionID)
+	sessionsMu.RLock()
+	defer sessionsMu.RUnlock()
+	_, registered := sessions[id]
+	_, buffered := pendingMessages[id]
+	require.False(t, registered, "session %q must not stay registered", sessionID)
+	require.False(t, buffered, "session %q must not keep a pending buffer", sessionID)
+}
+
+// TestRegisterSessionRecoversAfterFailedRound is the regression test for the DKG retry path: a node
+// whose DKG round failed must be able to run the DKG again under the same session name.
+//
+// The session name is a constant shared by every participant (alice derives the DKG zero-knowledge
+// challenges from the sid, so a per-node unique name would split the group into different rounds),
+// so a retry necessarily re-registers the *same* id. Reproduced here is what the 2026-09-19 E2E log
+// showed: round 1 is registered and then torn down (its listener gave up on the deadline), and the
+// next round's flush throws ErrDifferentHash — the late Type_Peer of the dead round and the one the
+// peer broadcast when it restarted sit in the same buffer, and alice keeps a single body per
+// (message type, sender). Before the fix that flush error left the half-registered session behind,
+// so every later attempt died on "session already registered" and the node never came back.
+func TestRegisterSessionRecoversAfterFailedRound(t *testing.T) {
+	const sessionID = "cggmp-session-retry-after-failed-round"
+
+	// Round 1, registered and torn down the way ProcessDKG does it (registerSession, then
+	// removeSession on return).
+	require.NoError(t, registerSession(DkgProtocol, sessionID, newSessionDKG(t)))
+	removeSession(DkgProtocol, sessionID)
+	requireNoSessionState(t, sessionID)
+
+	// While no session is registered, two Type_Peer messages of the same participant arrive: the
+	// late one from the round that just died, and the one it sent when it restarted.
+	require.NoError(t, addMessage(DkgProtocol, sessionID, "peer-b", sessionPeerMsg("peer-b", 1)))
+	require.NoError(t, addMessage(DkgProtocol, sessionID, "peer-b", sessionPeerMsg("peer-b", 2)))
+
+	// Round 2 fails on that batch: alice rejects the second, different body for (Type_Peer, peer-b)
+	// instead of letting the round run to its own timeout. Failing fast is deliberate — what matters
+	// is that it is recoverable.
+	err := registerSession(DkgProtocol, sessionID, newSessionDKG(t))
+	require.ErrorIs(t, err, alicemsg.ErrDifferentHash)
+	// The failed registration left nothing behind: no session, and the poisoned batch is gone too.
+	requireNoSessionState(t, sessionID)
+
+	// The very next attempt under the same name registers fine — this is the behaviour the node
+	// needs to come back without a restart.
+	require.NoError(t, registerSession(DkgProtocol, sessionID, newSessionDKG(t)))
+	defer removeSession(DkgProtocol, sessionID)
+
+	// Live messages still reach the registered core ...
+	require.NoError(t, addMessage(DkgProtocol, sessionID, "peer-b", sessionPeerMsg("peer-b", 3)))
+
+	// ... and a second registration of a *live* session is still refused: that rejection is what
+	// keeps two concurrent rounds of the same name from trampling each other.
+	require.ErrorContains(t, registerSession(DkgProtocol, sessionID, newSessionDKG(t)),
+		"session already registered")
+
+	// Teardown drops the session state again, so the next round starts from a clean slate.
+	removeSession(DkgProtocol, sessionID)
+	requireNoSessionState(t, sessionID)
 }
 
 // TestHandleDkgMsgUsesTransportPeerID asserts the wire handler forwards the peer id the transport

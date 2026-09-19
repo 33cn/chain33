@@ -66,6 +66,17 @@ func addMessage(protocol, sessionID, peerID string, msg types.Message) error {
 	return nil
 }
 
+// registerSession 把 backend 绑定到 protocol|sessionID，并回灌"注册前到达"的缓存消息。
+//
+// 注册必须是原子的（全有或全无）：会话名是各节点约定的同一个常量（进程重启/重试都要复用
+// 同一个名字），所以一轮失败后重试必然用**同一个** sessionID 再次注册。原先先写入 sessions
+// 再回灌，回灌失败就直接返回 ⇒ 半个 session 留在了注册表里，后续所有重试都撞
+// "session already registered"，节点一次超时之后再无恢复可能（与 cggmp 的同一缺陷，见
+// cggmp/session.go 的说明）。这里在回灌失败时回滚。
+//
+// 缓存批次在回灌前就整体取出，无论成败都不再保留：核心拒收某条消息说明这批混了两轮
+// （alice 的 echo 层按 (消息类型, 发送方) 记账，同一键的第二个不同消息体返回
+// ErrDifferentHash），同一批里其余消息同样不可信；丢掉它，下一次尝试才是干净的一轮。
 func registerSession(protocol, sessionID string, backend Backend) error {
 	id := tss.ComposeProtocol(protocol, sessionID)
 	sessionsMu.Lock()
@@ -74,24 +85,30 @@ func registerSession(protocol, sessionID string, backend Backend) error {
 	if ok {
 		return fmt.Errorf("session already registered")
 	}
+	pending := pendingMessages[id]
+	delete(pendingMessages, id)
 	sessions[id] = &sessionCore{
 		backend: backend,
 	}
 	// flush buffer messages
-	for _, pending := range pendingMessages[id] {
-		err := backend.AddMessage(pending.peerID, pending.msg)
+	for _, pendingMsg := range pending {
+		err := backend.AddMessage(pendingMsg.peerID, pendingMsg.msg)
 		if err != nil {
 			log.Error("registerSession", "session", sessionID, "Cannot add pending message to core, err", err)
+			delete(sessions, id)
 			return err
 		}
 	}
-	delete(pendingMessages, id)
 	return nil
 }
 
+// removeSession 注销已结束（或已失败）的会话，并清掉它遗留的缓存消息：一个 sessionID 只代表
+// 一轮，上一轮的残留绝不能被回灌进下一轮（届时它是同一 (消息类型, 发送方) 的第二个不同消息体，
+// 会直接打断新一轮，见 registerSession）。
 func removeSession(protocol, sessionID string) {
 	id := tss.ComposeProtocol(protocol, sessionID)
 	sessionsMu.Lock()
 	defer sessionsMu.Unlock()
 	delete(sessions, id)
+	delete(pendingMessages, id)
 }

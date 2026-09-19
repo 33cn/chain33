@@ -1,6 +1,7 @@
 package gg18
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/33cn/chain33/system/crypto/tss"
@@ -162,4 +163,58 @@ func TestHandleDkgMsgUsesTransportPeerID(t *testing.T) {
 
 	require.Len(t, backend.calls, 1)
 	require.Equal(t, "peer-transport", backend.calls[0].senderID)
+}
+
+// failingBackend rejects one of the messages it is handed, the way alice's core rejects a flush
+// batch that mixes two rounds (the echo layer keeps one body per (message type, sender)).
+type failingBackend struct {
+	failOn int // 1-based index of the AddMessage call that fails
+	calls  int
+}
+
+func (b *failingBackend) AddMessage(string, alicetypes.Message) error {
+	b.calls++
+	if b.calls == b.failOn {
+		return errors.New("different hash")
+	}
+	return nil
+}
+
+// requireNoSessionState asserts nothing is kept for sessionID: neither a registered session nor a
+// pending buffer, both of which would outlive the round they belong to.
+func requireNoSessionState(t *testing.T, sessionID string) {
+	t.Helper()
+	id := tss.ComposeProtocol(DkgProtocol, sessionID)
+	sessionsMu.RLock()
+	defer sessionsMu.RUnlock()
+	_, registered := sessions[id]
+	_, buffered := pendingMessages[id]
+	require.False(t, registered, "session %q must not stay registered", sessionID)
+	require.False(t, buffered, "session %q must not keep a pending buffer", sessionID)
+}
+
+// TestRegisterSessionRecoversAfterFailedFlush pins the retry path: the session name of a round is a
+// constant shared by all participants, so a retry re-registers the *same* id and a failed flush
+// must not make that impossible. Previously the backend was registered before the flush and left
+// behind on error, so every later attempt failed with "session already registered" for ever.
+func TestRegisterSessionRecoversAfterFailedFlush(t *testing.T) {
+	const sessionID = "gg18-session-retry-after-failed-flush"
+	require.NoError(t, addMessage(DkgProtocol, sessionID, "peer-a", dkgMessage("peer-a")))
+	require.NoError(t, addMessage(DkgProtocol, sessionID, "peer-b", dkgMessage("peer-b")))
+
+	require.Error(t, registerSession(DkgProtocol, sessionID, &failingBackend{failOn: 2}))
+	requireNoSessionState(t, sessionID)
+
+	// The next attempt under the same name registers, and the batch that failed is not replayed:
+	// it belongs to the round that just died.
+	backend := &captureBackend{}
+	require.NoError(t, registerSession(DkgProtocol, sessionID, backend))
+	require.Empty(t, backend.calls)
+
+	// A concurrent second registration of the live session is still refused.
+	require.ErrorContains(t, registerSession(DkgProtocol, sessionID, &captureBackend{}),
+		"session already registered")
+
+	removeSession(DkgProtocol, sessionID)
+	requireNoSessionState(t, sessionID)
 }

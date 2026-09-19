@@ -74,6 +74,23 @@ func addMessage(protocol, sessionID, peerID string, msg types.Message) error {
 	return nil
 }
 
+// registerSession binds backend to protocol|sessionID and flushes the messages that were buffered
+// for it while no session was registered.
+//
+// Registration is all-or-nothing. A session id has to be reusable after a failed round: the DKG
+// session name is a constant shared by every participant (alice derives the DKG ZK challenges from
+// the sid, so the names must match across nodes — a per-node retry-unique name would split the
+// group into different rounds), which means the retry loop that restarts a failed DKG calls this
+// with exactly the same id again. Registering the backend *before* the flush therefore left a
+// half-registered session behind on a flush error, and every later attempt then failed with
+// "session already registered" — a node that timed out once never came back (2026-09-19 E2E:
+// all four participants wedged this way after a single DKG timeout). Roll the entry back instead.
+//
+// The buffered batch is taken out of the map before the flush, so it is consumed either way: a
+// message the core rejects means the batch mixes two rounds (alice's echo layer keys messages by
+// (type, sender) and rejects a second, different body with ErrDifferentHash), and the rest of that
+// batch is no more trustworthy than the message that failed. Dropping it makes the next attempt
+// start from a clean slate instead of failing on the same stale batch for ever.
 func registerSession(protocol, sessionID string, backend Backend) error {
 	id := tss.ComposeProtocol(protocol, sessionID)
 	sessionsMu.Lock()
@@ -82,24 +99,32 @@ func registerSession(protocol, sessionID string, backend Backend) error {
 	if ok {
 		return fmt.Errorf("session already registered")
 	}
+	pending := pendingMessages[id]
+	delete(pendingMessages, id)
 	sessions[id] = &sessionCore{
 		backend: backend,
 	}
 	// flush buffer messages
-	for _, pending := range pendingMessages[id] {
-		err := backend.AddMessage(pending.peerID, pending.msg)
+	for _, pendingMsg := range pending {
+		err := backend.AddMessage(pendingMsg.peerID, pendingMsg.msg)
 		if err != nil {
 			log.Error("registerSession", "session", sessionID, "Cannot add pending message to core, err", err)
+			delete(sessions, id)
 			return err
 		}
 	}
-	delete(pendingMessages, id)
 	return nil
 }
 
+// removeSession unregisters a finished (or failed) session and drops anything still buffered for
+// it. A session id names one round: leftovers of the round that just ended must never be flushed
+// into the next one, where they arrive as a second, conflicting body for the same (message type,
+// sender) and break it (see registerSession). This mirrors the ppk registry in handlers.go, which
+// clears its buffer in removePPKCollector for the same reason.
 func removeSession(protocol, sessionID string) {
 	id := tss.ComposeProtocol(protocol, sessionID)
 	sessionsMu.Lock()
 	defer sessionsMu.Unlock()
 	delete(sessions, id)
+	delete(pendingMessages, id)
 }
