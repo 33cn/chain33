@@ -260,9 +260,21 @@ func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, non
 	return reply.GetMsg(), nil
 }
 
+// walletSeedForTest 只供测试注入独立助记词。为空时仍用下面的固定助记词。
+var walletSeedForTest string
+
+// SetWalletSeedForTest 为当前进程指定测试钱包助记词。
+func SetWalletSeedForTest(seed string) {
+	walletSeedForTest = seed
+}
+
 func newWalletRealize(qAPI client.QueueProtocolAPI) {
+	seedStr := "subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant"
+	if walletSeedForTest != "" {
+		seedStr = walletSeedForTest
+	}
 	seed := &types.SaveSeedByPw{
-		Seed:   "subject hamster apple parent vital can adult chapter fork business humor pen tiger void elephant",
+		Seed:   seedStr,
 		Passwd: "123456fuzamei",
 	}
 	reply, err := qAPI.ExecWalletFunc("wallet", "SaveSeed", seed)

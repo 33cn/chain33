@@ -459,9 +459,10 @@ func (p *P2P) doGenAirDropKey() bool {
 		}
 		break
 	}
-	// 用助记词和随机索引创建空投地址。索引必须落在空投区间内，
-	// 种子不能只用 Unix 秒，否则同一秒启动的进程会得到同一个 peer ID。
-	randIndex := airDropIndex(types.Now().UnixNano() + int64(os.Getpid()))
+	//用助记词和随机索引创建空投地址
+	r := rand.New(rand.NewSource(types.Now().Unix()))
+	var minIndex int32 = 100000000
+	randIndex := minIndex + r.Int31n(minIndex)
 	reqIndex := &types.Int32{Data: randIndex}
 	msg, err := p.api.ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
 	if err != nil {
@@ -531,13 +532,6 @@ func (p *P2P) doGenAirDropKey() bool {
 
 	p.addrBook.saveKey(walletPrivkey, walletPubkey)
 	return true
-}
-
-// airDropIndex 生成 [AirDropMinIndex, AirDropMaxIndex] 内的索引。
-func airDropIndex(seed int64) int32 {
-	span := int64(types.AirDropMaxIndex-types.AirDropMinIndex) + 1
-	r := rand.New(rand.NewSource(seed))
-	return int32(types.AirDropMinIndex) + int32(r.Int63n(span))
 }
 
 func newDB(name, backend, dir string, cache int32) dbm.DB {
