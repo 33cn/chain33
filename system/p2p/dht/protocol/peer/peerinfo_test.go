@@ -325,3 +325,16 @@ func testCheckVerisonLimit(t *testing.T, p *Protocol) {
 		require.False(t, isAllow)
 	}
 }
+
+func TestCheckVersionLimitHigherMinor(t *testing.T) {
+	p := &Protocol{P2PEnv: &protocol.P2PEnv{SubConfig: &p2pty.P2PSubConfig{VerLimit: "6.8.9"}}}
+	require.True(t, p.checkVersionLimit("1.72.0-ec5352af@6.9.0"))
+	require.True(t, p.checkVersionLimit("1.72.0-ec5352af@6.8.9"))
+	require.True(t, p.checkVersionLimit("1.72.0-ec5352af@6.8.22"))
+	require.True(t, p.checkVersionLimit("1.72.0-ec5352af@7.0.0"))
+	require.False(t, p.checkVersionLimit("1.72.0-ec5352af@6.8.8"))
+	require.False(t, p.checkVersionLimit("1.72.0-ec5352af@6.7.9"))
+	require.False(t, p.checkVersionLimit("1.72.0-ec5352af"))
+	p.SubConfig.VerLimit = ""
+	require.True(t, p.checkVersionLimit("1.67.1-64139470@5.7.0"))
+}
