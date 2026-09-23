@@ -333,11 +333,15 @@ func TestCheckVersionLimitHigherMinor(t *testing.T) {
 	require.True(t, p.checkVersionLimit("1.72.0-ec5352af@6.8.22"))
 	require.True(t, p.checkVersionLimit("1.72.0-ec5352af@6.10.0"))
 	require.True(t, p.checkVersionLimit("1.72.0-ec5352af@7.0.0"))
-	// Atoi 溢出饱和成 MaxInt，仍按更高版本放行。
-	require.True(t, p.checkVersionLimit("1.72.0-ec5352af@99999999999999999999.0.0"))
+	// 溢出或无法解析不能当成更高版本放行。
+	require.False(t, p.checkVersionLimit("1.72.0-ec5352af@99999999999999999999.0.0"))
+	require.False(t, p.checkVersionLimit("1.72.0-ec5352af@9223372036854775808.0.0"))
 	require.False(t, p.checkVersionLimit("1.72.0-ec5352af@6.8.8"))
 	require.False(t, p.checkVersionLimit("1.72.0-ec5352af@6.7.9"))
 	require.False(t, p.checkVersionLimit("1.72.0-ec5352af"))
+	p.SubConfig.VerLimit = "v6.8.9"
+	require.False(t, p.checkVersionLimit("1.72.0-ec5352af@6.9.0"))
+	require.False(t, p.checkVersionLimit("1.72.0-ec5352af@5.0.0"))
 	p.SubConfig.VerLimit = ""
 	require.True(t, p.checkVersionLimit("1.72.0-ec5352af"))
 }
