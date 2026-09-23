@@ -214,7 +214,6 @@ func (db *GoLevelDB) Print() {
 // Stats ...
 func (db *GoLevelDB) Stats() map[string]string {
 	keys := []string{
-		"leveldb.num-files-at-level{n}",
 		"leveldb.stats",
 		"leveldb.sstables",
 		"leveldb.blockpool",
@@ -222,6 +221,11 @@ func (db *GoLevelDB) Stats() map[string]string {
 		"leveldb.openedtables",
 		"leveldb.alivesnaps",
 		"leveldb.aliveiters",
+	}
+
+	//goleveldb 只认具体的 level0..level6；原写法把 "{n}" 当字面量传进去，永远取不到值
+	for i := 0; i <= 6; i++ {
+		keys = append(keys, "leveldb.num-files-at-level"+strconv.Itoa(i))
 	}
 
 	stats := make(map[string]string)
