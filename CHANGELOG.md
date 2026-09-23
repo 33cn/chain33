@@ -1,5 +1,18 @@
 changelog
 
+## [1.72.1](https://github.com/33cn/chain33/compare/v1.72.0...v1.72.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* accept a higher minor version in p2p verLimit ([bd667ed](https://github.com/33cn/chain33/commit/bd667edc3accaaf6235f0c10b0ac4e77af44e0bc))
+* assert the airdrop span reaches AirDropMaxIndex ([d2a16d3](https://github.com/33cn/chain33/commit/d2a16d33bf87b4917c8f8168f1fd8ed5261330e7))
+* give GG18 test nodes distinct wallet seeds ([b890d1d](https://github.com/33cn/chain33/commit/b890d1d3837aa6284e0d1b9e4b7340b12f81946a))
+* keep airdrop index inside the valid wallet range ([ec54763](https://github.com/33cn/chain33/commit/ec5476309f32c417dab534e693c6015167c5b253))
+* keep airdrop peer ids unique across processes ([53d304e](https://github.com/33cn/chain33/commit/53d304ea891f55c7882502e582f6304a7d16fe9b))
+* keep same-second airdrop indexes distinct and in range ([563e80d](https://github.com/33cn/chain33/commit/563e80d77da5823529e07d93b81f7cdb6f08c362))
+* reject unparsable versions in p2p verLimit ([8448762](https://github.com/33cn/chain33/commit/8448762414feef8e872c8f0c5cead6d6dee22846))
+
 # [1.72.0](https://github.com/33cn/chain33/compare/v1.71.0...v1.72.0) (2026-09-17)
 
 
