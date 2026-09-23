@@ -462,7 +462,8 @@ func (p *P2P) doGenAirDropKey() bool {
 	//用助记词和随机索引创建空投地址
 	r := rand.New(rand.NewSource(types.Now().Unix()))
 	var minIndex int32 = 100000000
-	randIndex := minIndex + r.Int31n(minIndex)
+	// 跨度取合法区间长度。用 minIndex 当跨度会得到 100000000–199999999，绝大多数被钱包拒绝。
+	randIndex := minIndex + r.Int31n(1000000)
 	reqIndex := &types.Int32{Data: randIndex}
 	msg, err := p.api.ExecWalletFunc("wallet", "NewAccountByIndex", reqIndex)
 	if err != nil {
