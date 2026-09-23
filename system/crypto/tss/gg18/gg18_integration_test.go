@@ -21,6 +21,7 @@ import (
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util/testnode"
+	"github.com/33cn/chain33/wallet/bipwallet/go-bip39"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/getamis/alice/crypto/tss/ecdsa/gg18/signer"
 	"github.com/stretchr/testify/require"
@@ -191,6 +192,14 @@ func startTestNode(t *testing.T, port int, channel int32, seeds []string) (*test
 		cfg.GetSubConfig().P2P = make(map[string][]byte)
 	}
 	cfg.GetSubConfig().P2P[p2pty.DHTTypeName] = jcfg
+
+	// 四个进程共用固定助记词时，同一秒生成的空投索引会得到同一个 peer ID。
+	// 只换测试助记词，不改线上节点的密钥生成。
+	entropy, err := bip39.NewEntropy(128)
+	require.NoError(t, err)
+	mnemonic, err := bip39.NewMnemonic(entropy, 0)
+	require.NoError(t, err)
+	testnode.SetWalletSeedForTest(mnemonic)
 
 	mock := testnode.NewWithConfig(cfg, nil)
 	return mock, mock.GetClient()
