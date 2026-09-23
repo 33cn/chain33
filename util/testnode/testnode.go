@@ -264,6 +264,7 @@ func (mock *Chain33Mock) SendAndSignNonce(priv crypto.PrivKey, hextx string, non
 var walletSeedForTest string
 
 // SetWalletSeedForTest 为当前进程指定测试钱包助记词。
+// 影响本进程此后创建的所有节点；传空串恢复默认。
 func SetWalletSeedForTest(seed string) {
 	walletSeedForTest = seed
 }
