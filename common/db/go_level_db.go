@@ -64,24 +64,44 @@ type GoLevelDB struct {
 	quitChan chan chan error // Quit channel to stop the metrics collection before closing the database
 }
 
-// NewGoLevelDB new
-func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
-	dbPath := path.Join(dir, name+".db")
+// maxWriteBufferMiB caps the leveldb write buffer, in MiB.
+//
+// dbCache is a single setting, but leveldb takes three parameters from it and
+// they do not want the same thing: OpenFilesCacheCapacity and BlockCacheCapacity
+// want to be large, while WriteBuffer wants to be small -- a large one means a
+// longer WAL replay after a crash and coarser flushes, and leveldb keeps up to
+// three of them in memory. Capping it lets a chain raise dbCache for the sake of
+// the read path (a main chain DB holds hundreds of thousands of SST files) without
+// dragging the write buffer up with it. At the default dbCache=64 the cap is not
+// reached, so existing configurations are unaffected.
+const maxWriteBufferMiB = 16
+
+// levelDBCacheSizes derives the leveldb cache parameters from dbCache.
+func levelDBCacheSizes(cache int) (handles, blockCacheMiB, writeBufferMiB int) {
 	if cache == 0 {
 		cache = 64
-	}
-	handles := cache
-	if handles < 16 {
-		handles = 16
 	}
 	if cache < 4 {
 		cache = 4
 	}
+	handles = cache
+	if handles < 16 {
+		handles = 16
+	}
+	blockCacheMiB = cache / 2
+	writeBufferMiB = min(cache/4, maxWriteBufferMiB)
+	return
+}
+
+// NewGoLevelDB new
+func NewGoLevelDB(name string, dir string, cache int) (*GoLevelDB, error) {
+	dbPath := path.Join(dir, name+".db")
+	handles, blockCacheMiB, writeBufferMiB := levelDBCacheSizes(cache)
 	// Open the db and recover any potential corruptions
 	db, err := leveldb.OpenFile(dbPath, &opt.Options{
 		OpenFilesCacheCapacity: handles,
-		BlockCacheCapacity:     cache / 2 * opt.MiB,
-		WriteBuffer:            cache / 4 * opt.MiB, // Two of these are used internally
+		BlockCacheCapacity:     blockCacheMiB * opt.MiB,
+		WriteBuffer:            writeBufferMiB * opt.MiB, // Up to three of these are held in memory
 		Filter:                 filter.NewBloomFilter(10),
 	})
 	if _, corrupted := err.(*errors.ErrCorrupted); corrupted {
