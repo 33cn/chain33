@@ -532,11 +532,15 @@ func (p *P2P) doGenAirDropKey() bool {
 	return true
 }
 
+// airDropSpan 是空投索引闭区间的长度。少 1 会让 AirDropMaxIndex 取不到。
+func airDropSpan() int32 {
+	return int32(types.AirDropMaxIndex-types.AirDropMinIndex) + 1
+}
+
 // airDropIndex 在空投合法闭区间内取索引。
 func airDropIndex(seed int64) int32 {
 	r := rand.New(rand.NewSource(seed))
-	span := int32(types.AirDropMaxIndex-types.AirDropMinIndex) + 1
-	return int32(types.AirDropMinIndex) + r.Int31n(span)
+	return int32(types.AirDropMinIndex) + r.Int31n(airDropSpan())
 }
 
 func newDB(name, backend, dir string, cache int32) dbm.DB {

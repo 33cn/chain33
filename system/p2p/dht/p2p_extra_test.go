@@ -25,6 +25,7 @@ func TestNewDBDefaults(t *testing.T) {
 }
 
 func TestAirDropIndexInRange(t *testing.T) {
+	assert.Equal(t, int32(types.AirDropMaxIndex), int32(types.AirDropMinIndex)+airDropSpan()-1)
 	seen := map[int32]struct{}{}
 	for seed := int64(0); seed < 64; seed++ {
 		idx := airDropIndex(seed)
@@ -33,7 +34,7 @@ func TestAirDropIndexInRange(t *testing.T) {
 		assert.Equal(t, idx, airDropIndex(seed))
 		seen[idx] = struct{}{}
 	}
-	assert.Greater(t, len(seen), 1)
+	assert.GreaterOrEqual(t, len(seen), 60)
 }
 
 func TestNewDBCustomName(t *testing.T) {
