@@ -1,5 +1,14 @@
 changelog
 
+## [1.72.2](https://github.com/33cn/chain33/compare/v1.72.1...v1.72.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* **db:** cap the leveldb write buffer instead of deriving it from dbCache ([9fa5aa0](https://github.com/33cn/chain33/commit/9fa5aa01a3b34d8ef80a2d805652d7c59cc9bb4a))
+* **db:** resolve the per-level file count keys in Stats() ([65b08e2](https://github.com/33cn/chain33/commit/65b08e296d8f92bb1614369d33ad6f9de7bb9d28))
+* **deps:** bump goleveldb past the MANIFEST rotation table-file leak ([4b42656](https://github.com/33cn/chain33/commit/4b426566b8daf262c71094b6d924d79c45e0830b)), closes [#380](https://github.com/33cn/chain33/issues/380) [#1396](https://github.com/33cn/chain33/issues/1396)
+
 ## [1.72.1](https://github.com/33cn/chain33/compare/v1.72.0...v1.72.1) (2026-09-23)
 
 
