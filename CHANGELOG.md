@@ -1,5 +1,12 @@
 changelog
 
+# [1.72.0](https://github.com/33cn/chain33/compare/v1.71.0...v1.72.0) (2026-09-17)
+
+
+### Features
+
+* register ForkAccountBlacklistV2 as a closed system fork ([296f2d3](https://github.com/33cn/chain33/commit/296f2d312b8e42f9fe4b8965ebce19b437b1f112))
+
 # [1.71.0](https://github.com/33cn/chain33/compare/v1.70.0...v1.71.0) (2026-09-11)
 
 
