@@ -398,8 +398,14 @@ func (p *Protocol) checkVersionLimit(version string) (isallow bool) {
 		return false
 	}
 	for i, verLimitN := range verLimits {
-		limit, _ := strconv.Atoi(verLimitN)
-		checkVer, _ := strconv.Atoi(checkVers[i])
+		limit, err := strconv.Atoi(verLimitN)
+		if err != nil {
+			return false
+		}
+		checkVer, err := strconv.Atoi(checkVers[i])
+		if err != nil {
+			return false
+		}
 		// 高位已经更大就通过。继续比低位会把 6.9.0 误判成低于 6.8.9。
 		if checkVer > limit {
 			return true
