@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +39,10 @@ import (
 // （实测 11 上下），绝对值阈值极易被撞穿。当前版本实测 orphans≈0（阈值 orphans
 // <= live 有 ~20 倍余量），有 bug 的版本实测 orphans 是 live 的 15~25 倍。
 //
+// 轮转这件事本身也要被钉住：CURRENT 指向的 MANIFEST 编号在测试前后必须递增。
+// 否则说明 MaxManifestFileSize 已失效（或 goleveldb 改变了轮转行为），缺陷路径根本
+// 没被执行，这时孤儿数再好看也没有意义 —— 断言会直接红，而不是悄悄恒过。
+//
 // 本测试同时充当**依赖版本哨兵**：谁把 goleveldb 降回 64ee5596c38a 或更早，
 // 这个测试就会红。
 func TestGoLevelDBManifestRotationNoFileLeak(t *testing.T) {
@@ -58,6 +64,10 @@ func TestGoLevelDBManifestRotationNoFileLeak(t *testing.T) {
 	})
 	require.NoError(t, err)
 	defer func() { _ = d.Close() }()
+
+	// 轮转是否真的发生，是本测试成立的前提。CURRENT 指向的 MANIFEST 编号必须在本
+	// 测试期间递增；编号不变 = MaxManifestFileSize 没生效 = 缺陷路径没被执行。
+	manifestBefore := manifestNum(t, dir)
 
 	key := func(i int) []byte { return []byte(fmt.Sprintf("k%08d", i)) }
 	val := bytes.Repeat([]byte("v"), valSize)
@@ -84,6 +94,12 @@ func TestGoLevelDBManifestRotationNoFileLeak(t *testing.T) {
 	if err := d.CompactRange(util.Range{}); err != nil {
 		t.Fatalf("全库压实失败: %v", err)
 	}
+
+	manifestAfter := manifestNum(t, dir)
+	require.Greater(t, manifestAfter, manifestBefore,
+		"MANIFEST 没有发生轮转（前 %d，后 %d）：MaxManifestFileSize=%d 已失效，"+
+			"本次测试没有执行到缺陷路径，结果无效",
+		manifestBefore, manifestAfter, manifestSize)
 
 	onDisk, live := awaitTableCountsStable(t, d, dir)
 	orphans := onDisk - live
@@ -144,6 +160,20 @@ func countTableFiles(t *testing.T, dir string) int {
 	matches, err := filepath.Glob(filepath.Join(dir, "*.ldb"))
 	require.NoError(t, err)
 	return len(matches)
+}
+
+// manifestNum 返回 CURRENT 当前指向的 MANIFEST 编号（CURRENT 的内容形如
+// "MANIFEST-000007"）。goleveldb 每次轮转都新建一个编号更大的 MANIFEST 并把
+// CURRENT 指过去，所以这个编号单调递增 —— 它是否变大，就是「轮转有没有发生」
+// 的判据。注意 CURRENT 在每次轮转时会被重写，只能在测试的稳定点读取。
+func manifestNum(t *testing.T, dir string) int {
+	t.Helper()
+	cur, err := os.ReadFile(filepath.Join(dir, "CURRENT"))
+	require.NoError(t, err, "读取 CURRENT 失败")
+	name := strings.TrimSpace(string(cur))
+	num, err := strconv.Atoi(strings.TrimPrefix(name, "MANIFEST-"))
+	require.NoError(t, err, "解析 CURRENT 内容失败: %q", name)
+	return num
 }
 
 // countLiveTables 数当前版本引用的表：各层文件数之和。
