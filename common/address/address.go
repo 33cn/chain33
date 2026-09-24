@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"sort"
 
 	"github.com/33cn/chain33/common"
 	"github.com/decred/base58"
@@ -124,17 +125,36 @@ func CheckAddress(addr string, blockHeight int64) (e error) {
 		}
 		return nil
 	}
-	for _, d := range drivers {
+	// Visit the drivers in a fixed order and report the first failure. Ranging over the
+	// map made the result depend on Go's randomized map iteration, so for an address that
+	// several drivers reject the error returned was arbitrary -- and callers such as
+	// system/dapp.CheckAddress decide whether a legacy address format may be tolerated by
+	// comparing that error against specific values. Ordering by driver id, the legacy
+	// base58 drivers first, makes an address that only fails the legacy checks report
+	// ErrCheckVersion or ErrAddressChecksum, which is what those fork gates match on.
+	ids := make([]int32, 0, len(drivers))
+	for id := range drivers {
+		ids = append(ids, id)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+
+	firstErr := error(nil)
+	for _, id := range ids {
+		d := drivers[id]
 		if !isEnable(blockHeight, d.enableHeight) {
 			continue
 		}
-		e = d.driver.ValidateAddr(addr)
-		if e == nil {
+		err := d.driver.ValidateAddr(addr)
+		if err == nil {
+			firstErr = nil
 			break
 		}
+		if firstErr == nil {
+			firstErr = err
+		}
 	}
-	checkAddressCache.Add(addr, e)
-	return e
+	checkAddressCache.Add(addr, firstErr)
+	return firstErr
 }
 
 // GetAddressType get address type id
