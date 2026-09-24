@@ -215,7 +215,12 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	//检查地址的有效性
-	if err := address.CheckAddress(tx.To, e.height); err != nil {
+	// dapp.CheckAddress, not the raw address.CheckAddress: it tolerates the legacy address
+	// formats below ForkMultiSignAddress / ForkBase58AddressCheck (2270000 on bityuan),
+	// which is how these transactions were executed when their blocks were first accepted.
+	// The raw call applies no such tolerance, so a historical transaction to a legacy
+	// address is rejected here and its block can no longer be replayed at all.
+	if err := drivers.CheckAddress(e.cfg, tx.To, e.height); err != nil {
 		return err
 	}
 	var exec drivers.Driver
