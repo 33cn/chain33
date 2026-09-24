@@ -1,5 +1,27 @@
 changelog
 
+## [1.72.2](https://github.com/33cn/chain33/compare/v1.72.1...v1.72.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* **db:** cap the leveldb write buffer instead of deriving it from dbCache ([9fa5aa0](https://github.com/33cn/chain33/commit/9fa5aa01a3b34d8ef80a2d805652d7c59cc9bb4a))
+* **db:** resolve the per-level file count keys in Stats() ([65b08e2](https://github.com/33cn/chain33/commit/65b08e296d8f92bb1614369d33ad6f9de7bb9d28))
+* **deps:** bump goleveldb past the MANIFEST rotation table-file leak ([4b42656](https://github.com/33cn/chain33/commit/4b426566b8daf262c71094b6d924d79c45e0830b)), closes [#380](https://github.com/33cn/chain33/issues/380) [#1396](https://github.com/33cn/chain33/issues/1396)
+
+## [1.72.1](https://github.com/33cn/chain33/compare/v1.72.0...v1.72.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* accept a higher minor version in p2p verLimit ([bd667ed](https://github.com/33cn/chain33/commit/bd667edc3accaaf6235f0c10b0ac4e77af44e0bc))
+* assert the airdrop span reaches AirDropMaxIndex ([d2a16d3](https://github.com/33cn/chain33/commit/d2a16d33bf87b4917c8f8168f1fd8ed5261330e7))
+* give GG18 test nodes distinct wallet seeds ([b890d1d](https://github.com/33cn/chain33/commit/b890d1d3837aa6284e0d1b9e4b7340b12f81946a))
+* keep airdrop index inside the valid wallet range ([ec54763](https://github.com/33cn/chain33/commit/ec5476309f32c417dab534e693c6015167c5b253))
+* keep airdrop peer ids unique across processes ([53d304e](https://github.com/33cn/chain33/commit/53d304ea891f55c7882502e582f6304a7d16fe9b))
+* keep same-second airdrop indexes distinct and in range ([563e80d](https://github.com/33cn/chain33/commit/563e80d77da5823529e07d93b81f7cdb6f08c362))
+* reject unparsable versions in p2p verLimit ([8448762](https://github.com/33cn/chain33/commit/8448762414feef8e872c8f0c5cead6d6dee22846))
+
 # [1.72.0](https://github.com/33cn/chain33/compare/v1.71.0...v1.72.0) (2026-09-17)
 
 

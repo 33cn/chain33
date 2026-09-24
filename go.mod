@@ -40,7 +40,7 @@ require (
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.9.0
-	github.com/syndtr/goleveldb v1.0.1-0.20220614013038-64ee5596c38a
+	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d
 	github.com/tjfoc/gmsm v1.3.2
 	golang.org/x/crypto v0.22.0
 	golang.org/x/net v0.24.0
