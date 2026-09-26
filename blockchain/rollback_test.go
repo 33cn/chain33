@@ -77,6 +77,28 @@ func TestNeedRollback(t *testing.T) {
 
 }
 
+func TestNeedRollbackArchiveFloor(t *testing.T) {
+	str := types.GetDefaultCfgstring()
+	newCfg := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
+	cfg := types.NewChain33Config(newCfg)
+	cfg.SetDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
+	cfg.GetModuleConfig().BlockChain.ChunkblockNum = 1000
+	mock33 := testnode.NewWithConfig(cfg, nil)
+	defer mock33.Close()
+	chain := mock33.GetBlockChain()
+
+	// Nothing archived yet: GetMaxDeletedChunkNum reports -1 and no floor applies.
+	require.Equal(t, int64(-1), chain.GetStore().GetMaxDeletedChunkNum())
+	require.True(t, chain.NeedRollback(700000, 600000))
+
+	// The archiver has deleted the bodies up to chunk 599, so everything at or below
+	// 599999 is gone and the lowest body still stored is 600000. Rollback loads every
+	// block above the target, so 599999 is still reachable and anything below is not.
+	require.NoError(t, chain.GetStore().SetMaxDeletedChunkNum(599))
+	require.True(t, chain.NeedRollback(700000, 599999))
+	require.False(t, chain.NeedRollback(700000, 599998))
+}
+
 func TestRollback(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
 	mfg := cfg.GetModuleConfig()

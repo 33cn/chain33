@@ -17,11 +17,14 @@ import (
 func (chain *BlockChain) Rollbackblock() {
 	tipnode := chain.bestChain.Tip()
 	if chain.cfg.RollbackBlock > 0 {
-		if chain.NeedRollback(tipnode.height, chain.cfg.RollbackBlock) {
-			chainlog.Info("chain rollback start")
-			chain.Rollback()
-			chainlog.Info("chain rollback end")
+		if !chain.NeedRollback(tipnode.height, chain.cfg.RollbackBlock) {
+			// Nothing was rolled back; NeedRollback logged why. Exit non-zero so the
+			// caller cannot mistake this for a completed rollback.
+			syscall.Exit(1)
 		}
+		chainlog.Info("chain rollback start")
+		chain.Rollback()
+		chainlog.Info("chain rollback end")
 		syscall.Exit(0)
 	}
 }
@@ -37,6 +40,23 @@ func (chain *BlockChain) NeedRollback(curHeight, rollHeight int64) bool {
 	if curHeight >= kvmvccMavlFork+10000 && rollHeight <= kvmvccMavlFork {
 		chainlog.Info("because ForkKvmvccmavl", "current height", curHeight, "not support rollback to", rollHeight)
 		return false
+	}
+	// The chunk archiver deletes block *bodies* at and below
+	// (maxDeletedChunkNum+1)*ChunkblockNum-1, so the lowest body still stored locally is
+	// (maxDeletedChunkNum+1)*ChunkblockNum. Rollback loads every block above the target,
+	// so a target below that floor fails part way down the deletion loop -- and that
+	// failure is not recoverable: the tip pointer has already been moved to a height
+	// whose body is gone, and the database can no longer be started. Refuse up front
+	// instead of deleting for as long as it takes to reach the gap.
+	// GetMaxDeletedChunkNum returns -1 when no chunk has been archived yet.
+	if maxDeletedChunk := chain.blockStore.GetMaxDeletedChunkNum(); maxDeletedChunk >= 0 {
+		bodyFloor := (maxDeletedChunk + 1) * chain.cfg.ChunkblockNum
+		if rollHeight < bodyFloor-1 {
+			chainlog.Error("rollback target is below the archived block bodies, refusing",
+				"target", rollHeight, "lowest stored block body", bodyFloor,
+				"maxDeletedChunkNum", maxDeletedChunk, "chunkblockNum", chain.cfg.ChunkblockNum)
+			return false
+		}
 	}
 	return true
 }
