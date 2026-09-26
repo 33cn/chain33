@@ -18,7 +18,20 @@ func safeAdd(balance, amount int64) (int64, error) {
 
 // GenesisInit 生成创世地址账户收据
 func (acc *DB) GenesisInit(addr string, amount int64) (receipt *types.Receipt, err error) {
-	if !acc.CheckAmount(amount) {
+	// Reject a negative amount: safeAdd only catches overflow -- it compares the sum
+	// against MaxTokenBalance -- so a negative amount would be persisted as a negative
+	// balance.
+	//
+	// Deliberately not the full CheckAmount validation. CheckAmount rejects amount == 0
+	// as well as everything at or above MaxCoin*coinPrecision, which is a tighter upper
+	// bound than the MaxTokenBalance that safeAdd already enforces. GenesisInit is not a
+	// genesis-only entry point: the token executor calls it from every tokenFinishCreate
+	// with the token's total, a value the pre-create step validated against
+	// MaxTokenBalance. A token whose total falls between the two bounds was accepted by
+	// blocks that are already on the chain, so applying the tighter bound here makes
+	// those blocks unreplayable -- a node syncing from scratch fails with
+	// ErrCheckStateHash on them.
+	if amount < 0 {
 		return nil, types.ErrAmount
 	}
 	accTo := acc.LoadAccount(addr)
