@@ -92,11 +92,18 @@ func TestNeedRollbackArchiveFloor(t *testing.T) {
 	require.True(t, chain.NeedRollback(700000, 600000))
 
 	// The archiver has deleted the bodies up to chunk 599, so everything at or below
-	// 599999 is gone and the lowest body still stored is 600000. Rollback loads every
-	// block above the target, so 599999 is still reachable and anything below is not.
+	// 599999 is gone. With no chunk record stored the floor falls back to the configured
+	// chunk size, and the target has to clear it by the larger of the two windows InitCache
+	// reads above the new tip on the next start -- being able to delete down to a height is
+	// not enough if the node cannot start there.
 	require.NoError(t, chain.GetStore().SetMaxDeletedChunkNum(599))
-	require.True(t, chain.NeedRollback(700000, 599999))
-	require.False(t, chain.NeedRollback(700000, 599998))
+	window := types.HighAllowPackHeight + types.LowAllowPackHeight - 1
+	if defCacheSize := mock33.GetClient().GetConfig().GetModuleConfig().BlockChain.DefCacheSize; defCacheSize > window {
+		window = defCacheSize
+	}
+	lowest := int64(600000) + window
+	require.True(t, chain.NeedRollback(700000, lowest))
+	require.False(t, chain.NeedRollback(700000, lowest-1))
 }
 
 func TestRollback(t *testing.T) {
