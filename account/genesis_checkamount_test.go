@@ -39,13 +39,13 @@ func TestGenesisInitNegativeAmountRejected(t *testing.T) {
 // Regression test: the upper bound has to stay where safeAdd puts it (MaxTokenBalance),
 // rather than the tighter MaxCoin*coinPrecision that CheckAmount enforces. The token
 // executor calls GenesisInit from tokenFinishCreate with the token's total, which the
-// pre-create step validated against MaxTokenBalance, so a token already created on a
-// chain can legitimately have a total between the two bounds -- rejecting it here makes
-// the block that created it unreplayable.
-func TestGenesisInitAcceptsAmountBetweenMaxCoinAndMaxTokenBalance(t *testing.T) {
-	accCoin, _ := GenerAccDb()
-
+// pre-create step validated against MaxTokenBalance and allows to be exactly that
+// (tokendb.go: `if token.GetTotal() > types.MaxTokenBalance`), so both "between the two
+// bounds" and "exactly MaxTokenBalance" have to work -- rejecting either one makes the
+// block that created the token unreplayable.
+func TestGenesisInitAmountBoundaries(t *testing.T) {
 	amount := types.MaxCoin * types.DefaultCoinPrecision
+	accCoin, _ := GenerAccDb()
 	require.False(t, accCoin.CheckAmount(amount), "precondition: CheckAmount rejects this amount")
 
 	receipt, err := accCoin.GenesisInit(addr1, amount)
@@ -53,7 +53,20 @@ func TestGenesisInitAcceptsAmountBetweenMaxCoinAndMaxTokenBalance(t *testing.T) 
 	require.NotNil(t, receipt)
 	require.Equal(t, amount, accCoin.LoadAccount(addr1).Balance)
 
-	// the bound safeAdd enforces is still enforced
-	_, err = accCoin.GenesisInit(addr1, types.MaxTokenBalance+1)
-	require.Equal(t, types.ErrAmount, err, "an amount above MaxTokenBalance must still be rejected")
+	// a token total of exactly MaxTokenBalance, on an account that is still empty
+	accFresh, _ := GenerAccDb()
+	receipt, err = accFresh.GenesisInit(addr1, types.MaxTokenBalance)
+	require.NoError(t, err, "a token can be created with a total of MaxTokenBalance")
+	require.NotNil(t, receipt)
+	require.Equal(t, types.MaxTokenBalance, accFresh.LoadAccount(addr1).Balance)
+
+	// one above it is rejected while the account is still empty, i.e. because of the
+	// amount itself rather than of the sum
+	accEmpty, _ := GenerAccDb()
+	_, err = accEmpty.GenesisInit(addr1, types.MaxTokenBalance+1)
+	require.Equal(t, types.ErrAmount, err, "an amount above MaxTokenBalance must be rejected")
+
+	// and the bound safeAdd enforces on balance + amount still holds
+	_, err = accFresh.GenesisInit(addr1, 1)
+	require.Equal(t, types.ErrAmount, err, "balance + amount above MaxTokenBalance must be rejected")
 }
