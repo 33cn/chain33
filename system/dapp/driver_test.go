@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/33cn/chain33/client/mocks"
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/rpc/grpcclient"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
@@ -254,4 +255,40 @@ func TestDriverBase_Query(t *testing.T) {
 
 	_, err = demo.Query("", nil)
 	assert.Equal(t, types.ErrActionNotSupport, err)
+}
+
+// Below both fork heights a legacy address form is tolerated, at and above them it is
+// rejected. The gate has to agree with how the blocks on the chain were executed: at
+// 546820 -- below bityuan's 2270000 -- a transaction to this address was accepted, and a
+// sync that rejects it cannot reproduce that block's state root.
+func TestCheckAddressToleratesLegacyFormBelowFork(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	const fork = int64(2270000)
+	cfg.SetFork("ForkMultiSignAddress", fork)
+	cfg.SetFork("ForkBase58AddressCheck", fork)
+
+	legacy := "DsYQcck3QFK9Wt1UWd5eoskWjk8JdYSCMoK"
+	assert.Equal(t, address.ErrCheckVersion, address.CheckAddress(legacy, fork-1),
+		"the raw check reports the version mismatch the gate matches on")
+	assert.NoError(t, CheckAddress(cfg, legacy, fork-1))
+	assert.Error(t, CheckAddress(cfg, legacy, fork))
+}
+
+// CheckBase58Address reports ErrCheckChecksum for a 25-byte address and ErrAddressChecksum
+// for longer ones; both are the same legacy form and both are tolerated below the fork.
+// Fixing the driver order made the 25-byte case report ErrCheckChecksum every time, where
+// previously any driver's error could win and ErrCheckVersion was tolerated -- without
+// this the address would flip from "sometimes accepted" to "always rejected".
+func TestCheckAddressToleratesLegacyChecksumBelowFork(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	const fork = int64(100)
+	cfg.SetFork("ForkMultiSignAddress", fork)
+	cfg.SetFork("ForkBase58AddressCheck", fork)
+
+	// a valid address with its last character changed: same length and version byte,
+	// checksum no longer matches
+	corrupt := "1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMt"
+	assert.Equal(t, address.ErrCheckChecksum, address.CheckAddress(corrupt, fork-1))
+	assert.NoError(t, CheckAddress(cfg, corrupt, fork-1))
+	assert.Equal(t, address.ErrCheckChecksum, CheckAddress(cfg, corrupt, fork))
 }

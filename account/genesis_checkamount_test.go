@@ -11,8 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Regression test: GenesisInit must validate the amount via CheckAmount and
-// reject non-positive amounts instead of initializing a negative balance.
+// Regression test: GenesisInit must not initialize an account with a negative balance.
 func TestGenesisInitNegativeAmountRejected(t *testing.T) {
 	accCoin, _ := GenerAccDb()
 
@@ -22,9 +21,12 @@ func TestGenesisInitNegativeAmountRejected(t *testing.T) {
 	require.Equal(t, int64(0), accCoin.LoadAccount(addr1).Balance,
 		"account must not be created with a negative balance")
 
+	// 0 is accepted: it cannot produce a negative balance, and the code that produced
+	// the blocks already on the chain accepted it, so rejecting it would leave those
+	// blocks unreplayable. See the comment in GenesisInit.
 	receipt, err = accCoin.GenesisInit(addr1, 0)
-	require.Equal(t, types.ErrAmount, err, "zero genesis amount must be rejected")
-	require.Nil(t, receipt)
+	require.NoError(t, err)
+	require.NotNil(t, receipt)
 	require.Equal(t, int64(0), accCoin.LoadAccount(addr1).Balance)
 
 	// a valid positive genesis amount still works
@@ -32,4 +34,39 @@ func TestGenesisInitNegativeAmountRejected(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, receipt)
 	require.Equal(t, 100*types.DefaultCoinPrecision, accCoin.LoadAccount(addr1).Balance)
+}
+
+// Regression test: the upper bound has to stay where safeAdd puts it (MaxTokenBalance),
+// rather than the tighter MaxCoin*coinPrecision that CheckAmount enforces. The token
+// executor calls GenesisInit from tokenFinishCreate with the token's total, which the
+// pre-create step validated against MaxTokenBalance and allows to be exactly that
+// (tokendb.go: `if token.GetTotal() > types.MaxTokenBalance`), so both "between the two
+// bounds" and "exactly MaxTokenBalance" have to work -- rejecting either one makes the
+// block that created the token unreplayable.
+func TestGenesisInitAmountBoundaries(t *testing.T) {
+	amount := types.MaxCoin * types.DefaultCoinPrecision
+	accCoin, _ := GenerAccDb()
+	require.False(t, accCoin.CheckAmount(amount), "precondition: CheckAmount rejects this amount")
+
+	receipt, err := accCoin.GenesisInit(addr1, amount)
+	require.NoError(t, err, "an amount between MaxCoin*coinPrecision and MaxTokenBalance must be accepted")
+	require.NotNil(t, receipt)
+	require.Equal(t, amount, accCoin.LoadAccount(addr1).Balance)
+
+	// a token total of exactly MaxTokenBalance, on an account that is still empty
+	accFresh, _ := GenerAccDb()
+	receipt, err = accFresh.GenesisInit(addr1, types.MaxTokenBalance)
+	require.NoError(t, err, "a token can be created with a total of MaxTokenBalance")
+	require.NotNil(t, receipt)
+	require.Equal(t, types.MaxTokenBalance, accFresh.LoadAccount(addr1).Balance)
+
+	// one above it is rejected while the account is still empty, i.e. because of the
+	// amount itself rather than of the sum
+	accEmpty, _ := GenerAccDb()
+	_, err = accEmpty.GenesisInit(addr1, types.MaxTokenBalance+1)
+	require.Equal(t, types.ErrAmount, err, "an amount above MaxTokenBalance must be rejected")
+
+	// and the bound safeAdd enforces on balance + amount still holds
+	_, err = accFresh.GenesisInit(addr1, 1)
+	require.Equal(t, types.ErrAmount, err, "balance + amount above MaxTokenBalance must be rejected")
 }

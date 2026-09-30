@@ -114,27 +114,70 @@ func PubKeyToAddr(addressID int32, pubKey []byte) string {
 	return d.PubKeyToAddr(pubKey)
 }
 
+// checkAddressResult is one checkAddressCache entry: what CheckAddress answered for an
+// address, together with the drivers that were enabled when it answered. Keeping the set in
+// the entry instead of in the key leaves the hit path free of allocations.
+type checkAddressResult struct {
+	drivers uint64 // bit i: driverOrder[i] was enabled
+	err     error
+}
+
+// enabledDriverMask marks the drivers that are enabled at this height.
+func enabledDriverMask(blockHeight int64) uint64 {
+	var mask uint64
+	for i, d := range driverOrder {
+		if isEnable(blockHeight, d.enableHeight) {
+			mask |= 1 << uint(i)
+		}
+	}
+	return mask
+}
+
 // CheckAddress check address validity
 // blockHeight is used for enable check, pass -1 if there is no block height context
 func CheckAddress(addr string, blockHeight int64) (e error) {
 
+	// The answer depends on the height as well as on the address: a negative height means
+	// "no block context yet" and enables every driver, including the ones disabled by
+	// config, while callers that pass a real height run in the same process as the ones
+	// that pass -1 (rpc, the wallet and the CLI commands all use -1). Reusing a result
+	// across those two let a query decide a later check at a real height: a node that had
+	// answered such a query would accept a transaction the others reject. An entry is
+	// therefore only reused for the same enabled set -- ValidateAddr does not take a
+	// height, so that set and the address are the whole input. A different set replaces the
+	// entry, which costs the callers that alternate between the two a recomputation, not
+	// correctness.
+	mask := enabledDriverMask(blockHeight)
 	if value, ok := checkAddressCache.Get(addr); ok {
-		if value != nil {
-			return value.(error)
+		if cached, ok := value.(*checkAddressResult); ok && cached.drivers == mask {
+			return cached.err
 		}
-		return nil
 	}
-	for _, d := range drivers {
+
+	// Visit the drivers in a fixed order and report the first failure. Ranging over the
+	// map made the result depend on Go's randomized map iteration, so for an address that
+	// several drivers reject the error returned was arbitrary -- and callers such as
+	// system/dapp.CheckAddress decide whether a legacy address format may be tolerated by
+	// comparing that error against specific values. driverOrder holds the drivers by
+	// ascending id, the legacy base58 drivers first, which makes an address that only fails
+	// the legacy checks report ErrCheckVersion or ErrAddressChecksum, the errors those fork
+	// gates match on.
+	firstErr := error(nil)
+	for _, d := range driverOrder {
 		if !isEnable(blockHeight, d.enableHeight) {
 			continue
 		}
-		e = d.driver.ValidateAddr(addr)
-		if e == nil {
+		err := d.driver.ValidateAddr(addr)
+		if err == nil {
+			firstErr = nil
 			break
 		}
+		if firstErr == nil {
+			firstErr = err
+		}
 	}
-	checkAddressCache.Add(addr, e)
-	return e
+	checkAddressCache.Add(addr, &checkAddressResult{drivers: mask, err: firstErr})
+	return firstErr
 }
 
 // GetAddressType get address type id

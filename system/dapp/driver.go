@@ -285,7 +285,16 @@ func CheckAddress(cfg *types.Chain33Config, addr string, height int64) error {
 	if !cfg.IsFork(height, "ForkMultiSignAddress") && err == address.ErrCheckVersion {
 		return nil
 	}
-	if !cfg.IsFork(height, "ForkBase58AddressCheck") && err == address.ErrAddressChecksum {
+	// Both checksum errors belong to the same legacy address form: CheckBase58Address
+	// reports ErrCheckChecksum for a 25-byte address (the older check, kept for
+	// compatibility) and ErrAddressChecksum for longer ones. Before CheckAddress visited
+	// the drivers in a fixed order, a 25-byte address whose checksum fails could come back
+	// as ErrCheckVersion instead -- from a driver that expects another version byte -- and
+	// get tolerated by the gate above. Now it always reports ErrCheckChecksum, so the gate
+	// has to tolerate that error too, or such an address flips from "sometimes accepted" to
+	// "always rejected" below the fork, where the blocks on the chain were executed.
+	if !cfg.IsFork(height, "ForkBase58AddressCheck") &&
+		(err == address.ErrAddressChecksum || err == address.ErrCheckChecksum) {
 		return nil
 	}
 
