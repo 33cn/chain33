@@ -274,21 +274,20 @@ func TestCheckAddressToleratesLegacyFormBelowFork(t *testing.T) {
 	assert.Error(t, CheckAddress(cfg, legacy, fork))
 }
 
-// CheckBase58Address reports ErrCheckChecksum for a 25-byte address and ErrAddressChecksum
-// for longer ones; both are the same legacy form and both are tolerated below the fork.
-// Fixing the driver order made the 25-byte case report ErrCheckChecksum every time, where
-// previously any driver's error could win and ErrCheckVersion was tolerated -- without
-// this the address would flip from "sometimes accepted" to "always rejected".
-func TestCheckAddressToleratesLegacyChecksumBelowFork(t *testing.T) {
+// A 25-byte address whose checksum fails stays rejected below the fork too. The chain
+// executed such a transaction as a failure -- block 101641 packed this transfer as
+// ExecPack with "Address Checksum error" -- so tolerating ErrCheckChecksum replays it as
+// a success instead. Only ErrAddressChecksum, the longer form above, is tolerated below
+// ForkBase58AddressCheck.
+func TestCheckAddressRejectsCorruptChecksumBelowFork(t *testing.T) {
 	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
 	const fork = int64(100)
 	cfg.SetFork("ForkMultiSignAddress", fork)
 	cfg.SetFork("ForkBase58AddressCheck", fork)
 
-	// a valid address with its last character changed: same length and version byte,
-	// checksum no longer matches
-	corrupt := "1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMt"
+	// block 101641's coins recipient: 25 bytes, correct version byte, wrong checksum
+	corrupt := "1Di16bUjPJnvZ8Hrf4vuQDffzkv9jC5Jp"
 	assert.Equal(t, address.ErrCheckChecksum, address.CheckAddress(corrupt, fork-1))
-	assert.NoError(t, CheckAddress(cfg, corrupt, fork-1))
+	assert.Equal(t, address.ErrCheckChecksum, CheckAddress(cfg, corrupt, fork-1))
 	assert.Equal(t, address.ErrCheckChecksum, CheckAddress(cfg, corrupt, fork))
 }

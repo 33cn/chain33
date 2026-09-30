@@ -285,16 +285,15 @@ func CheckAddress(cfg *types.Chain33Config, addr string, height int64) error {
 	if !cfg.IsFork(height, "ForkMultiSignAddress") && err == address.ErrCheckVersion {
 		return nil
 	}
-	// Both checksum errors belong to the same legacy address form: CheckBase58Address
-	// reports ErrCheckChecksum for a 25-byte address (the older check, kept for
-	// compatibility) and ErrAddressChecksum for longer ones. Before CheckAddress visited
-	// the drivers in a fixed order, a 25-byte address whose checksum fails could come back
-	// as ErrCheckVersion instead -- from a driver that expects another version byte -- and
-	// get tolerated by the gate above. Now it always reports ErrCheckChecksum, so the gate
-	// has to tolerate that error too, or such an address flips from "sometimes accepted" to
-	// "always rejected" below the fork, where the blocks on the chain were executed.
-	if !cfg.IsFork(height, "ForkBase58AddressCheck") &&
-		(err == address.ErrAddressChecksum || err == address.ErrCheckChecksum) {
+	// Only ErrAddressChecksum is tolerated, never ErrCheckChecksum. CheckBase58Address
+	// reports ErrCheckChecksum for a 25-byte address whose checksum fails and
+	// ErrAddressChecksum for longer ones, and tolerating both would accept transactions the
+	// chain executed as failures: at 101641 a coins transfer to the 25-byte address
+	// 1Di16bUjPJnvZ8Hrf4vuQDffzkv9jC5Jp was packed as ExecPack with "Address Checksum
+	// error". The coins transfer path no longer validates the recipient's checksum, so
+	// accepting the transaction here moves funds the chain never moved and the replayed
+	// state root no longer matches the block.
+	if !cfg.IsFork(height, "ForkBase58AddressCheck") && err == address.ErrAddressChecksum {
 		return nil
 	}
 
