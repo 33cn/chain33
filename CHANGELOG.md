@@ -1,5 +1,14 @@
 changelog
 
+## [1.72.4](https://github.com/33cn/chain33/compare/v1.72.3...v1.72.4) (2026-10-01)
+
+
+### Bug Fixes
+
+* **blockchain:** bound the rollback floor by the archiver's frontier ([4d4e8c1](https://github.com/33cn/chain33/commit/4d4e8c1a4e807ff3e7d5409d00218764cb9bebc8))
+* **blockchain:** refuse a rollback target below the archived block bodies ([969d118](https://github.com/33cn/chain33/commit/969d1189af70cbf37875499f24d31c42a5695c76))
+* **blockchain:** refuse targets the node could not start from ([ad4f533](https://github.com/33cn/chain33/commit/ad4f533092686faf1dc48a32a14699aa6e97d3fc))
+
 ## [1.72.3](https://github.com/33cn/chain33/compare/v1.72.2...v1.72.3) (2026-09-30)
 
 
