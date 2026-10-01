@@ -8,11 +8,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/system/address/btc"
+	"github.com/33cn/chain33/types"
 
 	"github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/address"
@@ -122,6 +124,54 @@ func TestAddressStructMethods(t *testing.T) {
 
 func TestCheckBase58AddressEdgeCases(t *testing.T) {
 	assert.NotNil(t, address.CheckBase58Address(address.NormalVer, ""))
+}
+
+// CheckAddress's answer depends on the height, because the height decides which drivers are
+// enabled -- so the cache cannot be keyed by the address alone. The callers that pass -1
+// (RPC, CLI, wallet) share a process with the ones that pass a real height, and -1 means
+// "every driver is enabled", including the ones the config disables. Whichever of the two
+// ran first used to decide the answer for the other, so a node that had answered such a
+// query would accept a transaction at a real height that the other nodes reject.
+func TestCheckAddressCacheFollowsHeight(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	address.Init(cfg.GetModuleConfig().Address)
+	t.Cleanup(func() {
+		// back to the height the eth driver registers itself with, so the rest of the
+		// package sees the state it expects
+		address.Init(&address.Config{EnableHeight: map[string]int64{"eth": 0}})
+	})
+
+	// [address.enableHeight] eth=-2 in types/defaultcfg.go: disabled at every real height.
+	ethAddr := "0x" + strings.Repeat("11", 20)
+	require.NoError(t, address.CheckAddress(ethAddr, -1), "no block context: every driver is enabled")
+	require.Error(t, address.CheckAddress(ethAddr, 0),
+		"disabled at height 0 -- the cached -1 answer must not be reused")
+}
+
+// The error returned for an address that several drivers reject has to be the same every
+// time. Ranging over the driver map made it depend on Go's randomized iteration order, and
+// system/dapp.CheckAddress decides whether a legacy address may be tolerated below a fork
+// by comparing the error against specific values -- so an arbitrary winner meant an
+// arbitrary accept/reject decision, and two nodes could disagree.
+func TestCheckAddressErrorIsDeterministic(t *testing.T) {
+	const valid = "1HUiTRFvp6HvW6eacgV9EoBSgroRDiUsMs"
+	const base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+	// A valid address with its last character replaced: the decoded length and the version
+	// byte stay the same, so the base58 driver reports a checksum mismatch (ErrCheckChecksum)
+	// while the multi-sign driver reports a version mismatch (ErrCheckVersion). Those two are
+	// treated differently by the fork gate, so the arbitrary winner was visible downstream.
+	checked := 0
+	for i := 0; i < len(base58Alphabet); i++ {
+		variant := valid[:len(valid)-1] + string(base58Alphabet[i])
+		if variant == valid {
+			continue
+		}
+		require.Equal(t, address.ErrCheckChecksum, address.CheckAddress(variant, 0),
+			"variant %q", variant)
+		checked++
+	}
+	require.Greater(t, checked, 40)
 }
 
 func BenchmarkExecAddress(b *testing.B) {

@@ -1,5 +1,26 @@
 changelog
 
+## [1.72.3](https://github.com/33cn/chain33/compare/v1.72.2...v1.72.3) (2026-09-30)
+
+
+### Bug Fixes
+
+* **account:** keep GenesisInit's amount bound where its callers already were ([ce95afe](https://github.com/33cn/chain33/commit/ce95afe12c81b4eea24e0f5657544f4cf61ce13f))
+* **address:** key the address cache by the enabled drivers ([9f230f1](https://github.com/33cn/chain33/commit/9f230f1e9ca946aa97954cc5b4843a2edf66cb90))
+* **address:** return the first driver's error deterministically ([eecef34](https://github.com/33cn/chain33/commit/eecef340d7fba123f7278f0559d3c11ebaf5ab0a))
+* **address:** tolerate the legacy checksum error below the base58 fork ([5663043](https://github.com/33cn/chain33/commit/566304371a51cf71434b27b43531333e37fedc41))
+* **executor:** apply the fork-gated address check at exec time ([a9a8c7a](https://github.com/33cn/chain33/commit/a9a8c7ad73648c5b8fa834ce2dc807a3904ca40f))
+
+
+### Performance Improvements
+
+* **address:** keep the driver walk and its cache entry allocation-free ([ef1a143](https://github.com/33cn/chain33/commit/ef1a143df2c2cd63454775b6a7bf6e11d168de44))
+
+
+### Reverts
+
+* **executor:** drop the exec-time address check ([5319122](https://github.com/33cn/chain33/commit/53191224e3ab6cbdab6e58df59d525f20299eaf0))
+
 ## [1.72.2](https://github.com/33cn/chain33/compare/v1.72.1...v1.72.2) (2026-09-23)
 
 

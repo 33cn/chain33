@@ -25,6 +25,11 @@ var (
 	driverName       = make(map[string]int32)
 	defaultAddressID int32 // btc address format as default
 	driverMutex      sync.Mutex
+	// driverOrder holds the registered drivers with ascending id. CheckAddress walks it
+	// rather than the map, so that the error it reports does not depend on Go's randomized
+	// map iteration. RegisterDriver keeps it up to date; drivers are registered during
+	// init, before the first address is checked.
+	driverOrder []*DriverInfo
 )
 
 // Driver address driver
@@ -117,6 +122,16 @@ func RegisterDriver(id int32, driver Driver, enableHeight int64) {
 	}
 	drivers[id] = info
 	driverName[driver.GetName()] = id
+
+	// Rebuild the id-ordered view CheckAddress walks. Ids run from 0 to MaxID, so a plain
+	// scan keeps it sorted without a sort; there are at most MaxID+1 drivers, which is what
+	// lets CheckAddress hold the enabled set in a uint64.
+	driverOrder = make([]*DriverInfo, 0, len(drivers))
+	for i := int32(0); i <= MaxID; i++ {
+		if d, ok := drivers[i]; ok {
+			driverOrder = append(driverOrder, d)
+		}
+	}
 }
 
 // MustLoadDriver 根据ID加载插件, 出错panic
