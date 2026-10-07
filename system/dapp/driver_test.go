@@ -291,3 +291,29 @@ func TestCheckAddressRejectsCorruptChecksumBelowFork(t *testing.T) {
 	assert.Equal(t, address.ErrCheckChecksum, CheckAddress(cfg, corrupt, fork-1))
 	assert.Equal(t, address.ErrCheckChecksum, CheckAddress(cfg, corrupt, fork))
 }
+
+// The two fork heights are separate knobs, and they are only equal on chains that say so
+// (bityuan sets both to 2270000; the chain33 defaults are 1298600 and 1800000). This pins
+// the window between them, where the version error stops being tolerated while the checksum
+// error still is: an address that fails only the version check is rejected from
+// ForkMultiSignAddress up, which is the behaviour change #1401 disclosed and left in place.
+// The 25-byte checksum case does not depend on ForkMultiSignAddress at all.
+func TestCheckAddressSeparatesTheTwoForkHeights(t *testing.T) {
+	cfg := types.NewChain33Config(types.GetDefaultCfgstring())
+	cfg.SetFork("ForkMultiSignAddress", 100)
+	cfg.SetFork("ForkBase58AddressCheck", 200)
+
+	// Fails only the version check.
+	version := "DsYQcck3QFK9Wt1UWd5eoskWjk8JdYSCMoK"
+	assert.NoError(t, CheckAddress(cfg, version, 99))
+	assert.Equal(t, address.ErrCheckVersion, CheckAddress(cfg, version, 100))
+	assert.Equal(t, address.ErrCheckVersion, CheckAddress(cfg, version, 199))
+	assert.Equal(t, address.ErrCheckVersion, CheckAddress(cfg, version, 200))
+
+	// Fails the 25-byte checksum: rejected at every height, in both windows.
+	corrupt := "1Di16bUjPJnvZ8Hrf4vuQDffzkv9jC5Jp"
+	for _, height := range []int64{99, 100, 199, 200} {
+		assert.Equal(t, address.ErrCheckChecksum, CheckAddress(cfg, corrupt, height),
+			"25-byte checksum failure tolerated at height %d", height)
+	}
+}
