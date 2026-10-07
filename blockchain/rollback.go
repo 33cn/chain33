@@ -16,14 +16,24 @@ import (
 // Rollbackblock chain Rollbackblock
 func (chain *BlockChain) Rollbackblock() {
 	tipnode := chain.bestChain.Tip()
-	if chain.cfg.RollbackBlock > 0 {
-		if chain.NeedRollback(tipnode.height, chain.cfg.RollbackBlock) {
-			chainlog.Info("chain rollback start")
-			chain.Rollback()
-			chainlog.Info("chain rollback end")
-		}
+	if chain.cfg.RollbackBlock <= 0 {
+		return
+	}
+	if tipnode.height <= chain.cfg.RollbackBlock {
+		// Nothing to do, and the node can start from where it is: exit 0, so a service
+		// manager does not report a failure for a no-op.
+		chainlog.Info("curHeight is small than rollback height, no need rollback")
 		syscall.Exit(0)
 	}
+	if !chain.NeedRollback(tipnode.height, chain.cfg.RollbackBlock) {
+		// NeedRollback logged why. Exit non-zero so the caller cannot mistake a refusal for
+		// a completed rollback.
+		syscall.Exit(1)
+	}
+	chainlog.Info("chain rollback start")
+	chain.Rollback()
+	chainlog.Info("chain rollback end")
+	syscall.Exit(0)
 }
 
 // NeedRollback need Rollback
@@ -38,7 +48,89 @@ func (chain *BlockChain) NeedRollback(curHeight, rollHeight int64) bool {
 		chainlog.Info("because ForkKvmvccmavl", "current height", curHeight, "not support rollback to", rollHeight)
 		return false
 	}
+	// The chunk archiver deletes block *bodies*, and a rollback needs two things: every body
+	// it walks over on the way down, and -- once the tip stands at rollHeight -- the bodies
+	// the next start reads above that tip. A target below either one cannot be recovered
+	// from, because by the time the failure shows up the tip has already moved: the deletion
+	// loop panics on the first missing body, and a node that gets past it panics in
+	// InitCache on the next start instead. Refuse up front.
+	bodyFloor, archived, err := chain.archivedBodyFloor()
+	if err != nil {
+		return false
+	}
+	if !archived {
+		// Nothing has been archived, so no body is missing whatever the target.
+		return true
+	}
+	lowest := bodyFloor
+	if cfg.IsEnable("TxHeight") {
+		// InitCache reads [tip-DefCacheSize, tip] and [tip-HighAllowPackHeight-LowAllowPackHeight+1, tip]
+		// and panics on the first block it cannot load, so the new tip has to clear the
+		// archived range by the larger of the two windows.
+		window := types.HighAllowPackHeight + types.LowAllowPackHeight - 1
+		if chain.cfg.DefCacheSize > window {
+			window = chain.cfg.DefCacheSize
+		}
+		lowest = bodyFloor + window
+	}
+	if rollHeight < lowest {
+		chainlog.Error("rollback target is below the archived block bodies, refusing",
+			"target", rollHeight, "lowest usable target", lowest,
+			"lowest stored block body", bodyFloor, "txHeight", cfg.IsEnable("TxHeight"))
+		return false
+	}
 	return true
+}
+
+// archivedBodyFloor returns the lowest height whose block body is still stored, and whether
+// the archiver has deleted, or is still going to delete, any. The chunk records decide it,
+// not the current configuration: chunkShardHandle writes each record with the ChunkblockNum
+// in effect at the time, and DeleteBlockBody deletes exactly the range that record names, so
+// a node whose ChunkblockNum was changed between two starts would otherwise compute a floor
+// that is too low.
+func (chain *BlockChain) archivedBodyFloor() (floor int64, archived bool, err error) {
+	maxDeletedChunk, err := chain.blockStore.GetMaxDeletedChunkNumWithErr()
+	if err != nil && err != db.ErrNotFoundInDb {
+		// A read failure must not be mistaken for "nothing was archived".
+		chainlog.Error("cannot read the archived chunk cursor, refusing to roll back", "err", err)
+		return 0, false, err
+	}
+
+	// The cursor is only where a previous run stopped. The loop that drops the bodies stops
+	// DelRollbackChunkNum chunks short of the newest archived chunk, and it keeps going in
+	// this process -- SetQueueClient starts it before the rollback runs, and it fires every
+	// minute -- so the backlog left over from the last run drains into the range a rollback
+	// is about to depend on. The last chunk the archiver will ever delete is therefore not
+	// the cursor but maxSerialChunkNum - DelRollbackChunkNum - 1; take whichever is higher.
+	frontier := maxDeletedChunk
+	if last := chain.getMaxSerialChunkNum() - int64(DelRollbackChunkNum) - 1; last > frontier {
+		frontier = last
+	}
+	if frontier < 0 {
+		// No chunk deleted yet and none far enough behind to be deleted: no body is missing.
+		return 0, false, nil
+	}
+
+	chunk, err := chain.blockStore.GetChunkInfo(frontier)
+	switch {
+	case err == nil:
+		return chunk.End + 1, true, nil
+	case err == db.ErrNotFoundInDb:
+		// No record for this chunk: the archiver skipped it, or this datadir predates the
+		// records. The configured chunk size is then the only bound left, and it is too low
+		// if ChunkblockNum was reduced after the bodies were dropped.
+		floor = (frontier + 1) * chain.cfg.ChunkblockNum
+		chainlog.Warn("no chunk record for the archived range, falling back to the configured chunk size",
+			"chunk", frontier, "floor", floor, "chunkblocknum", chain.cfg.ChunkblockNum)
+		return floor, true, nil
+	default:
+		// Any other failure is a read error -- GetKey reports it as types.ErrNotFound --
+		// and guessing the floor here would let through a target the archiver will delete
+		// into.
+		chainlog.Error("cannot read the archived chunk record, refusing to roll back",
+			"chunk", frontier, "err", err)
+		return 0, false, err
+	}
 }
 
 // Rollback chain Rollback

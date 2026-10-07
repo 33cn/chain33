@@ -77,6 +77,35 @@ func TestNeedRollback(t *testing.T) {
 
 }
 
+func TestNeedRollbackArchiveFloor(t *testing.T) {
+	str := types.GetDefaultCfgstring()
+	newCfg := strings.Replace(str, "Title=\"local\"", "Title=\"chain33\"", 1)
+	cfg := types.NewChain33Config(newCfg)
+	cfg.SetDappFork("store-kvmvccmavl", "ForkKvmvccmavl", 20*10000)
+	cfg.GetModuleConfig().BlockChain.ChunkblockNum = 1000
+	mock33 := testnode.NewWithConfig(cfg, nil)
+	defer mock33.Close()
+	chain := mock33.GetBlockChain()
+
+	// Nothing archived yet: GetMaxDeletedChunkNum reports -1 and no floor applies.
+	require.Equal(t, int64(-1), chain.GetStore().GetMaxDeletedChunkNum())
+	require.True(t, chain.NeedRollback(700000, 600000))
+
+	// The archiver has deleted the bodies up to chunk 599, so everything at or below
+	// 599999 is gone. With no chunk record stored the floor falls back to the configured
+	// chunk size, and the target has to clear it by the larger of the two windows InitCache
+	// reads above the new tip on the next start -- being able to delete down to a height is
+	// not enough if the node cannot start there.
+	require.NoError(t, chain.GetStore().SetMaxDeletedChunkNum(599))
+	window := types.HighAllowPackHeight + types.LowAllowPackHeight - 1
+	if defCacheSize := mock33.GetClient().GetConfig().GetModuleConfig().BlockChain.DefCacheSize; defCacheSize > window {
+		window = defCacheSize
+	}
+	lowest := int64(600000) + window
+	require.True(t, chain.NeedRollback(700000, lowest))
+	require.False(t, chain.NeedRollback(700000, lowest-1))
+}
+
 func TestRollback(t *testing.T) {
 	cfg := testnode.GetDefaultConfig()
 	mfg := cfg.GetModuleConfig()

@@ -1799,17 +1799,41 @@ func (bs *BlockStore) SetMaxSerialChunkNum(chunkNum int64) error {
 }
 
 // GetMaxDeletedChunkNum gets max chunkNum of deleted chunks.
+// It reports -1 both when nothing has been archived and when the read fails, which is only
+// safe for callers that treat a low value as "start from the beginning" -- use
+// GetMaxDeletedChunkNumWithErr for a decision that must not fail open.
 func (bs *BlockStore) GetMaxDeletedChunkNum() int64 {
+	chunkNum, _ := bs.GetMaxDeletedChunkNumWithErr()
+	return chunkNum
+}
+
+// GetMaxDeletedChunkNumWithErr gets max chunkNum of deleted chunks and the read error, so a
+// caller can tell "nothing archived yet" (dbm.ErrNotFoundInDb) from a failed read.
+func (bs *BlockStore) GetMaxDeletedChunkNumWithErr() (int64, error) {
 	value, err := bs.db.Get(MaxDeletedChunkNum)
 	if err != nil {
-		return -1
+		return -1, err
 	}
 	chunkNum := &types.Int64{}
 	err = types.Decode(value, chunkNum)
 	if err != nil {
-		return -1
+		return -1, err
 	}
-	return chunkNum.Data
+	return chunkNum.Data, nil
+}
+
+// GetChunkInfo reads the record the archiver wrote for a chunk. Its Start and End are the
+// range that was archived, computed with the ChunkblockNum in effect at the time.
+func (bs *BlockStore) GetChunkInfo(chunkNum int64) (*types.ChunkInfo, error) {
+	value, err := bs.GetKey(calcChunkNumToHash(chunkNum))
+	if err != nil {
+		return nil, err
+	}
+	chunk := &types.ChunkInfo{}
+	if err := types.Decode(value, chunk); err != nil {
+		return nil, err
+	}
+	return chunk, nil
 }
 
 // SetMaxDeletedChunkNum sets max chunkNum of deleted chunks.
