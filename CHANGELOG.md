@@ -1,5 +1,12 @@
 changelog
 
+## [1.72.5](https://github.com/33cn/chain33/compare/v1.72.4...v1.72.5) (2026-10-08)
+
+
+### Bug Fixes
+
+* **address:** reject the 25-byte checksum error below the base58 fork ([e310d62](https://github.com/33cn/chain33/commit/e310d629e3e668f071b3f9eba50a998dadca8842))
+
 ## [1.72.4](https://github.com/33cn/chain33/compare/v1.72.3...v1.72.4) (2026-10-01)
 
 
