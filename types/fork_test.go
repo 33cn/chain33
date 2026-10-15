@@ -134,6 +134,16 @@ func TestRegisterSystemFork(t *testing.T) {
 	assert.True(t, f.HasFork("ForkBlockHash"))
 	assert.True(t, f.HasFork("ForkTransferExec"))
 	assert.Equal(t, int64(209186), f.GetFork("ForkBlockHash"))
+	// 创世动作高度限制默认按 0 生效
+	assert.True(t, f.HasFork(ForkGenesisOnlyAtHeightZero))
+	assert.Equal(t, int64(0), f.GetFork(ForkGenesisOnlyAtHeightZero))
+	assert.True(t, f.IsFork(0, ForkGenesisOnlyAtHeightZero))
+
+	// 配置为 -1 表示关闭, 加载后等价于 MaxHeight, 高度 0 与正高度上都不生效
+	cfg := NewChain33Config(GetDefaultCfgstring())
+	cfg.forks.SetFork(ForkGenesisOnlyAtHeightZero, MaxHeight)
+	assert.False(t, cfg.IsFork(0, ForkGenesisOnlyAtHeightZero))
+	assert.False(t, cfg.IsFork(1, ForkGenesisOnlyAtHeightZero))
 }
 
 func TestCheckKey(t *testing.T) {
