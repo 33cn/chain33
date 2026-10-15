@@ -34,6 +34,9 @@ const (
 
 	//ExecLocalSameTime Exec 的时候 同时执行 ExecLocal
 	ExecLocalSameTime = int64(1)
+
+	// genesisActionName 是执行器创世动作在框架内的统一 action 名称, 由 ExecutorType.DecodePayloadValue 返回。
+	genesisActionName = "Genesis"
 )
 
 // Driver defines some interface
@@ -325,6 +328,13 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	}
 	if err != nil {
 		return nil, err
+	}
+	// 创世动作只允许在高度 0 执行: 执行器漏写 height 校验时, 这里统一兜底,
+	// 避免任意高度重入创世逻辑(coins/coinsx/token 已在执行器内校验, ticket 曾经缺失)。
+	if name == genesisActionName && d.GetHeight() != 0 && d.api != nil &&
+		d.api.GetConfig().IsFork(d.GetHeight(), types.ForkGenesisOnlyAtHeightZero) {
+		blog.Error("genesis action only allowed at height 0", "tx.exec", string(tx.Execer), "height", d.GetHeight())
+		return nil, types.ErrReRunGenesis
 	}
 	funcmap := d.child.GetFuncMap()
 	funcname := "Exec_" + name

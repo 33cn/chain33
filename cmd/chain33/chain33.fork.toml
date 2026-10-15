@@ -37,6 +37,8 @@ ForkAccountBlacklist=-1
 ForkAccountBlacklistV2=-1
 # 交易chainID严格校验启用高度，启用后交易组内每笔交易及minTxFeeRate=0时的单笔交易都会校验chainID，防止跨链重放；-1 表示关闭
 ForkTxChainIDStrict=-1
+# 创世动作(Genesis)执行高度限制：启用后框架统一拒绝 height != 0 的 Exec_Genesis，防止执行器漏写 height 校验被创世重入；-1 表示关闭
+ForkGenesisOnlyAtHeightZero=0
 [fork.sub.none]
 ForkUseTimeDelay=0
 

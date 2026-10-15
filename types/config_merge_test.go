@@ -221,6 +221,8 @@ ForkRootHash=1
 # 账户黑名单启用高度；-1 表示关闭
 ForkAccountBlacklist=-1
 ForkAccountBlacklistV2=-1
+# 创世动作(Genesis)执行高度限制；0 表示创世即生效，-1 表示关闭
+ForkGenesisOnlyAtHeightZero=0
 [fork.sub.coins]
 Enable=0
 
