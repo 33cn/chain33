@@ -232,6 +232,8 @@ ForkRootHash=1
 ForkAccountBlacklist=-1
 # -1 表示关闭；启用时必须配套 [mver.blacklist.ForkAccountBlacklistV2] 全量名单
 ForkAccountBlacklistV2=-1
+# 创世动作(Genesis)执行高度限制；0 表示创世即生效，-1 表示关闭
+ForkGenesisOnlyAtHeightZero=0
 [fork.sub.coins]
 Enable=0
 [fork.sub.ticket]
