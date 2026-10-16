@@ -26,6 +26,10 @@ const ForkTxChainIDStrict = "ForkTxChainIDStrict"
 // 返回 ErrReRunGenesis。coins/coinsx/token 的执行器各自已有该校验, ticket 曾经缺失；
 // 该分叉把这条件提升为框架不变量, 保护漏写校验的执行器。
 // 关闭该分叉(配置为 -1)时框架不做拦截, 以保持旧区块可以原样重放。
+// 注意: 配置为 0 表示对全部历史高度生效, 启用前必须确认链上不存在高度 != 0 成功执行的
+// 创世交易(否则重放会得到不同状态根); 另外若链的配置里根本没有 [fork] 段(例如
+// cmd/chain33/bityuan.toml), initForkConfig 会被跳过, 该分叉静默按注册默认值生效,
+// 不会有缺键/未知键的启动校验提示。
 const ForkGenesisOnlyAtHeightZero = "ForkGenesisOnlyAtHeightZero"
 
 // Forks fork分叉结构体
