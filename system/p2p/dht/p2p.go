@@ -528,6 +528,17 @@ func (p *P2P) doGenAirDropKey() bool {
 		}
 	}
 
+	// 节点身份一旦在 addrbook 里持久化, 就不再在运行期用钱包空投地址替换它:
+	// 此时 DHT host 已经用这个私钥对外发布了 peer id, 运行期更换会让所有按 peer id
+	// 配置了本节点的对端(peering 列表、TSS peers、白名单等)全部失效。
+	// v1.72.1 修好空投索引取值范围后, 这条替换路径开始真的执行, 于是暴露成
+	// “节点启动/钱包就绪后 peer id 变化”的回归(plugin ci_rgbx 的 TSS peers 即被此打断)。
+	// 钱包派生身份只在节点还没有身份时使用: waitPid=true 时会在 DHT host 启动前确定身份。
+	if savePrivkey != "" {
+		log.Info("genAirDropKey", "keep the established dht identity, skip the airdrop key replacement")
+		return false
+	}
+
 	p.addrBook.saveKey(walletPrivkey, walletPubkey)
 	return true
 }
