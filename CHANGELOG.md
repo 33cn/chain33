@@ -1,5 +1,12 @@
 changelog
 
+## [1.72.6](https://github.com/33cn/chain33/compare/v1.72.5...v1.72.6) (2026-10-16)
+
+
+### Bug Fixes
+
+* **dapp:** only allow genesis actions at height 0 ([c0735bd](https://github.com/33cn/chain33/commit/c0735bd7cfb8e27aa15bb47a447b664f7ba41770))
+
 ## [1.72.5](https://github.com/33cn/chain33/compare/v1.72.4...v1.72.5) (2026-10-08)
 
 
