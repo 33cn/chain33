@@ -1,5 +1,12 @@
 changelog
 
+## [1.72.7](https://github.com/33cn/chain33/compare/v1.72.6...v1.72.7) (2026-10-16)
+
+
+### Bug Fixes
+
+* **p2p:** keep the established dht identity instead of replacing it at runtime ([4200e0f](https://github.com/33cn/chain33/commit/4200e0fe91afe3903e47de1ed3e04300ef3518be))
+
 ## [1.72.6](https://github.com/33cn/chain33/compare/v1.72.5...v1.72.6) (2026-10-16)
 
 
