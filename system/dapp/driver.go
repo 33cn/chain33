@@ -249,6 +249,12 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 	if err != nil {
 		return nil, err
 	}
+	// 创世动作被框架拒绝(见 checkGenesisHeight)时, 本地派发同样跳过:
+	// 否则会为一笔没有执行成功的交易写本地索引(如 coins 的地址收款统计)。
+	// 这里返回空集合而不是 error, 与上面 CheckReceiptExecOk 的短路保持一致。
+	if err := d.checkGenesisHeight(name); err != nil {
+		return &types.LocalDBSet{}, nil
+	}
 	//call action
 	funcname := prefix + name
 	funcmap := d.child.GetFuncMap()
@@ -304,6 +310,19 @@ func CheckAddress(cfg *types.Chain33Config, addr string, height int64) error {
 	return err
 }
 
+// checkGenesisHeight 创世动作只允许在高度 0 执行。执行器自身漏写 height 校验时, 由框架在
+// 派发前统一兜底(coins/coinsx/token 已有各自校验, ticket 曾经缺失), 门控于系统分叉
+// ForkGenesisOnlyAtHeightZero; 该分叉配置为 -1 时不做拦截, 旧区块可原样重放。
+func (d *DriverBase) checkGenesisHeight(name string) error {
+	if name != genesisActionName || d.GetHeight() == 0 || d.api == nil {
+		return nil
+	}
+	if !d.api.GetConfig().IsFork(d.GetHeight(), types.ForkGenesisOnlyAtHeightZero) {
+		return nil
+	}
+	return types.ErrReRunGenesis
+}
+
 // Exec call the check exectx subclass, you can also do it without calling , implement your own checktx
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
 	if d.ety == nil {
@@ -330,12 +349,10 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	if err != nil {
 		return nil, err
 	}
-	// 创世动作只允许在高度 0 执行: 执行器漏写 height 校验时, 这里统一兜底,
-	// 避免任意高度重入创世逻辑(coins/coinsx/token 已在执行器内校验, ticket 曾经缺失)。
-	if name == genesisActionName && d.GetHeight() != 0 && d.api != nil &&
-		d.api.GetConfig().IsFork(d.GetHeight(), types.ForkGenesisOnlyAtHeightZero) {
+	// 创世动作只允许在高度 0 执行: 执行器漏写 height 校验时, 这里统一兜底。
+	if err := d.checkGenesisHeight(name); err != nil {
 		blog.Error("genesis action only allowed at height 0", "tx.exec", string(tx.Execer), "height", d.GetHeight())
-		return nil, types.ErrReRunGenesis
+		return nil, err
 	}
 	funcmap := d.child.GetFuncMap()
 	funcname := "Exec_" + name

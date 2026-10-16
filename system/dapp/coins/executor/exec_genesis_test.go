@@ -155,3 +155,23 @@ func TestGenesisRerun(t *testing.T) {
 	_, err := c.Exec(tx, 0)
 	require.Equal(t, types.ErrReRunGenesis, err)
 }
+
+// TestGenesisRerunWithoutFrameworkFork 框架守卫关闭时, 由执行器自身的 height 校验拒绝。
+// 否则把 exec.go 里的 `if c.GetHeight() == 0` 改成恒真后, TestGenesisRerun 仍会被框架层
+// 兜住而全绿, 执行器层的高度校验就失去了测试钉住(见 PR #1407 review)。
+func TestGenesisRerunWithoutFrameworkFork(t *testing.T) {
+	old := genesisTestCfg.GetFork(types.ForkGenesisOnlyAtHeightZero)
+	genesisTestCfg.SetFork(types.ForkGenesisOnlyAtHeightZero, types.MaxHeight)
+	defer genesisTestCfg.SetFork(types.ForkGenesisOnlyAtHeightZero, old)
+
+	dbDir, c := initGenesisTestCoins(t)
+	defer closeGenesisTestCoins(t, dbDir, c)
+
+	addr, _ := util.Genaddress()
+	_, priv := util.Genaddress()
+	c.SetEnv(500000, 1539918074, 1)
+
+	tx := signCoinsTx(priv, addr, genesisAction(100*coinUnit))
+	_, err := c.Exec(tx, 0)
+	require.Equal(t, types.ErrReRunGenesis, err)
+}
