@@ -249,8 +249,8 @@ func (r *RefreshResult) toAlicePedersen(peers []string) map[string]*zkpaillier.P
 // hands to alice: a bk (from the DKG), a partial public key and Pedersen parameters (from the
 // refresh). alice indexes those maps by peer id without checking, so a missing entry becomes a
 // nil dereference inside alice (e.g. cggmp/sign/peer.go reading partialPubKey[self]) rather
-// than an error. threshold must equal the signer count: alice derives its Birkhoff coefficients
-// for exactly threshold participants.
+// than an error. threshold must equal the signer count: that equality is the wrapper's signer
+// subset policy (alice itself accepts len(bks) >= threshold).
 func (r *RefreshResult) validateSignMaterial(d *DKGResult, peers []string, threshold uint32) error {
 	if uint32(len(peers)) != threshold {
 		return fmt.Errorf("cggmp: sign: %w: len(peers)=%d, threshold=%d", errThresholdPeers, len(peers), threshold)

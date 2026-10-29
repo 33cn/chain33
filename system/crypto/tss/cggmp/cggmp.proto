@@ -10,9 +10,12 @@ option go_package = "github.com/33cn/chain33/system/crypto/tss/cggmp";
 
 // PartialPublicKey carries one participant's CGGMP partial public key (g^{share_i})
 // exchanged right after DKG. It is CGGMP-specific transport data, routed under the
-// /cggmp/ppk protocol and independent from the GG18 message set.
+// /cggmp/ppk protocol and independent from the GG18 message set. rid identifies the DKG
+// round the point belongs to, so a retried DKG can discard points buffered by the previous
+// round (which reused the same session id).
 message PartialPublicKey {
     string sender = 1;
     bytes  x      = 2;
     bytes  y      = 3;
+    bytes  rid    = 4;
 }

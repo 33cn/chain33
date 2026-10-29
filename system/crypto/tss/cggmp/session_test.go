@@ -232,6 +232,87 @@ func TestAddMessageDoesNotBlockOtherSessions(t *testing.T) {
 	}
 }
 
+// probeBackend records how many AddMessage calls are inside the backend at the same time. Each
+// call blocks on release, so with per-session serialisation only one call can be inside at a time.
+type probeBackend struct {
+	entered chan struct{}
+	release chan struct{}
+
+	mu        sync.Mutex
+	active    int
+	maxActive int
+}
+
+func (b *probeBackend) AddMessage(string, alicetypes.Message) error {
+	b.mu.Lock()
+	b.active++
+	if b.active > b.maxActive {
+		b.maxActive = b.active
+	}
+	b.mu.Unlock()
+
+	b.entered <- struct{}{}
+	<-b.release
+
+	b.mu.Lock()
+	b.active--
+	b.mu.Unlock()
+	return nil
+}
+
+// TestAddMessageSerialisesSameSession asserts that concurrent addMessage calls for one session are
+// strictly serialised: while one call is inside the backend the others must wait. Without the
+// per-session lock several calls reach the core at once and mutate its per-session state from
+// multiple goroutines.
+func TestAddMessageSerialisesSameSession(t *testing.T) {
+	const (
+		sessionID  = "cggmp-session-serialised"
+		concurrent = 8
+	)
+	probe := &probeBackend{
+		entered: make(chan struct{}, concurrent),
+		release: make(chan struct{}),
+	}
+	require.NoError(t, registerSession(DkgProtocol, sessionID, probe))
+	defer removeSession(DkgProtocol, sessionID)
+
+	var wg sync.WaitGroup
+	for i := 0; i < concurrent; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_ = addMessage(DkgProtocol, sessionID, "peer-x", dkgMessage("peer-x"))
+		}()
+	}
+
+	select {
+	case <-probe.entered:
+	case <-time.After(time.Second):
+		t.Fatal("no AddMessage call reached the backend")
+	}
+
+	// While the first call is blocked, a second entry means the per-session lock is missing.
+	select {
+	case <-probe.entered:
+		close(probe.release)
+		wg.Wait()
+		t.Fatal("more than one AddMessage call entered the same session concurrently")
+	case <-time.After(250 * time.Millisecond):
+	}
+
+	probe.mu.Lock()
+	maxActive := probe.maxActive
+	probe.mu.Unlock()
+	if maxActive != 1 {
+		close(probe.release)
+		wg.Wait()
+		t.Fatalf("max concurrent AddMessage calls = %d, want 1", maxActive)
+	}
+
+	close(probe.release)
+	wg.Wait()
+}
+
 // stubPeerManager is a minimal alice types.PeerManager. The retry tests below drive the session
 // registry in-process, so nothing is ever sent over a transport (the echo layer's relay calls
 // land here as no-ops).

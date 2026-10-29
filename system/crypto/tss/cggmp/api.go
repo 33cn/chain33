@@ -69,16 +69,27 @@ func (c *config) phaseTimeout(protocol string) time.Duration {
 	return defaultTimeout
 }
 
-// validateNonEmptyPeers rejects the degenerate participant sets (no peers, zero threshold) that
-// would otherwise reach alice or a peer manager. Phase-specific checks (e.g. the signer count must
-// equal the threshold) are applied by the caller; both refresh and DKG accept any threshold up to
-// the participant count, see validateParticipants.
+// validateNonEmptyPeers rejects the participant sets that would otherwise reach alice or a peer
+// manager: no peers, a blank or duplicated peer id, or a threshold alice cannot work with
+// (CGGMP requires at least 2). Phase-specific checks (e.g. the signer count must equal the
+// threshold) are applied by the caller; both refresh and DKG accept any threshold up to the
+// participant count, see validateParticipants.
 func validateNonEmptyPeers(peers []string, threshold uint32) error {
 	if len(peers) == 0 {
 		return errNoPeers
 	}
-	if threshold == 0 {
-		return fmt.Errorf("%w: threshold=0, peers=%d", errInvalidThreshold, len(peers))
+	if threshold < 2 {
+		return fmt.Errorf("%w: threshold=%d must be at least 2", errInvalidThreshold, threshold)
+	}
+	seen := make(map[string]struct{}, len(peers))
+	for _, id := range peers {
+		if id == "" {
+			return fmt.Errorf("%w: blank peer id", errInvalidPeerList)
+		}
+		if _, dup := seen[id]; dup {
+			return fmt.Errorf("%w: duplicate peer id %q", errInvalidPeerList, id)
+		}
+		seen[id] = struct{}{}
 	}
 	return nil
 }
@@ -173,7 +184,7 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 
 	// Phase 2: partial public key (g^{share}) exchange. The refresh phase needs every
 	// participant's partial public key as an input, so we exchange them right after DKG.
-	partialPubKeys, err := exchangePartialPubKeys(peers, selfID, aliceRes.Share, curve, sessionID, cfg.phaseTimeout(PpkProtocol))
+	partialPubKeys, err := exchangePartialPubKeys(peers, selfID, aliceRes.Share, curve, sessionID, aliceRes.Rid, cfg.phaseTimeout(PpkProtocol))
 	if err != nil {
 		log.Error("ProcessDKG", "session", sessionID, "partial pubkey exchange err", err)
 		return nil, err
@@ -189,15 +200,17 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 	return dkgResult, nil
 }
 
-// exchangePartialPubKeys broadcasts the local g^{share} to all peers and collects theirs.
-func exchangePartialPubKeys(peers []string, selfID string, share *big.Int, curve elliptic.Curve, sessionID string, timeout time.Duration) (map[string]*ecpointgrouplaw.ECPoint, error) {
+// exchangePartialPubKeys broadcasts the local g^{share} to all peers and collects theirs. rid is
+// the DKG rid of this round: the collector only accepts points tagged with it, so a point from a
+// previous round that reused the same session id cannot occupy a slot.
+func exchangePartialPubKeys(peers []string, selfID string, share *big.Int, curve elliptic.Curve, sessionID string, rid []byte, timeout time.Duration) (map[string]*ecpointgrouplaw.ECPoint, error) {
 	myPPK := ecpointgrouplaw.ScalarBaseMult(curve, share)
 	pm := tss.NewReadyPeerManager(peers, PpkProtocol, sessionID)
-	collector := newPPKCollector(otherPeers(peers, selfID))
+	collector := newPPKCollector(rid, otherPeers(peers, selfID))
 	registerPPKCollector(sessionID, collector)
 	defer removePPKCollector(sessionID)
 
-	myMsg := partialPublicKeyMsg(selfID, myPPK)
+	myMsg := partialPublicKeyMsg(selfID, rid, myPPK)
 	for _, id := range pm.PeerIDs() {
 		pm.MustSend(id, myMsg)
 	}
@@ -295,8 +308,9 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 
 	// Refuse incomplete signer material up front: alice indexes bks / partial public keys /
 	// Pedersen parameters by peer id without checking, so a missing entry reached the alice
-	// sign core as a nil dereference instead of an error. It also enforces that the signer count
-	// equals the threshold (alice derives its Birkhoff coefficients for exactly threshold peers).
+	// sign core as a nil dereference instead of an error. It also enforces the wrapper's signer
+	// subset policy that the signer count equals the threshold; alice itself accepts
+	// len(bks) >= threshold.
 	if err := refreshRes.validateSignMaterial(dkgRes, peers, threshold); err != nil {
 		log.Error("ProcessSign", "session", sessionID, "sign material check err", err)
 		return nil, err

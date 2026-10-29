@@ -22,7 +22,10 @@ type Backend interface {
 type sessionCore struct {
 	// mu serialises AddMessage calls into this session's backend. The registry lock only guards
 	// the map, so a protocol core doing an expensive round (Paillier generation, DKG rounds) does
-	// not block message handling for every other session.
+	// not block message handling for every other session. Exception: registerSession flushes its
+	// buffered batch while holding the registry write lock and calls the core under it, so other
+	// sessions' lookups wait for that flush — a known, bounded window (registration is rare and the
+	// batch is capped by maxPendingMessagesPerSession).
 	mu      sync.Mutex
 	backend Backend
 }

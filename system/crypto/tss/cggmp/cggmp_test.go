@@ -107,13 +107,14 @@ func TestSignatureConversion(t *testing.T) {
 // own (which would let it complete the exchange early with forged contributions).
 func TestPPKCollectorAttributesByPeerID(t *testing.T) {
 	curve := elliptic.Secp256k1()
-	collector := newPPKCollector([]string{"peer-real", "peer-other"})
+	collector := newPPKCollector(testPPKRid, []string{"peer-real", "peer-other"})
 
 	for _, sender := range []string{"peer-a", "peer-b", "peer-c"} {
 		addPPKToCollector(collector, "peer-real", &PartialPublicKey{
 			Sender: sender,
 			X:      ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(1)).GetX().Bytes(),
 			Y:      ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(1)).GetY().Bytes(),
+			Rid:    testPPKRid,
 		})
 	}
 	// One transport peer, three forged Sender values: still a single contribution.
@@ -130,15 +131,20 @@ func TestPPKCollectorAttributesByPeerID(t *testing.T) {
 		Sender: "peer-real", // even claiming another peer's id changes nothing
 		X:      ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(2)).GetX().Bytes(),
 		Y:      ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(2)).GetY().Bytes(),
+		Rid:    testPPKRid,
 	})
 	require.Len(t, collector.result(), 2)
 	require.NoError(t, collector.wait(time.Second))
 }
 
-// ppkPoint returns a distinct valid secp256k1 point encoded as a PartialPublicKey.
-func ppkPoint(k int64) *PartialPublicKey {
+// testPPKRid is the DKG rid the ppk tests tag their points with.
+var testPPKRid = []byte("ppk-round-rid")
+
+// ppkPoint returns a distinct valid secp256k1 point tagged with rid, encoded as a
+// PartialPublicKey.
+func ppkPoint(rid []byte, k int64) *PartialPublicKey {
 	p := ecpointgrouplaw.ScalarBaseMult(elliptic.Secp256k1(), big.NewInt(k))
-	return &PartialPublicKey{X: p.GetX().Bytes(), Y: p.GetY().Bytes()}
+	return &PartialPublicKey{X: p.GetX().Bytes(), Y: p.GetY().Bytes(), Rid: rid}
 }
 
 // TestPPKCollectorRejectsNonParticipants asserts a connected peer that is not part of the DKG
@@ -146,9 +152,9 @@ func ppkPoint(k int64) *PartialPublicKey {
 // so a non-member cannot close the collector early and leave an honest participant's g^{share}
 // missing (which surfaces later as errMissingPeerPPK).
 func TestPPKCollectorRejectsNonParticipants(t *testing.T) {
-	collector := newPPKCollector([]string{"peer-a", "peer-b"})
+	collector := newPPKCollector(testPPKRid, []string{"peer-a", "peer-b"})
 
-	addPPKToCollector(collector, "peer-evil", ppkPoint(1))
+	addPPKToCollector(collector, "peer-evil", ppkPoint(testPPKRid, 1))
 	require.Empty(t, collector.result())
 	select {
 	case <-collector.done:
@@ -157,7 +163,7 @@ func TestPPKCollectorRejectsNonParticipants(t *testing.T) {
 	}
 	require.Error(t, collector.wait(10*time.Millisecond))
 
-	addPPKToCollector(collector, "peer-a", ppkPoint(2))
+	addPPKToCollector(collector, "peer-a", ppkPoint(testPPKRid, 2))
 	require.Len(t, collector.result(), 1)
 	select {
 	case <-collector.done:
@@ -165,10 +171,39 @@ func TestPPKCollectorRejectsNonParticipants(t *testing.T) {
 	default:
 	}
 
-	addPPKToCollector(collector, "peer-b", ppkPoint(3))
+	addPPKToCollector(collector, "peer-b", ppkPoint(testPPKRid, 3))
 	require.Len(t, collector.result(), 2)
 	require.NoError(t, collector.wait(time.Second))
 	require.NotContains(t, collector.result(), "peer-evil")
+}
+
+// TestPPKCollectorDropsOtherRound covers the rid tag: a point buffered by a previous round (same
+// session id, different rid) must be dropped when the new collector is flushed, while the new
+// round's point is kept. Without the rid check the stale point would win and the honest new point
+// would be discarded as a duplicate.
+func TestPPKCollectorDropsOtherRound(t *testing.T) {
+	const sessionID = "ppk-other-round-session"
+	oldRid := []byte("old-round-rid")
+	newRid := []byte("new-round-rid")
+	beginPPKSession(sessionID, []string{"peer-a", "peer-b"})
+	defer removePPKCollector(sessionID)
+
+	send := func(peerID string, rid []byte, k int64) {
+		handlePpkMsg(&tss.MessageWrapper{
+			Protocol: PpkProtocol, SessionID: sessionID, PeerID: peerID,
+			Msg: types.Encode(ppkPoint(rid, k)),
+		})
+	}
+	send("peer-a", oldRid, 1) // left over from the previous round
+	send("peer-b", newRid, 2) // the current round
+
+	collector := newPPKCollector(newRid, []string{"peer-a", "peer-b"})
+	registerPPKCollector(sessionID, collector)
+
+	got := collector.result()
+	require.Len(t, got, 1)
+	require.Contains(t, got, "peer-b")
+	require.NotContains(t, got, "peer-a", "a point from another DKG round must be dropped")
 }
 
 // TestHandlePpkMsgDropsNonParticipants covers the pre-collector path: once the round's participant
@@ -186,7 +221,7 @@ func TestHandlePpkMsgDropsNonParticipants(t *testing.T) {
 	send := func(peerID string) {
 		handlePpkMsg(&tss.MessageWrapper{
 			Protocol: PpkProtocol, SessionID: sessionID, PeerID: peerID,
-			Msg: types.Encode(ppkPoint(1)),
+			Msg: types.Encode(ppkPoint(testPPKRid, 1)),
 		})
 	}
 
@@ -208,7 +243,7 @@ func TestBeginPPKSessionDropsStalePending(t *testing.T) {
 	send := func(k int64) {
 		handlePpkMsg(&tss.MessageWrapper{
 			Protocol: PpkProtocol, SessionID: sessionID, PeerID: "peer-a",
-			Msg: types.Encode(ppkPoint(k)),
+			Msg: types.Encode(ppkPoint(testPPKRid, k)),
 		})
 	}
 	pending := func() int {
@@ -228,7 +263,7 @@ func TestBeginPPKSessionDropsStalePending(t *testing.T) {
 	// The new round's point arrives before the collector and must win once flushed.
 	send(2)
 	newPoint := ecpointgrouplaw.ScalarBaseMult(elliptic.Secp256k1(), big.NewInt(2))
-	collector := newPPKCollector([]string{"peer-a"})
+	collector := newPPKCollector(testPPKRid, []string{"peer-a"})
 	registerPPKCollector(sessionID, collector)
 
 	got := collector.result()
@@ -458,6 +493,31 @@ func TestProcessEntryValidation(t *testing.T) {
 	require.ErrorIs(t, err, errInvalidThreshold)
 	_, err = ProcessDKG(peers, 0, 0, "s")
 	require.ErrorIs(t, err, errInvalidThreshold)
+
+	// CGGMP requires a threshold of at least 2.
+	_, err = ProcessSign(peers, 1, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	_, err = ProcessRefresh(peers, 1, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	_, err = ProcessDKG(peers, 1, 0, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+
+	// Blank or duplicated participant ids are rejected before a peer manager is created.
+	blankPeers := []string{"peer-a", ""}
+	_, err = ProcessSign(blankPeers, 2, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+	_, err = ProcessRefresh(blankPeers, 2, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+	_, err = ProcessDKG(blankPeers, 2, 0, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+
+	dupPeers := []string{"peer-a", "peer-a"}
+	_, err = ProcessSign(dupPeers, 2, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+	_, err = ProcessRefresh(dupPeers, 2, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+	_, err = ProcessDKG(dupPeers, 2, 0, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
 }
 
 // TestValidateSelfRejectsMissingLocalPeer covers the check ProcessRefresh/ProcessSign run right

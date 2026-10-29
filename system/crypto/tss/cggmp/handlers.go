@@ -99,21 +99,25 @@ func handleSignMsg(wMsg *tss.MessageWrapper) {
 // quorum alone (filling the map with forged sender ids) or impersonate another participant's
 // g^{share}. expected is the participant set of this DKG session (excluding the local node);
 // a point attributed to an id outside it is dropped, so an unrelated connected peer cannot take
-// one of the slots and close the collector before an honest participant's point arrives.
+// one of the slots and close the collector before an honest participant's point arrives. rid is
+// the DKG rid of this round: points carrying a different rid belong to another (e.g. previous,
+// failed) round that reused the same session id and are dropped as well.
 // mu guards got: add runs on the queue message-handler goroutine while result is read by the
 // ProcessDKG goroutine.
 type ppkCollector struct {
 	mu       sync.Mutex
 	total    int                                 // number of other participants to collect
 	expected map[string]struct{}                 // participant ids allowed to contribute
+	rid      string                              // DKG rid of this round, points must match
 	got      map[string]*ecpointgrouplaw.ECPoint // authenticated peer id -> point
 	done     chan struct{}
 	once     sync.Once
 }
 
 // newPPKCollector creates a collector for the given participant set, which must already exclude
-// the local node (the local partial public key is added by the caller, not collected).
-func newPPKCollector(expected []string) *ppkCollector {
+// the local node (the local partial public key is added by the caller, not collected). rid is the
+// DKG rid of the round being collected.
+func newPPKCollector(rid []byte, expected []string) *ppkCollector {
 	allowed := make(map[string]struct{}, len(expected))
 	for _, id := range expected {
 		allowed[id] = struct{}{}
@@ -121,6 +125,7 @@ func newPPKCollector(expected []string) *ppkCollector {
 	return &ppkCollector{
 		total:    len(allowed),
 		expected: allowed,
+		rid:      string(rid),
 		got:      make(map[string]*ecpointgrouplaw.ECPoint, len(allowed)),
 		done:     make(chan struct{}),
 	}
@@ -133,12 +138,16 @@ func (c *ppkCollector) isExpected(peerID string) bool {
 	return ok
 }
 
-func (c *ppkCollector) add(peerID string, p *ecpointgrouplaw.ECPoint) {
+func (c *ppkCollector) add(peerID string, rid []byte, p *ecpointgrouplaw.ECPoint) {
 	if p == nil {
 		return
 	}
 	if !c.isExpected(peerID) {
 		log.Debug("ppkCollector.add drop partial public key from non-participant", "peerID", peerID)
+		return
+	}
+	if string(rid) != c.rid {
+		log.Debug("ppkCollector.add drop partial public key from another round", "peerID", peerID)
 		return
 	}
 	c.mu.Lock()
@@ -177,7 +186,9 @@ func (c *ppkCollector) result() map[string]*ecpointgrouplaw.ECPoint {
 }
 
 // pendingPPKMsg is a buffered partial public key together with the authenticated peer id it
-// came from, so it can be attributed correctly when it is flushed into a late collector.
+// came from, so it can be attributed correctly when it is flushed into a late collector. The
+// message also carries the DKG rid of its round, which the flush checks against the collector's
+// rid (see ppkCollector.add).
 type pendingPPKMsg struct {
 	peerID string
 	msg    *PartialPublicKey
@@ -258,7 +269,7 @@ func addPPKToCollector(c *ppkCollector, peerID string, msg *PartialPublicKey) {
 		log.Error("addPPKToCollector invalid point", "peerID", peerID, "err", err)
 		return
 	}
-	c.add(peerID, p)
+	c.add(peerID, msg.Rid, p)
 }
 
 func handlePpkMsg(wMsg *tss.MessageWrapper) {
@@ -324,11 +335,12 @@ func handlePpkMsg(wMsg *tss.MessageWrapper) {
 // partialPublicKeyMsg builds the on-wire partial public key message for the local node.
 // sender is informational only (a receiver must attribute the point by the authenticated peer
 // id, see handlePpkMsg), but honest nodes fill it in with their own id so a mismatch is
-// visible in the logs.
-func partialPublicKeyMsg(sender string, p *ecpointgrouplaw.ECPoint) *PartialPublicKey {
+// visible in the logs. rid identifies the DKG round the point belongs to.
+func partialPublicKeyMsg(sender string, rid []byte, p *ecpointgrouplaw.ECPoint) *PartialPublicKey {
 	return &PartialPublicKey{
 		Sender: sender,
 		X:      p.GetX().Bytes(),
 		Y:      p.GetY().Bytes(),
+		Rid:    rid,
 	}
 }

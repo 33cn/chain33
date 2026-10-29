@@ -19,6 +19,7 @@ var (
 	// reach alice, which indexes its parameter maps by the local peer id without checking and
 	// panics when the local node is not among the participants.
 	errNoPeers          = errors.New("cggmp: empty peer list")
+	errInvalidPeerList  = errors.New("cggmp: invalid peer list")
 	errInvalidThreshold = errors.New("cggmp: invalid threshold")
 	errMissingSelfID    = errors.New("cggmp: cannot determine the local peer id")
 	errSelfNotInPeers   = errors.New("cggmp: local peer id is not in the peer list")
