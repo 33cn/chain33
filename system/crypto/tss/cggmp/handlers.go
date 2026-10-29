@@ -97,26 +97,48 @@ func handleSignMsg(wMsg *tss.MessageWrapper) {
 // (tss.MessageWrapper.PeerID), never to the peer-supplied PartialPublicKey.Sender field:
 // Sender is attacker-controlled and keying the collection by it would let one peer satisfy the
 // quorum alone (filling the map with forged sender ids) or impersonate another participant's
-// g^{share}. mu guards got: add runs on the queue message-handler goroutine while result is
-// read by the ProcessDKG goroutine.
+// g^{share}. expected is the participant set of this DKG session (excluding the local node);
+// a point attributed to an id outside it is dropped, so an unrelated connected peer cannot take
+// one of the slots and close the collector before an honest participant's point arrives.
+// mu guards got: add runs on the queue message-handler goroutine while result is read by the
+// ProcessDKG goroutine.
 type ppkCollector struct {
-	mu    sync.Mutex
-	total int                                 // number of other participants to collect
-	got   map[string]*ecpointgrouplaw.ECPoint // authenticated peer id -> point
-	done  chan struct{}
-	once  sync.Once
+	mu       sync.Mutex
+	total    int                                 // number of other participants to collect
+	expected map[string]struct{}                 // participant ids allowed to contribute
+	got      map[string]*ecpointgrouplaw.ECPoint // authenticated peer id -> point
+	done     chan struct{}
+	once     sync.Once
 }
 
-func newPPKCollector(total int) *ppkCollector {
-	return &ppkCollector{
-		total: total,
-		got:   make(map[string]*ecpointgrouplaw.ECPoint, total),
-		done:  make(chan struct{}),
+// newPPKCollector creates a collector for the given participant set, which must already exclude
+// the local node (the local partial public key is added by the caller, not collected).
+func newPPKCollector(expected []string) *ppkCollector {
+	allowed := make(map[string]struct{}, len(expected))
+	for _, id := range expected {
+		allowed[id] = struct{}{}
 	}
+	return &ppkCollector{
+		total:    len(allowed),
+		expected: allowed,
+		got:      make(map[string]*ecpointgrouplaw.ECPoint, len(allowed)),
+		done:     make(chan struct{}),
+	}
+}
+
+// isExpected reports whether peerID is a participant of this session. expected is immutable after
+// construction, so it is read without holding mu.
+func (c *ppkCollector) isExpected(peerID string) bool {
+	_, ok := c.expected[peerID]
+	return ok
 }
 
 func (c *ppkCollector) add(peerID string, p *ecpointgrouplaw.ECPoint) {
 	if p == nil {
+		return
+	}
+	if !c.isExpected(peerID) {
+		log.Debug("ppkCollector.add drop partial public key from non-participant", "peerID", peerID)
 		return
 	}
 	c.mu.Lock()
@@ -172,17 +194,46 @@ const (
 var (
 	ppkMu         sync.Mutex
 	ppkCollectors = make(map[string]*ppkCollector)
+	// ppkMembers records the participant set of the current round for a session key. It lets
+	// handlePpkMsg drop points from peers that are not part of the DKG even before the local
+	// ProcessDKG has registered its collector (see beginPPKSession).
+	ppkMembers = make(map[string]map[string]struct{})
 	// pendingPPK buffers partial public keys that arrive before the local ProcessDKG has
 	// registered its collector (a node may finish DKG and broadcast before the others do).
 	pendingPPK = make(map[string][]pendingPPKMsg)
 )
+
+// beginPPKSession starts a new ppk round for sessionID: it drops all ppk state left by a previous
+// (failed) round under the same session id and records the participants of this round.
+//
+// A DKG retry reuses the same session id (alice derives the ZK challenges from it, so it must match
+// across nodes), which means buffered points from the failed round would otherwise be flushed into
+// the new collector and occupy its slots: the old point would win and the new point from the same
+// peer would be dropped as a duplicate, turning stale buffered material into a bogus
+// errPPKInconsistent. This mirrors removeSession, which drops a failed round's message buffer for the
+// same reason.
+func beginPPKSession(sessionID string, expected []string) {
+	key := tss.ComposeProtocol(PpkProtocol, sessionID)
+	allowed := make(map[string]struct{}, len(expected))
+	for _, id := range expected {
+		allowed[id] = struct{}{}
+	}
+	ppkMu.Lock()
+	defer ppkMu.Unlock()
+	delete(ppkCollectors, key)
+	delete(pendingPPK, key)
+	ppkMembers[key] = allowed
+}
 
 func registerPPKCollector(sessionID string, c *ppkCollector) {
 	key := tss.ComposeProtocol(PpkProtocol, sessionID)
 	ppkMu.Lock()
 	defer ppkMu.Unlock()
 	ppkCollectors[key] = c
+	ppkMembers[key] = c.expected
 	for _, pending := range pendingPPK[key] {
+		// add drops points from peers outside c.expected, including ones buffered before this
+		// round's participant set was known.
 		addPPKToCollector(c, pending.peerID, pending.msg)
 	}
 	delete(pendingPPK, key)
@@ -193,6 +244,7 @@ func removePPKCollector(sessionID string) {
 	ppkMu.Lock()
 	defer ppkMu.Unlock()
 	delete(ppkCollectors, key)
+	delete(ppkMembers, key)
 	delete(pendingPPK, key)
 }
 
@@ -238,6 +290,15 @@ func handlePpkMsg(wMsg *tss.MessageWrapper) {
 	if c, ok := ppkCollectors[key]; ok {
 		addPPKToCollector(c, wMsg.PeerID, msg)
 		return
+	}
+	// Once the round's participant set is known, points from any other connected peer are dropped
+	// rather than buffered: they could never be part of this DKG and must not take a slot.
+	if allowed, ok := ppkMembers[key]; ok {
+		if _, member := allowed[wMsg.PeerID]; !member {
+			log.Debug("handlePpkMsg drop partial public key from non-participant",
+				"peerID", wMsg.PeerID, "session", wMsg.SessionID)
+			return
+		}
 	}
 	if _, ok := pendingPPK[key]; !ok && len(pendingPPK) >= maxPendingPPKSessions {
 		log.Warn("handlePpkMsg max pending ppk sessions reached, clear pending ppk messages")

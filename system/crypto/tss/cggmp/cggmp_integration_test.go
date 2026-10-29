@@ -94,14 +94,42 @@ func TestCGGMP4Node(t *testing.T) {
 	waitBarrier(t, barrierDir, barrierTimeout)
 
 	wg := sync.WaitGroup{}
+	errCh := make(chan error, len(cmds))
 	for _, cmd := range cmds {
 		wg.Add(1)
 		go func(cmd *childProc) {
-			waitChildExit(t, cmd, cmd.role)
-			wg.Done()
+			defer wg.Done()
+			if err := waitChildExit(cmd, cmd.role); err != nil {
+				errCh <- err
+			}
 		}(cmd)
 	}
-	wg.Wait()
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	var firstErr error
+	select {
+	case <-done:
+	case firstErr = <-errCh:
+		// A child failed: stop the rest so the test returns without waiting out their
+		// individual exit timeouts.
+		for _, cmd := range cmds {
+			if cmd.cmd.Process != nil {
+				_ = cmd.cmd.Process.Kill()
+			}
+		}
+		<-done
+	}
+	close(errCh)
+	for err := range errCh {
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
+	require.NoError(t, firstErr)
 }
 
 // TestCGGMPNode is the child-process entry point; it is a no-op unless TSS_ROLE is set by
@@ -259,21 +287,25 @@ func startChildNode(t *testing.T, role string, port int, seed, barrierDir string
 	return &childProc{cmd: cmd, out: &out, role: role}
 }
 
-func waitChildExit(t *testing.T, child *childProc, role string) {
+// waitChildExit waits for a child process and returns an error instead of calling t.Fatalf, so it
+// can run on a helper goroutine (t.Fatalf there only exits that goroutine and would leave the
+// WaitGroup waiting until the package timeout).
+func waitChildExit(child *childProc, role string) error {
 	log.Info("waitChildExit", "role", role)
-	c := make(chan error)
+	c := make(chan error, 1)
 	go func() {
 		c <- child.cmd.Wait()
 	}()
 	select {
 	case err := <-c:
 		if err != nil {
-			t.Fatalf("child exit with error: %v, role %s, output: %s", err, role, child.out.String())
+			return fmt.Errorf("child exit with error: %v, role %s, output: %s", err, role, child.out.String())
 		}
 	case <-time.After(childExitTimeout):
-		t.Fatalf("timeout waiting for child exit, role %s, output: %s", role, child.out.String())
+		return fmt.Errorf("timeout waiting for child exit, role %s, output: %s", role, child.out.String())
 	}
 	log.Info("waitChildExit end", "role", role)
+	return nil
 }
 
 func waitPeerIDs(t *testing.T, cli queue.Client, want int, timeout time.Duration, role string) []string {

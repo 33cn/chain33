@@ -5,7 +5,9 @@
 package cggmp
 
 import (
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/33cn/chain33/system/crypto/tss"
 	chaintypes "github.com/33cn/chain33/types"
@@ -161,6 +163,73 @@ func TestBufferedMessageKeepsTransportPeerID(t *testing.T) {
 
 	require.Len(t, backend.calls, 1)
 	require.Equal(t, "peer-transport", backend.calls[0].senderID)
+}
+
+// blockingBackend blocks inside AddMessage until release is closed and signals when it has been
+// entered, so a test can hold one session's handler busy deterministically (no sleeps).
+type blockingBackend struct {
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (b *blockingBackend) AddMessage(string, alicetypes.Message) error {
+	close(b.entered)
+	<-b.release
+	return nil
+}
+
+// TestAddMessageDoesNotBlockOtherSessions pins the scope of the registry lock: a backend busy in
+// one session must not prevent another session's message from being dispatched. When addMessage
+// held the global registry lock while calling the backend, session B waited for session A's
+// expensive protocol round to finish.
+func TestAddMessageDoesNotBlockOtherSessions(t *testing.T) {
+	const (
+		blockedSession = "cggmp-session-blocked"
+		otherSession   = "cggmp-session-other"
+	)
+	blocker := &blockingBackend{entered: make(chan struct{}), release: make(chan struct{})}
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(blocker.release) }) }
+	require.NoError(t, registerSession(DkgProtocol, blockedSession, blocker))
+	defer removeSession(DkgProtocol, blockedSession)
+	other := &captureBackend{}
+	require.NoError(t, registerSession(DkgProtocol, otherSession, other))
+	defer removeSession(DkgProtocol, otherSession)
+	// Registered after the removeSession defers so it runs first on t.Fatal: a failing assertion
+	// must still unblock the busy session, otherwise the deferred removeSession calls would wait
+	// for it for ever.
+	defer release()
+
+	blockedDone := make(chan error, 1)
+	go func() {
+		blockedDone <- addMessage(DkgProtocol, blockedSession, "peer-a", dkgMessage("peer-a"))
+	}()
+	select {
+	case <-blocker.entered:
+	case <-time.After(time.Second):
+		t.Fatal("blocked session's backend was not entered")
+	}
+
+	// Session A is inside AddMessage. Session B must still be dispatched promptly.
+	otherDone := make(chan error, 1)
+	go func() {
+		otherDone <- addMessage(DkgProtocol, otherSession, "peer-b", dkgMessage("peer-b"))
+	}()
+	select {
+	case err := <-otherDone:
+		require.NoError(t, err)
+		require.Len(t, other.calls, 1)
+	case <-time.After(time.Second):
+		t.Fatal("another session's message was blocked behind the busy session")
+	}
+
+	release()
+	select {
+	case err := <-blockedDone:
+		require.NoError(t, err)
+	case <-time.After(time.Second):
+		t.Fatal("blocked session did not finish")
+	}
 }
 
 // stubPeerManager is a minimal alice types.PeerManager. The retry tests below drive the session

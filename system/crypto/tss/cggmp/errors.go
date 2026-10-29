@@ -15,6 +15,16 @@ var (
 	// so it cannot be attributed to a participant and must be rejected rather than trusted.
 	errMissingPeerID = errors.New("cggmp: missing authenticated peer id")
 
+	// Entry-point validation errors: a Process* call must fail instead of letting a bad peer list
+	// reach alice, which indexes its parameter maps by the local peer id without checking and
+	// panics when the local node is not among the participants.
+	errNoPeers          = errors.New("cggmp: empty peer list")
+	errInvalidThreshold = errors.New("cggmp: invalid threshold")
+	errMissingSelfID    = errors.New("cggmp: cannot determine the local peer id")
+	errSelfNotInPeers   = errors.New("cggmp: local peer id is not in the peer list")
+	errNilDKGResult     = errors.New("cggmp: nil dkg result")
+	errNilRefreshResult = errors.New("cggmp: nil refresh result")
+
 	// Peer-material completeness errors, wrapped with the offending peer id.
 	errMissingPeerBk  = errors.New("missing birkhoff parameter")
 	errMissingPeerPPK = errors.New("missing partial public key")

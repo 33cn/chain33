@@ -20,6 +20,10 @@ type Backend interface {
 }
 
 type sessionCore struct {
+	// mu serialises AddMessage calls into this session's backend. The registry lock only guards
+	// the map, so a protocol core doing an expensive round (Paillier generation, DKG rounds) does
+	// not block message handling for every other session.
+	mu      sync.Mutex
 	backend Backend
 }
 
@@ -55,12 +59,25 @@ func addMessage(protocol, sessionID, peerID string, msg types.Message) error {
 		return errMissingPeerID
 	}
 	id := tss.ComposeProtocol(protocol, sessionID)
-	sessionsMu.Lock()
-	defer sessionsMu.Unlock()
+	// Look the session up under the registry lock, but hand the message to the core *after*
+	// releasing it: the per-session lock below keeps one session's AddMessage calls serialised,
+	// while other sessions stay free to make progress.
+	sessionsMu.RLock()
 	session, ok := sessions[id]
+	sessionsMu.RUnlock()
 	if ok {
-		return session.backend.AddMessage(peerID, msg)
+		return session.add(peerID, msg)
 	}
+
+	sessionsMu.Lock()
+	// Re-check under the write lock: a session may have been registered between the read above
+	// and this acquisition. Buffering it for a session that is already live would leave the
+	// message unflushed for ever.
+	if session, ok := sessions[id]; ok {
+		sessionsMu.Unlock()
+		return session.add(peerID, msg)
+	}
+	defer sessionsMu.Unlock()
 	if len(pendingMessages[id]) >= maxPendingMessagesPerSession {
 		return fmt.Errorf("addMessage max pending messages reached")
 	}
@@ -72,6 +89,15 @@ func addMessage(protocol, sessionID, peerID string, msg types.Message) error {
 	}
 	pendingMessages[id] = append(pendingMessages[id], pendingMessage{peerID: peerID, msg: msg})
 	return nil
+}
+
+// add serialises AddMessage calls for one session. removeSession only drops the registry entry;
+// the core pointer stays valid, so a message that raced with removal is still handled by the
+// (possibly stopped) core rather than dereferencing freed memory.
+func (s *sessionCore) add(peerID string, msg types.Message) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.backend.AddMessage(peerID, msg)
 }
 
 // registerSession binds backend to protocol|sessionID and flushes the messages that were buffered

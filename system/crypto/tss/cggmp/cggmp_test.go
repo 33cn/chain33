@@ -107,7 +107,7 @@ func TestSignatureConversion(t *testing.T) {
 // own (which would let it complete the exchange early with forged contributions).
 func TestPPKCollectorAttributesByPeerID(t *testing.T) {
 	curve := elliptic.Secp256k1()
-	collector := newPPKCollector(2)
+	collector := newPPKCollector([]string{"peer-real", "peer-other"})
 
 	for _, sender := range []string{"peer-a", "peer-b", "peer-c"} {
 		addPPKToCollector(collector, "peer-real", &PartialPublicKey{
@@ -132,6 +132,109 @@ func TestPPKCollectorAttributesByPeerID(t *testing.T) {
 		Y:      ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(2)).GetY().Bytes(),
 	})
 	require.Len(t, collector.result(), 2)
+	require.NoError(t, collector.wait(time.Second))
+}
+
+// ppkPoint returns a distinct valid secp256k1 point encoded as a PartialPublicKey.
+func ppkPoint(k int64) *PartialPublicKey {
+	p := ecpointgrouplaw.ScalarBaseMult(elliptic.Secp256k1(), big.NewInt(k))
+	return &PartialPublicKey{X: p.GetX().Bytes(), Y: p.GetY().Bytes()}
+}
+
+// TestPPKCollectorRejectsNonParticipants asserts a connected peer that is not part of the DKG
+// session cannot take a collector slot: only the expected participants count towards completion,
+// so a non-member cannot close the collector early and leave an honest participant's g^{share}
+// missing (which surfaces later as errMissingPeerPPK).
+func TestPPKCollectorRejectsNonParticipants(t *testing.T) {
+	collector := newPPKCollector([]string{"peer-a", "peer-b"})
+
+	addPPKToCollector(collector, "peer-evil", ppkPoint(1))
+	require.Empty(t, collector.result())
+	select {
+	case <-collector.done:
+		t.Fatal("collector must not complete on a non-participant's point")
+	default:
+	}
+	require.Error(t, collector.wait(10*time.Millisecond))
+
+	addPPKToCollector(collector, "peer-a", ppkPoint(2))
+	require.Len(t, collector.result(), 1)
+	select {
+	case <-collector.done:
+		t.Fatal("collector must not complete before every participant contributed")
+	default:
+	}
+
+	addPPKToCollector(collector, "peer-b", ppkPoint(3))
+	require.Len(t, collector.result(), 2)
+	require.NoError(t, collector.wait(time.Second))
+	require.NotContains(t, collector.result(), "peer-evil")
+}
+
+// TestHandlePpkMsgDropsNonParticipants covers the pre-collector path: once the round's participant
+// set is known, a point from any other peer is dropped instead of being buffered.
+func TestHandlePpkMsgDropsNonParticipants(t *testing.T) {
+	const sessionID = "ppk-membership-session"
+	beginPPKSession(sessionID, []string{"peer-a"})
+	defer removePPKCollector(sessionID)
+
+	pending := func() int {
+		ppkMu.Lock()
+		defer ppkMu.Unlock()
+		return len(pendingPPK[tss.ComposeProtocol(PpkProtocol, sessionID)])
+	}
+	send := func(peerID string) {
+		handlePpkMsg(&tss.MessageWrapper{
+			Protocol: PpkProtocol, SessionID: sessionID, PeerID: peerID,
+			Msg: types.Encode(ppkPoint(1)),
+		})
+	}
+
+	send("peer-evil")
+	require.Equal(t, 0, pending(), "a non-participant's point must not be buffered")
+
+	send("peer-a")
+	require.Equal(t, 1, pending())
+}
+
+// TestBeginPPKSessionDropsStalePending is the regression test for a retried DKG under the same
+// session id: points buffered by the failed round must be discarded, otherwise they occupy the new
+// collector's slots, the new point from the same peer is dropped as a duplicate, and the round
+// fails with a bogus errPPKInconsistent.
+func TestBeginPPKSessionDropsStalePending(t *testing.T) {
+	const sessionID = "ppk-stale-round-session"
+	defer removePPKCollector(sessionID)
+
+	send := func(k int64) {
+		handlePpkMsg(&tss.MessageWrapper{
+			Protocol: PpkProtocol, SessionID: sessionID, PeerID: "peer-a",
+			Msg: types.Encode(ppkPoint(k)),
+		})
+	}
+	pending := func() int {
+		ppkMu.Lock()
+		defer ppkMu.Unlock()
+		return len(pendingPPK[tss.ComposeProtocol(PpkProtocol, sessionID)])
+	}
+
+	// The old (failed) round buffered peer-a's point before its collector was registered.
+	send(1)
+	require.Equal(t, 1, pending())
+
+	// The retry starts under the same session id and clears the stale buffer.
+	beginPPKSession(sessionID, []string{"peer-a"})
+	require.Equal(t, 0, pending())
+
+	// The new round's point arrives before the collector and must win once flushed.
+	send(2)
+	newPoint := ecpointgrouplaw.ScalarBaseMult(elliptic.Secp256k1(), big.NewInt(2))
+	collector := newPPKCollector([]string{"peer-a"})
+	registerPPKCollector(sessionID, collector)
+
+	got := collector.result()
+	require.Len(t, got, 1)
+	require.Zero(t, got["peer-a"].GetX().Cmp(newPoint.GetX()))
+	require.Zero(t, got["peer-a"].GetY().Cmp(newPoint.GetY()))
 	require.NoError(t, collector.wait(time.Second))
 }
 
@@ -308,6 +411,70 @@ func TestProcessSignValidatesSignerMaterial(t *testing.T) {
 	// threshold must equal the signer count.
 	_, err := ProcessSign(peers, 3, msg, dkgRes, newRefresh(), "sign-session")
 	require.ErrorIs(t, err, errThresholdPeers)
+}
+
+// TestProcessEntryValidation asserts the Process* entry points reject nil inputs and impossible
+// participant sets with an error instead of reaching alice (which indexes its maps by the local
+// peer id without checking and panics). Every case returns before a peer manager is created, so no
+// transport is needed.
+func TestProcessEntryValidation(t *testing.T) {
+	peers := []string{"peer-a", "peer-b"}
+	msg := []byte("cggmp-entry-validation")
+
+	var err error
+	require.NotPanics(t, func() {
+		_, err = ProcessSign(peers, 2, msg, nil, &RefreshResult{}, "s")
+	})
+	require.ErrorIs(t, err, errNilDKGResult)
+
+	require.NotPanics(t, func() {
+		_, err = ProcessSign(peers, 2, msg, &DKGResult{}, nil, "s")
+	})
+	require.ErrorIs(t, err, errNilRefreshResult)
+
+	require.NotPanics(t, func() {
+		_, err = ProcessRefresh(peers, 2, nil, "s")
+	})
+	require.ErrorIs(t, err, errNilDKGResult)
+
+	_, err = ProcessSign(nil, 1, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errNoPeers)
+	_, err = ProcessSign(peers, 0, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	// For signing the signer count must equal the threshold; that specific error is kept.
+	_, err = ProcessSign(peers, 3, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errThresholdPeers)
+
+	_, err = ProcessRefresh(nil, 1, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errNoPeers)
+	_, err = ProcessRefresh(peers, 0, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	_, err = ProcessRefresh(peers, 3, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+
+	_, err = ProcessDKG(nil, 1, 0, "s")
+	require.ErrorIs(t, err, errNoPeers)
+	_, err = ProcessDKG(peers, 3, 0, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	_, err = ProcessDKG(peers, 0, 0, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+}
+
+// TestValidateSelfRejectsMissingLocalPeer covers the check ProcessRefresh/ProcessSign run right
+// after creating the peer manager and before handing anything to alice: without the local id among
+// the participants, alice would dereference a nil bks[SelfID] inside the protocol core.
+func TestValidateSelfRejectsMissingLocalPeer(t *testing.T) {
+	pm := &stubPeerManager{self: "peer-self", peers: []string{"peer-a"}}
+
+	selfID, err := validateSelf(pm, []string{"peer-a", "peer-self"})
+	require.NoError(t, err)
+	require.Equal(t, "peer-self", selfID)
+
+	_, err = validateSelf(pm, []string{"peer-a", "peer-b"})
+	require.ErrorIs(t, err, errSelfNotInPeers)
+
+	_, err = validateSelf(&stubPeerManager{}, []string{"peer-a"})
+	require.ErrorIs(t, err, errMissingSelfID)
 }
 
 // TestSharedSignatureBuilder keeps the scalar->btcec conversion single-sourced in the tss

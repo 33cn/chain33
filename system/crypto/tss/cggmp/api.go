@@ -5,6 +5,7 @@
 package cggmp
 
 import (
+	"fmt"
 	"math/big"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	alicedkg "github.com/getamis/alice/crypto/tss/ecdsa/cggmp/dkg"
 	alicerefresh "github.com/getamis/alice/crypto/tss/ecdsa/cggmp/refresh"
 	alicesign "github.com/getamis/alice/crypto/tss/ecdsa/cggmp/sign"
+	alicetypes "github.com/getamis/alice/types"
 )
 
 const (
@@ -67,16 +69,85 @@ func (c *config) phaseTimeout(protocol string) time.Duration {
 	return defaultTimeout
 }
 
+// validateNonEmptyPeers rejects the degenerate participant sets (no peers, zero threshold) that
+// would otherwise reach alice or a peer manager. Phase-specific checks (e.g. the signer count must
+// equal the threshold) are applied by the caller; both refresh and DKG accept any threshold up to
+// the participant count, see validateParticipants.
+func validateNonEmptyPeers(peers []string, threshold uint32) error {
+	if len(peers) == 0 {
+		return errNoPeers
+	}
+	if threshold == 0 {
+		return fmt.Errorf("%w: threshold=0, peers=%d", errInvalidThreshold, len(peers))
+	}
+	return nil
+}
+
+// validateParticipants rejects a participant set that cannot run DKG/refresh: besides the
+// non-empty checks, the threshold may not exceed the number of participants. It runs before a
+// peer manager is created, so an impossible set fails immediately instead of blocking on peer
+// discovery.
+func validateParticipants(peers []string, threshold uint32) error {
+	if err := validateNonEmptyPeers(peers, threshold); err != nil {
+		return err
+	}
+	if uint64(threshold) > uint64(len(peers)) {
+		return fmt.Errorf("%w: threshold=%d, peers=%d", errInvalidThreshold, threshold, len(peers))
+	}
+	return nil
+}
+
+// validateSelf returns the transport-authenticated local peer id and requires it to be part of
+// peers. alice indexes its bks / partial public key / Pedersen maps by SelfID without checking, so
+// a peer list that omits the local node panics inside the protocol core; reject it here instead.
+func validateSelf(pm alicetypes.PeerManager, peers []string) (string, error) {
+	selfID := pm.SelfID()
+	if selfID == "" {
+		return "", errMissingSelfID
+	}
+	for _, id := range peers {
+		if id == selfID {
+			return selfID, nil
+		}
+	}
+	return "", fmt.Errorf("%w: %q, peers=%v", errSelfNotInPeers, selfID, peers)
+}
+
+// otherPeers returns peers without selfID, i.e. the participants whose partial public keys the
+// local node has to collect.
+func otherPeers(peers []string, selfID string) []string {
+	others := make([]string, 0, len(peers))
+	for _, id := range peers {
+		if id != selfID {
+			others = append(others, id)
+		}
+	}
+	return others
+}
+
 // ProcessDKG runs the CGGMP DKG protocol and then the CGGMP partial-public-key exchange,
 // returning a persisted DKGResult (group public key, this node's share, Birkhoff parameters,
 // rid and every participant's partial public key). sessionID must be identical across nodes;
 // peers must include the local node id. CGGMP sessions are independent from the GG18 wrapper.
 func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts ...Option) (*DKGResult, error) {
+	if err := validateParticipants(peers, threshold); err != nil {
+		log.Error("ProcessDKG", "session", sessionID, "invalid participants", err)
+		return nil, err
+	}
 	cfg := newConfig(opts...)
 	curve := elliptic.Secp256k1()
 
 	// Phase 1: alice CGGMP DKG.
 	pm := tss.NewReadyPeerManager(peers, DkgProtocol, sessionID)
+	selfID, err := validateSelf(pm, peers)
+	if err != nil {
+		log.Error("ProcessDKG", "session", sessionID, "invalid local peer", err)
+		return nil, err
+	}
+	// A retry reuses this session id; drop the partial public keys buffered by a previous failed
+	// round so they cannot be flushed into this round's collector (see beginPPKSession).
+	beginPPKSession(sessionID, otherPeers(peers, selfID))
+	defer removePPKCollector(sessionID)
 	listener := tss.NewListener(DkgProtocol, cfg.phaseTimeout(DkgProtocol))
 	dkgCore, err := alicedkg.NewDKG(curve, pm, []byte(sessionID), threshold, rank, listener)
 	if err != nil {
@@ -102,7 +173,6 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 
 	// Phase 2: partial public key (g^{share}) exchange. The refresh phase needs every
 	// participant's partial public key as an input, so we exchange them right after DKG.
-	selfID := pm.SelfID()
 	partialPubKeys, err := exchangePartialPubKeys(peers, selfID, aliceRes.Share, curve, sessionID, cfg.phaseTimeout(PpkProtocol))
 	if err != nil {
 		log.Error("ProcessDKG", "session", sessionID, "partial pubkey exchange err", err)
@@ -123,7 +193,7 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 func exchangePartialPubKeys(peers []string, selfID string, share *big.Int, curve elliptic.Curve, sessionID string, timeout time.Duration) (map[string]*ecpointgrouplaw.ECPoint, error) {
 	myPPK := ecpointgrouplaw.ScalarBaseMult(curve, share)
 	pm := tss.NewReadyPeerManager(peers, PpkProtocol, sessionID)
-	collector := newPPKCollector(len(peers) - 1)
+	collector := newPPKCollector(otherPeers(peers, selfID))
 	registerPPKCollector(sessionID, collector)
 	defer removePPKCollector(sessionID)
 
@@ -145,6 +215,13 @@ func exchangePartialPubKeys(peers []string, selfID string, share *big.Int, curve
 // ProcessSign; the returned RefreshResult together with the DKGResult is all ProcessSign
 // needs. sessionID must be identical across nodes; peers includes the local node id.
 func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, sessionID string, opts ...Option) (*RefreshResult, error) {
+	if dkgRes == nil {
+		return nil, errNilDKGResult
+	}
+	if err := validateParticipants(peers, threshold); err != nil {
+		log.Error("ProcessRefresh", "session", sessionID, "invalid participants", err)
+		return nil, err
+	}
 	cfg := newConfig(opts...)
 
 	// Validate the persisted ppk material before handing it to alice: refresh needs every
@@ -166,6 +243,10 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 	}
 
 	pm := tss.NewReadyPeerManager(peers, RefreshProtocol, sessionID)
+	if _, err := validateSelf(pm, peers); err != nil {
+		log.Error("ProcessRefresh", "session", sessionID, "invalid local peer", err)
+		return nil, err
+	}
 	listener := tss.NewListener(RefreshProtocol, cfg.phaseTimeout(RefreshProtocol))
 	ssid := computeSSID(sessionID, dkgRes.Rid)
 
@@ -200,11 +281,22 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 // list, and every listed signer must have a bk, a partial public key and Pedersen parameters in
 // the two results. sessionID must be identical across the signing nodes.
 func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult, refreshRes *RefreshResult, sessionID string, opts ...Option) (*alicesign.Result, error) {
+	if dkgRes == nil {
+		return nil, errNilDKGResult
+	}
+	if refreshRes == nil {
+		return nil, errNilRefreshResult
+	}
+	if err := validateNonEmptyPeers(peers, threshold); err != nil {
+		log.Error("ProcessSign", "session", sessionID, "invalid participants", err)
+		return nil, err
+	}
 	cfg := newConfig(opts...)
 
 	// Refuse incomplete signer material up front: alice indexes bks / partial public keys /
 	// Pedersen parameters by peer id without checking, so a missing entry reached the alice
-	// sign core as a nil dereference instead of an error.
+	// sign core as a nil dereference instead of an error. It also enforces that the signer count
+	// equals the threshold (alice derives its Birkhoff coefficients for exactly threshold peers).
 	if err := refreshRes.validateSignMaterial(dkgRes, peers, threshold); err != nil {
 		log.Error("ProcessSign", "session", sessionID, "sign material check err", err)
 		return nil, err
@@ -227,6 +319,10 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 	}
 
 	pm := tss.NewReadyPeerManager(peers, SignProtocol, sessionID)
+	if _, err := validateSelf(pm, peers); err != nil {
+		log.Error("ProcessSign", "session", sessionID, "invalid local peer", err)
+		return nil, err
+	}
 	listener := tss.NewListener(SignProtocol, cfg.phaseTimeout(SignProtocol))
 	ssid := computeSSID(sessionID, dkgRes.Rid)
 
