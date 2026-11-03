@@ -18,15 +18,14 @@ type CommonAction struct {
 	Code   []byte //evm 数据
 	Nonce  int64
 
-	// The embedded Ethereum transaction does not cover the chain33 envelope. These fields
-	// expose the parts of the envelope the signature is silent about, so the verifier can
-	// reject the combinations that let a copied signature produce a different effect.
-	Execer       []byte //chain33 execer
-	ContractAddr string //EVMContractAction4Chain33.ContractAddr as written in the payload
-	Para         []byte //EVMContractAction4Chain33.Para as written in the payload
-	Alias        string //EVMContractAction4Chain33.Alias as written in the payload
-	TxTo         string //envelope Transaction.To
-	IsEvm        bool   //payload decoded through the evm arm
+	// NoteHex is the payload Note exactly as written. The signature verifier compares it
+	// with the canonical hex encoding of the embedded transaction.
+	NoteHex string
+	// Tx is the complete envelope the action was decoded from.
+	Tx *TransactionChain33
+	// IsEvm reports whether the payload decoded through the evm arm. Only that arm can
+	// carry an embedded Ethereum transaction; a coins transfer Note is a user memo.
+	IsEvm bool
 }
 
 // DecodeTxAction decode chain33Tx ethTx
@@ -36,9 +35,8 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 	if err != nil {
 		return nil, err
 	}
-	// address.ExecAddress and address.ExecPubKey panic on an over-long name, so reject it
-	// before any address is derived. A rejected action falls through to the plain chain33
-	// signature check in VerifyBytes.
+	// an over-long execer is never a valid chain33 transaction; reject it before any
+	// address is derived from it.
 	if len(tx.Execer) > address.MaxExecNameLength {
 		return nil, errors.New("execer too long")
 	}
@@ -53,34 +51,24 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 				code = evmaction.GetCode() //部署合约
 
 			} else {
-				if evmaction.GetContractAddr() != address.ExecAddress(string(tx.GetExecer())) {
-					code = evmaction.GetPara()
-					to = evmaction.ContractAddr
-				} else { //coins 转账
-
-					to = common.Bytes2Hex(evmaction.GetPara())
-				}
-
+				code = evmaction.GetPara()
+				to = evmaction.ContractAddr
 			}
 
 			return &CommonAction{
-				Note:         common.FromHex(evmaction.Note),
-				To:           to,
-				Amount:       evmaction.GetAmount(),
-				Code:         code,
-				Nonce:        tx.Nonce,
-				Execer:       tx.Execer,
-				ContractAddr: evmaction.GetContractAddr(),
-				Para:         evmaction.GetPara(),
-				Alias:        evmaction.GetAlias(),
-				TxTo:         tx.To,
-				IsEvm:        true,
+				Note:    common.FromHex(evmaction.Note),
+				To:      to,
+				Amount:  evmaction.GetAmount(),
+				Code:    code,
+				Nonce:   tx.Nonce,
+				NoteHex: evmaction.Note,
+				Tx:      &tx,
+				IsEvm:   true,
 			}, nil
 		}
 	}
 
-	// coins 转账. Only the chain33-format signature path reaches this branch: a non-empty
-	// Note is rejected by VerifyBytes when IsEvm is false, so Note here is always empty.
+	//coins 转账
 	var coinsAction CoinsActionChain33
 	err = proto.Unmarshal(tx.Payload, &coinsAction)
 	if err == nil {
@@ -91,7 +79,7 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 				To:     transfer.Transfer.To,
 				Amount: uint64(transfer.Transfer.GetAmount()),
 				Nonce:  tx.Nonce,
-				Execer: tx.Execer,
+				Tx:     &tx,
 			}, nil
 		}
 		err = errors.New("action no support")

@@ -27,6 +27,13 @@ func IsEthSignID(txSignID int32) bool {
 	return txSignID == EncodeSignID(secp256k1eth.ID, EthAddressID)
 }
 
+// IsEthCryptoID reports whether signID selects the secp256k1eth driver. The crypto driver
+// is chosen by crypto id, so the address-format id in the same value is not part of the
+// driver identity and must not decide whether the eth rules apply.
+func IsEthCryptoID(txSignID int32) bool {
+	return ExtractCryptoID(txSignID) == secp256k1eth.ID
+}
+
 // EncodeSignID encode sign id
 func EncodeSignID(cryptoID, addressID int32) int32 {
 	if !address.IsValidAddressID(addressID) {

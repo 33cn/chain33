@@ -13,6 +13,7 @@ import (
 
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/queue"
+	stypes "github.com/33cn/chain33/system/crypto/secp256k1eth/types"
 	"github.com/33cn/chain33/types"
 )
 
@@ -60,11 +61,12 @@ func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 	if tx.Expire > 1000000000 && tx.Expire < types.Now().Unix()+int64(time.Minute/time.Second) {
 		return false
 	}
-	// An eth-signed carrier is assembled with a 3-hour expiry. Zero (never expires) or a
-	// value further out is not assembler-produced and would only occupy the pool; this is
-	// a mempool-only rule, block validation still relies on IsExpire.
+	// An eth-signed carrier is assembled with a 3-hour expiry; the signature verifier
+	// rejects any other window. This early filter keeps a zero or far-future expiry from
+	// occupying the pool while it waits for signature validation.
 	if _, ok := types.EthSignedTxEnvelope(tx); ok {
-		if tx.Expire <= 1000000000 || tx.Expire > types.Now().Unix()+int64(3*time.Hour/time.Second) {
+		upper := types.Now().Unix() + int64((stypes.EnvelopeExpireDuration+stypes.EnvelopeExpireSkew)/time.Second)
+		if tx.Expire <= types.ExpireBound || tx.Expire > upper {
 			return false
 		}
 	}
@@ -249,33 +251,16 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 	return msg
 }
 
-// evmGroupTxNonceCheck checks every eth-signed member of a group both against the pool and
-// against the other members. Members are normally validated one at a time while the rest of
-// the group is not in the pool yet, so duplicate or gapped nonces would otherwise slip in.
-// Only members that carry an embedded Ethereum transaction are compared: IsEthSignID is also
-// true for ordinary chain33 transactions signed with an eth key, whose nonce is a random
-// number, so their group members need not be contiguous.
+// evmGroupTxNonceCheck applies the pool nonce check to every member of a group. Members
+// are normally validated one at a time while the rest of the group is not in the pool
+// yet, so checking only the head let a stale-nonce member through.
+//
+// An eth-signature carrier can no longer be a group member: the signature verifier
+// requires the single-transaction group shape, so carriers are rejected before this runs.
 func (mem *Mempool) evmGroupTxNonceCheck(txs []*types.Transaction) error {
-	nonces := make(map[string][]int64)
 	for _, tx := range txs {
 		if err := mem.evmTxNonceCheck(tx); err != nil {
 			return err
-		}
-		if _, ok := types.EthSignedTxEnvelope(tx); !ok {
-			continue
-		}
-		nonces[tx.From()] = append(nonces[tx.From()], tx.GetNonce())
-	}
-	for from, list := range nonces {
-		if len(list) < 2 {
-			continue
-		}
-		sort.Slice(list, func(i, j int) bool { return list[i] < list[j] })
-		for i := 1; i < len(list); i++ {
-			if list[i] != list[i-1]+1 {
-				mlog.Info("evmGroupTxNonceCheck", "from", from, "prev", list[i-1], "nonce", list[i])
-				return errors.New("non-contiguous eth nonce in tx group")
-			}
 		}
 	}
 	return nil

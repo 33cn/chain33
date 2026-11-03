@@ -9,17 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
 	"github.com/33cn/chain33/common"
-	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
-	ecommon "github.com/ethereum/go-ethereum/common"
-
-	//"github.com/33cn/chain33/types"
-	"math/big"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth/types"
 	secp256k1 "github.com/btcsuite/btcd/btcec/v2"
@@ -30,14 +26,20 @@ import (
 const privKeyBytesLen = 32
 const pubkeyBytesLen = 64 + 1
 
-// ethAddressID is the address driver id of the 0x (ethereum) address format. The same
-// constant is exported as types.EthAddressID by the root types package, but that package
-// imports this one, so it cannot be referenced from here.
-const ethAddressID int32 = 2
-
 var log = log15.New("module", Name)
-var chainID int64
-var coinsPrecision int64
+
+var (
+	chainID        int64 // EVM chain id the embedded transaction must use
+	coinsPrecision int64
+	// Parameters the assembler reads from the chain config. The crypto driver only
+	// receives its own [crypto.sub.secp256k1eth] sub config, so EthCryptoSubConfig
+	// copies these in at startup.
+	envelopeReady  bool
+	chain33ChainID int32
+	evmExecer      string
+	minTxFeeRate   int64
+	isParaChain    bool
+)
 
 // PrivKeySecp256k1Eth PrivKey
 type PrivKeySecp256k1Eth [32]byte
@@ -193,22 +195,13 @@ func (pubKey PubKeySecp256k1Eth) Bytes() []byte {
 func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 	var hash []byte
 	action, err := types.DecodeTxAction(msg)
-	if err == nil && len(action.Note) == 0 || err != nil {
+	if err != nil || !action.IsEvm || len(action.Note) == 0 {
 		//chain33格式交易，sha3哈希 eth 签名
 		hash = common.Sha3(msg)
 	} else { //解析ETH交易数据
-		// The embedded Ethereum transaction commits to none of the chain33 envelope
-		// (execer, envelope To, fee, expire, group fields). Only an EVM payload has a
-		// meaning for such a signature; on any other execer the same signature could be
-		// re-wrapped to execute a different effect, so reject that shape outright.
-		if !action.IsEvm {
-			log.Error("VerifyBytes", "msg", "eth signed payload on non-evm execer", "execer", string(action.Execer))
-			return false
-		}
-		var etx = new(etypes.Transaction)
-		err := etx.UnmarshalBinary(action.Note)
+		etx, err := types.DecodeEmbeddedTx(action.NoteHex)
 		if err != nil {
-			log.Error("VerifyBytes", "PubKeySecp256k1Eth,UnmarshalBinary", err)
+			log.Error("VerifyBytes", "msg", "embedded transaction decode failed", "err", err)
 			return false
 		}
 		//chainID 可配置
@@ -216,50 +209,21 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 			log.Error("VerifyBytes", "local ChainID", chainID, "etx.ChainID", etx.ChainId())
 			return false
 		}
+		params, ok := assembleParams(time.Now())
+		if !ok {
+			log.Error("VerifyBytes", "msg", "eth envelope parameters are not configured", "hint", "crypto.Init was called without the chain config")
+			return false
+		}
+		// The embedded Ethereum transaction commits to none of the chain33 envelope. Rebuild
+		// the envelope with the assembler's own rules and require equality, so a copied
+		// signature cannot be re-wrapped with another execer, fee, gas price, group shape,
+		// expiry or destination.
+		if err := types.VerifyAssembledTx(action.Tx, etx, params); err != nil {
+			log.Error("VerifyBytes", "msg", "eth signed envelope mismatch", "err", err)
+			return false
+		}
 		signer := etypes.NewLondonSigner(etx.ChainId())
 		hash = signer.Hash(etx).Bytes() //metamask,eth 兼容交易，取出eth 交易格式下的哈希
-		//check nonce 防止重放攻击
-		if action.Nonce != int64(etx.Nonce()) {
-			log.Error("VerifyBytes", "action.Nonce", action.Nonce, "tx.Nonce", etx.Nonce())
-			return false
-		}
-		//checkout amount
-		amount := etx.Value().Div(etx.Value(), new(big.Int).Div(big.NewInt(1e18), big.NewInt(coinsPrecision)))
-		if amount.Uint64() != action.Amount { //防止自组装的chain33 Tx amount 被篡改
-			log.Error("VerifyBytes", "amount:", amount, "action.Amount", action.Amount)
-			return false
-		}
-		//check evm code
-		if !bytes.Equal(etx.Data(), action.Code) { // 防止合约代码被篡改
-			log.Error("VerifyBytes", "check action.Code not equal")
-			return false
-		}
-		// An embedded tx without To makes the EVM executor create a contract.
-		// Only the assembler-produced shape is accepted: non-empty code, no call data,
-		// no alias, and both the payload and the envelope naming the exec address. With
-		// any of Para/Alias/envelope To unbound, a copied deployment could be rewritten
-		// into a proxy-exec coins transfer that runs as the signer.
-		if etx.To() == nil {
-			if len(action.Code) == 0 || len(action.Para) != 0 || action.Alias != "" ||
-				!sameExecAddress(string(action.Execer), action.ContractAddr) ||
-				!sameExecAddress(string(action.Execer), action.TxTo) {
-				log.Error("VerifyBytes", "msg", "deploy envelope mismatch", "execer", string(action.Execer),
-					"contractAddr", action.ContractAddr, "txTo", action.TxTo, "paraLen", len(action.Para))
-				return false
-			}
-		} else if !sameExecAddress(string(action.Execer), action.TxTo) &&
-			!equalAddress(etx.To().String(), action.TxTo) {
-			// A call or transfer is assembled with the envelope To set to the address the
-			// embedded tx names, or to the exec address on a parallel chain. Any other
-			// value (notably the proxy exec address) would redirect execution.
-			log.Error("VerifyBytes", "msg", "envelope To mismatch", "ex.To", etx.To(), "txTo", action.TxTo)
-			return false
-		}
-		//check to address
-		if etx.To() != nil && !bytes.Equal(ecommon.FromHex(action.To), etx.To().Bytes()) {
-			log.Error("VerifyBytes", "ex.To", etx.To(), "action.To", action.To)
-			return false
-		}
 	}
 
 	sigBytes := sig.Bytes()
@@ -276,56 +240,21 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 	return ethcrypto.VerifySignature(pubKey[:], hash, sigBytes[:64])
 }
 
-// sameExecAddress reports whether addr is a spelling of the exec address for execer.
-// Deployments assembled before ForkEVMMixAddress used the base58 (btc driver) spelling,
-// later ones the 0x (eth driver) spelling; both appear on chain, so both are accepted.
-func sameExecAddress(execer, addr string) bool {
-	// address.ExecPubKey panics on an over-long name; DecodeTxAction already rejects it,
-	// but keep the guard so that future callers cannot trip it.
-	if len(execer) > address.MaxExecNameLength {
-		return false
+// assembleParams returns the chain parameters the assembler read, as copied into the
+// driver sub config at startup. Without them a carrier cannot be checked, so it is
+// rejected rather than waved through.
+func assembleParams(now time.Time) (types.AssembleParams, bool) {
+	if !envelopeReady {
+		return types.AssembleParams{}, false
 	}
-	pubKey := address.ExecPubKey(execer)
-	// address.ExecAddress spells the exec address with the configured default driver,
-	// so that driver must be a candidate whatever its id is.
-	ids := [...]int32{0, ethAddressID, address.GetDefaultAddressID()}
-	for i, id := range ids {
-		if containsID(ids[:i], id) {
-			continue
-		}
-		driver, err := address.LoadDriver(id, -1)
-		if err != nil {
-			continue
-		}
-		if equalAddress(driver.PubKeyToAddr(pubKey), addr) {
-			return true
-		}
-	}
-	return false
-}
-
-func containsID(ids []int32, id int32) bool {
-	for _, candidate := range ids {
-		if candidate == id {
-			return true
-		}
-	}
-	return false
-}
-
-// equalAddress compares an expected address with an untrusted one. Hex addresses are
-// case-insensitive and may carry an optional 0x prefix; base58 addresses are compared
-// exactly because their encoding is case-sensitive.
-func equalAddress(expected, addr string) bool {
-	if expected == addr {
-		return true
-	}
-	expected = strings.TrimPrefix(expected, "0x")
-	addr = strings.TrimPrefix(addr, "0x")
-	if !ecommon.IsHexAddress(expected) || !ecommon.IsHexAddress(addr) {
-		return false
-	}
-	return strings.EqualFold(expected, addr)
+	return types.AssembleParams{
+		ChainID:       chain33ChainID,
+		EVMExecer:     evmExecer,
+		MinTxFeeRate:  minTxFeeRate,
+		CoinPrecision: coinsPrecision,
+		IsPara:        isParaChain,
+		Now:           now,
+	}, true
 }
 
 func (pubKey PubKeySecp256k1Eth) String() string {
@@ -349,8 +278,12 @@ func (pubKey PubKeySecp256k1Eth) Equals(other crypto.PubKey) bool {
 
 func initEvmIDFun(sub []byte) {
 	var id struct {
-		EvmChainID     int64 `json:"evmChainID,omitempty"`
-		CoinsPrecision int64 `json:"coinsPrecision,omitempty"`
+		EvmChainID     int64  `json:"evmChainID,omitempty"`
+		CoinsPrecision int64  `json:"coinsPrecision,omitempty"`
+		ChainID        int32  `json:"chainID,omitempty"`
+		EVMExecer      string `json:"evmExecer,omitempty"`
+		MinTxFeeRate   int64  `json:"minTxFeeRate,omitempty"`
+		IsPara         bool   `json:"isPara,omitempty"`
 	}
 	utils.MustDecode(sub, &id)
 	chainID = id.EvmChainID
@@ -358,6 +291,14 @@ func initEvmIDFun(sub []byte) {
 	if coinsPrecision == 0 { //默认配置是 1e8
 		coinsPrecision = 1e8
 	}
+	chain33ChainID = id.ChainID
+	evmExecer = id.EVMExecer
+	minTxFeeRate = id.MinTxFeeRate
+	isParaChain = id.IsPara
+	// The chain-level fields are written by Chain33Config.EthCryptoSubConfig at startup.
+	// When they are absent (a bare crypto.Init call) a carrier cannot be rebuilt, and
+	// VerifyBytes rejects it instead of checking only part of the envelope.
+	envelopeReady = evmExecer != ""
 }
 
 // GetEvmChainID return evm chainID

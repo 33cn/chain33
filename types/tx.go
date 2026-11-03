@@ -511,12 +511,6 @@ func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) e
 			return ErrTxChainID
 		}
 	}
-	// The envelope of an eth-signed transaction is outside its signature, so it is pinned
-	// here, before any fee is charged. Keep this ahead of the minfee early return: a group
-	// member is checked with minfee=0 and must still be pinned.
-	if err := tx.checkEthSignedEnvelope(cfg); err != nil {
-		return err
-	}
 	if minfee == 0 {
 		return nil
 	}
@@ -920,8 +914,12 @@ func (tx *Transaction) Clone() *Transaction {
 // EthSignedTxEnvelope returns the Ethereum transaction carried by an eth-signed chain33
 // transaction: a secp256k1eth signature on an EVM payload whose Note holds the raw
 // Ethereum transaction. ok is false for every other shape.
+//
+// The carrier is identified by crypto id, not by the exact signature type: the driver is
+// selected by crypto id, so an address-driver variant of the same signature type still
+// routes to secp256k1eth and must not be able to skip the rules built on this predicate.
 func EthSignedTxEnvelope(tx *Transaction) (etx *etypes.Transaction, ok bool) {
-	if tx.GetSignature() == nil || !IsEthSignID(tx.GetSignature().GetTy()) {
+	if tx.GetSignature() == nil || !IsEthCryptoID(tx.GetSignature().GetTy()) {
 		return nil, false
 	}
 	var action EVMContractAction4Chain33
@@ -934,33 +932,6 @@ func EthSignedTxEnvelope(tx *Transaction) (etx *etypes.Transaction, ok bool) {
 		return nil, false
 	}
 	return etx, true
-}
-
-// checkEthSignedEnvelope pins the chain33 envelope fields that the embedded Ethereum
-// signature does not cover. It mirrors AssembleChain33Tx (the only producer of such
-// transactions), so every already-mined transaction built by a released assembler passes.
-func (tx *Transaction) checkEthSignedEnvelope(cfg *Chain33Config) error {
-	if cfg == nil {
-		return nil
-	}
-	etx, ok := EthSignedTxEnvelope(tx)
-	if !ok {
-		return nil
-	}
-	// The assembler always uses the configured evm execer; any other execer containing
-	// "evm" would execute the same signature against a different driver.
-	if string(tx.GetExecer()) != cfg.ExecName("evm") {
-		return ErrExecNameNotAllow
-	}
-	if tx.GetChainID() != cfg.GetChainID() {
-		return ErrTxChainID
-	}
-	// The assembler charges max(eth gas, min fee rate). Anything above that is a fee
-	// rewrite: the tx still carries the signer's key, so the fee is taken from them.
-	if tx.GetFee() < 0 || (tx.GetFee() > cfg.GetMinTxFeeRate() && etx.Gas() < uint64(tx.GetFee())) {
-		return ErrTxFeeTooHigh
-	}
-	return nil
 }
 
 // GetEthTxHash 获取eth 兼容交易的交易哈希
