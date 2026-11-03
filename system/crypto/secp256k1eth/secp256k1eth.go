@@ -14,6 +14,7 @@ import (
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"
 
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
 	ecommon "github.com/ethereum/go-ethereum/common"
 
@@ -28,6 +29,11 @@ import (
 
 const privKeyBytesLen = 32
 const pubkeyBytesLen = 64 + 1
+
+// ethAddressID is the address driver id of the 0x (ethereum) address format. The same
+// constant is exported as types.EthAddressID by the root types package, but that package
+// imports this one, so it cannot be referenced from here.
+const ethAddressID int32 = 2
 
 var log = log15.New("module", Name)
 var chainID int64
@@ -191,6 +197,14 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 		//chain33格式交易，sha3哈希 eth 签名
 		hash = common.Sha3(msg)
 	} else { //解析ETH交易数据
+		// The embedded Ethereum transaction commits to none of the chain33 envelope
+		// (execer, envelope To, fee, expire, group fields). Only an EVM payload has a
+		// meaning for such a signature; on any other execer the same signature could be
+		// re-wrapped to execute a different effect, so reject that shape outright.
+		if !action.IsEvm {
+			log.Error("VerifyBytes", "eth signed payload on non-evm execer", "execer", string(action.Execer))
+			return false
+		}
 		var etx = new(etypes.Transaction)
 		err := etx.UnmarshalBinary(action.Note)
 		if err != nil {
@@ -220,6 +234,15 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 			log.Error("VerifyBytes", "check action.Code not equal")
 			return false
 		}
+		// An embedded tx without To makes the EVM executor create a contract only when
+		// ContractAddr names the exec address; with empty Data and a different
+		// ContractAddr it becomes a call that sends the attached value there instead.
+		// The assembler never produces To == nil with empty Data (it dereferences To in
+		// that arm), so such a payload is not a legitimate eth-signed transaction.
+		if etx.To() == nil && (len(action.Code) == 0 || !sameExecAddress(string(action.Execer), action.ContractAddr)) {
+			log.Error("VerifyBytes", "contractAddr", action.ContractAddr, "execer", string(action.Execer))
+			return false
+		}
 		//check to address
 		if etx.To() != nil && !bytes.Equal(ecommon.FromHex(action.To), etx.To().Bytes()) {
 			log.Error("VerifyBytes", "ex.To", etx.To(), "action.To", action.To)
@@ -239,6 +262,53 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 	}
 
 	return ethcrypto.VerifySignature(pubKey[:], hash, sigBytes[:64])
+}
+
+// sameExecAddress reports whether addr is a spelling of the exec address for execer.
+// Deployments assembled before ForkEVMMixAddress used the base58 (btc driver) spelling,
+// later ones the 0x (eth driver) spelling; both appear on chain, so both are accepted.
+func sameExecAddress(execer, addr string) bool {
+	pubKey := address.ExecPubKey(execer)
+	// address.ExecAddress spells the exec address with the configured default driver,
+	// so that driver must be a candidate whatever its id is.
+	ids := [...]int32{0, ethAddressID, address.GetDefaultAddressID()}
+	for i, id := range ids {
+		if containsID(ids[:i], id) {
+			continue
+		}
+		driver, err := address.LoadDriver(id, -1)
+		if err != nil {
+			continue
+		}
+		if equalAddress(driver.PubKeyToAddr(pubKey), addr) {
+			return true
+		}
+	}
+	return false
+}
+
+func containsID(ids []int32, id int32) bool {
+	for _, candidate := range ids {
+		if candidate == id {
+			return true
+		}
+	}
+	return false
+}
+
+// equalAddress compares an expected address with an untrusted one. Hex addresses are
+// case-insensitive and may carry an optional 0x prefix; base58 addresses are compared
+// exactly because their encoding is case-sensitive.
+func equalAddress(expected, addr string) bool {
+	if expected == addr {
+		return true
+	}
+	expected = strings.TrimPrefix(expected, "0x")
+	addr = strings.TrimPrefix(addr, "0x")
+	if !ecommon.IsHexAddress(expected) || !ecommon.IsHexAddress(addr) {
+		return false
+	}
+	return strings.EqualFold(expected, addr)
 }
 
 func (pubKey PubKeySecp256k1Eth) String() string {

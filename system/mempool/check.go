@@ -208,8 +208,17 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 		}
 	}
 
-	//检查mempool内是否有相同的tx.nonce
-	err = mem.evmTxNonceCheck(tx.Tx())
+	// Check the eth nonce of every group member, not just the head: checking only the
+	// head let a member after the first enter the mempool with a stale eth nonce.
+	if txGroup == nil {
+		err = mem.evmTxNonceCheck(tx.Tx())
+	} else {
+		for _, groupTx := range txGroup.GetTxs() {
+			if err = mem.evmTxNonceCheck(groupTx); err != nil {
+				break
+			}
+		}
+	}
 	if err != nil {
 		msg.Data = err
 		return msg

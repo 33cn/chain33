@@ -17,6 +17,13 @@ type CommonAction struct {
 	Amount uint64 //解析组装后的chain33 tx 的amount
 	Code   []byte //evm 数据
 	Nonce  int64
+
+	// The embedded Ethereum transaction does not cover the chain33 envelope. These fields
+	// expose the parts of the envelope the signature is silent about, so the verifier can
+	// reject the combinations that let a copied signature produce a different effect.
+	Execer       []byte //chain33 execer
+	ContractAddr string //EVMContractAction4Chain33.ContractAddr as written in the payload
+	IsEvm        bool   //payload decoded through the evm arm
 }
 
 // DecodeTxAction decode chain33Tx ethTx
@@ -48,11 +55,14 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 			}
 
 			return &CommonAction{
-				Note:   common.FromHex(evmaction.Note),
-				To:     to,
-				Amount: evmaction.GetAmount(),
-				Code:   code,
-				Nonce:  tx.Nonce,
+				Note:         common.FromHex(evmaction.Note),
+				To:           to,
+				Amount:       evmaction.GetAmount(),
+				Code:         code,
+				Nonce:        tx.Nonce,
+				Execer:       tx.Execer,
+				ContractAddr: evmaction.GetContractAddr(),
+				IsEvm:        true,
 			}, nil
 		}
 	}
@@ -68,6 +78,7 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 				To:     transfer.Transfer.To,
 				Amount: uint64(transfer.Transfer.GetAmount()),
 				Nonce:  tx.Nonce,
+				Execer: tx.Execer,
 			}, nil
 		}
 		err = errors.New("action no support")
