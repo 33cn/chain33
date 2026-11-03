@@ -2,6 +2,7 @@ package secp256k1eth_test
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -30,14 +31,23 @@ var (
 	testPrivKeyHex = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 	testAttacker   = ecommon.HexToAddress("0x1111111111111111111111111111111111111111")
 	testRecipient  = ecommon.HexToAddress("0x2222222222222222222222222222222222222222")
+	// testProxyAddr is the configured proxy exec address on bityuan.
+	testProxyAddr = ecommon.HexToAddress("0x0000000000000000000000000000000000200005")
 )
 
 // initEthEnv pins the chain id and the coins precision the verifier reads, so the tests
-// do not depend on whatever another test in this package left behind.
+// do not depend on whatever another test in this package left behind. crypto.Init writes
+// process-global state, so the previous values are restored when the test finishes.
 func initEthEnv(t *testing.T) (*ecdsa.PrivateKey, chain33crypto.PubKey) {
 	t.Helper()
+	oldChainID := secp256k1eth.GetEvmChainID()
 	chain33crypto.Init(&chain33crypto.Config{}, map[string][]byte{
 		secp256k1eth.Name: []byte(`{"evmChainID": 3999, "coinsPrecision": 100000000}`),
+	})
+	t.Cleanup(func() {
+		chain33crypto.Init(&chain33crypto.Config{}, map[string][]byte{
+			secp256k1eth.Name: []byte(fmt.Sprintf(`{"evmChainID": %d, "coinsPrecision": 100000000}`, oldChainID)),
+		})
 	})
 	require.Equal(t, int64(testEvmChainID), secp256k1eth.GetEvmChainID())
 
@@ -232,4 +242,112 @@ func TestEthEmptyDataCreationRejected(t *testing.T) {
 			require.False(t, pub.VerifyBytes(msg, signEthTx(t, priv, etx)))
 		})
 	}
+}
+
+// TestEthDeploymentParaRewrapRejected covers the proxy-exec rewrite: a pending deployment
+// is given Para and a proxy address in the envelope To. The inner transaction executes as
+// the signer on ForkProxyExec chains.
+func TestEthDeploymentParaRewrapRejected(t *testing.T) {
+	priv, pub := initEthEnv(t)
+
+	code := []byte{0x60, 0x00, 0x60, 0x00}
+	etx := newEthTx(3, nil, code)
+	execAddr := address.ExecAddress(testEvmExecer)
+	action := &stypes.EVMAction4Chain33{
+		Amount:       0,
+		Code:         code,
+		Para:         testAttacker.Bytes(), // unbound before this fix
+		Note:         ecommon.Bytes2Hex(marshalEthTx(t, etx)),
+		ContractAddr: execAddr,
+	}
+	msg := marshalChain33Tx(t, testEvmExecer, action, int64(etx.Nonce()), testProxyAddr.String())
+
+	require.False(t, pub.VerifyBytes(msg, signEthTx(t, priv, etx)))
+}
+
+// TestEthDeploymentEnvelopeMismatchRejected pins the remaining deployment envelope fields.
+func TestEthDeploymentEnvelopeMismatchRejected(t *testing.T) {
+	priv, pub := initEthEnv(t)
+
+	code := []byte{0x60, 0x00, 0x60, 0x00}
+	etx := newEthTx(3, nil, code)
+	execAddr := address.ExecAddress(testEvmExecer)
+
+	cases := map[string]struct {
+		action *stypes.EVMAction4Chain33
+		txTo   string
+	}{
+		"alias set": {
+			action: &stypes.EVMAction4Chain33{Code: code, Alias: "x", Note: ecommon.Bytes2Hex(marshalEthTx(t, etx)), ContractAddr: execAddr},
+			txTo:   execAddr,
+		},
+		"envelope to attacker": {
+			action: &stypes.EVMAction4Chain33{Code: code, Note: ecommon.Bytes2Hex(marshalEthTx(t, etx)), ContractAddr: execAddr},
+			txTo:   testAttacker.String(),
+		},
+		"envelope to proxy": {
+			action: &stypes.EVMAction4Chain33{Code: code, Note: ecommon.Bytes2Hex(marshalEthTx(t, etx)), ContractAddr: execAddr},
+			txTo:   testProxyAddr.String(),
+		},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			msg := marshalChain33Tx(t, testEvmExecer, c.action, int64(etx.Nonce()), c.txTo)
+			require.False(t, pub.VerifyBytes(msg, signEthTx(t, priv, etx)))
+		})
+	}
+}
+
+// TestEthCallTransferEnvelopeToRejected makes sure a call or transfer cannot be redirected
+// by rewriting the envelope To.
+func TestEthCallTransferEnvelopeToRejected(t *testing.T) {
+	priv, pub := initEthEnv(t)
+
+	callData := []byte{0xa9, 0x05, 0x9c, 0xbb}
+	cases := map[string]struct {
+		etx    *etypes.Transaction
+		action *stypes.EVMAction4Chain33
+	}{
+		"contract call": {
+			etx: newEthTx(9, &testRecipient, callData),
+			action: &stypes.EVMAction4Chain33{
+				Para:         callData,
+				ContractAddr: testRecipient.String(),
+			},
+		},
+		"coins transfer": {
+			etx: newEthTx(7, &testRecipient, nil),
+			action: &stypes.EVMAction4Chain33{
+				Para:         testRecipient.Bytes(),
+				ContractAddr: address.ExecAddress(testEvmExecer),
+			},
+		},
+	}
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			c.action.Note = ecommon.Bytes2Hex(marshalEthTx(t, c.etx))
+			msg := marshalChain33Tx(t, testEvmExecer, c.action, int64(c.etx.Nonce()), testAttacker.String())
+			require.False(t, pub.VerifyBytes(msg, signEthTx(t, priv, c.etx)))
+		})
+	}
+}
+
+// TestEthOverlongExecerRejectedWithoutPanic covers the remote crash: address.ExecPubKey
+// panics on an execer longer than MaxExecNameLength.
+func TestEthOverlongExecerRejectedWithoutPanic(t *testing.T) {
+	priv, pub := initEthEnv(t)
+
+	code := []byte{0x60, 0x00, 0x60, 0x00}
+	etx := newEthTx(3, nil, code)
+	longExecer := testEvmExecer + strings.Repeat("a", address.MaxExecNameLength)
+	action := &stypes.EVMAction4Chain33{
+		Code:         code,
+		Note:         ecommon.Bytes2Hex(marshalEthTx(t, etx)),
+		ContractAddr: "not derived",
+	}
+	msg := marshalChain33Tx(t, longExecer, action, int64(etx.Nonce()), "not derived")
+
+	require.NotPanics(t, func() {
+		require.False(t, pub.VerifyBytes(msg, signEthTx(t, priv, etx)))
+	})
 }

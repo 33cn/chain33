@@ -23,6 +23,9 @@ type CommonAction struct {
 	// reject the combinations that let a copied signature produce a different effect.
 	Execer       []byte //chain33 execer
 	ContractAddr string //EVMContractAction4Chain33.ContractAddr as written in the payload
+	Para         []byte //EVMContractAction4Chain33.Para as written in the payload
+	Alias        string //EVMContractAction4Chain33.Alias as written in the payload
+	TxTo         string //envelope Transaction.To
 	IsEvm        bool   //payload decoded through the evm arm
 }
 
@@ -32,6 +35,12 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 	err := proto.Unmarshal(msg, &tx)
 	if err != nil {
 		return nil, err
+	}
+	// address.ExecAddress and address.ExecPubKey panic on an over-long name, so reject it
+	// before any address is derived. A rejected action falls through to the plain chain33
+	// signature check in VerifyBytes.
+	if len(tx.Execer) > address.MaxExecNameLength {
+		return nil, errors.New("execer too long")
 	}
 	if strings.Contains(string(tx.Execer), "evm") {
 		//evm 合约操作
@@ -62,12 +71,16 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 				Nonce:        tx.Nonce,
 				Execer:       tx.Execer,
 				ContractAddr: evmaction.GetContractAddr(),
+				Para:         evmaction.GetPara(),
+				Alias:        evmaction.GetAlias(),
+				TxTo:         tx.To,
 				IsEvm:        true,
 			}, nil
 		}
 	}
 
-	//coins 转账
+	// coins 转账. Only the chain33-format signature path reaches this branch: a non-empty
+	// Note is rejected by VerifyBytes when IsEvm is false, so Note here is always empty.
 	var coinsAction CoinsActionChain33
 	err = proto.Unmarshal(tx.Payload, &coinsAction)
 	if err == nil {

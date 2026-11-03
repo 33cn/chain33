@@ -202,7 +202,7 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 		// meaning for such a signature; on any other execer the same signature could be
 		// re-wrapped to execute a different effect, so reject that shape outright.
 		if !action.IsEvm {
-			log.Error("VerifyBytes", "eth signed payload on non-evm execer", "execer", string(action.Execer))
+			log.Error("VerifyBytes", "msg", "eth signed payload on non-evm execer", "execer", string(action.Execer))
 			return false
 		}
 		var etx = new(etypes.Transaction)
@@ -234,13 +234,25 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 			log.Error("VerifyBytes", "check action.Code not equal")
 			return false
 		}
-		// An embedded tx without To makes the EVM executor create a contract only when
-		// ContractAddr names the exec address; with empty Data and a different
-		// ContractAddr it becomes a call that sends the attached value there instead.
-		// The assembler never produces To == nil with empty Data (it dereferences To in
-		// that arm), so such a payload is not a legitimate eth-signed transaction.
-		if etx.To() == nil && (len(action.Code) == 0 || !sameExecAddress(string(action.Execer), action.ContractAddr)) {
-			log.Error("VerifyBytes", "contractAddr", action.ContractAddr, "execer", string(action.Execer))
+		// An embedded tx without To makes the EVM executor create a contract.
+		// Only the assembler-produced shape is accepted: non-empty code, no call data,
+		// no alias, and both the payload and the envelope naming the exec address. With
+		// any of Para/Alias/envelope To unbound, a copied deployment could be rewritten
+		// into a proxy-exec coins transfer that runs as the signer.
+		if etx.To() == nil {
+			if len(action.Code) == 0 || len(action.Para) != 0 || action.Alias != "" ||
+				!sameExecAddress(string(action.Execer), action.ContractAddr) ||
+				!sameExecAddress(string(action.Execer), action.TxTo) {
+				log.Error("VerifyBytes", "msg", "deploy envelope mismatch", "execer", string(action.Execer),
+					"contractAddr", action.ContractAddr, "txTo", action.TxTo, "paraLen", len(action.Para))
+				return false
+			}
+		} else if !sameExecAddress(string(action.Execer), action.TxTo) &&
+			!equalAddress(etx.To().String(), action.TxTo) {
+			// A call or transfer is assembled with the envelope To set to the address the
+			// embedded tx names, or to the exec address on a parallel chain. Any other
+			// value (notably the proxy exec address) would redirect execution.
+			log.Error("VerifyBytes", "msg", "envelope To mismatch", "ex.To", etx.To(), "txTo", action.TxTo)
 			return false
 		}
 		//check to address
@@ -268,6 +280,11 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 // Deployments assembled before ForkEVMMixAddress used the base58 (btc driver) spelling,
 // later ones the 0x (eth driver) spelling; both appear on chain, so both are accepted.
 func sameExecAddress(execer, addr string) bool {
+	// address.ExecPubKey panics on an over-long name; DecodeTxAction already rejects it,
+	// but keep the guard so that future callers cannot trip it.
+	if len(execer) > address.MaxExecNameLength {
+		return false
+	}
 	pubKey := address.ExecPubKey(execer)
 	// address.ExecAddress spells the exec address with the configured default driver,
 	// so that driver must be a candidate whatever its id is.

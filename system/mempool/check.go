@@ -60,12 +60,27 @@ func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 	if tx.Expire > 1000000000 && tx.Expire < types.Now().Unix()+int64(time.Minute/time.Second) {
 		return false
 	}
+	// An eth-signed carrier is assembled with a 3-hour expiry. Zero (never expires) or a
+	// value further out is not assembler-produced and would only occupy the pool; this is
+	// a mempool-only rule, block validation still relies on IsExpire.
+	if _, ok := types.EthSignedTxEnvelope(tx); ok {
+		if tx.Expire <= 1000000000 || tx.Expire > types.Now().Unix()+int64(3*time.Hour/time.Second) {
+			return false
+		}
+	}
 	return true
 }
 
 // CheckTx 初步检查并筛选交易消息
 func (mem *Mempool) checkTx(msg *queue.Message) *queue.Message {
 	tx := msg.GetData().(types.TxGroup).Tx()
+	// An over-long execer makes address.ExecAddress/ExecPubKey panic, and signature
+	// verification runs after this check, so reject it before any address is derived.
+	if len(tx.Execer) > address.MaxExecNameLength {
+		mlog.Error("checkTx execer too long", "txhash", common.ToHex(tx.Hash()), "len", len(tx.Execer))
+		msg.Data = types.ErrExecNameNotAllow
+		return msg
+	}
 	// 检查接收地址是否合法
 	if err := address.CheckAddress(tx.To, atomic.LoadInt64(&mem.currHeight)); err != nil {
 		msg.Data = types.ErrInvalidAddress
@@ -210,14 +225,12 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 
 	// Check the eth nonce of every group member, not just the head: checking only the
 	// head let a member after the first enter the mempool with a stale eth nonce.
+	// The members are also checked against each other, since a member is validated
+	// before the others are in the pool.
 	if txGroup == nil {
 		err = mem.evmTxNonceCheck(tx.Tx())
 	} else {
-		for _, groupTx := range txGroup.GetTxs() {
-			if err = mem.evmTxNonceCheck(groupTx); err != nil {
-				break
-			}
-		}
+		err = mem.evmGroupTxNonceCheck(txGroup.GetTxs())
 	}
 	if err != nil {
 		msg.Data = err
@@ -234,6 +247,35 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 		msg.Data = err
 	}
 	return msg
+}
+
+// evmGroupTxNonceCheck checks every eth-signed member of a group both against the pool and
+// against the other members. Members are normally validated one at a time while the rest of
+// the group is not in the pool yet, so duplicate or gapped nonces would otherwise slip in.
+func (mem *Mempool) evmGroupTxNonceCheck(txs []*types.Transaction) error {
+	nonces := make(map[string][]int64)
+	for _, tx := range txs {
+		if err := mem.evmTxNonceCheck(tx); err != nil {
+			return err
+		}
+		if !types.IsEthSignID(tx.GetSignature().GetTy()) {
+			continue
+		}
+		nonces[tx.From()] = append(nonces[tx.From()], tx.GetNonce())
+	}
+	for from, list := range nonces {
+		if len(list) < 2 {
+			continue
+		}
+		sort.Slice(list, func(i, j int) bool { return list[i] < list[j] })
+		for i := 1; i < len(list); i++ {
+			if list[i] != list[i-1]+1 {
+				mlog.Info("evmGroupTxNonceCheck", "from", from, "prev", list[i-1], "nonce", list[i])
+				return errors.New("non-contiguous eth nonce in tx group")
+			}
+		}
+	}
+	return nil
 }
 
 // evmTxNonceCheck 检查eth noce 是否有重复值，如果有的话，需要比较txFee大小，用于替换较小的fee的那笔交易
