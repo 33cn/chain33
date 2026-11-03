@@ -97,6 +97,27 @@ func TestCheckTxGroupEthNonce(t *testing.T) {
 		assert.True(t, reply.GetIsOk())
 		assert.Equal(t, 1, mem.Size())
 	})
+
+	// Ordinary chain33 transactions signed with an eth key carry a random nonce
+	// (wallet/sendtx.go), so a group from a single sender does not have contiguous
+	// nonces. Only members that embed an Ethereum transaction may be required to.
+	for _, pair := range [][2]int64{
+		{7378697629483820646, 3614888832304827231},
+		{12345, 67890},
+	} {
+		t.Run(fmt.Sprintf("random nonces %d/%d", pair[0], pair[1]), func(t *testing.T) {
+			_, mem := initEnv(10)
+			defer mem.Close()
+
+			msg := mem.client.NewMessage("mempool", types.EventTx, newEthGroup(t, pair[0], pair[1]))
+			mem.client.Send(msg, true)
+			msg, err := mem.client.Wait(msg)
+			require.Nil(t, err)
+			reply := msg.GetData().(*types.Reply)
+			assert.True(t, reply.GetIsOk(), string(reply.GetMsg()))
+			assert.Equal(t, 1, mem.Size())
+		})
+	}
 }
 
 // initEmbeddedEthEnv prepares the process-global state the secp256k1eth verifier reads.

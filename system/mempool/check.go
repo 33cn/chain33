@@ -252,13 +252,16 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 // evmGroupTxNonceCheck checks every eth-signed member of a group both against the pool and
 // against the other members. Members are normally validated one at a time while the rest of
 // the group is not in the pool yet, so duplicate or gapped nonces would otherwise slip in.
+// Only members that carry an embedded Ethereum transaction are compared: IsEthSignID is also
+// true for ordinary chain33 transactions signed with an eth key, whose nonce is a random
+// number, so their group members need not be contiguous.
 func (mem *Mempool) evmGroupTxNonceCheck(txs []*types.Transaction) error {
 	nonces := make(map[string][]int64)
 	for _, tx := range txs {
 		if err := mem.evmTxNonceCheck(tx); err != nil {
 			return err
 		}
-		if !types.IsEthSignID(tx.GetSignature().GetTy()) {
+		if _, ok := types.EthSignedTxEnvelope(tx); !ok {
 			continue
 		}
 		nonces[tx.From()] = append(nonces[tx.From()], tx.GetNonce())
