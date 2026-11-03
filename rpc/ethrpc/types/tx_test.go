@@ -9,6 +9,7 @@ import (
 
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/system/crypto/secp256k1"
+	stypes "github.com/33cn/chain33/system/crypto/secp256k1eth/types"
 	ctypes "github.com/33cn/chain33/types"
 	"github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
@@ -122,7 +123,7 @@ func Test_TxDetailsToEthTx(t *testing.T) {
 
 func Test_PrecisionEth2Coins(t *testing.T) {
 	ethValue := big.NewInt(5e18)
-	coinsV := precisionEth2Coins(ethValue, 1e8)
+	coinsV := stypes.PrecisionEth2Coins(ethValue, 1e8)
 	assert.Equal(t, int64(5e8), coinsV.Int64())
 }
 

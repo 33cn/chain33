@@ -16,6 +16,7 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"github.com/33cn/chain33/types"
 )
 
@@ -89,7 +90,13 @@ func getHandler(id int64) msgHandler {
 // SetQueueClient set queue client
 func (m module) SetQueueClient(cli queue.Client) {
 
-	crypto.Init(cli.GetConfig().GetModuleConfig().Crypto, cli.GetConfig().GetSubConfig().Crypto)
+	cfg := cli.GetConfig()
+	subCfg := cfg.GetSubConfig().Crypto
+	if subCfg == nil {
+		subCfg = make(map[string][]byte)
+	}
+	subCfg[secp256k1eth.Name] = cfg.EthCryptoSubConfig(subCfg[secp256k1eth.Name])
+	crypto.Init(cfg.GetModuleConfig().Crypto, subCfg)
 	api, err := client.New(cli, nil)
 	if err != nil {
 		panic("crypto SetQueueClient, new client api err:" + err.Error())

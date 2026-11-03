@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	chain33crypto "github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
@@ -465,7 +466,9 @@ func TestEthHandler_SendRawTransaction(t *testing.T) {
 
 	chain33Tx := etypes.AssembleChain33Tx(ntx, sig, pubkey, ethCli.cfg)
 	t.Log("checkchainID", ntx.ChainId(), "support chainid", ethCli.evmChainID)
-	chain33crypto.Init(ethCli.cfg.GetModuleConfig().Crypto, ethCli.cfg.GetSubConfig().Crypto)
+	chain33crypto.Init(ethCli.cfg.GetModuleConfig().Crypto, map[string][]byte{
+		secp256k1eth.Name: ethCli.cfg.EthCryptoSubConfig(ethCli.cfg.GetSubConfig().Crypto[secp256k1eth.Name]),
+	})
 	ok := chain33Tx.CheckSign(-1)
 	require.True(t, ok)
 

@@ -13,10 +13,12 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"fmt"
 
 	"github.com/33cn/chain33/common/address"
+	stypes "github.com/33cn/chain33/system/crypto/secp256k1eth/types"
 	"github.com/33cn/chain33/types/chaincfg"
 	tml "github.com/BurntSushi/toml"
 )
@@ -157,6 +159,44 @@ func (c *Chain33Config) GetModuleConfig() *Config {
 // GetSubConfig ...
 func (c *Chain33Config) GetSubConfig() *ConfigSubModule {
 	return c.scfg
+}
+
+// EthAssembleParams returns the parameters the eth transaction assembler reads from this
+// config. The assembler and the signature verifier both use this mapping, so the rebuilt
+// envelope and the produced envelope cannot drift.
+func (c *Chain33Config) EthAssembleParams(now time.Time) stypes.AssembleParams {
+	return stypes.AssembleParams{
+		ChainID:       c.GetChainID(),
+		EVMExecer:     c.ExecName("evm"),
+		MinTxFeeRate:  c.GetMinTxFeeRate(),
+		CoinPrecision: c.GetCoinPrecision(),
+		IsPara:        c.IsPara(),
+		Now:           now,
+	}
+}
+
+// EthCryptoSubConfig returns the [crypto.sub.secp256k1eth] JSON with the chain-level
+// parameters the eth signature driver needs appended. The driver only receives its own
+// sub config, but it has to rebuild the chain33 envelope with the same parameters the
+// assembler reads from the chain config.
+func (c *Chain33Config) EthCryptoSubConfig(sub []byte) []byte {
+	conf := make(map[string]interface{})
+	if len(sub) > 0 {
+		if err := json.Unmarshal(sub, &conf); err != nil {
+			conf = make(map[string]interface{})
+		}
+	}
+	params := c.EthAssembleParams(time.Now())
+	conf["chainID"] = params.ChainID
+	conf["evmExecer"] = params.EVMExecer
+	conf["minTxFeeRate"] = params.MinTxFeeRate
+	conf["coinsPrecision"] = params.CoinPrecision
+	conf["isPara"] = params.IsPara
+	data, err := json.Marshal(conf)
+	if err != nil {
+		return sub
+	}
+	return data
 }
 
 // DisableCheckFork ...

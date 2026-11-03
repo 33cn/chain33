@@ -11,6 +11,7 @@ import (
 
 	"github.com/33cn/chain33/common/crypto"
 	erpctypes "github.com/33cn/chain33/rpc/ethrpc/types"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	drivers "github.com/33cn/chain33/system/dapp"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -153,7 +154,9 @@ func TestProxyExec(t *testing.T) {
 	err = execute.checkTx(assembleTx, 0)
 	assert.Nil(t, err)
 
-	crypto.Init(cfg.GetModuleConfig().Crypto, cfg.GetSubConfig().Crypto)
+	crypto.Init(cfg.GetModuleConfig().Crypto, map[string][]byte{
+		secp256k1eth.Name: cfg.EthCryptoSubConfig(cfg.GetSubConfig().Crypto[secp256k1eth.Name]),
+	})
 	assert.True(t, assembleTx.CheckSign(0))
 	//解析交易
 	realTx, err := execute.proxyExecTx(assembleTx)
