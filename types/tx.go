@@ -24,6 +24,7 @@ import (
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/address"
 	"github.com/33cn/chain33/common/crypto"
+	stypes "github.com/33cn/chain33/system/crypto/secp256k1eth/types"
 )
 
 var (
@@ -511,6 +512,14 @@ func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) e
 			return ErrTxChainID
 		}
 	}
+	// eth 签名的 chain33 信封不在签名覆盖范围内, 必须按当前高度重建校验。与上面的
+	// chainID 校验一样放在 minfee 提前返回之前: 交易组成员以 minfee=0 检查, 也要覆盖。
+	// 分叉前不校验, 保证旧区块按当时的规则重放。
+	if cfg != nil && cfg.IsFork(height, ForkEthSignEnvelope) {
+		if err := tx.checkEthSignEnvelope(cfg); err != nil {
+			return err
+		}
+	}
 	if minfee == 0 {
 		return nil
 	}
@@ -932,6 +941,30 @@ func EthSignedTxEnvelope(tx *Transaction) (etx *etypes.Transaction, ok bool) {
 		return nil, false
 	}
 	return etx, true
+}
+
+// checkEthSignEnvelope rebuilds the canonical chain33 transaction for the embedded
+// Ethereum transaction with the same builder the JSON-RPC assembler uses, and requires
+// this transaction to equal it. The embedded signature commits to none of the envelope,
+// so any field left out of the comparison can be rewritten by a third party.
+func (tx *Transaction) checkEthSignEnvelope(cfg *Chain33Config) error {
+	etx, ok := EthSignedTxEnvelope(tx)
+	if !ok {
+		return nil
+	}
+	envelope := &stypes.TransactionChain33{
+		Execer:     tx.Execer,
+		Payload:    tx.Payload,
+		Fee:        tx.Fee,
+		Expire:     tx.Expire,
+		Nonce:      tx.Nonce,
+		To:         tx.To,
+		GroupCount: tx.GroupCount,
+		Header:     tx.Header,
+		Next:       tx.Next,
+		ChainID:    tx.ChainID,
+	}
+	return stypes.VerifyAssembledTx(envelope, etx, cfg.EthAssembleParams(Now()))
 }
 
 // GetEthTxHash 获取eth 兼容交易的交易哈希

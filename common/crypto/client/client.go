@@ -16,7 +16,6 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/queue"
-	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"github.com/33cn/chain33/types"
 )
 
@@ -95,7 +94,6 @@ func (m module) SetQueueClient(cli queue.Client) {
 	if subCfg == nil {
 		subCfg = make(map[string][]byte)
 	}
-	subCfg[secp256k1eth.Name] = cfg.EthCryptoSubConfig(subCfg[secp256k1eth.Name])
 	crypto.Init(cfg.GetModuleConfig().Crypto, subCfg)
 	api, err := client.New(cli, nil)
 	if err != nil {

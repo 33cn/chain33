@@ -155,7 +155,7 @@ func TestProxyExec(t *testing.T) {
 	assert.Nil(t, err)
 
 	crypto.Init(cfg.GetModuleConfig().Crypto, map[string][]byte{
-		secp256k1eth.Name: cfg.EthCryptoSubConfig(cfg.GetSubConfig().Crypto[secp256k1eth.Name]),
+		secp256k1eth.Name: cfg.GetSubConfig().Crypto[secp256k1eth.Name],
 	})
 	assert.True(t, assembleTx.CheckSign(0))
 	//解析交易

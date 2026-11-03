@@ -255,8 +255,10 @@ func (mem *Mempool) checkTxRemote(msg *queue.Message) *queue.Message {
 // are normally validated one at a time while the rest of the group is not in the pool
 // yet, so checking only the head let a stale-nonce member through.
 //
-// An eth-signature carrier can no longer be a group member: the signature verifier
-// requires the single-transaction group shape, so carriers are rejected before this runs.
+// From ForkEthSignEnvelope an eth-signature carrier can no longer be a group member: the
+// envelope rule requires the single-transaction group shape, so carriers are rejected
+// before this runs. Below the fork no such rule applies, and the per-member nonce check
+// still runs over every member.
 func (mem *Mempool) evmGroupTxNonceCheck(txs []*types.Transaction) error {
 	for _, tx := range txs {
 		if err := mem.evmTxNonceCheck(tx); err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/33cn/chain33/common"
+	"github.com/33cn/chain33/common/address"
 	chain33crypto "github.com/33cn/chain33/common/crypto"
 	_ "github.com/33cn/chain33/system/address"
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
@@ -35,7 +36,7 @@ func newAssembleConfig(t *testing.T, para bool) *ctypes.Chain33Config {
 		cfg.SetTitleOnlyForTest("user.p.para.")
 	}
 	chain33crypto.Init(cfg.GetModuleConfig().Crypto, map[string][]byte{
-		secp256k1eth.Name: cfg.EthCryptoSubConfig(cfg.GetSubConfig().Crypto[secp256k1eth.Name]),
+		secp256k1eth.Name: cfg.GetSubConfig().Crypto[secp256k1eth.Name],
 	})
 	return cfg
 }
@@ -107,4 +108,23 @@ func TestAssembleChain33TxVerifiesOnParaChain(t *testing.T) {
 	require.NotNil(t, tx)
 	require.Equal(t, cfg.ExecName("evm"), string(tx.Execer))
 	require.True(t, tx.CheckSign(0))
+}
+
+// TestAssembleChain33TxDeploySetsContractAddr pins the deploy payload. The EVM executor
+// reads ContractAddr as the receiver of a deployment; if the assembler leaves it empty the
+// deployment is mined and charged, but never creates the contract.
+func TestAssembleChain33TxDeploySetsContractAddr(t *testing.T) {
+	priv, pub := newAssembleKey(t)
+	cfg := newAssembleConfig(t, false)
+	etx := newAssembleEthTx(t, 3, nil, []byte{0x60, 0x00, 0x60, 0x00})
+	tx := AssembleChain33Tx(etx, signAssembleEthTx(t, priv, etx), pub, cfg)
+	require.NotNil(t, tx)
+
+	var action ctypes.EVMContractAction4Chain33
+	require.NoError(t, ctypes.Decode(tx.Payload, &action))
+	execAddr := address.ExecAddress(cfg.ExecName("evm"))
+	require.NotEmpty(t, action.ContractAddr)
+	require.Equal(t, execAddr, action.ContractAddr)
+	require.NotEmpty(t, action.Code)
+	require.Empty(t, action.Para)
 }

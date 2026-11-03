@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/33cn/chain33/common/log/log15"
 	"github.com/33cn/chain33/system/crypto/common/authority/utils"
@@ -29,16 +28,7 @@ const pubkeyBytesLen = 64 + 1
 var log = log15.New("module", Name)
 
 var (
-	chainID        int64 // EVM chain id the embedded transaction must use
-	coinsPrecision int64
-	// Parameters the assembler reads from the chain config. The crypto driver only
-	// receives its own [crypto.sub.secp256k1eth] sub config, so EthCryptoSubConfig
-	// copies these in at startup.
-	envelopeReady  bool
-	chain33ChainID int32
-	evmExecer      string
-	minTxFeeRate   int64
-	isParaChain    bool
+	chainID int64 // EVM chain id the embedded transaction must use
 )
 
 // PrivKeySecp256k1Eth PrivKey
@@ -209,19 +199,6 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 			log.Error("VerifyBytes", "local ChainID", chainID, "etx.ChainID", etx.ChainId())
 			return false
 		}
-		params, ok := assembleParams(time.Now())
-		if !ok {
-			log.Error("VerifyBytes", "msg", "eth envelope parameters are not configured", "hint", "crypto.Init was called without the chain config")
-			return false
-		}
-		// The embedded Ethereum transaction commits to none of the chain33 envelope. Rebuild
-		// the envelope with the assembler's own rules and require equality, so a copied
-		// signature cannot be re-wrapped with another execer, fee, gas price, group shape,
-		// expiry or destination.
-		if err := types.VerifyAssembledTx(action.Tx, etx, params); err != nil {
-			log.Error("VerifyBytes", "msg", "eth signed envelope mismatch", "err", err)
-			return false
-		}
 		signer := etypes.NewLondonSigner(etx.ChainId())
 		hash = signer.Hash(etx).Bytes() //metamask,eth 兼容交易，取出eth 交易格式下的哈希
 	}
@@ -238,23 +215,6 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 	}
 
 	return ethcrypto.VerifySignature(pubKey[:], hash, sigBytes[:64])
-}
-
-// assembleParams returns the chain parameters the assembler read, as copied into the
-// driver sub config at startup. Without them a carrier cannot be checked, so it is
-// rejected rather than waved through.
-func assembleParams(now time.Time) (types.AssembleParams, bool) {
-	if !envelopeReady {
-		return types.AssembleParams{}, false
-	}
-	return types.AssembleParams{
-		ChainID:       chain33ChainID,
-		EVMExecer:     evmExecer,
-		MinTxFeeRate:  minTxFeeRate,
-		CoinPrecision: coinsPrecision,
-		IsPara:        isParaChain,
-		Now:           now,
-	}, true
 }
 
 func (pubKey PubKeySecp256k1Eth) String() string {
@@ -278,27 +238,10 @@ func (pubKey PubKeySecp256k1Eth) Equals(other crypto.PubKey) bool {
 
 func initEvmIDFun(sub []byte) {
 	var id struct {
-		EvmChainID     int64  `json:"evmChainID,omitempty"`
-		CoinsPrecision int64  `json:"coinsPrecision,omitempty"`
-		ChainID        int32  `json:"chainID,omitempty"`
-		EVMExecer      string `json:"evmExecer,omitempty"`
-		MinTxFeeRate   int64  `json:"minTxFeeRate,omitempty"`
-		IsPara         bool   `json:"isPara,omitempty"`
+		EvmChainID int64 `json:"evmChainID,omitempty"`
 	}
 	utils.MustDecode(sub, &id)
 	chainID = id.EvmChainID
-	coinsPrecision = id.CoinsPrecision
-	if coinsPrecision == 0 { //默认配置是 1e8
-		coinsPrecision = 1e8
-	}
-	chain33ChainID = id.ChainID
-	evmExecer = id.EVMExecer
-	minTxFeeRate = id.MinTxFeeRate
-	isParaChain = id.IsPara
-	// The chain-level fields are written by Chain33Config.EthCryptoSubConfig at startup.
-	// When they are absent (a bare crypto.Init call) a carrier cannot be rebuilt, and
-	// VerifyBytes rejects it instead of checking only part of the envelope.
-	envelopeReady = evmExecer != ""
 }
 
 // GetEvmChainID return evm chainID

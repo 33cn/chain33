@@ -24,8 +24,6 @@ const (
 	// EnvelopeExpireSkew bounds the clock difference between the node that assembles a
 	// transaction and the node that verifies it.
 	EnvelopeExpireSkew = 10 * time.Minute
-	// LegacyMinTxFee is the fee floor the assembler used before it read MinTxFeeRate.
-	LegacyMinTxFee = int64(1e5)
 )
 
 // AssembleParams carries everything AssembleChain33Tx reads from the node configuration.
@@ -40,21 +38,14 @@ type AssembleParams struct {
 	Now           time.Time
 }
 
-// assembledTx is the canonical transaction together with the role of each address field
-// and the values the assembler used in its earlier releases.
+// assembledTx is the canonical transaction together with its decoded payload.
 type assembledTx struct {
-	tx           *TransactionChain33
-	action       *EVMAction4Chain33
-	execTo       bool // envelope To is the exec address
-	execContract bool // ContractAddr is the exec address
-	legacyFee    int64
+	tx     *TransactionChain33
+	action *EVMAction4Chain33
 }
 
-// ethValueToCoinAmount converts an Ethereum value with the configured coin precision.
-// The assembler before v1.67.5 hard-coded a 1e8 precision; that value is only accepted
-// when it equals the configured conversion, because on a chain with another precision
-// the two differ and accepting both would let a copied signature change the transferred
-// amount.
+// ethValueToCoinAmount converts an Ethereum value to chain33 coin units at the configured
+// precision and rejects values that do not fit uint64.
 func ethValueToCoinAmount(value *big.Int, coinPrecision int64) (uint64, error) {
 	if value == nil {
 		return 0, nil
@@ -110,14 +101,15 @@ func assemble(etx *etypes.Transaction, p AssembleParams) (*assembledTx, error) {
 		Note:     hex.EncodeToString(rawData),
 	}
 	var to string
-	var execTo, execContract bool
 	if len(etx.Data()) != 0 { // contract operation
 		packdata := etx.Data()
 		if etx.To() == nil || len(etx.To().Bytes()) == 0 {
-			// contract deploy: the payload carries the code and names the exec address
+			// contract deploy: the payload carries the code and names the exec address.
+			// The EVM executor reads ContractAddr as the receiver, so an empty value makes
+			// it reject the deployment after the fee has already been charged.
 			action.Code = packdata
 			to = address.ExecAddress(p.EVMExecer)
-			execTo, execContract = true, true
+			action.ContractAddr = to
 		} else {
 			// contract call: the payload carries the calldata and names the callee
 			action.Para = packdata
@@ -132,11 +124,9 @@ func assemble(etx *etypes.Transaction, p AssembleParams) (*assembledTx, error) {
 		to = strings.ToLower(etx.To().String())
 		action.Para = ecommon.FromHex(to)
 		action.ContractAddr = address.ExecAddress(p.EVMExecer)
-		execContract = true
 	}
 	if p.IsPara {
 		to = address.ExecAddress(p.EVMExecer)
-		execTo = true
 	}
 
 	payload, err := proto.MarshalOptions{Deterministic: true}.Marshal(action)
@@ -147,10 +137,6 @@ func assemble(etx *etypes.Transaction, p AssembleParams) (*assembledTx, error) {
 	if fee < p.MinTxFeeRate {
 		fee = p.MinTxFeeRate
 	}
-	legacyFee := int64(etx.Gas())
-	if legacyFee < LegacyMinTxFee {
-		legacyFee = LegacyMinTxFee
-	}
 	tx := &TransactionChain33{
 		ChainID: p.ChainID,
 		To:      to,
@@ -160,11 +146,5 @@ func assemble(etx *etypes.Transaction, p AssembleParams) (*assembledTx, error) {
 		Nonce:   int64(etx.Nonce()),
 		Expire:  p.Now.Unix() + int64(EnvelopeExpireDuration/time.Second),
 	}
-	return &assembledTx{
-		tx:           tx,
-		action:       action,
-		execTo:       execTo,
-		execContract: execContract,
-		legacyFee:    legacyFee,
-	}, nil
+	return &assembledTx{tx: tx, action: action}, nil
 }

@@ -124,11 +124,11 @@ func initEmbeddedEthEnv(t *testing.T, cfg *types.Chain33Config) (*ecdsa.PrivateK
 	t.Helper()
 	oldChainID := secp256k1eth.GetEvmChainID()
 	crypto.Init(&crypto.Config{}, map[string][]byte{
-		secp256k1eth.Name: cfg.EthCryptoSubConfig(cfg.GetSubConfig().Crypto[secp256k1eth.Name]),
+		secp256k1eth.Name: cfg.GetSubConfig().Crypto[secp256k1eth.Name],
 	})
 	t.Cleanup(func() {
 		crypto.Init(&crypto.Config{}, map[string][]byte{
-			secp256k1eth.Name: []byte(fmt.Sprintf(`{"evmChainID": %d, "coinsPrecision": 100000000}`, oldChainID)),
+			secp256k1eth.Name: []byte(fmt.Sprintf(`{"evmChainID": %d}`, oldChainID)),
 		})
 	})
 
@@ -142,15 +142,14 @@ func initEmbeddedEthEnv(t *testing.T, cfg *types.Chain33Config) (*ecdsa.PrivateK
 	return priv, pub
 }
 
-// TestCheckTxGroupCarrierRejected: an eth-signature carrier can no longer be a group
-// member. Its envelope must have the single-transaction shape, so grouping one is
-// rejected at signature verification, before the group nonce rules run.
-func TestCheckTxGroupCarrierRejected(t *testing.T) {
+// TestCheckEthSignedEnvelopeFork pins the mempool decision: below the fork the envelope
+// rule is off, so an already-mined assembler shape enters the pool; at the fork the same
+// shape is rejected because it is not what the current assembler emits.
+func TestCheckEthSignedEnvelopeFork(t *testing.T) {
 	cfg := types.NewChain33Config(types.MergeCfg(
 		types.ReadFile("../../cmd/chain33/chain33.test.toml"),
 		types.ReadFile("../../cmd/chain33/chain33.fork.toml")))
 	priv, pub := initEmbeddedEthEnv(t, cfg)
-	feeRate := cfg.GetMinTxFeeRate()
 
 	to := ecommon.HexToAddress("0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	etx := etypes.NewTx(&etypes.DynamicFeeTx{
@@ -166,31 +165,30 @@ func TestCheckTxGroupCarrierRejected(t *testing.T) {
 	require.Nil(t, err)
 	carrier := erpctypes.AssembleChain33Tx(etx, sig, pub.Bytes(), cfg)
 	require.NotNil(t, carrier)
-	// sanity: the carrier verifies on its own
+	// The v1.67.4 assembler charged max(gas, 1e5); this config uses another fee floor,
+	// so the legacy shape is distinguishable from the canonical one.
+	carrier.Fee = 1e5
 	require.True(t, carrier.CheckSign(0))
 
-	plain := &types.Transaction{
-		ChainID: cfg.GetChainID(),
-		Execer:  []byte("coins"),
-		Payload: types.Encode(&cty.CoinsAction{
-			Value: &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}},
-			Ty:    cty.CoinsActionTransfer,
-		}),
-		To:    toAddr,
-		Nonce: 2,
-	}
-	group, err := types.CreateTxGroup([]*types.Transaction{carrier, plain}, feeRate)
-	require.Nil(t, err)
-	require.False(t, group.CheckSign(0))
+	for _, tc := range []struct {
+		name   string
+		fork   int64
+		wantOK bool
+	}{
+		{"before fork", types.MaxHeight, true},
+		{"at fork", 0, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, mem := initEnv(10)
+			defer mem.Close()
+			mem.client.GetConfig().SetFork(types.ForkEthSignEnvelope, tc.fork)
 
-	_, mem := initEnv(10)
-	defer mem.Close()
-	msg := mem.client.NewMessage("mempool", types.EventTx, group.Tx())
-	mem.client.Send(msg, true)
-	msg, err = mem.client.Wait(msg)
-	require.Nil(t, err)
-	reply := msg.GetData().(*types.Reply)
-	assert.False(t, reply.GetIsOk())
-	assert.Equal(t, types.ErrSign.Error(), string(reply.GetMsg()))
-	assert.Equal(t, 0, mem.Size())
+			msg := mem.checkTxs(mem.client.NewMessage("mempool", types.EventTx, carrier))
+			if tc.wantOK {
+				require.IsType(t, &types.TransactionCache{}, msg.GetData())
+			} else {
+				require.Error(t, msg.Err())
+			}
+		})
+	}
 }

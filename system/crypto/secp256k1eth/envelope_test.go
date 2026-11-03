@@ -28,12 +28,17 @@ const (
 	testEvmChainID = 3999
 	testEvmExecer  = "evm"
 	testParaTitle  = "user.p.para."
+	// envelopeForkHeight is the height the envelope rule is enabled at in these tests.
+	envelopeForkHeight = 100
 )
 
 var (
 	testPrivKeyHex = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 	testAttacker   = ecommon.HexToAddress("0x1111111111111111111111111111111111111111")
 	testRecipient  = ecommon.HexToAddress("0x2222222222222222222222222222222222222222")
+	// testChecksumRecipient has hex letters, so its EIP-55 spelling differs from its
+	// lower-case spelling and an address-format test can tell the two apart.
+	testChecksumRecipient = ecommon.HexToAddress("0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B")
 	// testProxyAddr is the configured proxy exec address on bityuan.
 	testProxyAddr = ecommon.HexToAddress("0x0000000000000000000000000000000000200005")
 )
@@ -46,18 +51,17 @@ func newTestConfig(para bool) *ctypes.Chain33Config {
 	return cfg
 }
 
-// startEnv initializes the driver exactly as a node does: the chain parameters are
-// copied into the [crypto.sub.secp256k1eth] sub config by Chain33Config.EthCryptoSubConfig.
+// startEnv initializes the driver exactly as a node does, from the configured
+// [crypto.sub.secp256k1eth] sub config.
 func startEnv(t *testing.T, cfg *ctypes.Chain33Config) (*ecdsa.PrivateKey, chain33crypto.PubKey) {
 	t.Helper()
 	oldChainID := secp256k1eth.GetEvmChainID()
-	sub := cfg.GetSubConfig().Crypto[secp256k1eth.Name]
 	chain33crypto.Init(&chain33crypto.Config{}, map[string][]byte{
-		secp256k1eth.Name: cfg.EthCryptoSubConfig(sub),
+		secp256k1eth.Name: cfg.GetSubConfig().Crypto[secp256k1eth.Name],
 	})
 	t.Cleanup(func() {
 		chain33crypto.Init(&chain33crypto.Config{}, map[string][]byte{
-			secp256k1eth.Name: []byte(fmt.Sprintf(`{"evmChainID": %d, "coinsPrecision": 100000000}`, oldChainID)),
+			secp256k1eth.Name: []byte(fmt.Sprintf(`{"evmChainID": %d}`, oldChainID)),
 		})
 	})
 
@@ -75,6 +79,7 @@ func newTestEnv(t *testing.T, para bool) (*ctypes.Chain33Config, *ecdsa.PrivateK
 	t.Helper()
 	cfg := newTestConfig(para)
 	priv, pub := startEnv(t, cfg)
+	cfg.SetFork(ctypes.ForkEthSignEnvelope, envelopeForkHeight)
 	return cfg, priv, pub
 }
 
@@ -131,8 +136,25 @@ func encodeAction(t *testing.T, tx *stypes.TransactionChain33, action *stypes.EV
 	tx.Payload = payload
 }
 
+// asChain33Tx converts the assembled wire transaction to the root representation and
+// marks it as an eth-signed carrier, which is the shape Transaction.check inspects.
+func asChain33Tx(t *testing.T, tx *stypes.TransactionChain33) *ctypes.Transaction {
+	t.Helper()
+	out := new(ctypes.Transaction)
+	require.NoError(t, ctypes.Decode(marshalTx(t, tx), out))
+	out.Signature = &ctypes.Signature{Ty: ctypes.EncodeSignID(secp256k1eth.ID, ctypes.EthAddressID)}
+	return out
+}
+
+// checkEnvelope runs Transaction.check, the layer the mempool and block execution use,
+// with minfee zero so that only the height-gated rules run.
+func checkEnvelope(t *testing.T, cfg *ctypes.Chain33Config, tx *stypes.TransactionChain33, height int64) error {
+	t.Helper()
+	return asChain33Tx(t, tx).Check(cfg, height, 0, 0)
+}
+
 // TestEthAssemblerShapesVerify builds every shape the assembler produces with the real
-// builder and requires the verifier to accept it.
+// builder and requires the signature and the envelope rule to accept it at the fork.
 func TestEthAssemblerShapesVerify(t *testing.T) {
 	cfg, priv, pub := newTestEnv(t, false)
 
@@ -143,8 +165,9 @@ func TestEthAssemblerShapesVerify(t *testing.T) {
 	}
 	for name, etx := range cases {
 		t.Run(name, func(t *testing.T) {
-			msg := marshalTx(t, assembleWith(t, cfg, etx))
-			require.True(t, pub.VerifyBytes(msg, signEthTx(t, priv, etx)))
+			built := assembleWith(t, cfg, etx)
+			require.True(t, pub.VerifyBytes(marshalTx(t, built), signEthTx(t, priv, etx)))
+			require.NoError(t, checkEnvelope(t, cfg, built, envelopeForkHeight))
 		})
 	}
 }
@@ -156,6 +179,7 @@ func TestEthParaExecerVerifies(t *testing.T) {
 	require.Equal(t, cfg.ExecName("evm"), string(built.Execer))
 	require.Equal(t, address.ExecAddress(cfg.ExecName("evm")), built.To)
 	require.True(t, pub.VerifyBytes(marshalTx(t, built), signEthTx(t, priv, etx)))
+	require.NoError(t, checkEnvelope(t, cfg, built, envelopeForkHeight))
 }
 
 // TestEthEnvelopeRewritesRejected mutates one envelope field at a time on a transaction
@@ -163,15 +187,14 @@ func TestEthParaExecerVerifies(t *testing.T) {
 // transaction in every case, so only the rebuild comparison stands between the mutation
 // and execution.
 func TestEthEnvelopeRewritesRejected(t *testing.T) {
-	cfg, priv, pub := newTestEnv(t, false)
+	cfg, _, _ := newTestEnv(t, false)
 	base := newEthTx(7, &testRecipient, nil)
-	sig := signEthTx(t, priv, base)
 
-	mutate := func(t *testing.T, change func(*stypes.TransactionChain33)) []byte {
+	mutate := func(t *testing.T, change func(*stypes.TransactionChain33)) *stypes.TransactionChain33 {
 		t.Helper()
 		tx := assembleWith(t, cfg, base)
 		change(tx)
-		return marshalTx(t, tx)
+		return tx
 	}
 	cases := map[string]func(*stypes.TransactionChain33){
 		"execer": func(tx *stypes.TransactionChain33) { tx.Execer = []byte("user.evm.other") },
@@ -232,7 +255,7 @@ func TestEthEnvelopeRewritesRejected(t *testing.T) {
 	}
 	for name, change := range cases {
 		t.Run(name, func(t *testing.T) {
-			require.False(t, pub.VerifyBytes(mutate(t, change), sig))
+			require.Error(t, checkEnvelope(t, cfg, mutate(t, change), envelopeForkHeight))
 		})
 	}
 }
@@ -240,25 +263,23 @@ func TestEthEnvelopeRewritesRejected(t *testing.T) {
 // TestEthDeployRewrapRejected covers the deployment rewrite: a pending deployment given
 // call data and a proxy destination would execute as the signer on ForkProxyExec chains.
 func TestEthDeployRewrapRejected(t *testing.T) {
-	cfg, priv, pub := newTestEnv(t, false)
+	cfg, _, _ := newTestEnv(t, false)
 	etx := newEthTx(3, nil, []byte{0x60, 0x00, 0x60, 0x00})
-	sig := signEthTx(t, priv, etx)
 
 	tx := assembleWith(t, cfg, etx)
 	action := decodeAction(t, tx)
 	action.Para = testAttacker.Bytes()
 	encodeAction(t, tx, action)
 	tx.To = strings.ToLower(testProxyAddr.String())
-	require.False(t, pub.VerifyBytes(marshalTx(t, tx), sig))
+	require.Error(t, checkEnvelope(t, cfg, tx, envelopeForkHeight))
 }
 
 // TestEthEmptyDataCreationRejected covers an embedded transaction with neither To nor
 // Data. The assembler cannot produce it (the coins branch dereferences To), and the
 // executor would send the attached value to ContractAddr or Para.
 func TestEthEmptyDataCreationRejected(t *testing.T) {
-	cfg, priv, pub := newTestEnv(t, false)
+	cfg, _, _ := newTestEnv(t, false)
 	etx := newEthTx(5, nil, nil)
-	sig := signEthTx(t, priv, etx)
 	execAddr := address.ExecAddress(testEvmExecer)
 
 	raw, err := etx.MarshalBinary()
@@ -278,43 +299,95 @@ func TestEthEmptyDataCreationRejected(t *testing.T) {
 				ChainID: cfg.GetChainID(),
 				Expire:  time.Now().Unix() + int64(stypes.EnvelopeExpireDuration/time.Second),
 			}
-			require.False(t, pub.VerifyBytes(marshalTx(t, tx), sig))
+			require.Error(t, checkEnvelope(t, cfg, tx, envelopeForkHeight))
 		})
 	}
 }
 
 // TestEthOverlongExecerRejectedWithoutPanic covers the remote crash: address.ExecPubKey
-// panics on an execer longer than MaxExecNameLength.
+// panics on an execer longer than MaxExecNameLength. The rebuild uses the configured
+// execer, so a transaction-supplied name is never dereferenced.
 func TestEthOverlongExecerRejectedWithoutPanic(t *testing.T) {
-	cfg, priv, pub := newTestEnv(t, false)
+	cfg, _, _ := newTestEnv(t, false)
 	etx := newEthTx(3, nil, []byte{0x60, 0x00, 0x60, 0x00})
 	tx := assembleWith(t, cfg, etx)
 	tx.Execer = []byte(testEvmExecer + strings.Repeat("a", address.MaxExecNameLength))
-	msg := marshalTx(t, tx)
-	sig := signEthTx(t, priv, etx)
 	require.NotPanics(t, func() {
-		require.False(t, pub.VerifyBytes(msg, sig))
+		require.Error(t, checkEnvelope(t, cfg, tx, envelopeForkHeight))
 	})
 }
 
-// TestEthHistoricalShapesVerify pins the two assembler eras: v1.67.4 wrote the EIP-55
-// checksummed To/ContractAddr and the hard-coded fee floor of 1e5; v1.68.0 lower-cased the
-// addresses and read MinTxFeeRate. Both must keep verifying, or replaying old blocks
-// would fork.
-func TestEthHistoricalShapesVerify(t *testing.T) {
-	cfg := newTestConfig(false)
-	cfg.SetMinFee(200000) // make the two fee rules differ
-	priv, pub := startEnv(t, cfg)
-	etx := newEthTx(9, &testRecipient, []byte{0xa9, 0x05, 0x9c, 0xbb})
-	sig := signEthTx(t, priv, etx)
-
+// historicalShape returns the v1.67.4 assembler output: EIP-55 checksummed To and
+// ContractAddr, and the hard-coded max(gas, 1e5) fee floor instead of MinTxFeeRate.
+func historicalShape(t *testing.T, cfg *ctypes.Chain33Config, etx *etypes.Transaction) *stypes.TransactionChain33 {
+	t.Helper()
 	tx := assembleWith(t, cfg, etx)
 	action := decodeAction(t, tx)
-	action.ContractAddr = ecommon.HexToAddress(action.ContractAddr).Hex() // EIP-55 spelling
+	action.ContractAddr = ecommon.HexToAddress(action.ContractAddr).Hex()
 	encodeAction(t, tx, action)
 	tx.To = ecommon.HexToAddress(tx.To).Hex()
-	tx.Fee = 1e5 // legacy max(gas, 1e5) floor; gas is below it
-	require.True(t, pub.VerifyBytes(marshalTx(t, tx), sig))
+	tx.Fee = 1e5
+	return tx
+}
+
+// TestEthHistoricalShapeAcceptedBeforeFork: below the fork no envelope verification runs,
+// so an already-mined assembler shape keeps replaying.
+func TestEthHistoricalShapeAcceptedBeforeFork(t *testing.T) {
+	cfg := newTestConfig(false)
+	cfg.SetMinFee(200000) // make the canonical fee differ from the legacy 1e5 floor
+	priv, pub := startEnv(t, cfg)
+	cfg.SetFork(ctypes.ForkEthSignEnvelope, envelopeForkHeight)
+	etx := newEthTx(9, &testChecksumRecipient, []byte{0xa9, 0x05, 0x9c, 0xbb})
+
+	tx := historicalShape(t, cfg, etx)
+	require.True(t, pub.VerifyBytes(marshalTx(t, tx), signEthTx(t, priv, etx)))
+	require.NoError(t, checkEnvelope(t, cfg, tx, envelopeForkHeight-1))
+}
+
+// TestEthHistoricalShapeRejectedAtFork: the same historical shape is rejected once the
+// fork is active, because it is not what the current assembler emits. This is intended:
+// the fork marks the point from which the canonical envelope is required.
+func TestEthHistoricalShapeRejectedAtFork(t *testing.T) {
+	cfg := newTestConfig(false)
+	cfg.SetMinFee(200000)
+	_, _ = startEnv(t, cfg)
+	cfg.SetFork(ctypes.ForkEthSignEnvelope, envelopeForkHeight)
+	etx := newEthTx(9, &testChecksumRecipient, []byte{0xa9, 0x05, 0x9c, 0xbb})
+
+	tx := historicalShape(t, cfg, etx)
+	require.Error(t, checkEnvelope(t, cfg, tx, envelopeForkHeight))
+}
+
+// TestEthLegacyFeeRejectedAtFork: the compatibility acceptance of the old fee floor is
+// gone, so a canonical envelope with the legacy fee is rejected at the fork.
+func TestEthLegacyFeeRejectedAtFork(t *testing.T) {
+	cfg := newTestConfig(false)
+	cfg.SetMinFee(200000)
+	_, _ = startEnv(t, cfg)
+	cfg.SetFork(ctypes.ForkEthSignEnvelope, envelopeForkHeight)
+	etx := newEthTx(9, &testRecipient, []byte{0xa9, 0x05, 0x9c, 0xbb})
+
+	tx := assembleWith(t, cfg, etx)
+	tx.Fee = 1e5
+	require.Error(t, checkEnvelope(t, cfg, tx, envelopeForkHeight))
+}
+
+// TestEthChecksumAddressRejectedAtFork: the EIP-55 case folding is gone, so an otherwise
+// canonical envelope with a checksummed address is rejected at the fork.
+func TestEthChecksumAddressRejectedAtFork(t *testing.T) {
+	cfg := newTestConfig(false)
+	_, _ = startEnv(t, cfg)
+	cfg.SetFork(ctypes.ForkEthSignEnvelope, envelopeForkHeight)
+	etx := newEthTx(9, &testChecksumRecipient, []byte{0xa9, 0x05, 0x9c, 0xbb})
+
+	tx := assembleWith(t, cfg, etx)
+	checksummed := testChecksumRecipient.Hex()
+	require.NotEqual(t, strings.ToLower(checksummed), checksummed, "fixture must carry a checksummed spelling")
+	action := decodeAction(t, tx)
+	action.ContractAddr = checksummed
+	encodeAction(t, tx, action)
+	tx.To = checksummed
+	require.Error(t, checkEnvelope(t, cfg, tx, envelopeForkHeight))
 }
 
 // TestEthLegacyPrecisionAmountRejected covers the assembler before v1.67.5, which converted
@@ -324,7 +397,8 @@ func TestEthHistoricalShapesVerify(t *testing.T) {
 func TestEthLegacyPrecisionAmountRejected(t *testing.T) {
 	cfg := ctypes.NewChain33Config(ctypes.MergeCfg("CoinPrecision=1000000\n", ctypes.GetDefaultCfgstring()))
 	require.Equal(t, int64(1e6), cfg.GetCoinPrecision())
-	priv, pub := startEnv(t, cfg)
+	_, _ = startEnv(t, cfg)
+	cfg.SetFork(ctypes.ForkEthSignEnvelope, envelopeForkHeight)
 
 	etx := etypes.NewTx(&etypes.DynamicFeeTx{
 		ChainID:   big.NewInt(testEvmChainID),
@@ -335,14 +409,13 @@ func TestEthLegacyPrecisionAmountRejected(t *testing.T) {
 		To:        &testRecipient,
 		Value:     big.NewInt(5e18),
 	})
-	sig := signEthTx(t, priv, etx)
 	tx := assembleWith(t, cfg, etx)
 	action := decodeAction(t, tx)
 	require.Equal(t, uint64(5e6), action.Amount) // configured precision
 
 	action.Amount = 5e8 // legacy 1e8 precision
 	encodeAction(t, tx, action)
-	require.False(t, pub.VerifyBytes(marshalTx(t, tx), sig))
+	require.Error(t, checkEnvelope(t, cfg, tx, envelopeForkHeight))
 }
 
 // TestEthCarrierTyVariant is the check-skip regression: the carrier predicate must follow

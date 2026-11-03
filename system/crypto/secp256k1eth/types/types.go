@@ -21,8 +21,6 @@ type CommonAction struct {
 	// NoteHex is the payload Note exactly as written. The signature verifier compares it
 	// with the canonical hex encoding of the embedded transaction.
 	NoteHex string
-	// Tx is the complete envelope the action was decoded from.
-	Tx *TransactionChain33
 	// IsEvm reports whether the payload decoded through the evm arm. Only that arm can
 	// carry an embedded Ethereum transaction; a coins transfer Note is a user memo.
 	IsEvm bool
@@ -62,7 +60,6 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 				Code:    code,
 				Nonce:   tx.Nonce,
 				NoteHex: evmaction.Note,
-				Tx:      &tx,
 				IsEvm:   true,
 			}, nil
 		}
@@ -79,7 +76,6 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 				To:     transfer.Transfer.To,
 				Amount: uint64(transfer.Transfer.GetAmount()),
 				Nonce:  tx.Nonce,
-				Tx:     &tx,
 			}, nil
 		}
 		err = errors.New("action no support")
