@@ -55,24 +55,35 @@ func newTestConfig(para bool) *ctypes.Chain33Config {
 // [crypto.sub.secp256k1eth] sub config.
 func startEnv(t *testing.T, cfg *ctypes.Chain33Config) (*ecdsa.PrivateKey, chain33crypto.PubKey) {
 	t.Helper()
+	return initDriver(t, cfg.GetSubConfig().Crypto[secp256k1eth.Name])
+}
+
+// initDriver starts the eth signature driver from an explicit sub config, which is how a
+// node passes it the evm chain id and the chain's coin precision.
+func initDriver(t *testing.T, sub []byte) (*ecdsa.PrivateKey, chain33crypto.PubKey) {
+	t.Helper()
 	oldChainID := secp256k1eth.GetEvmChainID()
-	chain33crypto.Init(&chain33crypto.Config{}, map[string][]byte{
-		secp256k1eth.Name: cfg.GetSubConfig().Crypto[secp256k1eth.Name],
-	})
+	chain33crypto.Init(&chain33crypto.Config{}, map[string][]byte{secp256k1eth.Name: sub})
 	t.Cleanup(func() {
 		chain33crypto.Init(&chain33crypto.Config{}, map[string][]byte{
 			secp256k1eth.Name: []byte(fmt.Sprintf(`{"evmChainID": %d}`, oldChainID)),
 		})
 	})
 
-	key, err := common.FromHex(testPrivKeyHex)
-	require.NoError(t, err)
-	priv, err := ethcrypto.ToECDSA(key)
-	require.NoError(t, err)
+	priv := privKeyForTest(t)
 	driver := secp256k1eth.Driver{}
 	pub, err := driver.PubKeyFromBytes(ethcrypto.FromECDSAPub(&priv.PublicKey))
 	require.NoError(t, err)
 	return priv, pub
+}
+
+func privKeyForTest(t *testing.T) *ecdsa.PrivateKey {
+	t.Helper()
+	key, err := common.FromHex(testPrivKeyHex)
+	require.NoError(t, err)
+	priv, err := ethcrypto.ToECDSA(key)
+	require.NoError(t, err)
+	return priv
 }
 
 func newTestEnv(t *testing.T, para bool) (*ctypes.Chain33Config, *ecdsa.PrivateKey, chain33crypto.PubKey) {
@@ -84,6 +95,10 @@ func newTestEnv(t *testing.T, para bool) (*ctypes.Chain33Config, *ecdsa.PrivateK
 }
 
 func newEthTx(nonce uint64, to *ecommon.Address, data []byte) *etypes.Transaction {
+	return newEthTxValue(nonce, to, data, big.NewInt(0))
+}
+
+func newEthTxValue(nonce uint64, to *ecommon.Address, data []byte, value *big.Int) *etypes.Transaction {
 	return etypes.NewTx(&etypes.DynamicFeeTx{
 		ChainID:   big.NewInt(testEvmChainID),
 		Nonce:     nonce,
@@ -91,7 +106,7 @@ func newEthTx(nonce uint64, to *ecommon.Address, data []byte) *etypes.Transactio
 		GasFeeCap: big.NewInt(1),
 		Gas:       100000,
 		To:        to,
-		Value:     big.NewInt(0),
+		Value:     value,
 		Data:      data,
 	})
 }
@@ -434,6 +449,46 @@ func TestEthCarrierTyVariant(t *testing.T) {
 		_, ok := ctypes.EthSignedTxEnvelope(tx)
 		require.True(t, ok, "address id %d", addressID)
 	}
+}
+
+// TestEthTransferShapeUnderHistoricalChecks: a plain transfer is an evm payload whose Para
+// holds the recipient and whose ContractAddr is the executor. The historical checks read
+// the destination from there, so the shape has to keep decoding that way and a rewritten
+// recipient has to fail verification.
+func TestEthTransferShapeUnderHistoricalChecks(t *testing.T) {
+	cfg := newTestConfig(false)
+	priv, pub := startEnv(t, cfg)
+	etx := newEthTx(7, &testRecipient, nil)
+	tx := assembleWith(t, cfg, etx)
+	action := decodeAction(t, tx)
+	require.Equal(t, testRecipient.Bytes(), action.Para)
+	require.Equal(t, address.ExecAddress(testEvmExecer), action.ContractAddr)
+	sig := signEthTx(t, priv, etx)
+	require.True(t, pub.VerifyBytes(marshalTx(t, tx), sig))
+
+	rewritten := assembleWith(t, cfg, etx)
+	ra := decodeAction(t, rewritten)
+	ra.Para = testAttacker.Bytes()
+	encodeAction(t, rewritten, ra)
+	require.False(t, pub.VerifyBytes(marshalTx(t, rewritten), sig))
+}
+
+// TestEthAmountUsesCoinPrecision: the amount check converts the signed wei value with the
+// chain's coin precision, which a node copies into the driver sub config. A driver left on
+// the default precision therefore rejects a transaction assembled on such a chain, which
+// pins the injection that feeds it.
+func TestEthAmountUsesCoinPrecision(t *testing.T) {
+	cfg := ctypes.NewChain33Config(ctypes.MergeCfg("CoinPrecision=1000000\n", ctypes.GetDefaultCfgstring()))
+	require.Equal(t, int64(1e6), cfg.GetCoinPrecision())
+	etx := newEthTxValue(9, &testRecipient, nil, big.NewInt(2e18))
+	tx := assembleWith(t, cfg, etx)
+	sig := signEthTx(t, privKeyForTest(t), etx)
+
+	_, pub := initDriver(t, []byte(`{"evmChainID": 3999, "coinsPrecision": 1000000}`))
+	require.True(t, pub.VerifyBytes(marshalTx(t, tx), sig))
+
+	_, pubDefault := initDriver(t, []byte(`{"evmChainID": 3999}`))
+	require.False(t, pubDefault.VerifyBytes(marshalTx(t, tx), sig))
 }
 
 // TestEthCarrierAddressIDRejectedAtFork: the address id sits in the signature type next to

@@ -269,6 +269,7 @@ func initEvmIDFun(sub []byte) {
 	}
 	utils.MustDecode(sub, &id)
 	chainID = id.EvmChainID
+	coinsPrecision = 1e8
 	if id.CoinsPrecision > 0 {
 		coinsPrecision = id.CoinsPrecision
 	}
