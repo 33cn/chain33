@@ -472,23 +472,27 @@ func TestEthHandler_SendRawTransaction(t *testing.T) {
 	ok := chain33Tx.CheckSign(-1)
 	require.True(t, ok)
 
-	//测试修改chain33Tx 数据：eth 签名只覆盖内嵌的 eth 交易，信封字段由
-	//Transaction.check 在 ForkEthSignEnvelope 之后单独校验，这里把分叉高度设为 0。
+	//测试修改chain33Tx 数据：nonce/amount/code/to 四项是历史共识检查，验签时就会拒绝；
+	//其余信封字段由 Transaction.check 在 ForkEthSignEnvelope 之后校验，这里把分叉高度设为 0。
 	ethCli.cfg.SetFork(ctypes.ForkEthSignEnvelope, 0)
 	require.NoError(t, chain33Tx.Check(ethCli.cfg, 0, 0, 0))
 	mutations := []struct {
 		name   string
 		mutate func(*ctypes.Transaction)
-		// signed reports whether the embedded eth signature still verifies. The execer
-		// selects the driver and the payload holds the signed eth transaction, so those
-		// two rewrites break signature verification as well.
+		// signed reports whether the transaction still passes signature verification. The
+		// execer selects the driver, the payload holds the signed eth transaction, and the
+		// nonce duplicates a field of that transaction, so rewriting either is rejected
+		// before the fork-gated envelope rule is reached. This is the historical behaviour
+		// and applies at every height.
 		signed bool
 		// envelope reports whether the chain33 envelope rule still recognizes the
 		// transaction as a carrier. A corrupt payload fails earlier, at signature
 		// verification, and is no longer a decodable eth carrier.
 		envelope bool
 	}{
-		{"nonce", func(tx *ctypes.Transaction) { tx.Nonce = rand.New(rand.NewSource(time.Now().UnixNano())).Int63() }, true, true},
+		{"nonce", func(tx *ctypes.Transaction) { tx.Nonce = rand.New(rand.NewSource(time.Now().UnixNano())).Int63() }, false, true},
+		// the envelope destination has no twin inside the payload, so only the fork-gated
+		// rule catches it; the historical checks see nothing to compare it with.
 		{"to", func(tx *ctypes.Transaction) { tx.To = "0xa06c8907eb1c8a266165f5484c5ea3bd4e0520a8" }, true, true},
 		{"execer", func(tx *ctypes.Transaction) { tx.Execer = []byte("coinsX") }, false, true},
 		{"payload", func(tx *ctypes.Transaction) { tx.Payload = append(tx.GetPayload(), uint8(8)) }, false, false},

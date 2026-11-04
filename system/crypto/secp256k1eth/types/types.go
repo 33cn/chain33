@@ -49,8 +49,12 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 				code = evmaction.GetCode() //部署合约
 
 			} else {
-				code = evmaction.GetPara()
-				to = evmaction.ContractAddr
+				if evmaction.GetContractAddr() != address.ExecAddress(string(tx.GetExecer())) {
+					code = evmaction.GetPara()
+					to = evmaction.ContractAddr
+				} else { //coins 转账: Para 是收款地址, 不是调用数据
+					to = common.Bytes2Hex(evmaction.GetPara())
+				}
 			}
 
 			return &CommonAction{

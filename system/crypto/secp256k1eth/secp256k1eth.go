@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth/types"
 	secp256k1 "github.com/btcsuite/btcd/btcec/v2"
+	ecommon "github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
@@ -29,6 +31,10 @@ var log = log15.New("module", Name)
 
 var (
 	chainID int64 // EVM chain id the embedded transaction must use
+	// coinsPrecision converts the embedded transaction's wei value into the chain33
+	// amount. It comes from the chain config through the driver sub config and falls
+	// back to the chain33 default.
+	coinsPrecision int64 = 1e8
 )
 
 // PrivKeySecp256k1Eth PrivKey
@@ -201,6 +207,26 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 		}
 		signer := etypes.NewLondonSigner(etx.ChainId())
 		hash = signer.Hash(etx).Bytes() //metamask,eth 兼容交易，取出eth 交易格式下的哈希
+		// 下面四项是分叉前就存在的共识检查: 它们比对的是 eth 交易与信封里重复出现的
+		// 字段, 任何一项不一致都说明信封被第三方改写过。fork 之后 checkEthSignEnvelope
+		// 会全量重建比对, 但 fork 之前这些检查必须保留, 否则伪造信封比升级前更容易。
+		if action.Nonce != int64(etx.Nonce()) {
+			log.Error("VerifyBytes", "action.Nonce", action.Nonce, "tx.Nonce", etx.Nonce())
+			return false
+		}
+		amount := new(big.Int).Div(etx.Value(), new(big.Int).Div(big.NewInt(1e18), big.NewInt(coinsPrecision)))
+		if amount.Uint64() != action.Amount { //防止自组装的chain33 Tx amount 被篡改
+			log.Error("VerifyBytes", "amount", amount, "action.Amount", action.Amount)
+			return false
+		}
+		if !bytes.Equal(etx.Data(), action.Code) { // 防止合约代码被篡改
+			log.Error("VerifyBytes", "msg", "action.Code not equal")
+			return false
+		}
+		if etx.To() != nil && !bytes.Equal(ecommon.FromHex(action.To), etx.To().Bytes()) {
+			log.Error("VerifyBytes", "msg", "action.To not equal", "ex.To", etx.To(), "action.To", action.To)
+			return false
+		}
 	}
 
 	sigBytes := sig.Bytes()
@@ -238,10 +264,14 @@ func (pubKey PubKeySecp256k1Eth) Equals(other crypto.PubKey) bool {
 
 func initEvmIDFun(sub []byte) {
 	var id struct {
-		EvmChainID int64 `json:"evmChainID,omitempty"`
+		EvmChainID     int64 `json:"evmChainID,omitempty"`
+		CoinsPrecision int64 `json:"coinsPrecision,omitempty"`
 	}
 	utils.MustDecode(sub, &id)
 	chainID = id.EvmChainID
+	if id.CoinsPrecision > 0 {
+		coinsPrecision = id.CoinsPrecision
+	}
 }
 
 // GetEvmChainID return evm chainID

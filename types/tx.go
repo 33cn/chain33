@@ -952,6 +952,13 @@ func (tx *Transaction) checkEthSignEnvelope(cfg *Chain33Config) error {
 	if !ok {
 		return nil
 	}
+	// The signature type carries an address id next to the crypto id, and that id is not
+	// part of the signed bytes. A variant with another address id still verifies, but it
+	// derives a different sender and skips the eth nonce and write-permission rules, so
+	// only the exact type the eth assembler produces is accepted once this rule is active.
+	if !IsEthSignID(tx.GetSignature().GetTy()) {
+		return ErrSign
+	}
 	envelope := &stypes.TransactionChain33{
 		Execer:     tx.Execer,
 		Payload:    tx.Payload,

@@ -436,6 +436,60 @@ func TestEthCarrierTyVariant(t *testing.T) {
 	}
 }
 
+// TestEthCarrierAddressIDRejectedAtFork: the address id sits in the signature type next to
+// the crypto id, and it is not part of the signed bytes. Swapping it still verifies, but
+// it derives a sender in another address format and skips the eth nonce and write
+// permission rules, so from the fork on only the type the eth assembler produces is
+// accepted. Below the fork the old behaviour is kept.
+func TestEthCarrierAddressIDRejectedAtFork(t *testing.T) {
+	cfg := newTestConfig(false)
+	_, _ = startEnv(t, cfg)
+	cfg.SetFork(ctypes.ForkEthSignEnvelope, envelopeForkHeight)
+	etx := newEthTx(9, &testRecipient, []byte{0xa9, 0x05, 0x9c, 0xbb})
+	assembled := assembleWith(t, cfg, etx)
+
+	require.NoError(t, asChain33Tx(t, assembled).Check(cfg, envelopeForkHeight, 0, 0))
+
+	for addressID := int32(0); addressID <= address.MaxID; addressID++ {
+		if addressID == ctypes.EthAddressID {
+			continue
+		}
+		variant := asChain33Tx(t, assembled)
+		variant.Signature.Ty = ctypes.EncodeSignID(secp256k1eth.ID, addressID)
+		require.NoError(t, variant.Check(cfg, envelopeForkHeight-1, 0, 0), "address id %d below the fork", addressID)
+		require.Error(t, variant.Check(cfg, envelopeForkHeight, 0, 0), "address id %d at the fork", addressID)
+	}
+}
+
+// TestEthEnvelopeDuplicateFieldsRejectedWithoutFork: the nonce, amount, code and
+// destination of the chain33 envelope duplicate fields of the signed Ethereum
+// transaction, and they were checked at signature verification long before the fork-gated
+// rebuild existed. They must keep rejecting rewrites below the fork, otherwise an
+// upgrade would leave a window in which forging is easier than it was before.
+func TestEthEnvelopeDuplicateFieldsRejectedWithoutFork(t *testing.T) {
+	cfg := newTestConfig(false)
+	priv, pub := startEnv(t, cfg)
+	etx := newEthTx(9, &testRecipient, []byte{0xa9, 0x05, 0x9c, 0xbb})
+	sig := signEthTx(t, priv, etx)
+	require.True(t, pub.VerifyBytes(marshalTx(t, assembleWith(t, cfg, etx)), sig))
+
+	cases := map[string]func(*stypes.EVMAction4Chain33){
+		"amount": func(a *stypes.EVMAction4Chain33) { a.Amount++ },
+		"code":   func(a *stypes.EVMAction4Chain33) { a.Para = []byte{0x01, 0x02} },
+		"to":     func(a *stypes.EVMAction4Chain33) { a.ContractAddr = testAttacker.Hex() },
+	}
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			tx := assembleWith(t, cfg, etx)
+			action := decodeAction(t, tx)
+			mutate(action)
+			encodeAction(t, tx, action)
+			require.False(t, pub.VerifyBytes(marshalTx(t, tx), sig),
+				"a rewritten envelope must not pass signature verification")
+		})
+	}
+}
+
 func mustMarshal(t *testing.T, etx *etypes.Transaction) []byte {
 	t.Helper()
 	raw, err := etx.MarshalBinary()

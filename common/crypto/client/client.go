@@ -7,6 +7,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -16,11 +17,32 @@ import (
 	"github.com/33cn/chain33/client"
 	"github.com/33cn/chain33/common/crypto"
 	"github.com/33cn/chain33/queue"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"github.com/33cn/chain33/types"
 )
 
 type msgHandler func(message *queue.Message)
 type subInitFunc func(ctx CryptoContext) error
+
+// withEthCoinsPrecision copies the chain's coin precision into the eth signature
+// driver's sub config. The driver only receives its own sub config, and it needs the
+// precision to compare the amount carried in the transaction envelope with the value of
+// the signed Ethereum transaction.
+func withEthCoinsPrecision(cfg *types.Chain33Config, subCfg map[string][]byte) map[string][]byte {
+	conf := make(map[string]interface{})
+	if raw := subCfg[secp256k1eth.Name]; len(raw) > 0 {
+		if err := json.Unmarshal(raw, &conf); err != nil {
+			conf = make(map[string]interface{})
+		}
+	}
+	conf["coinsPrecision"] = cfg.GetCoinPrecision()
+	data, err := json.Marshal(conf)
+	if err != nil {
+		return subCfg
+	}
+	subCfg[secp256k1eth.Name] = data
+	return subCfg
+}
 
 var (
 	cryptoCtx    = &CryptoContext{}
@@ -94,6 +116,7 @@ func (m module) SetQueueClient(cli queue.Client) {
 	if subCfg == nil {
 		subCfg = make(map[string][]byte)
 	}
+	subCfg = withEthCoinsPrecision(cfg, subCfg)
 	crypto.Init(cfg.GetModuleConfig().Crypto, subCfg)
 	api, err := client.New(cli, nil)
 	if err != nil {
