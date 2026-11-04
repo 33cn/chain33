@@ -19,7 +19,7 @@ func TestPeerInfoManager(t *testing.T) {
 	require.Nil(t, mgr.Fetch(h1.ID()))
 	require.Nil(t, mgr.FetchAll())
 	mgr.Refresh(&types.Peer{
-		Name: h1.ID().Pretty(),
+		Name: h1.ID().String(),
 		Header: &types.Header{
 			Height: 888,
 		},

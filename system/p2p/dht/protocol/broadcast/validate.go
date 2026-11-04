@@ -119,7 +119,7 @@ func (v *validator) handleBroadcastReply(reply *types.Reply, msg *broadcastMsg) 
 	if msg.msg.Ty == types.EventTx {
 		denyTime = errTxDenyTime
 	}
-	peerName := msg.publisher.Pretty()
+	peerName := msg.publisher.String()
 	log.Debug("handleBcRep", "errMsg", errMsg, "hash", msg.hash, "peer", peerName)
 	v.addDeniedPeer(msg.publisher, denyTime)
 	// 尝试断开并拉黑处理
@@ -171,7 +171,7 @@ func (v *validator) recoverDeniedPeers() {
 	now := types.Now().Unix()
 
 	for id, info := range v.deniedPeers {
-		log.Debug("recoverDeniedPeers", "peer", id.Pretty(), "count", info.count, "freeTime", info.freeTimestamp)
+		log.Debug("recoverDeniedPeers", "peer", id.String(), "count", info.count, "freeTime", info.freeTimestamp)
 		if info.count <= 0 && info.freeTimestamp <= now {
 			delete(v.deniedPeers, id)
 		}
@@ -217,7 +217,7 @@ func (v *validator) validateBlock(ctx context.Context, _ peer.ID, msg *ps.Messag
 	}
 
 	if v.isDeniedPeer(id) {
-		log.Debug("validateBlock", "denied peer", id.Pretty())
+		log.Debug("validateBlock", "denied peer", id.String())
 		return ps.ValidationReject
 	}
 
@@ -284,7 +284,7 @@ func (v *validator) validateBlock(ctx context.Context, _ peer.ID, msg *ps.Messag
 func (v *validator) validatePeer(ctx context.Context, _ peer.ID, msg *ps.Message) ps.ValidationResult {
 	id := msg.GetFrom()
 	if v.isDeniedPeer(id) {
-		log.Debug("validatePeer", "topic", *msg.Topic, "denied peer", id.Pretty())
+		log.Debug("validatePeer", "topic", *msg.Topic, "denied peer", id.String())
 		return ps.ValidationReject
 	}
 	return ps.ValidationAccept

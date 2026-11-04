@@ -137,10 +137,10 @@ func TestInit(t *testing.T) {
 	testGetHeaders(t, client, p2pA, &types.ReqBlocks{
 		Start: 100,
 		End:   199,
-		Pid:   []string{p2.Host.ID().Pretty()},
+		Pid:   []string{p2.Host.ID().String()},
 	})
 	msg = <-msgCh
-	require.Equal(t, p2.Host.ID().Pretty(), msg.Data.(*types.HeadersPid).GetPid())
+	require.Equal(t, p2.Host.ID().String(), msg.Data.(*types.HeadersPid).GetPid())
 	require.Equal(t, 100, len(msg.Data.(*types.HeadersPid).GetHeaders().Items))
 
 	//　更新数据后应该能查到数据

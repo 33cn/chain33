@@ -41,7 +41,7 @@ func (p *Protocol) handleStreamVersion(stream network.Stream) {
 	}
 	if req.GetVersion() != p.SubConfig.Channel {
 		// 不是同一条链，拉黑且断开连接
-		p.ConnBlackList.Add(stream.Conn().RemotePeer().Pretty(), time.Hour*24)
+		p.ConnBlackList.Add(stream.Conn().RemotePeer().String(), time.Hour*24)
 		_ = stream.Conn().Close()
 		return
 	}
@@ -111,7 +111,7 @@ func (p *Protocol) handleStreamVersionOld(stream network.Stream) {
 	msg := req.Message
 	if msg.GetVersion() != p.SubConfig.Channel {
 		// 不是同一条链，拉黑且断开连接
-		p.ConnBlackList.Add(stream.Conn().RemotePeer().Pretty(), time.Hour*24)
+		p.ConnBlackList.Add(stream.Conn().RemotePeer().String(), time.Hour*24)
 		_ = stream.Conn().Close()
 		return
 	}

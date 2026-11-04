@@ -39,7 +39,7 @@ func ReadStream(data types.Message, stream network.Stream) error {
 	var header [messageHeaderLen]byte
 	_, err := io.ReadFull(stream, header[:])
 	if err != nil || !bytes.Equal(header[:], messageHeader) {
-		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "read header err", err)
+		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().String(), "protocolID", stream.Protocol(), "read header err", err)
 		return err
 	}
 
@@ -48,12 +48,12 @@ func ReadStream(data types.Message, stream network.Stream) error {
 	// 内部使用了内存池, 回收内存
 	defer reader.ReleaseMsg(msg)
 	if err != nil {
-		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "read msg err", err)
+		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().String(), "protocolID", stream.Protocol(), "read msg err", err)
 		return err
 	}
 	err = types.Decode(msg, data)
 	if err != nil {
-		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "decode err", err)
+		log.Error("ReadStream", "pid", stream.Conn().RemotePeer().String(), "protocolID", stream.Protocol(), "decode err", err)
 		return err
 	}
 	return nil
@@ -64,14 +64,14 @@ func WriteStream(data types.Message, stream network.Stream) error {
 
 	_, err := stream.Write(messageHeader)
 	if err != nil {
-		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "write header err", err)
+		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().String(), "protocolID", stream.Protocol(), "write header err", err)
 		return err
 	}
 	msg := types.Encode(data)
 	writer := msgio.NewWriter(stream)
 	err = writer.WriteMsg(msg)
 	if err != nil {
-		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().Pretty(), "protocolID", stream.Protocol(), "write msg err", err)
+		log.Error("WriteStream", "pid", stream.Conn().RemotePeer().String(), "protocolID", stream.Protocol(), "write msg err", err)
 		return err
 	}
 	return nil
