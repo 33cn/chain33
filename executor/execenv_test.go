@@ -16,6 +16,7 @@ import (
 	ecommon "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/stretchr/testify/require"
 
 	"strings"
 
@@ -167,6 +168,61 @@ func TestProxyExec(t *testing.T) {
 
 	//与原始交易对比
 	assert.Equal(t, coinsTx.Hash(), testTx.Hash())
+}
+
+// TestProxyExecRejectsRewrittenEnvelope: proxy execution replaces the block transaction
+// with the one packed in Para before checkTx runs, so the envelope rule never sees the
+// carrier. It has to be applied to the transaction as it appears in the block, otherwise a
+// block producer can rewrite the envelope of a proxy carrier without the rule ever running.
+func TestProxyExecRejectsRewrittenEnvelope(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	proxyAddrHex := cfg.GetModuleConfig().Exec.ProxyExecAddress
+	require.NotEmpty(t, proxyAddrHex)
+	cfg.SetFork("ForkProxyExec", 0)
+	cfg.SetFork(types.ForkEthSignEnvelope, 0)
+
+	proxyAddr := ecommon.HexToAddress(proxyAddrHex)
+	sk, err := ethcrypto.ToECDSA(ecommon.FromHex("7939624566468cfa3cb2c9f39d5ad83bdc7cf4356bfd1a7b8094abda6b0699d1"))
+	require.NoError(t, err)
+	to, _ := util.Genaddress()
+	coinsTx := util.CreateCoinsTx(cfg, nil, to, 1000)
+	etx := ethtypes.NewTransaction(uint64(0), proxyAddr, big.NewInt(0), 3000000, big.NewInt(10e9), types.Encode(coinsTx))
+	signer := ethtypes.NewEIP155Signer(big.NewInt(3999))
+	signtx, err := ethtypes.SignTx(etx, signer, sk)
+	require.NoError(t, err)
+	v, r, s := signtx.RawSignatureValues()
+	cv, err := erpctypes.CaculateRealV(v, signtx.ChainId().Uint64(), signtx.Type())
+	require.NoError(t, err)
+	sig := make([]byte, 65)
+	copy(sig[32-len(r.Bytes()):32], r.Bytes())
+	copy(sig[64-len(s.Bytes()):64], s.Bytes())
+	sig[64] = cv
+	txSha3 := signer.Hash(signtx)
+	pubkey, err := ethcrypto.Ecrecover(txSha3.Bytes(), sig)
+	require.NoError(t, err)
+	crypto.Init(cfg.GetModuleConfig().Crypto, map[string][]byte{
+		secp256k1eth.Name: cfg.GetSubConfig().Crypto[secp256k1eth.Name],
+	})
+	assembleTx := erpctypes.AssembleChain33Tx(signtx, sig, pubkey, cfg)
+	types.AllowUserExec = append(types.AllowUserExec, []byte("evm"))
+
+	ctx := &executorCtx{
+		stateHash:  nil,
+		height:     1,
+		blocktime:  time.Now().Unix(),
+		difficulty: 1,
+		mainHash:   nil,
+		parentHash: nil,
+	}
+	execute := newExecutor(ctx, exec, nil, nil, nil)
+	require.NoError(t, assembleTx.CheckEthSignEnvelope(cfg, ctx.height))
+
+	rewritten := assembleTx.Clone()
+	rewritten.Fee++
+	_, err = execute.execTx(nil, rewritten, 0)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "fee")
 }
 
 // feeTestApp 用于execFee测试
