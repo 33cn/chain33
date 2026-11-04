@@ -515,10 +515,8 @@ func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) e
 	// eth 签名的 chain33 信封不在签名覆盖范围内, 必须按当前高度重建校验。与上面的
 	// chainID 校验一样放在 minfee 提前返回之前: 交易组成员以 minfee=0 检查, 也要覆盖。
 	// 分叉前不校验, 保证旧区块按当时的规则重放。
-	if cfg != nil && cfg.IsFork(height, ForkEthSignEnvelope) {
-		if err := tx.checkEthSignEnvelope(cfg); err != nil {
-			return err
-		}
+	if err := tx.CheckEthSignEnvelope(cfg, height); err != nil {
+		return err
 	}
 	if minfee == 0 {
 		return nil
@@ -941,6 +939,17 @@ func EthSignedTxEnvelope(tx *Transaction) (etx *etypes.Transaction, ok bool) {
 		return nil, false
 	}
 	return etx, true
+}
+
+// CheckEthSignEnvelope applies the fork-gated envelope rule at the given height. Callers
+// that replace the transaction before checking it - proxy execution unpacks the carrier
+// and checks the inner transaction - must run this on the transaction as it appears in the
+// block, otherwise the rule never sees the envelope that can be rewritten.
+func (tx *Transaction) CheckEthSignEnvelope(cfg *Chain33Config, height int64) error {
+	if cfg == nil || !cfg.IsFork(height, ForkEthSignEnvelope) {
+		return nil
+	}
+	return tx.checkEthSignEnvelope(cfg)
 }
 
 // checkEthSignEnvelope rebuilds the canonical chain33 transaction for the embedded

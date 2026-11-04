@@ -684,6 +684,20 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	var err error
 	//代理执行 EVM-->txpayload-->chain33 tx
 	if e.checkProxyExecTx(tx) {
+		// The carrier is unpacked below and the inner transaction is what checkTx sees,
+		// so the envelope rule never runs on the transaction that sits in the block.
+		// Apply it to the original transaction before the swap.
+		if err := tx.CheckEthSignEnvelope(e.cfg, e.height); err != nil {
+			elog.Error("proxyExec envelope", "txhash", common.ToHex(tx.Hash()), "err", err)
+			// A rewritten carrier has to invalidate the block. On a para chain a
+			// returned error only becomes an ExecErr receipt, and those blocks are
+			// executed with errReturn false, so the transaction would be dropped and
+			// the block rewritten instead of rejected. Follow the checkTx branch below.
+			if e.cfg.IsPara() {
+				panic(err)
+			}
+			return nil, err
+		}
 		defer func(tx *types.Transaction) {
 			cloneTx := tx.Clone()
 			//执行evm execlocal 数据，主要是nonce++
