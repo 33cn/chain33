@@ -1,5 +1,13 @@
 changelog
 
+## [1.73.1](https://github.com/33cn/chain33/compare/v1.73.0...v1.73.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **executor:** check the envelope of a proxy carrier before unpacking it ([986851b](https://github.com/33cn/chain33/commit/986851b49f3802675f0291ae6ec03c98f0110c7e))
+* **executor:** reject the block on a para chain when a proxy carrier is rewritten ([cda16d9](https://github.com/33cn/chain33/commit/cda16d916b3976475dcd193013bcfb567190e56f))
+
 # [1.73.0](https://github.com/33cn/chain33/compare/v1.72.7...v1.73.0) (2026-11-04)
 
 
