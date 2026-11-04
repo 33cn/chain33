@@ -220,6 +220,12 @@ func TestProxyExecRejectsRewrittenEnvelope(t *testing.T) {
 
 	rewritten := assembleTx.Clone()
 	rewritten.Fee++
+	// the rule is fork-gated: scheduled for a later height, the same rewrite is not
+	// rejected here, which is what keeps already-mined blocks replaying unchanged
+	cfg.SetFork(types.ForkEthSignEnvelope, ctx.height+100)
+	require.NoError(t, rewritten.CheckEthSignEnvelope(cfg, ctx.height))
+	cfg.SetFork(types.ForkEthSignEnvelope, 0)
+
 	_, err = execute.execTx(nil, rewritten, 0)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "fee")
