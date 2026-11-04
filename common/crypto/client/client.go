@@ -32,7 +32,10 @@ func withEthCoinsPrecision(cfg *types.Chain33Config, subCfg map[string][]byte) m
 	conf := make(map[string]interface{})
 	if raw := subCfg[secp256k1eth.Name]; len(raw) > 0 {
 		if err := json.Unmarshal(raw, &conf); err != nil {
-			conf = make(map[string]interface{})
+			// Rewriting the sub config from an empty map would drop the driver's own
+			// settings, the evm chain id among them, so leave it untouched instead.
+			log.Error("withEthCoinsPrecision", "msg", "cannot parse the eth driver sub config", "err", err)
+			return subCfg
 		}
 	}
 	conf["coinsPrecision"] = cfg.GetCoinPrecision()

@@ -491,6 +491,36 @@ func TestEthAmountUsesCoinPrecision(t *testing.T) {
 	require.False(t, pubDefault.VerifyBytes(marshalTx(t, tx), sig))
 }
 
+// TestEthDeployRewrapClosedOnlyAtFork pins the shape of the window below the fork: the
+// historical checks compare the deploy code, not Para, so redirecting a deployment through
+// the proxy executor still verifies there. The fork-gated rebuild is what closes it, which
+// is why a chain has to schedule the fork instead of treating the upgrade as the fix.
+func TestEthDeployRewrapClosedOnlyAtFork(t *testing.T) {
+	cfg := newTestConfig(false)
+	priv, pub := startEnv(t, cfg)
+	cfg.SetFork(ctypes.ForkEthSignEnvelope, envelopeForkHeight)
+	etx := newEthTx(9, nil, []byte{0x60, 0x00, 0x60, 0x00})
+	sig := signEthTx(t, priv, etx)
+
+	rewrap := func(tx *stypes.TransactionChain33) {
+		action := decodeAction(t, tx)
+		action.Para = testAttacker.Bytes()
+		action.ContractAddr = testProxyAddr.Hex()
+		encodeAction(t, tx, action)
+		tx.To = testProxyAddr.Hex()
+	}
+
+	belowFork := assembleWith(t, cfg, etx)
+	rewrap(belowFork)
+	require.True(t, pub.VerifyBytes(marshalTx(t, belowFork), sig),
+		"below the fork the historical checks do not compare Para")
+	require.NoError(t, checkEnvelope(t, cfg, belowFork, envelopeForkHeight-1))
+
+	atFork := assembleWith(t, cfg, etx)
+	rewrap(atFork)
+	require.Error(t, checkEnvelope(t, cfg, atFork, envelopeForkHeight))
+}
+
 // TestEthCarrierAddressIDRejectedAtFork: the address id sits in the signature type next to
 // the crypto id, and it is not part of the signed bytes. Swapping it still verifies, but
 // it derives a sender in another address format and skips the eth nonce and write
