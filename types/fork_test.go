@@ -139,6 +139,11 @@ func TestRegisterSystemFork(t *testing.T) {
 	assert.True(t, f.HasFork(ForkGenesisOnlyAtHeightZero))
 	assert.Equal(t, int64(0), f.GetFork(ForkGenesisOnlyAtHeightZero))
 	assert.True(t, f.IsFork(0, ForkGenesisOnlyAtHeightZero))
+	// eth 签名信封校验默认关闭, 未显式配置的链保持旧行为
+	assert.True(t, f.HasFork(ForkEthSignEnvelope))
+	assert.Equal(t, int64(MaxHeight), f.GetFork(ForkEthSignEnvelope))
+	assert.False(t, f.IsFork(0, ForkEthSignEnvelope))
+	assert.False(t, f.IsFork(MaxHeight-1, ForkEthSignEnvelope))
 
 	// 配置为 -1 表示关闭: initForkConfig 在加载配置时把它转成 MaxHeight, 此时高度 0 与
 	// 正高度上都不生效。这里必须走 NewChain33Config, 直接 SetFork(MaxHeight) 会绕过该转换。

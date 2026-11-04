@@ -32,6 +32,12 @@ const ForkTxChainIDStrict = "ForkTxChainIDStrict"
 // 不会有缺键/未知键的启动校验提示。
 const ForkGenesisOnlyAtHeightZero = "ForkGenesisOnlyAtHeightZero"
 
+// ForkEthSignEnvelope eth 签名交易的信封校验分叉名, 配置在 [fork.system] 节。
+// 启用后, 交易检查会按当前高度重建 eth 交易对应的 chain33 信封(execer、To、fee、
+// payload、交易组形态、有效期窗口等)并要求完全一致, 防止签名未覆盖的信封字段被改写。
+// 关闭(缺省 MaxHeight 或配置为 -1)时不做该校验, 历史区块按旧行为重放。
+const ForkEthSignEnvelope = "ForkEthSignEnvelope"
+
 // Forks fork分叉结构体
 type Forks struct {
 	forks map[string]int64
@@ -169,6 +175,8 @@ func (f *Forks) RegisterSystemFork() {
 	f.SetFork(ForkAccountBlacklist, MaxHeight)
 	f.SetFork(ForkAccountBlacklistV2, MaxHeight)
 	f.SetFork(ForkTxChainIDStrict, MaxHeight)
+	// eth 签名交易的信封校验, 代码默认关闭; 历史链显式配置一个未来高度后才启用。
+	f.SetFork(ForkEthSignEnvelope, MaxHeight)
 	// 创世动作只允许在高度 0 执行。历史链上只有执行器自身漏写 height 校验时才可能
 	// 在高度 != 0 成功执行创世动作(属于缺陷), 因此该分叉默认按 0 生效;
 	// 若某条链确认历史区块中存在此类交易, 需在 [fork.system] 中显式配置为 -1 或未来高度。

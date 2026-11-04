@@ -34,6 +34,16 @@ func TestIsEthSignID(t *testing.T) {
 	require.False(t, IsEthSignID(0))
 }
 
+// TestIsEthCryptoID pins the predicate the envelope rules use: the driver is selected by
+// crypto id, so every address-format id of the same driver is a carrier.
+func TestIsEthCryptoID(t *testing.T) {
+	for addressID := int32(0); addressID <= address.MaxID; addressID++ {
+		require.True(t, IsEthCryptoID(EncodeSignID(secp256k1eth.ID, addressID)))
+	}
+	require.False(t, IsEthCryptoID(EncodeSignID(0, EthAddressID)))
+	require.False(t, IsEthCryptoID(0))
+}
+
 func TestEncodeSignIDWithInvalidAddress(t *testing.T) {
 	// Invalid address ID should fall back to default
 	signID := EncodeSignID(1, address.MaxID+1)

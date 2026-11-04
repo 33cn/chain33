@@ -28,6 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	chain33crypto "github.com/33cn/chain33/common/crypto"
+	"github.com/33cn/chain33/system/crypto/secp256k1eth"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
@@ -465,31 +466,52 @@ func TestEthHandler_SendRawTransaction(t *testing.T) {
 
 	chain33Tx := etypes.AssembleChain33Tx(ntx, sig, pubkey, ethCli.cfg)
 	t.Log("checkchainID", ntx.ChainId(), "support chainid", ethCli.evmChainID)
-	chain33crypto.Init(ethCli.cfg.GetModuleConfig().Crypto, ethCli.cfg.GetSubConfig().Crypto)
+	chain33crypto.Init(ethCli.cfg.GetModuleConfig().Crypto, map[string][]byte{
+		secp256k1eth.Name: ethCli.cfg.GetSubConfig().Crypto[secp256k1eth.Name],
+	})
 	ok := chain33Tx.CheckSign(-1)
 	require.True(t, ok)
 
-	//测试修改chain33Tx 数据，期望验签失败
-	//修改Nonce
-	chain33Tx.Nonce = rand.New(rand.NewSource(time.Now().UnixNano())).Int63()
-	ok = chain33Tx.CheckSign(-1)
-	require.False(t, ok)
-	//修改to
-	chain33Tx.To = "0xa06c8907eb1c8a266165f5484c5ea3bd4e0520a8"
-	ok = chain33Tx.CheckSign(-1)
-	require.False(t, ok)
-	//修改执行器
-	chain33Tx.Execer = []byte("coinsX")
-	ok = chain33Tx.CheckSign(-1)
-	require.False(t, ok)
-	//修改packdata
-	chain33Tx.Payload = append(chain33Tx.GetPayload(), uint8(8))
-	ok = chain33Tx.CheckSign(-1)
-	require.False(t, ok)
-	//修改chainID
-	chain33Tx.ChainID = 666
-	ok = chain33Tx.CheckSign(-1)
-	require.False(t, ok)
+	//测试修改chain33Tx 数据：nonce/amount/code/to 四项是历史共识检查，验签时就会拒绝；
+	//其余信封字段由 Transaction.check 在 ForkEthSignEnvelope 之后校验，这里把分叉高度设为 0。
+	ethCli.cfg.SetFork(ctypes.ForkEthSignEnvelope, 0)
+	require.NoError(t, chain33Tx.Check(ethCli.cfg, 0, 0, 0))
+	mutations := []struct {
+		name   string
+		mutate func(*ctypes.Transaction)
+		// signed reports whether the transaction still passes signature verification. The
+		// execer selects the driver, the payload holds the signed eth transaction, and the
+		// nonce duplicates a field of that transaction, so rewriting either is rejected
+		// before the fork-gated envelope rule is reached. This is the historical behaviour
+		// and applies at every height.
+		signed bool
+		// envelope reports whether the chain33 envelope rule still recognizes the
+		// transaction as a carrier. A corrupt payload fails earlier, at signature
+		// verification, and is no longer a decodable eth carrier.
+		envelope bool
+	}{
+		{"nonce", func(tx *ctypes.Transaction) { tx.Nonce = rand.New(rand.NewSource(time.Now().UnixNano())).Int63() }, false, true},
+		// the envelope destination has no twin inside the payload, so only the fork-gated
+		// rule catches it; the historical checks see nothing to compare it with.
+		{"to", func(tx *ctypes.Transaction) { tx.To = "0xa06c8907eb1c8a266165f5484c5ea3bd4e0520a8" }, true, true},
+		{"execer", func(tx *ctypes.Transaction) { tx.Execer = []byte("coinsX") }, false, true},
+		{"payload", func(tx *ctypes.Transaction) { tx.Payload = append(tx.GetPayload(), uint8(8)) }, false, false},
+		{"chainID", func(tx *ctypes.Transaction) { tx.ChainID = 666 }, true, true},
+	}
+	for _, tc := range mutations {
+		t.Run(tc.name, func(t *testing.T) {
+			mutated := chain33Tx.Clone()
+			tc.mutate(mutated)
+			if tc.signed {
+				require.True(t, mutated.CheckSign(-1), "the eth signature does not cover the envelope")
+			} else {
+				require.False(t, mutated.CheckSign(-1))
+			}
+			if tc.envelope {
+				require.Error(t, mutated.Check(ethCli.cfg, 0, 0, 0))
+			}
+		})
+	}
 	qapi.On("Query", mock.Anything).Return("0x12", nil)
 	qapi.On("SendTx", mock.Anything).Return(&ctypes.Reply{Msg: common.FromHex("56385265533f4c17455473508f4bfcfcfd094a88f460de40f22dd4c19e485793"), IsOk: true}, nil)
 

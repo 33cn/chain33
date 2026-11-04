@@ -13,10 +13,12 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"fmt"
 
 	"github.com/33cn/chain33/common/address"
+	stypes "github.com/33cn/chain33/system/crypto/secp256k1eth/types"
 	"github.com/33cn/chain33/types/chaincfg"
 	tml "github.com/BurntSushi/toml"
 )
@@ -157,6 +159,20 @@ func (c *Chain33Config) GetModuleConfig() *Config {
 // GetSubConfig ...
 func (c *Chain33Config) GetSubConfig() *ConfigSubModule {
 	return c.scfg
+}
+
+// EthAssembleParams returns the parameters the eth transaction assembler reads from this
+// config. The assembler and the signature verifier both use this mapping, so the rebuilt
+// envelope and the produced envelope cannot drift.
+func (c *Chain33Config) EthAssembleParams(now time.Time) stypes.AssembleParams {
+	return stypes.AssembleParams{
+		ChainID:       c.GetChainID(),
+		EVMExecer:     c.ExecName("evm"),
+		MinTxFeeRate:  c.GetMinTxFeeRate(),
+		CoinPrecision: c.GetCoinPrecision(),
+		IsPara:        c.IsPara(),
+		Now:           now,
+	}
 }
 
 // DisableCheckFork ...
