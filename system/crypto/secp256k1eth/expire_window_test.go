@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	stypes "github.com/33cn/chain33/system/crypto/secp256k1eth/types"
+	ctypes "github.com/33cn/chain33/types"
 )
 
 // TestEthExpireVariantsAccepted pins the shape the fee rule has to close: the envelope rule
@@ -38,6 +39,7 @@ func TestEthExpireVariantsAccepted(t *testing.T) {
 // depend on its contents only.
 func TestEthExpireUsesBlockTime(t *testing.T) {
 	cfg, _, _ := newTestEnv(t, false)
+	cfg.SetFork(ctypes.ForkEthSignEnvelopeV2, envelopeForkHeight)
 	base := newEthTx(7, &testRecipient, nil)
 	tx := assembleWith(t, cfg, base)
 

@@ -813,6 +813,9 @@ func (e *executor) checkEthNonceBeforeFee(tx *types.Transaction) error {
 	if e.localDB == nil || !types.IsEthSignID(tx.GetSignature().GetTy()) {
 		return nil
 	}
+	if !e.cfg.IsFork(e.height, types.ForkEthSignEnvelopeV2) {
+		return nil
+	}
 	if !e.cfg.IsDappFork(e.height, "evm", "ForkEvmExecNonceV2") {
 		return nil
 	}

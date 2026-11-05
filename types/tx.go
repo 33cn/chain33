@@ -967,6 +967,11 @@ func (tx *Transaction) CheckEthSignEnvelope(cfg *Chain33Config, height, blockTim
 	if cfg == nil || !cfg.IsFork(height, ForkEthSignEnvelope) {
 		return nil
 	}
+	// 只有 ForkEthSignEnvelopeV2 之后才按区块时间判定窗口, 之前的历史区块仍按本地时钟,
+	// 保证已上链区块按当时的规则重放。
+	if blockTime > 0 && !cfg.IsFork(height, ForkEthSignEnvelopeV2) {
+		blockTime = 0
+	}
 	return tx.checkEthSignEnvelope(cfg, blockTime)
 }
 
