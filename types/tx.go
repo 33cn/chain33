@@ -183,6 +183,7 @@ func (txgroup *Transactions) CheckWithFork(cfg *Chain33Config, checkFork, paraFo
 	return txgroup.CheckWithForkAtBlockTime(cfg, checkFork, paraFork, height, minfee, maxFee, 0)
 }
 
+// CheckWithForkAtBlockTime is CheckWithFork with the block time made explicit.
 func (txgroup *Transactions) CheckWithForkAtBlockTime(cfg *Chain33Config, checkFork, paraFork bool, height, minfee, maxFee, blockTime int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {

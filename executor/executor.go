@@ -260,6 +260,7 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 		mainHash:   datas.MainHash,
 		mainHeight: datas.MainHeight,
 		parentHash: datas.ParentHash,
+		isMempool:  datas.IsMempool,
 	}
 	var localdb dbm.KVDB
 
