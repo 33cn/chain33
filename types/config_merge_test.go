@@ -225,6 +225,7 @@ ForkAccountBlacklistV2=-1
 ForkGenesisOnlyAtHeightZero=0
 # eth 签名交易的 chain33 信封校验；-1 表示关闭
 ForkEthSignEnvelope=-1
+ForkEthSignEnvelopeV2=-1
 [fork.sub.coins]
 Enable=0
 

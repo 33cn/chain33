@@ -180,6 +180,11 @@ func (txgroup *Transactions) IsExpire(cfg *Chain33Config, height, blocktime int6
 
 // CheckWithFork 和fork 无关的有个检查函数
 func (txgroup *Transactions) CheckWithFork(cfg *Chain33Config, checkFork, paraFork bool, height, minfee, maxFee int64) error {
+	return txgroup.CheckWithForkAtBlockTime(cfg, checkFork, paraFork, height, minfee, maxFee, 0)
+}
+
+// CheckWithForkAtBlockTime is CheckWithFork with the block time made explicit.
+func (txgroup *Transactions) CheckWithForkAtBlockTime(cfg *Chain33Config, checkFork, paraFork bool, height, minfee, maxFee, blockTime int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
@@ -191,7 +196,7 @@ func (txgroup *Transactions) CheckWithFork(cfg *Chain33Config, checkFork, paraFo
 		}
 		// 成员 check 固定传 minfee=0, 该提前返回只应跳过手续费校验。
 		// chainID 校验在 check 内部位于提前返回之前, 因此交易组路径同样被覆盖。
-		err := txs[i].check(cfg, height, 0, maxFee)
+		err := txs[i].check(cfg, height, 0, maxFee, blockTime)
 		if err != nil {
 			return err
 		}
@@ -271,9 +276,15 @@ func (txgroup *Transactions) CheckWithFork(cfg *Chain33Config, checkFork, paraFo
 
 // Check height == 0 的时候，不做检查
 func (txgroup *Transactions) Check(cfg *Chain33Config, height, minfee, maxFee int64) error {
+	return txgroup.CheckAtBlockTime(cfg, height, minfee, maxFee, 0)
+}
+
+// CheckAtBlockTime is Check with the block time made explicit, mirroring
+// Transaction.CheckAtBlockTime.
+func (txgroup *Transactions) CheckAtBlockTime(cfg *Chain33Config, height, minfee, maxFee, blockTime int64) error {
 	paraFork := cfg.IsFork(height, "ForkTxGroupPara")
 	checkFork := cfg.IsFork(height, "ForkBlockCheck")
-	return txgroup.CheckWithFork(cfg, checkFork, paraFork, height, minfee, maxFee)
+	return txgroup.CheckWithForkAtBlockTime(cfg, checkFork, paraFork, height, minfee, maxFee, blockTime)
 }
 
 // TransactionCache 交易缓存结构
@@ -348,7 +359,7 @@ func (tx *TransactionCache) Check(cfg *Chain33Config, height, minfee, maxFee int
 			return err
 		}
 		if txs == nil {
-			tx.checkok = tx.check(cfg, height, minfee, maxFee)
+			tx.checkok = tx.check(cfg, height, minfee, maxFee, 0)
 		} else {
 			tx.checkok = txs.Check(cfg, height, minfee, maxFee)
 		}
@@ -491,17 +502,24 @@ func (tx *Transaction) checkSign(blockHeight int64) bool {
 
 // Check 交易检测
 func (tx *Transaction) Check(cfg *Chain33Config, height, minfee, maxFee int64) error {
+	return tx.CheckAtBlockTime(cfg, height, minfee, maxFee, 0)
+}
+
+// CheckAtBlockTime is Check with the block time made explicit. Block execution passes the
+// header time so that the envelope rule reads consensus data instead of the verifier's own
+// clock; other callers pass zero and keep the local-clock behaviour.
+func (tx *Transaction) CheckAtBlockTime(cfg *Chain33Config, height, minfee, maxFee, blockTime int64) error {
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return err
 	}
 	if group == nil {
-		return tx.check(cfg, height, minfee, maxFee)
+		return tx.check(cfg, height, minfee, maxFee, blockTime)
 	}
-	return group.Check(cfg, height, minfee, maxFee)
+	return group.CheckAtBlockTime(cfg, height, minfee, maxFee, blockTime)
 }
 
-func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) error {
+func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee, blockTime int64) error {
 	// chainID 校验与手续费无关, 必须位于 minfee 提前返回之前。
 	// 该提前返回的语义只是「不收最低手续费」, 不应连带跳过 chainID ——
 	// 历史上 chainID 检查写在手续费逻辑内, 导致 minfee=0 时(单笔交易,
@@ -515,7 +533,7 @@ func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee int64) e
 	// eth 签名的 chain33 信封不在签名覆盖范围内, 必须按当前高度重建校验。与上面的
 	// chainID 校验一样放在 minfee 提前返回之前: 交易组成员以 minfee=0 检查, 也要覆盖。
 	// 分叉前不校验, 保证旧区块按当时的规则重放。
-	if err := tx.CheckEthSignEnvelope(cfg, height); err != nil {
+	if err := tx.CheckEthSignEnvelope(cfg, height, blockTime); err != nil {
 		return err
 	}
 	if minfee == 0 {
@@ -945,18 +963,23 @@ func EthSignedTxEnvelope(tx *Transaction) (etx *etypes.Transaction, ok bool) {
 // that replace the transaction before checking it - proxy execution unpacks the carrier
 // and checks the inner transaction - must run this on the transaction as it appears in the
 // block, otherwise the rule never sees the envelope that can be rewritten.
-func (tx *Transaction) CheckEthSignEnvelope(cfg *Chain33Config, height int64) error {
+func (tx *Transaction) CheckEthSignEnvelope(cfg *Chain33Config, height, blockTime int64) error {
 	if cfg == nil || !cfg.IsFork(height, ForkEthSignEnvelope) {
 		return nil
 	}
-	return tx.checkEthSignEnvelope(cfg)
+	// 只有 ForkEthSignEnvelopeV2 之后才按区块时间判定窗口, 之前的历史区块仍按本地时钟,
+	// 保证已上链区块按当时的规则重放。
+	if blockTime > 0 && !cfg.IsFork(height, ForkEthSignEnvelopeV2) {
+		blockTime = 0
+	}
+	return tx.checkEthSignEnvelope(cfg, blockTime)
 }
 
 // checkEthSignEnvelope rebuilds the canonical chain33 transaction for the embedded
 // Ethereum transaction with the same builder the JSON-RPC assembler uses, and requires
 // this transaction to equal it. The embedded signature commits to none of the envelope,
 // so any field left out of the comparison can be rewritten by a third party.
-func (tx *Transaction) checkEthSignEnvelope(cfg *Chain33Config) error {
+func (tx *Transaction) checkEthSignEnvelope(cfg *Chain33Config, blockTime int64) error {
 	etx, ok := EthSignedTxEnvelope(tx)
 	if !ok {
 		return nil
@@ -980,7 +1003,14 @@ func (tx *Transaction) checkEthSignEnvelope(cfg *Chain33Config) error {
 		Next:       tx.Next,
 		ChainID:    tx.ChainID,
 	}
-	return stypes.VerifyAssembledTx(envelope, etx, cfg.EthAssembleParams(Now()))
+	// Block execution passes the header time: whether a block is valid must depend on its
+	// contents alone, so the caller's clock is only a fallback for callers that have no
+	// block at hand (mempool, RPC pre-checks).
+	now := Now()
+	if blockTime > 0 {
+		now = time.Unix(blockTime, 0)
+	}
+	return stypes.VerifyAssembledTx(envelope, etx, cfg.EthAssembleParams(now))
 }
 
 // GetEthTxHash 获取eth 兼容交易的交易哈希

@@ -38,6 +38,12 @@ const ForkGenesisOnlyAtHeightZero = "ForkGenesisOnlyAtHeightZero"
 // 关闭(缺省 MaxHeight 或配置为 -1)时不做该校验, 历史区块按旧行为重放。
 const ForkEthSignEnvelope = "ForkEthSignEnvelope"
 
+// ForkEthSignEnvelopeV2 收尾 ForkEthSignEnvelope 留下的两个口子, 配置在 [fork.system] 节。
+// 启用后: 信封的有效期窗口以区块时间(而非校验节点本地时钟)为基准, 共识判定只依赖块内容;
+// 同时 eth 签名交易的 nonce 在扣手续费之前校验, 改写 Expire 造出的变体不再被扣费。
+// 关闭(缺省 MaxHeight 或配置为 -1)时保持旧行为, 历史区块按旧规则重放。
+const ForkEthSignEnvelopeV2 = "ForkEthSignEnvelopeV2"
+
 // Forks fork分叉结构体
 type Forks struct {
 	forks map[string]int64
@@ -177,6 +183,8 @@ func (f *Forks) RegisterSystemFork() {
 	f.SetFork(ForkTxChainIDStrict, MaxHeight)
 	// eth 签名交易的信封校验, 代码默认关闭; 历史链显式配置一个未来高度后才启用。
 	f.SetFork(ForkEthSignEnvelope, MaxHeight)
+	// eth 信封的收尾修复, 同上默认关闭。
+	f.SetFork(ForkEthSignEnvelopeV2, MaxHeight)
 	// 创世动作只允许在高度 0 执行。历史链上只有执行器自身漏写 height 校验时才可能
 	// 在高度 != 0 成功执行创世动作(属于缺陷), 因此该分叉默认按 0 生效;
 	// 若某条链确认历史区块中存在此类交易, 需在 [fork.system] 中显式配置为 -1 或未来高度。

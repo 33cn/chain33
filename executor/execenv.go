@@ -54,6 +54,7 @@ type executorCtx struct {
 	parentHash []byte
 	mainHash   []byte
 	mainHeight int64
+	isMempool  bool
 }
 
 func newExecutor(ctx *executorCtx, exec *Executor, localdb dbm.KVDB, txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
@@ -160,7 +161,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee(e.height)); err != nil {
+	if err := tx.CheckAtBlockTime(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee(e.height), e.envelopeBlockTime()); err != nil {
 		return err
 	}
 	//允许重写的情况
@@ -175,6 +176,17 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	return nil
+}
+
+// envelopeBlockTime is the time the envelope window is measured against. Block execution
+// uses the header time, which every validator sees identically. The mempool runs its check
+// against the last header, which can be minutes old, so there the local clock is the right
+// base: the window is a consensus rule, not a reason to keep a new payment out of the pool.
+func (e *executor) envelopeBlockTime() int64 {
+	if e.ctx != nil && e.ctx.isMempool {
+		return 0
+	}
+	return e.blocktime
 }
 
 func (e *executor) setEnv(exec drivers.Driver) {
@@ -197,7 +209,7 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee(e.height)); err != nil {
+	if err := txgroup.CheckAtBlockTime(e.cfg, e.height, e.cfg.GetMinTxFeeRate(), e.cfg.GetMaxTxFee(e.height), e.envelopeBlockTime()); err != nil {
 		return err
 	}
 	// 交易组不会对组内单笔再调 checkTx，必须在此整组检查黑名单
@@ -379,6 +391,12 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 	txgroup := &types.Transactions{Txs: txs}
 	err := e.checkTxGroup(txgroup, index)
 	if err != nil {
+		return nil, err
+	}
+	// The group head pays for every member, so it gets the same pre-fee nonce gate as a
+	// standalone transaction; otherwise a rewritten carrier can still be charged that way.
+	if err = e.checkEthNonceBeforeFee(txs[0]); err != nil {
+		elog.Error("execTxGroup.checkEthNonce", "txhash", common.ToHex(txs[0].Hash()), "err", err)
 		return nil, err
 	}
 	feelog, err := e.execFee(txs[0], index)
@@ -683,11 +701,12 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 
 	var err error
 	//代理执行 EVM-->txpayload-->chain33 tx
-	if e.checkProxyExecTx(tx) {
+	isProxyExec := e.checkProxyExecTx(tx)
+	if isProxyExec {
 		// The carrier is unpacked below and the inner transaction is what checkTx sees,
 		// so the envelope rule never runs on the transaction that sits in the block.
 		// Apply it to the original transaction before the swap.
-		if err := tx.CheckEthSignEnvelope(e.cfg, e.height); err != nil {
+		if err := tx.CheckEthSignEnvelope(e.cfg, e.height, e.blocktime); err != nil {
 			elog.Error("proxyExec envelope", "txhash", common.ToHex(tx.Hash()), "err", err)
 			// A rewritten carrier has to invalidate the block. On a para chain a
 			// returned error only becomes an ExecErr receipt, and those blocks are
@@ -733,6 +752,19 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 		}
 		return nil, err
 	}
+	// An eth-signed carrier's nonce is checked inside the EVM executor, after execFee has
+	// already charged the signer. A block producer that restamps Expire gets a distinct
+	// transaction hash for the same embedded Ethereum transaction, and each such variant
+	// would debit the signer one fee before the execution stage rejects it.
+	// Mirror the executor's nonce rule here, once, before the fee is taken. A proxy carrier
+	// is excluded: its eth nonce was checked above, and what runs here is the inner
+	// transaction whose Nonce is payload metadata, not an EVM nonce.
+	if !isProxyExec {
+		if err = e.checkEthNonceBeforeFee(tx); err != nil {
+			elog.Error("execTx.checkEthNonce", "txhash", common.ToHex(tx.Hash()), "err", err)
+			return nil, err
+		}
+	}
 	//处理交易手续费(先把手续费收了)
 	//如果收了手续费，表示receipt 至少是pack 级别
 	//收不了手续费的交易才是 error 级别
@@ -771,6 +803,40 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 func (e *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
 	realExecer := e.getRealExecName(tx, index)
 	return isAllowKeyWrite(e, key, realExecer, tx, index)
+}
+
+// checkEthNonceBeforeFee applies the EVM executor's nonce rule ahead of execFee. The key
+// and the value type live in chain33, so no plugin change is needed, and the executor keeps
+// its own check for transactions that reach it. When the chain has not activated the
+// executor's nonce rule the framework stays out of the way.
+func (e *executor) checkEthNonceBeforeFee(tx *types.Transaction) error {
+	if e.localDB == nil || !types.IsEthSignID(tx.GetSignature().GetTy()) {
+		return nil
+	}
+	if !e.cfg.IsFork(e.height, types.ForkEthSignEnvelopeV2) {
+		return nil
+	}
+	if !e.cfg.IsDappFork(e.height, "evm", "ForkEvmExecNonceV2") {
+		return nil
+	}
+	nonceV, err := e.localDB.Get(secp256k1eth.CaculCoinsEvmAccountKey(tx.From()))
+	return compareEthNonce(nonceV, err, tx.GetNonce())
+}
+
+// compareEthNonce mirrors the executor's rule over the stored record: a missing record
+// counts as nonce zero, and only the exact nonce is accepted.
+func compareEthNonce(nonceV []byte, getErr error, txNonce int64) error {
+	evmNonce := &types.EvmAccountNonce{}
+	if getErr == nil {
+		_ = types.Decode(nonceV, evmNonce)
+	}
+	if txNonce < evmNonce.GetNonce() {
+		return types.ErrLowNonce
+	}
+	if txNonce > evmNonce.GetNonce() {
+		return errors.New("nonce too high")
+	}
+	return nil
 }
 
 func (e *executor) isExecLocalSameTime(tx *types.Transaction, index int) bool {

@@ -41,6 +41,7 @@ ForkTxChainIDStrict=-1
 ForkGenesisOnlyAtHeightZero=0
 # eth 签名交易的 chain33 信封校验启用高度，启用后按当前高度重建信封并要求完全一致，防止未签名覆盖的字段被改写；-1 表示关闭
 ForkEthSignEnvelope=-1
+ForkEthSignEnvelopeV2=-1
 [fork.sub.none]
 ForkUseTimeDelay=0
 
