@@ -2,6 +2,7 @@ package p2pstore
 
 import (
 	"encoding/hex"
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -239,15 +240,33 @@ func (p *Protocol) handleStreamIsFullNode(resp *types.P2PResponse) error {
 	return nil
 }
 
+// maxFetchShardPeers 是单个 fetchShardPeers 请求允许的最大 peer 数，
+// 与路由表容量同量级，防止远端用 Count 放大分配/遍历。
+const maxFetchShardPeers = 100
+
+// validateFetchShardPeersCount 校验远端可控的 peer 数量：
+// 负值会让 kbucket.RoutingTable.NearestPeers 的 make(cap=count+bucketsize) 容量为负，
+// 超大正值会按攻击者指定规模分配/遍历，因此统一限定在 [0, maxFetchShardPeers]。
+func validateFetchShardPeersCount(count int32) error {
+	if count < 0 || count > maxFetchShardPeers {
+		return fmt.Errorf("invalid peers count: %d", count)
+	}
+	return nil
+}
+
 func (p *Protocol) handleStreamFetchShardPeers(req *types.P2PRequest, res *types.P2PResponse) error {
 	reqPeers := req.GetRequest().(*types.P2PRequest_ReqPeers).ReqPeers
+	if err := validateFetchShardPeersCount(reqPeers.Count); err != nil {
+		return err
+	}
+	count := int(reqPeers.Count)
 	var peers []peer.ID
-	if reqPeers.Count == 0 {
+	if count == 0 {
 		peers = p.getExtendRoutingTable().ListPeers()
 	} else if reqPeers.ReferKey == nil {
-		peers = p.getExtendRoutingTable().NearestPeers(kb.ConvertPeerID(p.Host.ID()), int(reqPeers.Count))
+		peers = p.getExtendRoutingTable().NearestPeers(kb.ConvertPeerID(p.Host.ID()), count)
 	} else {
-		peers = p.getExtendRoutingTable().NearestPeers(genDHTID(reqPeers.ReferKey), int(reqPeers.Count))
+		peers = p.getExtendRoutingTable().NearestPeers(genDHTID(reqPeers.ReferKey), count)
 	}
 
 	for _, pid := range peers {

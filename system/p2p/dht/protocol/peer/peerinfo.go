@@ -124,10 +124,11 @@ func (p *Protocol) refreshPeerInfo(peers []peer.ID) {
 			if p.checkVersionLimit(pInfo.GetVersion()) {
 				p.PeerInfoManager.Refresh(pInfo)
 			} else {
-				//add blacklist
-				log.Info("refreshPeerInfo", "AddBlacklist,peerName:", pInfo.GetName(), "version:", pInfo.GetVersion(), "runningTime:", pInfo.GetRunningTime())
-				p.P2PEnv.Host.Network().ClosePeer(peer.ID(pInfo.GetName()))
-				p.P2PEnv.ConnBlackList.Add(pInfo.GetName(), time.Hour*24)
+				//add blacklist：必须使用已认证的连接 peer ID(pid)，远端返回的 Name 不可信，
+				//否则违规对端可逃避断连/拉黑，或诱导本节点拉黑任意 peer（身份混淆）。
+				log.Info("refreshPeerInfo", "AddBlacklist,peerID:", pid.Pretty(), "reportedName:", pInfo.GetName(), "version:", pInfo.GetVersion(), "runningTime:", pInfo.GetRunningTime())
+				p.P2PEnv.Host.Network().ClosePeer(pid)
+				p.P2PEnv.ConnBlackList.Add(pid.Pretty(), time.Hour*24)
 			}
 
 		}(remoteID)
