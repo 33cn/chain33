@@ -351,9 +351,16 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 		return nil, err
 	}
 
+	// r/s 来自不可信交易体：必须先校验长度，再计算切片下标。
+	// 否则 len(r.Bytes()) > 32 会使 32-len(...) 为负触发 slice bounds panic。
+	rBytes, sBytes := r.Bytes(), s.Bytes()
+	if len(rBytes) > 32 || len(sBytes) > 32 {
+		log.Error("eth_SendRawTransaction", "invalid signature length", "rLen", len(rBytes), "sLen", len(sBytes))
+		return nil, errors.New("invalid signature length")
+	}
 	sig := make([]byte, 65)
-	copy(sig[32-len(r.Bytes()):32], r.Bytes())
-	copy(sig[64-len(s.Bytes()):64], s.Bytes())
+	copy(sig[32-len(rBytes):32], rBytes)
+	copy(sig[64-len(sBytes):64], sBytes)
 	sig[64] = cv
 
 	if !ethcrypto.ValidateSignatureValues(cv, r, s, false) {
