@@ -7,6 +7,7 @@ package cggmp
 import (
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/33cn/chain33/system/crypto/tss"
@@ -108,6 +109,20 @@ func validateParticipants(peers []string, threshold uint32) error {
 	return nil
 }
 
+// validateSessionID rejects session ids the registry keys cannot represent. The registry key is
+// protocol + separator + sessionID, so an empty id collapses every session of a protocol onto the
+// bare protocol tag, and an id containing the separator makes two different (protocol, sessionID)
+// pairs collide on the same key — a peer could then drive another session's core.
+func validateSessionID(sessionID string) error {
+	if sessionID == "" {
+		return errEmptySessionID
+	}
+	if strings.Contains(sessionID, tss.SessionProtocolSeparator) {
+		return fmt.Errorf("%w: %q", errInvalidSessionID, sessionID)
+	}
+	return nil
+}
+
 // validateSelf returns the transport-authenticated local peer id and requires it to be part of
 // peers. alice indexes its bks / partial public key / Pedersen maps by SelfID without checking, so
 // a peer list that omits the local node panics inside the protocol core; reject it here instead.
@@ -141,6 +156,10 @@ func otherPeers(peers []string, selfID string) []string {
 // rid and every participant's partial public key). sessionID must be identical across nodes;
 // peers must include the local node id. CGGMP sessions are independent from the GG18 wrapper.
 func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts ...Option) (*DKGResult, error) {
+	if err := validateSessionID(sessionID); err != nil {
+		log.Error("ProcessDKG", "session", sessionID, "invalid session id", err)
+		return nil, err
+	}
 	if err := validateParticipants(peers, threshold); err != nil {
 		log.Error("ProcessDKG", "session", sessionID, "invalid participants", err)
 		return nil, err
@@ -207,7 +226,7 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 		log.Error("ProcessDKG", "session", sessionID, "partial pubkey exchange err", err)
 		return nil, err
 	}
-	dkgResult := newDKGResult(aliceRes, partialPubKeys)
+	dkgResult := newDKGResult(aliceRes, partialPubKeys, threshold, peers)
 	// The ppk exchange is the last point at which the DKG material is still local and complete:
 	// verify that the collected g^{share_i} reconstruct the group public key so a participant
 	// that broadcast bad material is rejected here rather than in the refresh phase.
@@ -252,8 +271,16 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 	if dkgRes == nil {
 		return nil, errNilDKGResult
 	}
+	if err := validateSessionID(sessionID); err != nil {
+		log.Error("ProcessRefresh", "session", sessionID, "invalid session id", err)
+		return nil, err
+	}
 	if err := validateParticipants(peers, threshold); err != nil {
 		log.Error("ProcessRefresh", "session", sessionID, "invalid participants", err)
+		return nil, err
+	}
+	if err := dkgRes.validateThresholdAndPeers(peers, threshold); err != nil {
+		log.Error("ProcessRefresh", "session", sessionID, "dkg result mismatch", err)
 		return nil, err
 	}
 	if err := beginSessionRun(RefreshProtocol, sessionID); err != nil {
@@ -315,7 +342,7 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 		log.Error("ProcessRefresh", "session", sessionID, "GetResult err", err)
 		return nil, err
 	}
-	return newRefreshResult(aliceRefresh)
+	return newRefreshResult(aliceRefresh), nil
 }
 
 // ProcessSign runs the CGGMP (4-round) threshold sign for msg. dkgRes is the DKG output of the
@@ -330,8 +357,16 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 	if refreshRes == nil {
 		return nil, errNilRefreshResult
 	}
+	if err := validateSessionID(sessionID); err != nil {
+		log.Error("ProcessSign", "session", sessionID, "invalid session id", err)
+		return nil, err
+	}
 	if err := validateNonEmptyPeers(peers, threshold); err != nil {
 		log.Error("ProcessSign", "session", sessionID, "invalid participants", err)
+		return nil, err
+	}
+	if err := dkgRes.validateThresholdAndPeers(peers, threshold); err != nil {
+		log.Error("ProcessSign", "session", sessionID, "dkg result mismatch", err)
 		return nil, err
 	}
 	if err := beginSessionRun(SignProtocol, sessionID); err != nil {

@@ -54,7 +54,7 @@ func TestDKGResultConversions(t *testing.T) {
 		Bks:       bks,
 		Rid:       []byte("rid-1"),
 	}
-	d := newDKGResult(res, ppk)
+	d := newDKGResult(res, ppk, 1, []string{id})
 	require.Equal(t, []byte("rid-1"), d.Rid)
 	require.Equal(t, big.NewInt(7).Bytes(), d.Share)
 	require.Equal(t, pub.GetX().Bytes(), d.PubX)
@@ -76,12 +76,9 @@ func TestDKGResultConversions(t *testing.T) {
 	require.Equal(t, pub.GetX(), gpk.GetX())
 	require.Equal(t, pub.GetY(), gpk.GetY())
 
-	// SelfBkString must match the (v1.0.7) BkParameter.String(fieldOrder) format.
-	s, err := d.SelfBkString(id, curve.Params().N)
-	require.NoError(t, err)
-	require.Equal(t, bks[id].String(curve.Params().N), s)
-	_, err = d.SelfBkString("missing", curve.Params().N)
-	require.Error(t, err)
+	// The DKG parameters are persisted for the later phases.
+	require.Equal(t, uint32(1), d.Threshold)
+	require.Equal(t, []string{id}, d.Peers)
 }
 
 func TestSignatureConversion(t *testing.T) {
@@ -380,6 +377,63 @@ func TestValidatePartialPubKeys(t *testing.T) {
 	// Fewer participants than the threshold is rejected too.
 	dkgRes, peers = testTwoPartyDKGResult()
 	require.Error(t, dkgRes.validatePartialPubKeys(peers, 3))
+}
+
+// TestValidateSessionID covers the registry-key constraints: an empty id and an id containing the
+// protocol separator are rejected, while a normal id is accepted.
+func TestValidateSessionID(t *testing.T) {
+	require.ErrorIs(t, validateSessionID(""), errEmptySessionID)
+
+	invalid := "round" + tss.SessionProtocolSeparator + "other"
+	require.ErrorIs(t, validateSessionID(invalid), errInvalidSessionID)
+	require.Contains(t, validateSessionID(invalid).Error(), invalid)
+
+	require.NoError(t, validateSessionID("cggmp-round-1"))
+}
+
+// TestValidateThresholdAndPeers covers the DKG-parameter consistency check: a phase request must
+// use the threshold recorded at DKG time and only DKG participants, while zero-valued fields
+// (results persisted before they existed) are treated as unknown and not enforced.
+func TestValidateThresholdAndPeers(t *testing.T) {
+	dkgRes, peers := testTwoPartyDKGResult()
+	dkgRes.Threshold = 2
+	dkgRes.Peers = append([]string(nil), peers...)
+
+	require.NoError(t, dkgRes.validateThresholdAndPeers(peers, 2))
+	require.NoError(t, dkgRes.validateThresholdAndPeers(peers[:1], 2), "a signer subset is allowed")
+
+	err := dkgRes.validateThresholdAndPeers(peers, 3)
+	require.ErrorIs(t, err, errDKGResultMismatch)
+
+	err = dkgRes.validateThresholdAndPeers([]string{"peer-rank0", "peer-unknown"}, 2)
+	require.ErrorIs(t, err, errDKGResultMismatch)
+	require.Contains(t, err.Error(), "peer-unknown")
+
+	// A result persisted before Threshold/Peers were added decodes as zero values: unknown, not
+	// rejected (neither the threshold nor the participant set is enforced).
+	legacy, _ := testTwoPartyDKGResult()
+	require.NoError(t, legacy.validateThresholdAndPeers([]string{"peer-legacy"}, 5))
+}
+
+// TestProcessRejectsDKGMismatch asserts the check runs from the public entry points, before any
+// peer manager is created, so a mismatched request fails without a transport.
+func TestProcessRejectsDKGMismatch(t *testing.T) {
+	dkgRes, peers := testTwoPartyDKGResult()
+	dkgRes.Threshold = 2
+	dkgRes.Peers = append([]string(nil), peers...)
+
+	mismatched, _ := testTwoPartyDKGResult()
+	mismatched.Threshold = 3
+	mismatched.Peers = append(mismatched.Peers, "peer-extra")
+
+	_, err := ProcessRefresh(peers, 2, mismatched, "refresh-session")
+	require.ErrorIs(t, err, errDKGResultMismatch)
+
+	_, err = ProcessSign(peers, 2, []byte("msg"), mismatched, &RefreshResult{}, "sign-session")
+	require.ErrorIs(t, err, errDKGResultMismatch)
+
+	_, err = ProcessSign(peers, 2, []byte("msg"), dkgRes, &RefreshResult{}, "sign-session")
+	require.NotErrorIs(t, err, errDKGResultMismatch)
 }
 
 // TestProcessRefreshRejectsBadPPK asserts ProcessRefresh fails on the ppk-stage error instead of

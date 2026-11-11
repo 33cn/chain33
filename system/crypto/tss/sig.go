@@ -35,6 +35,15 @@ func BigIntToModNScalar(val *big.Int) (*btcec.ModNScalar, error) {
 // into a btcec ecdsa.Signature. Both gg18.AliceToBtcecSignature and cggmp.ToBtcecSignature
 // delegate to this helper so the scalar conversion is defined once.
 func BuildBtcecSignature(R, S *big.Int) (*ecdsa.Signature, error) {
+	// big.Int.Bytes panics on a nil receiver, so reject a missing component here instead of
+	// letting it reach BigIntToModNScalar. A signer result can legitimately be zero-valued on a
+	// failed round, and callers must get an error rather than a panic.
+	if R == nil {
+		return nil, fmt.Errorf("R is nil")
+	}
+	if S == nil {
+		return nil, fmt.Errorf("S is nil")
+	}
 	rScalar, err := BigIntToModNScalar(R)
 	if err != nil {
 		return nil, fmt.Errorf("convert R failed: %w", err)

@@ -5,7 +5,9 @@
 package cggmp
 
 import (
+	"fmt"
 	"math/big"
+	"sort"
 	"sync"
 	"time"
 
@@ -179,8 +181,23 @@ func (c *ppkCollector) wait(timeout time.Duration) error {
 	case <-c.done:
 		return nil
 	case <-timer.C:
-		return errPPKTimeout
+		return fmt.Errorf("%w: missing %v", errPPKTimeout, c.missing())
 	}
+}
+
+// missing returns the participant ids whose partial public key never arrived, so a timeout names
+// the peer that has to be investigated instead of only reporting that one is absent.
+func (c *ppkCollector) missing() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	missing := make([]string, 0, len(c.expected))
+	for id := range c.expected {
+		if _, ok := c.got[id]; !ok {
+			missing = append(missing, id)
+		}
+	}
+	sort.Strings(missing)
+	return missing
 }
 
 // result returns a snapshot of the collected partial public keys, so the caller never shares a
@@ -321,11 +338,13 @@ func handlePpkMsg(wMsg *tss.MessageWrapper) {
 			return
 		}
 	}
+	// Drop only the incoming point at the session cap. Clearing the whole map would let a peer
+	// sending random session ids wipe the buffer of rounds that are still waiting for their
+	// local collector.
 	if _, ok := pendingPPK[key]; !ok && len(pendingPPK) >= maxPendingPPKSessions {
-		log.Warn("handlePpkMsg max pending ppk sessions reached, clear pending ppk messages")
-		for id := range pendingPPK {
-			delete(pendingPPK, id)
-		}
+		log.Warn("handlePpkMsg max pending ppk sessions reached, drop message",
+			"peerID", wMsg.PeerID, "session", wMsg.SessionID)
+		return
 	}
 	// At most one buffered point per authenticated peer, first one wins — the same rule the
 	// collector applies when it is flushed (see ppkCollector.add).

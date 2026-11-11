@@ -7,10 +7,9 @@ package cggmp
 import "errors"
 
 var (
-	errNilPoint      = errors.New("cggmp: nil ec point")
-	errPPKTimeout    = errors.New("cggmp: partial public key exchange timed out")
-	errMissingSelfBk = errors.New("cggmp: missing self bk in dkg result")
-	errNilResult     = errors.New("cggmp: nil result")
+	errNilPoint   = errors.New("cggmp: nil ec point")
+	errPPKTimeout = errors.New("cggmp: partial public key exchange timed out")
+	errNilResult  = errors.New("cggmp: nil result")
 	// errMissingPeerID means an incoming tss message carried no transport-authenticated peer id,
 	// so it cannot be attributed to a participant and must be rejected rather than trusted.
 	errMissingPeerID = errors.New("cggmp: missing authenticated peer id")
@@ -25,6 +24,11 @@ var (
 	errSelfNotInPeers   = errors.New("cggmp: local peer id is not in the peer list")
 	errNilDKGResult     = errors.New("cggmp: nil dkg result")
 	errNilRefreshResult = errors.New("cggmp: nil refresh result")
+	// errDKGResultMismatch means the requested phase parameters do not match the participants /
+	// threshold recorded in the DKG result, e.g. signing with a peer that never joined the DKG.
+	errDKGResultMismatch = errors.New("cggmp: dkg result does not match the requested participants")
+	errEmptySessionID    = errors.New("cggmp: empty session id")
+	errInvalidSessionID  = errors.New("cggmp: session id must not contain the protocol separator")
 
 	// Peer-material completeness errors, wrapped with the offending peer id.
 	errMissingPeerBk  = errors.New("missing birkhoff parameter")

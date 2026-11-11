@@ -29,6 +29,11 @@ type DKGRequest struct {
 
 const sessionProtocolSeparator = "|"
 
+// SessionProtocolSeparator is the separator ComposeProtocol puts between protocol and session id.
+// Callers that build session ids must reject it: an id containing it makes two distinct
+// (protocol, sessionID) pairs compose to the same registry key.
+const SessionProtocolSeparator = sessionProtocolSeparator
+
 // ComposeProtocol combines protocol and session for transport.
 func ComposeProtocol(protocol, sessionID string) string {
 	if sessionID == "" {

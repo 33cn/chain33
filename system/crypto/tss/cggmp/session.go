@@ -130,11 +130,13 @@ func addMessage(protocol, sessionID, peerID string, msg types.Message) error {
 	if len(pendingMessages[id]) >= maxPendingMessagesPerSession {
 		return fmt.Errorf("addMessage max pending messages reached")
 	}
-	if len(pendingMessages) >= maxPendingSessions {
-		log.Debug("addMessage max pending sessions reached, clear pending messages")
-		for id := range pendingMessages {
-			delete(pendingMessages, id)
-		}
+	// At the session cap, drop the incoming message instead of clearing the map: an unrelated
+	// peer sending random session ids would otherwise wipe the buffer of rounds that are still
+	// waiting for their local session to register.
+	if _, buffered := pendingMessages[id]; !buffered && len(pendingMessages) >= maxPendingSessions {
+		log.Warn("addMessage max pending sessions reached, drop message",
+			"session", sessionID, "peerID", peerID)
+		return fmt.Errorf("addMessage max pending sessions reached")
 	}
 	pendingMessages[id] = append(pendingMessages[id], pendingMessage{peerID: peerID, msg: msg})
 	return nil

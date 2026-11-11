@@ -77,6 +77,35 @@ type DKGResult struct {
 	Bks            map[string]*tss.BK  `json:"bks"`
 	Rid            []byte              `json:"rid"`
 	PartialPubKeys map[string]*ECPoint `json:"partialPubKeys"`
+	// Threshold and Peers record the parameters the key was generated with, so ProcessRefresh /
+	// ProcessSign can reject a request that does not belong to this key. Results persisted before
+	// these fields existed decode them as zero values (threshold 0, empty peers); those are treated
+	// as unknown and not enforced.
+	Threshold uint32   `json:"threshold"`
+	Peers     []string `json:"peers"`
+}
+
+// validateThresholdAndPeers checks a phase request against the parameters recorded at DKG time:
+// the threshold must match and every requested peer must have taken part in the DKG. A zero
+// threshold or empty peer list means the result predates these fields (unknown) and is not
+// rejected, so old persisted material keeps working.
+func (d *DKGResult) validateThresholdAndPeers(peers []string, threshold uint32) error {
+	if d.Threshold != 0 && d.Threshold != threshold {
+		return fmt.Errorf("%w: threshold=%d, dkg threshold=%d", errDKGResultMismatch, threshold, d.Threshold)
+	}
+	if len(d.Peers) == 0 {
+		return nil
+	}
+	participants := make(map[string]struct{}, len(d.Peers))
+	for _, id := range d.Peers {
+		participants[id] = struct{}{}
+	}
+	for _, id := range peers {
+		if _, ok := participants[id]; !ok {
+			return fmt.Errorf("%w: peer %s did not take part in the dkg", errDKGResultMismatch, id)
+		}
+	}
+	return nil
 }
 
 // GroupPublicKey returns the DKG group public key as an alice ECPoint.
@@ -130,20 +159,6 @@ func (d *DKGResult) toAlicePartialPubKeys(peers []string) (map[string]*ecpointgr
 		m[id] = p
 	}
 	return m, nil
-}
-
-// SelfBkString returns the string form of the local node's Birkhoff parameter, using the same
-// encoding alice uses when it binds a peer's bk into a zero-knowledge challenge
-// (cggmp.ComputeZKSsid). It is a diagnostics/debugging helper only — the CGGMP ssid this
-// wrapper uses is NOT derived from the local bk (that would differ per node and break the
-// shared challenges); see computeSSID for how the ssid is built.
-func (d *DKGResult) SelfBkString(selfID string, fieldOrder *big.Int) (string, error) {
-	bk, ok := d.Bks[selfID]
-	if !ok || bk == nil {
-		return "", errMissingSelfBk
-	}
-	b := birkhoffinterpolation.NewBkParameter(new(big.Int).SetBytes(bk.X), bk.Rank)
-	return b.String(fieldOrder), nil
 }
 
 // validatePartialPubKeys checks the material gathered by the partial-public-key (ppk) exchange:
@@ -270,8 +285,9 @@ func (r *RefreshResult) validateSignMaterial(d *DKGResult, peers []string, thres
 }
 
 // newDKGResult converts an alice cggmp dkg result plus the exchanged partial public keys
-// into the persisted chain33 representation.
-func newDKGResult(res *alicedkg.Result, partialPubKeys map[string]*ecpointgrouplaw.ECPoint) *DKGResult {
+// into the persisted chain33 representation. threshold and peers are the parameters the DKG ran
+// with; they are persisted so later phases can check their own request against this key.
+func newDKGResult(res *alicedkg.Result, partialPubKeys map[string]*ecpointgrouplaw.ECPoint, threshold uint32, peers []string) *DKGResult {
 	d := &DKGResult{
 		PubX:           res.PublicKey.GetX().Bytes(),
 		PubY:           res.PublicKey.GetY().Bytes(),
@@ -279,6 +295,8 @@ func newDKGResult(res *alicedkg.Result, partialPubKeys map[string]*ecpointgroupl
 		Bks:            make(map[string]*tss.BK, len(res.Bks)),
 		Rid:            res.Rid,
 		PartialPubKeys: make(map[string]*ECPoint, len(partialPubKeys)),
+		Threshold:      threshold,
+		Peers:          append([]string(nil), peers...),
 	}
 	for id, bk := range res.Bks {
 		d.Bks[id] = &tss.BK{Rank: bk.GetRank(), X: bk.GetX().Bytes()}
@@ -290,7 +308,7 @@ func newDKGResult(res *alicedkg.Result, partialPubKeys map[string]*ecpointgroupl
 }
 
 // newRefreshResult converts an alice cggmp refresh result into the persisted representation.
-func newRefreshResult(res *alicerefresh.Result) (*RefreshResult, error) {
+func newRefreshResult(res *alicerefresh.Result) *RefreshResult {
 	p, q := res.PaillierKey.GetPQ()
 	r := &RefreshResult{
 		Share:          res.Share.Bytes(),
@@ -310,5 +328,5 @@ func newRefreshResult(res *alicerefresh.Result) (*RefreshResult, error) {
 	for id, ped := range res.PedParameter {
 		r.PedParams[id] = fromPedersen(ped)
 	}
-	return r, nil
+	return r
 }
