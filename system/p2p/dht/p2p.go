@@ -59,6 +59,9 @@ type P2P struct {
 	client          queue.Client
 	addrBook        *AddrBook
 	taskGroup       *sync.WaitGroup
+	// lanDialing deduplicates mDNS announcements so one peer has at most one connectLANPeer
+	// goroutine (and retry loop) in flight.
+	lanDialing lanDialInFlight
 
 	pubsub  *extension.PubSub
 	restart int32
@@ -361,6 +364,11 @@ func (p *P2P) findLANPeers() {
 		select {
 		case neighbors := <-peerChan:
 			log.Debug("^_^! Well,findLANPeers Let's Play ^_^!<<<<<<<<<<<<<<<<<<<", "peerName", neighbors.ID, "addrs:", neighbors.Addrs, "paddr", p.host.Peerstore().Addrs(neighbors.ID))
+			// mDNS 会对同一邻居重复通知, 已有拨号在途时跳过, 避免同一 peer 起多个拨号/重试循环。
+			if !p.lanDialing.begin(neighbors.ID) {
+				log.Debug("findLANPeers", "dial already in flight, skip", "peer", neighbors.ID)
+				continue
+			}
 			//发现局域网内的邻居节点; 拨号带重试且在独立 goroutine 中进行, 既不会因一次偶发失败
 			//丢掉该邻居, 也不会阻塞后续邻居的处理。
 			p.taskGroup.Add(1)
@@ -385,6 +393,7 @@ func (p *P2P) findLANPeers() {
 // 不会再次同时打开, 通常第二次尝试即可连上。
 func (p *P2P) connectLANPeer(neighbors peer.AddrInfo) {
 	defer p.taskGroup.Done()
+	defer p.lanDialing.end(neighbors.ID)
 	const maxAttempts = 5
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		if attempt > 0 {
@@ -410,6 +419,24 @@ func (p *P2P) connectLANPeer(neighbors peer.AddrInfo) {
 		}
 		log.Error("findLANPeers", "err", err.Error(), "peer", neighbors.ID.String(), "attempt", attempt+1)
 	}
+}
+
+// lanDialInFlight tracks the LAN peers that currently have a connectLANPeer goroutine running.
+// mDNS can announce the same peer repeatedly, so without it each announcement would start another
+// dial and another retry loop for the same peer.
+type lanDialInFlight struct {
+	peers sync.Map
+}
+
+// begin marks id as being dialed. It returns false when a dial for id is already in flight.
+func (f *lanDialInFlight) begin(id peer.ID) bool {
+	_, loaded := f.peers.LoadOrStore(id, struct{}{})
+	return !loaded
+}
+
+// end clears the in-flight mark for id.
+func (f *lanDialInFlight) end(id peer.ID) {
+	f.peers.Delete(id)
 }
 
 // handleP2PEvent 由 StartP2P 启动, 调用方需先执行 taskGroup.Add(1)

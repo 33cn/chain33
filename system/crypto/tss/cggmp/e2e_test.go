@@ -130,7 +130,7 @@ func TestCGGMP3PartyInProcess(t *testing.T) {
 			cores[i].Stop()
 			// self partial public key = g^{share_i}
 			allPPK[ids[i]] = partialPublicKeyFor(curve, res.Share)
-			dkgResults[i] = newDKGResult(res, nil)
+			dkgResults[i] = newDKGResult(res, nil, e2eThreshold, ids)
 		}
 		// All parties hold the same group public key / bks / rid but their own share.
 		for i := 0; i < e2eN; i++ {
@@ -175,9 +175,7 @@ func TestCGGMP3PartyInProcess(t *testing.T) {
 			res, err := cores[i].GetResult()
 			require.NoError(t, err)
 			cores[i].Stop()
-			rr, err := newRefreshResult(res)
-			require.NoError(t, err)
-			refreshResults[i] = jsonRoundTrip(t, rr)
+			refreshResults[i] = jsonRoundTrip(t, newRefreshResult(res))
 		}
 	}
 
