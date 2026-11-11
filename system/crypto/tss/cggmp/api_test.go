@@ -42,11 +42,12 @@ func TestPhaseTimeouts(t *testing.T) {
 // blocking implementation would hang instead of returning.
 func TestProcessRejectsInvalidRankBeforePeerDiscovery(t *testing.T) {
 	peers := []string{"peer-a", "peer-b", "peer-c"}
-	err := func() error {
-		_, err := ProcessDKG(peers, 2, 2, "cggmp-rank-check", WithTimeout(50*time.Millisecond))
-		return err
-	}()
-	require.ErrorIs(t, err, errInvalidRank)
+	// alice's EnsureRank rejects rank+1 >= threshold, so threshold 3 allows only ranks 0 and 1:
+	// rank 2 is the boundary case that a "rank >= threshold" check would let through.
+	for _, rank := range []uint32{2, 3} {
+		_, err := ProcessDKG(peers, 3, rank, "cggmp-rank-check", WithTimeout(50*time.Millisecond))
+		require.ErrorIs(t, err, errInvalidRank, "rank %d", rank)
+	}
 }
 
 // TestBeginSessionRunRejectsConcurrent asserts one session id cannot be driven by two Process*
