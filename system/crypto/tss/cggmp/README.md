@@ -45,6 +45,7 @@ API — that would be a false abstraction. Instead the two packages expose the s
 ```
 cggmp.ProcessDKG(peers, threshold, rank, sessionID, opts...)  (*DKGResult, error)
 cggmp.ProcessRefresh(peers, threshold, dkgRes, sessionID, opts...)  (*RefreshResult, error)
+cggmp.ProcessRefreshAgain(peers, threshold, dkgRes, prevRefresh, sessionID, opts...)  (*RefreshResult, error)
 cggmp.ProcessSign(peers, threshold, msg, dkgRes, refreshRes, sessionID, opts...)  (*sign.Result, error)
 cggmp.ToBtcecSignature(result)  (*ecdsa.Signature, error)
 ```
@@ -53,9 +54,17 @@ Phase sequence for one key:
 
 ```
 ProcessDKG            -> persist *DKGResult      (group pubkey + own share + bks + rid + partial pubkeys + threshold/peers)
-ProcessRefresh        -> persist *RefreshResult  (refreshed share + own Paillier primes + per-peer Pedersen/ppk/y)
+ProcessRefresh        -> persist *RefreshResult  (refreshed share + own Paillier primes + per-peer Pedersen/ppk/y + ssid)
+ProcessRefreshAgain   -> persist *RefreshResult  (key rotation; repeatable, input is the previous RefreshResult)
 ProcessSign (repeat)  -> sign.Result {R,S}       -> ToBtcecSignature
 ```
+
+`ProcessRefresh` is the first refresh of a key and takes the DKG material as input.
+`ProcessRefreshAgain` rotates an existing generation: its input is the previous
+`*RefreshResult` (share and partial public keys) plus the immutable `*DKGResult`
+(group public key, Birkhoff parameters, rid, threshold/peers). The output replaces
+the previous `RefreshResult` for signing; the `DKGResult` is unchanged. Old shares
+are no longer sufficient once the new generation is installed.
 
 `peers` always includes the local node id and must be identical across all nodes
 of a phase. `sessionID` must be identical across the nodes of one phase but can
@@ -83,7 +92,7 @@ abstraction):
 - **DKG result types**: GG18 `*tss.DKGResult` (proto, in `tss.proto`) vs CGGMP
   `*cggmp.DKGResult` / `*cggmp.RefreshResult` (plain Go, JSON-serialisable).
   CGGMP simply has more key material (rid, partial pub keys, Paillier primes,
-  Pedersen params) that GG18 never needs.
+  Pedersen params, ssid) that GG18 never needs.
 - **sign signature**: GG18 `ProcessSign(peers, msg, dkg, session)` vs CGGMP
   `ProcessSign(peers, threshold, msg, dkg, refresh, session)` — the extra
   `threshold` and `refresh` args are inherent to alice's CGGMP.
@@ -147,7 +156,19 @@ downstream are unchanged.
   match when `ssid` is identical across participants. `cggmp.computeSSID`
   therefore binds the *shared* session id and the DKG `rid` (alice's own cggmp
   tests likewise pass a single shared nonce). Do not derive ssid from the local
-  peer's own Birkhoff parameter.
+  peer's own Birkhoff parameter. For a repeated refresh the ssid is instead
+  derived by `computeRefreshAgainSSID` from the previous round's ssid (see below),
+  so every generation gets a distinct zero-knowledge domain.
+- **Refresh can be repeated (key rotation).** `ProcessRefreshAgain(peers, threshold,
+  dkgRes, prev, sessionID)` seeds the round with `prev`'s share and partial public keys
+  instead of the DKG output, so the same key can be rotated as often as needed. The
+  `DKGResult` is unchanged and the newest `RefreshResult` replaces the previous one for
+  signing. `prev` must come from exactly the same participant set: an extra or missing
+  participant is rejected (`errRefreshResultMismatch` / `errMissingPeerPPK`), as is a
+  result persisted before `ssid` was recorded (`errMissingRefreshSsid`). alice's refresh
+  result carries no rid of its own — the ssid is only a zero-knowledge domain separator —
+  so the next round's ssid is chained from the previous round's ssid and never repeats,
+  even if the caller reuses a session id.
 - **Threshold signing with a subset**: pass the actual signer subset as `peers` and the
   matching threshold; `len(peers)` must equal `threshold` (enforced by `ProcessSign`). Only
   those participants' bks / partial pub keys / Pedersen params are fed to alice (the sign

@@ -175,7 +175,8 @@ func TestCGGMP3PartyInProcess(t *testing.T) {
 			res, err := cores[i].GetResult()
 			require.NoError(t, err)
 			cores[i].Stop()
-			refreshResults[i] = jsonRoundTrip(t, newRefreshResult(res))
+			ssid := computeSSID("cggmp-refresh-session", dkgResults[i].Rid)
+			refreshResults[i] = jsonRoundTrip(t, newRefreshResult(res, ssid))
 		}
 	}
 
