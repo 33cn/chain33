@@ -28,6 +28,19 @@ type sessionCore struct {
 	// batch is capped by maxPendingMessagesPerSession).
 	mu      sync.Mutex
 	backend Backend
+	// participants is the participant set of this round, immutable after registration. alice's
+	// CGGMP cores pass incoming messages through EchoMsgMain, which attributes a message by its
+	// own Id field (honest nodes echo it, and the core then treats the echoed Id as the sender)
+	// rather than by the transport peer id it was delivered with. The allowlist is what closes
+	// that hole: a connected peer outside the round cannot contribute a message at all, so it
+	// cannot forge another participant's Id by getting an honest node to echo it.
+	participants map[string]struct{}
+}
+
+// isParticipant reports whether peerID belongs to this round.
+func (s *sessionCore) isParticipant(peerID string) bool {
+	_, ok := s.participants[peerID]
+	return ok
 }
 
 // pendingMessage is a buffered message together with the transport-authenticated peer id it
@@ -48,13 +61,46 @@ var (
 	maxPendingSessions           = 100
 	pendingMessages              = make(map[string][]pendingMessage, maxPendingSessions)
 	maxPendingMessagesPerSession = 32
+
+	// runningSessions holds the protocol|sessionID keys with a Process* call in flight in this
+	// process. One session id names one round, so two concurrent attempts are never legitimate:
+	// the second would reset the first one's ppk collector (beginPPKSession deletes it) and both
+	// would fail. Reject the second attempt up front instead.
+	runningSessions = make(map[string]struct{})
 )
+
+// beginSessionRun claims protocol|sessionID for the calling Process*. It must be paired with
+// endSessionRun (defer) on every return path.
+func beginSessionRun(protocol, sessionID string) error {
+	id := tss.ComposeProtocol(protocol, sessionID)
+	sessionsMu.Lock()
+	defer sessionsMu.Unlock()
+	if _, running := runningSessions[id]; running {
+		return fmt.Errorf("%w: %s", errSessionRunning, id)
+	}
+	runningSessions[id] = struct{}{}
+	return nil
+}
+
+func endSessionRun(protocol, sessionID string) {
+	id := tss.ComposeProtocol(protocol, sessionID)
+	sessionsMu.Lock()
+	defer sessionsMu.Unlock()
+	delete(runningSessions, id)
+}
 
 // addMessage hands an incoming tss message to the alice core of its session. peerID is the
 // transport-authenticated sender (the libp2p peer id the message arrived from, i.e.
-// tss.MessageWrapper.PeerID), never the message's own Id field: alice's core rejects a message
-// whose Id disagrees with the sender it is attributed to, and Id is filled in by the sender, so
-// trusting it would let a peer impersonate another participant.
+// tss.MessageWrapper.PeerID), never the message's own Id field.
+//
+// It is not enough to prefer the transport id: every CGGMP core wraps its message main in alice's
+// EchoMsgMain, which ignores the senderID argument, keys its echo table by msg.Id, and hands the
+// core m.originalMsg.GetId() as the sender once NumPeers copies agree. A connected peer outside
+// the round could therefore send a body with Id=<victim>, have the honest nodes echo it, and be
+// processed as that participant (DoS: the round fails once the real message arrives with a
+// different hash). The participant allowlist below is what actually binds a message to a
+// participant: a peer id outside the round is rejected before the core ever sees it. (The GG18
+// wrapper relies on alice's MsgMain, which does compare senderID with msg.Id.)
 func addMessage(protocol, sessionID, peerID string, msg types.Message) error {
 	if peerID == "" {
 		// Without a transport-authenticated identity there is nothing to attribute the message
@@ -97,7 +143,13 @@ func addMessage(protocol, sessionID, peerID string, msg types.Message) error {
 // add serialises AddMessage calls for one session. removeSession only drops the registry entry;
 // the core pointer stays valid, so a message that raced with removal is still handled by the
 // (possibly stopped) core rather than dereferencing freed memory.
+//
+// Messages from peers outside the round are dropped here: see the comment on addMessage.
 func (s *sessionCore) add(peerID string, msg types.Message) error {
+	if !s.isParticipant(peerID) {
+		log.Warn("sessionCore.add drop message from non-participant", "peerID", peerID)
+		return errPeerNotParticipant
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.backend.AddMessage(peerID, msg)
@@ -120,7 +172,7 @@ func (s *sessionCore) add(peerID string, msg types.Message) error {
 // (type, sender) and rejects a second, different body with ErrDifferentHash), and the rest of that
 // batch is no more trustworthy than the message that failed. Dropping it makes the next attempt
 // start from a clean slate instead of failing on the same stale batch for ever.
-func registerSession(protocol, sessionID string, backend Backend) error {
+func registerSession(protocol, sessionID string, backend Backend, participants []string) error {
 	id := tss.ComposeProtocol(protocol, sessionID)
 	sessionsMu.Lock()
 	defer sessionsMu.Unlock()
@@ -128,13 +180,27 @@ func registerSession(protocol, sessionID string, backend Backend) error {
 	if ok {
 		return fmt.Errorf("session already registered")
 	}
+	allowed := make(map[string]struct{}, len(participants))
+	for _, peerID := range participants {
+		allowed[peerID] = struct{}{}
+	}
 	pending := pendingMessages[id]
 	delete(pendingMessages, id)
 	sessions[id] = &sessionCore{
-		backend: backend,
+		backend:      backend,
+		participants: allowed,
 	}
 	// flush buffer messages
 	for _, pendingMsg := range pending {
+		// The participant set is only known now, so a message buffered before registration is
+		// filtered here rather than at arrival time (addMessage cannot know the round's members
+		// yet). Dropping it silently is correct: it could never have been a contribution to this
+		// round.
+		if _, member := allowed[pendingMsg.peerID]; !member {
+			log.Warn("registerSession drop buffered message from non-participant",
+				"session", sessionID, "peerID", pendingMsg.peerID)
+			continue
+		}
 		err := backend.AddMessage(pendingMsg.peerID, pendingMsg.msg)
 		if err != nil {
 			log.Error("registerSession", "session", sessionID, "Cannot add pending message to core, err", err)

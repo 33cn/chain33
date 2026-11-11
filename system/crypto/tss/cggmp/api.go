@@ -145,11 +145,27 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 		log.Error("ProcessDKG", "session", sessionID, "invalid participants", err)
 		return nil, err
 	}
+	// alice's EnsureRank rejects rank >= threshold. Check it before the peer manager, so an
+	// impossible input fails at once instead of blocking on peer discovery.
+	if rank >= threshold {
+		err := fmt.Errorf("%w: rank=%d, threshold=%d", errInvalidRank, rank, threshold)
+		log.Error("ProcessDKG", "session", sessionID, "invalid rank", err)
+		return nil, err
+	}
+	if err := beginSessionRun(DkgProtocol, sessionID); err != nil {
+		log.Error("ProcessDKG", "session", sessionID, "session already running", err)
+		return nil, err
+	}
+	defer endSessionRun(DkgProtocol, sessionID)
 	cfg := newConfig(opts...)
 	curve := elliptic.Secp256k1()
 
 	// Phase 1: alice CGGMP DKG.
-	pm := tss.NewReadyPeerManager(peers, DkgProtocol, sessionID)
+	pm, err := tss.NewReadyPeerManagerWithTimeout(peers, DkgProtocol, sessionID, cfg.phaseTimeout(DkgProtocol))
+	if err != nil {
+		log.Error("ProcessDKG", "session", sessionID, "peers not ready", err)
+		return nil, err
+	}
 	selfID, err := validateSelf(pm, peers)
 	if err != nil {
 		log.Error("ProcessDKG", "session", sessionID, "invalid local peer", err)
@@ -165,7 +181,7 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 		log.Error("ProcessDKG", "session", sessionID, "NewDKG err", err)
 		return nil, err
 	}
-	if err := registerSession(DkgProtocol, sessionID, dkgCore); err != nil {
+	if err := registerSession(DkgProtocol, sessionID, dkgCore, peers); err != nil {
 		log.Error("ProcessDKG", "session", sessionID, "register session failed, err", err)
 		return nil, err
 	}
@@ -205,7 +221,10 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 // previous round that reused the same session id cannot occupy a slot.
 func exchangePartialPubKeys(peers []string, selfID string, share *big.Int, curve elliptic.Curve, sessionID string, rid []byte, timeout time.Duration) (map[string]*ecpointgrouplaw.ECPoint, error) {
 	myPPK := ecpointgrouplaw.ScalarBaseMult(curve, share)
-	pm := tss.NewReadyPeerManager(peers, PpkProtocol, sessionID)
+	pm, err := tss.NewReadyPeerManagerWithTimeout(peers, PpkProtocol, sessionID, timeout)
+	if err != nil {
+		return nil, err
+	}
 	collector := newPPKCollector(rid, otherPeers(peers, selfID))
 	registerPPKCollector(sessionID, collector)
 	defer removePPKCollector(sessionID)
@@ -235,6 +254,11 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 		log.Error("ProcessRefresh", "session", sessionID, "invalid participants", err)
 		return nil, err
 	}
+	if err := beginSessionRun(RefreshProtocol, sessionID); err != nil {
+		log.Error("ProcessRefresh", "session", sessionID, "session already running", err)
+		return nil, err
+	}
+	defer endSessionRun(RefreshProtocol, sessionID)
 	cfg := newConfig(opts...)
 
 	// Validate the persisted ppk material before handing it to alice: refresh needs every
@@ -255,7 +279,11 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 		return nil, err
 	}
 
-	pm := tss.NewReadyPeerManager(peers, RefreshProtocol, sessionID)
+	pm, err := tss.NewReadyPeerManagerWithTimeout(peers, RefreshProtocol, sessionID, cfg.phaseTimeout(RefreshProtocol))
+	if err != nil {
+		log.Error("ProcessRefresh", "session", sessionID, "peers not ready", err)
+		return nil, err
+	}
 	if _, err := validateSelf(pm, peers); err != nil {
 		log.Error("ProcessRefresh", "session", sessionID, "invalid local peer", err)
 		return nil, err
@@ -269,7 +297,7 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 		log.Error("ProcessRefresh", "session", sessionID, "NewRefresh err", err)
 		return nil, err
 	}
-	if err := registerSession(RefreshProtocol, sessionID, refreshCore); err != nil {
+	if err := registerSession(RefreshProtocol, sessionID, refreshCore, peers); err != nil {
 		log.Error("ProcessRefresh", "session", sessionID, "register session failed, err", err)
 		return nil, err
 	}
@@ -304,6 +332,11 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 		log.Error("ProcessSign", "session", sessionID, "invalid participants", err)
 		return nil, err
 	}
+	if err := beginSessionRun(SignProtocol, sessionID); err != nil {
+		log.Error("ProcessSign", "session", sessionID, "session already running", err)
+		return nil, err
+	}
+	defer endSessionRun(SignProtocol, sessionID)
 	cfg := newConfig(opts...)
 
 	// Refuse incomplete signer material up front: alice indexes bks / partial public keys /
@@ -332,7 +365,11 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 		return nil, err
 	}
 
-	pm := tss.NewReadyPeerManager(peers, SignProtocol, sessionID)
+	pm, err := tss.NewReadyPeerManagerWithTimeout(peers, SignProtocol, sessionID, cfg.phaseTimeout(SignProtocol))
+	if err != nil {
+		log.Error("ProcessSign", "session", sessionID, "peers not ready", err)
+		return nil, err
+	}
 	if _, err := validateSelf(pm, peers); err != nil {
 		log.Error("ProcessSign", "session", sessionID, "invalid local peer", err)
 		return nil, err
@@ -346,7 +383,7 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 		log.Error("ProcessSign", "session", sessionID, "NewSign err", err)
 		return nil, err
 	}
-	if err := registerSession(SignProtocol, sessionID, signCore); err != nil {
+	if err := registerSession(SignProtocol, sessionID, signCore, peers); err != nil {
 		log.Error("ProcessSign", "session", sessionID, "register session failed, err", err)
 		return nil, err
 	}

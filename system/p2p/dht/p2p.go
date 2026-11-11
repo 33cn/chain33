@@ -34,6 +34,7 @@ import (
 	"github.com/libp2p/go-libp2p/core"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/metrics"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
@@ -303,6 +304,14 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	}
 	//ConnectionGater,处理网络连接的策略
 	options = append(options, libp2p.ConnectionGater(manage.NewConnGater(&p.host, p.subCfg.MaxConnectNum, timeCache, genAddrInfos(p.subCfg.WhitePeerList))))
+	// libp2p v0.34+ installs an IP-aware default ResourceManager: every IPv4 /32 gets 8 streams and
+	// 8 connections by default (v0.35 only exempts loopback). Nodes that share an egress IP — several
+	// validators behind one NAT gateway or a cloud NAT — would silently be denied connections to each
+	// other. chain33 limits connections itself (MaxConnectNum via connmgr and the ConnectionGater
+	// above) and had no resource manager at all before v0.34, so opt out of the new default rather
+	// than inherit limits that were never tuned for this network. Revisit if per-peer accounting is
+	// wanted.
+	options = append(options, libp2p.ResourceManager(&network.NullResourceManager{}))
 	//关闭ping
 	options = append(options, libp2p.Ping(false))
 	return options
