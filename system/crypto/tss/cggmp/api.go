@@ -12,6 +12,7 @@ import (
 
 	"github.com/33cn/chain33/system/crypto/tss"
 	"github.com/btcsuite/btcd/btcec/v2/ecdsa"
+	"github.com/getamis/alice/crypto/birkhoffinterpolation"
 	"github.com/getamis/alice/crypto/ecpointgrouplaw"
 	"github.com/getamis/alice/crypto/elliptic"
 	alicggmp "github.com/getamis/alice/crypto/tss/ecdsa/cggmp"
@@ -267,6 +268,7 @@ func exchangePartialPubKeys(peers []string, selfID string, share *big.Int, curve
 // provisioning) for the key produced by ProcessDKG. It must be run once per key before any
 // ProcessSign; the returned RefreshResult together with the DKGResult is all ProcessSign
 // needs. sessionID must be identical across nodes; peers includes the local node id.
+// Repeated refreshes of the same key use ProcessRefreshAgain.
 func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, sessionID string, opts ...Option) (*RefreshResult, error) {
 	if dkgRes == nil {
 		return nil, errNilDKGResult
@@ -307,42 +309,128 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 		log.Error("ProcessRefresh", "session", sessionID, "partial pubkeys err", err)
 		return nil, err
 	}
-
-	pm, err := tss.NewReadyPeerManagerWithTimeout(peers, RefreshProtocol, sessionID, cfg.phaseTimeout(RefreshProtocol))
-	if err != nil {
-		log.Error("ProcessRefresh", "session", sessionID, "peers not ready", err)
-		return nil, err
-	}
-	if _, err := validateSelf(pm, peers); err != nil {
-		log.Error("ProcessRefresh", "session", sessionID, "invalid local peer", err)
-		return nil, err
-	}
-	listener := tss.NewListener(RefreshProtocol, cfg.phaseTimeout(RefreshProtocol))
 	ssid := computeSSID(sessionID, dkgRes.Rid)
+	return refreshRound(peers, threshold, aRes.PublicKey, aRes.Bks, aRes.Share, partialPubKeys,
+		ssid, sessionID, cfg.phaseTimeout(RefreshProtocol))
+}
 
-	refreshCore, err := alicerefresh.NewRefresh(aRes.Share, aRes.PublicKey, pm, threshold,
-		partialPubKeys, aRes.Bks, paillierKeySize, ssid, listener)
+// ProcessRefreshAgain runs a further CGGMP refresh (key rotation) of the same key. Instead of the
+// DKG material, it seeds the round with prev's share and partial public keys and returns the next
+// generation, which ProcessSign can use exactly like a first-refresh result. Use ProcessRefresh
+// for the first refresh of a key, and this entry point for every refresh after it.
+//
+// dkgRes supplies the immutable parts (group public key, Birkhoff parameters, rid and the
+// threshold/participant check); prev must have been produced by a refresh of exactly the same
+// participant set. sessionID must be identical across nodes and names this round.
+//
+// alice's refresh.Result carries no rid of its own, and the ssid is an opaque, caller-supplied
+// domain separator for the zero-knowledge challenges. The next ssid is therefore derived from the
+// previous round's ssid (see computeRefreshAgainSSID), so consecutive refreshes never reuse the
+// same challenge domain even if the caller reuses a session id.
+func ProcessRefreshAgain(peers []string, threshold uint32, dkgRes *DKGResult, prev *RefreshResult, sessionID string, opts ...Option) (*RefreshResult, error) {
+	if dkgRes == nil {
+		return nil, errNilDKGResult
+	}
+	if prev == nil {
+		return nil, errNilRefreshResult
+	}
+	if err := validateSessionID(sessionID); err != nil {
+		log.Error("ProcessRefreshAgain", "session", sessionID, "invalid session id", err)
+		return nil, err
+	}
+	if err := validateParticipants(peers, threshold); err != nil {
+		log.Error("ProcessRefreshAgain", "session", sessionID, "invalid participants", err)
+		return nil, err
+	}
+	if err := dkgRes.validateThresholdAndPeers(peers, threshold); err != nil {
+		log.Error("ProcessRefreshAgain", "session", sessionID, "dkg result mismatch", err)
+		return nil, err
+	}
+	if err := beginSessionRun(RefreshProtocol, sessionID); err != nil {
+		log.Error("ProcessRefreshAgain", "session", sessionID, "session already running", err)
+		return nil, err
+	}
+	defer endSessionRun(RefreshProtocol, sessionID)
+	cfg := newConfig(opts...)
+
+	// dkgRes's own share / partial public keys belong to the generation that prev already rotated
+	// away from; only its immutable parts are used here.
+	aRes, err := dkgRes.aliceResult(peers)
 	if err != nil {
-		log.Error("ProcessRefresh", "session", sessionID, "NewRefresh err", err)
+		log.Error("ProcessRefreshAgain", "session", sessionID, "aliceResult err", err)
+		return nil, err
+	}
+	share, partialPubKeys, err := prev.refreshInputs(dkgRes, peers, threshold)
+	if err != nil {
+		log.Error("ProcessRefreshAgain", "session", sessionID, "refresh input check err", err)
+		return nil, err
+	}
+	ssid := computeRefreshAgainSSID(sessionID, prev.Ssid, dkgRes.Rid)
+	return refreshRound(peers, threshold, aRes.PublicKey, aRes.Bks, share, partialPubKeys,
+		ssid, sessionID, cfg.phaseTimeout(RefreshProtocol))
+}
+
+// checkSelfShare rejects a local share that does not encode the same point as the local partial
+// public key. The refresh takes both as separate inputs, so a share and a ppk from different
+// generations would only be caught by alice's final Birkhoff check, after the Paillier work.
+func checkSelfShare(curve elliptic.Curve, share *big.Int, selfPPK *ecpointgrouplaw.ECPoint, selfID string) error {
+	if selfPPK == nil {
+		return fmt.Errorf("%w: %s", errMissingPeerPPK, selfID)
+	}
+	if !selfPPK.Equal(ecpointgrouplaw.ScalarBaseMult(curve, share)) {
+		return fmt.Errorf("%w: %s", errRefreshShareMismatch, selfID)
+	}
+	return nil
+}
+
+// refreshRound runs one alice CGGMP refresh round with the given key material and returns the
+// persisted result tagged with the ssid it ran with. share and partialPubKeys must belong to the
+// same generation and be consistent with publicKey/bks; the caller checks that before calling.
+func refreshRound(peers []string, threshold uint32, publicKey *ecpointgrouplaw.ECPoint,
+	bks map[string]*birkhoffinterpolation.BkParameter, share *big.Int,
+	partialPubKeys map[string]*ecpointgrouplaw.ECPoint, ssid []byte,
+	sessionID string, timeout time.Duration) (*RefreshResult, error) {
+	pm, err := tss.NewReadyPeerManagerWithTimeout(peers, RefreshProtocol, sessionID, timeout)
+	if err != nil {
+		log.Error("refreshRound", "session", sessionID, "peers not ready", err)
+		return nil, err
+	}
+	selfID, err := validateSelf(pm, peers)
+	if err != nil {
+		log.Error("refreshRound", "session", sessionID, "invalid local peer", err)
+		return nil, err
+	}
+	// alice seeds the new generation from the share and, independently, from the ppk map. If the
+	// two come from different generations, the round only fails at its final Birkhoff check,
+	// after generating the Paillier key; reject the mismatch before starting it.
+	if err := checkSelfShare(publicKey.GetCurve(), share, partialPubKeys[selfID], selfID); err != nil {
+		log.Error("refreshRound", "session", sessionID, "invalid local share", err)
+		return nil, err
+	}
+	listener := tss.NewListener(RefreshProtocol, timeout)
+	refreshCore, err := alicerefresh.NewRefresh(share, publicKey, pm, threshold,
+		partialPubKeys, bks, paillierKeySize, ssid, listener)
+	if err != nil {
+		log.Error("refreshRound", "session", sessionID, "NewRefresh err", err)
 		return nil, err
 	}
 	if err := registerSession(RefreshProtocol, sessionID, refreshCore, peers); err != nil {
-		log.Error("ProcessRefresh", "session", sessionID, "register session failed, err", err)
+		log.Error("refreshRound", "session", sessionID, "register session failed, err", err)
 		return nil, err
 	}
 	defer removeSession(RefreshProtocol, sessionID)
 	refreshCore.Start()
 	defer refreshCore.Stop()
 	if err := listener.Wait(); err != nil {
-		log.Error("ProcessRefresh", "session", sessionID, "listener done err", err)
+		log.Error("refreshRound", "session", sessionID, "listener done err", err)
 		return nil, err
 	}
 	aliceRefresh, err := refreshCore.GetResult()
 	if err != nil {
-		log.Error("ProcessRefresh", "session", sessionID, "GetResult err", err)
+		log.Error("refreshRound", "session", sessionID, "GetResult err", err)
 		return nil, err
 	}
-	return newRefreshResult(aliceRefresh), nil
+	return newRefreshResult(aliceRefresh, ssid), nil
 }
 
 // ProcessSign runs the CGGMP (4-round) threshold sign for msg. dkgRes is the DKG output of the
@@ -441,6 +529,16 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 // rid is included to bind the ssid to a specific key.
 func computeSSID(sessionID string, rid []byte) []byte {
 	return alicggmp.ComputeSSID([]byte(sessionID), nil, rid)
+}
+
+// computeRefreshAgainSSID derives the ssid of a repeated refresh. alice's refresh.Result carries
+// no rid of its own: the ssid is only a domain separator for the refresh zero-knowledge
+// challenges, so the requirement is that all participants of a round share it and that it does
+// not repeat across rounds. Chaining the previous round's ssid (and the caller's session id, which
+// names this round) satisfies both without a new rid: every refresh in the chain gets a distinct
+// value even if the caller reuses a session id.
+func computeRefreshAgainSSID(sessionID string, prevSSID, rid []byte) []byte {
+	return alicggmp.ComputeSSID([]byte(sessionID), prevSSID, rid)
 }
 
 // ToBtcecSignature converts a CGGMP signer result (R,S) to a btcec ecdsa signature, ready for

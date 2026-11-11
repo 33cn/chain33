@@ -27,8 +27,17 @@ var (
 	// errDKGResultMismatch means the requested phase parameters do not match the participants /
 	// threshold recorded in the DKG result, e.g. signing with a peer that never joined the DKG.
 	errDKGResultMismatch = errors.New("cggmp: dkg result does not match the requested participants")
-	errEmptySessionID    = errors.New("cggmp: empty session id")
-	errInvalidSessionID  = errors.New("cggmp: session id must not contain the protocol separator")
+	// errRefreshResultMismatch means a previous refresh result cannot seed another refresh of the
+	// requested participant set, e.g. it was produced by a different set of participants.
+	errRefreshResultMismatch = errors.New("cggmp: refresh result does not match the requested participants")
+	// errMissingRefreshSsid means a previous refresh result predates ssid persistence (or was
+	// stored incomplete), so the next round's zero-knowledge domain cannot be derived from it.
+	errMissingRefreshSsid = errors.New("cggmp: refresh result has no ssid")
+	// errRefreshShareMismatch means the share and the partial public key of the local node come
+	// from different generations, so the round could never produce a consistent key.
+	errRefreshShareMismatch = errors.New("cggmp: share does not match the partial public key")
+	errEmptySessionID       = errors.New("cggmp: empty session id")
+	errInvalidSessionID     = errors.New("cggmp: session id must not contain the protocol separator")
 
 	// Peer-material completeness errors, wrapped with the offending peer id.
 	errMissingPeerBk  = errors.New("missing birkhoff parameter")
