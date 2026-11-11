@@ -234,6 +234,8 @@ ForkAccountBlacklist=-1
 ForkAccountBlacklistV2=-1
 # 创世动作(Genesis)执行高度限制；0 表示创世即生效，-1 表示关闭
 ForkGenesisOnlyAtHeightZero=0
+# eth 签名交易的 chain33 信封校验；-1 表示关闭
+ForkEthSignEnvelope=-1
 [fork.sub.coins]
 Enable=0
 [fork.sub.ticket]

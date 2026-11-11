@@ -17,6 +17,13 @@ type CommonAction struct {
 	Amount uint64 //解析组装后的chain33 tx 的amount
 	Code   []byte //evm 数据
 	Nonce  int64
+
+	// NoteHex is the payload Note exactly as written. The signature verifier compares it
+	// with the canonical hex encoding of the embedded transaction.
+	NoteHex string
+	// IsEvm reports whether the payload decoded through the evm arm. Only that arm can
+	// carry an embedded Ethereum transaction; a coins transfer Note is a user memo.
+	IsEvm bool
 }
 
 // DecodeTxAction decode chain33Tx ethTx
@@ -25,6 +32,11 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 	err := proto.Unmarshal(msg, &tx)
 	if err != nil {
 		return nil, err
+	}
+	// an over-long execer is never a valid chain33 transaction; reject it before any
+	// address is derived from it.
+	if len(tx.Execer) > address.MaxExecNameLength {
+		return nil, errors.New("execer too long")
 	}
 	if strings.Contains(string(tx.Execer), "evm") {
 		//evm 合约操作
@@ -40,19 +52,19 @@ func DecodeTxAction(msg []byte) (*CommonAction, error) {
 				if evmaction.GetContractAddr() != address.ExecAddress(string(tx.GetExecer())) {
 					code = evmaction.GetPara()
 					to = evmaction.ContractAddr
-				} else { //coins 转账
-
+				} else { //coins 转账: Para 是收款地址, 不是调用数据
 					to = common.Bytes2Hex(evmaction.GetPara())
 				}
-
 			}
 
 			return &CommonAction{
-				Note:   common.FromHex(evmaction.Note),
-				To:     to,
-				Amount: evmaction.GetAmount(),
-				Code:   code,
-				Nonce:  tx.Nonce,
+				Note:    common.FromHex(evmaction.Note),
+				To:      to,
+				Amount:  evmaction.GetAmount(),
+				Code:    code,
+				Nonce:   tx.Nonce,
+				NoteHex: evmaction.Note,
+				IsEvm:   true,
 			}, nil
 		}
 	}

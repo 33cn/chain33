@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/33cn/chain33/common/log/log15"
@@ -15,13 +16,10 @@ import (
 
 	"github.com/33cn/chain33/common"
 	"github.com/33cn/chain33/common/crypto"
-	ecommon "github.com/ethereum/go-ethereum/common"
-
-	//"github.com/33cn/chain33/types"
-	"math/big"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth/types"
 	secp256k1 "github.com/btcsuite/btcd/btcec/v2"
+	ecommon "github.com/ethereum/go-ethereum/common"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
@@ -30,8 +28,14 @@ const privKeyBytesLen = 32
 const pubkeyBytesLen = 64 + 1
 
 var log = log15.New("module", Name)
-var chainID int64
-var coinsPrecision int64
+
+var (
+	chainID int64 // EVM chain id the embedded transaction must use
+	// coinsPrecision converts the embedded transaction's wei value into the chain33
+	// amount. It comes from the chain config through the driver sub config and falls
+	// back to the chain33 default.
+	coinsPrecision int64 = 1e8
+)
 
 // PrivKeySecp256k1Eth PrivKey
 type PrivKeySecp256k1Eth [32]byte
@@ -187,14 +191,13 @@ func (pubKey PubKeySecp256k1Eth) Bytes() []byte {
 func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 	var hash []byte
 	action, err := types.DecodeTxAction(msg)
-	if err == nil && len(action.Note) == 0 || err != nil {
+	if err != nil || !action.IsEvm || len(action.Note) == 0 {
 		//chain33格式交易，sha3哈希 eth 签名
 		hash = common.Sha3(msg)
 	} else { //解析ETH交易数据
-		var etx = new(etypes.Transaction)
-		err := etx.UnmarshalBinary(action.Note)
+		etx, err := types.DecodeEmbeddedTx(action.NoteHex)
 		if err != nil {
-			log.Error("VerifyBytes", "PubKeySecp256k1Eth,UnmarshalBinary", err)
+			log.Error("VerifyBytes", "msg", "embedded transaction decode failed", "err", err)
 			return false
 		}
 		//chainID 可配置
@@ -204,25 +207,24 @@ func (pubKey PubKeySecp256k1Eth) VerifyBytes(msg []byte, sig crypto.Signature) b
 		}
 		signer := etypes.NewLondonSigner(etx.ChainId())
 		hash = signer.Hash(etx).Bytes() //metamask,eth 兼容交易，取出eth 交易格式下的哈希
-		//check nonce 防止重放攻击
+		// 下面四项是分叉前就存在的共识检查: 它们比对的是 eth 交易与信封里重复出现的
+		// 字段, 任何一项不一致都说明信封被第三方改写过。fork 之后 checkEthSignEnvelope
+		// 会全量重建比对, 但 fork 之前这些检查必须保留, 否则伪造信封比升级前更容易。
 		if action.Nonce != int64(etx.Nonce()) {
 			log.Error("VerifyBytes", "action.Nonce", action.Nonce, "tx.Nonce", etx.Nonce())
 			return false
 		}
-		//checkout amount
-		amount := etx.Value().Div(etx.Value(), new(big.Int).Div(big.NewInt(1e18), big.NewInt(coinsPrecision)))
+		amount := new(big.Int).Div(etx.Value(), new(big.Int).Div(big.NewInt(1e18), big.NewInt(coinsPrecision)))
 		if amount.Uint64() != action.Amount { //防止自组装的chain33 Tx amount 被篡改
-			log.Error("VerifyBytes", "amount:", amount, "action.Amount", action.Amount)
+			log.Error("VerifyBytes", "amount", amount, "action.Amount", action.Amount)
 			return false
 		}
-		//check evm code
 		if !bytes.Equal(etx.Data(), action.Code) { // 防止合约代码被篡改
-			log.Error("VerifyBytes", "check action.Code not equal")
+			log.Error("VerifyBytes", "msg", "action.Code not equal")
 			return false
 		}
-		//check to address
 		if etx.To() != nil && !bytes.Equal(ecommon.FromHex(action.To), etx.To().Bytes()) {
-			log.Error("VerifyBytes", "ex.To", etx.To(), "action.To", action.To)
+			log.Error("VerifyBytes", "msg", "action.To not equal", "ex.To", etx.To(), "action.To", action.To)
 			return false
 		}
 	}
@@ -267,9 +269,9 @@ func initEvmIDFun(sub []byte) {
 	}
 	utils.MustDecode(sub, &id)
 	chainID = id.EvmChainID
-	coinsPrecision = id.CoinsPrecision
-	if coinsPrecision == 0 { //默认配置是 1e8
-		coinsPrecision = 1e8
+	coinsPrecision = 1e8
+	if id.CoinsPrecision > 0 {
+		coinsPrecision = id.CoinsPrecision
 	}
 }
 

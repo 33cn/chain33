@@ -1,5 +1,31 @@
 changelog
 
+## [1.73.1](https://github.com/33cn/chain33/compare/v1.73.0...v1.73.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **executor:** check the envelope of a proxy carrier before unpacking it ([986851b](https://github.com/33cn/chain33/commit/986851b49f3802675f0291ae6ec03c98f0110c7e))
+* **executor:** reject the block on a para chain when a proxy carrier is rewritten ([cda16d9](https://github.com/33cn/chain33/commit/cda16d916b3976475dcd193013bcfb567190e56f))
+
+# [1.73.0](https://github.com/33cn/chain33/compare/v1.72.7...v1.73.0) (2026-11-04)
+
+
+### Bug Fixes
+
+* **crypto:** bind the eth signature to the chain33 envelope ([3c07a88](https://github.com/33cn/chain33/commit/3c07a88712a3b30bfb6620654e4242bc8fe38a7f))
+* **crypto:** gate the eth envelope check behind a system fork ([9f5c055](https://github.com/33cn/chain33/commit/9f5c055ab0506d25bcdcfbc97806ad270961da37))
+* **crypto:** keep the eth sub config when it cannot be parsed ([5368907](https://github.com/33cn/chain33/commit/5368907c0821d70a3b20568a04dc5d4d9cfa2f03))
+* **crypto:** keep the pre-fork envelope checks and pin the signature type ([3b0b712](https://github.com/33cn/chain33/commit/3b0b7128e1df6570085e0205dbbec6705d558729))
+* **crypto:** pin the eth-signed chain33 envelope against rewriting ([456f0e7](https://github.com/33cn/chain33/commit/456f0e7a94bc2f4cdf954d68b2bcdbd1915b4fcd))
+* **crypto:** verify the eth-signed chain33 envelope by rebuilding it ([fadabfd](https://github.com/33cn/chain33/commit/fadabfd350a7958fe2c91abab0cd85c8230504bc))
+* **mempool:** limit the group eth nonce check to embedded eth carriers ([c3d84eb](https://github.com/33cn/chain33/commit/c3d84eba8e2cb53dcc155ecc68f9ed5c0ba1e7ea))
+
+
+### Features
+
+* **executor:** let StateDB undo a write in the current transaction ([0ba08b7](https://github.com/33cn/chain33/commit/0ba08b76ebafc3acc8b2ca01bde6cc2c19082ace))
+
 ## [1.72.7](https://github.com/33cn/chain33/compare/v1.72.6...v1.72.7) (2026-10-16)
 
 

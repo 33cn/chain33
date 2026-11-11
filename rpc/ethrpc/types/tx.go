@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
+	stypes "github.com/33cn/chain33/system/crypto/secp256k1eth/types"
 
-	"github.com/33cn/chain33/common/address"
 	rpctypes "github.com/33cn/chain33/rpc/types"
 	"github.com/33cn/chain33/system/address/eth"
 	dtypes "github.com/33cn/chain33/system/dapp/coins/types"
@@ -485,93 +484,24 @@ func CreateBloom(receipts []*Receipt) etypes.Bloom {
 
 // AssembleChain33Tx 通过eth tx 组装chain33 tx 全部走evm 通道
 func AssembleChain33Tx(etx *etypes.Transaction, sig, pubkey []byte, cfg *ctypes.Chain33Config) *ctypes.Transaction {
-	rawData, err := etx.MarshalBinary()
+	built, err := stypes.AssembleChain33Tx(etx, cfg.EthAssembleParams(ctypes.Now()))
 	if err != nil {
-		log.Error("AssembleChain33Tx", "tx.MarshalBinary err", err.Error())
+		log.Error("AssembleChain33Tx", "assemble err", err.Error())
 		return nil
 	}
-
-	var exec = cfg.ExecName("evm")
-	var amount int64
-
-	if etx.Value() != nil {
-		bigAmount := precisionEth2Coins(etx.Value(), cfg.GetCoinPrecision())
-		if !bigAmount.IsInt64() {
-			log.Error("AssembleChain33Tx", "value exceeds int64 range after precision conversion",
-				"ethValue", etx.Value().String(), "converted", bigAmount.String())
-			return nil
-		}
-		amount = bigAmount.Int64()
-		if amount < 0 {
-			log.Error("AssembleChain33Tx", "amount overflow to negative", "amount", amount)
-			return nil
-		}
+	// The builder returns the wire representation the verifier decodes; marshal it through
+	// the same field numbers to hand the caller the root types.Transaction.
+	chain33Tx := new(ctypes.Transaction)
+	if err := ctypes.Decode(ctypes.Encode(built), chain33Tx); err != nil {
+		log.Error("AssembleChain33Tx", "convert err", err.Error())
+		return nil
 	}
-	action := &ctypes.EVMContractAction4Chain33{
-		Amount:       uint64(amount),
-		GasLimit:     etx.Gas(),
-		GasPrice:     1,
-		Code:         nil,
-		Para:         nil,
-		Alias:        "",
-		Note:         common.Bytes2Hex(rawData),
-		ContractAddr: "",
-	}
-
-	var to string
-	if len(etx.Data()) != 0 { //合约操作
-		packdata := etx.Data()
-		if etx.To() == nil || len(etx.To().Bytes()) == 0 {
-			//合约部署
-			action.Code = packdata
-			to = address.ExecAddress(exec)
-		} else {
-			//合约操作
-			action.Para = packdata
-			to = strings.ToLower(etx.To().String())
-		}
-		action.ContractAddr = to
-
-	} else { // coins 操作
-		to = strings.ToLower(etx.To().String())
-		//coins 转账,para为目的地址
-		action.Para = common.FromHex(to)
-		//ContractAddr 为执行器地址
-		action.ContractAddr = address.ExecAddress(exec)
-	}
-	payload := ctypes.Encode(action)
-	var gas = etx.Gas()
-	minTxFeeRate := cfg.GetMinTxFeeRate()
-	if gas < uint64(minTxFeeRate) { //gas 不能低于默认的最低费率
-		gas = uint64(minTxFeeRate)
-	}
-
-	//全部走Evm 通道，exec=evm
-	var chain33Tx = &ctypes.Transaction{
-		ChainID: cfg.GetChainID(), //与链节点的chainID保持一致
-		To:      to,
-		Execer:  []byte(exec),
-		Payload: payload,
-		Fee:     int64(gas),
-		Signature: &ctypes.Signature{
-			Ty:        ctypes.EncodeSignID(ctypes.SECP256K1ETH, eth.ID),
-			Pubkey:    pubkey,
-			Signature: sig,
-		},
-	}
-	//为了防止认为设置过高的nonce,挤占mempool空间，允许最大3小时的超时时间
-	chain33Tx.SetExpire(cfg, time.Hour*3)
-	chain33Tx.Nonce = int64(etx.Nonce())
-	if cfg.IsPara() {
-		chain33Tx.To = address.ExecAddress(string(chain33Tx.Execer))
+	chain33Tx.Signature = &ctypes.Signature{
+		Ty:        ctypes.EncodeSignID(ctypes.SECP256K1ETH, eth.ID),
+		Pubkey:    pubkey,
+		Signature: sig,
 	}
 	return chain33Tx
-}
-
-func precisionEth2Coins(ethValue *big.Int, coinPrecision int64) *big.Int {
-	ethUnit := big.NewInt(1e18)
-	return new(big.Int).Div(ethValue, ethUnit.Div(ethUnit, big.NewInt(1).SetInt64(coinPrecision)))
-
 }
 
 func precisionCoins2Eth(coinsValue *big.Int, coinPrecision int64) *big.Int {

@@ -6,10 +6,21 @@ package executor
 
 import (
 	"encoding/hex"
+	"errors"
 
 	"github.com/33cn/chain33/common/db"
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/types"
+)
+
+var (
+	// ErrStateDBRevertWithoutTx is returned by RevertSet when no transaction is
+	// active. Undoing a write is only meaningful between Begin and Commit/Rollback:
+	// outside a transaction Set writes directly to the block cache and the
+	// previous value is no longer available.
+	ErrStateDBRevertWithoutTx = errors.New("statedb: RevertSet called outside a transaction")
+	// ErrStateDBEmptyKey is returned by RevertSet for a nil or empty state key.
+	ErrStateDBEmptyKey = errors.New("statedb: RevertSet called with an empty key")
 )
 
 // StateDB state db for store mavl
@@ -194,6 +205,61 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 		s.cache.Set(key, value)
 	}
 	return nil
+}
+
+// RevertSet undoes one write that the current transaction performed on key and
+// restores the value the key had before that write.
+//
+// The invariant it maintains is the one the executor relies on: every key in
+// GetSetKeys must also appear in the transaction receipt (see checkKV in
+// execenv.go). A reverted write must therefore stop being reported unless some
+// other write to the same key in this transaction survives:
+//
+//   - exactly one recorded occurrence of key is dropped from the GetSetKeys
+//     list, so duplicates left by repeated Set calls are handled one write at
+//     a time;
+//   - the transaction cache is set to originalValue, so reads later in the same
+//     transaction observe the restored value without touching the block cache.
+//
+// Writes must be reverted in LIFO order: originalValue is the value observed
+// before the reverted write, so undoing an older write while a newer one
+// survives would not describe the value left by the newest surviving write.
+//
+// A nil originalValue means the key did not exist before the write. The tx
+// cache then holds the nil sentinel: cacheDB.Get reports such an entry as
+// types.ErrNotFound, so the key reads as absent, and because its last recorded
+// occurrence was removed it no longer appears in GetSetKeys or in the receipt.
+//
+// originalValue is supplied by the caller (the pre-write state it captured)
+// rather than read from storage, because earlier writes of this transaction
+// live only in the transaction cache. A key with no recorded write in this
+// transaction is a no-op, making revert paths idempotent. A nil/empty key is
+// rejected with ErrStateDBEmptyKey and calling outside a transaction with
+// ErrStateDBRevertWithoutTx; no input causes a panic.
+func (s *StateDB) RevertSet(key []byte, originalValue []byte) error {
+	if len(key) == 0 {
+		return ErrStateDBEmptyKey
+	}
+	if !s.intx {
+		return ErrStateDBRevertWithoutTx
+	}
+	if !s.removeLastSetKey(string(key)) {
+		return nil
+	}
+	s.txcache.Set(key, originalValue)
+	return nil
+}
+
+// removeLastSetKey drops the most recent recorded write of key from the
+// transaction key list and reports whether one was found.
+func (s *StateDB) removeLastSetKey(key string) bool {
+	for i := len(s.keys) - 1; i >= 0; i-- {
+		if s.keys[i] == key {
+			s.keys = append(s.keys[:i], s.keys[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 // BatchGet batch get keys from state db
