@@ -20,13 +20,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// The tests below pin down who an incoming tss message is attributed to. alice's core rejects a
-// message whose body id disagrees with the sender it is handed (types/message/msg_main.go), so the
-// guarantee rests on the session layer handing it the *transport-authenticated* peer id rather
-// than the id the sender wrote into the message body. The transport fills
+// The tests below pin down who an incoming tss message is attributed to. The transport fills
 // tss.MessageWrapper.PeerID with the libp2p peer the stream came from (system/p2p/dht/protocol/
-// tss/tss.go) — the same peer id space the alice peer manager uses (see also the ppk exchange in
-// handlers.go, which is attributed the same way for the same reason).
+// tss/tss.go) — the same peer id space the alice peer manager uses.
+//
+// The session layer cannot rely on alice to reject a forged attribution here: every CGGMP core
+// wraps its message main in EchoMsgMain (alice crypto/tss/ecdsa/cggmp/{dkg,refresh,sign}), which
+// ignores the senderID argument, keys its echo table by the message's own Id and, once NumPeers
+// copies agree, hands the core that echoed Id as the sender. What actually binds a message to a
+// participant is therefore the participant allowlist below: a peer outside the round is rejected
+// before the core sees anything, so it can neither contribute nor get an honest node to echo a
+// forged Id. GG18 differs — alice's MsgMain (used there) compares senderID with msg.Id itself.
+
+// testParticipants is the participant set the registry tests send from. It must cover every peer
+// id they use as a sender, otherwise the allowlist rejects the message the test is driving.
+func testParticipants() []string {
+	return []string{"peer-self", "peer-real", "peer-claimed", "peer-transport", "peer-a", "peer-b", "peer-x"}
+}
 
 // stubHandler is a minimal alice types.Handler. The sessions under test only consult MessageType;
 // the remaining methods are never reached.
@@ -48,12 +58,14 @@ type stubListener struct{}
 
 func (stubListener) OnStateChanged(alicetypes.MainState, alicetypes.MainState) {}
 
-// newAliceCore builds a real alice protocol core, so the forged-sender test exercises alice's own
-// check instead of a re-implementation of it.
-func newAliceCore() *alicemsg.MsgMain {
+// newAliceCore builds the same message main the alice CGGMP cores build: an EchoMsgMain wrapping a
+// MsgMain (alice crypto/tss/ecdsa/cggmp/{dkg,refresh,sign}). Using the real one keeps the test
+// honest about where the identity check does and does not happen.
+func newAliceCore() *alicemsg.EchoMsgMain {
 	msgType := alicetypes.MessageType(alicedkg.Type_Peer)
-	return alicemsg.NewMsgMain("self", 4, stubListener{},
+	inner := alicemsg.NewMsgMain("self", 4, stubListener{},
 		&stubHandler{msgType: msgType}, msgType)
+	return alicemsg.NewEchoMsgMain(inner, &stubPeerManager{self: "self", peers: []string{"peer-claimed"}})
 }
 
 // dkgMessage returns a valid alice cggmp dkg message whose body claims to come from id.
@@ -81,21 +93,34 @@ func (b *captureBackend) AddMessage(senderID string, msg alicetypes.Message) err
 	return nil
 }
 
-// TestAddMessageRejectsForgedSenderID feeds the session a message that claims to be another
-// participant. Its transport-authenticated sender is the peer it actually arrived from, so the
-// claim disagrees with the attribution and alice's core must reject it with ErrBadMsg rather than
-// accept it as the peer it claims to be.
-func TestAddMessageRejectsForgedSenderID(t *testing.T) {
-	const sessionID = "cggmp-session-forged-sender-id"
-	require.NoError(t, registerSession(DkgProtocol, sessionID, newAliceCore()))
-	defer removeSession(DkgProtocol, sessionID)
+// TestAddMessageRejectsNonParticipant is the regression test for the echo-path impersonation: a
+// connected peer that is not part of the round sends a message whose body claims to be a
+// participant. alice's EchoMsgMain would key it by that Id and have honest nodes echo it, so the
+// rejection has to happen in the session layer. Both the live and the buffered path are covered —
+// the buffered one because the participant set is only known once the local session registers.
+func TestAddMessageRejectsNonParticipant(t *testing.T) {
+	const (
+		live       = "cggmp-session-non-participant-live"
+		buffered   = "cggmp-session-non-participant-buffered"
+		outsiderID = "peer-outsider"
+	)
 
-	err := addMessage(DkgProtocol, sessionID, "peer-real", dkgMessage("peer-claimed"))
-	require.ErrorIs(t, err, alicemsg.ErrBadMsg,
-		"a message claiming another peer must be rejected by the core")
+	// A real alice CGGMP core: the message must not reach EchoMsgMain at all.
+	require.NoError(t, registerSession(DkgProtocol, live, newAliceCore(), testParticipants()))
+	defer removeSession(DkgProtocol, live)
+	require.ErrorIs(t, addMessage(DkgProtocol, live, outsiderID, dkgMessage("peer-claimed")),
+		errPeerNotParticipant, "a non-participant must not reach the core")
 
-	// Control: the same message, truthfully attributed, is accepted.
-	require.NoError(t, addMessage(DkgProtocol, sessionID, "peer-claimed", dkgMessage("peer-claimed")))
+	// Control: a participant's message still goes through.
+	require.NoError(t, addMessage(DkgProtocol, live, "peer-claimed", dkgMessage("peer-claimed")))
+
+	// Buffered path: the message arrives before the local session exists, so the allowlist can only
+	// be applied at flush time.
+	backend := &captureBackend{}
+	require.NoError(t, addMessage(DkgProtocol, buffered, outsiderID, dkgMessage("peer-claimed")))
+	require.NoError(t, registerSession(DkgProtocol, buffered, backend, testParticipants()))
+	defer removeSession(DkgProtocol, buffered)
+	require.Empty(t, backend.calls, "a buffered message from a non-participant must be dropped")
 }
 
 // TestAddMessageSenderIDIsTransportPeerID asserts the sender id the core receives is the transport
@@ -103,7 +128,7 @@ func TestAddMessageRejectsForgedSenderID(t *testing.T) {
 func TestAddMessageSenderIDIsTransportPeerID(t *testing.T) {
 	const sessionID = "cggmp-session-sender-id-source"
 	backend := &captureBackend{}
-	require.NoError(t, registerSession(DkgProtocol, sessionID, backend))
+	require.NoError(t, registerSession(DkgProtocol, sessionID, backend, testParticipants()))
 	defer removeSession(DkgProtocol, sessionID)
 
 	msg := dkgMessage("peer-claimed")
@@ -118,7 +143,7 @@ func TestAddMessageSenderIDIsTransportPeerID(t *testing.T) {
 	for _, protocol := range []string{RefreshProtocol, SignProtocol} {
 		phaseSession := sessionID + protocol
 		phaseBackend := &captureBackend{}
-		require.NoError(t, registerSession(protocol, phaseSession, phaseBackend))
+		require.NoError(t, registerSession(protocol, phaseSession, phaseBackend, testParticipants()))
 		require.NoError(t, addMessage(protocol, phaseSession, "peer-transport", dkgMessage("peer-claimed")))
 		require.Len(t, phaseBackend.calls, 1)
 		require.Equal(t, "peer-transport", phaseBackend.calls[0].senderID)
@@ -135,7 +160,7 @@ func TestAddMessageRejectsMissingPeerID(t *testing.T) {
 		unregistered = "cggmp-session-missing-peer-id-unregistered"
 	)
 	backend := &captureBackend{}
-	require.NoError(t, registerSession(DkgProtocol, registered, backend))
+	require.NoError(t, registerSession(DkgProtocol, registered, backend, testParticipants()))
 	defer removeSession(DkgProtocol, registered)
 
 	require.ErrorIs(t, addMessage(DkgProtocol, registered, "", dkgMessage("peer-claimed")),
@@ -158,7 +183,7 @@ func TestBufferedMessageKeepsTransportPeerID(t *testing.T) {
 	require.NoError(t, addMessage(DkgProtocol, sessionID, "peer-transport", dkgMessage("peer-claimed")))
 
 	backend := &captureBackend{}
-	require.NoError(t, registerSession(DkgProtocol, sessionID, backend))
+	require.NoError(t, registerSession(DkgProtocol, sessionID, backend, testParticipants()))
 	defer removeSession(DkgProtocol, sessionID)
 
 	require.Len(t, backend.calls, 1)
@@ -190,10 +215,10 @@ func TestAddMessageDoesNotBlockOtherSessions(t *testing.T) {
 	blocker := &blockingBackend{entered: make(chan struct{}), release: make(chan struct{})}
 	var releaseOnce sync.Once
 	release := func() { releaseOnce.Do(func() { close(blocker.release) }) }
-	require.NoError(t, registerSession(DkgProtocol, blockedSession, blocker))
+	require.NoError(t, registerSession(DkgProtocol, blockedSession, blocker, testParticipants()))
 	defer removeSession(DkgProtocol, blockedSession)
 	other := &captureBackend{}
-	require.NoError(t, registerSession(DkgProtocol, otherSession, other))
+	require.NoError(t, registerSession(DkgProtocol, otherSession, other, testParticipants()))
 	defer removeSession(DkgProtocol, otherSession)
 	// Registered after the removeSession defers so it runs first on t.Fatal: a failing assertion
 	// must still unblock the busy session, otherwise the deferred removeSession calls would wait
@@ -273,7 +298,7 @@ func TestAddMessageSerialisesSameSession(t *testing.T) {
 		entered: make(chan struct{}, concurrent),
 		release: make(chan struct{}),
 	}
-	require.NoError(t, registerSession(DkgProtocol, sessionID, probe))
+	require.NoError(t, registerSession(DkgProtocol, sessionID, probe, testParticipants()))
 	defer removeSession(DkgProtocol, sessionID)
 
 	var wg sync.WaitGroup
@@ -381,7 +406,7 @@ func TestRegisterSessionRecoversAfterFailedRound(t *testing.T) {
 
 	// Round 1, registered and torn down the way ProcessDKG does it (registerSession, then
 	// removeSession on return).
-	require.NoError(t, registerSession(DkgProtocol, sessionID, newSessionDKG(t)))
+	require.NoError(t, registerSession(DkgProtocol, sessionID, newSessionDKG(t), testParticipants()))
 	removeSession(DkgProtocol, sessionID)
 	requireNoSessionState(t, sessionID)
 
@@ -393,14 +418,14 @@ func TestRegisterSessionRecoversAfterFailedRound(t *testing.T) {
 	// Round 2 fails on that batch: alice rejects the second, different body for (Type_Peer, peer-b)
 	// instead of letting the round run to its own timeout. Failing fast is deliberate — what matters
 	// is that it is recoverable.
-	err := registerSession(DkgProtocol, sessionID, newSessionDKG(t))
+	err := registerSession(DkgProtocol, sessionID, newSessionDKG(t), testParticipants())
 	require.ErrorIs(t, err, alicemsg.ErrDifferentHash)
 	// The failed registration left nothing behind: no session, and the poisoned batch is gone too.
 	requireNoSessionState(t, sessionID)
 
 	// The very next attempt under the same name registers fine — this is the behaviour the node
 	// needs to come back without a restart.
-	require.NoError(t, registerSession(DkgProtocol, sessionID, newSessionDKG(t)))
+	require.NoError(t, registerSession(DkgProtocol, sessionID, newSessionDKG(t), testParticipants()))
 	defer removeSession(DkgProtocol, sessionID)
 
 	// Live messages still reach the registered core ...
@@ -408,7 +433,7 @@ func TestRegisterSessionRecoversAfterFailedRound(t *testing.T) {
 
 	// ... and a second registration of a *live* session is still refused: that rejection is what
 	// keeps two concurrent rounds of the same name from trampling each other.
-	require.ErrorContains(t, registerSession(DkgProtocol, sessionID, newSessionDKG(t)),
+	require.ErrorContains(t, registerSession(DkgProtocol, sessionID, newSessionDKG(t), testParticipants()),
 		"session already registered")
 
 	// Teardown drops the session state again, so the next round starts from a clean slate.
@@ -421,7 +446,7 @@ func TestRegisterSessionRecoversAfterFailedRound(t *testing.T) {
 func TestHandleDkgMsgUsesTransportPeerID(t *testing.T) {
 	const sessionID = "cggmp-session-handler-peer-id"
 	backend := &captureBackend{}
-	require.NoError(t, registerSession(DkgProtocol, sessionID, backend))
+	require.NoError(t, registerSession(DkgProtocol, sessionID, backend, testParticipants()))
 	defer removeSession(DkgProtocol, sessionID)
 
 	handleDkgMsg(&tss.MessageWrapper{

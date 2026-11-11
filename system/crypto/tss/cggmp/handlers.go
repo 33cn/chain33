@@ -161,14 +161,24 @@ func (c *ppkCollector) add(peerID string, rid []byte, p *ecpointgrouplaw.ECPoint
 	}
 }
 
+// wait blocks until every other participant's partial public key has arrived, or until timeout.
+// A non-positive timeout means no timeout, matching the WithTimeout contract and
+// tss.NewListener: time.After would fire immediately for those values and turn "wait for ever"
+// into "fail right away".
 func (c *ppkCollector) wait(timeout time.Duration) error {
 	if c.total <= 0 {
 		return nil
 	}
+	if timeout <= 0 {
+		<-c.done
+		return nil
+	}
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 	select {
 	case <-c.done:
 		return nil
-	case <-time.After(timeout):
+	case <-timer.C:
 		return errPPKTimeout
 	}
 }

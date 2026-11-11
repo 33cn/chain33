@@ -149,13 +149,27 @@ downstream are unchanged.
   tests likewise pass a single shared nonce). Do not derive ssid from the local
   peer's own Birkhoff parameter.
 - **Threshold signing with a subset**: pass the actual signer subset as `peers` and the
-  matching threshold; `len(peers)` must equal `threshold` (enforced by `ProcessSign` —
-  pick exactly `threshold` signers, e.g. with `tss.GetValidPeerCombination`). Only those
-  participants' bks / partial pub keys / Pedersen params are fed to alice (the sign core
-  iterates the passed maps, so non-participant entries would break the Birkhoff
-  coefficient computation).
-- The full GG18/CGGMP multi-process run is exercised by the p2p integration tests
-  (`gg18_integration_test.go`). This package's `e2e_test.go` runs the complete
+  matching threshold; `len(peers)` must equal `threshold` (enforced by `ProcessSign`). Only
+  those participants' bks / partial pub keys / Pedersen params are fed to alice (the sign
+  core iterates the passed maps, so non-participant entries would break the Birkhoff
+  coefficient computation). `tss.GetValidPeerCombination` returns exactly `threshold` peers
+  sorted by rank that always include the local node — a bare "take the first `threshold`
+  connected peers" is wrong: the local id must be present (alice indexes by `SelfID`), and a
+  subset whose sorted ranks violate `rank_i <= i` fails inside the sign core.
+- **One `Process*` per session id.** A session id names one round, so the wrapper rejects a
+  second concurrent call with the same `protocol|sessionID` instead of letting the two
+  attempts reset each other's state. Retries after a failure are sequential and reuse the id.
+- **Messages are accepted only from participants.** Every CGGMP core wraps its message main
+  in alice's `EchoMsgMain`, which attributes a message by the `Id` in its body (honest nodes
+  echo it, and the core then treats that echoed id as the sender) rather than by the
+  transport peer id. The session layer therefore checks the transport-authenticated peer id
+  against the round's participant set, both for live sessions and when flushing messages
+  buffered before the local session registered. A connected peer outside the round can
+  neither contribute nor get an honest node to echo a forged id. (GG18 is unaffected: alice's
+  `MsgMain` compares the sender with `msg.Id` itself.)
+- The multi-process run is exercised by `cggmp_integration_test.go` (`TestCGGMP4Node`, four
+  real chain33 child nodes over the p2p transport, skipped by `-short`); CI runs it with
+  `-race` in the `test-cggmp-integration` job. `e2e_test.go` runs the complete
   DKG → ppk → refresh → sign crypto in-process (three parties) and round-trips
   every persisted result through JSON, proving the data flow and that the
   signature verifies against the DKG group key.

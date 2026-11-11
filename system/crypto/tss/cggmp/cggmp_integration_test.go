@@ -264,8 +264,28 @@ func startTestNode(t *testing.T, port int, channel int32, seeds []string) (*test
 
 type childProc struct {
 	cmd  *exec.Cmd
-	out  *bytes.Buffer
+	out  *syncBuffer
 	role string
+}
+
+// syncBuffer is a bytes.Buffer guarded by a mutex. os/exec copies the child's stdout and stderr on
+// two separate goroutines, and both are wired to the same destination: a bare bytes.Buffer races
+// under -race.
+type syncBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *syncBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *syncBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
 }
 
 func startChildNode(t *testing.T, role string, port int, seed, barrierDir string) *childProc {
@@ -275,16 +295,16 @@ func startChildNode(t *testing.T, role string, port int, seed, barrierDir string
 		"TSS_PORT="+strconv.Itoa(port), "TSS_SEED="+seed,
 		"TSS_BARRIER_DIR="+barrierDir,
 	)
-	var out bytes.Buffer
-	cmd.Stdout = io.MultiWriter(os.Stdout, &out)
-	cmd.Stderr = io.MultiWriter(os.Stderr, &out)
+	out := &syncBuffer{}
+	cmd.Stdout = io.MultiWriter(os.Stdout, out)
+	cmd.Stderr = io.MultiWriter(os.Stderr, out)
 	require.NoError(t, cmd.Start())
 	t.Cleanup(func() {
 		if cmd.ProcessState == nil {
 			_ = cmd.Process.Kill()
 		}
 	})
-	return &childProc{cmd: cmd, out: &out, role: role}
+	return &childProc{cmd: cmd, out: out, role: role}
 }
 
 // waitChildExit waits for a child process and returns an error instead of calling t.Fatalf, so it

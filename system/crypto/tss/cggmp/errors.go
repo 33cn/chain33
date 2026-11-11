@@ -32,6 +32,17 @@ var (
 	errMissingPeerPed = errors.New("missing pedersen parameter")
 	errInvalidPeerPPK = errors.New("invalid partial public key")
 	errThresholdPeers = errors.New("len(peers) must equal threshold")
+	// errSessionRunning means another Process* call is already running for the same
+	// protocol|sessionID in this process. Concurrent attempts on one session id would tear down
+	// each other's partial-public-key collector (see beginPPKSession), so they are rejected.
+	errSessionRunning = errors.New("cggmp: session already running")
+	// errPeerNotParticipant means a message arrived from a peer id outside the round's
+	// participant set, so it can never be a legitimate contribution to that round.
+	errPeerNotParticipant = errors.New("cggmp: message from a non-participant peer")
+	// errPeersNotReady means not every listed peer became connected within the phase timeout.
+	errPeersNotReady = errors.New("cggmp: peers not connected before the phase timeout")
+	// errInvalidRank means the local Birkhoff rank cannot take part in a threshold-t group.
+	errInvalidRank = errors.New("cggmp: invalid birkhoff rank")
 	// errPPKInconsistent means the exchanged partial public keys do not reconstruct the DKG
 	// group public key: at least one participant broadcast bad material at the ppk stage.
 	errPPKInconsistent = errors.New("partial public keys do not reconstruct the dkg group public key")
