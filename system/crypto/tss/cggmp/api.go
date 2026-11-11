@@ -145,9 +145,11 @@ func ProcessDKG(peers []string, threshold, rank uint32, sessionID string, opts .
 		log.Error("ProcessDKG", "session", sessionID, "invalid participants", err)
 		return nil, err
 	}
-	// alice's EnsureRank rejects rank >= threshold. Check it before the peer manager, so an
-	// impossible input fails at once instead of blocking on peer discovery.
-	if rank >= threshold {
+	// alice's EnsureRank rejects rank+1 >= threshold (rank <= threshold-2 is the valid range).
+	// Check it before the peer manager, so an impossible input fails at once instead of blocking
+	// on peer discovery. threshold >= 2 is already enforced by validateParticipants, so
+	// threshold-1 cannot underflow.
+	if rank >= threshold-1 {
 		err := fmt.Errorf("%w: rank=%d, threshold=%d", errInvalidRank, rank, threshold)
 		log.Error("ProcessDKG", "session", sessionID, "invalid rank", err)
 		return nil, err
