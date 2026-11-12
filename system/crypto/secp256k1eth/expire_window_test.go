@@ -34,6 +34,25 @@ func TestEthExpireVariantsAccepted(t *testing.T) {
 	}
 }
 
+// TestEthExpireIgnoresBlockTimeBeforeV2 pins the replay guarantee: before ForkEthSignEnvelopeV2
+// the window is measured against the local clock, so an older block replays with the verdict
+// it got when it was mined. A block time four hours in the past would reject the envelope if
+// it were used, which is exactly what must not happen before the fork.
+func TestEthExpireIgnoresBlockTimeBeforeV2(t *testing.T) {
+	cfg, _, _ := newTestEnv(t, false)
+	// The local test config activates every fork; schedule V2 after the height under test.
+	cfg.SetFork(ctypes.ForkEthSignEnvelopeV2, envelopeForkHeight+100)
+	base := newEthTx(7, &testRecipient, nil)
+	tx := assembleWith(t, cfg, base)
+	oldBlockTime := time.Now().Unix() - int64(4*time.Hour/time.Second)
+
+	require.NoError(t, asChain33Tx(t, tx).CheckAtBlockTime(cfg, envelopeForkHeight, 0, 0, oldBlockTime))
+
+	// The same call after the fork uses the block time and rejects it.
+	cfg.SetFork(ctypes.ForkEthSignEnvelopeV2, envelopeForkHeight)
+	require.Error(t, asChain33Tx(t, tx).CheckAtBlockTime(cfg, envelopeForkHeight, 0, 0, oldBlockTime))
+}
+
 // TestEthExpireUsesBlockTime requires the window to be evaluated against the block time the
 // caller supplies, not against the verifying node's clock: whether a block is valid may
 // depend on its contents only.
