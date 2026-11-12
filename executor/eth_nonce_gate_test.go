@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"errors"
 	"math/big"
 	"strings"
 	"testing"
@@ -19,8 +20,8 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
-// These tests exercise the pre-fee nonce gate in execTx/execTxGroup against a seeded
-// LocalDB nonce record, so no EVM executor is needed: the gate returns before execFee.
+// These tests exercise the pre-fee nonce gate in execTx against a seeded LocalDB nonce
+// record, so no EVM executor is needed: the gate returns before execFee.
 // The key and value formats are the ones the EVM executor writes and reads, and the
 // seed goes straight into the LocalDB cache because a cache hit keeps the tests free of
 // a running blockchain module (LocalDB would otherwise forward reads over the queue).
@@ -91,10 +92,7 @@ func testEthExecCtx() *executorCtx {
 func TestExecTxEthNonceGateRejectsStaleCarrier(t *testing.T) {
 	exec, _ := initEnv(types.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
-	// Keep the fee path out of the picture: the assertion is about reaching (or not
-	// reaching) execFee, not about balances, and a zero rate keeps the mutated run from
-	// querying the store module.
-	cfg.SetTxFeeConfig(0, 1e7, 1e9)
+	cfg.SetTxFeeConfig(1, 1e7, 1e9)
 	cfg.SetDappFork("evm", "ForkEvmExecNonceV2", 0)
 	types.AllowUserExec = append(types.AllowUserExec, []byte("evm"))
 
@@ -102,39 +100,97 @@ func TestExecTxEthNonceGateRejectsStaleCarrier(t *testing.T) {
 	ldb := newNonceLocalDB(t, carrier.From(), 5)
 
 	execute := newExecutor(testEthExecCtx(), exec, ldb, nil, nil)
+	// The fee step is replaced so that its position relative to the gate is observable:
+	// moving the gate after it sets charged and the test fails.
+	charged := false
+	execute.feeCharger = func(*types.Transaction, int) (*types.Receipt, error) {
+		charged = true
+		return nil, errors.New("fee charged")
+	}
 	receipt, err := execute.execTx(nil, carrier, 0)
 
 	require.Error(t, err)
+	require.False(t, charged, "the gate must run before the fee is charged")
 	require.Nil(t, receipt, "the gate must run before execFee, so no receipt exists")
 	require.Contains(t, strings.ToLower(err.Error()), "nonce")
 }
 
-// TestExecTxGroupEthNonceGateRejectsStaleHead checks the group call site: the group head
-// pays the fee for every member, so it gets the same pre-fee gate.
-func TestExecTxGroupEthNonceGateRejectsStaleHead(t *testing.T) {
+// TestExecTxEthNonceGateSkipsNonEnvelope checks the predicate: an eth-signed chain33
+// transaction that does not carry an Ethereum transaction - a native coins transfer signed
+// with the secp256k1eth key is the case here - uses Transaction.Nonce for its own purpose
+// and must not be judged against the EVM account record.
+func TestExecTxEthNonceGateSkipsNonEnvelope(t *testing.T) {
 	exec, _ := initEnv(types.GetDefaultCfgstring())
 	cfg := exec.client.GetConfig()
 	cfg.SetTxFeeConfig(0, 1e7, 1e9)
 	cfg.SetDappFork("evm", "ForkEvmExecNonceV2", 0)
-	// The envelope rule requires the single-transaction shape, so a carrier cannot be a
-	// group member while it is active. It is a different fork from the V2 nonce gate;
-	// disabling it here isolates the group call site without weakening that gate.
-	cfg.SetFork(types.ForkEthSignEnvelope, testEthExecCtx().height+100)
+	crypto.Init(cfg.GetModuleConfig().Crypto, map[string][]byte{
+		secp256k1eth.Name: cfg.GetSubConfig().Crypto[secp256k1eth.Name],
+	})
 
-	carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress("0x2222222222222222222222222222222222222222"), 0, nil)
 	_, priv := util.Genaddress()
-	member := util.CreateNoneTx(cfg, priv)
-	group, err := types.CreateTxGroup([]*types.Transaction{carrier, member}, cfg.GetMinTxFeeRate())
+	to, _ := util.Genaddress()
+	tx := util.CreateCoinsTx(cfg, priv, to, 1000)
+	ethCrypto, err := crypto.Load(secp256k1eth.Name, -1)
 	require.NoError(t, err)
-	require.Equal(t, int32(2), group.Txs[0].GroupCount)
+	ethPriv, err := ethCrypto.GenKey()
+	require.NoError(t, err)
+	tx.Sign(types.EncodeSignID(secp256k1eth.ID, types.EthAddressID), ethPriv)
+	require.True(t, types.IsEthSignID(tx.GetSignature().GetTy()))
+	etx, ok := types.EthSignedTxEnvelope(tx)
+	require.False(t, ok)
+	require.Nil(t, etx)
 
-	ldb := newNonceLocalDB(t, carrier.From(), 5)
-	execute := newExecutor(testEthExecCtx(), exec, ldb, group.GetTxs(), nil)
-	receipts, err := execute.execTxGroup(group.GetTxs(), 0)
+	// The record is deliberately behind: if the gate judged this transaction, it would
+	// reject it. The gate is called directly so the test needs no execution stage.
+	ldb := newNonceLocalDB(t, tx.From(), 5)
+	execute := newExecutor(testEthExecCtx(), exec, ldb, nil, nil)
+	require.NoError(t, execute.checkEthNonceBeforeFee(tx))
 
-	require.Error(t, err)
-	require.Nil(t, receipts, "the gate must run before execFee, so no receipt exists")
-	require.Contains(t, strings.ToLower(err.Error()), "nonce")
+	// Sanity check on the same executor: the gate does fire for a real envelope.
+	carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress("0x4444444444444444444444444444444444444444"), 0, nil)
+	ldb.cache.Set(
+		secp256k1eth.CaculCoinsEvmAccountKey(carrier.From()),
+		types.Encode(&types.EvmAccountNonce{Addr: carrier.From(), Nonce: 5}),
+	)
+	require.Error(t, execute.checkEthNonceBeforeFee(carrier))
+}
+
+// TestExecTxEthNonceGateFollowsForks checks that the gate stays idle until both of its
+// forks are active. V2 alone is not enough: without ForkEthSignEnvelope the envelope is not
+// verified and Transaction.Nonce is not bound to the embedded Ethereum transaction.
+func TestExecTxEthNonceGateFollowsForks(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		disable func(cfg *types.Chain33Config, height int64)
+	}{
+		{
+			name: "V2 not active",
+			disable: func(cfg *types.Chain33Config, height int64) {
+				cfg.SetFork(types.ForkEthSignEnvelopeV2, height+100)
+			},
+		},
+		{
+			name: "V1 not active",
+			disable: func(cfg *types.Chain33Config, height int64) {
+				cfg.SetFork(types.ForkEthSignEnvelope, height+100)
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			exec, _ := initEnv(types.GetDefaultCfgstring())
+			cfg := exec.client.GetConfig()
+			cfg.SetTxFeeConfig(0, 1e7, 1e9)
+			cfg.SetDappFork("evm", "ForkEvmExecNonceV2", 0)
+			tc.disable(cfg, testEthExecCtx().height)
+
+			carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress("0x3333333333333333333333333333333333333333"), 0, nil)
+			ldb := newNonceLocalDB(t, carrier.From(), 5)
+			execute := newExecutor(testEthExecCtx(), exec, ldb, nil, nil)
+			// The record is behind the transaction: an active gate would reject it.
+			require.NoError(t, execute.checkEthNonceBeforeFee(carrier))
+		})
+	}
 }
 
 // TestExecTxEthNonceGateSkipsProxyExec checks that the gate stays out of the proxy branch.
