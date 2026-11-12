@@ -533,7 +533,7 @@ func (tx *Transaction) check(cfg *Chain33Config, height, minfee, maxFee, blockTi
 	// eth 签名的 chain33 信封不在签名覆盖范围内, 必须按当前高度重建校验。与上面的
 	// chainID 校验一样放在 minfee 提前返回之前: 交易组成员以 minfee=0 检查, 也要覆盖。
 	// 分叉前不校验, 保证旧区块按当时的规则重放。
-	if err := tx.CheckEthSignEnvelope(cfg, height, blockTime); err != nil {
+	if err := tx.CheckEthSignEnvelopeAtBlockTime(cfg, height, blockTime); err != nil {
 		return err
 	}
 	if minfee == 0 {
@@ -959,11 +959,20 @@ func EthSignedTxEnvelope(tx *Transaction) (etx *etypes.Transaction, ok bool) {
 	return etx, true
 }
 
-// CheckEthSignEnvelope applies the fork-gated envelope rule at the given height. Callers
-// that replace the transaction before checking it - proxy execution unpacks the carrier
-// and checks the inner transaction - must run this on the transaction as it appears in the
-// block, otherwise the rule never sees the envelope that can be rewritten.
-func (tx *Transaction) CheckEthSignEnvelope(cfg *Chain33Config, height, blockTime int64) error {
+// CheckEthSignEnvelope applies the fork-gated envelope rule at the given height, measuring
+// the expire window against the local clock.
+func (tx *Transaction) CheckEthSignEnvelope(cfg *Chain33Config, height int64) error {
+	return tx.CheckEthSignEnvelopeAtBlockTime(cfg, height, 0)
+}
+
+// CheckEthSignEnvelopeAtBlockTime applies the fork-gated envelope rule at the given height.
+// A positive blockTime is the header time of the block being executed, which every validator
+// sees identically; zero means the caller has no block at hand (mempool, RPC pre-checks) and
+// the local clock is used. Callers that replace the transaction before checking it - proxy
+// execution unpacks the carrier and checks the inner transaction - must run this on the
+// transaction as it appears in the block, otherwise the rule never sees the envelope that
+// can be rewritten.
+func (tx *Transaction) CheckEthSignEnvelopeAtBlockTime(cfg *Chain33Config, height, blockTime int64) error {
 	if cfg == nil || !cfg.IsFork(height, ForkEthSignEnvelope) {
 		return nil
 	}

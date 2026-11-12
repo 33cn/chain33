@@ -242,6 +242,21 @@ func (exec *Executor) procExecQuery(msg *queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, ret))
 }
 
+// newExecTxListCtx carries the request fields into the executor context. IsMempool decides
+// whether the envelope window is measured from the local clock or from the block header.
+func newExecTxListCtx(datas *types.ExecTxList) *executorCtx {
+	return &executorCtx{
+		stateHash:  datas.StateHash,
+		height:     datas.Height,
+		blocktime:  datas.BlockTime,
+		difficulty: datas.Difficulty,
+		mainHash:   datas.MainHash,
+		mainHeight: datas.MainHeight,
+		parentHash: datas.ParentHash,
+		isMempool:  datas.IsMempool,
+	}
+}
+
 func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 	//panic 处理
 	defer func() {
@@ -252,16 +267,7 @@ func (exec *Executor) procExecCheckTx(msg *queue.Message) {
 		}
 	}()
 	datas := msg.GetData().(*types.ExecTxList)
-	ctx := &executorCtx{
-		stateHash:  datas.StateHash,
-		height:     datas.Height,
-		blocktime:  datas.BlockTime,
-		difficulty: datas.Difficulty,
-		mainHash:   datas.MainHash,
-		mainHeight: datas.MainHeight,
-		parentHash: datas.ParentHash,
-		isMempool:  datas.IsMempool,
-	}
+	ctx := newExecTxListCtx(datas)
 	var localdb dbm.KVDB
 
 	if !exec.disableLocal {

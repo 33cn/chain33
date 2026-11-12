@@ -236,6 +236,8 @@ ForkAccountBlacklistV2=-1
 ForkGenesisOnlyAtHeightZero=0
 # eth 签名交易的 chain33 信封校验；-1 表示关闭
 ForkEthSignEnvelope=-1
+# 信封窗口改按区块时间判定，并在扣手续费前校验 EVM nonce；需同时开启 ForkEthSignEnvelope；-1 表示关闭
+ForkEthSignEnvelopeV2=-1
 [fork.sub.coins]
 Enable=0
 [fork.sub.ticket]
