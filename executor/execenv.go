@@ -44,6 +44,9 @@ type executor struct {
 	currDriver drivers.Driver
 	cfg        *types.Chain33Config
 	exec       *Executor
+	// feeCharger replaces execFee in tests, so a test can observe that the nonce gate ran
+	// before the fee was charged. Nil in production.
+	feeCharger func(tx *types.Transaction, index int) (*types.Receipt, error)
 }
 
 type executorCtx struct {
@@ -393,12 +396,8 @@ func (e *executor) execTxGroup(txs []*types.Transaction, index int) ([]*types.Re
 	if err != nil {
 		return nil, err
 	}
-	// The group head pays for every member, so it gets the same pre-fee nonce gate as a
-	// standalone transaction; otherwise a rewritten carrier can still be charged that way.
-	if err = e.checkEthNonceBeforeFee(txs[0]); err != nil {
-		elog.Error("execTxGroup.checkEthNonce", "txhash", common.ToHex(txs[0].Hash()), "err", err)
-		return nil, err
-	}
+	// No pre-fee nonce gate here: while ForkEthSignEnvelope is active the envelope rule
+	// requires GroupCount == 0, so a group can never carry the carrier this gate protects.
 	feelog, err := e.execFee(txs[0], index)
 	if err != nil {
 		return nil, err
@@ -463,6 +462,14 @@ func (e *executor) loadFlag(key []byte) (int64, error) {
 		return 0, nil
 	}
 	return 0, err
+}
+
+// chargeFee calls execFee, unless a test has installed a replacement.
+func (e *executor) chargeFee(tx *types.Transaction, index int) (*types.Receipt, error) {
+	if e.feeCharger != nil {
+		return e.feeCharger(tx, index)
+	}
+	return e.execFee(tx, index)
 }
 
 func (e *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -706,7 +713,7 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 		// The carrier is unpacked below and the inner transaction is what checkTx sees,
 		// so the envelope rule never runs on the transaction that sits in the block.
 		// Apply it to the original transaction before the swap.
-		if err := tx.CheckEthSignEnvelope(e.cfg, e.height, e.blocktime); err != nil {
+		if err := tx.CheckEthSignEnvelopeAtBlockTime(e.cfg, e.height, e.envelopeBlockTime()); err != nil {
 			elog.Error("proxyExec envelope", "txhash", common.ToHex(tx.Hash()), "err", err)
 			// A rewritten carrier has to invalidate the block. On a para chain a
 			// returned error only becomes an ExecErr receipt, and those blocks are
@@ -768,7 +775,7 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	//处理交易手续费(先把手续费收了)
 	//如果收了手续费，表示receipt 至少是pack 级别
 	//收不了手续费的交易才是 error 级别
-	feelog, err = e.execFee(tx, index)
+	feelog, err = e.chargeFee(tx, index)
 	if err != nil {
 		return nil, err
 	}
@@ -810,10 +817,24 @@ func (e *executor) isAllowExec(key []byte, tx *types.Transaction, index int) boo
 // its own check for transactions that reach it. When the chain has not activated the
 // executor's nonce rule the framework stays out of the way.
 func (e *executor) checkEthNonceBeforeFee(tx *types.Transaction) error {
-	if e.localDB == nil || !types.IsEthSignID(tx.GetSignature().GetTy()) {
+	if e.localDB == nil {
 		return nil
 	}
-	if !e.cfg.IsFork(e.height, types.ForkEthSignEnvelopeV2) {
+	// Only an eth-signed envelope carries an EVM nonce in Transaction.Nonce. An eth-signed
+	// chain33 transaction of any other shape, for example a native coins transfer signed with
+	// secp256k1eth, uses that field for the transaction's own nonce and must not be judged by
+	// the EVM account record.
+	if _, ok := types.EthSignedTxEnvelope(tx); !ok {
+		return nil
+	}
+	// A para transaction stored on the main chain is not executed by the EVM driver here.
+	if types.IsForward2MainChainTx(e.cfg, tx) {
+		return nil
+	}
+	// Without ForkEthSignEnvelope the envelope is not verified at all and Transaction.Nonce
+	// is not bound to the embedded Ethereum transaction, so the gate has nothing to rely on.
+	if !e.cfg.IsFork(e.height, types.ForkEthSignEnvelope) ||
+		!e.cfg.IsFork(e.height, types.ForkEthSignEnvelopeV2) {
 		return nil
 	}
 	if !e.cfg.IsDappFork(e.height, "evm", "ForkEvmExecNonceV2") {
