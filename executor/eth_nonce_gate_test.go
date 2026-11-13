@@ -94,7 +94,9 @@ func TestExecTxEthNonceGateRejectsStaleCarrier(t *testing.T) {
 	cfg := exec.client.GetConfig()
 	cfg.SetTxFeeConfig(1, 1e7, 1e9)
 	cfg.SetDappFork("evm", "ForkEvmExecNonceV2", 0)
+	prevAllow := types.AllowUserExec
 	types.AllowUserExec = append(types.AllowUserExec, []byte("evm"))
+	t.Cleanup(func() { types.AllowUserExec = prevAllow })
 
 	carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress("0x1111111111111111111111111111111111111111"), 0, nil)
 	ldb := newNonceLocalDB(t, carrier.From(), 5)

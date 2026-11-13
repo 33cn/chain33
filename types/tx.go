@@ -180,11 +180,11 @@ func (txgroup *Transactions) IsExpire(cfg *Chain33Config, height, blocktime int6
 
 // CheckWithFork 和fork 无关的有个检查函数
 func (txgroup *Transactions) CheckWithFork(cfg *Chain33Config, checkFork, paraFork bool, height, minfee, maxFee int64) error {
-	return txgroup.CheckWithForkAtBlockTime(cfg, checkFork, paraFork, height, minfee, maxFee, 0)
+	return txgroup.checkWithForkAtBlockTime(cfg, checkFork, paraFork, height, minfee, maxFee, 0)
 }
 
-// CheckWithForkAtBlockTime is CheckWithFork with the block time made explicit.
-func (txgroup *Transactions) CheckWithForkAtBlockTime(cfg *Chain33Config, checkFork, paraFork bool, height, minfee, maxFee, blockTime int64) error {
+// checkWithForkAtBlockTime is CheckWithFork with the block time made explicit.
+func (txgroup *Transactions) checkWithForkAtBlockTime(cfg *Chain33Config, checkFork, paraFork bool, height, minfee, maxFee, blockTime int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
@@ -279,12 +279,12 @@ func (txgroup *Transactions) Check(cfg *Chain33Config, height, minfee, maxFee in
 	return txgroup.CheckAtBlockTime(cfg, height, minfee, maxFee, 0)
 }
 
-// CheckAtBlockTime is Check with the block time made explicit, mirroring
-// Transaction.CheckAtBlockTime.
+// CheckAtBlockTime is Check with the block time made explicit. Block execution passes the
+// header time; other callers pass zero to use the local clock.
 func (txgroup *Transactions) CheckAtBlockTime(cfg *Chain33Config, height, minfee, maxFee, blockTime int64) error {
 	paraFork := cfg.IsFork(height, "ForkTxGroupPara")
 	checkFork := cfg.IsFork(height, "ForkBlockCheck")
-	return txgroup.CheckWithForkAtBlockTime(cfg, checkFork, paraFork, height, minfee, maxFee, blockTime)
+	return txgroup.checkWithForkAtBlockTime(cfg, checkFork, paraFork, height, minfee, maxFee, blockTime)
 }
 
 // TransactionCache 交易缓存结构
