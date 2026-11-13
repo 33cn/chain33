@@ -26,8 +26,10 @@ func TestEthExpireVariantsAccepted(t *testing.T) {
 	for _, delta := range []int64{-1, -60, -3600, -10800} {
 		variant := proto.Clone(tx).(*stypes.TransactionChain33)
 		variant.Expire += delta
+		// Inside the assembler window relative to assembly time. The block time is not what
+		// is checked here, so a real block could still reject a variant that is already stale.
 		require.NoError(t, checkEnvelope(t, cfg, variant, envelopeForkHeight),
-			"expire %d is inside the window", variant.Expire)
+			"expire %d is inside the assembler window", variant.Expire)
 		hash := string(asChain33Tx(t, variant).Hash())
 		require.NotContains(t, hashes, hash, "variant must not collide with the assembled transaction")
 		hashes[hash] = struct{}{}

@@ -768,7 +768,9 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	// transaction whose Nonce is payload metadata, not an EVM nonce.
 	if !isProxyExec {
 		if err = e.checkEthNonceBeforeFee(tx); err != nil {
-			elog.Error("execTx.checkEthNonce", "txhash", common.ToHex(tx.Hash()), "err", err)
+			// Debug, not Error: a rejected variant is an expected outcome and a producer can
+			// submit many of them, so this must not be able to flood the log.
+			elog.Debug("execTx.checkEthNonce", "txhash", common.ToHex(tx.Hash()), "err", err)
 			return nil, err
 		}
 	}
@@ -844,6 +846,10 @@ func (e *executor) checkEthNonceBeforeFee(tx *types.Transaction) error {
 	return compareEthNonce(nonceV, err, tx.GetNonce())
 }
 
+// errEthNonceTooHigh is returned when the transaction is ahead of the recorded nonce. The
+// EVM executor reports the same condition with the same text.
+var errEthNonceTooHigh = errors.New("nonce too high")
+
 // compareEthNonce mirrors the executor's rule over the stored record: a missing record
 // counts as nonce zero, and only the exact nonce is accepted.
 func compareEthNonce(nonceV []byte, getErr error, txNonce int64) error {
@@ -855,7 +861,7 @@ func compareEthNonce(nonceV []byte, getErr error, txNonce int64) error {
 		return types.ErrLowNonce
 	}
 	if txNonce > evmNonce.GetNonce() {
-		return errors.New("nonce too high")
+		return errEthNonceTooHigh
 	}
 	return nil
 }
