@@ -134,7 +134,12 @@ func (c *ChannelClient) ReWriteRawTx(param *types.ReWriteRawTx) ([]byte, error) 
 		return txHex, nil
 	}
 
-	//交易组的处理
+	//交易组的处理：GroupCount>0 但 Header 解出 0 笔时，后续 Txs[0] 会越界。
+	//注意 index 是 1-based（合法范围 1..len），index<=0 表示“修改全部成员”，
+	//因此这里只拒绝空组，不改变既有的 index 边界语义。
+	if len(group.GetTxs()) == 0 {
+		return nil, types.ErrIndex
+	}
 	index := param.Index
 	if int(index) > len(group.GetTxs()) {
 		return nil, types.ErrIndex
