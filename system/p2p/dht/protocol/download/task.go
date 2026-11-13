@@ -87,7 +87,7 @@ func (p *Protocol) initJob(pids []string, taskID string) tasks {
 		}
 		job.TaskNum = 0
 		JobPeerIds = append(JobPeerIds, &job)
-		p.counter.AddTaskInfo(job.ID, job.Pid.Pretty(), job.Latency)
+		p.counter.AddTaskInfo(job.ID, job.Pid.String(), job.Latency)
 	}
 	return JobPeerIds
 }

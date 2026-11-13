@@ -1,0 +1,398 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package cggmp
+
+import (
+	"fmt"
+	"math/big"
+
+	"github.com/33cn/chain33/system/crypto/tss"
+	"github.com/getamis/alice/crypto/birkhoffinterpolation"
+	"github.com/getamis/alice/crypto/ecpointgrouplaw"
+	"github.com/getamis/alice/crypto/elliptic"
+	"github.com/getamis/alice/crypto/homo/paillier"
+	alicedkg "github.com/getamis/alice/crypto/tss/ecdsa/cggmp/dkg"
+	alicerefresh "github.com/getamis/alice/crypto/tss/ecdsa/cggmp/refresh"
+	zkpaillier "github.com/getamis/alice/crypto/zkproof/paillier"
+)
+
+// ECPoint is a serialisable elliptic-curve point (big-endian X/Y, curve is fixed to secp256k1).
+type ECPoint struct {
+	X []byte `json:"x"`
+	Y []byte `json:"y"`
+}
+
+// toECPoint converts to an alice ECPoint on secp256k1.
+func toECPoint(p *ECPoint) (*ecpointgrouplaw.ECPoint, error) {
+	if p == nil {
+		return nil, errNilPoint
+	}
+	return ecpointgrouplaw.NewECPoint(elliptic.Secp256k1(),
+		new(big.Int).SetBytes(p.X), new(big.Int).SetBytes(p.Y))
+}
+
+// fromECPoint serialises an alice ECPoint.
+func fromECPoint(p *ecpointgrouplaw.ECPoint) *ECPoint {
+	if p == nil {
+		return nil
+	}
+	return &ECPoint{X: p.GetX().Bytes(), Y: p.GetY().Bytes()}
+}
+
+// PedersenParam carries one peer's Pedersen (N,S,T) opening parameters used by CGGMP MtA proofs.
+type PedersenParam struct {
+	N []byte `json:"n"`
+	S []byte `json:"s"`
+	T []byte `json:"t"`
+}
+
+// toPedersen converts back to an alice PederssenOpenParameter.
+func toPedersen(p *PedersenParam) *zkpaillier.PederssenOpenParameter {
+	if p == nil {
+		return nil
+	}
+	return zkpaillier.NewPedersenOpenParameter(new(big.Int).SetBytes(p.N),
+		new(big.Int).SetBytes(p.S), new(big.Int).SetBytes(p.T))
+}
+
+// fromPedersen serialises an alice PederssenOpenParameter.
+func fromPedersen(p *zkpaillier.PederssenOpenParameter) *PedersenParam {
+	if p == nil {
+		return nil
+	}
+	return &PedersenParam{N: p.GetN().Bytes(), S: p.GetS().Bytes(), T: p.GetT().Bytes()}
+}
+
+// DKGResult is the per-node output of the CGGMP DKG phase, persisted for later use by
+// ProcessRefresh / ProcessSign. It carries the group public key, this node's share, the
+// Birkhoff parameters of all participants, the DKG rid, and every participant's partial
+// public key (g^{share_i}) exchanged right after DKG. It is independent from the GG18
+// tss.DKGResult used by the gg18 wrapper.
+type DKGResult struct {
+	PubX           []byte              `json:"pubX"`
+	PubY           []byte              `json:"pubY"`
+	Share          []byte              `json:"share"`
+	Bks            map[string]*tss.BK  `json:"bks"`
+	Rid            []byte              `json:"rid"`
+	PartialPubKeys map[string]*ECPoint `json:"partialPubKeys"`
+	// Threshold and Peers record the parameters the key was generated with, so ProcessRefresh /
+	// ProcessSign can reject a request that does not belong to this key. Results persisted before
+	// these fields existed decode them as zero values (threshold 0, empty peers); those are treated
+	// as unknown and not enforced.
+	Threshold uint32   `json:"threshold"`
+	Peers     []string `json:"peers"`
+}
+
+// validateThresholdAndPeers checks a phase request against the parameters recorded at DKG time:
+// the threshold must match and every requested peer must have taken part in the DKG. A zero
+// threshold or empty peer list means the result predates these fields (unknown) and is not
+// rejected, so old persisted material keeps working.
+func (d *DKGResult) validateThresholdAndPeers(peers []string, threshold uint32) error {
+	if d.Threshold != 0 && d.Threshold != threshold {
+		return fmt.Errorf("%w: threshold=%d, dkg threshold=%d", errDKGResultMismatch, threshold, d.Threshold)
+	}
+	if len(d.Peers) == 0 {
+		return nil
+	}
+	participants := make(map[string]struct{}, len(d.Peers))
+	for _, id := range d.Peers {
+		participants[id] = struct{}{}
+	}
+	for _, id := range peers {
+		if _, ok := participants[id]; !ok {
+			return fmt.Errorf("%w: peer %s did not take part in the dkg", errDKGResultMismatch, id)
+		}
+	}
+	return nil
+}
+
+// GroupPublicKey returns the DKG group public key as an alice ECPoint.
+func (d *DKGResult) GroupPublicKey() (*ecpointgrouplaw.ECPoint, error) {
+	return ecpointgrouplaw.NewECPoint(elliptic.Secp256k1(),
+		new(big.Int).SetBytes(d.PubX), new(big.Int).SetBytes(d.PubY))
+}
+
+// toAliceBks rebuilds the alice Birkhoff parameter set for the given participant list,
+// keeping only entries that are present in the DKG result. The peer order must match the
+// calling convention (every participating node uses the same list).
+func (d *DKGResult) toAliceBks(peers []string) map[string]*birkhoffinterpolation.BkParameter {
+	bks := make(map[string]*birkhoffinterpolation.BkParameter, len(peers))
+	for _, id := range peers {
+		bk, ok := d.Bks[id]
+		if !ok || bk == nil {
+			continue
+		}
+		bks[id] = birkhoffinterpolation.NewBkParameter(new(big.Int).SetBytes(bk.X), bk.Rank)
+	}
+	return bks
+}
+
+// aliceResult rebuilds the alice cggmp dkg.Result restricted to the given participant list.
+// peers must include the local node id and match across all participants of a phase.
+func (d *DKGResult) aliceResult(peers []string) (*alicedkg.Result, error) {
+	pub, err := d.GroupPublicKey()
+	if err != nil {
+		return nil, err
+	}
+	return &alicedkg.Result{
+		PublicKey: pub,
+		Share:     new(big.Int).SetBytes(d.Share),
+		Bks:       d.toAliceBks(peers),
+		Rid:       d.Rid,
+	}, nil
+}
+
+// toAlicePartialPubKeys rebuilds partial public keys restricted to the given participant list.
+func (d *DKGResult) toAlicePartialPubKeys(peers []string) (map[string]*ecpointgrouplaw.ECPoint, error) {
+	m := make(map[string]*ecpointgrouplaw.ECPoint, len(peers))
+	for _, id := range peers {
+		pp, ok := d.PartialPubKeys[id]
+		if !ok || pp == nil {
+			continue
+		}
+		p, err := toECPoint(pp)
+		if err != nil {
+			return nil, err
+		}
+		m[id] = p
+	}
+	return m, nil
+}
+
+// validatePartialPubKeys checks the material gathered by the partial-public-key (ppk) exchange:
+// every participant in peers must have a bk and a g^{share}, and those points must reconstruct
+// the DKG group public key through the Birkhoff parameters.
+//
+// The DKG discards its Feldman commitments (alice never exposes them), so the Birkhoff
+// reconstruction is the only local consistency check available at this point — the same one
+// alice itself runs at the end of DKG and of refresh
+// (birkhoffinterpolation.BkParameters.ValidatePublicKey). Running it as soon as the ppks are
+// collected rejects a participant that broadcast a bad g^{share} at the ppk stage, instead of
+// carrying the corruption into the refresh phase (where it would surface as an opaque
+// zero-knowledge failure, or produce a share set that never signs).
+//
+// The reconstruction is a single group equation, so on a mismatch the error reports the phase
+// and the whole participant set that took part in it; a *missing* entry, by contrast, is
+// reported with the exact peer id.
+func (d *DKGResult) validatePartialPubKeys(peers []string, threshold uint32) error {
+	pub, err := d.GroupPublicKey()
+	if err != nil {
+		return fmt.Errorf("cggmp: ppk check: %w", err)
+	}
+	return validatePartialPubKeys(pub, d.Bks, d.PartialPubKeys, peers, threshold)
+}
+
+// validatePartialPubKeys is the ppk-stage consistency check shared by DKG material and by every
+// refresh generation used as input of a further refresh: every participant in peers must have a bk
+// and a g^{share}, and those points must reconstruct pub through the Birkhoff parameters.
+//
+// The DKG discards its Feldman commitments (alice never exposes them), so the Birkhoff
+// reconstruction is the only local consistency check available at this point — the same one
+// alice itself runs at the end of DKG and of refresh
+// (birkhoffinterpolation.BkParameters.ValidatePublicKey). A *missing* entry is reported with the
+// exact peer id; a mismatch is a single group equation, so it reports the whole participant set
+// that took part in the phase.
+func validatePartialPubKeys(pub *ecpointgrouplaw.ECPoint, dkgBks map[string]*tss.BK, partialPubKeys map[string]*ECPoint, peers []string, threshold uint32) error {
+	if pub == nil {
+		return errNilPoint
+	}
+	bks := make(birkhoffinterpolation.BkParameters, 0, len(peers))
+	sgs := make([]*ecpointgrouplaw.ECPoint, 0, len(peers))
+	for _, id := range peers {
+		bk, ok := dkgBks[id]
+		if !ok || bk == nil {
+			return fmt.Errorf("cggmp: ppk check: peer %s: %w", id, errMissingPeerBk)
+		}
+		pp, ok := partialPubKeys[id]
+		if !ok || pp == nil {
+			return fmt.Errorf("cggmp: ppk check: peer %s: %w", id, errMissingPeerPPK)
+		}
+		p, err := toECPoint(pp)
+		if err != nil {
+			return fmt.Errorf("cggmp: ppk check: peer %s: %w: %v", id, errInvalidPeerPPK, err)
+		}
+		bks = append(bks, birkhoffinterpolation.NewBkParameter(new(big.Int).SetBytes(bk.X), bk.Rank))
+		sgs = append(sgs, p)
+	}
+	// #nosec G115 -- len(peers) is bounded by the participant count of a session
+	if uint32(len(peers)) < threshold {
+		return fmt.Errorf("cggmp: ppk check: %d participants < threshold %d", len(peers), threshold)
+	}
+	if err := bks.ValidatePublicKey(sgs, threshold, pub); err != nil {
+		return fmt.Errorf("cggmp: ppk check: peers %v: %w (%v)", peers, errPPKInconsistent, err)
+	}
+	return nil
+}
+
+// RefreshResult is the per-node output of the CGGMP refresh (key refresh + Paillier /
+// Pedersen provisioning) phase. Together with the DKGResult it carries everything ProcessSign
+// needs: this node's refreshed share, its own Paillier primes (secret), every participant's
+// partial public key and Pedersen parameters, and the y/ySecret values required by the
+// six-round signer. It is also the input of ProcessRefreshAgain, which rotates this generation
+// into the next one.
+type RefreshResult struct {
+	Share          []byte                    `json:"share"`
+	PaillierP      []byte                    `json:"paillierP"`
+	PaillierQ      []byte                    `json:"paillierQ"`
+	PartialPubKeys map[string]*ECPoint       `json:"partialPubKeys"`
+	Y              map[string]*ECPoint       `json:"y"`
+	PedParams      map[string]*PedersenParam `json:"pedParams"`
+	YSecret        []byte                    `json:"ySecret"`
+	// Ssid is the CGGMP session string this refresh ran with. alice's refresh result carries no
+	// rid of its own: the ssid is an opaque, caller-supplied domain separator for the
+	// zero-knowledge challenges. ProcessRefreshAgain feeds it into the next round's ssid so
+	// consecutive refreshes cannot reuse the same challenge domain (see computeRefreshAgainSSID).
+	Ssid []byte `json:"ssid"`
+}
+
+// ownPaillier rebuilds this node's secret Paillier key from the persisted primes.
+func (r *RefreshResult) ownPaillier() (*paillier.Paillier, error) {
+	return paillier.NewPaillierWithGivenPrimes(new(big.Int).SetBytes(r.PaillierP),
+		new(big.Int).SetBytes(r.PaillierQ))
+}
+
+// toAlicePartialPubKeys rebuilds partial public keys restricted to the given participant list.
+func (r *RefreshResult) toAlicePartialPubKeys(peers []string) (map[string]*ecpointgrouplaw.ECPoint, error) {
+	m := make(map[string]*ecpointgrouplaw.ECPoint, len(peers))
+	for _, id := range peers {
+		pp, ok := r.PartialPubKeys[id]
+		if !ok || pp == nil {
+			continue
+		}
+		p, err := toECPoint(pp)
+		if err != nil {
+			return nil, err
+		}
+		m[id] = p
+	}
+	return m, nil
+}
+
+// toAlicePedersen rebuilds the Pedersen parameter map restricted to the given participant list.
+func (r *RefreshResult) toAlicePedersen(peers []string) map[string]*zkpaillier.PederssenOpenParameter {
+	m := make(map[string]*zkpaillier.PederssenOpenParameter, len(peers))
+	for _, id := range peers {
+		ped, ok := r.PedParams[id]
+		if !ok || ped == nil {
+			continue
+		}
+		m[id] = toPedersen(ped)
+	}
+	return m
+}
+
+// validateRefreshInput checks that r can seed a further refresh of the same key for peers:
+//   - it records the ssid of the round that produced it, which is what makes the next round's
+//     zero-knowledge domain different (see computeRefreshAgainSSID);
+//   - its partial public key set is exactly peers: a result produced by another participant set is
+//     rejected rather than narrowed to the requested subset, because silently dropping the
+//     material of peers that did take part would produce a key they cannot use;
+//   - every g^{share_i} is present and reconstructs the DKG group public key through the bks.
+func (r *RefreshResult) validateRefreshInput(d *DKGResult, peers []string, threshold uint32) error {
+	if len(r.Ssid) == 0 {
+		return errMissingRefreshSsid
+	}
+	requested := make(map[string]struct{}, len(peers))
+	for _, id := range peers {
+		requested[id] = struct{}{}
+	}
+	for id := range r.PartialPubKeys {
+		if _, ok := requested[id]; !ok {
+			return fmt.Errorf("%w: peer %s took part in the previous refresh but not in this one", errRefreshResultMismatch, id)
+		}
+	}
+	pub, err := d.GroupPublicKey()
+	if err != nil {
+		return fmt.Errorf("cggmp: refresh input check: %w", err)
+	}
+	return validatePartialPubKeys(pub, d.Bks, r.PartialPubKeys, peers, threshold)
+}
+
+// refreshInputs returns the share and partial public keys a further refresh starts from, after
+// checking that r can seed a refresh of exactly this participant set (validateRefreshInput) and
+// that its material is consistent with the DKG group public key.
+func (r *RefreshResult) refreshInputs(d *DKGResult, peers []string, threshold uint32) (*big.Int, map[string]*ecpointgrouplaw.ECPoint, error) {
+	if err := r.validateRefreshInput(d, peers, threshold); err != nil {
+		return nil, nil, err
+	}
+	partialPubKeys, err := r.toAlicePartialPubKeys(peers)
+	if err != nil {
+		return nil, nil, err
+	}
+	return new(big.Int).SetBytes(r.Share), partialPubKeys, nil
+}
+
+// validateSignMaterial checks that every signer in peers has all the key material ProcessSign
+// hands to alice: a bk (from the DKG), a partial public key and Pedersen parameters (from the
+// refresh). alice indexes those maps by peer id without checking, so a missing entry becomes a
+// nil dereference inside alice (e.g. cggmp/sign/peer.go reading partialPubKey[self]) rather
+// than an error. threshold must equal the signer count: that equality is the wrapper's signer
+// subset policy (alice itself accepts len(bks) >= threshold).
+func (r *RefreshResult) validateSignMaterial(d *DKGResult, peers []string, threshold uint32) error {
+	if uint32(len(peers)) != threshold {
+		return fmt.Errorf("cggmp: sign: %w: len(peers)=%d, threshold=%d", errThresholdPeers, len(peers), threshold)
+	}
+	for _, id := range peers {
+		if bk, ok := d.Bks[id]; !ok || bk == nil {
+			return fmt.Errorf("cggmp: sign: peer %s: %w", id, errMissingPeerBk)
+		}
+		if pp, ok := r.PartialPubKeys[id]; !ok || pp == nil {
+			return fmt.Errorf("cggmp: sign: peer %s: %w", id, errMissingPeerPPK)
+		}
+		if ped, ok := r.PedParams[id]; !ok || ped == nil {
+			return fmt.Errorf("cggmp: sign: peer %s: %w", id, errMissingPeerPed)
+		}
+	}
+	return nil
+}
+
+// newDKGResult converts an alice cggmp dkg result plus the exchanged partial public keys
+// into the persisted chain33 representation. threshold and peers are the parameters the DKG ran
+// with; they are persisted so later phases can check their own request against this key.
+func newDKGResult(res *alicedkg.Result, partialPubKeys map[string]*ecpointgrouplaw.ECPoint, threshold uint32, peers []string) *DKGResult {
+	d := &DKGResult{
+		PubX:           res.PublicKey.GetX().Bytes(),
+		PubY:           res.PublicKey.GetY().Bytes(),
+		Share:          res.Share.Bytes(),
+		Bks:            make(map[string]*tss.BK, len(res.Bks)),
+		Rid:            res.Rid,
+		PartialPubKeys: make(map[string]*ECPoint, len(partialPubKeys)),
+		Threshold:      threshold,
+		Peers:          append([]string(nil), peers...),
+	}
+	for id, bk := range res.Bks {
+		d.Bks[id] = &tss.BK{Rank: bk.GetRank(), X: bk.GetX().Bytes()}
+	}
+	for id, p := range partialPubKeys {
+		d.PartialPubKeys[id] = fromECPoint(p)
+	}
+	return d
+}
+
+// newRefreshResult converts an alice cggmp refresh result into the persisted representation. ssid
+// is the session string the round ran with; it is stored so the result can seed the next refresh.
+func newRefreshResult(res *alicerefresh.Result, ssid []byte) *RefreshResult {
+	p, q := res.PaillierKey.GetPQ()
+	r := &RefreshResult{
+		Share:          res.Share.Bytes(),
+		PaillierP:      p.Bytes(),
+		PaillierQ:      q.Bytes(),
+		PartialPubKeys: make(map[string]*ECPoint, len(res.PartialPubKey)),
+		Y:              make(map[string]*ECPoint, len(res.Y)),
+		PedParams:      make(map[string]*PedersenParam, len(res.PedParameter)),
+		YSecret:        res.YSecret.Bytes(),
+		Ssid:           append([]byte(nil), ssid...),
+	}
+	for id, pp := range res.PartialPubKey {
+		r.PartialPubKeys[id] = fromECPoint(pp)
+	}
+	for id, y := range res.Y {
+		r.Y[id] = fromECPoint(y)
+	}
+	for id, ped := range res.PedParameter {
+		r.PedParams[id] = fromPedersen(ped)
+	}
+	return r
+}

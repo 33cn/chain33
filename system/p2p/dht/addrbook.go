@@ -177,7 +177,7 @@ func (a *AddrBook) StoreHostID(id peer.ID, path string) {
 		return
 	}
 
-	pf, err := os.Create(fmt.Sprintf("%v/%v", dbPath, id.Pretty()))
+	pf, err := os.Create(fmt.Sprintf("%v/%v", dbPath, id.String()))
 	if err != nil {
 		log.Error("StoreHostId", "Create file", err.Error())
 		return
@@ -186,7 +186,7 @@ func (a *AddrBook) StoreHostID(id peer.ID, path string) {
 	defer pf.Close()
 	var peerInfo = make(map[string]interface{})
 	var info = make(map[string]interface{})
-	pubkey, err := PeerIDToPubkey(id.Pretty())
+	pubkey, err := PeerIDToPubkey(id.String())
 	if err == nil {
 		info["pubkey"] = pubkey
 		pbytes, _ := hex.DecodeString(pubkey)
@@ -194,7 +194,7 @@ func (a *AddrBook) StoreHostID(id peer.ID, path string) {
 		info["address"] = addr
 	}
 
-	peerInfo[id.Pretty()] = info
+	peerInfo[id.String()] = info
 	bs, err := json.MarshalIndent(peerInfo, "", "\t")
 	if err != nil {
 		log.Error("StoreHostId", "MarshalIndent", err.Error())

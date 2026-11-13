@@ -85,7 +85,7 @@ func TestConnManager(t *testing.T) {
 	h2, err := libp2p.New(libp2p.ListenAddrs(m2))
 	require.Nil(t, err)
 
-	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13666/p2p/%s", h1.ID().Pretty()))
+	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13666/p2p/%s", h1.ID().String()))
 	peerInfo, _ := peer.AddrInfoFromP2pAddr(addr)
 	err = h2.Connect(context.Background(), *peerInfo)
 	require.Nil(t, err)

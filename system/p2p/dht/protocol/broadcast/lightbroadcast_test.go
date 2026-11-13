@@ -67,7 +67,7 @@ func TestLightBroadcast(t *testing.T) {
 	require.Equal(t, types.EventBroadcastAddBlock, int(msg1.Ty))
 	blc, ok := msg1.Data.(*types.BlockPid)
 	require.True(t, ok)
-	require.Equal(t, pid.Pretty(), blc.Pid)
+	require.Equal(t, pid.String(), blc.Pid)
 }
 
 func TestBlockRequest(t *testing.T) {

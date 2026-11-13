@@ -1,0 +1,604 @@
+// Copyright Fuzamei Corp. 2018 All Rights Reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package cggmp
+
+import (
+	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
+	"github.com/33cn/chain33/system/crypto/tss"
+	"github.com/33cn/chain33/system/crypto/tss/gg18"
+	"github.com/33cn/chain33/types"
+	"github.com/getamis/alice/crypto/birkhoffinterpolation"
+	"github.com/getamis/alice/crypto/ecpointgrouplaw"
+	"github.com/getamis/alice/crypto/elliptic"
+	alicedkg "github.com/getamis/alice/crypto/tss/ecdsa/cggmp/dkg"
+	alicesign "github.com/getamis/alice/crypto/tss/ecdsa/cggmp/sign"
+	"github.com/stretchr/testify/require"
+)
+
+// TestProtocolsIndependent asserts the CGGMP protocol tags are unique and disjoint from the
+// GG18 tags so the two wrappers can coexist in one process.
+func TestProtocolsIndependent(t *testing.T) {
+	gg18Tags := []string{gg18.DkgProtocol, gg18.SignProtocol, gg18.ReshareProtocol}
+	cggmpTags := []string{DkgProtocol, RefreshProtocol, SignProtocol, PpkProtocol}
+
+	seen := map[string]bool{}
+	for _, tag := range append(gg18Tags, cggmpTags...) {
+		require.False(t, seen[tag], "duplicate protocol tag %q", tag)
+		seen[tag] = true
+	}
+	require.NotContains(t, gg18Tags, DkgProtocol)
+	require.NotContains(t, gg18Tags, SignProtocol)
+}
+
+func TestDKGResultConversions(t *testing.T) {
+	curve := elliptic.Secp256k1()
+	id := "peer-0"
+
+	pub := ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(42))
+	bks := map[string]*birkhoffinterpolation.BkParameter{
+		id: birkhoffinterpolation.NewBkParameter(big.NewInt(1), 0),
+	}
+	ppk := map[string]*ecpointgrouplaw.ECPoint{
+		id: ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(7)),
+	}
+
+	res := &alicedkg.Result{
+		PublicKey: pub,
+		Share:     big.NewInt(7),
+		Bks:       bks,
+		Rid:       []byte("rid-1"),
+	}
+	d := newDKGResult(res, ppk, 1, []string{id})
+	require.Equal(t, []byte("rid-1"), d.Rid)
+	require.Equal(t, big.NewInt(7).Bytes(), d.Share)
+	require.Equal(t, pub.GetX().Bytes(), d.PubX)
+	require.Equal(t, pub.GetY().Bytes(), d.PubY)
+	require.Len(t, d.PartialPubKeys, 1)
+
+	// Round-trip: reconstruct the alice result restricted to the participant list.
+	back, err := d.aliceResult([]string{id})
+	require.NoError(t, err)
+	require.Equal(t, res.PublicKey.GetX(), back.PublicKey.GetX())
+	require.Equal(t, res.PublicKey.GetY(), back.PublicKey.GetY())
+	require.Equal(t, res.Share, back.Share)
+	require.Equal(t, res.Rid, back.Rid)
+	require.Contains(t, back.Bks, id)
+
+	// The group public key must match the alice group key.
+	gpk, err := d.GroupPublicKey()
+	require.NoError(t, err)
+	require.Equal(t, pub.GetX(), gpk.GetX())
+	require.Equal(t, pub.GetY(), gpk.GetY())
+
+	// The DKG parameters are persisted for the later phases.
+	require.Equal(t, uint32(1), d.Threshold)
+	require.Equal(t, []string{id}, d.Peers)
+}
+
+func TestSignatureConversion(t *testing.T) {
+	R := big.NewInt(123456789)
+	S := big.NewInt(987654321)
+
+	sig, err := ToBtcecSignature(&alicesign.Result{R: R, S: S})
+	require.NoError(t, err)
+	require.NotNil(t, sig)
+
+	// R above the secp256k1 order overflows the ModNScalar.
+	hugeR := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1)) // 2^256-1
+	_, err = ToBtcecSignature(&alicesign.Result{R: hugeR, S: S})
+	require.Error(t, err)
+
+	_, err = ToBtcecSignature(nil)
+	require.Error(t, err)
+}
+
+// TestPPKCollectorAttributesByPeerID asserts the partial public key exchange is attributed by
+// the authenticated transport peer id and not by the peer-supplied Sender field: a single peer
+// that sends several messages with different Sender values must not satisfy the quorum on its
+// own (which would let it complete the exchange early with forged contributions).
+func TestPPKCollectorAttributesByPeerID(t *testing.T) {
+	curve := elliptic.Secp256k1()
+	collector := newPPKCollector(testPPKRid, []string{"peer-real", "peer-other"})
+
+	for _, sender := range []string{"peer-a", "peer-b", "peer-c"} {
+		addPPKToCollector(collector, "peer-real", &PartialPublicKey{
+			Sender: sender,
+			X:      ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(1)).GetX().Bytes(),
+			Y:      ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(1)).GetY().Bytes(),
+			Rid:    testPPKRid,
+		})
+	}
+	// One transport peer, three forged Sender values: still a single contribution.
+	require.Len(t, collector.result(), 1)
+	select {
+	case <-collector.done:
+		t.Fatal("collector must not complete on forged Sender values")
+	default:
+	}
+	require.Error(t, collector.wait(10*time.Millisecond))
+
+	// A second, distinct peer completes it.
+	addPPKToCollector(collector, "peer-other", &PartialPublicKey{
+		Sender: "peer-real", // even claiming another peer's id changes nothing
+		X:      ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(2)).GetX().Bytes(),
+		Y:      ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(2)).GetY().Bytes(),
+		Rid:    testPPKRid,
+	})
+	require.Len(t, collector.result(), 2)
+	require.NoError(t, collector.wait(time.Second))
+}
+
+// testPPKRid is the DKG rid the ppk tests tag their points with.
+var testPPKRid = []byte("ppk-round-rid")
+
+// ppkPoint returns a distinct valid secp256k1 point tagged with rid, encoded as a
+// PartialPublicKey.
+func ppkPoint(rid []byte, k int64) *PartialPublicKey {
+	p := ecpointgrouplaw.ScalarBaseMult(elliptic.Secp256k1(), big.NewInt(k))
+	return &PartialPublicKey{X: p.GetX().Bytes(), Y: p.GetY().Bytes(), Rid: rid}
+}
+
+// TestPPKCollectorRejectsNonParticipants asserts a connected peer that is not part of the DKG
+// session cannot take a collector slot: only the expected participants count towards completion,
+// so a non-member cannot close the collector early and leave an honest participant's g^{share}
+// missing (which surfaces later as errMissingPeerPPK).
+func TestPPKCollectorRejectsNonParticipants(t *testing.T) {
+	collector := newPPKCollector(testPPKRid, []string{"peer-a", "peer-b"})
+
+	addPPKToCollector(collector, "peer-evil", ppkPoint(testPPKRid, 1))
+	require.Empty(t, collector.result())
+	select {
+	case <-collector.done:
+		t.Fatal("collector must not complete on a non-participant's point")
+	default:
+	}
+	require.Error(t, collector.wait(10*time.Millisecond))
+
+	addPPKToCollector(collector, "peer-a", ppkPoint(testPPKRid, 2))
+	require.Len(t, collector.result(), 1)
+	select {
+	case <-collector.done:
+		t.Fatal("collector must not complete before every participant contributed")
+	default:
+	}
+
+	addPPKToCollector(collector, "peer-b", ppkPoint(testPPKRid, 3))
+	require.Len(t, collector.result(), 2)
+	require.NoError(t, collector.wait(time.Second))
+	require.NotContains(t, collector.result(), "peer-evil")
+}
+
+// TestPPKCollectorDropsOtherRound covers the rid tag: a point buffered by a previous round (same
+// session id, different rid) must be dropped when the new collector is flushed, while the new
+// round's point is kept. Without the rid check the stale point would win and the honest new point
+// would be discarded as a duplicate.
+func TestPPKCollectorDropsOtherRound(t *testing.T) {
+	const sessionID = "ppk-other-round-session"
+	oldRid := []byte("old-round-rid")
+	newRid := []byte("new-round-rid")
+	beginPPKSession(sessionID, []string{"peer-a", "peer-b"})
+	defer removePPKCollector(sessionID)
+
+	send := func(peerID string, rid []byte, k int64) {
+		handlePpkMsg(&tss.MessageWrapper{
+			Protocol: PpkProtocol, SessionID: sessionID, PeerID: peerID,
+			Msg: types.Encode(ppkPoint(rid, k)),
+		})
+	}
+	send("peer-a", oldRid, 1) // left over from the previous round
+	send("peer-b", newRid, 2) // the current round
+
+	collector := newPPKCollector(newRid, []string{"peer-a", "peer-b"})
+	registerPPKCollector(sessionID, collector)
+
+	got := collector.result()
+	require.Len(t, got, 1)
+	require.Contains(t, got, "peer-b")
+	require.NotContains(t, got, "peer-a", "a point from another DKG round must be dropped")
+}
+
+// TestHandlePpkMsgDropsNonParticipants covers the pre-collector path: once the round's participant
+// set is known, a point from any other peer is dropped instead of being buffered.
+func TestHandlePpkMsgDropsNonParticipants(t *testing.T) {
+	const sessionID = "ppk-membership-session"
+	beginPPKSession(sessionID, []string{"peer-a"})
+	defer removePPKCollector(sessionID)
+
+	pending := func() int {
+		ppkMu.Lock()
+		defer ppkMu.Unlock()
+		return len(pendingPPK[tss.ComposeProtocol(PpkProtocol, sessionID)])
+	}
+	send := func(peerID string) {
+		handlePpkMsg(&tss.MessageWrapper{
+			Protocol: PpkProtocol, SessionID: sessionID, PeerID: peerID,
+			Msg: types.Encode(ppkPoint(testPPKRid, 1)),
+		})
+	}
+
+	send("peer-evil")
+	require.Equal(t, 0, pending(), "a non-participant's point must not be buffered")
+
+	send("peer-a")
+	require.Equal(t, 1, pending())
+}
+
+// TestBeginPPKSessionDropsStalePending is the regression test for a retried DKG under the same
+// session id: points buffered by the failed round must be discarded, otherwise they occupy the new
+// collector's slots, the new point from the same peer is dropped as a duplicate, and the round
+// fails with a bogus errPPKInconsistent.
+func TestBeginPPKSessionDropsStalePending(t *testing.T) {
+	const sessionID = "ppk-stale-round-session"
+	defer removePPKCollector(sessionID)
+
+	send := func(k int64) {
+		handlePpkMsg(&tss.MessageWrapper{
+			Protocol: PpkProtocol, SessionID: sessionID, PeerID: "peer-a",
+			Msg: types.Encode(ppkPoint(testPPKRid, k)),
+		})
+	}
+	pending := func() int {
+		ppkMu.Lock()
+		defer ppkMu.Unlock()
+		return len(pendingPPK[tss.ComposeProtocol(PpkProtocol, sessionID)])
+	}
+
+	// The old (failed) round buffered peer-a's point before its collector was registered.
+	send(1)
+	require.Equal(t, 1, pending())
+
+	// The retry starts under the same session id and clears the stale buffer.
+	beginPPKSession(sessionID, []string{"peer-a"})
+	require.Equal(t, 0, pending())
+
+	// The new round's point arrives before the collector and must win once flushed.
+	send(2)
+	newPoint := ecpointgrouplaw.ScalarBaseMult(elliptic.Secp256k1(), big.NewInt(2))
+	collector := newPPKCollector(testPPKRid, []string{"peer-a"})
+	registerPPKCollector(sessionID, collector)
+
+	got := collector.result()
+	require.Len(t, got, 1)
+	require.Zero(t, got["peer-a"].GetX().Cmp(newPoint.GetX()))
+	require.Zero(t, got["peer-a"].GetY().Cmp(newPoint.GetY()))
+	require.NoError(t, collector.wait(time.Second))
+}
+
+// TestPendingPPKBounded asserts the pre-collector ppk buffer stays bounded: at most one entry
+// per authenticated peer, at most maxPendingPPKPerSession participants per session, and at most
+// maxPendingPPKSessions sessions — a peer cannot grow it with duplicates or random session ids.
+func TestPendingPPKBounded(t *testing.T) {
+	first := func() int {
+		ppkMu.Lock()
+		defer ppkMu.Unlock()
+		return len(pendingPPK)
+	}
+	require.Equal(t, 0, first())
+	defer func() {
+		ppkMu.Lock()
+		pendingPPK = make(map[string][]pendingPPKMsg)
+		ppkMu.Unlock()
+	}()
+	snapshot := func(sessionID string) int {
+		ppkMu.Lock()
+		defer ppkMu.Unlock()
+		return len(pendingPPK[tss.ComposeProtocol(PpkProtocol, sessionID)])
+	}
+	send := func(sessionID, peerID, sender string) {
+		handlePpkMsg(&tss.MessageWrapper{
+			Protocol: PpkProtocol, SessionID: sessionID, PeerID: peerID,
+			Msg: types.Encode(&PartialPublicKey{Sender: sender, X: []byte{1}, Y: []byte{1}}),
+		})
+	}
+
+	// One peer sending several points (with different Sender values each time) to a session
+	// with no collector yet: attributed by peer id, so it collapses onto a single entry.
+	for _, sender := range []string{"peer-a", "peer-b", "peer-c"} {
+		send("ppk-flood-session", "peer-real", sender)
+	}
+	require.Equal(t, 1, snapshot("ppk-flood-session"))
+
+	// Distinct participants are capped per session.
+	for i := 0; i < maxPendingPPKPerSession+10; i++ {
+		peer := fmt.Sprintf("peer-%d", i)
+		send("ppk-flood-session", peer, peer)
+	}
+	require.Equal(t, maxPendingPPKPerSession, snapshot("ppk-flood-session"))
+
+	// Many sessions, one message each: the session count stays capped.
+	for i := 0; i < maxPendingPPKSessions+20; i++ {
+		peer := fmt.Sprintf("peer-%d", i)
+		send(fmt.Sprintf("ppk-flood-%d", i), peer, peer)
+	}
+	require.LessOrEqual(t, first(), maxPendingPPKSessions, "pending ppk sessions must stay bounded")
+}
+
+// testTwoPartyDKGResult builds a DKG result for two participants that is internally consistent:
+// f(x) = a + b*x is the shared degree-1 polynomial, the peer at x=1 holds a rank-0 share
+// (f(1) = a+b) and the one at x=2 a rank-1 share (f'(2) = b), so the Birkhoff reconstruction of
+// the two partial public keys must give the group public key g^a. This mirrors the rank-0/rank-1
+// participant sets the p2p integration test uses.
+func testTwoPartyDKGResult() (*DKGResult, []string) {
+	curve := elliptic.Secp256k1()
+	const a, b = 11, 5
+	peers := []string{"peer-rank0", "peer-rank1"}
+	pub := ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(a))
+	return &DKGResult{
+		PubX:  pub.GetX().Bytes(),
+		PubY:  pub.GetY().Bytes(),
+		Share: big.NewInt(a + b).Bytes(),
+		Bks: map[string]*tss.BK{
+			"peer-rank0": {Rank: 0, X: big.NewInt(1).Bytes()},
+			"peer-rank1": {Rank: 1, X: big.NewInt(2).Bytes()},
+		},
+		Rid: []byte("rid-birkhoff"),
+		PartialPubKeys: map[string]*ECPoint{
+			"peer-rank0": fromECPoint(ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(a+b))),
+			"peer-rank1": fromECPoint(ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(b))),
+		},
+	}, peers
+}
+
+// TestValidatePartialPubKeys covers the ppk-stage Birkhoff reconstruction: consistent material
+// passes, a bad g^{share} is rejected (naming the phase and the peers involved) as soon as the
+// ppk exchange completes, and a missing entry names the offending peer.
+func TestValidatePartialPubKeys(t *testing.T) {
+	dkgRes, peers := testTwoPartyDKGResult()
+	require.NoError(t, dkgRes.validatePartialPubKeys(peers, 2))
+
+	// Inject a bad point for one peer: the reconstruction must fail instead of being carried
+	// into the refresh phase.
+	curve := elliptic.Secp256k1()
+	dkgRes.PartialPubKeys["peer-rank1"] = fromECPoint(ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(99)))
+	err := dkgRes.validatePartialPubKeys(peers, 2)
+	require.ErrorIs(t, err, errPPKInconsistent)
+	require.Contains(t, err.Error(), "ppk")
+	require.Contains(t, err.Error(), "peer-rank1")
+
+	// A missing partial public key / bk is reported with the exact peer.
+	dkgRes, peers = testTwoPartyDKGResult()
+	delete(dkgRes.PartialPubKeys, "peer-rank1")
+	err = dkgRes.validatePartialPubKeys(peers, 2)
+	require.ErrorIs(t, err, errMissingPeerPPK)
+	require.Contains(t, err.Error(), "peer-rank1")
+
+	dkgRes, peers = testTwoPartyDKGResult()
+	delete(dkgRes.Bks, "peer-rank0")
+	err = dkgRes.validatePartialPubKeys(peers, 2)
+	require.ErrorIs(t, err, errMissingPeerBk)
+	require.Contains(t, err.Error(), "peer-rank0")
+
+	// Fewer participants than the threshold is rejected too.
+	dkgRes, peers = testTwoPartyDKGResult()
+	require.Error(t, dkgRes.validatePartialPubKeys(peers, 3))
+}
+
+// TestValidateSessionID covers the registry-key constraints: an empty id and an id containing the
+// protocol separator are rejected, while a normal id is accepted.
+func TestValidateSessionID(t *testing.T) {
+	require.ErrorIs(t, validateSessionID(""), errEmptySessionID)
+
+	invalid := "round" + tss.SessionProtocolSeparator + "other"
+	require.ErrorIs(t, validateSessionID(invalid), errInvalidSessionID)
+	require.Contains(t, validateSessionID(invalid).Error(), invalid)
+
+	require.NoError(t, validateSessionID("cggmp-round-1"))
+}
+
+// TestValidateThresholdAndPeers covers the DKG-parameter consistency check: a phase request must
+// use the threshold recorded at DKG time and only DKG participants, while zero-valued fields
+// (results persisted before they existed) are treated as unknown and not enforced.
+func TestValidateThresholdAndPeers(t *testing.T) {
+	dkgRes, peers := testTwoPartyDKGResult()
+	dkgRes.Threshold = 2
+	dkgRes.Peers = append([]string(nil), peers...)
+
+	require.NoError(t, dkgRes.validateThresholdAndPeers(peers, 2))
+	require.NoError(t, dkgRes.validateThresholdAndPeers(peers[:1], 2), "a signer subset is allowed")
+
+	err := dkgRes.validateThresholdAndPeers(peers, 3)
+	require.ErrorIs(t, err, errDKGResultMismatch)
+
+	err = dkgRes.validateThresholdAndPeers([]string{"peer-rank0", "peer-unknown"}, 2)
+	require.ErrorIs(t, err, errDKGResultMismatch)
+	require.Contains(t, err.Error(), "peer-unknown")
+
+	// A result persisted before Threshold/Peers were added decodes as zero values: unknown, not
+	// rejected (neither the threshold nor the participant set is enforced).
+	legacy, _ := testTwoPartyDKGResult()
+	require.NoError(t, legacy.validateThresholdAndPeers([]string{"peer-legacy"}, 5))
+}
+
+// TestProcessRejectsDKGMismatch asserts the check runs from the public entry points, before any
+// peer manager is created, so a mismatched request fails without a transport.
+func TestProcessRejectsDKGMismatch(t *testing.T) {
+	dkgRes, peers := testTwoPartyDKGResult()
+	dkgRes.Threshold = 2
+	dkgRes.Peers = append([]string(nil), peers...)
+
+	mismatched, _ := testTwoPartyDKGResult()
+	mismatched.Threshold = 3
+	mismatched.Peers = append(mismatched.Peers, "peer-extra")
+
+	_, err := ProcessRefresh(peers, 2, mismatched, "refresh-session")
+	require.ErrorIs(t, err, errDKGResultMismatch)
+
+	_, err = ProcessSign(peers, 2, []byte("msg"), mismatched, &RefreshResult{}, "sign-session")
+	require.ErrorIs(t, err, errDKGResultMismatch)
+
+	_, err = ProcessSign(peers, 2, []byte("msg"), dkgRes, &RefreshResult{}, "sign-session")
+	require.NotErrorIs(t, err, errDKGResultMismatch)
+}
+
+// TestProcessRefreshRejectsBadPPK asserts ProcessRefresh fails on the ppk-stage error instead of
+// starting the refresh with corrupted material (both paths return before any network use).
+func TestProcessRefreshRejectsBadPPK(t *testing.T) {
+	dkgRes, peers := testTwoPartyDKGResult()
+	curve := elliptic.Secp256k1()
+	dkgRes.PartialPubKeys["peer-rank1"] = fromECPoint(ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(99)))
+
+	_, err := ProcessRefresh(peers, 2, dkgRes, "refresh-session")
+	require.ErrorIs(t, err, errPPKInconsistent)
+}
+
+// TestProcessSignValidatesSignerMaterial asserts ProcessSign rejects incomplete signer material
+// with a clear error rather than handing the maps to alice, which indexes them without checking
+// (a missing entry used to panic inside the alice sign core) and rejects a signer count that
+// does not match the threshold.
+func TestProcessSignValidatesSignerMaterial(t *testing.T) {
+	dkgRes, peers := testTwoPartyDKGResult()
+	msg := []byte("cggmp-sign-material-test")
+	newRefresh := func() *RefreshResult {
+		return &RefreshResult{
+			Share: big.NewInt(11).Bytes(),
+			PartialPubKeys: map[string]*ECPoint{
+				"peer-rank0": dkgRes.PartialPubKeys["peer-rank0"],
+				"peer-rank1": dkgRes.PartialPubKeys["peer-rank1"],
+			},
+			PedParams: map[string]*PedersenParam{
+				"peer-rank0": {N: []byte{1}, S: []byte{1}, T: []byte{1}},
+				"peer-rank1": {N: []byte{1}, S: []byte{1}, T: []byte{1}},
+			},
+		}
+	}
+
+	// Sanity: complete material passes the entry check (the sign run itself needs the p2p
+	// transport and is covered by the integration test).
+	require.NoError(t, newRefresh().validateSignMaterial(dkgRes, peers, 2))
+
+	cases := []struct {
+		name    string
+		mutate  func(r *RefreshResult, d *DKGResult)
+		wantErr error
+		peer    string
+	}{
+		{"missing bk", func(_ *RefreshResult, d *DKGResult) { delete(d.Bks, "peer-rank1") }, errMissingPeerBk, "peer-rank1"},
+		{"missing partial pubkey", func(r *RefreshResult, _ *DKGResult) {
+			delete(r.PartialPubKeys, "peer-rank0")
+		}, errMissingPeerPPK, "peer-rank0"},
+		{"missing pedersen", func(r *RefreshResult, _ *DKGResult) {
+			delete(r.PedParams, "peer-rank1")
+		}, errMissingPeerPed, "peer-rank1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			d, p := testTwoPartyDKGResult()
+			r := newRefresh()
+			tc.mutate(r, d)
+			_, err := ProcessSign(p, 2, msg, d, r, "sign-session")
+			require.ErrorIs(t, err, tc.wantErr)
+			require.Contains(t, err.Error(), tc.peer)
+		})
+	}
+
+	// threshold must equal the signer count.
+	_, err := ProcessSign(peers, 3, msg, dkgRes, newRefresh(), "sign-session")
+	require.ErrorIs(t, err, errThresholdPeers)
+}
+
+// TestProcessEntryValidation asserts the Process* entry points reject nil inputs and impossible
+// participant sets with an error instead of reaching alice (which indexes its maps by the local
+// peer id without checking and panics). Every case returns before a peer manager is created, so no
+// transport is needed.
+func TestProcessEntryValidation(t *testing.T) {
+	peers := []string{"peer-a", "peer-b"}
+	msg := []byte("cggmp-entry-validation")
+
+	var err error
+	require.NotPanics(t, func() {
+		_, err = ProcessSign(peers, 2, msg, nil, &RefreshResult{}, "s")
+	})
+	require.ErrorIs(t, err, errNilDKGResult)
+
+	require.NotPanics(t, func() {
+		_, err = ProcessSign(peers, 2, msg, &DKGResult{}, nil, "s")
+	})
+	require.ErrorIs(t, err, errNilRefreshResult)
+
+	require.NotPanics(t, func() {
+		_, err = ProcessRefresh(peers, 2, nil, "s")
+	})
+	require.ErrorIs(t, err, errNilDKGResult)
+
+	_, err = ProcessSign(nil, 1, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errNoPeers)
+	_, err = ProcessSign(peers, 0, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	// For signing the signer count must equal the threshold; that specific error is kept.
+	_, err = ProcessSign(peers, 3, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errThresholdPeers)
+
+	_, err = ProcessRefresh(nil, 1, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errNoPeers)
+	_, err = ProcessRefresh(peers, 0, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	_, err = ProcessRefresh(peers, 3, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+
+	_, err = ProcessDKG(nil, 1, 0, "s")
+	require.ErrorIs(t, err, errNoPeers)
+	_, err = ProcessDKG(peers, 3, 0, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	_, err = ProcessDKG(peers, 0, 0, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+
+	// CGGMP requires a threshold of at least 2.
+	_, err = ProcessSign(peers, 1, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	_, err = ProcessRefresh(peers, 1, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+	_, err = ProcessDKG(peers, 1, 0, "s")
+	require.ErrorIs(t, err, errInvalidThreshold)
+
+	// Blank or duplicated participant ids are rejected before a peer manager is created.
+	blankPeers := []string{"peer-a", ""}
+	_, err = ProcessSign(blankPeers, 2, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+	_, err = ProcessRefresh(blankPeers, 2, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+	_, err = ProcessDKG(blankPeers, 2, 0, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+
+	dupPeers := []string{"peer-a", "peer-a"}
+	_, err = ProcessSign(dupPeers, 2, msg, &DKGResult{}, &RefreshResult{}, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+	_, err = ProcessRefresh(dupPeers, 2, &DKGResult{}, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+	_, err = ProcessDKG(dupPeers, 2, 0, "s")
+	require.ErrorIs(t, err, errInvalidPeerList)
+}
+
+// TestValidateSelfRejectsMissingLocalPeer covers the check ProcessRefresh/ProcessSign run right
+// after creating the peer manager and before handing anything to alice: without the local id among
+// the participants, alice would dereference a nil bks[SelfID] inside the protocol core.
+func TestValidateSelfRejectsMissingLocalPeer(t *testing.T) {
+	pm := &stubPeerManager{self: "peer-self", peers: []string{"peer-a"}}
+
+	selfID, err := validateSelf(pm, []string{"peer-a", "peer-self"})
+	require.NoError(t, err)
+	require.Equal(t, "peer-self", selfID)
+
+	_, err = validateSelf(pm, []string{"peer-a", "peer-b"})
+	require.ErrorIs(t, err, errSelfNotInPeers)
+
+	_, err = validateSelf(&stubPeerManager{}, []string{"peer-a"})
+	require.ErrorIs(t, err, errMissingSelfID)
+}
+
+// TestSharedSignatureBuilder keeps the scalar->btcec conversion single-sourced in the tss
+// package (used by both gg18.AliceToBtcecSignature and cggmp.ToBtcecSignature).
+func TestSharedSignatureBuilder(t *testing.T) {
+	sig, err := tss.BuildBtcecSignature(big.NewInt(1), big.NewInt(2))
+	require.NoError(t, err)
+	require.NotNil(t, sig)
+
+	tooLarge := new(big.Int).Lsh(big.NewInt(1), 300)
+	_, err = tss.BuildBtcecSignature(tooLarge, big.NewInt(2))
+	require.Error(t, err)
+}

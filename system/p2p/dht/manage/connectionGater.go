@@ -73,7 +73,7 @@ func (s *Conngater) InterceptPeerDial(p peer.ID) (allow bool) {
 	if !s.checkWhitePeerList(p) {
 		return false
 	}
-	if s.blacklist.Has(p.Pretty()) {
+	if s.blacklist.Has(p.String()) {
 		return false
 	}
 
@@ -92,7 +92,7 @@ func (s *Conngater) checkWhitePeerList(p peer.ID) bool {
 // InterceptAddrDial tests whether we're permitted to dial the specified
 // multiaddr for the given peer.
 func (s *Conngater) InterceptAddrDial(p peer.ID, m multiaddr.Multiaddr) (allow bool) {
-	return !s.blacklist.Has(p.Pretty())
+	return !s.blacklist.Has(p.String())
 }
 
 // InterceptAccept tests whether an incipient inbound connection is allowed.
@@ -135,7 +135,7 @@ func (s *Conngater) checkWhitAddr(addr multiaddr.Multiaddr) bool {
 // InterceptSecured tests whether a given connection, now authenticated,
 // is allowed.
 func (s *Conngater) InterceptSecured(_ network.Direction, p peer.ID, n network.ConnMultiaddrs) (allow bool) {
-	return !s.blacklist.Has(p.Pretty())
+	return !s.blacklist.Has(p.String())
 }
 
 // InterceptUpgraded tests whether a fully capable connection is allowed.
@@ -143,7 +143,7 @@ func (s *Conngater) InterceptUpgraded(n network.Conn) (allow bool, reason contro
 	if n == nil {
 		return false, 0
 	}
-	return !s.blacklist.Has(n.RemotePeer().Pretty()), 0
+	return !s.blacklist.Has(n.RemotePeer().String()), 0
 }
 
 func (s *Conngater) validateDial(addr multiaddr.Multiaddr) bool {

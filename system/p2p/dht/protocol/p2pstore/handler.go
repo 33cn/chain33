@@ -463,7 +463,7 @@ func (p *Protocol) handleEventGetHeaders(m *queue.Message) {
 	if headers == nil || len(headers.Items) == 0 {
 		return
 	}
-	msg := p.QueueClient.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid.Pretty(), Headers: headers})
+	msg := p.QueueClient.NewMessage("blockchain", types.EventAddBlockHeaders, &types.HeadersPid{Pid: pid.String(), Headers: headers})
 	err := p.QueueClient.Send(msg, true)
 	if err != nil {
 		log.Error("handleEventGetHeaders", "send message error", err)
