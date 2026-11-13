@@ -1,5 +1,19 @@
 changelog
 
+# [1.74.0](https://github.com/33cn/chain33/compare/v1.73.1...v1.74.0) (2026-11-13)
+
+
+### Bug Fixes
+
+* **executor:** close the eth envelope follow-ups ([7fd8afa](https://github.com/33cn/chain33/commit/7fd8afa7d8bc106064837ec9d7855ae06aaa795d))
+* **executor:** keep the pre-fee nonce gate off proxy carriers ([a51084b](https://github.com/33cn/chain33/commit/a51084b2d8e1eb54f1b80d256a1e5676c0a0b88c))
+* **types,executor:** scope the pre-fee nonce gate to eth envelopes ([1d6daaf](https://github.com/33cn/chain33/commit/1d6daafef36b199d297bfaee02f82c20bc0af312))
+
+
+### Features
+
+* **fork:** gate the envelope follow-ups behind ForkEthSignEnvelopeV2 ([d2fb1df](https://github.com/33cn/chain33/commit/d2fb1dfaa1ea34685cdccce54222a4092d491bc9))
+
 ## [1.73.1](https://github.com/33cn/chain33/compare/v1.73.0...v1.73.1) (2026-11-04)
 
 
