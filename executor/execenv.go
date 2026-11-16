@@ -808,9 +808,13 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	if api.IsAPIEnvError(err) {
 		return nil, err
 	}
-	// The carrier executed successfully and was kept in the block, so its local bookkeeping
-	// (mainly nonce++) applies. This is the only path that runs it.
-	if isProxyExec && err == nil {
+	// Every path that reaches this point keeps the carrier in the block, including one whose
+	// inner transaction failed while executing: that failure is folded into the receipt as an
+	// error log, the caller drops only ExecErr receipts, and this receipt is not one. Run the
+	// local bookkeeping in both cases, exactly as the old defer did. The early returns above -
+	// nonce mismatch, undecodable inner transaction, fee or commit failure - are the paths
+	// where the carrier is not kept, and they must not move the nonce.
+	if isProxyExec {
 		proxyExecBookkeeping(proxyCarrierTx)
 	}
 	return feelog, nil
