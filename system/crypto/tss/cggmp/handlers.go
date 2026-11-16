@@ -215,18 +215,23 @@ func (c *ppkCollector) result() map[string]*ecpointgrouplaw.ECPoint {
 // pendingPPKMsg is a buffered partial public key together with the authenticated peer id it
 // came from, so it can be attributed correctly when it is flushed into a late collector. The
 // message also carries the DKG rid of its round, which the flush checks against the collector's
-// rid (see ppkCollector.add).
+// rid (see ppkCollector.add). at is the arrival time, used to expire material that belongs to a
+// round which never registered a collector.
 type pendingPPKMsg struct {
 	peerID string
 	msg    *PartialPublicKey
+	at     time.Time
 }
 
 // The ppk buffer is bounded twice over — participants per session and number of sessions — like
 // the alice-core message buffer in session.go, so a malicious peer cannot grow it without bound
-// with duplicates or with random session ids.
+// with duplicates or with random session ids. pendingPPKTTL additionally bounds how long an
+// undelivered point may stay buffered: a point is only useful until the local ProcessDKG registers
+// its collector, and anything older belongs to a round that is long gone.
 const (
 	maxPendingPPKPerSession = 32
 	maxPendingPPKSessions   = 100
+	pendingPPKTTL           = 5 * time.Minute
 )
 
 var (
@@ -263,12 +268,35 @@ func beginPPKSession(sessionID string, expected []string) {
 	ppkMembers[key] = allowed
 }
 
+// prunePendingPPKLocked drops buffered points older than pendingPPKTTL. It runs lazily on access to
+// the session key that is being read or written, so no background goroutine is needed. ppkMu must
+// be held by the caller.
+func prunePendingPPKLocked(key string) {
+	entries := pendingPPK[key]
+	if len(entries) == 0 {
+		return
+	}
+	now := time.Now()
+	kept := entries[:0]
+	for _, entry := range entries {
+		if now.Sub(entry.at) <= pendingPPKTTL {
+			kept = append(kept, entry)
+		}
+	}
+	if len(kept) == 0 {
+		delete(pendingPPK, key)
+		return
+	}
+	pendingPPK[key] = kept
+}
+
 func registerPPKCollector(sessionID string, c *ppkCollector) {
 	key := tss.ComposeProtocol(PpkProtocol, sessionID)
 	ppkMu.Lock()
 	defer ppkMu.Unlock()
 	ppkCollectors[key] = c
 	ppkMembers[key] = c.expected
+	prunePendingPPKLocked(key)
 	for _, pending := range pendingPPK[key] {
 		// add drops points from peers outside c.expected, including ones buffered before this
 		// round's participant set was known.
@@ -325,6 +353,7 @@ func handlePpkMsg(wMsg *tss.MessageWrapper) {
 	key := tss.ComposeProtocol(PpkProtocol, wMsg.SessionID)
 	ppkMu.Lock()
 	defer ppkMu.Unlock()
+	prunePendingPPKLocked(key)
 	if c, ok := ppkCollectors[key]; ok {
 		addPPKToCollector(c, wMsg.PeerID, msg)
 		return
@@ -346,10 +375,15 @@ func handlePpkMsg(wMsg *tss.MessageWrapper) {
 			"peerID", wMsg.PeerID, "session", wMsg.SessionID)
 		return
 	}
-	// At most one buffered point per authenticated peer, first one wins — the same rule the
-	// collector applies when it is flushed (see ppkCollector.add).
+	// At most one buffered point per (authenticated peer, rid) — the same rule the collector
+	// applies when it is flushed (see ppkCollector.add). Deduplicating by peer id alone is wrong: a
+	// retried round reuses the session id, so a late point from the previous round can arrive after
+	// beginPPKSession cleared the buffer. It would then take the peer's only slot, and the current
+	// round's point from that peer would be discarded as a duplicate; on flush the stale point is
+	// dropped by rid, leaving the peer permanently missing (errPPKTimeout: missing [peer]).
+	// Buffering both lets the rid check pick the current point.
 	for _, pending := range pendingPPK[key] {
-		if pending.peerID == wMsg.PeerID {
+		if pending.peerID == wMsg.PeerID && string(pending.msg.Rid) == string(msg.Rid) {
 			return
 		}
 	}
@@ -358,7 +392,7 @@ func handlePpkMsg(wMsg *tss.MessageWrapper) {
 			"peerID", wMsg.PeerID, "session", wMsg.SessionID)
 		return
 	}
-	pendingPPK[key] = append(pendingPPK[key], pendingPPKMsg{peerID: wMsg.PeerID, msg: msg})
+	pendingPPK[key] = append(pendingPPK[key], pendingPPKMsg{peerID: wMsg.PeerID, msg: msg, at: time.Now()})
 }
 
 // partialPublicKeyMsg builds the on-wire partial public key message for the local node.

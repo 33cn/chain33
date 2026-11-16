@@ -270,9 +270,82 @@ func TestBeginPPKSessionDropsStalePending(t *testing.T) {
 	require.NoError(t, collector.wait(time.Second))
 }
 
+// TestPendingPPKDedupByPeerAndRound is the regression test for a late point arriving after a
+// retried DKG cleared the buffer: the stale point and the current round's point from the *same*
+// peer must both be buffered (dedup by (peer, rid)), so the rid check keeps the current one.
+// Deduplicating by peer id alone dropped the current point as a duplicate, then discarded the
+// stale one by rid, leaving the peer permanently missing (errPPKTimeout: missing [peer]).
+func TestPendingPPKDedupByPeerAndRound(t *testing.T) {
+	const sessionID = "ppk-same-peer-two-rounds-session"
+	oldRid := []byte("old-round-rid")
+	newRid := []byte("new-round-rid")
+	defer removePPKCollector(sessionID)
+
+	send := func(rid []byte, k int64) {
+		handlePpkMsg(&tss.MessageWrapper{
+			Protocol: PpkProtocol, SessionID: sessionID, PeerID: "peer-a",
+			Msg: types.Encode(ppkPoint(rid, k)),
+		})
+	}
+
+	// The retried round starts and clears the previous round's buffer...
+	send(oldRid, 1)
+	beginPPKSession(sessionID, []string{"peer-a"})
+	// ...but a point from that previous round arrives afterwards (the race this guards).
+	send(oldRid, 1)
+	// The current round's point from the same peer must still be accepted.
+	send(newRid, 2)
+
+	ppkMu.Lock()
+	buffered := len(pendingPPK[tss.ComposeProtocol(PpkProtocol, sessionID)])
+	ppkMu.Unlock()
+	require.Equal(t, 2, buffered, "both rounds' points from the same peer must be buffered")
+
+	collector := newPPKCollector(newRid, []string{"peer-a"})
+	registerPPKCollector(sessionID, collector)
+
+	got := collector.result()
+	require.Len(t, got, 1)
+	want := ecpointgrouplaw.ScalarBaseMult(elliptic.Secp256k1(), big.NewInt(2))
+	require.Zero(t, got["peer-a"].GetX().Cmp(want.GetX()), "the current round's point must be collected")
+	require.Zero(t, got["peer-a"].GetY().Cmp(want.GetY()))
+	require.NoError(t, collector.wait(time.Second))
+}
+
+// TestPendingPPKExpires asserts buffered points are dropped once they are older than pendingPPKTTL,
+// so a round that never registers a collector cannot leave material behind indefinitely. Expiry is
+// applied lazily on access to the session key, with no background goroutine.
+func TestPendingPPKExpires(t *testing.T) {
+	const sessionID = "ppk-ttl-session"
+	key := tss.ComposeProtocol(PpkProtocol, sessionID)
+	defer removePPKCollector(sessionID)
+
+	handlePpkMsg(&tss.MessageWrapper{
+		Protocol: PpkProtocol, SessionID: sessionID, PeerID: "peer-a",
+		Msg: types.Encode(ppkPoint(testPPKRid, 1)),
+	})
+	ppkMu.Lock()
+	require.Len(t, pendingPPK[key], 1)
+	// Backdate the entry beyond the TTL instead of waiting.
+	pendingPPK[key][0].at = time.Now().Add(-pendingPPKTTL - time.Second)
+	ppkMu.Unlock()
+
+	// The next access to the session key prunes the expired entry.
+	handlePpkMsg(&tss.MessageWrapper{
+		Protocol: PpkProtocol, SessionID: sessionID, PeerID: "peer-b",
+		Msg: types.Encode(ppkPoint(testPPKRid, 2)),
+	})
+	ppkMu.Lock()
+	entries := append([]pendingPPKMsg(nil), pendingPPK[key]...)
+	ppkMu.Unlock()
+	require.Len(t, entries, 1)
+	require.Equal(t, "peer-b", entries[0].peerID)
+}
+
 // TestPendingPPKBounded asserts the pre-collector ppk buffer stays bounded: at most one entry
-// per authenticated peer, at most maxPendingPPKPerSession participants per session, and at most
-// maxPendingPPKSessions sessions — a peer cannot grow it with duplicates or random session ids.
+// per authenticated peer and round, at most maxPendingPPKPerSession participants per session, and
+// at most maxPendingPPKSessions sessions — a peer cannot grow it with duplicates or random session
+// ids.
 func TestPendingPPKBounded(t *testing.T) {
 	first := func() int {
 		ppkMu.Lock()
@@ -392,8 +465,9 @@ func TestValidateSessionID(t *testing.T) {
 }
 
 // TestValidateThresholdAndPeers covers the DKG-parameter consistency check: a phase request must
-// use the threshold recorded at DKG time and only DKG participants, while zero-valued fields
-// (results persisted before they existed) are treated as unknown and not enforced.
+// use the threshold recorded at DKG time and only DKG participants. A result without those fields
+// is rejected (fail-closed): the request cannot be verified against material that does not record
+// its own parameters.
 func TestValidateThresholdAndPeers(t *testing.T) {
 	dkgRes, peers := testTwoPartyDKGResult()
 	dkgRes.Threshold = 2
@@ -409,10 +483,25 @@ func TestValidateThresholdAndPeers(t *testing.T) {
 	require.ErrorIs(t, err, errDKGResultMismatch)
 	require.Contains(t, err.Error(), "peer-unknown")
 
-	// A result persisted before Threshold/Peers were added decodes as zero values: unknown, not
-	// rejected (neither the threshold nor the participant set is enforced).
+	// A result without a recorded threshold / participant set cannot be verified: fail closed
+	// instead of treating the zero values as "unknown, allow".
 	legacy, _ := testTwoPartyDKGResult()
-	require.NoError(t, legacy.validateThresholdAndPeers([]string{"peer-legacy"}, 5))
+	err = legacy.validateThresholdAndPeers([]string{"peer-legacy"}, 5)
+	require.ErrorIs(t, err, errDKGResultMismatch)
+	require.Contains(t, err.Error(), "records no threshold")
+
+	// Only one of the two fields missing is rejected as well.
+	noThreshold, _ := testTwoPartyDKGResult()
+	noThreshold.Peers = peers
+	require.ErrorIs(t, noThreshold.validateThresholdAndPeers(peers, 2), errDKGResultMismatch)
+
+	noPeers, _ := testTwoPartyDKGResult()
+	noPeers.Threshold = 2
+	require.ErrorIs(t, noPeers.validateThresholdAndPeers(peers, 2), errDKGResultMismatch)
+
+	// Refresh requires exactly the DKG participant set, not a subset.
+	require.NoError(t, dkgRes.validateExactParticipants(peers, 2))
+	require.ErrorIs(t, dkgRes.validateExactParticipants(peers[:1], 2), errDKGResultMismatch)
 }
 
 // TestProcessRejectsDKGMismatch asserts the check runs from the public entry points, before any
@@ -440,6 +529,8 @@ func TestProcessRejectsDKGMismatch(t *testing.T) {
 // starting the refresh with corrupted material (both paths return before any network use).
 func TestProcessRefreshRejectsBadPPK(t *testing.T) {
 	dkgRes, peers := testTwoPartyDKGResult()
+	dkgRes.Threshold = 2
+	dkgRes.Peers = append([]string(nil), peers...)
 	curve := elliptic.Secp256k1()
 	dkgRes.PartialPubKeys["peer-rank1"] = fromECPoint(ecpointgrouplaw.ScalarBaseMult(curve, big.NewInt(99)))
 
@@ -453,6 +544,8 @@ func TestProcessRefreshRejectsBadPPK(t *testing.T) {
 // does not match the threshold.
 func TestProcessSignValidatesSignerMaterial(t *testing.T) {
 	dkgRes, peers := testTwoPartyDKGResult()
+	dkgRes.Threshold = 2
+	dkgRes.Peers = append([]string(nil), peers...)
 	msg := []byte("cggmp-sign-material-test")
 	newRefresh := func() *RefreshResult {
 		return &RefreshResult{
@@ -470,7 +563,7 @@ func TestProcessSignValidatesSignerMaterial(t *testing.T) {
 
 	// Sanity: complete material passes the entry check (the sign run itself needs the p2p
 	// transport and is covered by the integration test).
-	require.NoError(t, newRefresh().validateSignMaterial(dkgRes, peers, 2))
+	require.NoError(t, newRefresh().validateSignMaterial(dkgRes, peers))
 
 	cases := []struct {
 		name    string
@@ -489,6 +582,8 @@ func TestProcessSignValidatesSignerMaterial(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			d, p := testTwoPartyDKGResult()
+			d.Threshold = 2
+			d.Peers = append([]string(nil), p...)
 			r := newRefresh()
 			tc.mutate(r, d)
 			_, err := ProcessSign(p, 2, msg, d, r, "sign-session")

@@ -27,6 +27,7 @@ import (
 	"github.com/33cn/chain33/util/testnode"
 	"github.com/btcsuite/btcd/btcec/v2"
 	alicesign "github.com/getamis/alice/crypto/tss/ecdsa/cggmp/sign"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,9 +36,10 @@ const (
 	testChannel    = int32(20260202)
 	tssMessage     = "cggmp-integration-test"
 
-	dkgSessionID     = "cggmp-dkg-session-id"
-	refreshSessionID = "cggmp-refresh-session-id"
-	signSessionID    = "cggmp-sign-session"
+	dkgSessionID          = "cggmp-dkg-session-id"
+	refreshSessionID      = "cggmp-refresh-session-id"
+	refreshAgainSessionID = "cggmp-refresh-again-session-id"
+	signSessionID         = "cggmp-sign-session"
 
 	// 以下超时均为「防止真正卡死」的兜底值,远大于正常(含 -race)耗时,
 	// 正常或偏慢都不应触发;用例是否通过由密码学验签(verifySignatureWithDKG)判定,
@@ -59,11 +61,14 @@ const (
 //
 //	all 4 nodes: DKG(threshold 3, includes the partial public key exchange)
 //	             -> refresh (key refresh + Paillier/Pedersen provisioning)
+//	             -> a second refresh through ProcessRefreshAgain (all 4 nodes still present)
 //	3-node subset: threshold sign + concurrent signs, every signature verified with the DKG group key.
 //
 // The refresh phase is what CGGMP adds over GG18 and is only meaningful across processes
 // (it depends on the shared ssid derived from the DKG rid), so it is exercised here end to
-// end: every node must derive the same ssid or the zero-knowledge challenges fail.
+// end: every node must derive the same ssid or the zero-knowledge challenges fail. The second
+// refresh proves the public ProcessRefreshAgain entry point rotates a generation that can still
+// sign under the unchanged DKG group key; the four nodes' ssids are compared across processes.
 func TestCGGMP4Node(t *testing.T) {
 
 	if testing.Short() {
@@ -89,9 +94,12 @@ func TestCGGMP4Node(t *testing.T) {
 		log.Info("TestCGGMP4Node start child node", "role", role, "port", ports[i])
 		cmds = append(cmds, startChildNode(t, role, ports[i], seed, barrierDir))
 	}
-	runNodeFlow(t, cli1, 0, "node1")
+	runNodeFlow(t, cli1, 0, "node1", barrierDir)
 	signalBarrier(barrierDir, "node1")
 	waitBarrier(t, barrierDir, barrierTimeout)
+	// Every node published the ssid of the second refresh; they must be identical because the ssid
+	// is the zero-knowledge domain separator, and a disagreement silently breaks the proofs.
+	assertSameSSID(t, barrierDir)
 
 	wg := sync.WaitGroup{}
 	errCh := make(chan error, len(cmds))
@@ -153,18 +161,18 @@ func runChildNode(t *testing.T, role string) {
 	mock, cli := startTestNode(t, port, testChannel, []string{seed})
 	defer mock.Close()
 
-	runNodeFlow(t, cli, 1, role)
+	runNodeFlow(t, cli, 1, role, barrierDir)
 	if barrierDir != "" && role != "node4" {
 		signalBarrier(barrierDir, role)
 		waitBarrier(t, barrierDir, barrierTimeout)
 	}
 }
 
-// runNodeFlow drives one node through every CGGMP phase. All four nodes run DKG and refresh
-// together; node4 then leaves the test, and the remaining three sign the same key with
-// threshold 3. rank 0/1 keeps the Birkhoff parameters of the 3-node subset valid
-// (rank <= threshold-2 = 1 with threshold 3).
-func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
+// runNodeFlow drives one node through every CGGMP phase. All four nodes run DKG and two refreshes
+// together; node4 then leaves the test, and the remaining three sign the same key with threshold 3
+// using the second refresh generation. rank 0/1 keeps the Birkhoff parameters of the 3-node subset
+// valid (rank <= threshold-2 = 1 with threshold 3).
+func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role, barrierDir string) {
 	peers := waitPeerIDs(t, cli, 4, peerWait4Timeout, role)
 	log.Info("runNodeFlow dkg start", "role", role)
 	dkgRes, err := ProcessDKG(peers, cggmpThreshold, rank, dkgSessionID, WithTimeout(dkgOpTimeout))
@@ -183,6 +191,21 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 	require.Len(t, refreshRes.PartialPubKeys, len(peers), "refresh must cover every participant")
 	require.Len(t, refreshRes.PedParams, len(peers), "refresh must provision every participant")
 
+	// Second refresh through the public API, with all four nodes still connected: this rotates the
+	// generation and is what ProcessSign below consumes, so the integration test covers
+	// ProcessRefreshAgain end to end (not only the in-process helper path).
+	log.Info("runNodeFlow second refresh start", "role", role)
+	refreshAgainRes, err := ProcessRefreshAgain(peers, cggmpThreshold, dkgRes, refreshRes,
+		refreshAgainSessionID, WithTimeout(refreshOpTimeout))
+	require.NoError(t, err)
+	require.NotNil(t, refreshAgainRes)
+	require.NotEqual(t, refreshRes.Share, refreshAgainRes.Share, "the second refresh must rotate the share")
+	require.Len(t, refreshAgainRes.PartialPubKeys, len(peers), "second refresh must cover every participant")
+	require.Len(t, refreshAgainRes.PedParams, len(peers), "second refresh must provision every participant")
+	// Every node records its ssid; the parent compares them once all four have finished.
+	publishSSID(barrierDir, role, refreshAgainRes.Ssid)
+	log.Info("runNodeFlow second refresh end", "role", role)
+
 	if role == "node4" {
 		log.Info("node4 exit test", "peers", peers, "role", role)
 		return
@@ -196,14 +219,17 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 
 	msg := []byte(tssMessage)
 	log.Info("runNodeFlow subset sign start", "role", role, "peers", peers)
-	signRes, err := ProcessSign(peers, cggmpThreshold, msg, dkgRes, refreshRes, signSessionID, WithTimeout(signOpTimeout))
+	signRes, err := ProcessSign(peers, cggmpThreshold, msg, dkgRes, refreshAgainRes, signSessionID, WithTimeout(signOpTimeout))
 	require.NoError(t, err)
 	verifySignatureWithDKG(t, pubKey, msg, signRes)
 	log.Info("runNodeFlow subset sign end", "role", role)
 
 	// 并发发起多路签名:不设墙钟「预算」闸,只要全部能完成即通过,算得慢也不判失败。
-	// 正确性由每路 goroutine 内的 verifySignatureWithDKG 验签独立保证;
+	// 正确性由每路 goroutine 内的 verifySignature 验签独立保证;
 	// 单路真正卡死由 ProcessSign 的兜底超时(signOpTimeout)中断,最终由 go test 包级超时兜底。
+	// 失败经 error channel 回到测试 goroutine 再用 assert 报告:t.FailNow (require) 只能在测试
+	// goroutine 调用,在子 goroutine 里调用只会退出那个 goroutine 并留下 WaitGroup 悬挂。
+	signErrCh := make(chan error, concurrentSigns)
 	wg := sync.WaitGroup{}
 	for i := 0; i < concurrentSigns; i++ {
 		wg.Add(1)
@@ -212,20 +238,38 @@ func runNodeFlow(t *testing.T, cli queue.Client, rank uint32, role string) {
 			id := fmt.Sprintf("%s-%d", signSessionID, idx)
 			signMsg := []byte(id)
 			log.Info("concurrent sign start", "role", role, "id", id)
-			res, err := ProcessSign(peers, cggmpThreshold, signMsg, dkgRes, refreshRes, id, WithTimeout(signOpTimeout))
-			require.NoError(t, err)
-			verifySignatureWithDKG(t, pubKey, signMsg, res)
+			res, err := ProcessSign(peers, cggmpThreshold, signMsg, dkgRes, refreshAgainRes, id, WithTimeout(signOpTimeout))
+			if err != nil {
+				signErrCh <- fmt.Errorf("concurrent sign %s: %w", id, err)
+				return
+			}
+			signErrCh <- verifySignature(pubKey, signMsg, res)
 			log.Info("concurrent sign end", "role", role, "id", id)
 		}(i + 1)
 	}
 	wg.Wait()
+	close(signErrCh)
+	for err := range signErrCh {
+		assert.NoError(t, err)
+	}
 }
 
 func verifySignatureWithDKG(t *testing.T, pubKey *btcec.PublicKey, msg []byte, signRes *alicesign.Result) {
+	t.Helper()
+	require.NoError(t, verifySignature(pubKey, msg, signRes))
+}
+
+// verifySignature converts the alice result and checks it against the DKG group public key,
+// returning an error instead of failing the test so goroutines can report through a channel.
+func verifySignature(pubKey *btcec.PublicKey, msg []byte, signRes *alicesign.Result) error {
 	sig, err := ToBtcecSignature(signRes)
-	require.NoError(t, err)
-	ok := sig.Verify(msg, pubKey)
-	require.True(t, ok, "signature must verify with DKG public key")
+	if err != nil {
+		return err
+	}
+	if !sig.Verify(msg, pubKey) {
+		return fmt.Errorf("signature does not verify with the DKG public key")
+	}
+	return nil
 }
 
 func getRandomPort(t *testing.T) int {
@@ -251,6 +295,12 @@ func startTestNode(t *testing.T, port int, channel int32, seeds []string) (*test
 		Channel: channel,
 		Seeds:   seeds,
 	}
+	// NAT port mapping is meaningless for this test, and go-libp2p v0.35.0's p2p/net/nat/nat.go
+	// has a data race (extAddr is written by the mapping refresh without the lock that GetMapping
+	// reads it under), which the -race integration job flags on hosts that can discover a NAT.
+	// Disable it for every node — the in-process parent and the child processes — through
+	// [p2p].isNatPortMap.
+	subCfg.SetNatPortMap(false)
 	jcfg, err := json.Marshal(subCfg)
 	require.NoError(t, err)
 	if cfg.GetSubConfig().P2P == nil {
@@ -364,6 +414,33 @@ var barrierPeers = []string{"node1", "node2", "node3"}
 
 func signalBarrier(dir, role string) {
 	_ = os.WriteFile(filepath.Join(dir, role+".done"), []byte("ok"), 0644)
+}
+
+// publishSSID records this node's second-refresh ssid so the parent process can compare all four
+// nodes' values. The ssid is derived independently per node; a disagreement would only surface as
+// an opaque zero-knowledge failure, so the test pins it explicitly.
+func publishSSID(dir, role string, ssid []byte) {
+	if dir == "" {
+		return
+	}
+	_ = os.WriteFile(filepath.Join(dir, "ssid-"+role+".bin"), ssid, 0644)
+}
+
+// assertSameSSID asserts the four nodes derived the same second-refresh ssid. It must run after the
+// barrier, by which point every child has published its ssid.
+func assertSameSSID(t *testing.T, dir string) {
+	t.Helper()
+	var want []byte
+	for _, role := range []string{"node1", "node2", "node3", "node4"} {
+		got, err := os.ReadFile(filepath.Join(dir, "ssid-"+role+".bin"))
+		require.NoError(t, err, "missing ssid from %s", role)
+		if want == nil {
+			want = got
+			continue
+		}
+		require.True(t, bytes.Equal(want, got), "ssid mismatch: node1=%x %s=%x", want, role, got)
+	}
+	require.NotEmpty(t, want, "refresh ssid must not be empty")
 }
 
 func waitBarrier(t *testing.T, dir string, timeout time.Duration) {

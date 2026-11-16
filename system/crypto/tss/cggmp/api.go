@@ -267,7 +267,9 @@ func exchangePartialPubKeys(peers []string, selfID string, share *big.Int, curve
 // ProcessRefresh runs the CGGMP refresh phase (key refresh plus Paillier/Pedersen
 // provisioning) for the key produced by ProcessDKG. It must be run once per key before any
 // ProcessSign; the returned RefreshResult together with the DKGResult is all ProcessSign
-// needs. sessionID must be identical across nodes; peers includes the local node id.
+// needs. sessionID must be identical across nodes; peers includes the local node id and must be
+// exactly the participant set recorded in dkgRes (a subset is rejected, because rotating the key
+// would leave the excluded participants with material they can no longer use).
 // Repeated refreshes of the same key use ProcessRefreshAgain.
 func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, sessionID string, opts ...Option) (*RefreshResult, error) {
 	if dkgRes == nil {
@@ -281,7 +283,7 @@ func ProcessRefresh(peers []string, threshold uint32, dkgRes *DKGResult, session
 		log.Error("ProcessRefresh", "session", sessionID, "invalid participants", err)
 		return nil, err
 	}
-	if err := dkgRes.validateThresholdAndPeers(peers, threshold); err != nil {
+	if err := dkgRes.validateExactParticipants(peers, threshold); err != nil {
 		log.Error("ProcessRefresh", "session", sessionID, "dkg result mismatch", err)
 		return nil, err
 	}
@@ -342,7 +344,7 @@ func ProcessRefreshAgain(peers []string, threshold uint32, dkgRes *DKGResult, pr
 		log.Error("ProcessRefreshAgain", "session", sessionID, "invalid participants", err)
 		return nil, err
 	}
-	if err := dkgRes.validateThresholdAndPeers(peers, threshold); err != nil {
+	if err := dkgRes.validateExactParticipants(peers, threshold); err != nil {
 		log.Error("ProcessRefreshAgain", "session", sessionID, "dkg result mismatch", err)
 		return nil, err
 	}
@@ -453,6 +455,14 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 		log.Error("ProcessSign", "session", sessionID, "invalid participants", err)
 		return nil, err
 	}
+	// The wrapper's signer-subset policy: the signer count must equal the threshold. Check it
+	// before comparing the request with the DKG result, so an internally inconsistent request
+	// reports the count/threshold mismatch instead of a DKG-parameter mismatch.
+	if uint32(len(peers)) != threshold {
+		err := fmt.Errorf("cggmp: sign: %w: len(peers)=%d, threshold=%d", errThresholdPeers, len(peers), threshold)
+		log.Error("ProcessSign", "session", sessionID, "invalid signer count", err)
+		return nil, err
+	}
 	if err := dkgRes.validateThresholdAndPeers(peers, threshold); err != nil {
 		log.Error("ProcessSign", "session", sessionID, "dkg result mismatch", err)
 		return nil, err
@@ -466,10 +476,8 @@ func ProcessSign(peers []string, threshold uint32, msg []byte, dkgRes *DKGResult
 
 	// Refuse incomplete signer material up front: alice indexes bks / partial public keys /
 	// Pedersen parameters by peer id without checking, so a missing entry reached the alice
-	// sign core as a nil dereference instead of an error. It also enforces the wrapper's signer
-	// subset policy that the signer count equals the threshold; alice itself accepts
-	// len(bks) >= threshold.
-	if err := refreshRes.validateSignMaterial(dkgRes, peers, threshold); err != nil {
+	// sign core as a nil dereference instead of an error.
+	if err := refreshRes.validateSignMaterial(dkgRes, peers); err != nil {
 		log.Error("ProcessSign", "session", sessionID, "sign material check err", err)
 		return nil, err
 	}
