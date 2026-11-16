@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -35,21 +36,29 @@ func TestJSONRPCBodyLimit(t *testing.T) {
 	port, err := server.Listen()
 	require.NoError(t, err)
 	url := fmt.Sprintf("http://127.0.0.1:%d/", port)
+	post := func(body io.Reader) (*http.Response, error) {
+		req, err := http.NewRequest(http.MethodPost, url, body)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Content-Type", "application/json")
+		return http.DefaultClient.Do(req)
+	}
 
 	// 超过上限：必须返回明确错误，而不是和断连/超时共用的 Can't get request body!
 	oversized := bytes.Repeat([]byte("a"), maxJSONRPCBodyBytes+1)
-	resp, err := http.Post(url, "application/json", bytes.NewReader(oversized))
+	resp, err := post(bytes.NewReader(oversized))
 	require.NoError(t, err)
 	body, err := ioutil.ReadAll(resp.Body)
 	require.NoError(t, err)
-	resp.Body.Close()
+	require.NoError(t, resp.Body.Close())
 	require.Contains(t, string(body), "request body too large")
 
 	// 小 body：仍应进入 JSON 解析，说明上限没有误伤正常请求。
-	resp, err = http.Post(url, "application/json", strings.NewReader("not-json"))
+	resp, err = post(strings.NewReader("not-json"))
 	require.NoError(t, err)
 	body, err = ioutil.ReadAll(resp.Body)
 	require.NoError(t, err)
-	resp.Body.Close()
+	require.NoError(t, resp.Body.Close())
 	require.Contains(t, string(body), "invalid json request err")
 }
