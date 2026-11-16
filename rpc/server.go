@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/rpc"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,10 +31,12 @@ import (
 	"github.com/33cn/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	_ "google.golang.org/grpc/encoding/gzip" // register gzip
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -265,22 +268,41 @@ func (j *Grpcserver) Close() {
 	}
 }
 
+// grpcUnaryInterceptor 在鉴权之外统一兜底 handler panic，避免畸形输入导致进程退出。
+func grpcUnaryInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("grpcUnaryInterceptor panic", "method", info.FullMethod,
+				"panic", r, "stack", string(debug.Stack()))
+			err = status.Error(codes.Internal, "internal server error")
+		}
+	}()
+	if err := auth(ctx, info); err != nil {
+		return nil, err
+	}
+	return handler(ctx, req)
+}
+
+// grpcStreamInterceptor 兜底流式 handler 的 panic，鉴权逻辑与现有流式接口保持一致。
+func grpcStreamInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("grpcStreamInterceptor panic", "method", info.FullMethod,
+				"panic", r, "stack", string(debug.Stack()))
+			err = status.Error(codes.Internal, "internal server error")
+		}
+	}()
+	return handler(srv, ss)
+}
+
 // NewGRpcServer new grpcserver object
 func NewGRpcServer(c queue.Client, api client.QueueProtocolAPI) *Grpcserver {
 	s := &Grpcserver{grpc: &Grpc{}}
 	s.grpc.subCache = make(map[string]*subInfo)
 	s.grpc.cli.Init(c, api)
 	var opts []grpc.ServerOption
-	//register interceptor
-	//var interceptor grpc.UnaryServerInterceptor
-	interceptor := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-		if err := auth(ctx, info); err != nil {
-			return nil, err
-		}
-		// Continue processing the request
-		return handler(ctx, req)
-	}
-	opts = append(opts, grpc.UnaryInterceptor(interceptor))
+	opts = append(opts, grpc.UnaryInterceptor(grpcUnaryInterceptor))
+	opts = append(opts, grpc.StreamInterceptor(grpcStreamInterceptor))
 	if rpcCfg.EnableTLS {
 		creds, err := credentials.NewServerTLSFromFile(rpcCfg.CertFile, rpcCfg.KeyFile)
 		if err != nil {
