@@ -355,7 +355,7 @@ func (e *ethHandler) SendRawTransaction(rawData string) (hexutil.Bytes, error) {
 	// 否则 len(r.Bytes()) > 32 会使 32-len(...) 为负触发 slice bounds panic。
 	rBytes, sBytes := r.Bytes(), s.Bytes()
 	if len(rBytes) > 32 || len(sBytes) > 32 {
-		log.Error("eth_SendRawTransaction", "invalid signature length", "rLen", len(rBytes), "sLen", len(sBytes))
+		log.Error("eth_SendRawTransaction", "err", "invalid signature length", "rLen", len(rBytes), "sLen", len(sBytes))
 		return nil, errors.New("invalid signature length")
 	}
 	sig := make([]byte, 65)
