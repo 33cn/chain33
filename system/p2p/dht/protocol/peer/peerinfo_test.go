@@ -6,6 +6,7 @@ package peer
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"sync"
@@ -18,12 +19,14 @@ import (
 
 	"github.com/33cn/chain33/queue"
 	"github.com/33cn/chain33/system/p2p/dht/extension"
+	"github.com/33cn/chain33/system/p2p/dht/manage"
 	"github.com/33cn/chain33/system/p2p/dht/protocol"
 	p2pty "github.com/33cn/chain33/system/p2p/dht/types"
 	"github.com/33cn/chain33/types"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/stretchr/testify/require"
@@ -363,4 +366,41 @@ func TestUpdatePeerInfoUsesAuthenticatedPID(t *testing.T) {
 	require.Equal(t, pid.Pretty(), infos[0].GetName())
 	_, ok := manager.peers.Load(forgedName)
 	require.False(t, ok)
+}
+
+func TestUpdatePeerInfoRejectUsesAuthenticatedPID(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	h1 := newPeerInfoTestHost(t)
+	h2 := newPeerInfoTestHost(t)
+	require.Nil(t, h2.Connect(ctx, peer.AddrInfo{ID: h1.ID(), Addrs: h1.Addrs()}))
+
+	const forgedName = "QmbazrBU4HthhnQWcUTiJLnj5ihbFHXsAkGAG6QfmrqJDs"
+	p := &Protocol{P2PEnv: &protocol.P2PEnv{
+		Ctx:             ctx,
+		Host:            h2,
+		SubConfig:       &p2pty.P2PSubConfig{VerLimit: "6.8.9"},
+		PeerInfoManager: &peerInfoManager{},
+		ConnBlackList:   manage.NewTimeCache(ctx, time.Minute),
+	}}
+	p.updatePeerInfo(h1.ID(), &types.Peer{Name: forgedName, Version: "1.0.0@1.0.0"})
+
+	// 伪造 Name 时，断连与拉黑都必须使用已认证的 pid。
+	require.True(t, p.ConnBlackList.Has(h1.ID().Pretty()))
+	require.False(t, p.ConnBlackList.Has(forgedName))
+	require.Empty(t, p.PeerInfoManager.FetchAll())
+	require.Eventually(t, func() bool {
+		return len(h2.Network().ConnsToPeer(h1.ID())) == 0
+	}, time.Second, time.Millisecond*10)
+}
+
+func newPeerInfoTestHost(t *testing.T) host.Host {
+	t.Helper()
+	priv, _, err := crypto.GenerateEd25519Key(rand.Reader)
+	require.Nil(t, err)
+	h, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"), libp2p.Identity(priv))
+	require.Nil(t, err)
+	t.Cleanup(func() { _ = h.Close() })
+	return h
 }
