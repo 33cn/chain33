@@ -54,7 +54,7 @@ func (p *PeerInfoManager) Refresh(peer *types.Peer) {
 
 // Fetch returns info of given peer
 func (p *PeerInfoManager) Fetch(pid peer.ID) *types.Peer {
-	key := pid.Pretty()
+	key := pid.String()
 	v, ok := p.peerInfo.Load(key)
 	if !ok {
 		return nil
@@ -79,7 +79,7 @@ func (p *PeerInfoManager) FetchAll() []*types.Peer {
 			p.peerInfo.Delete(key)
 			return true
 		}
-		if key.(string) == p.host.ID().Pretty() {
+		if key.(string) == p.host.ID().String() {
 			self = info.peer
 			return true
 		}
@@ -94,7 +94,7 @@ func (p *PeerInfoManager) FetchAll() []*types.Peer {
 
 // PeerHeight returns block height of given peer
 func (p *PeerInfoManager) PeerHeight(pid peer.ID) int64 {
-	v, ok := p.peerInfo.Load(pid.Pretty())
+	v, ok := p.peerInfo.Load(pid.String())
 	if !ok {
 		return -1
 	}
