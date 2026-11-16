@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -77,11 +78,16 @@ func (j *JSONRPCServer) Listen() (int, error) {
 			return
 		}
 		if r.URL.Path == "/" {
-			// 先套 MaxBytesReader：超过上限的请求在读取阶段即失败（413/错误响应），
+			// 先套 MaxBytesReader：超过上限的请求在读取阶段即失败，
 			// 避免把攻击者指定大小的 body 全部读入内存。
 			r.Body = http.MaxBytesReader(w, r.Body, maxJSONRPCBodyBytes)
 			data, err := ioutil.ReadAll(r.Body)
 			if err != nil {
+				var maxBytesErr *http.MaxBytesError
+				if errors.As(err, &maxBytesErr) {
+					writeError(w, r, 0, fmt.Sprintf("request body too large, max size is %d bytes", maxJSONRPCBodyBytes))
+					return
+				}
 				writeError(w, r, 0, "Can't get request body!")
 				return
 			}
