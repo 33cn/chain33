@@ -8,6 +8,7 @@ package dht
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -36,8 +37,10 @@ import (
 	"github.com/libp2p/go-libp2p/core/metrics"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	sec "github.com/libp2p/go-libp2p/core/sec"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
+	"github.com/libp2p/go-libp2p/p2p/net/swarm"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -268,7 +271,17 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 
 	}
 
-	options = append(options, libp2p.NATPortMap())
+	// NAT port mapping is on by default: most nodes sit behind a home or office router and
+	// need UPnP / NAT-PMP / PCP to accept inbound connections. It can be switched off with
+	// p2p.sub.dht.isNatPortMap=false because go-libp2p v0.35's nat.NAT has a known data race:
+	// its background loop writes nat.extAddr without holding mappingmu while GetMapping reads
+	// it under that lock. The race is still present in later releases, so upgrading does not
+	// help; disabling the mapping keeps -race runs clean on hosts that can reach a NAT gateway.
+	// The cost is inbound reachability: without a mapping the node needs an externally
+	// reachable address (manual port forwarding) or relay to be dialable.
+	if p.subCfg.NatPortMapEnabled() {
+		options = append(options, libp2p.NATPortMap())
+	}
 	if maddr != nil {
 		options = append(options, libp2p.ListenAddrs(maddr))
 	}
@@ -310,10 +323,12 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	// libp2p v0.34+ installs an IP-aware default ResourceManager: every IPv4 /32 gets 8 streams and
 	// 8 connections by default (v0.35 only exempts loopback). Nodes that share an egress IP — several
 	// validators behind one NAT gateway or a cloud NAT — would silently be denied connections to each
-	// other. chain33 limits connections itself (MaxConnectNum via connmgr and the ConnectionGater
-	// above) and had no resource manager at all before v0.34, so opt out of the new default rather
-	// than inherit limits that were never tuned for this network. Revisit if per-peer accounting is
-	// wanted.
+	// other. chain33 has no per-peer resource accounting: with the default MaxConnectNum=0 neither the
+	// connmgr above nor the ConnectionGater applies a limit, and choosing the NullResourceManager also
+	// drops the default per-peer stream and memory caps, so "no limits" is the status quo this network
+	// was built on (there was no resource manager before v0.34). Opt out of the new default rather than
+	// inherit limits that were never tuned for this network. If per-peer accounting is ever wanted,
+	// configure a real rcmgr with limits sized for shared egress IPs instead of the NullResourceManager.
 	options = append(options, libp2p.ResourceManager(&network.NullResourceManager{}))
 	//关闭ping
 	options = append(options, libp2p.Ping(false))
@@ -382,6 +397,7 @@ func (p *P2P) findLANPeers() {
 }
 
 // connectLANPeer 连接一个 mDNS 发现的局域网邻居, 失败按退避+抖动重试。
+// 只有瞬时错误才重试; 地址非法、拨号自己、对端身份不符这类永久错误直接放弃。
 //
 // 需要重试的原因: 两个节点几乎同时拨号对方时(局域网内节点同时启动/重启就是这样),
 // 由于 libp2p 默认用监听端口作为拨号源端口(reuseport), 双方的源端口与目的端口相同,
@@ -417,8 +433,28 @@ func (p *P2P) connectLANPeer(neighbors peer.AddrInfo) {
 			p.connManager.AddNeighbors(&neighbors)
 			return
 		}
+		if isPermanentDialError(err) {
+			// 同一份邻居地址再拨也不会成功, 不做无谓的退避重试。
+			log.Error("findLANPeers", "permanent dial error, no retry", "err", err.Error(), "peer", neighbors.ID.String())
+			return
+		}
 		log.Error("findLANPeers", "err", err.Error(), "peer", neighbors.ID.String(), "attempt", attempt+1)
 	}
+}
+
+// isPermanentDialError reports whether retrying the dial for the same peer addresses cannot
+// succeed: we were asked to dial ourselves, the announcement carried no usable address, an
+// address was malformed, or the remote proved to hold a different identity key than the peer ID
+// we dialed. Transport failures, timeouts, black-holing and resource limits stay retryable.
+func isPermanentDialError(err error) bool {
+	if errors.Is(err, swarm.ErrDialToSelf) ||
+		errors.Is(err, swarm.ErrNoAddresses) ||
+		errors.Is(err, network.ErrNoRemoteAddrs) ||
+		errors.Is(err, peer.ErrInvalidAddr) {
+		return true
+	}
+	var idMismatch sec.ErrPeerIDMismatch
+	return errors.As(err, &idMismatch)
 }
 
 // lanDialInFlight tracks the LAN peers that currently have a connectLANPeer goroutine running.
