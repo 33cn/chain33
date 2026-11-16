@@ -335,6 +335,55 @@ func TestProxyExecFailedCarrierKeepsNonce(t *testing.T) {
 	require.Contains(t, err.Error(), "nonce missmatch")
 }
 
+// TestProxyExecNonceMismatchKeepsNonce pins the early-return path: a carrier whose nonce does
+// not match the session record is rejected before anything runs, so the record must stay put.
+func TestProxyExecNonceMismatchKeepsNonce(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	cfg.SetTxFeeConfig(0, 1e7, 1e9)
+
+	proxyAddrHex := cfg.GetModuleConfig().Exec.ProxyExecAddress
+	require.NotEmpty(t, proxyAddrHex)
+	carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress(proxyAddrHex), 0, []byte("junk"))
+	// The record is ahead of the carrier, so the branch rejects it on the nonce check.
+	ldb := newNonceLocalDB(t, carrier.From(), 5)
+	execute := newExecutor(testEthExecCtx(), exec, ldb, nil, nil)
+	seedDriver(execute, "evm", newNonceBumpDriver(carrier.From()))
+
+	_, err := execute.execTx(nil, carrier, 0)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "nonce missmatch")
+	require.Equal(t, int64(5), readEvmNonce(t, ldb, carrier.From()),
+		"a carrier rejected on the nonce check must not move the record")
+}
+
+// TestProxyExecKeptCarrierWithFailedExecutionBumpsNonce pins the other kept path: the inner
+// transaction decodes and runs, fails, and the failure is folded into the receipt. The carrier
+// itself stays in the block, so the bookkeeping must run exactly as the old defer did - a
+// historical block with this shape has to replay identically.
+func TestProxyExecKeptCarrierWithFailedExecutionBumpsNonce(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	cfg.SetTxFeeConfig(0, 1e7, 1e9)
+
+	proxyAddrHex := cfg.GetModuleConfig().Exec.ProxyExecAddress
+	require.NotEmpty(t, proxyAddrHex)
+	to, _ := util.Genaddress()
+	inner := util.CreateCoinsTx(cfg, nil, to, 1000)
+	// The payload no longer decodes as a coins action, so execution fails after the inner
+	// transaction itself was unpacked successfully.
+	inner.Payload = []byte("not a valid coins action")
+	carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress(proxyAddrHex), 0, types.Encode(inner))
+	ldb := newNonceLocalDB(t, carrier.From(), 0)
+	execute := newExecutor(testEthExecCtx(), exec, ldb, nil, nil)
+	seedDriver(execute, "evm", newNonceBumpDriver(carrier.From()))
+
+	_, err := execute.execTx(nil, carrier, 0)
+	require.NoError(t, err, "the failure is folded into the receipt, the carrier is kept")
+	require.Equal(t, int64(1), readEvmNonce(t, ldb, carrier.From()),
+		"a kept carrier must advance the EVM nonce even when its inner execution failed")
+}
+
 // TestProxyExecSuccessfulCarrierBumpsNonce pins that a well-formed carrier still performs the
 // local bookkeeping after its inner transaction executes successfully.
 func TestProxyExecSuccessfulCarrierBumpsNonce(t *testing.T) {
