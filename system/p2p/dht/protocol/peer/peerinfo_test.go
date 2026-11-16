@@ -345,3 +345,22 @@ func TestCheckVersionLimitHigherMinor(t *testing.T) {
 	p.SubConfig.VerLimit = ""
 	require.True(t, p.checkVersionLimit("1.72.0-ec5352af"))
 }
+
+func TestUpdatePeerInfoUsesAuthenticatedPID(t *testing.T) {
+	pid, err := peer.Decode("Qma91H212PWtAFcioW7h9eKiosJtwHsb9x3RmjqRWTwciZ")
+	require.Nil(t, err)
+	const forgedName = "QmbazrBU4HthhnQWcUTiJLnj5ihbFHXsAkGAG6QfmrqJDs"
+
+	manager := &peerInfoManager{}
+	p := &Protocol{P2PEnv: &protocol.P2PEnv{
+		SubConfig:       &p2pty.P2PSubConfig{},
+		PeerInfoManager: manager,
+	}}
+	p.updatePeerInfo(pid, &types.Peer{Name: forgedName, Version: "1.0.0@1.0.0"})
+
+	infos := p.PeerInfoManager.FetchAll()
+	require.Len(t, infos, 1)
+	require.Equal(t, pid.Pretty(), infos[0].GetName())
+	_, ok := manager.peers.Load(forgedName)
+	require.False(t, ok)
+}
