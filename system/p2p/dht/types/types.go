@@ -43,6 +43,13 @@ type P2PSubConfig struct {
 	// 扩展路由表最大节点数
 	MaxExtendRoutingTableSize int `protobuf:"varint,23,opt,name=n=maxExtendRoutingTableSize" json:"maxExtendRoutingTableSize,omitempty"`
 
+	// IsNatPortMap enables NAT port mapping (UPnP / NAT-PMP / PCP) so that peers behind a
+	// router can still accept inbound connections. The option is a pointer because the p2p
+	// sub-config is decoded from raw JSON with no default-merging step: an absent key leaves
+	// it nil, which NatPortMapEnabled treats as true to keep the historical behaviour.
+	// Set it to false to skip NATPortMap() (see the known data race in go-libp2p's nat.NAT).
+	IsNatPortMap *bool `protobuf:"varint,24,opt,name=isNatPortMap" json:"isNatPortMap,omitempty"`
+
 	//配置libp2p库代码日志等级， 支持DEBUG, INFO, WARN, ERROR，默认ERROR
 	Libp2pLogLevel string `json:"libp2pLogLevel,omitempty"`
 	//配置libp2p库日志文件名 如logs/libp2p.log, 禁止和chain33使用一个日志文件, 详见issue #1117
@@ -54,6 +61,19 @@ type P2PSubConfig struct {
 	//广播子配置
 	Broadcast BroadcastConfig `json:"broadcast,omitempty"`
 	VerLimit  string          `json:"verLimit,omitempty"`
+}
+
+// NatPortMapEnabled reports whether NAT port mapping should be registered. A missing
+// isNatPortMap key means the option was never configured, in which case mapping stays on
+// as it always was.
+func (c *P2PSubConfig) NatPortMapEnabled() bool {
+	return c.IsNatPortMap == nil || *c.IsNatPortMap
+}
+
+// SetNatPortMap sets the NAT port mapping option explicitly, for code that builds the
+// sub-config in Go instead of decoding it from TOML/JSON.
+func (c *P2PSubConfig) SetNatPortMap(enable bool) {
+	c.IsNatPortMap = &enable
 }
 
 // BroadcastConfig broadcast config

@@ -57,7 +57,7 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 		return nil
 	}
 	localPeer.Header = resp.Data.(*types.Header)
-	localPeer.Name = p.Host.ID().Pretty()
+	localPeer.Name = p.Host.ID().String()
 	ip, port := parseIPAndPort(p.getExternalAddr())
 	localPeer.Addr = ip
 	localPeer.Port = int32(port)

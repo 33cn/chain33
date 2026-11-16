@@ -153,38 +153,15 @@ func ProcessReshare(peers []string, result *tss.DKGResult, threshold uint32, ses
 	return reshareCore.GetResult()
 }
 
-// bigInt 转 ModNScalar
+// bigIntToModNScalar 转 ModNScalar；统一实现见 tss.BigIntToModNScalar，此处仅为兼容既有单测。
 func bigIntToModNScalar(val *big.Int) (*btcec.ModNScalar, error) {
-	var scalar btcec.ModNScalar
-
-	// 转为 32 字节大端序
-	b := val.Bytes()
-	if len(b) > 32 {
-		return nil, fmt.Errorf("value exceeds 32 bytes")
-	}
-
-	padded := make([]byte, 32)
-	copy(padded[32-len(b):], b)
-
-	// SetByteSlice 返回 true 表示溢出
-	if scalar.SetByteSlice(padded) {
-		return nil, fmt.Errorf("modulus overflow")
-	}
-
-	return &scalar, nil
+	return tss.BigIntToModNScalar(val)
 }
 
 // AliceToBtcecSignature converts Alice signer result to btcec Signature.
 func AliceToBtcecSignature(result *signer.Result) (*ecdsa.Signature, error) {
-	rScalar, err := bigIntToModNScalar(result.R)
-	if err != nil {
-		return nil, fmt.Errorf("convert R failed: %w", err)
+	if result == nil {
+		return nil, fmt.Errorf("nil signer result")
 	}
-
-	sScalar, err := bigIntToModNScalar(result.S)
-	if err != nil {
-		return nil, fmt.Errorf("convert S failed: %w", err)
-	}
-
-	return ecdsa.NewSignature(rScalar, sScalar), nil
+	return tss.BuildBtcecSignature(result.R, result.S)
 }

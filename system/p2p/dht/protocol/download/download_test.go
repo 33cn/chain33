@@ -68,7 +68,7 @@ func initEnv(t *testing.T, q queue.Queue) *Protocol {
 	if err != nil {
 		panic(err)
 	}
-	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().Pretty()))
+	addr, _ := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/13806/p2p/%s", host1.ID().String()))
 	peerinfo, _ := peer.AddrInfoFromP2pAddr(addr)
 	err = host2.Connect(context.Background(), *peerinfo)
 	if err != nil {
