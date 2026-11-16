@@ -77,24 +77,23 @@ type DKGResult struct {
 	Bks            map[string]*tss.BK  `json:"bks"`
 	Rid            []byte              `json:"rid"`
 	PartialPubKeys map[string]*ECPoint `json:"partialPubKeys"`
-	// Threshold and Peers record the parameters the key was generated with, so ProcessRefresh /
-	// ProcessSign can reject a request that does not belong to this key. Results persisted before
-	// these fields existed decode them as zero values (threshold 0, empty peers); those are treated
-	// as unknown and not enforced.
+	// Threshold and Peers record the parameters the key was generated with. They are mandatory:
+	// ProcessRefresh / ProcessSign reject a result that does not carry them, so a phase can never
+	// run against material whose participant set and threshold are unknown.
 	Threshold uint32   `json:"threshold"`
 	Peers     []string `json:"peers"`
 }
 
 // validateThresholdAndPeers checks a phase request against the parameters recorded at DKG time:
-// the threshold must match and every requested peer must have taken part in the DKG. A zero
-// threshold or empty peer list means the result predates these fields (unknown) and is not
-// rejected, so old persisted material keeps working.
+// the threshold must match and every requested peer must have taken part in the DKG. It is
+// fail-closed: a DKGResult that records no threshold or no participant set cannot be matched
+// against the request, so it is rejected instead of being treated as "unknown, allow".
 func (d *DKGResult) validateThresholdAndPeers(peers []string, threshold uint32) error {
-	if d.Threshold != 0 && d.Threshold != threshold {
-		return fmt.Errorf("%w: threshold=%d, dkg threshold=%d", errDKGResultMismatch, threshold, d.Threshold)
+	if d.Threshold == 0 || len(d.Peers) == 0 {
+		return fmt.Errorf("%w: the dkg result records no threshold/participants, so the request cannot be verified; regenerate the key with a version that persists them", errDKGResultMismatch)
 	}
-	if len(d.Peers) == 0 {
-		return nil
+	if d.Threshold != threshold {
+		return fmt.Errorf("%w: threshold=%d, dkg threshold=%d", errDKGResultMismatch, threshold, d.Threshold)
 	}
 	participants := make(map[string]struct{}, len(d.Peers))
 	for _, id := range d.Peers {
@@ -104,6 +103,21 @@ func (d *DKGResult) validateThresholdAndPeers(peers []string, threshold uint32) 
 		if _, ok := participants[id]; !ok {
 			return fmt.Errorf("%w: peer %s did not take part in the dkg", errDKGResultMismatch, id)
 		}
+	}
+	return nil
+}
+
+// validateExactParticipants is validateThresholdAndPeers plus the stricter participant-set rule of
+// the refresh phases: peers must be exactly the participant set recorded at DKG time. A refresh
+// that silently dropped a participant would rotate a key that participant can no longer use; a
+// narrower set is rejected instead of being accepted as a subset (signing, by contrast, is allowed
+// on a threshold-sized subset).
+func (d *DKGResult) validateExactParticipants(peers []string, threshold uint32) error {
+	if err := d.validateThresholdAndPeers(peers, threshold); err != nil {
+		return err
+	}
+	if len(peers) != len(d.Peers) {
+		return fmt.Errorf("%w: refresh requires exactly the dkg participants %v, got %v", errDKGResultMismatch, d.Peers, peers)
 	}
 	return nil
 }
@@ -229,17 +243,14 @@ func validatePartialPubKeys(pub *ecpointgrouplaw.ECPoint, dkgBks map[string]*tss
 // RefreshResult is the per-node output of the CGGMP refresh (key refresh + Paillier /
 // Pedersen provisioning) phase. Together with the DKGResult it carries everything ProcessSign
 // needs: this node's refreshed share, its own Paillier primes (secret), every participant's
-// partial public key and Pedersen parameters, and the y/ySecret values required by the
-// six-round signer. It is also the input of ProcessRefreshAgain, which rotates this generation
-// into the next one.
+// partial public key and Pedersen parameters. It is also the input of ProcessRefreshAgain, which
+// rotates this generation into the next one.
 type RefreshResult struct {
 	Share          []byte                    `json:"share"`
 	PaillierP      []byte                    `json:"paillierP"`
 	PaillierQ      []byte                    `json:"paillierQ"`
 	PartialPubKeys map[string]*ECPoint       `json:"partialPubKeys"`
-	Y              map[string]*ECPoint       `json:"y"`
 	PedParams      map[string]*PedersenParam `json:"pedParams"`
-	YSecret        []byte                    `json:"ySecret"`
 	// Ssid is the CGGMP session string this refresh ran with. alice's refresh result carries no
 	// rid of its own: the ssid is an opaque, caller-supplied domain separator for the
 	// zero-knowledge challenges. ProcessRefreshAgain feeds it into the next round's ssid so
@@ -328,12 +339,9 @@ func (r *RefreshResult) refreshInputs(d *DKGResult, peers []string, threshold ui
 // hands to alice: a bk (from the DKG), a partial public key and Pedersen parameters (from the
 // refresh). alice indexes those maps by peer id without checking, so a missing entry becomes a
 // nil dereference inside alice (e.g. cggmp/sign/peer.go reading partialPubKey[self]) rather
-// than an error. threshold must equal the signer count: that equality is the wrapper's signer
-// subset policy (alice itself accepts len(bks) >= threshold).
-func (r *RefreshResult) validateSignMaterial(d *DKGResult, peers []string, threshold uint32) error {
-	if uint32(len(peers)) != threshold {
-		return fmt.Errorf("cggmp: sign: %w: len(peers)=%d, threshold=%d", errThresholdPeers, len(peers), threshold)
-	}
+// than an error. The wrapper's signer-subset policy (len(peers) == threshold) is enforced by
+// ProcessSign before this check; alice itself only requires len(bks) >= threshold.
+func (r *RefreshResult) validateSignMaterial(d *DKGResult, peers []string) error {
 	for _, id := range peers {
 		if bk, ok := d.Bks[id]; !ok || bk == nil {
 			return fmt.Errorf("cggmp: sign: peer %s: %w", id, errMissingPeerBk)
@@ -380,16 +388,11 @@ func newRefreshResult(res *alicerefresh.Result, ssid []byte) *RefreshResult {
 		PaillierP:      p.Bytes(),
 		PaillierQ:      q.Bytes(),
 		PartialPubKeys: make(map[string]*ECPoint, len(res.PartialPubKey)),
-		Y:              make(map[string]*ECPoint, len(res.Y)),
 		PedParams:      make(map[string]*PedersenParam, len(res.PedParameter)),
-		YSecret:        res.YSecret.Bytes(),
 		Ssid:           append([]byte(nil), ssid...),
 	}
 	for id, pp := range res.PartialPubKey {
 		r.PartialPubKeys[id] = fromECPoint(pp)
-	}
-	for id, y := range res.Y {
-		r.Y[id] = fromECPoint(y)
 	}
 	for id, ped := range res.PedParameter {
 		r.PedParams[id] = fromPedersen(ped)

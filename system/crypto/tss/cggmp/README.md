@@ -54,7 +54,7 @@ Phase sequence for one key:
 
 ```
 ProcessDKG            -> persist *DKGResult      (group pubkey + own share + bks + rid + partial pubkeys + threshold/peers)
-ProcessRefresh        -> persist *RefreshResult  (refreshed share + own Paillier primes + per-peer Pedersen/ppk/y + ssid)
+ProcessRefresh        -> persist *RefreshResult  (refreshed share + own Paillier primes + per-peer Pedersen/ppk + ssid)
 ProcessRefreshAgain   -> persist *RefreshResult  (key rotation; repeatable, input is the previous RefreshResult)
 ProcessSign (repeat)  -> sign.Result {R,S}       -> ToBtcecSignature
 ```
@@ -63,13 +63,27 @@ ProcessSign (repeat)  -> sign.Result {R,S}       -> ToBtcecSignature
 `ProcessRefreshAgain` rotates an existing generation: its input is the previous
 `*RefreshResult` (share and partial public keys) plus the immutable `*DKGResult`
 (group public key, Birkhoff parameters, rid, threshold/peers). The output replaces
-the previous `RefreshResult` for signing; the `DKGResult` is unchanged. Old shares
-are no longer sufficient once the new generation is installed.
+the previous `RefreshResult` for signing; the `DKGResult` is unchanged.
+
+A refresh rotates the shares but **not** the group key: the old shares still
+reconstruct the same group public key. The old material is only useless once every
+node deletes it (or the group key itself is rotated/replaced); a refresh over a
+subset would exclude the other nodes from the new generation but would not
+invalidate their old shares.
 
 `peers` always includes the local node id and must be identical across all nodes
 of a phase. `sessionID` must be identical across the nodes of one phase but can
-differ between phases. `sign.Result` is alice's type; convert with
+differ between phases; it must be non-empty and must not contain the protocol
+separator `|` (the session registry key is `protocol|sessionID`, so those values
+would collide or collapse sessions). `sign.Result` is alice's type; convert with
 `cggmp.ToBtcecSignature`.
+
+The `DKGResult` participant set and threshold are mandatory: a result that does not
+record them (zero threshold or empty `Peers`, e.g. material persisted before those
+fields existed) is rejected by every later phase instead of being treated as
+"unknown, allow". `ProcessRefresh`/`ProcessRefreshAgain` require `peers` to be
+**exactly** the recorded DKG participant set; only `ProcessSign` accepts a
+threshold-sized subset.
 
 ## What is unified vs what stays separate (interface decision)
 
@@ -177,6 +191,9 @@ downstream are unchanged.
   sorted by rank that always include the local node — a bare "take the first `threshold`
   connected peers" is wrong: the local id must be present (alice indexes by `SelfID`), and a
   subset whose sorted ranks violate `rank_i <= i` fails inside the sign core.
+  `tss.GetValidPeerCombination` works from a **local view**: it uses the local node's rank and the
+  peers connected to it, so it must be computed once on the initiating node and broadcast to the
+  other signers. Nodes that compute it independently can select different subsets.
 - **One `Process*` per session id.** A session id names one round, so the wrapper rejects a
   second concurrent call with the same `protocol|sessionID` instead of letting the two
   attempts reset each other's state. Retries after a failure are sequential and reuse the id.
@@ -188,6 +205,11 @@ downstream are unchanged.
   buffered before the local session registered. A connected peer outside the round can
   neither contribute nor get an honest node to echo a forged id. (GG18 is unaffected: alice's
   `MsgMain` compares the sender with `msg.Id` itself.)
+
+  The allowlist is exactly that boundary: it blocks **non-participants only**. A participant can
+  still put another participant's id in a message body, which can make the round fail (a DoS), but
+  it cannot forge that participant's signature or key material — signatures and zero-knowledge
+  proofs are bound to the key shares, not to the transport identity.
 - The wrapper's multi-process run is exercised by `cggmp_integration_test.go`
   (`TestCGGMP4Node`, four real chain33 child nodes over the p2p transport, skipped by
   `-short`); CI runs it with `-race` in the `test-cggmp-integration` job. `e2e_test.go`
