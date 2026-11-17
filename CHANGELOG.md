@@ -1,5 +1,13 @@
 changelog
 
+## [1.75.3](https://github.com/33cn/chain33/compare/v1.75.2...v1.75.3) (2026-11-17)
+
+
+### Bug Fixes
+
+* **executor:** keep the bookkeeping for a carrier whose inner execution failed ([a205394](https://github.com/33cn/chain33/commit/a2053948b13c8ffd1cd01af136a36cb23bebccff))
+* **executor:** run proxy carrier bookkeeping only after a successful execution ([2127cab](https://github.com/33cn/chain33/commit/2127cab1c9c3dbf68d2b378ba5f6a75ea983a83e))
+
 ## [1.75.2](https://github.com/33cn/chain33/compare/v1.75.1...v1.75.2) (2026-11-17)
 
 
