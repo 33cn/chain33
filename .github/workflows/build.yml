@@ -74,7 +74,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v3
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
       - run: |
           go env
           make build
@@ -142,3 +142,21 @@ jobs:
           sudo sysctl -w net.core.rmem_max=2500000
           cd system/crypto/tss/gg18
           go test -race -v -run ^TestGG18_4Node$ .
+
+  # The cggmp integration test starts four chain33 child processes over the real p2p transport and
+  # is skipped by -short, so `make test` (-short -race) never runs it and `make coverage` runs it
+  # without -race. This job is the only place the concurrency and the wrapper are checked together.
+  test-cggmp-integration:
+    name: Run test cases for cggmp
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+      - name: Run test cases for cggmp
+        run: |
+          sudo sysctl -w net.core.rmem_max=2500000
+          cd system/crypto/tss/cggmp
+          go test -race -timeout 20m -v -run ^TestCGGMP4Node$ .

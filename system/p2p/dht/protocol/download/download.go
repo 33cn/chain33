@@ -101,7 +101,7 @@ ReDownload:
 		unlockTasks()
 		goto ReDownload
 	}
-	remotePid := task.Pid.Pretty()
+	remotePid := task.Pid.String()
 	costTime := time.Since(downloadStart)
 	p.counter.UpdateTaskInfo(task.ID, remotePid, height, costTime.Milliseconds())
 

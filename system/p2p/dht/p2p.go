@@ -8,6 +8,7 @@ package dht
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
@@ -34,9 +35,12 @@ import (
 	"github.com/libp2p/go-libp2p/core"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/metrics"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
+	sec "github.com/libp2p/go-libp2p/core/sec"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery/routing"
 	"github.com/libp2p/go-libp2p/p2p/net/connmgr"
+	"github.com/libp2p/go-libp2p/p2p/net/swarm"
 	"github.com/multiformats/go-multiaddr"
 )
 
@@ -58,6 +62,9 @@ type P2P struct {
 	client          queue.Client
 	addrBook        *AddrBook
 	taskGroup       *sync.WaitGroup
+	// lanDialing deduplicates mDNS announcements so one peer has at most one connectLANPeer
+	// goroutine (and retry loop) in flight.
+	lanDialing lanDialInFlight
 
 	pubsub  *extension.PubSub
 	restart int32
@@ -264,7 +271,17 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 
 	}
 
-	options = append(options, libp2p.NATPortMap())
+	// NAT port mapping is on by default: most nodes sit behind a home or office router and
+	// need UPnP / NAT-PMP / PCP to accept inbound connections. It can be switched off with
+	// p2p.sub.dht.isNatPortMap=false because go-libp2p v0.35's nat.NAT has a known data race:
+	// its background loop writes nat.extAddr without holding mappingmu while GetMapping reads
+	// it under that lock. The race is still present in later releases, so upgrading does not
+	// help; disabling the mapping keeps -race runs clean on hosts that can reach a NAT gateway.
+	// The cost is inbound reachability: without a mapping the node needs an externally
+	// reachable address (manual port forwarding) or relay to be dialable.
+	if p.subCfg.NatPortMapEnabled() {
+		options = append(options, libp2p.NATPortMap())
+	}
 	if maddr != nil {
 		options = append(options, libp2p.ListenAddrs(maddr))
 	}
@@ -303,6 +320,16 @@ func (p *P2P) buildHostOptions(priv crypto.PrivKey, bandwidthTracker metrics.Rep
 	}
 	//ConnectionGater,处理网络连接的策略
 	options = append(options, libp2p.ConnectionGater(manage.NewConnGater(&p.host, p.subCfg.MaxConnectNum, timeCache, genAddrInfos(p.subCfg.WhitePeerList))))
+	// libp2p v0.34+ installs an IP-aware default ResourceManager: every IPv4 /32 gets 8 streams and
+	// 8 connections by default (v0.35 only exempts loopback). Nodes that share an egress IP — several
+	// validators behind one NAT gateway or a cloud NAT — would silently be denied connections to each
+	// other. chain33 has no per-peer resource accounting: with the default MaxConnectNum=0 neither the
+	// connmgr above nor the ConnectionGater applies a limit, and choosing the NullResourceManager also
+	// drops the default per-peer stream and memory caps, so "no limits" is the status quo this network
+	// was built on (there was no resource manager before v0.34). Opt out of the new default rather than
+	// inherit limits that were never tuned for this network. If per-peer accounting is ever wanted,
+	// configure a real rcmgr with limits sized for shared egress IPs instead of the NullResourceManager.
+	options = append(options, libp2p.ResourceManager(&network.NullResourceManager{}))
 	//关闭ping
 	options = append(options, libp2p.Ping(false))
 	return options
@@ -352,20 +379,100 @@ func (p *P2P) findLANPeers() {
 		select {
 		case neighbors := <-peerChan:
 			log.Debug("^_^! Well,findLANPeers Let's Play ^_^!<<<<<<<<<<<<<<<<<<<", "peerName", neighbors.ID, "addrs:", neighbors.Addrs, "paddr", p.host.Peerstore().Addrs(neighbors.ID))
-			//发现局域网内的邻居节点
-			err := p.host.Connect(context.Background(), neighbors)
-			if err != nil {
-				log.Error("findLANPeers", "err", err.Error())
+			// mDNS 会对同一邻居重复通知, 已有拨号在途时跳过, 避免同一 peer 起多个拨号/重试循环。
+			if !p.lanDialing.begin(neighbors.ID) {
+				log.Debug("findLANPeers", "dial already in flight, skip", "peer", neighbors.ID)
 				continue
 			}
-			log.Info("findLANPeers", "connect neighbors success", neighbors.ID.Pretty())
-			p.connManager.AddNeighbors(&neighbors)
+			//发现局域网内的邻居节点; 拨号带重试且在独立 goroutine 中进行, 既不会因一次偶发失败
+			//丢掉该邻居, 也不会阻塞后续邻居的处理。
+			p.taskGroup.Add(1)
+			go p.connectLANPeer(neighbors)
 
 		case <-p.ctx.Done():
 			log.Info("findLANPeers", "process", "done")
 			return
 		}
 	}
+}
+
+// connectLANPeer 连接一个 mDNS 发现的局域网邻居, 失败按退避+抖动重试。
+// 只有瞬时错误才重试; 地址非法、拨号自己、对端身份不符这类永久错误直接放弃。
+//
+// 需要重试的原因: 两个节点几乎同时拨号对方时(局域网内节点同时启动/重启就是这样),
+// 由于 libp2p 默认用监听端口作为拨号源端口(reuseport), 双方的源端口与目的端口相同,
+// 交叉的两个 SYN 会被内核合并成同一条 TCP 连接(TCP 同时打开), 两端都按 TLS client 发起
+// 握手, 握手必然失败(tls: received unexpected handshake message of type *tls.clientHelloMsg
+// when waiting for *tls.serverHelloMsg), 两个方向的拨号同时报错。而 mDNS 对同一邻居只通知
+// 一次, 旧实现一次拨号失败即丢弃该邻居, 只能等 DHT 路由表刷新(分钟级)才能重新连上,
+// 期间该节点一直少一个邻居。这里退避重试, 并在退避上加抖动: 抖动让两端重试的时刻错开,
+// 不会再次同时打开, 通常第二次尝试即可连上。
+func (p *P2P) connectLANPeer(neighbors peer.AddrInfo) {
+	defer p.taskGroup.Done()
+	defer p.lanDialing.end(neighbors.ID)
+	const maxAttempts = 5
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if attempt > 0 {
+			// 线性退避 + 抖动, 抖动用于打破双方同时重试的对称性
+			backoff := time.Duration(attempt)*2*time.Second + time.Duration(rand.Int63n(int64(2*time.Second)))
+			select {
+			case <-p.ctx.Done():
+				return
+			case <-time.After(backoff):
+			}
+		}
+		err := p.host.Connect(p.ctx, neighbors)
+		if err == nil {
+			log.Info("findLANPeers", "connect neighbors success", neighbors.ID.String())
+			p.connManager.AddNeighbors(&neighbors)
+			return
+		}
+		// 同时拨号时对方可能已经连上我们, 此时无需再拨
+		if len(p.host.Network().ConnsToPeer(neighbors.ID)) != 0 {
+			log.Info("findLANPeers", "connect neighbors success", neighbors.ID.String(), "via", "inbound")
+			p.connManager.AddNeighbors(&neighbors)
+			return
+		}
+		if isPermanentDialError(err) {
+			// 同一份邻居地址再拨也不会成功, 不做无谓的退避重试。
+			log.Error("findLANPeers", "permanent dial error, no retry", "err", err.Error(), "peer", neighbors.ID.String())
+			return
+		}
+		log.Error("findLANPeers", "err", err.Error(), "peer", neighbors.ID.String(), "attempt", attempt+1)
+	}
+}
+
+// isPermanentDialError reports whether retrying the dial for the same peer addresses cannot
+// succeed: we were asked to dial ourselves, the announcement carried no usable address, an
+// address was malformed, or the remote proved to hold a different identity key than the peer ID
+// we dialed. Transport failures, timeouts, black-holing and resource limits stay retryable.
+func isPermanentDialError(err error) bool {
+	if errors.Is(err, swarm.ErrDialToSelf) ||
+		errors.Is(err, swarm.ErrNoAddresses) ||
+		errors.Is(err, network.ErrNoRemoteAddrs) ||
+		errors.Is(err, peer.ErrInvalidAddr) {
+		return true
+	}
+	var idMismatch sec.ErrPeerIDMismatch
+	return errors.As(err, &idMismatch)
+}
+
+// lanDialInFlight tracks the LAN peers that currently have a connectLANPeer goroutine running.
+// mDNS can announce the same peer repeatedly, so without it each announcement would start another
+// dial and another retry loop for the same peer.
+type lanDialInFlight struct {
+	peers sync.Map
+}
+
+// begin marks id as being dialed. It returns false when a dial for id is already in flight.
+func (f *lanDialInFlight) begin(id peer.ID) bool {
+	_, loaded := f.peers.LoadOrStore(id, struct{}{})
+	return !loaded
+}
+
+// end clears the in-flight mark for id.
+func (f *lanDialInFlight) end(id peer.ID) {
+	f.peers.Delete(id)
 }
 
 // handleP2PEvent 由 StartP2P 启动, 调用方需先执行 taskGroup.Add(1)

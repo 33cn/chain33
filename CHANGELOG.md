@@ -1,5 +1,49 @@
 changelog
 
+## [1.75.2](https://github.com/33cn/chain33/compare/v1.75.1...v1.75.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **p2p:** blacklist before closing rejected peer ([7ca085d](https://github.com/33cn/chain33/commit/7ca085d92d2ba73c9b85556b5039d175760d9ed5))
+* **p2p:** pin peer info to authenticated pid and handle peer errors ([9ff7a82](https://github.com/33cn/chain33/commit/9ff7a8262d3a8b69a9c7ebecdaea88d4abe1aeab))
+* **p2p:** use authenticated peer ID for blacklist and bound shard-peers count ([29635b2](https://github.com/33cn/chain33/commit/29635b27c2080f56a4d783cbd89c123c79d0a573))
+* **p2p:** use String instead of removed peer.ID.Pretty ([c827fa0](https://github.com/33cn/chain33/commit/c827fa027e399da6a9261114433d68db28fac070))
+
+## [1.75.1](https://github.com/33cn/chain33/compare/v1.75.0...v1.75.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **rpc:** harden wallet group signing and gRPC panic recovery ([4f7f868](https://github.com/33cn/chain33/commit/4f7f8683e2f7c47ccadb64e47c1baa20425ed22e)), closes [hi#bit](https://github.com/hi/issues/bit)
+* **rpc:** reject out-of-range signature/tx-group input before indexing ([9789e6d](https://github.com/33cn/chain33/commit/9789e6d395eede8d178b7a72effa3abf454ab993))
+* **rpc:** reject tx groups with fewer than two members ([82eba94](https://github.com/33cn/chain33/commit/82eba940245993cfda3b38f96fadad4dc1c04c88))
+* **rpc:** report oversized JSON-RPC bodies explicitly ([af4b351](https://github.com/33cn/chain33/commit/af4b351bfabf77bc35c0f1eb84a3d851226bf1ad))
+
+# [1.75.0](https://github.com/33cn/chain33/compare/v1.74.0...v1.75.0) (2026-11-16)
+
+
+### Bug Fixes
+
+* **cggmp:** give the refresh phase its own default timeout ([98aaa4f](https://github.com/33cn/chain33/commit/98aaa4f668fc6140286b0fca041c8beddbe3df94))
+* **cggmp:** harden the ppk exchange and validate phase key material ([c50e1ec](https://github.com/33cn/chain33/commit/c50e1ec71b00d80e7157841baae9cf58f6b27435))
+* **p2p:** make NAT port mapping optional and stop retrying permanent dial errors ([d6f0b56](https://github.com/33cn/chain33/commit/d6f0b5660a5cfc429f72f246771c653612a5a0e2))
+* **p2p:** retry LAN peer dials that fail on simultaneous connect ([c4a8782](https://github.com/33cn/chain33/commit/c4a878230a49a41b972e231580332c38ac23e97f))
+* **tss:** authenticate tss message senders by their transport peer id ([626135e](https://github.com/33cn/chain33/commit/626135e9520f9eb1cc40f8414a50053cf210d372))
+* **tss:** close the CGGMP identity, timeout and signer-selection gaps ([c966c8e](https://github.com/33cn/chain33/commit/c966c8e465a4d81a8c247aa44b2520139fa99d28))
+* **tss:** close the ppk retry hole and harden the cggmp entry points ([b37bc08](https://github.com/33cn/chain33/commit/b37bc08d2dd48378ea5019dba05dd6cd4f978244))
+* **tss:** finish the CGGMP review follow-ups ([decd1a4](https://github.com/33cn/chain33/commit/decd1a45e1013c3127fd6f5cdc779bca9d9a0121))
+* **tss:** harden CGGMP session entry points and message dispatch ([7dfe8a0](https://github.com/33cn/chain33/commit/7dfe8a0f3f8caf1acaedda8d94a906bee357c1ce))
+* **tss:** reject the boundary rank that alice's EnsureRank rejects ([bd40ea6](https://github.com/33cn/chain33/commit/bd40ea6d4bdfdc1804ad2f8db308cafb1985cc95))
+* **tss:** tag ppk messages with their DKG round and pin session serialisation ([222c62d](https://github.com/33cn/chain33/commit/222c62dda1b62c833ed4a778d6016ce4c1887db7))
+* **tss:** 让失败的 cggmp/gg18 会话可被同名重新注册 ([57b0183](https://github.com/33cn/chain33/commit/57b0183d098dff8b3cacf45e579a0ecfc7e98feb))
+
+
+### Features
+
+* **tss:** add CGGMP subprotocol wrapper via getamis/alice ([ad7069d](https://github.com/33cn/chain33/commit/ad7069d6a1f1e5f482a4fcced9d5fac1cc4c64b3))
+* **tss:** allow CGGMP key refresh to run more than once ([a63ab91](https://github.com/33cn/chain33/commit/a63ab91db1ae6e07efa820bdbd9bc0888e012e63))
+
 # [1.74.0](https://github.com/33cn/chain33/compare/v1.73.1...v1.74.0) (2026-11-13)
 
 

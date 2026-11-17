@@ -57,7 +57,7 @@ func (p *Protocol) getLocalPeerInfo() *types.Peer {
 		return nil
 	}
 	localPeer.Header = resp.Data.(*types.Header)
-	localPeer.Name = p.Host.ID().Pretty()
+	localPeer.Name = p.Host.ID().String()
 	ip, port := parseIPAndPort(p.getExternalAddr())
 	localPeer.Addr = ip
 	localPeer.Port = int32(port)
@@ -121,18 +121,31 @@ func (p *Protocol) refreshPeerInfo(peers []peer.ID) {
 				log.Error("refreshPeerInfo", "error", err, "pid", pid)
 				return
 			}
-			if p.checkVersionLimit(pInfo.GetVersion()) {
-				p.PeerInfoManager.Refresh(pInfo)
-			} else {
-				//add blacklist
-				log.Info("refreshPeerInfo", "AddBlacklist,peerName:", pInfo.GetName(), "version:", pInfo.GetVersion(), "runningTime:", pInfo.GetRunningTime())
-				p.P2PEnv.Host.Network().ClosePeer(peer.ID(pInfo.GetName()))
-				p.P2PEnv.ConnBlackList.Add(pInfo.GetName(), time.Hour*24)
-			}
-
+			p.updatePeerInfo(pid, pInfo)
 		}(remoteID)
 	}
 	wg.Wait()
+}
+
+// updatePeerInfo 处理对端上报的 peer 信息。
+// peer-info 响应中的 Name 由对端自行填写、不可信，而 PeerInfoManager 以 Name 为 key，
+// 因此统一以已认证的连接 pid 覆盖，避免伪造他人 PID 污染 peerinfo 或诱导本节点拉黑他人。
+func (p *Protocol) updatePeerInfo(pid peer.ID, pInfo *types.Peer) {
+	if pInfo == nil {
+		return
+	}
+	reportedName := pInfo.GetName()
+	pInfo.Name = pid.String()
+	if p.checkVersionLimit(pInfo.GetVersion()) {
+		p.PeerInfoManager.Refresh(pInfo)
+		return
+	}
+	//add blacklist：必须使用已认证的连接 peer ID(pid)，远端返回的 Name 不可信，
+	//否则违规对端可逃避断连/拉黑，或诱导本节点拉黑任意 peer（身份混淆）。
+	//先加黑再断开，避免断开后 connectionGater 生效前对端重新接入。
+	log.Info("refreshPeerInfo", "AddBlacklist,peerID:", pid.String(), "reportedName:", reportedName, "version:", pInfo.GetVersion(), "runningTime:", pInfo.GetRunningTime())
+	p.P2PEnv.ConnBlackList.Add(pid.String(), time.Hour*24)
+	p.P2PEnv.Host.Network().ClosePeer(pid)
 }
 
 func (p *Protocol) checkOutBound(height int64) {

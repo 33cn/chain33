@@ -147,6 +147,12 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		signedTx := hex.EncodeToString(txHex)
 		return signedTx, nil
 	}
+	//交易组至少 2 笔：0 笔在 RebuiltGroup 中越界，1 笔在 Encode(group.Tx()) 处 panic。
+	if n := len(group.GetTxs()); n < 2 {
+		walletlog.Error("ProcSignRawTx", "err", types.ErrTxGroupCountLessThanTwo,
+			"groupCount", tx.GroupCount, "decoded", n, "index", index)
+		return "", types.ErrTxGroupCountLessThanTwo
+	}
 	if int(index) > len(group.GetTxs()) {
 		return "", types.ErrIndex
 	}

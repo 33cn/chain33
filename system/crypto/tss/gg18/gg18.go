@@ -40,7 +40,7 @@ func handleDkgMsg(wMsg *tss.MessageWrapper) {
 		log.Error("handleDkgMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "decode msg err", err)
 		return
 	}
-	err = addMessage(DkgProtocol, wMsg.SessionID, msg)
+	err = addMessage(DkgProtocol, wMsg.SessionID, wMsg.PeerID, msg)
 	if err != nil {
 		log.Error("handleDkgMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "Cannot add message to core, err", err)
 	}
@@ -59,7 +59,7 @@ func handleSignMsg(wMsg *tss.MessageWrapper) {
 		log.Error("handleSignMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "decode msg err", err)
 		return
 	}
-	err = addMessage(SignProtocol, wMsg.SessionID, msg)
+	err = addMessage(SignProtocol, wMsg.SessionID, wMsg.PeerID, msg)
 	if err != nil {
 		log.Error("handleSignMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "Cannot add message to core, err", err)
 	}
@@ -76,7 +76,7 @@ func handleReshareMsg(wMsg *tss.MessageWrapper) {
 		log.Error("handleReshareMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "decode msg err", err)
 		return
 	}
-	err = addMessage(ReshareProtocol, wMsg.SessionID, msg)
+	err = addMessage(ReshareProtocol, wMsg.SessionID, wMsg.PeerID, msg)
 	if err != nil {
 		log.Error("handleReshareMsg", "peerID", wMsg.PeerID, "session", wMsg.SessionID, "Cannot add message to core, err", err)
 	}
