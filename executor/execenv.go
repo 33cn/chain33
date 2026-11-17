@@ -707,6 +707,11 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 	var feelog *types.Receipt
 
 	var err error
+	// proxyExecBookkeeping runs the EVM execlocal data (mainly nonce++) for a proxy carrier,
+	// and proxyCarrierTx is the original transaction as it appears in the block. Both are
+	// unused unless the transaction is a proxy carrier (the inner transaction replaces tx).
+	var proxyExecBookkeeping func(tx *types.Transaction)
+	var proxyCarrierTx *types.Transaction
 	//代理执行 EVM-->txpayload-->chain33 tx
 	isProxyExec := e.checkProxyExecTx(tx)
 	if isProxyExec {
@@ -724,7 +729,8 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 			}
 			return nil, err
 		}
-		defer func(tx *types.Transaction) {
+		proxyCarrierTx = tx
+		proxyExecBookkeeping = func(tx *types.Transaction) {
 			cloneTx := tx.Clone()
 			//执行evm execlocal 数据，主要是nonce++
 			//此处执行execlocal 是为了连续多笔同地址下的交易，关系上下文用，否则下一笔evm交易的nonce 将会报错
@@ -733,7 +739,12 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 			if err != nil {
 				elog.Error("proxyExec ReExecLocal", " execLocalSameTime", err.Error())
 			}
-		}(tx)
+		}
+		// The bookkeeping runs after a successful execution only (see the end of this
+		// function). Running it from a defer made a failed carrier - nonce mismatch, or an
+		// inner transaction that cannot be decoded - advance the sender's nonce anyway; a
+		// following carrier then spent that phantom nonce, and peers replaying the block
+		// without the failed carrier rejected it.
 
 		////由于代理执行交易并不会检查tx.nonce的正确性，所以在此处检查
 		currentNonce := e.getCurrentNonce(tx.From())
@@ -796,6 +807,15 @@ func (e *executor) execTx(exec *Executor, tx *types.Transaction, index int) (*ty
 
 	if api.IsAPIEnvError(err) {
 		return nil, err
+	}
+	// Every path that reaches this point keeps the carrier in the block, including one whose
+	// inner transaction failed while executing: that failure is folded into the receipt as an
+	// error log, the caller drops only ExecErr receipts, and this receipt is not one. Run the
+	// local bookkeeping in both cases, exactly as the old defer did. The early returns above -
+	// nonce mismatch, undecodable inner transaction, fee or commit failure - are the paths
+	// where the carrier is not kept, and they must not move the nonce.
+	if isProxyExec {
+		proxyExecBookkeeping(proxyCarrierTx)
 	}
 	return feelog, nil
 }

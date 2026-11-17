@@ -13,6 +13,7 @@ import (
 	"github.com/33cn/chain33/common/crypto"
 	erpctypes "github.com/33cn/chain33/rpc/ethrpc/types"
 	"github.com/33cn/chain33/system/crypto/secp256k1eth"
+	drivers "github.com/33cn/chain33/system/dapp"
 	"github.com/33cn/chain33/types"
 	"github.com/33cn/chain33/util"
 	ecommon "github.com/ethereum/go-ethereum/common"
@@ -229,4 +230,186 @@ func TestExecTxEthNonceGateSkipsProxyExec(t *testing.T) {
 	// receipt instead of being returned. If the gate had run on the inner transaction,
 	// execTx would instead return here with "nonce too high" for its nonce 7.
 	require.NoError(t, err)
+}
+
+// nonceBumpDriver stands in for the EVM executor's local side. It reports ExecLocalSameTime so
+// the proxy bookkeeping reaches it, and its ExecLocal performs the bookkeeping the EVM executor
+// performs for a proxy carrier: advance the sender's stored EVM nonce.
+type nonceBumpDriver struct {
+	*drivers.DriverBase
+	addr string
+}
+
+func newNonceBumpDriver(addr string) *nonceBumpDriver {
+	d := &nonceBumpDriver{DriverBase: &drivers.DriverBase{}, addr: addr}
+	d.SetChild(d)
+	return d
+}
+
+func (d *nonceBumpDriver) GetDriverName() string { return "evm" }
+
+func (d *nonceBumpDriver) ExecutorOrder() int64 { return drivers.ExecLocalSameTime }
+
+func (d *nonceBumpDriver) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	key := secp256k1eth.CaculCoinsEvmAccountKey(d.addr)
+	nonce := int64(0)
+	if raw, err := d.GetLocalDB().Get(key); err == nil {
+		rec := &types.EvmAccountNonce{}
+		if types.Decode(raw, rec) == nil {
+			nonce = rec.GetNonce()
+		}
+	}
+	return &types.LocalDBSet{KV: []*types.KeyValue{{
+		Key:   key,
+		Value: types.Encode(&types.EvmAccountNonce{Addr: d.addr, Nonce: nonce + 1}),
+	}}}, nil
+}
+
+// proxyInnerDriver is the inner transaction's executor for the success-path test. It accepts the
+// transaction and reports a successful execution without touching any state.
+type proxyInnerDriver struct {
+	*drivers.DriverBase
+}
+
+func newProxyInnerDriver() *proxyInnerDriver {
+	d := &proxyInnerDriver{DriverBase: &drivers.DriverBase{}}
+	d.SetChild(d)
+	return d
+}
+
+func (d *proxyInnerDriver) GetDriverName() string { return "proxyinner" }
+
+func (d *proxyInnerDriver) CheckTx(tx *types.Transaction, index int) error { return nil }
+
+func (d *proxyInnerDriver) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+	return &types.Receipt{Ty: types.ExecOk}, nil
+}
+
+// seedDriver puts a driver into the executor's cache. loadDriver runs Allow on cached drivers
+// once ForkCacheDriver is active (it always is in the local test config), so the driver needs
+// the API that a registered driver would have received from LoadDriverWithClient.
+func seedDriver(execute *executor, name string, driver drivers.Driver) {
+	driver.SetAPI(execute.api)
+	execute.driverCache[name] = driver
+}
+
+func readEvmNonce(t *testing.T, ldb *LocalDB, addr string) int64 {
+	t.Helper()
+	raw, err := ldb.Get(secp256k1eth.CaculCoinsEvmAccountKey(addr))
+	require.NoError(t, err)
+	rec := &types.EvmAccountNonce{}
+	require.NoError(t, types.Decode(raw, rec))
+	return rec.GetNonce()
+}
+
+// TestProxyExecFailedCarrierKeepsNonce pins the fix: a carrier whose inner transaction cannot be
+// decoded executed nothing, so it must not advance the EVM nonce. If it did, the next carrier
+// from the same address would pass the session nonce gate and be kept in the block, and peers
+// replaying the block (where the failed carrier is dropped) would reject it.
+func TestProxyExecFailedCarrierKeepsNonce(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	// A zero rate execFee returns without touching accounts, and execution errors are folded
+	// into the receipt instead of being returned.
+	cfg.SetTxFeeConfig(0, 1e7, 1e9)
+
+	proxyAddrHex := cfg.GetModuleConfig().Exec.ProxyExecAddress
+	require.NotEmpty(t, proxyAddrHex)
+	// Junk Para does not decode into a chain33 transaction, so proxyExecTx fails before
+	// anything executes.
+	carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress(proxyAddrHex), 0, []byte("junk"))
+	ldb := newNonceLocalDB(t, carrier.From(), 0)
+	execute := newExecutor(testEthExecCtx(), exec, ldb, nil, nil)
+	seedDriver(execute, "evm", newNonceBumpDriver(carrier.From()))
+
+	_, err := execute.execTx(nil, carrier, 0)
+	require.Error(t, err)
+	require.Equal(t, int64(0), readEvmNonce(t, ldb, carrier.From()),
+		"a carrier that never executed must not advance the EVM nonce")
+
+	// The next carrier has to be rejected by the session nonce gate. With the phantom nonce it
+	// would pass the gate and fail later in the branch (decoding its junk inner transaction).
+	next := newEthSignedCarrier(t, cfg, ecommon.HexToAddress(proxyAddrHex), 1, []byte("junk"))
+	_, err = execute.execTx(nil, next, 0)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "nonce missmatch")
+}
+
+// TestProxyExecNonceMismatchKeepsNonce pins the early-return path: a carrier whose nonce does
+// not match the session record is rejected before anything runs, so the record must stay put.
+func TestProxyExecNonceMismatchKeepsNonce(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	cfg.SetTxFeeConfig(0, 1e7, 1e9)
+
+	proxyAddrHex := cfg.GetModuleConfig().Exec.ProxyExecAddress
+	require.NotEmpty(t, proxyAddrHex)
+	carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress(proxyAddrHex), 0, []byte("junk"))
+	// The record is ahead of the carrier, so the branch rejects it on the nonce check.
+	ldb := newNonceLocalDB(t, carrier.From(), 5)
+	execute := newExecutor(testEthExecCtx(), exec, ldb, nil, nil)
+	seedDriver(execute, "evm", newNonceBumpDriver(carrier.From()))
+
+	_, err := execute.execTx(nil, carrier, 0)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "nonce missmatch")
+	require.Equal(t, int64(5), readEvmNonce(t, ldb, carrier.From()),
+		"a carrier rejected on the nonce check must not move the record")
+}
+
+// TestProxyExecKeptCarrierWithFailedExecutionBumpsNonce pins the other kept path: the inner
+// transaction decodes and runs, fails, and the failure is folded into the receipt. The carrier
+// itself stays in the block, so the bookkeeping must run exactly as the old defer did - a
+// historical block with this shape has to replay identically.
+func TestProxyExecKeptCarrierWithFailedExecutionBumpsNonce(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	cfg.SetTxFeeConfig(0, 1e7, 1e9)
+
+	proxyAddrHex := cfg.GetModuleConfig().Exec.ProxyExecAddress
+	require.NotEmpty(t, proxyAddrHex)
+	to, _ := util.Genaddress()
+	inner := util.CreateCoinsTx(cfg, nil, to, 1000)
+	// The payload no longer decodes as a coins action, so execution fails after the inner
+	// transaction itself was unpacked successfully.
+	inner.Payload = []byte("not a valid coins action")
+	carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress(proxyAddrHex), 0, types.Encode(inner))
+	ldb := newNonceLocalDB(t, carrier.From(), 0)
+	execute := newExecutor(testEthExecCtx(), exec, ldb, nil, nil)
+	seedDriver(execute, "evm", newNonceBumpDriver(carrier.From()))
+
+	_, err := execute.execTx(nil, carrier, 0)
+	require.NoError(t, err, "the failure is folded into the receipt, the carrier is kept")
+	require.Equal(t, int64(1), readEvmNonce(t, ldb, carrier.From()),
+		"a kept carrier must advance the EVM nonce even when its inner execution failed")
+}
+
+// TestProxyExecSuccessfulCarrierBumpsNonce pins that a well-formed carrier still performs the
+// local bookkeeping after its inner transaction executes successfully.
+func TestProxyExecSuccessfulCarrierBumpsNonce(t *testing.T) {
+	exec, _ := initEnv(types.GetDefaultCfgstring())
+	cfg := exec.client.GetConfig()
+	cfg.SetTxFeeConfig(0, 1e7, 1e9)
+	prevAllow := types.AllowUserExec
+	types.AllowUserExec = append(types.AllowUserExec, []byte("proxyinner"))
+	t.Cleanup(func() { types.AllowUserExec = prevAllow })
+
+	to, _ := util.Genaddress()
+	inner := &types.Transaction{Execer: []byte("proxyinner"), To: to, Payload: []byte("ok")}
+	var err error
+	inner, err = types.FormatTx(cfg, "proxyinner", inner)
+	require.NoError(t, err)
+
+	proxyAddrHex := cfg.GetModuleConfig().Exec.ProxyExecAddress
+	require.NotEmpty(t, proxyAddrHex)
+	carrier := newEthSignedCarrier(t, cfg, ecommon.HexToAddress(proxyAddrHex), 0, types.Encode(inner))
+	ldb := newNonceLocalDB(t, carrier.From(), 0)
+	execute := newExecutor(testEthExecCtx(), exec, ldb, nil, nil)
+	seedDriver(execute, "evm", newNonceBumpDriver(carrier.From()))
+	seedDriver(execute, "proxyinner", newProxyInnerDriver())
+
+	_, err = execute.execTx(nil, carrier, 0)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), readEvmNonce(t, ldb, carrier.From()),
+		"a successful carrier must still advance the EVM nonce")
 }

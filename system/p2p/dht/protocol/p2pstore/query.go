@@ -157,6 +157,9 @@ func (p *Protocol) fetchShardPeers(key []byte, count int, pid peer.ID) ([]peer.I
 	if err = protocol.ReadStream(&resp, stream); err != nil {
 		return nil, err
 	}
+	if resp.Error != "" {
+		return nil, fmt.Errorf("fetchShardPeers from %s: %s", pid, resp.Error)
+	}
 	closerPeers := savePeers(resp.CloserPeers, p.Host.Peerstore())
 	return closerPeers, nil
 }

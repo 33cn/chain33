@@ -1,5 +1,33 @@
 changelog
 
+## [1.75.3](https://github.com/33cn/chain33/compare/v1.75.2...v1.75.3) (2026-11-17)
+
+
+### Bug Fixes
+
+* **executor:** keep the bookkeeping for a carrier whose inner execution failed ([a205394](https://github.com/33cn/chain33/commit/a2053948b13c8ffd1cd01af136a36cb23bebccff))
+* **executor:** run proxy carrier bookkeeping only after a successful execution ([2127cab](https://github.com/33cn/chain33/commit/2127cab1c9c3dbf68d2b378ba5f6a75ea983a83e))
+
+## [1.75.2](https://github.com/33cn/chain33/compare/v1.75.1...v1.75.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **p2p:** blacklist before closing rejected peer ([7ca085d](https://github.com/33cn/chain33/commit/7ca085d92d2ba73c9b85556b5039d175760d9ed5))
+* **p2p:** pin peer info to authenticated pid and handle peer errors ([9ff7a82](https://github.com/33cn/chain33/commit/9ff7a8262d3a8b69a9c7ebecdaea88d4abe1aeab))
+* **p2p:** use authenticated peer ID for blacklist and bound shard-peers count ([29635b2](https://github.com/33cn/chain33/commit/29635b27c2080f56a4d783cbd89c123c79d0a573))
+* **p2p:** use String instead of removed peer.ID.Pretty ([c827fa0](https://github.com/33cn/chain33/commit/c827fa027e399da6a9261114433d68db28fac070))
+
+## [1.75.1](https://github.com/33cn/chain33/compare/v1.75.0...v1.75.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* **rpc:** harden wallet group signing and gRPC panic recovery ([4f7f868](https://github.com/33cn/chain33/commit/4f7f8683e2f7c47ccadb64e47c1baa20425ed22e)), closes [hi#bit](https://github.com/hi/issues/bit)
+* **rpc:** reject out-of-range signature/tx-group input before indexing ([9789e6d](https://github.com/33cn/chain33/commit/9789e6d395eede8d178b7a72effa3abf454ab993))
+* **rpc:** reject tx groups with fewer than two members ([82eba94](https://github.com/33cn/chain33/commit/82eba940245993cfda3b38f96fadad4dc1c04c88))
+* **rpc:** report oversized JSON-RPC bodies explicitly ([af4b351](https://github.com/33cn/chain33/commit/af4b351bfabf77bc35c0f1eb84a3d851226bf1ad))
+
 # [1.75.0](https://github.com/33cn/chain33/compare/v1.74.0...v1.75.0) (2026-11-16)
 
 

@@ -78,6 +78,10 @@ func makeDERSigToRSV(eipSigner etypes.Signer, sig []byte) (r, s, v *big.Int, err
 		log.Error("makeDERSigToRSV", "paraseDERCode err", err.Error(), "sig", hexutil.Encode(sig))
 		return nil, nil, nil, err
 	}
+	if len(rb) > 32 || len(sb) > 32 {
+		log.Error("makeDERSigToRSV", "err", "invalid signature length", "rLen", len(rb), "sLen", len(sb))
+		return nil, nil, nil, fmt.Errorf("invalid signature length")
+	}
 
 	signature := make([]byte, 65)
 	copy(signature[32-len(rb):32], rb)
@@ -153,6 +157,11 @@ func paraseDERCode(sig []byte) (r, s []byte, err error) {
 		return nil, nil, fmt.Errorf("DER S length exceeds signature")
 	}
 	s = sig[sOffset+2 : sOffset+2+sLen]
+	//DER 对高位为 1 的整数会补一个前导 0x00，与上面的 R 做同样处理，
+	//否则合法的 33 字节 S 会被当成超长签名。
+	if len(s) > 1 && s[0] == 0x0 {
+		s = s[1:]
+	}
 
 	if len(r) == 0 || len(s) == 0 {
 		err = fmt.Errorf("parase err:no der code")
