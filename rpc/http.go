@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,6 +22,9 @@ import (
 	"google.golang.org/grpc"
 	pr "google.golang.org/grpc/peer"
 )
+
+// maxJSONRPCBodyBytes 限制单条 JSON-RPC HTTP 请求体大小，防止 ReadAll 造成内存耗尽。
+const maxJSONRPCBodyBytes = 4 << 20 // 4 MiB
 
 // HTTPConn adapt HTTP connection to ReadWriteCloser
 type HTTPConn struct {
@@ -74,8 +78,16 @@ func (j *JSONRPCServer) Listen() (int, error) {
 			return
 		}
 		if r.URL.Path == "/" {
+			// 先套 MaxBytesReader：超过上限的请求在读取阶段即失败，
+			// 避免把攻击者指定大小的 body 全部读入内存。
+			r.Body = http.MaxBytesReader(w, r.Body, maxJSONRPCBodyBytes)
 			data, err := ioutil.ReadAll(r.Body)
 			if err != nil {
+				var maxBytesErr *http.MaxBytesError
+				if errors.As(err, &maxBytesErr) {
+					writeError(w, r, 0, fmt.Sprintf("request body too large, max size is %d bytes", maxJSONRPCBodyBytes))
+					return
+				}
 				writeError(w, r, 0, "Can't get request body!")
 				return
 			}

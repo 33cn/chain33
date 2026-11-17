@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"math/big"
 
 	etypes "github.com/ethereum/go-ethereum/core/types"
@@ -14,6 +15,9 @@ import (
 func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config, full bool) (*Block, error) {
 	var block Block
 	var header Header
+	if details == nil || len(details.GetItems()) == 0 || details.GetItems()[0].GetBlock() == nil {
+		return nil, errors.New("block not found")
+	}
 	fullblock := details.GetItems()[0]
 	header.Time = hexutil.Uint64(fullblock.GetBlock().GetBlockTime())
 	header.Number = (*hexutil.Big)(big.NewInt(fullblock.GetBlock().Height))
@@ -21,7 +25,9 @@ func BlockDetailToEthBlock(details *types.BlockDetails, cfg *types.Chain33Config
 	header.Difficulty = (*hexutil.Big)(big.NewInt(int64(fullblock.GetBlock().GetDifficulty())))
 	header.ParentHash = common.BytesToHash(fullblock.GetBlock().ParentHash)
 	header.Root = common.BytesToHash(fullblock.GetBlock().GetStateHash())
-	header.Coinbase = common.HexToAddress(fullblock.GetBlock().GetTxs()[0].From())
+	if txs := fullblock.GetBlock().GetTxs(); len(txs) > 0 {
+		header.Coinbase = common.HexToAddress(txs[0].From())
+	}
 	//header.GasUsed=
 	//暂不支持ReceiptHash,UncleHash
 	//header.ReceiptHash=
