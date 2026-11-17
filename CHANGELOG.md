@@ -1,5 +1,15 @@
 changelog
 
+## [1.75.2](https://github.com/33cn/chain33/compare/v1.75.1...v1.75.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **p2p:** blacklist before closing rejected peer ([7ca085d](https://github.com/33cn/chain33/commit/7ca085d92d2ba73c9b85556b5039d175760d9ed5))
+* **p2p:** pin peer info to authenticated pid and handle peer errors ([9ff7a82](https://github.com/33cn/chain33/commit/9ff7a8262d3a8b69a9c7ebecdaea88d4abe1aeab))
+* **p2p:** use authenticated peer ID for blacklist and bound shard-peers count ([29635b2](https://github.com/33cn/chain33/commit/29635b27c2080f56a4d783cbd89c123c79d0a573))
+* **p2p:** use String instead of removed peer.ID.Pretty ([c827fa0](https://github.com/33cn/chain33/commit/c827fa027e399da6a9261114433d68db28fac070))
+
 ## [1.75.1](https://github.com/33cn/chain33/compare/v1.75.0...v1.75.1) (2026-11-16)
 
 
