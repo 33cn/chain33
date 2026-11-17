@@ -363,7 +363,7 @@ func TestUpdatePeerInfoUsesAuthenticatedPID(t *testing.T) {
 
 	infos := p.PeerInfoManager.FetchAll()
 	require.Len(t, infos, 1)
-	require.Equal(t, pid.Pretty(), infos[0].GetName())
+	require.Equal(t, pid.String(), infos[0].GetName())
 	_, ok := manager.peers.Load(forgedName)
 	require.False(t, ok)
 }
@@ -387,7 +387,7 @@ func TestUpdatePeerInfoRejectUsesAuthenticatedPID(t *testing.T) {
 	p.updatePeerInfo(h1.ID(), &types.Peer{Name: forgedName, Version: "1.0.0@1.0.0"})
 
 	// 伪造 Name 时，断连与拉黑都必须使用已认证的 pid。
-	require.True(t, p.ConnBlackList.Has(h1.ID().Pretty()))
+	require.True(t, p.ConnBlackList.Has(h1.ID().String()))
 	require.False(t, p.ConnBlackList.Has(forgedName))
 	require.Empty(t, p.PeerInfoManager.FetchAll())
 	require.Eventually(t, func() bool {
