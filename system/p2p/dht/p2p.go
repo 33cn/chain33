@@ -455,16 +455,29 @@ func (p *P2P) connectLANPeer(neighbors peer.AddrInfo) {
 // other address, and the peer was never re-dialed.
 func isPermanentDialError(err error) bool {
 	var dialErr *swarm.DialError
-	if errors.As(err, &dialErr) && (len(dialErr.DialErrors) > 0 || dialErr.Cause != nil) {
-		for i := range dialErr.DialErrors {
-			if !isPermanentDialCause(dialErr.DialErrors[i].Cause) {
+	if errors.As(err, &dialErr) {
+		if len(dialErr.DialErrors) > 0 {
+			// Address-level verdicts decide. The aggregate Cause only records that no address is
+			// left to try (ErrAllDialsFailed / ErrNoGoodAddresses), so consulting it here would
+			// make "every address failed permanently" unreachable.
+			//
+			// A truncated list cannot prove that: the dropped entry may be the retryable one.
+			if dialErr.Skipped > 0 {
 				return false
 			}
+			for i := range dialErr.DialErrors {
+				if !isPermanentDialCause(dialErr.DialErrors[i].Cause) {
+					return false
+				}
+			}
+			return true
 		}
+		// No address was dialed at all (no addresses, gater refusal, resolver failure): the
+		// aggregate Cause is the only verdict available.
 		if dialErr.Cause != nil {
 			return isPermanentDialCause(dialErr.Cause)
 		}
-		return true
+		return false
 	}
 	return isPermanentDialCause(err)
 }

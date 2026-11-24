@@ -79,31 +79,63 @@ func TestIsPermanentDialError(t *testing.T) {
 			// next to the routable address, so the dial to self must not hide the retryable TLS
 			// simultaneous-open race recorded for the other address.
 			"self + retryable address",
-			&swarm.DialError{DialErrors: []swarm.TransportError{
-				{Cause: swarm.ErrDialToSelf},
-				{Cause: errors.New("failed to negotiate security protocol: tls: unexpected message")},
-			}},
+			&swarm.DialError{
+				Cause: swarm.ErrAllDialsFailed,
+				DialErrors: []swarm.TransportError{
+					{Cause: swarm.ErrDialToSelf},
+					{Cause: errors.New("failed to negotiate security protocol: tls: unexpected message")},
+				},
+			},
 			false,
 		},
 		{
 			"every address permanent",
-			&swarm.DialError{DialErrors: []swarm.TransportError{
-				{Cause: swarm.ErrDialToSelf},
-				{Cause: peer.ErrInvalidAddr},
-			}},
-			true,
-		},
-		{
-			"single permanent address",
-			&swarm.DialError{DialErrors: []swarm.TransportError{{Cause: swarm.ErrNoAddresses}}},
-			true,
-		},
-		{
-			"aggregate cause retryable",
 			&swarm.DialError{
-				Cause:      context.DeadlineExceeded,
+				Cause: swarm.ErrAllDialsFailed,
+				DialErrors: []swarm.TransportError{
+					{Cause: swarm.ErrDialToSelf},
+					{Cause: peer.ErrInvalidAddr},
+				},
+			},
+			true,
+		},
+		{
+			// libp2p uses this cause when the address filter removed everything undialable; the
+			// address-level verdict still says "dialing ourselves can never work".
+			"no good addresses, all self",
+			&swarm.DialError{
+				Cause:      swarm.ErrNoGoodAddresses,
 				DialErrors: []swarm.TransportError{{Cause: swarm.ErrDialToSelf}},
 			},
+			true,
+		},
+		{
+			"peer id mismatch on every address",
+			&swarm.DialError{
+				Cause:      swarm.ErrAllDialsFailed,
+				DialErrors: []swarm.TransportError{{Cause: mismatch}},
+			},
+			true,
+		},
+		{
+			// The recorded list is capped; the dropped entry may be the retryable one, so a
+			// truncated list cannot prove "every address is permanent".
+			"truncated address list",
+			&swarm.DialError{
+				Cause:      swarm.ErrAllDialsFailed,
+				Skipped:    3,
+				DialErrors: []swarm.TransportError{{Cause: swarm.ErrDialToSelf}},
+			},
+			false,
+		},
+		{
+			"no address dialed, permanent cause",
+			&swarm.DialError{Cause: swarm.ErrNoAddresses},
+			true,
+		},
+		{
+			"no address dialed, retryable cause",
+			&swarm.DialError{Cause: errors.New("connection gater disallowed the connection")},
 			false,
 		},
 	}
