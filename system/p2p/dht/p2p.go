@@ -446,7 +446,31 @@ func (p *P2P) connectLANPeer(neighbors peer.AddrInfo) {
 // succeed: we were asked to dial ourselves, the announcement carried no usable address, an
 // address was malformed, or the remote proved to hold a different identity key than the peer ID
 // we dialed. Transport failures, timeouts, black-holing and resource limits stay retryable.
+//
+// A dial can fail for several addresses at once, and libp2p reports them as one aggregated
+// *swarm.DialError. The verdict is therefore per dial, not per entry: the dial is permanent only
+// when *every* address failed permanently. Judging the aggregate as soon as one entry matched made
+// a mDNS announcement that lists loopback next to the routable address look permanent — the
+// `dial to self` entry for 127.0.0.1 hid the retryable simultaneous-open TLS race recorded for the
+// other address, and the peer was never re-dialed.
 func isPermanentDialError(err error) bool {
+	var dialErr *swarm.DialError
+	if errors.As(err, &dialErr) && (len(dialErr.DialErrors) > 0 || dialErr.Cause != nil) {
+		for i := range dialErr.DialErrors {
+			if !isPermanentDialCause(dialErr.DialErrors[i].Cause) {
+				return false
+			}
+		}
+		if dialErr.Cause != nil {
+			return isPermanentDialCause(dialErr.Cause)
+		}
+		return true
+	}
+	return isPermanentDialCause(err)
+}
+
+// isPermanentDialCause reports whether a single address failure cannot heal on its own.
+func isPermanentDialCause(err error) bool {
 	if errors.Is(err, swarm.ErrDialToSelf) ||
 		errors.Is(err, swarm.ErrNoAddresses) ||
 		errors.Is(err, network.ErrNoRemoteAddrs) ||

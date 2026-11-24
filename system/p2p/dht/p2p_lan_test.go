@@ -74,6 +74,38 @@ func TestIsPermanentDialError(t *testing.T) {
 		{"all dials failed", fmt.Errorf("all dials failed: %w", swarm.ErrAllDialsFailed), false},
 		{"transport error", &swarm.TransportError{Cause: errors.New("connection refused")}, false},
 		{"context canceled", context.Canceled, false},
+		{
+			// The regression this classification exists for: one mDNS announcement lists loopback
+			// next to the routable address, so the dial to self must not hide the retryable TLS
+			// simultaneous-open race recorded for the other address.
+			"self + retryable address",
+			&swarm.DialError{DialErrors: []swarm.TransportError{
+				{Cause: swarm.ErrDialToSelf},
+				{Cause: errors.New("failed to negotiate security protocol: tls: unexpected message")},
+			}},
+			false,
+		},
+		{
+			"every address permanent",
+			&swarm.DialError{DialErrors: []swarm.TransportError{
+				{Cause: swarm.ErrDialToSelf},
+				{Cause: peer.ErrInvalidAddr},
+			}},
+			true,
+		},
+		{
+			"single permanent address",
+			&swarm.DialError{DialErrors: []swarm.TransportError{{Cause: swarm.ErrNoAddresses}}},
+			true,
+		},
+		{
+			"aggregate cause retryable",
+			&swarm.DialError{
+				Cause:      context.DeadlineExceeded,
+				DialErrors: []swarm.TransportError{{Cause: swarm.ErrDialToSelf}},
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
