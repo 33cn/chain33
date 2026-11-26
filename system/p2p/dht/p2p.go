@@ -466,7 +466,7 @@ func isPermanentDialError(err error) bool {
 				return false
 			}
 			for i := range dialErr.DialErrors {
-				if !isPermanentDialCause(dialErr.DialErrors[i].Cause) {
+				if !isPermanentDialFailure(dialErr.DialErrors[i].Cause) {
 					return false
 				}
 			}
@@ -475,15 +475,17 @@ func isPermanentDialError(err error) bool {
 		// No address was dialed at all (no addresses, gater refusal, resolver failure): the
 		// aggregate Cause is the only verdict available.
 		if dialErr.Cause != nil {
-			return isPermanentDialCause(dialErr.Cause)
+			return isPermanentDialFailure(dialErr.Cause)
 		}
 		return false
 	}
-	return isPermanentDialCause(err)
+	return isPermanentDialFailure(err)
 }
 
-// isPermanentDialCause reports whether a single address failure cannot heal on its own.
-func isPermanentDialCause(err error) bool {
+// isPermanentDialFailure reports whether one failure cannot heal on its own. It is used at both
+// levels: for a single address's cause, and for the aggregate DialError.Cause when no address was
+// dialed at all (gater refusal, ErrNoAddresses, resolver failure).
+func isPermanentDialFailure(err error) bool {
 	if errors.Is(err, swarm.ErrDialToSelf) ||
 		errors.Is(err, swarm.ErrNoAddresses) ||
 		errors.Is(err, network.ErrNoRemoteAddrs) ||

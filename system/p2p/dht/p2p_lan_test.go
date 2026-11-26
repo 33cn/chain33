@@ -135,8 +135,18 @@ func TestIsPermanentDialError(t *testing.T) {
 		},
 		{
 			"no address dialed, retryable cause",
-			&swarm.DialError{Cause: errors.New("connection gater disallowed the connection")},
+			&swarm.DialError{Cause: swarm.ErrGaterDisallowedConnection},
 			false,
+		},
+		{
+			// host.Connect wraps the dial error with %w (basic_host.go), so the production path
+			// depends on errors.As traversing that wrapper.
+			"wrapped dial error, every address permanent",
+			fmt.Errorf("failed to dial: %w", &swarm.DialError{
+				Cause:      swarm.ErrAllDialsFailed,
+				DialErrors: []swarm.TransportError{{Cause: swarm.ErrDialToSelf}},
+			}),
+			true,
 		},
 	}
 	for _, tt := range tests {
