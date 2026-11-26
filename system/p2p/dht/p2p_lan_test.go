@@ -74,6 +74,80 @@ func TestIsPermanentDialError(t *testing.T) {
 		{"all dials failed", fmt.Errorf("all dials failed: %w", swarm.ErrAllDialsFailed), false},
 		{"transport error", &swarm.TransportError{Cause: errors.New("connection refused")}, false},
 		{"context canceled", context.Canceled, false},
+		{
+			// The regression this classification exists for: one mDNS announcement lists loopback
+			// next to the routable address, so the dial to self must not hide the retryable TLS
+			// simultaneous-open race recorded for the other address.
+			"self + retryable address",
+			&swarm.DialError{
+				Cause: swarm.ErrAllDialsFailed,
+				DialErrors: []swarm.TransportError{
+					{Cause: swarm.ErrDialToSelf},
+					{Cause: errors.New("failed to negotiate security protocol: tls: unexpected message")},
+				},
+			},
+			false,
+		},
+		{
+			"every address permanent",
+			&swarm.DialError{
+				Cause: swarm.ErrAllDialsFailed,
+				DialErrors: []swarm.TransportError{
+					{Cause: swarm.ErrDialToSelf},
+					{Cause: peer.ErrInvalidAddr},
+				},
+			},
+			true,
+		},
+		{
+			// libp2p uses this cause when the address filter removed everything undialable; the
+			// address-level verdict still says "dialing ourselves can never work".
+			"no good addresses, all self",
+			&swarm.DialError{
+				Cause:      swarm.ErrNoGoodAddresses,
+				DialErrors: []swarm.TransportError{{Cause: swarm.ErrDialToSelf}},
+			},
+			true,
+		},
+		{
+			"peer id mismatch on every address",
+			&swarm.DialError{
+				Cause:      swarm.ErrAllDialsFailed,
+				DialErrors: []swarm.TransportError{{Cause: mismatch}},
+			},
+			true,
+		},
+		{
+			// The recorded list is capped; the dropped entry may be the retryable one, so a
+			// truncated list cannot prove "every address is permanent".
+			"truncated address list",
+			&swarm.DialError{
+				Cause:      swarm.ErrAllDialsFailed,
+				Skipped:    3,
+				DialErrors: []swarm.TransportError{{Cause: swarm.ErrDialToSelf}},
+			},
+			false,
+		},
+		{
+			"no address dialed, permanent cause",
+			&swarm.DialError{Cause: swarm.ErrNoAddresses},
+			true,
+		},
+		{
+			"no address dialed, retryable cause",
+			&swarm.DialError{Cause: swarm.ErrGaterDisallowedConnection},
+			false,
+		},
+		{
+			// host.Connect wraps the dial error with %w (basic_host.go), so the production path
+			// depends on errors.As traversing that wrapper.
+			"wrapped dial error, every address permanent",
+			fmt.Errorf("failed to dial: %w", &swarm.DialError{
+				Cause:      swarm.ErrAllDialsFailed,
+				DialErrors: []swarm.TransportError{{Cause: swarm.ErrDialToSelf}},
+			}),
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

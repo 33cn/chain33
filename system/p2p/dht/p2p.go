@@ -446,7 +446,46 @@ func (p *P2P) connectLANPeer(neighbors peer.AddrInfo) {
 // succeed: we were asked to dial ourselves, the announcement carried no usable address, an
 // address was malformed, or the remote proved to hold a different identity key than the peer ID
 // we dialed. Transport failures, timeouts, black-holing and resource limits stay retryable.
+//
+// A dial can fail for several addresses at once, and libp2p reports them as one aggregated
+// *swarm.DialError. The verdict is therefore per dial, not per entry: the dial is permanent only
+// when *every* address failed permanently. Judging the aggregate as soon as one entry matched made
+// a mDNS announcement that lists loopback next to the routable address look permanent — the
+// `dial to self` entry for 127.0.0.1 hid the retryable simultaneous-open TLS race recorded for the
+// other address, and the peer was never re-dialed.
 func isPermanentDialError(err error) bool {
+	var dialErr *swarm.DialError
+	if errors.As(err, &dialErr) {
+		if len(dialErr.DialErrors) > 0 {
+			// Address-level verdicts decide. The aggregate Cause only records that no address is
+			// left to try (ErrAllDialsFailed / ErrNoGoodAddresses), so consulting it here would
+			// make "every address failed permanently" unreachable.
+			//
+			// A truncated list cannot prove that: the dropped entry may be the retryable one.
+			if dialErr.Skipped > 0 {
+				return false
+			}
+			for i := range dialErr.DialErrors {
+				if !isPermanentDialFailure(dialErr.DialErrors[i].Cause) {
+					return false
+				}
+			}
+			return true
+		}
+		// No address was dialed at all (no addresses, gater refusal, resolver failure): the
+		// aggregate Cause is the only verdict available.
+		if dialErr.Cause != nil {
+			return isPermanentDialFailure(dialErr.Cause)
+		}
+		return false
+	}
+	return isPermanentDialFailure(err)
+}
+
+// isPermanentDialFailure reports whether one failure cannot heal on its own. It is used at both
+// levels: for a single address's cause, and for the aggregate DialError.Cause when no address was
+// dialed at all (gater refusal, ErrNoAddresses, resolver failure).
+func isPermanentDialFailure(err error) bool {
 	if errors.Is(err, swarm.ErrDialToSelf) ||
 		errors.Is(err, swarm.ErrNoAddresses) ||
 		errors.Is(err, network.ErrNoRemoteAddrs) ||
