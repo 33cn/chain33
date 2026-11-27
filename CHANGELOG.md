@@ -1,5 +1,12 @@
 changelog
 
+## [1.75.4](https://github.com/33cn/chain33/compare/v1.75.3...v1.75.4) (2026-11-27)
+
+
+### Bug Fixes
+
+* **ethrpc:** return empty input for plain coin transfers ([8f3982d](https://github.com/33cn/chain33/commit/8f3982d6fa8d20e6e70c4569b6b2fad7e3502694)), closes [#1424](https://github.com/33cn/chain33/issues/1424)
+
 ## [1.75.3](https://github.com/33cn/chain33/compare/v1.75.2...v1.75.3) (2026-11-17)
 
 
