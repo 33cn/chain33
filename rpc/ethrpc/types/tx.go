@@ -216,7 +216,7 @@ func paraseChain33Tx(itx *ctypes.Transaction, blockHash common.Hash, blockNum in
 	//eamount := bamount.Mul(bamount, big.NewInt(1e10))
 	//
 	tx.Value = (*hexutil.Big)(eamount)
-	tx.Input = hexutil.Bytes{0}
+	tx.Input = hexutil.Bytes{}
 	if strings.HasSuffix(string(itx.Execer), "evm") {
 		var action ctypes.EVMContractAction4Chain33
 		err := ctypes.Decode(itx.GetPayload(), &action)
